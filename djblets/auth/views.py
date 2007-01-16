@@ -19,6 +19,11 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
+from django import newforms as forms
+from django.conf import settings
+from django.shortcuts import render_to_response
+from django.template import RequestContext
+
 #####################
 # Utility functions #
 #####################
