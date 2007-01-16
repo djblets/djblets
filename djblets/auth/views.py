@@ -21,6 +21,7 @@
 
 from django import newforms as forms
 from django.conf import settings
+from django.contrib import auth
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 
@@ -94,8 +95,12 @@ def login(request, next_page, template_name="accounts/login.html"):
 #####################
 
 class RegistrationForm(forms.Form):
-    username = forms.RegexField(r"^[a-zA-Z0-9_\-\.]*$", max_length=30, error_message='Only A-Z, 0-9, "_", "-", and "." allowed.')
-    password1 = forms.CharField(min_length=5, max_length=30, widget=forms.PasswordInput)
+    username = forms.RegexField(r"^[a-zA-Z0-9_\-\.]*$",
+                                max_length=30,
+                                error_message='Only A-Z, 0-9, "_", "-", and "." allowed.')
+    password1 = forms.CharField(min_length=5,
+                                max_length=30,
+                                widget=forms.PasswordInput)
     password2 = forms.CharField(widget=forms.PasswordInput)
     email = forms.EmailField()
 
@@ -117,7 +122,8 @@ class RegistrationForm(forms.Form):
                 # We check for duplicate users here instead of clean, since it's
                 # possible that two users could race for a name.
                 if get_user(username=d['username']):
-                    self.errors['username'] = forms.util.ErrorList(["Sorry, this username is taken."])
+                    self.errors['username'] = \
+                        forms.util.ErrorList(["Sorry, this username is taken."])
                 else:
                     raise
 
