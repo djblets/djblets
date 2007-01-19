@@ -1,6 +1,5 @@
-#!/usr/bin/env python
 #
-# setup.py -- Installation for djblets
+# __init__.py - djblets.util top-level
 #
 # Copyright (C) 2007 David Trowbridge
 #
@@ -18,10 +17,4 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-
-from distutils.core import setup
-
-setup(name='djblets',
-      version='0.1',
-      packages=['djblets', 'djblets.auth', 'djblets.util'])
 
