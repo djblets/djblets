@@ -1,5 +1,5 @@
 #
-# authplus.py
+# djblets.auth.views
 #
 # Copyright (C) 2007 David Trowbridge
 # Copyright (C) 2007 Micah Dowty
@@ -28,50 +28,9 @@ from django.shortcuts import render_to_response
 from django.template import loader
 from django.template.context import RequestContext, Context
 
-from djblets.util.decorators import simple_decorator
+from djblets.auth.util import *
 
 import datetime, re
-
-###########################
-#    Utility functions    #
-###########################
-
-@simple_decorator
-def login_required(view_func):
-    """Simplified version of auth.decorators.login_required,
-       which works with our LOGIN_URL and removes the 'next'
-       parameter which we don't need yet.
-       """
-    def _checklogin(request, *args, **kwargs):
-        if request.user.is_authenticated():
-            return view_func(request, *args, **kwargs)
-        else:
-            return HttpResponseRedirect(settings.LOGIN_URL)
-    return _checklogin
-
-def get_user(username):
-    try:
-        return auth.models.User.objects.get(username=username)
-    except auth.models.User.DoesNotExist:
-        return None
-
-def internal_login(request, username, password):
-    user = auth.authenticate(username=username, password=password)
-    if user is None:
-        return "Incorrect username or password."
-    elif not user.is_active:
-        return "This account is inactive."
-    elif not request.session.test_cookie_worked():
-        return "Cookies must be enabled."
-
-    auth.login(request, user)
-    request.session.delete_test_cookie()
-    user.last_login = datetime.datetime.now()
-    user.save()
-
-def validate_test_cookie(form, request):
-    if not request.session.test_cookie_worked():
-        form.errors['submit'] = forms.util.ErrorList(["Cookies must be enabled."])
 
 ###########################
 #       User Login        #
