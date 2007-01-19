@@ -96,6 +96,8 @@ def login(request, next_page, template_name="accounts/login.html"):
 ###########################
 
 class RegistrationForm(forms.Form):
+    """Registration form that should be appropriate for most cases."""
+
     username = forms.RegexField(r"^[a-zA-Z0-9_\-\.]*$",
                                 max_length=30,
                                 error_message='Only A-Z, 0-9, "_", "-", and "." allowed.')
@@ -257,8 +259,8 @@ def get_recovery_session(key):
 
 class ResetPasswordForm(forms.Form):
     password1 = forms.CharField(min_length=5, max_length=30,
-                                widget=forms.PasswordField)
-    password2 = forms.CharField(widget=forms.PasswordField)
+                                widget=forms.PasswordInput)
+    password2 = forms.CharField(widget=forms.PasswordInput)
 
     def clean_password2(self):
         if 'password1' in self.clean_data:
