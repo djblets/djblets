@@ -125,17 +125,24 @@ def register(request, template_name="accounts/register.html"):
 ###########################
 
 class ChangePasswordForm(forms.Form):
-    old_password = forms.CharField()
-    new_password = forms.CharField(min_length=5, max_length=30)
-    new_password2 = forms.CharField()
+    old_password = forms.CharField(widget=forms.PasswordInput)
+    new_password1 = forms.CharField(min_length=5,
+                                    max_length=30,
+                                    widget=forms.PasswordInput)
+    new_password2 = forms.CharField(widget=forms.PasswordInput)
+
+    def clean_new_password2(self):
+        if 'new_password1' in self.clean_data:
+            if self.clean_data['new_password1'] != self.clean_data['new_password2']:
+                raise forms.ValidationError('Passwords must match')
+            return self.clean_data['new_password2']
 
 def do_change_password(request):
     form = ChangePasswordForm(request.POST)
     form.full_clean()
-    validate_password_confirmation(form, 'new_password')
     validate_old_password(form, request.user, 'old_password')
     if not form.errors:
-        request.user.set_password(form.clean_data['new_password'])
+        request.user.set_password(form.clean_data['new_password1'])
         request.user.save()
         request.user.message_set.create(message="Your password was changed successfully.")
     return form
