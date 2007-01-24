@@ -100,7 +100,7 @@ def register(request, template_name="accounts/register.html"):
     if request.POST:
         form = RegistrationForm(request.POST)
         form.full_clean()
-        validate_text_cookie(form, request)
+        validate_test_cookie(form, request)
 
         if form.is_valid():
             user = form.save()
