@@ -20,6 +20,7 @@
 #
 
 from django.contrib import auth
+from django.conf import settings
 from django.http import HttpResponseRedirect
 
 from djblets.util.decorators import simple_decorator
