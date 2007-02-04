@@ -19,6 +19,7 @@
 #
 
 from django.core.cache import cache
+from django.conf import settings
 
 def cache_memoize(key, lookup_callable):
     if cache.has_key(key):
