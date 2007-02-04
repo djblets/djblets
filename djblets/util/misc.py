@@ -1,5 +1,5 @@
 #
-# __init__.py - djblets.util top-level
+# misc.py -- Miscellaneous utilities.
 #
 # Copyright (C) 2007 David Trowbridge
 #
@@ -17,4 +17,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-from misc import *
+
+from django.core.cache import cache
+
+def cache_memoize(key, lookup_callable):
+    if cache.has_key(key):
+        return cache.get(key)
+    data = lookup_callable()
+    cache.set(key, data,
+    settings.CACHE_EXPIRATION_TIME)
+    return data
