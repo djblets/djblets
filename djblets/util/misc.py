@@ -25,6 +25,8 @@ def cache_memoize(key, lookup_callable):
     if cache.has_key(key):
         return cache.get(key)
     data = lookup_callable()
-    cache.set(key, data,
-    settings.CACHE_EXPIRATION_TIME)
+    try:
+        cache.set(key, data, settings.CACHE_EXPIRATION_TIME)
+    except:
+        pass
     return data
