@@ -94,9 +94,7 @@ class RegistrationForm(forms.Form):
                 else:
                     raise
 
-def register(request, template_name="accounts/register.html"):
-    redirect_to = request.REQUEST.get(auth.REDIRECT_FIELD_NAME, '')
-
+def register(request, next_page, template_name="accounts/register.html"):
     if request.POST:
         form = RegistrationForm(request.POST)
         form.full_clean()
@@ -111,9 +109,7 @@ def register(request, template_name="accounts/register.html"):
                 auth.login(request, user)
                 request.session.delete_test_cookie()
 
-                if not redirect_to or '://' in redirect_to or ' ' in redirect_to:
-                    redirect_to = '/account/'
-                return HttpResponseRedirect(redirect_to)
+                return HttpResponseRedirect(next_page)
     else:
         form = RegistrationForm()
 
