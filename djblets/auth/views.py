@@ -36,7 +36,8 @@ import datetime, re
 #       User Login        #
 ###########################
 
-def login(request, next_page, template_name="accounts/login.html"):
+def login(request, next_page, template_name="accounts/login.html",
+          extra_context={}):
     """Simple login form view which doesn't rely on Django's current
        inflexible oldforms-based auth view.
        """
@@ -50,10 +51,25 @@ def login(request, next_page, template_name="accounts/login.html"):
         error = None
 
     request.session.set_test_cookie()
-    return render_to_response(template_name, RequestContext(request, {
+    context = RequestContext(request, {
         'error' : error,
         'login_url' : settings.LOGIN_URL,
-        }))
+    })
+
+    if extra_context is not None:
+        # Copied from Django's generic views.
+        # The reason we don't simply call context.update(extra_context) is
+        # that there are times when you may want to pass a function in the
+        # URL handler that you want called at the time of render, rather than
+        # being forced to expose it as a template tag or calling it upon
+        # URL handler creation (which may be too early and only happens once).
+        for key, value in extra_context.items():
+            if callable(value):
+                context[key] = value()
+            else:
+                context[key] = value
+
+    return render_to_response(template_name, context)
 
 ###########################
 #    User Registration    #
