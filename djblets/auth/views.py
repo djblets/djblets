@@ -88,14 +88,22 @@ class RegistrationForm(forms.Form):
     email = forms.EmailField()
 
     def clean_password2(self):
-        if 'password1' in self.clean_data:
-            if self.clean_data['password1'] != self.clean_data['password2']:
+        # XXX Compatibility with Django 0.96 and 1.0
+        formdata = getattr(self, "cleaned_data",
+                           getattr(self, "clean_data", None))
+
+        if 'password1' in formdata
+            if formdata['password1'] != formdata['password2']:
                 raise forms.ValidationError('Passwords must match')
-        return self.clean_data['password2']
+        return formdata['password2']
 
     def save(self):
         if not self.errors:
-            d = dict((k, v.encode("utf8")) for k, v in self.clean_data.iteritems())
+            # XXX Compatibility with Django 0.96 and 1.0
+            formdata = getattr(self, "cleaned_data",
+                               getattr(self, "clean_data", None))
+
+            d = dict((k, v.encode("utf8")) for k, v in formdata.iteritems())
             try:
                 user = auth.models.User.objects.create_user(d['username'],
                                                             d['email'],
@@ -119,8 +127,11 @@ def register(request, next_page, template_name="accounts/register.html"):
         if form.is_valid():
             user = form.save()
             if user:
-                user = auth.authenticate(username=form.clean_data['username'],
-                                         password=form.clean_data['password1'])
+                # XXX Compatibility with Django 0.96 and 1.0
+                formdata = getattr(form, "cleaned_data",
+                                   getattr(form, "clean_data", None))
+                user = auth.authenticate(username=formdata['username'],
+                                         password=formdata['password1'])
                 assert user
                 auth.login(request, user)
                 request.session.delete_test_cookie()
@@ -144,17 +155,25 @@ class ChangePasswordForm(forms.Form):
     new_password2 = forms.CharField(widget=forms.PasswordInput)
 
     def clean_new_password2(self):
-        if 'new_password1' in self.clean_data:
-            if self.clean_data['new_password1'] != self.clean_data['new_password2']:
+        # XXX Compatibility with Django 0.96 and 1.0
+        formdata = getattr(self, "cleaned_data",
+                           getattr(self, "clean_data", None))
+
+        if 'new_password1' in formdata:
+            if formdata['new_password1'] != formdata['new_password2']:
                 raise forms.ValidationError('Passwords must match')
-            return self.clean_data['new_password2']
+            return formdata['new_password2']
 
 def do_change_password(request):
     form = ChangePasswordForm(request.POST)
     form.full_clean()
     validate_old_password(form, request.user, 'old_password')
     if not form.errors:
-        request.user.set_password(form.clean_data['new_password1'])
+        # XXX Compatibility with Django 0.96 and 1.0
+        formdata = getattr(form, "cleaned_data",
+                           getattr(form, "clean_data", None))
+
+        request.user.set_password(formdata['new_password1'])
         request.user.save()
         request.user.message_set.create(message="Your password was changed successfully.")
     return form
@@ -168,7 +187,11 @@ def do_change_profile(request):
     form = ChangeProfileForm(request.POST)
     form.full_clean()
     if not form.errors:
-        for key, value in form.clean_data.items():
+        # XXX Compatibility with Django 0.96 and 1.0
+        formdata = getattr(form, "cleaned_data",
+                           getattr(form, "clean_data", None))
+
+        for key, value in formdata.items():
             setattr(request.user, key, value)
         request.user.save()
         request.user.message_set.create(message="Your profile was updated successfully.")
@@ -246,10 +269,14 @@ class ResetPasswordForm(forms.Form):
     password2 = forms.CharField(widget=forms.PasswordInput)
 
     def clean_password2(self):
-        if 'password1' in self.clean_data:
-            if self.clean_data['password1'] != self.clean_data['password2']:
+        # XXX Compatibility with Django 0.96 and 1.0
+        formdata = getattr(self, "cleaned_data",
+                           getattr(self, "clean_data", None))
+
+        if 'password1' in formdata:
+            if formdata['password1'] != formdata['password2']:
                 raise forms.ValidationError('Passwords must match')
-        return self.clean_data['password2']
+        return formdata['password2']
 
 def reset(request, key, next_page,
           form_template_name='accounts/reset_password.html',
@@ -265,11 +292,16 @@ def reset(request, key, next_page,
         validate_test_cookie(form, request)
 
         if not form.errors:
-            user.set_password(form.clean_data['password1'])
+            # XXX Compatibility with Django 0.96 and 1.0
+            formdata = getattr(form, "cleaned_data",
+                               getattr(form, "clean_data", None))
+
+            user.set_password(formdata['password1'])
             user.save()
 
             # Try to log in using the new password
-            loginError = internal_login(request, user.username, form.clean_data['password1'])
+            loginError = internal_login(request, user.username,
+                                        formdata['password1'])
             if loginError:
                 # This might happen if the account is deactivated.
                 form.errors['submit'] = forms.util.ErrorList([loginError])
