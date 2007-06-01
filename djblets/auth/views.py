@@ -92,7 +92,7 @@ class RegistrationForm(forms.Form):
         formdata = getattr(self, "cleaned_data",
                            getattr(self, "clean_data", None))
 
-        if 'password1' in formdata
+        if 'password1' in formdata:
             if formdata['password1'] != formdata['password2']:
                 raise forms.ValidationError('Passwords must match')
         return formdata['password2']
