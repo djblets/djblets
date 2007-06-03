@@ -26,8 +26,18 @@
 
 from django.core.cache import cache
 from django.conf import settings
+from django.contrib.sites.models import Site
 
 def cache_memoize(key, lookup_callable):
+    try:
+        site = Site.objects.get(pk=settings.SITE_ID).domain
+
+        # The install has a Site app, so prefix the domain to the key.
+        key = "%s:%s" % (site.domain, key)
+    except:
+        # The install doesn't have a Site app, so use the key as-is.
+        pass
+
     if cache.has_key(key):
         return cache.get(key)
     data = lookup_callable()
