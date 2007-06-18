@@ -24,9 +24,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-import unittest
-
 from django.template import Node
+from django.test import TestCase
 
 
 class StubNodeList(Node):
@@ -42,7 +41,7 @@ class StubParser:
         pass
 
 
-class TagTest(unittest.TestCase):
+class TagTest(TestCase):
     """Base testing setup for utils.templatetags.htmlutils"""
 
     def setUp(self):
