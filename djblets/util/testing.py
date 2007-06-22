@@ -29,13 +29,19 @@ from django.test import TestCase
 
 
 class StubNodeList(Node):
+    def __init__(self, default_text):
+        self.default_text = default_text
+
     def render(self, context):
-        return 'content'
+        return self.default_text
 
 
 class StubParser:
+    def __init__(self, default_text):
+        self.default_text = default_text
+
     def parse(self, until):
-        return StubNodeList()
+        return StubNodeList(self.default_text)
 
     def delete_first_token(self):
         pass
@@ -45,5 +51,7 @@ class TagTest(TestCase):
     """Base testing setup for utils.templatetags.htmlutils"""
 
     def setUp(self):
-        self.parser = StubParser()
+        self.parser = StubParser(self.getContentText())
 
+    def getContentText(self):
+        return "content"
