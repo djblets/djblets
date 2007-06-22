@@ -96,7 +96,7 @@ def blocktag(tag_func):
         if not min_args <= len(bits) <= max_args:
             if min_args == max_args:
                 raise TemplateSyntaxError, \
-                    "%r tag takes %d arguments." % (tag_name, num_args)
+                    "%r tag takes %d arguments." % (tag_name, min_args)
             else:
                 raise TemplateSyntaxError, \
                     "%r tag takes %d to %d arguments, got %d." % \
