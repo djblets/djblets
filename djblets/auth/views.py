@@ -52,7 +52,8 @@ def login(request, next_page, template_name="accounts/login.html",
                                request.POST.get('username'),
                                request.POST.get('password'))
         if not error:
-            return HttpResponseRedirect(next_page)
+            return HttpResponseRedirect(request.REQUEST.get("next_page",
+                                                            next_page))
     else:
         error = None
 
@@ -60,6 +61,7 @@ def login(request, next_page, template_name="accounts/login.html",
     context = RequestContext(request, {
         'error' : error,
         'login_url' : settings.LOGIN_URL,
+        'next_page' : request.REQUEST.get("next_page", next_page)
     })
 
     if extra_context is not None:

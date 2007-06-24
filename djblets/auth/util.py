@@ -44,7 +44,8 @@ def login_required(view_func):
         if request.user.is_authenticated():
             return view_func(request, *args, **kwargs)
         else:
-            return HttpResponseRedirect(settings.LOGIN_URL)
+            return HttpResponseRedirect('%s?next_page=%s' % \
+                (settings.LOGIN_URL, request.path))
     return _checklogin
 
 def get_user(username):
