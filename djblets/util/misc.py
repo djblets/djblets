@@ -27,6 +27,7 @@
 from django.core.cache import cache
 from django.conf import settings
 from django.contrib.sites.models import Site
+from django.db.models.manager import Manager
 
 def cache_memoize(key, lookup_callable):
     try:
@@ -47,3 +48,15 @@ def cache_memoize(key, lookup_callable):
         pass
     return data
 
+
+def get_object_or_none(klass, *args, **kwargs):
+    if isinstance(klass, Manager):
+        manager = klass
+        klass = manager.model
+    else:
+        manager = klass._default_manager
+
+    try:
+        return manager.get(*args, **kwargs)
+    except klass.DoesNotExist:
+        return None
