@@ -28,7 +28,7 @@ from inspect import getargspec
 
 from django import template
 from django.template import resolve_variable
-from django.template import TemplateSyntaxError, VariableDoesNotExist
+from django.template import TemplateSyntaxError
 
 
 # The decorator decorator.  This is copyright unknown, verbatim from

@@ -33,8 +33,10 @@ from django.core.mail import send_mail
 from django.shortcuts import render_to_response
 from django.template import loader
 from django.template.context import RequestContext, Context
+from django.utils.httpwrappers import HttpResponseRedirect
 
-from djblets.auth.util import *
+from djblets.auth.util import internal_login, get_user, validate_test_cookie, \
+                              validate_old_password
 
 import datetime, re
 
