@@ -283,7 +283,12 @@ class DataGrid(object):
         normal_columns = []
 
         for colname in colnames:
-            column = getattr(self, colname)
+            try:
+                column = getattr(self, colname)
+            except AttributeError:
+                # The user specified a column that doesn't exist. Skip it.
+                continue
+
             column.datagrid = self
             self.columns.append(column)
 
