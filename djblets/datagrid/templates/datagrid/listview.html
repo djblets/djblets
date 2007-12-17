@@ -1,0 +1,35 @@
+{% load datagrid %}
+<div class="datagrid-wrapper">
+ <div class="datagrid-titlebox">
+{% block datagrid_title %}
+   <h1 class="datagrid-title">{{datagrid.title}}</h1>
+{% endblock %}
+ </div>
+ <div class="datagrid-main">
+  <table class="datagrid">
+   <colgroup>
+{% for column in datagrid.columns %}
+    <col class="{{column.field_name}}"{% ifnotequal column.width 0 %} width="{{column.width}}%"{% endifnotequal %} />
+{% endfor %}
+   </colgroup>
+   <thead>
+    <tr class="datagrid-headers">
+{% for column in datagrid.columns %}
+     {{column.get_header}}{% endfor %}
+    </tr>
+   </thead>
+   <tbody>
+{% for row in datagrid.rows %}
+    <tr class="{% cycle odd,even %}">
+{%  for cell in row.cells %}
+     {{cell}}
+{%  endfor %}
+    </tr>
+{% endfor %}
+   </tbody>
+  </table>
+{% if is_paginated %}
+{%  paginator %}
+{% endif %}
+ </div>
+</div>
