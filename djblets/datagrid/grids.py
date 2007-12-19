@@ -379,10 +379,13 @@ class DataGrid(object):
             * 'object': The object represented in the row.
             * 'cells':  The cells in the row.
         """
-        if any(self.sort_list):
-            query = self.queryset.order_by(*self.sort_list)
-        else:
-            query = self.queryset
+        query = self.queryset
+
+        # See if we have any valid entries in sort_list. If so, apply them.
+        for sort_item in self.sort_list:
+            if sort_item:
+                query = query.order_by(*self.sort_list)
+                break
 
         for obj in query:
             yield {
