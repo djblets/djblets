@@ -24,13 +24,14 @@ class Column(object):
     SORT_DESCENDING = 0
     SORT_ASCENDING = 1
 
-    def __init__(self, label=None, field_name=None,
+    def __init__(self, label=None, field_name=None, db_field=None,
                  image_url=None, image_width=None, image_height=None,
                  image_alt="", shrink=False, expand=False, sortable=False,
                  default_sort_dir=SORT_DESCENDING, link=False,
                  link_func=None, cell_clickable=False, css_class=""):
         self.datagrid = None
         self.field_name = field_name
+        self.db_field = db_field or field_name
         self.label = label
         self.image_url = image_url
         self.image_width = image_width
@@ -223,6 +224,7 @@ class DataGrid(object):
         self.request = request
         self.queryset = queryset
         self.columns = []
+        self.db_field_map = {}
         self.sort_list = None
         self.state_loaded = False
 
@@ -281,6 +283,7 @@ class DataGrid(object):
 
         expand_columns = []
         normal_columns = []
+        self.db_field_map = {}
 
         for colname in colnames:
             try:
@@ -294,6 +297,11 @@ class DataGrid(object):
 
             if not column.field_name:
                 column.field_name = colname
+
+            if not column.db_field:
+                column.db_field = column.field_name
+
+            self.db_field_map[column.field_name] = column.db_field
 
             if column.expand:
                 # This column is requesting all remaining space. Save it for
@@ -380,12 +388,29 @@ class DataGrid(object):
             * 'cells':  The cells in the row.
         """
         query = self.queryset
+        use_select_related = False
 
-        # See if we have any valid entries in sort_list. If so, apply them.
+        # Generate the actual list of fields we'll be sorting by
+        sort_list = []
         for sort_item in self.sort_list:
-            if sort_item:
-                query = query.order_by(*self.sort_list)
-                break
+            if sort_item and sort_item in self.db_field_map:
+                db_field = self.db_field_map[sort_item]
+                sort_list.append(db_field)
+
+                # Lookups spanning tables require that we query from those
+                # tables. In order to keep things simple, we'll just use
+                # select_related so that we don't have to figure out the
+                # table relationships. We only do this if we have a lookup
+                # spanning tables.
+                if '.' in db_field:
+                    use_select_related = True
+
+        if sort_list:
+            print sort_list
+            query = query.order_by(*sort_list)
+
+        if use_select_related:
+            query = query.select_related(depth=1)
 
         for obj in query:
             yield {
