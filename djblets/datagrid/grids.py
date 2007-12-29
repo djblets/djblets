@@ -359,10 +359,6 @@ class DataGrid(object):
             sort_str = ",".join(self.sort_list)
 
 
-        # Fetch the list of objects and have it ready.
-        self.precompute_objects()
-
-
         # A subclass might have some work to do for loading and saving
         # as well.
         if self.load_extra_state(profile):
@@ -385,6 +381,10 @@ class DataGrid(object):
                 profile.save()
 
         self.state_loaded = True
+
+        # Fetch the list of objects and have it ready.
+        self.precompute_objects()
+
 
     def load_extra_state(self, profile):
         """
