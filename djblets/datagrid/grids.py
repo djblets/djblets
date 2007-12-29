@@ -1,5 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import InvalidPage, ObjectPaginator
+from django.http import Http404
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from django.template.defaultfilters import date, timesince
