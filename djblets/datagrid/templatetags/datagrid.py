@@ -28,4 +28,5 @@ def paginator(context, adjacent_pages=3):
         'has_previous': context['has_previous'],
         'show_first': 1 not in page_nums,
         'show_last': context['pages'] not in page_nums,
+        'extra_query': context.get('extra_query', None),
     }
