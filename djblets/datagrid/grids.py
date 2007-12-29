@@ -1,4 +1,5 @@
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.paginator import InvalidPage, ObjectPaginator
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from django.template.defaultfilters import date, timesince
@@ -206,14 +207,22 @@ class DataGrid(object):
     responsible for defining one or more column types. It can also set
     one or more of the following optional variables:
 
+        * 'title':                  The title of the grid.
         * 'profile_sort_field':     The variable name in the user profile
                                     where the sort order can be loaded and
                                     saved.
         * 'profile_columns_field":  The variable name in the user profile
                                     where the columns list can be loaded and
                                     saved.
-        * 'paginate_by':            The default number of items to show on
-                                    each page of the grid.
+        * 'paginate_by':            The number of items to show on each page
+                                    of the grid. The default is 50.
+        * 'paginate_orphans':       If this number of objects or fewer are
+                                    on the last page, it will be rolled into
+                                    the previous page. The default is 3.
+        * 'page':                   The page to display. If this is not
+                                    specified, the 'page' variable passed
+                                    in the URL will be used, or 1 if that is
+                                    not specified.
         * 'listview_template':      The template used to render the list view.
                                     The default is 'datagrid/listview.html'
         * 'column_header_template': The template used to render each column
@@ -223,16 +232,21 @@ class DataGrid(object):
     def __init__(self, request, queryset=None, title=""):
         self.request = request
         self.queryset = queryset
+        self.rows = []
         self.columns = []
         self.db_field_map = {}
+        self.paginator = None
         self.sort_list = None
         self.state_loaded = False
+        self.page_num = 0
 
         # Customizable variables
         self.title = title
         self.profile_sort_field = None
         self.profile_columns_field = None
         self.paginate_by = 50
+        self.paginate_orphans = 3
+        self.page = None
         self.listview_template = 'datagrid/listview.html'
         self.column_header_template = 'datagrid/column_header.html'
 
@@ -345,6 +359,10 @@ class DataGrid(object):
             sort_str = ",".join(self.sort_list)
 
 
+        # Fetch the list of objects and have it ready.
+        self.precompute_objects()
+
+
         # A subclass might have some work to do for loading and saving
         # as well.
         if self.load_extra_state(profile):
@@ -378,14 +396,10 @@ class DataGrid(object):
         """
         return False
 
-    def rows(self):
+    def precompute_objects(self):
         """
-        Retrieves the rows of the grid, sorted by the current sort order.
-
-        The resulting data is a dictionary with the following keys:
-
-            * 'object': The object represented in the row.
-            * 'cells':  The cells in the row.
+        Builds the queryset and stores the list of objects for use in
+        rendering the datagrid.
         """
         query = self.queryset
         use_select_related = False
@@ -406,17 +420,42 @@ class DataGrid(object):
                     use_select_related = True
 
         if sort_list:
-            print sort_list
             query = query.order_by(*sort_list)
 
         if use_select_related:
             query = query.select_related(depth=1)
 
-        for obj in query:
-            yield {
+        self.paginator = ObjectPaginator(query, self.paginate_by,
+                                         self.paginate_orphans)
+
+        if not self.page:
+            page = self.request.GET.get('page', 1)
+
+        # Accept either "last" or a valid page number.
+        if page == "last":
+            self.page_num = self.paginator.pages
+        else:
+            try:
+                self.page_num = int(page)
+            except ValueError:
+                raise Http404
+
+        try:
+            object_list = self.paginator.get_page(self.page_num - 1)
+        except InvalidPage:
+            if self.page_num == 1:
+                # Our queryset is empty.
+                object_list = []
+            else:
+                raise Http404
+
+        self.rows = []
+
+        for obj in object_list:
+            self.rows.append({
                 'object': obj,
                 'cells': [column.render_cell(obj) for column in self.columns]
-            }
+            })
 
     def render_listview(self):
         """
@@ -429,6 +468,20 @@ class DataGrid(object):
         return mark_safe(render_to_string(self.listview_template,
             RequestContext(self.request, {
                 'datagrid': self,
+                'is_paginated': self.paginator.pages > 1,
+                'results_per_page': self.paginate_by,
+                'has_next': self.paginator.has_next_page(self.page_num - 1),
+                'has_previous':
+                    self.paginator.has_previous_page(self.page_num - 1),
+                'page': self.page_num,
+                'next': self.page_num + 1,
+                'previous': self.page_num - 1,
+                'last_on_page': self.paginator.last_on_page(self.page_num - 1),
+                'first_on_page':
+                    self.paginator.first_on_page(self.page_num - 1),
+                'pages': self.paginator.pages,
+                'hits': self.paginator.hits,
+                'page_range': self.paginator.page_range,
             })))
 
     def render_to_response(self, template_name, extra_context={}):
