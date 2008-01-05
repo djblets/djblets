@@ -1,5 +1,5 @@
 {% load datagrid %}
-<div class="datagrid-wrapper">
+<div class="datagrid-wrapper" id="{{datagrid.id}}">
  <div class="datagrid-titlebox">
 {% block datagrid_title %}
    <h1 class="datagrid-title">{{datagrid.title}}</h1>
@@ -11,19 +11,20 @@
 {% for column in datagrid.columns %}
     <col class="{{column.field_name}}"{% ifnotequal column.width 0 %} width="{{column.width}}%"{% endifnotequal %} />
 {% endfor %}
+    <col class="datagrid-customize" />
    </colgroup>
    <thead>
     <tr class="datagrid-headers">
 {% for column in datagrid.columns %}
      {{column.get_header}}{% endfor %}
+     <th class="edit-columns datagrid-header" id="{{datagrid.id}}-edit" onclick="javascript:DJBLETS.datagrids.toggleColumnsMenu('{{datagrid.id}}-menu', '{{datagrid.id}}-edit', event); return false;">...</th>
     </tr>
    </thead>
    <tbody>
 {% for row in datagrid.rows %}
     <tr class="{% cycle odd,even %}">
 {%  for cell in row.cells %}
-     {{cell}}
-{%  endfor %}
+     {{cell}}{% endfor %}
     </tr>
 {% endfor %}
    </tbody>
@@ -33,3 +34,21 @@
 {% endif %}
  </div>
 </div>
+<table class="datagrid-menu" id="{{datagrid.id}}-menu" style="visibility:hidden;position:absolute;top:0px;left:-1000px;">
+{% for column in datagrid.all_columns %}
+{%  with column.toggle_url as toggle_url %}
+ <tr>
+  <td><div class="datagrid-menu-checkbox" onclick="javascript:window.location='{{toggle_url}}';">{% if column.active %}✓{% endif %}</div></td>
+  <td class="datagrid-menu-label"><a href=".{{toggle_url}}">
+{%   if column.image_url %}
+   <img src="{{column.image_url}}" width="{{column.image_width}}" height="{{column.image_height}}" alt="{{column.image_alt}}" />
+{%   endif %}
+   {{column.detailed_label|default_if_none:""}}</a>
+{%  endwith %}
+{% endfor %}
+</table>
+<script type="text/javascript">
+DJBLETS.datagrids.registerDataGrid("{{datagrid.id}}", [
+{% for column in datagrid.columns %}"{{column.id}}"{% if not forloop.last %}, {%endif %}{% endfor %}
+]);
+</script>

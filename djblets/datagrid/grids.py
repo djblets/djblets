@@ -1,6 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import InvalidPage, ObjectPaginator
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from django.template.defaultfilters import date, timesince
@@ -26,15 +26,18 @@ class Column(object):
     SORT_DESCENDING = 0
     SORT_ASCENDING = 1
 
-    def __init__(self, label=None, field_name=None, db_field=None,
+    def __init__(self, label=None, detailed_label=None,
+                 field_name=None, db_field=None,
                  image_url=None, image_width=None, image_height=None,
                  image_alt="", shrink=False, expand=False, sortable=False,
                  default_sort_dir=SORT_DESCENDING, link=False,
                  link_func=None, cell_clickable=False, css_class=""):
+        self.id = None
         self.datagrid = None
         self.field_name = field_name
         self.db_field = db_field or field_name
         self.label = label
+        self.detailed_label = detailed_label or self.label
         self.image_url = image_url
         self.image_width = image_width
         self.image_height = image_height
@@ -48,7 +51,27 @@ class Column(object):
         self.link_func = link_func or \
             (lambda x, y: self.datagrid.link_to_object(x, y))
         self.css_class = css_class
+
+        # State
+        self.active = False
+        self.last = False
         self.width = 0
+
+    def get_toggle_url(self):
+        """
+        Returns the URL of the current page with this column's visibility
+        toggled.
+        """
+        columns = [column.id for column in self.datagrid.columns]
+
+        if self.active:
+            columns.remove(self.id)
+        else:
+            columns.append(self.id)
+
+        return "?%scolumns=%s" % (self.get_url_params_except("columns"),
+                                  ",".join(columns))
+    toggle_url = property(get_toggle_url)
 
     def get_header(self):
         """
@@ -68,56 +91,49 @@ class Column(object):
             sort_list = list(self.datagrid.sort_list)
 
             if sort_list:
-                rev_field_name = "-%s" % self.field_name
-                new_field_name = self.field_name
-                cur_field_name = ""
+                rev_column_id = "-%s" % self.id
+                new_column_id = self.id
+                cur_column_id = ""
 
-                if self.field_name in sort_list:
+                if self.id in sort_list:
                     # This column is currently being sorted in
                     # ascending order.
                     sort_direction = self.SORT_ASCENDING
-                    cur_field_name = self.field_name
-                    new_field_name = rev_field_name
-                elif rev_field_name in sort_list:
+                    cur_column_id = self.id
+                    new_column_id = rev_column_id
+                elif rev_column_id in sort_list:
                     # This column is currently being sorted in
                     # descending order.
                     sort_direction = self.SORT_DESCENDING
-                    cur_field_name = rev_field_name
-                    new_field_name = self.field_name
+                    cur_column_id = rev_column_id
+                    new_column_id = self.id
 
-                if cur_field_name:
+                if cur_column_id:
                     in_sort = True
-                    sort_primary = (sort_list[0] == cur_field_name)
+                    sort_primary = (sort_list[0] == cur_column_id)
 
                     if not sort_primary:
                         # If this is not the primary column, we want to keep
                         # the sort order intact.
-                        new_field_name = cur_field_name
+                        new_column_id = cur_column_id
 
                     # Remove this column from the current location in the list
                     # so we can move it to the front of the list.
-                    sort_list.remove(cur_field_name)
+                    sort_list.remove(cur_column_id)
 
                 # Insert the column name into the beginning of the sort list.
-                sort_list.insert(0, new_field_name)
+                sort_list.insert(0, new_column_id)
             else:
                 # There's no sort list to begin with. Make this column
                 # the only entry.
-                sort_list = [self.field_name]
+                sort_list = [self.id]
 
             # We can only support two entries in the sort list, so truncate
             # this.
             del(sort_list[2:])
 
-            url_prefix = "?"
-
-            for key in self.datagrid.request.GET:
-                if key != "sort":
-                    url_prefix += "%s=%s&" % \
-                        (key, self.datagrid.request.GET[key])
-
-            url_prefix += "sort="
-
+            url_prefix = "?%ssort=" % self.get_url_params_except("sort",
+                                                                 "columns")
             unsort_url = url_prefix + ','.join(sort_list[1:])
             sort_url   = url_prefix + ','.join(sort_list)
 
@@ -132,36 +148,46 @@ class Column(object):
             })))
     header = property(get_header)
 
+    def get_url_params_except(self, *params):
+        """
+        Utility function to return a string containing URL parameters to
+        this page with the specified parameter filtered out.
+        """
+        s = ""
+
+        for key in self.datagrid.request.GET:
+            if key not in params:
+                s += "%s=%s&" % (key, self.datagrid.request.GET[key])
+
+        return s
+
     def render_cell(self, obj):
         """
         Renders the table cell containing column data.
         """
         rendered_data = self.render_data(obj)
-        s = "<td"
+        css_class = ""
+        url = ""
 
         if self.css_class:
             if callable(self.css_class):
-                s += ' class="%s"' % self.css_class(obj)
+                css_class = self.css_class(obj)
             else:
-                s += ' class="%s"' % self.css_class
+                css_class = self.css_class
 
-        url = ""
         if self.link:
             try:
                 url = self.link_func(obj, rendered_data)
             except AttributeError:
                 pass
 
-        if url:
-            if self.cell_clickable:
-                s += ' onclick="javascript:window.location=\'%s\'; ' \
-                     'return false;"' % url
-
-            s += '><a href="%s">%s</a></td>' % (url, rendered_data)
-        else:
-            s += '>%s</td>' % rendered_data
-
-        return mark_safe(s)
+        return mark_safe(render_to_string(self.datagrid.cell_template,
+            RequestContext(self.datagrid.request, {
+                'column': self,
+                'css_class': css_class,
+                'url': url,
+                'data': mark_safe(rendered_data)
+            })))
 
     def render_data(self, obj):
         """
@@ -229,17 +255,27 @@ class DataGrid(object):
         * 'column_header_template': The template used to render each column
                                     header. The default is
                                     'datagrid/column_header.html'
+        * 'cell_template':          The template used to render a cell of
+                                    data. The default is 'datagrid/cell.html'
     """
     def __init__(self, request, queryset=None, title=""):
         self.request = request
         self.queryset = queryset
         self.rows = []
         self.columns = []
+        self.all_columns = []
         self.db_field_map = {}
         self.paginator = None
         self.sort_list = None
         self.state_loaded = False
         self.page_num = 0
+        self.id = None
+
+        if not hasattr(request, "datagrid_count"):
+            request.datagrid_count = 0
+
+        self.id = "datagrid-%s" % request.datagrid_count
+        request.datagrid_count += 1
 
         # Customizable variables
         self.title = title
@@ -250,6 +286,30 @@ class DataGrid(object):
         self.page = None
         self.listview_template = 'datagrid/listview.html'
         self.column_header_template = 'datagrid/column_header.html'
+        self.cell_template = 'datagrid/cell.html'
+
+        for attr in dir(self):
+            column = getattr(self, attr)
+            if isinstance(column, Column):
+                self.all_columns.append(column)
+                column.datagrid = self
+                column.id = attr
+
+                # Reset the column.
+                column.active = False
+                column.last = False
+                column.width = 0
+
+                if not column.field_name:
+                    column.field_name = column.id
+
+                if not column.db_field:
+                    column.db_field = column.field_name
+
+                self.db_field_map[column.id] = column.db_field
+
+        self.all_columns.sort(key=lambda x: x.label)
+
 
     def load_state(self):
         """
@@ -307,16 +367,8 @@ class DataGrid(object):
                 # The user specified a column that doesn't exist. Skip it.
                 continue
 
-            column.datagrid = self
             self.columns.append(column)
-
-            if not column.field_name:
-                column.field_name = colname
-
-            if not column.db_field:
-                column.db_field = column.field_name
-
-            self.db_field_map[column.field_name] = column.db_field
+            column.active = True
 
             if column.expand:
                 # This column is requesting all remaining space. Save it for
@@ -331,6 +383,8 @@ class DataGrid(object):
                 # We'll divide the column widths equally after we've built
                 # up the lists of expanded and normal sized columns.
                 normal_columns.append(column)
+
+        self.columns[-1].last = True
 
         # Try to figure out the column widths for each column.
         # We'll start with the normal sized columns.
@@ -490,6 +544,11 @@ class DataGrid(object):
         Renders a template containing this datagrid as a context variable.
         """
         self.load_state()
+
+        # If the caller is requesting just this particular grid, return it.
+        if self.request.GET.get('gridonly', False) and \
+           self.request.GET.get('datagrid-id', None) == self.id:
+            return HttpResponse(unicode(self.render_listview()))
 
         context = {
             'datagrid': self

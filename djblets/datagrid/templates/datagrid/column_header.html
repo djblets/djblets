@@ -1,6 +1,6 @@
 {% load i18n %}
 {% if column.sortable %}
-<th onclick="javascript:window.location = '{{sort_url}}';">
+<th onclick="javascript:window.location = '{{sort_url}}';" class="datagrid-header">
  <a href="{{sort_url}}">{% if column.label %}{{column.label}}{% endif %}
  {% if column.image_url %}<img src="{{column.image_url}}" width="{{column.image_width}}" height="{{column.image_height}}" alt="{{column.image_alt}}" />{% endif %}
 {% if in_sort %}
@@ -14,7 +14,7 @@
  </a>
 </th>
 {% else %}
-<th>
+<th class="datagrid-header">
  {% if column.label %}{{column.label}}{% endif %}
  {% if column.image_url %}<img src="{{column.image_url}}" width="{{column.image_width}}" height="{{column.image_height}}" alt="{{column.image_alt}}" />{% endif %}
 </th>
