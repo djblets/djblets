@@ -4,12 +4,12 @@
  <a href="{{sort_url}}">{% if column.label %}{{column.label}}{% endif %}
  {% if column.image_url %}<img src="{{column.image_url}}" width="{{column.image_width}}" height="{{column.image_height}}" alt="{{column.image_alt}}" />{% endif %}
 {% if in_sort %}
-  <img src="{{MEDIA_URL}}images/sort_{% if sort_ascending %}asc{% else %}desc{% endif %}_{% if sort_primary %}primary{% else %}secondary{% endif %}.png"
+  <img src="{{MEDIA_URL}}images/djblets/datagrid/sort_{% if sort_ascending %}asc{% else %}desc{% endif %}_{% if sort_primary %}primary{% else %}secondary{% endif %}.png"
    alt="({% if sort_ascending %}{% trans "Ascending" %}{% else %}{% trans "Descending" %}{% endif %})"
    width="9" height="5" border="0" />
  </a>
  <a class="datagrid-unsort" href="{{unsort_url}}">
-  <img src="{{MEDIA_URL}}images/unsort.png" width="7" height="7" border="0" alt="{% trans "Unsort" %}" />
+  <img src="{{MEDIA_URL}}images/djblets/datagrid/unsort.png" width="7" height="7" border="0" alt="{% trans "Unsort" %}" />
 {% endif %}
  </a>
 </th>
