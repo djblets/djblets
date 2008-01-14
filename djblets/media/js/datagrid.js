@@ -131,7 +131,7 @@ YAHOO.extendX(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
 		                    headerRegion.bottom - colRegion.bottom);
 
 		YAHOO.util.Event.on(window, 'resize',
-			this.initConstraints.createDelegate(this, true));
+		                    this.initConstraints, this, true);
 	},
 
 	/*
