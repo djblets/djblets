@@ -130,8 +130,7 @@ YAHOO.extendX(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
 		this.setYConstraint(colRegion.top - headerRegion.top,
 		                    headerRegion.bottom - colRegion.bottom);
 
-		YAHOO.util.Event.on(window, 'resize',
-		                    this.initConstraints, this, true);
+		YAHOO.ext.EventManager.onWindowResize(this.initConstraints, this, true);
 	},
 
 	/*
@@ -147,8 +146,8 @@ YAHOO.extendX(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
 		var dragEl = getEl(this.getDragEl());
 		this.el.hide();
 
+		dragEl.setStyle("border", "");
 		dragEl.dom.innerHTML = this.el.dom.innerHTML;
-		dragEl.setStyle("border", 0);
 		dragEl.addClass(this.el.dom.className);
 		dragEl.addClass("datagrid-header-drag");
 
