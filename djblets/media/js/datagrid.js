@@ -146,8 +146,9 @@ YAHOO.extendX(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
 	startDrag: function(x, y) {
 		var dragEl = getEl(this.getDragEl());
 		this.el.hide();
-		dragEl.dom.style.border = null;
+
 		dragEl.dom.innerHTML = this.el.dom.innerHTML;
+		dragEl.setStyle("border", 0);
 		dragEl.addClass(this.el.dom.className);
 		dragEl.addClass("datagrid-header-drag");
 
@@ -301,8 +302,8 @@ YAHOO.extendX(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
 			}
 		}
 
-		var url = ".?gridonly=1&datagrid-id=" + grid_id +
-		          "&columns=" + columns;
+		var url = window.location.pathname +
+		          "?gridonly=1&datagrid-id=" + grid_id + "&columns=" + columns;
 
 		YAHOO.util.Connect.asyncRequest("GET", url);
 	}
