@@ -359,7 +359,6 @@ class DataGrid(object):
 
         expand_columns = []
         normal_columns = []
-        self.db_field_map = {}
 
         for colname in colnames:
             try:
