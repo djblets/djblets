@@ -7,6 +7,7 @@ from django.template.defaultfilters import date, timesince
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
+from django.views.decorators.cache import cache_control
 
 
 class Column(object):
@@ -539,6 +540,15 @@ class DataGrid(object):
                 'page_range': self.paginator.page_range,
             })))
 
+    @cache_control(no_cache=True, no_store=True, max_age=0,
+                   must_revalidate=True)
+    def render_listview_to_response(self):
+        """
+        Renders the listview to a response, preventing caching in the
+        process.
+        """
+        return HttpResponse(unicode(self.render_listview()))
+
     def render_to_response(self, template_name, extra_context={}):
         """
         Renders a template containing this datagrid as a context variable.
@@ -548,7 +558,7 @@ class DataGrid(object):
         # If the caller is requesting just this particular grid, return it.
         if self.request.GET.get('gridonly', False) and \
            self.request.GET.get('datagrid-id', None) == self.id:
-            return HttpResponse(unicode(self.render_listview()))
+            return self.render_listview_to_response()
 
         context = {
             'datagrid': self
