@@ -76,4 +76,5 @@ class ConcurrencyManager(models.Manager):
         try:
             return super(ConcurrencyManager, self).get_or_create(**kwargs)
         except IntegrityError:
+            kwargs.pop('defaults', None)
             return self.get(**kwargs)
