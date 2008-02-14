@@ -39,7 +39,7 @@ def box(context, nodelist, classname=None):
     """
     Displays a box container around content, with an optional class name.
     """
-    return render_to_string('box.html', {
+    return render_to_string('deco/box.html', {
         'classname': classname or "",
         'content': nodelist.render(context)
     })
@@ -51,7 +51,7 @@ def errorbox(context, nodelist, box_id=None):
     """
     Displays an error box around content, with an optional ID.
     """
-    return render_to_string('errorbox.html', {
+    return render_to_string('deco/errorbox.html', {
         'box_id': box_id or "",
         'content': nodelist.render(context)
     })
