@@ -398,7 +398,10 @@ class DataGrid(object):
             column.width = normal_column_width
             total_pct -= normal_column_width
 
-        expanded_column_width = total_pct / len(expand_columns)
+        if len(expand_columns) > 0:
+            expanded_column_width = total_pct / len(expand_columns)
+        else:
+            expanded_column_width = 0
 
         for column in expand_columns:
             column.width = expanded_column_width
@@ -462,9 +465,16 @@ class DataGrid(object):
         # Generate the actual list of fields we'll be sorting by
         sort_list = []
         for sort_item in self.sort_list:
-            if sort_item and sort_item in self.db_field_map:
-                db_field = self.db_field_map[sort_item]
-                sort_list.append(db_field)
+            if sort_item[0] == "-":
+                base_sort_item = sort_item[1:]
+                prefix = "-"
+            else:
+                base_sort_item = sort_item
+                prefix = ""
+
+            if sort_item and base_sort_item in self.db_field_map:
+                db_field = self.db_field_map[base_sort_item]
+                sort_list.append(prefix + db_field)
 
                 # Lookups spanning tables require that we query from those
                 # tables. In order to keep things simple, we'll just use
