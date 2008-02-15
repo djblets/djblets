@@ -31,6 +31,7 @@ from django.conf import settings
 from django.template import Token, TOKEN_TEXT, TemplateSyntaxError
 from django.utils.html import strip_spaces_between_tags
 
+from djblets.util.misc import cache_memoize
 from djblets.util.testing import TestCase, TagTest
 from djblets.util.templatetags import djblets_deco
 from djblets.util.templatetags import djblets_email
@@ -39,6 +40,25 @@ from djblets.util.templatetags import djblets_utils
 
 def normalize_html(s):
     return strip_spaces_between_tags(s).strip()
+
+
+class CacheTest(TestCase):
+    def testCacheMemoize(self):
+        """Testing cache_memoize"""
+        cacheKey = "abc123"
+        testStr = "Test 123"
+
+        def cacheFunc(cacheCalled=False):
+            self.assert_(not cacheCalled)
+            cacheCalled = True
+            return testStr
+
+        result = cache_memoize(cacheKey, cacheFunc)
+        self.assertEqual(result, testStr)
+
+        # Call a second time. We should only call cacheFunc once.
+        result = cache_memoize(cacheKey, cacheFunc)
+        self.assertEqual(result, testStr)
 
 
 class BoxTest(TagTest):

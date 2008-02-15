@@ -48,7 +48,7 @@ class StubParser:
 
 
 class TagTest(TestCase):
-    """Base testing setup for utils.templatetags.htmlutils"""
+    """Base testing setup for custom template tags"""
 
     def setUp(self):
         self.parser = StubParser(self.getContentText())
