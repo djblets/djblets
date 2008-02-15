@@ -24,3 +24,9 @@ def account_login(request, apitype="json"):
     user.save()
 
     return WebAPIResponse(request)
+
+
+@webapi
+def account_logout(request, apitype="json"):
+    auth.logout(request)
+    return WebAPIResponse(request)
