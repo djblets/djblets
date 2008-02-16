@@ -95,7 +95,7 @@ class WebAPIResponse(HttpResponse):
     """
     An API response, formatted for the desired file format.
     """
-    def __init__(self, request, obj={}, api_format="json", stat='ok'):
+    def __init__(self, request, obj={}, stat='ok', api_format="json"):
         super(WebAPIResponse, self).__init__()
         self.callback = request.GET.get('callback', None)
         self.api_data = {'stat': stat}
@@ -153,7 +153,7 @@ class WebAPIResponseError(WebAPIResponse):
     A general error response, containing an error code and a human-readable
     message.
     """
-    def __init__(self, request, err, api_format="json", extra_params={}):
+    def __init__(self, request, err, extra_params={}, api_format="json"):
         errdata = {
             'err': {
                 'code': err.code,
