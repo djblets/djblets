@@ -55,8 +55,11 @@ def get_user(username):
         return None
 
 def internal_login(request, username, password):
-    user = auth.authenticate(username=username, password=password)
-    if user is None:
+    try:
+        user = auth.authenticate(username=username, password=password)
+    except:
+        user = None
+    if not user:
         return "Incorrect username or password."
     elif not user.is_active:
         return "This account is inactive."
