@@ -4,6 +4,9 @@ from django.db.models.query import QuerySet
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse, Http404
 from django.utils import simplejson
+from django.utils.encoding import force_unicode
+
+from djblets.webapi.errors import INVALID_FORM_DATA
 
 
 class WebAPIEncoder(object):
@@ -174,7 +177,7 @@ class WebAPIResponseFormError(WebAPIResponseError):
         fields = {}
 
         for field in form.errors:
-            fields[field] = list(form.errors[field])
+            fields[field] = [force_unicode(e) for e in form.errors[field]]
 
         WebAPIResponseError.__init__(self, request, INVALID_FORM_DATA, {
             'fields': fields
