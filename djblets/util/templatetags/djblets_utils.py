@@ -28,6 +28,7 @@ import datetime
 import os
 
 from django import template
+from django.template import TemplateSyntaxError
 
 from djblets.util.decorators import blocktag
 
@@ -146,6 +147,30 @@ def humanize_list(value):
         s += ","
 
     return "%s and %s" % (s, value[-1])
+
+
+@register.filter
+def contains(container, value):
+    """
+    Returns True if the specified value is in the specified container.
+    """
+    return value in container
+
+
+@register.filter
+def exclude_item(container, item):
+    """
+    Excludes an item from a list.
+    """
+    if isinstance(container, list):
+        container = list(container)
+
+        if item in container:
+            container.remove(item)
+    else:
+        raise TemplateSyntaxError, "remove_item expects a list"
+
+    return container
 
 
 @register.filter
