@@ -21,3 +21,4 @@ NOT_LOGGED_IN             = WebAPIError(103, "You are not logged in")
 LOGIN_FAILED              = WebAPIError(104, "The username or password was " +
                                              "not correct")
 INVALID_FORM_DATA         = WebAPIError(105, "One or more fields had errors")
+MISSING_ATTRIBUTE         = WebAPIError(106, "Missing value for the attribute")
