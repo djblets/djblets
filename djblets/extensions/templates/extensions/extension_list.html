@@ -1,0 +1,53 @@
+{% extends "admin/base_site.html" %}
+{% load adminmedia admin_list i18n %}
+{% block stylesheet %}{% admin_media_prefix %}css/changelists.css{% endblock %}
+
+{% block title %}Manage Extensions {{block.super}}{% endblock %}
+{% block extrahead %}
+<style type="text/css">
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Manage Extensions</h1>
+
+<div id="content-main">
+
+<div class="module" id="changelist">
+ <table>
+  <thead>
+   <tr>
+    <th>Name</th>
+    <th>Version</th>
+    <th>Author</th>
+    <th>Summary</th>
+	<th colspan="2">Actions</th>
+   </tr>
+  </thead>
+  <tbody>
+{% for extension in extensions %}
+   <tr class="{% cycle row1, row2 %}">
+    <td>{{extension.info.name}}</td>
+    <td>{{extension.info.version}}</td>
+    <td>{{extension.info.author}}</td>
+    <td>{{extension.info.summary}}</td>
+	<td>
+{% if extension.info.enabled %}
+	 <a href="{{extension.id}}/disable/" class="disablelink">Disable</a>
+{% else %}
+	 <a href="{{extension.id}}/enable/" class="enablelink">Enable</a>
+{% endif %}
+    </td>
+    <td>
+     <a href="{{extension.id}}/" class="changelink">Configure</a>
+	</td>
+   </tr>
+{% endfor %}
+  </tbody>
+ </table>
+ <p class="paginator">
+  {{extensions|length}} registered extensions
+ </p>
+</div>
+</div>
+{% endblock %}
