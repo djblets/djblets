@@ -1,5 +1,5 @@
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.paginator import InvalidPage, ObjectPaginator
+from django.core.paginator import InvalidPage, QuerySetPaginator
 from django.http import Http404, HttpResponse
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
@@ -267,6 +267,7 @@ class DataGrid(object):
         self.all_columns = []
         self.db_field_map = {}
         self.paginator = None
+        self.page = None
         self.sort_list = None
         self.state_loaded = False
         self.page_num = 0
@@ -284,7 +285,6 @@ class DataGrid(object):
         self.profile_columns_field = None
         self.paginate_by = 50
         self.paginate_orphans = 3
-        self.page = None
         self.listview_template = 'datagrid/listview.html'
         self.column_header_template = 'datagrid/column_header.html'
         self.cell_template = 'datagrid/cell.html'
@@ -490,33 +490,23 @@ class DataGrid(object):
         if use_select_related:
             query = query.select_related(depth=1)
 
-        self.paginator = ObjectPaginator(query, self.paginate_by,
+        self.paginator = QuerySetPaginator(query, self.paginate_by,
                                          self.paginate_orphans)
 
-        if not self.page:
-            page = self.request.GET.get('page', 1)
+        page_num = self.request.GET.get('page', 1)
 
         # Accept either "last" or a valid page number.
-        if page == "last":
-            self.page_num = self.paginator.pages
-        else:
-            try:
-                self.page_num = int(page)
-            except ValueError:
-                raise Http404
+        if page_num == "last":
+            page_num = self.paginator.num_pages
 
         try:
-            object_list = self.paginator.get_page(self.page_num - 1)
+            self.page = self.paginator.page(page_num)
         except InvalidPage:
-            if self.page_num == 1:
-                # Our queryset is empty.
-                object_list = []
-            else:
-                raise Http404
+            raise Http404
 
         self.rows = []
 
-        for obj in object_list:
+        for obj in self.page.object_list:
             self.rows.append({
                 'object': obj,
                 'cells': [column.render_cell(obj) for column in self.columns]
@@ -533,19 +523,17 @@ class DataGrid(object):
         return mark_safe(render_to_string(self.listview_template,
             RequestContext(self.request, {
                 'datagrid': self,
-                'is_paginated': self.paginator.pages > 1,
+                'is_paginated': self.page.has_other_pages(),
                 'results_per_page': self.paginate_by,
-                'has_next': self.paginator.has_next_page(self.page_num - 1),
-                'has_previous':
-                    self.paginator.has_previous_page(self.page_num - 1),
-                'page': self.page_num,
-                'next': self.page_num + 1,
-                'previous': self.page_num - 1,
-                'last_on_page': self.paginator.last_on_page(self.page_num - 1),
-                'first_on_page':
-                    self.paginator.first_on_page(self.page_num - 1),
-                'pages': self.paginator.pages,
-                'hits': self.paginator.hits,
+                'has_next': self.page.has_next(),
+                'has_previous': self.page.has_previous(),
+                'page': self.page.number,
+                'next': self.page.next_page_number(),
+                'previous': self.page.previous_page_number(),
+                'last_on_page': self.page.end_index(),
+                'first_on_page': self.page.start_index(),
+                'pages': self.paginator.num_pages,
+                'hits': self.paginator.count,
                 'page_range': self.paginator.page_range,
             })))
 
