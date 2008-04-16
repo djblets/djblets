@@ -34,7 +34,7 @@ from django.views.decorators.cache import never_cache
 
 def cache_memoize(key, lookup_callable):
     try:
-        site = Site.objects.get(pk=settings.SITE_ID).domain
+        site = Site.objects.get(pk=settings.SITE_ID)
 
         # The install has a Site app, so prefix the domain to the key.
         key = "%s:%s" % (site.domain, key)
