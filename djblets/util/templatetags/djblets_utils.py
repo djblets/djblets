@@ -122,6 +122,17 @@ def ageid(timestamp):
         return "age5"
 
 
+@register.simple_tag
+def user_displayname(user):
+    """
+    Returns the display name of the user.
+
+    If the user has a full name set, it will display this. Otherwise, it will
+    display the username.
+    """
+    return user.get_full_name() or user.username
+
+
 @register.filter
 def humanize_list(value):
     """
