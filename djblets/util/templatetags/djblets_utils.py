@@ -122,7 +122,7 @@ def ageid(timestamp):
         return "age5"
 
 
-@register.simple_tag
+@register.filter
 def user_displayname(user):
     """
     Returns the display name of the user.
