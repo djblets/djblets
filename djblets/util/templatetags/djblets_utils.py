@@ -38,6 +38,18 @@ register = template.Library()
 
 @register.tag
 @blocktag
+def definevar(context, nodelist, varname):
+    """
+    Defines a variable in the context based on the contents of the block.
+    This is useful when you need to reuse the results of some tag logic
+    multiple times in a template or in a blocktrans tag.
+    """
+    context[varname] = nodelist.render(context)
+    return ""
+
+
+@register.tag
+@blocktag
 def ifuserorperm(context, nodelist, user, perm):
     """
     Renders content depending on whether the logged in user is the specified
