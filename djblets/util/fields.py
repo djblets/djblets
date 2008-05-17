@@ -23,10 +23,41 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
+import base64
 from datetime import datetime
 
 from django.db import models
+from django.dispatch import dispatcher
+
+
+class Base64DecodedValue(str):
+    """
+    A subclass of string that can be identified by Base64Field, in order
+    to prevent double-encoding or double-decoding.
+    """
+    pass
+
+
+class Base64Field(models.TextField):
+    """
+    A subclass of TextField that encodes its data as base64 in the database.
+    This is useful if you're dealing with unknown encodings and must guarantee
+    that no modifications to the text occurs and that you can read/write
+    the data in any database with any encoding.
+    """
+    __metaclass__ = models.SubfieldBase
+
+    def get_db_prep_save(self, value):
+        if isinstance(value, Base64DecodedValue):
+            value = base64.encodestring(value)
+
+        return super(Base64Field, self).get_db_prep_save(value)
+
+    def to_python(self, value):
+        if isinstance(value, Base64DecodedValue):
+            return value
+        else:
+            return Base64DecodedValue(base64.decodestring(value))
 
 
 class ModificationTimestampField(models.DateTimeField):
