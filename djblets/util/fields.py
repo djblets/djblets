@@ -28,6 +28,7 @@ from datetime import datetime
 
 from django.db import models
 from django.dispatch import dispatcher
+from django.utils.encoding import smart_unicode
 
 
 class Base64DecodedValue(str):
@@ -38,6 +39,33 @@ class Base64DecodedValue(str):
     pass
 
 
+class Base64FieldCreator(object):
+    def __init__(self, field):
+        self.field = field
+
+    def __set__(self, obj, value):
+        pk_val = obj._get_pk_val(obj.__class__._meta)
+        pk_set = pk_val is not None and smart_unicode(pk_val) != u''
+
+        if (isinstance(value, Base64DecodedValue) or not pk_set):
+            obj.__dict__[self.field.name] = base64.encodestring(value)
+        else:
+            obj.__dict__[self.field.name] = value
+
+        setattr(obj, "%s_initted" % self.field.name, True)
+
+    def __get__(self, obj, type=None):
+        if obj is None:
+            raise AttributeError('Can only be accessed via an instance.')
+
+        value = obj.__dict__[self.field.name]
+
+        if value is None:
+            return None
+        else:
+            return Base64DecodedValue(base64.decodestring(value))
+
+
 class Base64Field(models.TextField):
     """
     A subclass of TextField that encodes its data as base64 in the database.
@@ -45,7 +73,9 @@ class Base64Field(models.TextField):
     that no modifications to the text occurs and that you can read/write
     the data in any database with any encoding.
     """
-    __metaclass__ = models.SubfieldBase
+    def contribute_to_class(self, cls, name):
+        super(Base64Field, self).contribute_to_class(cls, name)
+        setattr(cls, self.name, Base64FieldCreator(self))
 
     def get_db_prep_save(self, value):
         if isinstance(value, Base64DecodedValue):
