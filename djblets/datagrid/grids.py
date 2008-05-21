@@ -134,6 +134,8 @@ class Column(object):
             del(sort_list[2:])
 
             url_prefix = "?%ssort=" % self.get_url_params_except("sort",
+                                                                 "datagrid-id",
+                                                                 "gridonly",
                                                                  "columns")
             unsort_url = url_prefix + ','.join(sort_list[1:])
             sort_url   = url_prefix + ','.join(sort_list)
