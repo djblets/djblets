@@ -33,9 +33,9 @@
     <td>{{extension.info.summary}}</td>
 	<td>
 {% if extension.info.enabled %}
-	 <a href="{{extension.id}}/disable/" class="disablelink">Disable</a>
+	 <a href="{% url disable_extension extension.id %}" class="disablelink">Disable</a>
 {% else %}
-	 <a href="{{extension.id}}/enable/" class="enablelink">Enable</a>
+	 <a href="{% url enable_extension extension.id %}" class="enablelink">Enable</a>
 {% endif %}
     </td>
     <td>
