@@ -1,6 +1,21 @@
+import os
 import pkg_resources
+import shutil
+
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 from djblets.extensions.models import RegisteredExtension
+
+
+if not hasattr(settings, "EXTENSIONS_MEDIA_ROOT"):
+    raise ImproperlyConfigured, \
+          "settings.EXTENSIONS_MEDIA_ROOT must be defined"
+
+if not os.path.exists(settings.EXTENSIONS_MEDIA_ROOT):
+    raise ImproperlyConfigured, \
+          "%s must exist and must be writable by the web server." % \
+          settings.EXTENSIONS_MEDIA_ROOT
 
 
 _extension_managers = []
@@ -35,6 +50,8 @@ class ExtensionInfo(object):
         self.license = metadata.get('License')
         self.url = metadata.get('Home-page')
         self.enabled = False
+        self.htdocs_path = os.path.join(settings.EXTENSIONS_MEDIA_ROOT,
+                                        self.name)
 
 
 class ExtensionHook(object):
@@ -91,6 +108,7 @@ class ExtensionManager(object):
         ext_class = self._extension_classes[extension_id]
         ext_class.registration.enabled = True
         ext_class.registration.save()
+        self.__install_extension(ext_class)
         return self.__init_extension(ext_class)
 
     def disable_extension(self, extension_id):
@@ -102,6 +120,7 @@ class ExtensionManager(object):
         extension = self._extension_instances[extension_id]
         extension.registration.enabled = False
         extension.registration.save()
+        self.__uninstall_extension(extension)
         self.__uninit_extension(extension)
 
     def __load_extensions(self):
@@ -144,15 +163,6 @@ class ExtensionManager(object):
             if registered_ext.enabled:
                 self.__init_extension(ext_class)
 
-    def __build_extension_metadata(self, entrypoint, ext_class):
-        metadata = {}
-
-
-        ext_class.info = {
-            'name'
-            'metadata': metadata,
-        }
-
     def __init_extension(self, ext_class):
         extension = ext_class()
         extension.extension_manager = self
@@ -164,6 +174,39 @@ class ExtensionManager(object):
         extension.shutdown()
         extension.info.enabled = False
         del self._extension_instances[extension.id]
+
+    def __install_extension(self, ext_class):
+        """
+        Performs any installation necessary for an extension.
+        This will install the contents of htdocs into the
+        EXTENSIONS_MEDIA_ROOT directory.
+        """
+        ext_path = ext_class.info.htdocs_path
+        ext_path_exists = os.path.exists(ext_path)
+
+        if ext_path_exists:
+            # First, get rid of the old htdocs contents, so we can start
+            # fresh.
+            shutil.rmtree(ext_path, ignore_errors=True)
+
+        if pkg_resources.resource_exists(ext_class.__module__, "htdocs"):
+            # Now install any new htdocs contents.
+            extracted_path = \
+                pkg_resources.resource_filename(ext_class.__module__, "htdocs")
+
+            shutil.copytree(extracted_path, ext_path, symlinks=True)
+
+    def __uninstall_extension(self, extension):
+        """
+        Performs any uninstallation necessary for an extension.
+        This will uninstall the contents of
+        EXTENSIONS_MEDIA_ROOT/extension-name/.
+        """
+        ext_path = extension.info.htdocs_path
+        ext_path_exists = os.path.exists(ext_path)
+
+        if ext_path_exists:
+            shutil.rmtree(ext_path, ignore_errors=True)
 
 
 def get_extension_managers():
