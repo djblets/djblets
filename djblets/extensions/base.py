@@ -3,6 +3,9 @@ import pkg_resources
 from djblets.extensions.models import RegisteredExtension
 
 
+_extension_managers = []
+
+
 class Extension(object):
     def __init__(self):
         self.hooks = set()
@@ -66,6 +69,8 @@ class ExtensionManager(object):
         self._extension_instances = {}
 
         self.__load_extensions()
+
+        _extension_managers.append(self)
 
     def get_enabled_extensions(self):
         return self._extension_instances.values()
@@ -159,3 +164,7 @@ class ExtensionManager(object):
         extension.shutdown()
         extension.info.enabled = False
         del self._extension_instances[extension.id]
+
+
+def get_extension_managers():
+    return _extension_managers
