@@ -29,6 +29,13 @@ class Extension(object):
         for hook in self.hooks:
             hook.shutdown()
 
+    def is_configurable(self):
+        """
+        Returns whether or not this extension can be configured. Extensions
+        returning true should have a config/ URL in their admin_url_patterns.
+        """
+        return False
+
 
 class ExtensionInfo(object):
     def __init__(self, entrypoint, ext_class):
