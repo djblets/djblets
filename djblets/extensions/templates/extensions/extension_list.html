@@ -38,7 +38,7 @@
 {% else %}
 	  <li><a href="{% url enable_extension extension.id %}" class="enablelink">Enable</a></li>
 {% endif %}
-{% if extension.is_configurable %}
+{% if extension.info.enabled and extension.is_configurable %}
       <li><a href="{{extension.id}}/config/" class="changelink">Configure</a></li>
 {% endif %}
      </ul>
