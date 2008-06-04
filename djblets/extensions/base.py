@@ -3,7 +3,9 @@ import pkg_resources
 import shutil
 
 from django.conf import settings
+from django.conf.urls.defaults import patterns, include
 from django.core.exceptions import ImproperlyConfigured
+from django.core.urlresolvers import get_resolver, get_mod_func
 
 from djblets.extensions.models import RegisteredExtension
 
@@ -24,17 +26,61 @@ _extension_managers = []
 class Extension(object):
     def __init__(self):
         self.hooks = set()
+        self.admin_ext_resolver = None
+
+        if self.get_is_configurable():
+            self.install_admin_urls()
+
+    def install_admin_urls(self):
+        urlconf = self.admin_urlconf
+
+        if hasattr(urlconf, "urlpatterns"):
+            # Note that we're adding to the resolve list on the root of the
+            # install, and prefixing it with the admin extensions path.
+            # The reason we're not just making this a child of our extensions
+            # urlconf is that everything in there gets passed an
+            # extension_manager variable, and we don't want to force extensions
+            # to handle this.
+            self.admin_ext_resolver = get_resolver(None)
+            prefix = self.admin_ext_resolver.reverse(
+                "djblets.extensions.views.extension_list")
+
+            self.admin_urlpatterns = patterns('',
+                (r'^%s%s/config/' % (prefix, self.id),
+                 include(urlconf.__name__)))
+
+            self.admin_ext_resolver.url_patterns.extend(self.admin_urlpatterns)
 
     def shutdown(self):
+        if self.admin_ext_resolver and self.admin_urlpatterns:
+            assert len(self.admin_urlpatterns) == 1
+            self.admin_ext_resolver.url_patterns.remove(self.admin_urlpatterns[0])
+
         for hook in self.hooks:
             hook.shutdown()
 
-    def is_configurable(self):
+    def _get_admin_urlconf(self):
+        if not hasattr(self, "_admin_urlconf_module"):
+            try:
+                name = "%s.%s" % (get_mod_func(self.__class__.__module__)[0],
+                                  "admin_urls")
+                self._admin_urlconf_module = __import__(name, {}, {}, [''])
+            except Exception, e:
+                raise ImproperlyConfigured, \
+                    "Error while importing extension's admin URLconf %r: %s" % \
+                    (name, e)
+
+        return self._admin_urlconf_module
+    admin_urlconf = property(_get_admin_urlconf)
+
+
+    def get_is_configurable(self):
         """
         Returns whether or not this extension can be configured. Extensions
         returning true should have a config/ URL in their admin_url_patterns.
         """
         return False
+    is_configurable = property(get_is_configurable)
 
 
 class ExtensionInfo(object):
@@ -92,8 +138,6 @@ class ExtensionManager(object):
         self._extension_classes = {}
         self._extension_instances = {}
 
-        self.__load_extensions()
-
         _extension_managers.append(self)
 
     def get_enabled_extensions(self):
@@ -130,7 +174,7 @@ class ExtensionManager(object):
         self.__uninstall_extension(extension)
         self.__uninit_extension(extension)
 
-    def __load_extensions(self):
+    def load(self):
         # Preload all the RegisteredExtension objects
         registered_extensions = {}
         for registered_ext in RegisteredExtension.objects.all():

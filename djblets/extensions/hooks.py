@@ -18,8 +18,8 @@ class URLHook(ExtensionHook):
         # Install these patterns into the correct urlconf.
         if hasattr(settings, "EXTENSION_ROOT_URLCONF"):
             parent_urlconf = settings.EXTENSION_ROOT_URLCONF
-        elif hasattr(settings, "ROOT_URLCONF"):
-            parent_urlconf = settings.ROOT_URLCONF
+        elif hasattr(settings, "SITE_ROOT_URLCONF"):
+            parent_urlconf = settings.SITE_ROOT_URLCONF
         else:
             # Fall back on get_resolver's defaults.
             parent_urlconf = None
@@ -28,7 +28,6 @@ class URLHook(ExtensionHook):
         assert self.parent_resolver
 
         self.parent_resolver.url_patterns.extend(patterns)
-        print "Set up parent resolver"
 
     def shutdown(self):
         for pattern in self.patterns:
