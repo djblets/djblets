@@ -32,7 +32,9 @@ from django.db.models.manager import Manager
 from django.views.decorators.cache import never_cache
 
 
-def cache_memoize(key, lookup_callable):
+def cache_memoize(key, lookup_callable,
+                  expiration=settings.CACHE_EXPIRATION_TIME,
+                  force_overwrite=False):
     try:
         site = Site.objects.get(pk=settings.SITE_ID)
 
@@ -42,11 +44,11 @@ def cache_memoize(key, lookup_callable):
         # The install doesn't have a Site app, so use the key as-is.
         pass
 
-    if cache.has_key(key):
+    if not force_overwrite and cache.has_key(key):
         return cache.get(key)
     data = lookup_callable()
     try:
-        cache.set(key, data, settings.CACHE_EXPIRATION_TIME)
+        cache.set(key, data, expiration)
     except:
         pass
     return data
