@@ -23,10 +23,37 @@ if not os.path.exists(settings.EXTENSIONS_MEDIA_ROOT):
 _extension_managers = []
 
 
+class Settings(dict):
+    """
+    Settings data for an extension. This is a glorified dictionary that
+    acts as a proxy for the extension's stored settings in the database.
+
+    Callers must call save() when they want to make the settings persistent.
+    """
+    def __init__(self, extension):
+        dict.__init__(self)
+        self.extension = extension
+
+    def load(self):
+        try:
+            self.update(self.extension.registration.settings)
+        except ValueError:
+            # The settings in the database are invalid. We'll have to discard
+            # it. Note that this should never happen unless the user
+            # hand-modifies the entries and breaks something.
+            pass
+
+    def save(self):
+        registration = self.extension.registration
+        registration.settings = dict(self)
+        registration.save()
+
+
 class Extension(object):
     def __init__(self):
         self.hooks = set()
         self.admin_ext_resolver = None
+        self.settings = Settings(self)
 
         if self.get_is_configurable():
             self.install_admin_urls()
