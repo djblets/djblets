@@ -33,6 +33,7 @@ class Settings(dict):
     def __init__(self, extension):
         dict.__init__(self)
         self.extension = extension
+        self.load()
 
     def load(self):
         try:
@@ -107,7 +108,10 @@ class Extension(object):
         returning true should have a config/ URL in their admin_url_patterns.
         """
         return False
-    is_configurable = property(get_is_configurable)
+
+    # Don't bind directly to the function or extensions won't be able to
+    # override it.
+    is_configurable = property(lambda self: self.get_is_configurable())
 
 
 class ExtensionInfo(object):
