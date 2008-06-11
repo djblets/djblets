@@ -56,34 +56,7 @@ class Extension(object):
         self.admin_ext_resolver = None
         self.settings = Settings(self)
 
-        if self.get_is_configurable():
-            self.install_admin_urls()
-
-    def install_admin_urls(self):
-        urlconf = self.admin_urlconf
-
-        if hasattr(urlconf, "urlpatterns"):
-            # Note that we're adding to the resolve list on the root of the
-            # install, and prefixing it with the admin extensions path.
-            # The reason we're not just making this a child of our extensions
-            # urlconf is that everything in there gets passed an
-            # extension_manager variable, and we don't want to force extensions
-            # to handle this.
-            self.admin_ext_resolver = get_resolver(None)
-            prefix = self.admin_ext_resolver.reverse(
-                "djblets.extensions.views.extension_list")
-
-            self.admin_urlpatterns = patterns('',
-                (r'^%s%s/config/' % (prefix, self.id),
-                 include(urlconf.__name__)))
-
-            self.admin_ext_resolver.url_patterns.extend(self.admin_urlpatterns)
-
     def shutdown(self):
-        if self.admin_ext_resolver and self.admin_urlpatterns:
-            assert len(self.admin_urlpatterns) == 1
-            self.admin_ext_resolver.url_patterns.remove(self.admin_urlpatterns[0])
-
         for hook in self.hooks:
             hook.shutdown()
 
@@ -168,8 +141,19 @@ class ExtensionManager(object):
 
         self._extension_classes = {}
         self._extension_instances = {}
+        self._admin_ext_resolver = get_resolver(None)
 
         _extension_managers.append(self)
+
+    def get_absolute_url(self):
+        return self._admin_ext_resolver.reverse(
+            "djblets.extensions.views.extension_list")
+
+    def get_enabled_extension(self, extension_id):
+        if extension_id in self._extension_instances:
+            return self._extension_instances[extension_id]
+
+        return None
 
     def get_enabled_extensions(self):
         return self._extension_instances.values()
@@ -249,11 +233,21 @@ class ExtensionManager(object):
         extension = ext_class()
         extension.extension_manager = self
         self._extension_instances[extension.id] = extension
+
+        if extension.is_configurable:
+            self.__install_admin_urls(extension)
+
         extension.info.enabled = True
+
         return extension
 
     def __uninit_extension(self, extension):
         extension.shutdown()
+
+        if extension.admin_urlpatterns:
+            for urlpattern in extension.admin_urlpatterns:
+                self._admin_ext_resolver.url_patterns.remove(urlpattern)
+
         extension.info.enabled = False
         del self._extension_instances[extension.id]
 
@@ -289,6 +283,25 @@ class ExtensionManager(object):
 
         if ext_path_exists:
             shutil.rmtree(ext_path, ignore_errors=True)
+
+    def __install_admin_urls(self, extension):
+        urlconf = extension.admin_urlconf
+
+        if hasattr(urlconf, "urlpatterns"):
+            # Note that we're adding to the resolve list on the root of the
+            # install, and prefixing it with the admin extensions path.
+            # The reason we're not just making this a child of our extensions
+            # urlconf is that everything in there gets passed an
+            # extension_manager variable, and we don't want to force extensions
+            # to handle this.
+            prefix = self.get_absolute_url()
+
+            extension.admin_urlpatterns = patterns('',
+                (r'^%s%s/config/' % (prefix, extension.id),
+                 include(urlconf.__name__)))
+
+            self._admin_ext_resolver.url_patterns.extend(
+                extension.admin_urlpatterns)
 
 
 def get_extension_managers():
