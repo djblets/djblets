@@ -2,11 +2,7 @@
 {% load adminmedia admin_list i18n %}
 {% block stylesheet %}{% admin_media_prefix %}css/changelists.css{% endblock %}
 
-{% block title %}Manage Extensions {{block.super}}{% endblock %}
-{% block extrahead %}
-<style type="text/css">
-</style>
-{% endblock %}
+{% block title %}{% trans "Manage Extensions" %} {{block.super}}{% endblock %}
 
 {% block content %}
 <h1>Manage Extensions</h1>
