@@ -1,5 +1,7 @@
 from django.db import models
 
+from djblets.util.fields import JSONField
+
 
 class RegisteredExtension(models.Model):
     """
@@ -12,9 +14,7 @@ class RegisteredExtension(models.Model):
     class_name = models.CharField(max_length=128, unique=True)
     name = models.CharField(max_length=32)
     enabled = models.BooleanField(default=False)
-
-    # JSON-encoded settings.
-    settings = models.TextField(blank=True)
+    settings = JSONField()
 
     def __unicode__(self):
         return self.name
