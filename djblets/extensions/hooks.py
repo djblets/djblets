@@ -30,5 +30,37 @@ class URLHook(ExtensionHook):
         self.parent_resolver.url_patterns.extend(patterns)
 
     def shutdown(self):
+        super(URLHook, self).shutdown()
+
         for pattern in self.patterns:
             self.parent_resolver.url_patterns.remove(pattern)
+
+
+class TemplateHook(ExtensionHook):
+    """
+    A hook that renders a template at hook points defined in another template.
+    """
+    __metaclass__ = ExtensionHookPoint
+
+    _by_name = {}
+
+    def __init__(self, extension, name, template_name):
+        ExtensionHook.__init__(self, extension)
+        self.name = name
+        self.template_name = template_name
+
+        if not name in self.__class__._by_name:
+            self.__class__._by_name[name] = [self]
+        else:
+            self.__class__._by_name[name].append(self)
+
+    def shutdown(self):
+        super(URLHook, self).shutdown()
+        self.__class__.by_name[name].remove(self)
+
+    @classmethod
+    def by_name(cls, name):
+        if name in cls._by_name:
+            return cls._by_name[name]
+
+        return []
