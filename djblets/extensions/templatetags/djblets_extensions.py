@@ -16,8 +16,6 @@ def template_hook_point(context, name):
     attach to.
     """
     s = ""
-    print context
-
     for hook in TemplateHook.by_name(name):
         s += render_to_string(hook.template_name, context)
 
