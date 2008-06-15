@@ -1,6 +1,6 @@
 import os
-import pkg_resources
 import shutil
+import sys
 
 from django.conf import settings
 from django.conf.urls.defaults import patterns, include
@@ -139,6 +139,8 @@ class ExtensionManager(object):
     def __init__(self, key):
         self.key = key
 
+        self.pkg_resources = None
+
         self._extension_classes = {}
         self._extension_instances = {}
         self._admin_ext_resolver = get_resolver(None)
@@ -190,15 +192,35 @@ class ExtensionManager(object):
         self.__uninit_extension(extension)
 
     def load(self):
+        """
+        Loads all known extensions, initializing any that are recorded as
+        being enabled.
+
+        If this is called a second time, it will refresh the list of
+        extensions, adding new ones and removing deleted ones.
+        """
         # Preload all the RegisteredExtension objects
         registered_extensions = {}
         for registered_ext in RegisteredExtension.objects.all():
             registered_extensions[registered_ext.class_name] = registered_ext
 
+        found_extensions = {}
+
+        # Reload pkg_resources
+        import pkg_resources
+        if pkg_resources:
+            del pkg_resources
+            del sys.modules['pkg_resources']
+            import pkg_resources
+
         for entrypoint in pkg_resources.iter_entry_points(self.key):
             try:
                 ext_class = entrypoint.load()
-                ext_class.info = ExtensionInfo(entrypoint, ext_class)
+
+                # Don't override the info if we've previously loaded this
+                # class.
+                if not getattr(ext_class, "info", None):
+                    ext_class.info = ExtensionInfo(entrypoint, ext_class)
             except Exception, e:
                 print "Error loading extension %s: %s" % (entrypoint.name, e)
                 continue
@@ -210,26 +232,43 @@ class ExtensionManager(object):
             class_name = ext_class.id = "%s.%s" % (ext_class.__module__,
                                                    ext_class.__name__)
             self._extension_classes[class_name] = ext_class
+            found_extensions[class_name] = ext_class
 
-            if class_name in registered_extensions:
-                registered_ext = registered_extensions[class_name]
-            else:
-                try:
-                    registered_ext = RegisteredExtension(
-                        class_name=class_name,
-                        name=entrypoint.dist.project_name
-                    )
-                    registered_ext.save()
-                except RegisteredExtension.DoesNotExist:
-                    registered_ext = RegisteredExtension.objects.get(
-                        class_name=class_name)
+            # If the ext_class has a registration variable that's set, then
+            # it's already been loaded. We don't want to bother creating a
+            # new one.
+            if not getattr(ext_class, "registration", None):
+                if class_name in registered_extensions:
+                    registered_ext = registered_extensions[class_name]
+                else:
+                    try:
+                        registered_ext = RegisteredExtension.objects.get(
+                            class_name=class_name)
+                    except RegisteredExtension.DoesNotExist:
+                        registered_ext = RegisteredExtension(
+                            class_name=class_name,
+                            name=entrypoint.dist.project_name
+                        )
+                        registered_ext.save()
 
-            ext_class.registration = registered_ext
+                ext_class.registration = registered_ext
 
-            if registered_ext.enabled:
+            if (registered_ext.enabled and
+                not ext_class.id in self._extension_instances):
                 self.__init_extension(ext_class)
 
+        # At this point, if we're reloading, it's possible that the user
+        # has removed some extensions. Go through and remove any that we
+        # can no longer find.
+        for class_name in self._extension_classes.keys():
+            if class_name not in found_extensions:
+                if class_name in self._extension_instances:
+                    self.disable_extension(class_name)
+
+                del self._extension_classes[class_name]
+
     def __init_extension(self, ext_class):
+        assert ext_class.id not in self._extension_instances
         extension = ext_class()
         extension.extension_manager = self
         self._extension_instances[extension.id] = extension
@@ -257,6 +296,8 @@ class ExtensionManager(object):
         This will install the contents of htdocs into the
         EXTENSIONS_MEDIA_ROOT directory.
         """
+        import pkg_resources
+
         ext_path = ext_class.info.htdocs_path
         ext_path_exists = os.path.exists(ext_path)
 

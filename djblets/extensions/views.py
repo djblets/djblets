@@ -9,6 +9,9 @@ from djblets.extensions.base import ExtensionManager
 @staff_member_required
 def extension_list(request, extension_manager,
                    template_name='extensions/extension_list.html'):
+    # Refresh the extension list.
+    extension_manager.load()
+
     return render_to_response(template_name, RequestContext(request, {
         'extensions': extension_manager.get_installed_extensions(),
     }))
