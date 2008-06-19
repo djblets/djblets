@@ -36,6 +36,7 @@ class Settings(dict):
         self.load()
 
     def load(self):
+        """Loads the settings from the database."""
         try:
             self.update(self.extension.registration.settings)
         except ValueError:
@@ -45,6 +46,7 @@ class Settings(dict):
             pass
 
     def save(self):
+        """Saves all current settings to the database."""
         registration = self.extension.registration
         registration.settings = dict(self)
         registration.save()
