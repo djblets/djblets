@@ -182,7 +182,7 @@ DJBLETS.datagrids.DDColumn = function(el, grid) {
     ]);
 }
 
-YAHOO.extendX(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
+YAHOO.extend(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
     grid: null,
     el: null,
     lastX: 0,
@@ -382,8 +382,10 @@ YAHOO.extendX(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
     }
 });
 
-YAHOO.util.Event.on(window, "load",
-                    DJBLETS.datagrids.onPageLoad.createDelegate(DJBLETS.datagrids));
+YAHOO.util.Event.on(window, "load", function() {
+	DJBLETS.datagrids.onPageLoad();
+});
+
 YAHOO.util.Event.on(document, "click", function(e) {
     if (DJBLETS.datagrids.activeMenu != null) {
         DJBLETS.datagrids.hideColumnsMenu();
