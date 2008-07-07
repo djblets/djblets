@@ -152,8 +152,18 @@ DJBLETS.datagrids = {
             var oldEl = getEl(gridId);
             oldEl.dom.id = "";
 
-            YAHOO.ext.DomHelper.insertHtml("beforeBegin", oldEl.dom,
-                                           res.responseText);
+            var html = res.responseText;
+
+            if (oldEl.dom.insertAdjacentHTML) {
+                /* Supported by IE */
+                oldEl.dom.insertAdjacentHTML("beforeBegin", html);
+            } else {
+                /* Everybody else. */
+                var range = oldEl.dom.ownerDocument.createRange();
+                range.setStartBefore(oldEl.dom);
+                var newEl = range.createContextualFragment(html);
+                oldEl.dom.parentNode.insertBefore(newEl, oldEl.dom);
+            }
             oldEl.remove();
 
             this.registerDataGrid(document.getElementById(gridId));
@@ -196,6 +206,22 @@ YAHOO.extend(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
      */
     init: function() {
         DJBLETS.datagrids.DDColumn.superclass.init.apply(this, arguments);
+
+        /*
+         * YAHOO.ext.EventManager has a nice buffered onWindowResize
+         * function that gives us buffered resizes. It depends on some
+         * additional YAHOO.ext code, which is why we don't (yet) re-implement
+         * it. However, we may wish to do so in the future to remove the
+         * deprecated yui-ext support from this file.
+         */
+        if (YAHOO.ext) {
+            YAHOO.ext.EventManager.onWindowResize(this.initConstraints,
+                                                  this, true);
+        } else {
+            YAHOO.util.Event.on(window, "resize",
+                                this.initConstraints.createDelegate(this));
+        }
+
         this.initConstraints();
     },
 
@@ -213,8 +239,6 @@ YAHOO.extend(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
                             headerRegion.right - colRegion.right);
         this.setYConstraint(colRegion.top - headerRegion.top,
                             headerRegion.bottom - colRegion.bottom);
-
-        YAHOO.ext.EventManager.onWindowResize(this.initConstraints, this, true);
     },
 
     /*
