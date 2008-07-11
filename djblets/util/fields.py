@@ -26,8 +26,11 @@
 import base64
 from datetime import datetime
 
+from django.conf import settings
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.dispatch import dispatcher
+from django.utils import simplejson
 from django.utils.encoding import smart_unicode
 
 
@@ -115,3 +118,53 @@ class ModificationTimestampField(models.DateTimeField):
 
     def get_internal_type(self):
         return "DateTimeField"
+
+
+class JSONField(models.TextField):
+    """
+    A field for storing JSON-encoded data. The data is accessible as standard
+    Python data types and is transparently encoded/decoded to/from a JSON
+    string in the database.
+    """
+    def __init__(self, verbose_name=None, name=None,
+                 encoder=DjangoJSONEncoder(), **kwargs):
+        models.TextField.__init__(self, verbose_name, name, blank=True,
+                                  **kwargs)
+        self.encoder = encoder
+
+    def db_type(self):
+        return "text"
+
+    def contribute_to_class(self, cls, name):
+        def get_json(model_instance):
+            return self.dumps(getattr(model_instance, self.attname, None))
+
+        def set_json(model_instance, json):
+            setattr(instance, self.attname, self.loads(json))
+
+        super(JSONField, self).contribute_to_class(cls, name)
+
+        setattr(cls, "get_%s_json" % self.name, get_json)
+        setattr(cls, "set_%s_json" % self.name, set_json)
+
+        dispatcher.connect(self.post_init, signal=models.signals.post_init,
+                           sender=cls)
+
+    def pre_save(self, model_instance, add):
+        return self.dumps(getattr(model_instance, self.attname, None))
+
+    def post_init(self, instance=None):
+        value = self.value_from_object(instance)
+
+        if value:
+            value = self.loads(value)
+        else:
+            value = {}
+
+        setattr(instance, self.attname, value)
+
+    def dumps(self, data):
+        return self.encoder.encode(data)
+
+    def loads(self, s):
+        return simplejson.loads(s, encoding=settings.DEFAULT_CHARSET)
