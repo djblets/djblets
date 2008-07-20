@@ -25,7 +25,7 @@
 #
 
 
-from django import newforms as forms
+from django import forms
 from django.conf import settings
 from django.contrib import auth
 from django.contrib.sessions.models import Session
