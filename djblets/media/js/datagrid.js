@@ -3,6 +3,17 @@ if (!DJBLETS) {
     var DJBLETS = {};
 }
 
+try {
+    if (Ext) {
+        /*
+         * We use getEl() from the old yui-ext. Make this wrap Ext.get if
+         * using extjs.
+         */
+        getEl = Ext.get;
+    }
+} catch (e) {
+}
+
 DJBLETS.datagrids = {
     activeMenu: null,
     activeColumns: {},
@@ -70,9 +81,16 @@ DJBLETS.datagrids = {
         if (menu.isVisible()) {
             this.hideColumnsMenu();
         } else {
-            el.beginMeasure();
+            if (el.beginMeasure) {
+                el.beginMeasure();
+            }
+
             xy = el.getXY()
-            el.endMeasure();
+
+            if (el.endMeasure) {
+                el.endMeasure();
+            }
+
             menu.moveTo(xy[0] - menu.getWidth() + el.getWidth(),
                         xy[1] + el.getHeight());
             menu.show();
@@ -350,14 +368,17 @@ YAHOO.extend(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
     buildColumnInfo: function() {
         /* Grab the list of midpoints for each column. */
         this.columnMidpoints = [];
-        var columns = getEl(this.grid).getChildrenByTagName("th");
+
+        var columns = this.grid.getElementsByTagName("th");
 
         for (var i = 0; i < columns.length; i++) {
-            if (!columns[i].hasClass("edit-columns")) {
-                this.columnMidpoints.push(columns[i].getX() +
-                                          columns[i].getWidth() / 2);
+            var column = getEl(columns[i]);
 
-                if (columns[i] == this.el) {
+            if (!column.hasClass("edit-columns")) {
+                this.columnMidpoints.push(column.getX() +
+                                          column.getWidth() / 2);
+
+                if (column == this.el) {
                     this.dragIndex = i;
                 }
             }
@@ -377,8 +398,8 @@ YAHOO.extend(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
      */
     swapColumnBefore: function(index, beforeIndex) {
         /* Swap the column info. */
-        var colTags = getEl(this.grid).getChildrenByTagName("col");
-        colTags[index].insertBefore(colTags[beforeIndex]);
+        var colTags = this.grid.getElementsByTagName("col");
+        getEl(colTags[index]).insertBefore(getEl(colTags[beforeIndex]));
 
         /* Swap the list of active columns */
         var tempName = DJBLETS.datagrids.activeColumns[this.grid][index];
@@ -387,7 +408,7 @@ YAHOO.extend(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
         DJBLETS.datagrids.activeColumns[this.grid][beforeIndex] = tempName;
 
         /* Swap the cells. This will include the headers. */
-        var table = getEl(this.grid).getChildrenByTagName("table")[0].dom;
+        var table = this.grid.getElementsByTagName("table")[0];
         for (var i = 0; i < table.rows.length; i++) {
             var row = table.rows[i];
             var cell = row.cells[index];
@@ -407,7 +428,7 @@ YAHOO.extend(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
 });
 
 YAHOO.util.Event.on(window, "load", function() {
-	DJBLETS.datagrids.onPageLoad();
+    DJBLETS.datagrids.onPageLoad();
 });
 
 YAHOO.util.Event.on(document, "click", function(e) {
