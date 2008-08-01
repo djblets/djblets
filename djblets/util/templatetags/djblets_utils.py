@@ -29,6 +29,8 @@ import os
 
 from django import template
 from django.template import TemplateSyntaxError
+from django.template.defaultfilters import stringfilter
+from django.utils.safestring import mark_safe
 
 from djblets.util.decorators import blocktag
 
@@ -181,6 +183,14 @@ def contains(container, value):
 
 
 @register.filter
+def getitem(container, value):
+    """
+    Returns the attribute of a specified name from a container.
+    """
+    return container[value]
+
+
+@register.filter
 def exclude_item(container, item):
     """
     Excludes an item from a list.
@@ -226,3 +236,21 @@ def realname(user):
         return user.username
     else:
         return full_name
+
+
+@register.filter
+@stringfilter
+def paragraphs(text):
+    """
+    Adds <p>...</p> tags around blocks of text in a string. This expects
+    that each paragraph in the string will be on its own line. Blank lines
+    are filtered out.
+    """
+    s = ""
+
+    for line in text.splitlines():
+        if line:
+            s += "<p>%s</p>\n" %  line
+
+    return mark_safe(s)
+paragraphs.is_safe = True
