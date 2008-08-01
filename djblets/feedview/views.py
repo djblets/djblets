@@ -12,8 +12,8 @@ from djblets.util.misc import cache_memoize
 DEFAULT_EXPIRATION = 2 * 24 * 60 * 60 # 2 days
 
 
-def view_feed(request, url, template_name, cache_expiration=DEFAULT_EXPIRATION,
-              extra_context={}):
+def view_feed(request, url, template_name="feedview/feed-page.html",
+              cache_expiration=DEFAULT_EXPIRATION, extra_context={}):
     """
     Renders an RSS or Atom feed using the given template. This will use
     a cached copy if available in order to reduce hits to the server.
