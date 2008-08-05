@@ -4,6 +4,11 @@
 
 {% block title %}{{form.Meta.title}} {{block.super}}{% endblock %}
 
+{% block extrahead %}
+<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}djblets/css/admin.css" />
+{{block.super}}
+{% endblock %}
+
 {% block content %}
 <div id="content-main">
 
