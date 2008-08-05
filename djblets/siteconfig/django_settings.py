@@ -36,10 +36,10 @@ locale_settings_map = {
     'locale_month_day_format':     'MONTH_DAY_FORMAT',
     'locale_time_format':          'TIME_FORMAT',
     'locale_time_zone':            'TIME_ZONE',
+    'locale_year_month_format':    'YEAR_MONTH_FORMAT',
 }
 
 mail_settings_map = {
-    'locale_year_month_format':    'YEAR_MONTH_FORMAT',
     'mail_server_address':         'SERVER_EMAIL',
     'mail_default_from':           'DEFAULT_FROM_EMAIL',
     'mail_host':                   'EMAIL_HOST',
