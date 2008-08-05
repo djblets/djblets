@@ -81,7 +81,7 @@ def get_django_settings_map():
     return _django_settings_map
 
 
-def _generate_defaults(settings_map):
+def generate_defaults(settings_map):
     """
     Utility function to generate a defaults mapping.
     """
@@ -99,7 +99,7 @@ def get_locale_defaults():
     Returns the locale-related Django defaults that projects may want to
     let users customize.
     """
-    return _generate_defaults(locale_settings_map)
+    return generate_defaults(locale_settings_map)
 
 
 def get_mail_defaults():
@@ -107,7 +107,7 @@ def get_mail_defaults():
     Returns the mail-related Django defaults that projects may want to
     let users customize.
     """
-    return _generate_defaults(mail_settings_map)
+    return generate_defaults(mail_settings_map)
 
 
 def get_site_defaults():
@@ -115,7 +115,7 @@ def get_site_defaults():
     Returns the site-related Django defaults that projects may want to
     let users customize.
     """
-    return _generate_defaults(site_settings_map)
+    return generate_defaults(site_settings_map)
 
 
 def get_cache_defaults():
@@ -123,14 +123,14 @@ def get_cache_defaults():
     Returns the cache-related Django defaults that projects may want to
     let users customize.
     """
-    return _generate_defaults(cache_settings_map)
+    return generate_defaults(cache_settings_map)
 
 
 def get_django_defaults():
     """
     Returns all Django defaults that projects may want to let users customize.
     """
-    return _generate_defaults(get_django_settings_map())
+    return generate_defaults(get_django_settings_map())
 
 
 def apply_django_settings(siteconfig, settings_map=None):
