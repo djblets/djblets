@@ -24,36 +24,7 @@
 #
 
 
-from django.db import models, IntegrityError
-from django.db.models.query import Q, QAnd, QOr
-
-
-#
-# This is a hack to work around the stupid default behavior of Q objects and OR
-# operators.  By default, querying (Q(x) | Q(y)) | Q(z) when foreign keys are
-# involved will result in some small set of objects, instead of the union of x,
-# y and z.
-#
-# This implementation comes from http://www.djangosnippets.org/snippets/274/
-# By user "dottedmag" on djangosnippets.  Distributed under the generic terms of
-# the djangosnippets web site.
-#
-class QLeftOuterJoins(Q):
-    "Replaces all INNER JOINs with LEFT OUTER JOINs inside"
-    def __init__(self, q):
-        self.q = q
-
-    def __and__(self, other):
-        return QAnd(self, other)
-
-    def __or__(self, other):
-        return QOr(self, other)
-
-    def get_sql(self, opts):
-        joins, where, params = self.q.get_sql(opts)
-        for join_name, join in joins.iteritems():
-            joins[join_name] = (join[0], "LEFT OUTER JOIN", join[2])
-        return joins, where, params
+from django.db import models
 
 
 class ConcurrencyManager(models.Manager):
