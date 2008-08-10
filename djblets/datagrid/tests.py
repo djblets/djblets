@@ -78,7 +78,7 @@ class ColumnsTest(TestCase):
 class DataGridTest(TestCase):
     def setUp(self):
         populate_groups()
-        self.user = User("testuser")
+        self.user = User(username="testuser")
         self.request = HttpRequest()
         self.request.user = self.user
         self.datagrid = GroupDataGrid(self.request)

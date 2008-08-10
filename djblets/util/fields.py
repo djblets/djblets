@@ -147,8 +147,7 @@ class JSONField(models.TextField):
         setattr(cls, "get_%s_json" % self.name, get_json)
         setattr(cls, "set_%s_json" % self.name, set_json)
 
-        dispatcher.connect(self.post_init, signal=models.signals.post_init,
-                           sender=cls)
+        models.signals.post_init.connect(self.post_init, sender=cls)
 
     def pre_save(self, model_instance, add):
         return self.dumps(getattr(model_instance, self.attname, None))
