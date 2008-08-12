@@ -4,6 +4,7 @@ from django.core.cache import cache
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
+from django.template.loader import render_to_string
 
 from djblets.feedview import feedparser
 from djblets.util.misc import cache_memoize
@@ -28,12 +29,13 @@ def view_feed(request, url, template_name="feedview/feed-page.html",
         }
         context.update(extra_context)
 
-        return render_to_response(template_name,
-                                  RequestContext(request, context))
+        return render_to_string(template_name,
+                                RequestContext(request, context))
 
     try:
-        return cache_memoize("feed-%s" % url, fetch_feed, cache_expiration,
-                             force_overwrite=request.GET.has_key("reload"))
+        return HttpResponse(cache_memoize("feed-%s" % url, fetch_feed,
+                            cache_expiration,
+                            force_overwrite=request.GET.has_key("reload")))
     except urllib2.URLError, e:
         context = {
             'error': e,
