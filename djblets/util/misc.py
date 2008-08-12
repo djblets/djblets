@@ -24,6 +24,8 @@
 #
 
 
+import logging
+
 from django.core.cache import cache
 from django.conf import settings
 from django.conf.urls.defaults import url
@@ -47,6 +49,13 @@ def cache_memoize(key, lookup_callable,
     if not force_overwrite and cache.has_key(key):
         return cache.get(key)
     data = lookup_callable()
+
+    # Most people will be using memcached, and memcached has a limit of 1MB.
+    # Data this big should be broken up somehow, so let's warn about this.
+    if len(data) >= 1024 * 1024:
+        logging.warning("Cache data for key %s (length %s) may be too big "
+                        "for the cache." % (key, len(data)))
+
     try:
         cache.set(key, data, expiration)
     except:
