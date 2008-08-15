@@ -296,7 +296,10 @@ class FeedParserDict(UserDict):
 
 def zopeCompatibilityHack():
     global FeedParserDict
-    del FeedParserDict
+
+    if "FeedParserDict" in globals():
+        del globals()["FeedParserDict"]
+
     def FeedParserDict(aDict=None):
         rc = {}
         if aDict:

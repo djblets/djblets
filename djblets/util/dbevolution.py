@@ -1,4 +1,4 @@
-from django_evolution.mutations import *
+from django_evolution.mutations import BaseMutation
 
 
 class FakeChangeFieldType(BaseMutation):

@@ -28,7 +28,7 @@ import logging
 
 from django.core.cache import cache
 from django.conf import settings
-from django.conf.urls.defaults import url
+from django.conf.urls.defaults import url, RegexURLPattern
 from django.contrib.sites.models import Site
 from django.db.models.manager import Manager
 from django.views.decorators.cache import never_cache

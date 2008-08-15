@@ -140,7 +140,7 @@ class JSONField(models.TextField):
             return self.dumps(getattr(model_instance, self.attname, None))
 
         def set_json(model_instance, json):
-            setattr(instance, self.attname, self.loads(json))
+            setattr(model_instance, self.attname, self.loads(json))
 
         super(JSONField, self).contribute_to_class(cls, name)
 
