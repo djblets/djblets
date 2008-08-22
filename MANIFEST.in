@@ -1,0 +1,1 @@
+recursive-include djblets *.txt *.html *.css *.js *.htc

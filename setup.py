@@ -2,7 +2,8 @@
 #
 # setup.py -- Installation for djblets
 #
-# Copyright (C) 2007 David Trowbridge
+# Copyright (C) 2008 Christian Hammond
+# Copyright (C) 2007-2008 David Trowbridge
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -19,9 +20,35 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
-from distutils.core import setup
+from ez_setup import use_setuptools
+use_setuptools()
 
-setup(name='djblets',
-      version='0.1',
-      packages=['djblets', 'djblets.auth', 'djblets.util'])
+from setuptools import setup, find_packages
 
+
+VERSION = "0.4"
+
+
+setup(name="Djblets",
+      version=VERSION,
+      license="MIT",
+      description="A collection of useful classes and functions for Django",
+      packages=find_packages(),
+      install_requires=['Django>=1.0-beta-1'],
+      include_package_data=True,
+      zip_safe=False,
+      maintainer="Christian Hammond",
+      maintainer_email="chipx86@chipx86.com",
+      url="http://www.review-board.org/wiki/Djblets",
+      classifiers=[
+          "Development Status :: 4 - Beta",
+          "Environment :: Web Environment",
+          "Framework :: Django",
+          "Intended Audience :: Developers",
+          "License :: OSI Approved :: MIT License",
+          "Operating System :: OS Independent",
+          "Programming Language :: Python",
+          "Topic :: Software Development",
+          "Topic :: Software Development :: Libraries :: Python Modules",
+      ]
+)
