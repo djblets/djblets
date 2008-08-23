@@ -78,14 +78,17 @@ class ColumnsTest(TestCase):
 
 class DataGridTest(TestCase):
     def setUp(self):
+        self.old_auth_profile_module = getattr(settings, "AUTH_PROFILE_MODULE",
+                                               None)
         settings.AUTH_PROFILE_MODULE = None
-
         populate_groups()
         self.user = User(username="testuser")
         self.request = HttpRequest()
         self.request.user = self.user
         self.datagrid = GroupDataGrid(self.request)
 
+    def tearDown(self):
+        settings.AUTH_PROFILE_MODULE = self.old_auth_profile_module
 
     def testRender(self):
         """Testing basic datagrid rendering"""
