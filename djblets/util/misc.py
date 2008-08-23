@@ -34,8 +34,12 @@ from django.db.models.manager import Manager
 from django.views.decorators.cache import never_cache
 
 
+DEFAULT_EXPIRATION_TIME = 60 * 60 * 24 * 30 # 1 month
+
+
 def cache_memoize(key, lookup_callable,
-                  expiration=settings.CACHE_EXPIRATION_TIME,
+                  expiration=getattr(settings, "CACHE_EXPIRATION_TIME",
+                                     DEFAULT_EXPIRATION_TIME),
                   force_overwrite=False):
     try:
         site = Site.objects.get(pk=settings.SITE_ID)

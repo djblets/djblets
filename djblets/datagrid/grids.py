@@ -1,3 +1,4 @@
+from django.contrib.auth.models import SiteProfileNotAvailable
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import InvalidPage, QuerySetPaginator
 from django.http import Http404, HttpResponse
@@ -344,7 +345,7 @@ class DataGrid(object):
                 if self.profile_columns_field:
                     profile_columns_list = \
                         getattr(profile, self.profile_columns_field, None)
-            except ObjectDoesNotExist:
+            except SiteProfileNotAvailable:
                 pass
 
 

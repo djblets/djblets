@@ -152,7 +152,7 @@ class JSONField(models.TextField):
     def pre_save(self, model_instance, add):
         return self.dumps(getattr(model_instance, self.attname, None))
 
-    def post_init(self, instance=None):
+    def post_init(self, instance=None, **kwargs):
         value = self.value_from_object(instance)
 
         if value:

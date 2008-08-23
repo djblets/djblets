@@ -27,6 +27,7 @@
 from datetime import datetime, timedelta
 import unittest
 
+from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.db import models
 from django.http import HttpRequest
@@ -77,11 +78,14 @@ class ColumnsTest(TestCase):
 
 class DataGridTest(TestCase):
     def setUp(self):
+        settings.AUTH_PROFILE_MODULE = None
+
         populate_groups()
         self.user = User(username="testuser")
         self.request = HttpRequest()
         self.request.user = self.user
         self.datagrid = GroupDataGrid(self.request)
+
 
     def testRender(self):
         """Testing basic datagrid rendering"""
