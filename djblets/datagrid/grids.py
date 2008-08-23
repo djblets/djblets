@@ -347,6 +347,8 @@ class DataGrid(object):
                         getattr(profile, self.profile_columns_field, None)
             except SiteProfileNotAvailable:
                 pass
+            except ObjectDoesNotExist:
+                pass
 
 
         # Figure out the columns we're going to display
