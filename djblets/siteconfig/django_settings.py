@@ -143,4 +143,4 @@ def apply_django_settings(siteconfig, settings_map=None):
 
     for key, value in settings_map.iteritems():
         if key in siteconfig.settings:
-            setattr(settings, key, siteconfig.get(key))
+            setattr(settings, value, siteconfig.get(key))

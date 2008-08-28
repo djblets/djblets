@@ -12,6 +12,8 @@ class WebAPIError:
 #
 NO_ERROR                  = WebAPIError(0,   "If you see this, yell at " +
                                              "the developers")
+SERVICE_NOT_CONFIGURED    = WebAPIError(1,   "The web service has not yet "
+                                             "been configured")
 
 DOES_NOT_EXIST            = WebAPIError(100, "Object does not exist")
 PERMISSION_DENIED         = WebAPIError(101, "You don't have permission " +
