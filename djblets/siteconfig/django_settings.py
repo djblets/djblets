@@ -31,7 +31,8 @@ locale_settings_map = {
     'locale_language_code':        'LANGUAGE_CODE',
     'locale_date_format':          'DATE_FORMAT',
     'locale_datetime_format':      'DATETIME_FORMAT',
-    'locale_default_charset':      'DEFAULT_CHARSET',
+    'locale_default_charset':      { 'key': 'DEFAULT_CHARSET',
+                                     'deserialize_func': str },
     'locale_language_code':        'LANGUAGE_CODE',
     'locale_month_day_format':     'MONTH_DAY_FORMAT',
     'locale_time_format':          'TIME_FORMAT',
@@ -87,9 +88,14 @@ def generate_defaults(settings_map):
     """
     defaults = {}
 
-    for siteconfig_key, settings_key in settings_map.iteritems():
-        if hasattr(settings, settings_key):
-            defaults[siteconfig_key] = getattr(settings, settings_key)
+    for siteconfig_key, setting_data in settings_map.iteritems():
+        if isinstance(setting_data, dict):
+            setting_key = setting_data['key']
+        else:
+            setting_key = setting_data
+
+        if hasattr(settings, setting_key):
+            defaults[siteconfig_key] = getattr(settings, setting_key)
 
     return defaults
 
@@ -141,6 +147,17 @@ def apply_django_settings(siteconfig, settings_map=None):
     if settings_map is None:
         settings_map = get_django_settings_map()
 
-    for key, value in settings_map.iteritems():
+    for key, setting_data in settings_map.iteritems():
         if key in siteconfig.settings:
-            setattr(settings, value, siteconfig.get(key))
+            value = siteconfig.get(key)
+
+            if isinstance(setting_data, dict):
+                setting_key = setting_data['key']
+
+                if ('deserialize_func' in setting_data and
+                    callable(setting_data['deserialize_func'])):
+                    value = setting_data['deserialize_func'](value)
+            else:
+                setting_key = setting_data
+
+            setattr(settings, setting_key, value)
