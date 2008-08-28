@@ -25,12 +25,23 @@ use_setuptools()
 
 from setuptools import setup, find_packages
 
+from setuptools.command.test import test
+#from tests.runtests import run_tests
+
+
+def run_tests(*args):
+    import os
+    os.system("tests/runtests.py")
+
+test.run_tests = run_tests
+
 
 VERSION = "0.4"
 
 
 setup(name="Djblets",
       version=VERSION,
+      test_suite="dummy",
       license="MIT",
       description="A collection of useful classes and functions for Django",
       packages=find_packages(),
