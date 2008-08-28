@@ -30,4 +30,7 @@ def siteconfig(request):
     """
     Exposes the site configuration as a siteconfig variable in templates.
     """
-    return {'siteconfig': SiteConfiguration.objects.get_current()}
+    try:
+        return {'siteconfig': SiteConfiguration.objects.get_current()}
+    except:
+        return {'siteconfig': None}
