@@ -29,7 +29,6 @@ from datetime import datetime
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
-from django.dispatch import dispatcher
 from django.utils import simplejson
 from django.utils.encoding import smart_unicode
 

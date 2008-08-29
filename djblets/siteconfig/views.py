@@ -24,7 +24,6 @@
 #
 
 from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.sites.models import Site
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext

@@ -27,7 +27,6 @@
 import datetime
 import unittest
 
-from django.conf import settings
 from django.template import Token, TOKEN_TEXT, TemplateSyntaxError
 from django.utils.html import strip_spaces_between_tags
 

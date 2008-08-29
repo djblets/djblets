@@ -1,4 +1,3 @@
-from datetime import datetime
 import logging
 import os.path
 import sys

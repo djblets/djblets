@@ -28,7 +28,6 @@
 from inspect import getargspec
 
 from django import template
-from django.template import resolve_variable
 from django.template import TemplateSyntaxError, Variable
 
 

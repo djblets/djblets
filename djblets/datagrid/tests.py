@@ -25,17 +25,13 @@
 
 
 from datetime import datetime, timedelta
-import unittest
 
 from django.conf import settings
 from django.contrib.auth.models import Group, User
-from django.db import models
 from django.http import HttpRequest
-from django.template import Token, TOKEN_TEXT, TemplateSyntaxError
-from django.utils.html import strip_spaces_between_tags
 
 from djblets.datagrid.grids import Column, DataGrid, DateTimeSinceColumn
-from djblets.util.testing import TestCase, TagTest
+from djblets.util.testing import TestCase
 
 
 def populate_groups():

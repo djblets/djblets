@@ -1,0 +1,16 @@
+djblets/feedview/feedparser.py:82: redefinition of unused '_StringIO' from line 80
+djblets/feedview/feedparser.py:90: redefinition of unused 'gzip' from line 88
+djblets/feedview/feedparser.py:94: redefinition of unused 'zlib' from line 92
+djblets/feedview/feedparser.py:107: redefinition of unused '_xmlescape' from line 103
+djblets/feedview/feedparser.py:119: redefinition of unused 'binascii' from line 117
+djblets/feedview/feedparser.py:119: redefinition of unused 'base64' from line 117
+djblets/feedview/feedparser.py:124: 'cjkcodecs' imported but unused
+djblets/feedview/feedparser.py:128: 'iconv_codec' imported but unused
+djblets/feedview/feedparser.py:137: redefinition of unused 'chardet' from line 135
+djblets/feedview/feedparser.py:147: redefinition of unused 'name2codepoint' from line 144
+djblets/feedview/feedparser.py:148: redefinition of unused 'codepoint2name' from line 144
+djblets/feedview/feedparser.py:162: redefinition of unused 'BeautifulSoup' from line 160
+djblets/feedview/feedparser.py:3583: redefinition of unused 'OptionParser' from line 3581
+djblets/feedview/test_urls.py:2: 'handler500' imported but unused
+djblets/util/rooturl.py:2: 'handler404' imported but unused
+djblets/util/rooturl.py:2: 'handler500' imported but unused

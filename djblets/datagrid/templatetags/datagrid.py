@@ -1,5 +1,4 @@
 from django import template
-from django.template import Variable, VariableDoesNotExist
 
 
 register = template.Library()

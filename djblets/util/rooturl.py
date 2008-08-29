@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.conf.urls.defaults import patterns, include, handler404, handler500
+from django.core.exceptions import ImproperlyConfigured
 
 
 # Ensures that we can run nose on this without needing to set SITE_ROOT.

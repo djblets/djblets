@@ -23,8 +23,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-import unittest
-from djblets.util.testing import TestCase, TagTest
+from djblets.util.testing import TestCase
 
 
 class FeedViewTests(TestCase):

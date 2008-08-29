@@ -30,7 +30,6 @@ from django import template
 from django.template.loader import render_to_string
 
 from djblets.util.decorators import basictag, blocktag
-from djblets.util.templatetags.djblets_utils import humanize_list
 
 
 register = template.Library()

@@ -23,7 +23,6 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-from django.conf import settings
 from django.contrib.sites.models import Site
 from django.db import models
 
