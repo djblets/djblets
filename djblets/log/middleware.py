@@ -1,12 +1,7 @@
 import logging
-import os.path
 import sys
 
-from django.conf import settings
-
-
-_logging_setup = False
-_profile_log = None
+from djblets.log import init_logging, init_profile_logger
 
 
 class LoggingMiddleware(object):
@@ -71,14 +66,11 @@ class LoggingMiddleware(object):
     ``WARNING``, ``ERROR`` and ``CRITICAL``.
     """
 
-    DEFAULT_LOG_LEVEL = "DEBUG"
-    DEFAULT_LINE_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
-
     def process_request(self, request):
         """
         Processes an incoming request. This will set up logging.
         """
-        self.ensure_loggers()
+        pass
 
     def process_view(self, request, callback, callback_args, callback_kwargs):
         """
@@ -86,6 +78,8 @@ class LoggingMiddleware(object):
         if profiling is allowed in the settings and the user specified the
         profiling parameter on the URL.
         """
+        init_logging()
+
         if ('profiling' in request.GET and
             getattr(settings, "LOGGING_ALLOW_PROFILING", False)):
             import cProfile
@@ -101,7 +95,7 @@ class LoggingMiddleware(object):
         if ('profiling' in request.GET and
             getattr(settings, "LOGGING_ALLOW_PROFILING", False)):
 
-            self.ensure_profile_logger()
+            init_profile_logger()
 
             from cStringIO import StringIO
             self.profiler.create_stats()
@@ -118,66 +112,3 @@ class LoggingMiddleware(object):
             _profile_log.log(logging.INFO, out.getvalue().strip())
 
         return response
-
-    def ensure_loggers(self):
-        """
-        Sets up the main loggers, if they haven't already been set up.
-        """
-        global _logging_setup
-
-        if _logging_setup:
-            return
-
-        enabled = getattr(settings, 'LOGGING_ENABLED', False)
-        log_directory = getattr(settings, 'LOGGING_DIRECTORY', None)
-        log_name = getattr(settings, 'LOGGING_NAME', None)
-
-        if not enabled or not log_directory or not log_name:
-            return
-
-        log_level_name = getattr(settings, 'LOGGING_LEVEL',
-                                 self.DEFAULT_LOG_LEVEL)
-        log_level = logging.getLevelName(log_level_name)
-        format_str = getattr(settings, 'LOGGING_LINE_FORMAT',
-                             self.DEFAULT_LINE_FORMAT)
-
-        log_path = os.path.join(log_directory, log_name + ".log")
-
-        logging.basicConfig(
-            level=log_level,
-            format=format_str,
-            filename=log_path,
-            filemode='a'
-        )
-
-        if settings.DEBUG:
-            # In DEBUG mode, log to the console as well.
-            console_log = logging.StreamHandler()
-            console_log.setLevel(log_level)
-            console_log.setFormatter(logging.Formatter(format_str))
-            logging.getLogger('').addHandler(console_log)
-
-        logging.info("Logging to %s with a minimum level of %s",
-                     log_path, log_level_name)
-
-        _logging_setup = True
-
-    def ensure_profile_logger(self):
-        """
-        Sets up the profiling logger, if it hasn't already been set up.
-        """
-        global _profile_log
-
-        enabled = getattr(settings, 'LOGGING_ENABLED', False)
-        log_directory = getattr(settings, 'LOGGING_DIRECTORY', None)
-        log_name = getattr(settings, 'LOGGING_NAME', None)
-
-        if (enabled and log_directory and log_name and not _profile_log and
-            getattr(settings, "LOGGING_ALLOW_PROFILING", False)):
-            handler = logging.FileHandler(
-                os.path.join(log_directory, log_name + ".prof"))
-            handler.setLevel(logging.INFO)
-            handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
-
-            _profile_log = logging.getLogger("profile")
-            _profile_log.addHandler(handler)
