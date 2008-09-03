@@ -27,7 +27,8 @@ from django.conf import settings
 
 
 locale_settings_map = {
-    'locale_timezone':             'TIME_ZONE',
+    'locale_timezone':             { 'key': 'TIME_ZONE',
+                                     'deserialize_func': str },
     'locale_language_code':        'LANGUAGE_CODE',
     'locale_date_format':          'DATE_FORMAT',
     'locale_datetime_format':      'DATETIME_FORMAT',
