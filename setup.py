@@ -26,7 +26,6 @@ use_setuptools()
 from setuptools import setup, find_packages
 
 from setuptools.command.test import test
-#from tests.runtests import run_tests
 
 
 def run_tests(*args):
@@ -45,7 +44,7 @@ setup(name="Djblets",
       license="MIT",
       description="A collection of useful classes and functions for Django",
       packages=find_packages(),
-      install_requires=['Django>=1.0-beta-1'],
+      install_requires=['Django>=1.0'],
       include_package_data=True,
       zip_safe=False,
       maintainer="Christian Hammond",
