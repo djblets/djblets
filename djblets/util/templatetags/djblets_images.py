@@ -70,11 +70,12 @@ def thumbnail(file, size='400x100'):
     """
     x, y = [int(x) for x in size.split('x')]
 
-    if file.find(".") != -1:
-        basename, format = file.rsplit('.', 1)
+    filename = file.name
+    if filename.find(".") != -1:
+        basename, format = filename.rsplit('.', 1)
         miniature = '%s_%s.%s' % (basename, size, format)
     else:
-        basename = file
+        basename = filename
         miniature = '%s_%s' % (basename, size)
 
     miniature_filename = os.path.join(settings.MEDIA_ROOT, miniature)
@@ -82,7 +83,7 @@ def thumbnail(file, size='400x100'):
 
     if not os.path.exists(miniature_filename):
         try:
-            image = Image.open(os.path.join(settings.MEDIA_ROOT, file))
+            image = Image.open(os.path.join(settings.MEDIA_ROOT, filename))
             image.thumbnail([x, y], Image.ANTIALIAS)
             image.save(miniature_filename, image.format)
         except IOError:
