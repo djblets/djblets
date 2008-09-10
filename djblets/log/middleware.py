@@ -1,6 +1,7 @@
 import logging
 import sys
 
+from django.conf import settings
 from djblets.log import init_logging, init_profile_logger
 
 
@@ -106,9 +107,10 @@ class LoggingMiddleware(object):
             self.profiler.print_stats(1)
             sys.stdout = old_stdout
 
-            _profile_log.log(logging.INFO,
-                             "Profiling results for %s (HTTP %s):",
-                             request.path, request.method)
-            _profile_log.log(logging.INFO, out.getvalue().strip())
+            profile_log = logging.getLogger("profile")
+            profile_log.log(logging.INFO,
+                            "Profiling results for %s (HTTP %s):",
+                            request.path, request.method)
+            profile_log.log(logging.INFO, out.getvalue().strip())
 
         return response
