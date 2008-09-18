@@ -1,318 +1,211 @@
-/* Create the DJBLETS namespace if it doesn't exist. */
-if (!DJBLETS) {
-    var DJBLETS = {};
-}
+(function($) {
 
-try {
-    if (Ext) {
-        /*
-         * We use getEl() from the old yui-ext. Make this wrap Ext.get if
-         * using extjs.
-         */
-        getEl = Ext.get;
-    }
-} catch (e) {
-}
 
-DJBLETS.datagrids = {
-    activeMenu: null,
-    activeColumns: {},
+/*
+ * Creates a datagrid. This will cause drag and drop and column
+ * customization to be enabled.
+ */
+jQuery.fn.datagrid = function() {
+    /* References */
+    var that = this;
+    var gridId = this.attr("id");
+    var editButton = $("#" + gridId + "-edit");
+    var menu = $("#" + gridId + "-menu");
+    var editColumns = $("th.edit-columns", this);
 
-    /*
-     * Registers a datagrid. This will cause drag and drop and column
-     * customization to be enabled.
-     *
-     * @param {HTMLElement} grid  The datagrid element.
-     */
-    registerDataGrid: function(grid) {
-        this.activeColumns[grid] = [];
+    /* State */
+    var activeColumns = [];
+    var activeMenu = null;
+    var columnMidpoints = [];
+    var dragColumn = null;
+    var dragColumnsChanged = false;
+    var dragColumnWidth = 0;
+    var dragIndex = 0;
+    var dragLastX = 0;
 
-        var cols = grid.getElementsByTagName("col");
-        for (var j = 0; j < cols.length; j++) {
-            if (cols[j].className != "datagrid-customize") {
-                this.activeColumns[grid].push(cols[j].className);
+    /* Set up the drag-and-drop helper. */
+
+    /* Add all the non-special columns to the list. */
+    $("col", this).not(".datagrid-customize").each(function(i) {
+        activeColumns.push(this.className);
+    });
+
+    /* Make the columns unselectable. */
+    $("th", this).unselectable();
+
+    /* Make the columns draggable. */
+    $("th", this).not(".edit-columns").draggable({
+        appendTo: "body",
+        axis: "x",
+        containment: $("thead:first", this),
+        cursor: "move",
+        helper: function() {
+            return $("<div></div>")
+                .addClass("datagrid-header-drag datagrid-header")
+                .width($(this).width())
+                .height($(this).height())
+                .css("top", $(this).offset().top)
+                .html($(this).html());
+        },
+        start: startColumnDrag,
+        stop: endColumnDrag,
+        drag: onColumnDrag
+    });
+
+    /* Register callbacks for the columns. */
+    $("tr", menu).each(function(i) {
+        var className = this.className;
+
+        $(".datagrid-menu-checkbox, .datagrid-menu-label a", this).click(
+            function() {
+                toggleColumn(className);
             }
-        }
+        );
+    });
 
-        var headers = grid.getElementsByTagName("th");
+    editButton.click(function(evt) {
+        evt.stopPropagation();
+        toggleColumnsMenu();
+    });
 
-        for (var j = 0; j < headers.length; j++) {
-            var header = getEl(headers[j]);
-            header.unselectable();
+    $(document.body).click(hideColumnsMenu);
 
-            if (!header.hasClass("edit-columns")) {
-                new DJBLETS.datagrids.DDColumn(header, grid);
-            }
-        }
-    },
 
-    /*
-     * Unregisters a datagrid. This is used when we're getting ready to
-     * reload a grid.
-     *
-     * @param {HTMLElement} grid  The datagrid.
-     */
-    unregisterDataGrid: function(grid) {
-        this.activeColumns[grid] = [];
-    },
+    /********************************************************************
+     * Column customization
+     ********************************************************************/
 
     /*
      * Hides the currently open columns menu.
      */
-    hideColumnsMenu: function() {
-        if (this.activeMenu != null) {
-            this.activeMenu.hide();
-            this.activeMenu = null;
+    function hideColumnsMenu() {
+        if (activeMenu != null) {
+            activeMenu.hide();
+            activeMenu = null;
         }
-    },
+    }
 
     /*
      * Toggles the visibility of the specified columns menu.
-     *
-     * @param {string}      menu_id  The ID of the menu.
-     * @param {HTMLElement} elid     The element ID of the link that
-     *                               called this function.
-     * @param {event}       evt      The event that triggered this, if any.
      */
-    toggleColumnsMenu: function(menu_id, elid, evt) {
-        var el = getEl(elid);
-        var menu = getEl(menu_id);
-
-        if (menu.isVisible()) {
-            this.hideColumnsMenu();
+    function toggleColumnsMenu() {
+        if (menu.is(":visible")) {
+            hideColumnsMenu();
         } else {
-            if (el.beginMeasure) {
-                el.beginMeasure();
-            }
+            var offset = editButton.offset()
 
-            xy = el.getXY()
-
-            if (el.endMeasure) {
-                el.endMeasure();
-            }
-
-            menu.moveTo(xy[0] - menu.getWidth() + el.getWidth(),
-                        xy[1] + el.getHeight());
+            menu.css({
+                left: offset.left - menu.outerWidth() + editButton.outerWidth(),
+                top:  offset.top + editButton.outerHeight()
+            });
             menu.show();
-            this.activeMenu = menu;
-        }
 
-        if (evt) {
-            YAHOO.util.Event.stopEvent(evt);
+            activeMenu = menu;
         }
-    },
-
-    /*
-     * Callback handler for when the page finishes loading. Registers
-     * the grids and enables drag and drop for the datagrids.
-     */
-    onPageLoad: function() {
-        var grids = YAHOO.util.Dom.getElementsByClassName("datagrid-wrapper",
-                                                          "div");
-        for (var i = 0; i < grids.length; i++) {
-            this.registerDataGrid(grids[i]);
-        }
-    },
+    }
 
     /*
      * Saves the new columns list on the server.
      *
-     * @param {{string}}   gridId      The ID of the datagrid.
-     * @param {{string}}   columnsStr  The columns to display.
-     * @param {{function}} onSuccess   Optional callback on successful save.
+     * @param {string}   columnsStr  The columns to display.
+     * @param {function} onSuccess   Optional callback on successful save.
      */
-    saveColumns: function(gridId, columnsStr, onSuccess) {
+    function saveColumns(columnsStr, onSuccess) {
         var url = window.location.pathname +
                   "?gridonly=1&datagrid-id=" + gridId +
                   "&columns=" + columnsStr;
 
-        YAHOO.util.Connect.asyncRequest("GET", url, {
-            success: onSuccess
-        });
-    },
+        jQuery.get(url, onSuccess);
+    }
 
     /*
      * Toggles the visibility of a column. This will build the resulting
      * columns string and request a save of the columns, followed by a
      * reload of the page.
      *
-     * @param {{string}}  gridId    The ID of the datagrid.
-     * @param {{string}}  columnId  The ID of the column to toggle.
+     * @param {string}  columnId  The ID of the column to toggle.
      */
-    toggleColumn: function(gridId, columnId) {
-        var addingColumn = true;
-        var grid = document.getElementById(gridId);
-        var curColumns = this.activeColumns[grid];
-        var newColumnsStr = "";
+    function toggleColumn(columnId) {
+        saveColumns(serializeColumns(columnId), function(html) {
+            that.replaceWith(html);
+            $("#" + gridId).datagrid();
+        });
+    }
 
-        for (var i = 0; i < curColumns.length; i++) {
-            if (curColumns[i] == columnId) {
+    /*
+     * Serializes the active column list, optionally adding one new entry
+     * to the end of the list.
+     *
+     * @return The serialized column list.
+     */
+    function serializeColumns(addedColumn) {
+        var columnsStr = "";
+
+        $(activeColumns).each(function(i) {
+            var curColumn = activeColumns[i];
+
+            if (curColumn == addedColumn) {
                 /* We're removing this column. */
-                addingColumn = false;
+                addedColumn = null;
             } else {
-                newColumnsStr += curColumns[i];
+                columnsStr += curColumn;
 
-                if (i < curColumns.length - 1) {
-                    newColumnsStr += ",";
+                if (i < activeColumns.length - 1) {
+                    columnsStr += ",";
                 }
             }
+        });
+
+        if (addedColumn) {
+            columnsStr += "," + addedColumn;
         }
 
-        if (addingColumn) {
-            newColumnsStr += "," + columnId;
-        }
-
-        this.saveColumns(gridId, newColumnsStr, function(res) {
-            this.hideColumnsMenu();
-            this.unregisterDataGrid(gridId);
-
-            /* The resulting text *should* be datagrid HTML. */
-            var oldEl = getEl(gridId);
-            oldEl.dom.id = "";
-
-            var html = res.responseText;
-
-            if (oldEl.dom.insertAdjacentHTML) {
-                /* Supported by IE */
-                oldEl.dom.insertAdjacentHTML("beforeBegin", html);
-            } else {
-                /* Everybody else. */
-                var range = oldEl.dom.ownerDocument.createRange();
-                range.setStartBefore(oldEl.dom);
-                var newEl = range.createContextualFragment(html);
-                oldEl.dom.parentNode.insertBefore(newEl, oldEl.dom);
-            }
-            oldEl.remove();
-
-            this.registerDataGrid(document.getElementById(gridId));
-        }.createDelegate(this));
+        return columnsStr;
     }
-}
 
 
-/*
- * Special drag-and-drop object for draggable columns.
- *
- * This handles the work of representing the dragged column, placing it in
- * a new spot, rearranging all the cells for the new arrangement, and saving
- * the setting.
- *
- * @param {Element} el    The column header Element.
- * @param {Element} grid  The datagrid element.
- */
-DJBLETS.datagrids.DDColumn = function(el, grid) {
-    this.grid = grid;
-    this.el = el;
-    DJBLETS.datagrids.DDColumn.superclass.constructor.apply(this, [
-        YAHOO.util.Dom.generateId(el.dom), "datagrid-columns", {
-            resizeFrame: false
-        }
-    ]);
-}
-
-YAHOO.extend(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
-    grid: null,
-    el: null,
-    lastX: 0,
-    columnMidpoints: [],
-    columns: [],
-    dragIndex: 0,
-
-    /*
-     * Initializes the object. This just wraps DDProxy.init and calls
-     * initConstraints().
-     */
-    init: function() {
-        DJBLETS.datagrids.DDColumn.superclass.init.apply(this, arguments);
-
-        /*
-         * YAHOO.ext.EventManager has a nice buffered onWindowResize
-         * function that gives us buffered resizes. It depends on some
-         * additional YAHOO.ext code, which is why we don't (yet) re-implement
-         * it. However, we may wish to do so in the future to remove the
-         * deprecated yui-ext support from this file.
-         */
-        if (YAHOO.ext) {
-            YAHOO.ext.EventManager.onWindowResize(this.initConstraints,
-                                                  this, true);
-        } else {
-            YAHOO.util.Event.on(window, "resize",
-                                this.initConstraints.createDelegate(this));
-        }
-
-        this.initConstraints();
-    },
-
-    /*
-     * Sets up the movement constraints for this column. This locks the
-     * column into the column header region. It has the effect of only
-     * allowing the column to slide left and right.
-     */
-    initConstraints: function() {
-        var thead = getEl(this.grid.getElementsByTagName("thead")[0]);
-        var headerRegion = thead.getRegion();
-        var colRegion = this.el.getRegion();
-
-        this.setXConstraint(colRegion.left - headerRegion.left,
-                            headerRegion.right - colRegion.right);
-        this.setYConstraint(colRegion.top - headerRegion.top,
-                            headerRegion.bottom - colRegion.bottom);
-    },
+    /********************************************************************
+     * Column reordering support
+     ********************************************************************/
 
     /*
      * Handles the beginning of the drag.
      *
-     * Creates the proxy element and builds the column information needed
-     * for determining when we should switch columns.
+     * Builds the column information needed for determining when we should
+     * switch columns.
      *
-     * @param {int} x  The X position of the mousedown.
-     * @param {int} y  The Y position of the mousedown.
+     * @param {event}  evt The event.
+     * @param {object} ui  The jQuery drag and drop information.
      */
-    startDrag: function(x, y) {
-        var dragEl = getEl(this.getDragEl());
-        this.el.hide();
+    function startColumnDrag(evt, ui) {
+        dragColumn = this;
+        dragColumnsChanged = false;
+        dragColumnWidth = ui.helper.width();
+        dragIndex = 0;
+        dragLastX = 0;
+        buildColumnInfo();
 
-        dragEl.setStyle("border", "");
-        dragEl.dom.innerHTML = this.el.dom.innerHTML;
-        dragEl.addClass(this.el.dom.className);
-        dragEl.addClass("datagrid-header-drag");
-
-        /* Account for the padding of the contents in the width and height. */
-        dragEl.setWidth(this.el.getWidth());
-        dragEl.setHeight(this.el.getHeight());
-
-        this.buildColumnInfo();
-    },
+        /* Hide the column but keep its area reserved. */
+        $(this).css("visibility", "hidden");
+    }
 
     /*
      * Handles the end of a drag.
      *
-     * This removes the proxy element, shows the original header (now in its
-     * new place) and saves the new arrangement.
-     *
-     * @param {event} e  The event.
+     * This shows the original header (now in its new place) and saves
+     * the new columns configuration.
      */
-    endDrag: function(e) {
-        var dragEl = getEl(this.getDragEl());
-        dragEl.hide();
-        this.el.show();
+    function endColumnDrag() {
+        /* Re-show the column header. */
+        $(this).css("visibility", "visible");
 
-        this.columnMidpoints = [];
+        columnMidpoints = [];
 
-        /* Build the new columns list. */
-        var columns = DJBLETS.datagrids.activeColumns[this.grid];
-        var columnsStr = "";
-
-        for (var i = 0; i < columns.length; i++) {
-            columnsStr += columns[i];
-
-            if (i != columns.length - 1) {
-                columnsStr += ",";
-            }
+        if (dragColumnsChanged) {
+            /* Build the new columns list */
+            saveColumns(serializeColumns());
         }
-
-        DJBLETS.datagrids.saveColumns(this.grid.id, columnsStr);
-    },
+    }
 
     /*
      * Handles movement while in drag mode.
@@ -320,43 +213,43 @@ YAHOO.extend(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
      * This will check if we've crossed the midpoint of a column. If so, we
      * switch the columns.
      *
-     * @param {event} e  The event.
+     * @param {event}  e  The event.
+     * @param {object} ui The jQuery drag and drop information.
      */
-    onDrag: function(e) {
+    function onColumnDrag(e, ui) {
         /*
          * Check the direction we're moving and see if we're ready to switch
          * with another column.
          */
-        var x = YAHOO.util.Event.getPageX(e);
+        var x = e.pageX;
 
-        if (x == this.lastX) {
+        if (x == dragLastX) {
             /* No change that we care about. Bail out. */
             return;
         }
 
-        var dragEl = getEl(this.getDragEl());
         var hitX = -1;
         var index = -1;
 
-        if (x < this.lastX) {
-            index = this.dragIndex - 1;
-            hitX = dragEl.getX();
+        if (x < dragLastX) {
+            index = dragIndex - 1;
+            hitX = ui.absolutePosition.left;
         } else {
-            index = this.dragIndex + 1;
-            hitX = dragEl.getRight();
+            index = dragIndex + 1;
+            hitX = ui.absolutePosition.left + ui.helper.width();
         }
 
-        if (index >= 0 && index < this.columnMidpoints.length) {
+        if (index >= 0 && index < columnMidpoints.length) {
             /* Check that we're dragging past the midpoint. If so, swap. */
-            if (x < this.lastX && hitX <= this.columnMidpoints[index]) {
-                this.swapColumnBefore(this.dragIndex, index);
-            } else if (x > this.lastX && hitX >= this.columnMidpoints[index]) {
-                this.swapColumnBefore(index, this.dragIndex);
+            if (x < dragLastX && hitX <= columnMidpoints[index]) {
+                swapColumnBefore(dragIndex, index);
+            } else if (x > dragLastX && hitX >= columnMidpoints[index]) {
+                swapColumnBefore(index, dragIndex);
             }
         }
 
-        this.lastX = x;
-    },
+        dragLastX = x;
+    }
 
     /*
      * Builds the necessary information on the columns.
@@ -365,25 +258,29 @@ YAHOO.extend(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
      * when we should swap columns during a drag. It also sets the index
      * of the currently dragged column.
      */
-    buildColumnInfo: function() {
-        /* Grab the list of midpoints for each column. */
-        this.columnMidpoints = [];
+    function buildColumnInfo() {
+        /* Clear and rebuild the list of mid points. */
+        columnMidpoints = [];
 
-        var columns = this.grid.getElementsByTagName("th");
+        $("th", that).not(".edit-columns").each(function(i) {
+            var column = $(this);
+            var offset = column.offset();
 
-        for (var i = 0; i < columns.length; i++) {
-            var column = getEl(columns[i]);
+            if (this == dragColumn) {
+                dragIndex = i;
 
-            if (!column.hasClass("edit-columns")) {
-                this.columnMidpoints.push(column.getX() +
-                                          column.getWidth() / 2);
-
-                if (column == this.el) {
-                    this.dragIndex = i;
-                }
+                /*
+                 * Getting the width of an invisible element is very bad
+                 * when the element is a <th>. Use our pre-calculated width.
+                 */
+                width = dragColumnWidth;
+            } else {
+                width = column.width();
             }
-        }
-    },
+
+            columnMidpoints.push(Math.round(offset.left + width / 2));
+        });
+    }
 
     /*
      * Swaps two columns, placing the first before the second.
@@ -396,19 +293,18 @@ YAHOO.extend(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
      * @param {int} beforeIndex The index of the column to place the first
      *                          before.
      */
-    swapColumnBefore: function(index, beforeIndex) {
+    function swapColumnBefore(index, beforeIndex) {
         /* Swap the column info. */
-        var colTags = this.grid.getElementsByTagName("col");
-        getEl(colTags[index]).insertBefore(getEl(colTags[beforeIndex]));
+        var colTags = $("col", that);
+        $(colTags[index]).insertBefore($(colTags[beforeIndex]));
 
         /* Swap the list of active columns */
-        var tempName = DJBLETS.datagrids.activeColumns[this.grid][index];
-        DJBLETS.datagrids.activeColumns[this.grid][index] =
-            DJBLETS.datagrids.activeColumns[this.grid][beforeIndex];
-        DJBLETS.datagrids.activeColumns[this.grid][beforeIndex] = tempName;
+        var tempName = activeColumns[index];
+        activeColumns[index] = activeColumns[beforeIndex];
+        activeColumns[beforeIndex] = tempName;
 
         /* Swap the cells. This will include the headers. */
-        var table = this.grid.getElementsByTagName("table")[0];
+        var table = $("table:first", that)[0];
         for (var i = 0; i < table.rows.length; i++) {
             var row = table.rows[i];
             var cell = row.cells[index];
@@ -422,17 +318,17 @@ YAHOO.extend(DJBLETS.datagrids.DDColumn, YAHOO.util.DDProxy, {
             beforeCell.colSpan = tempColSpan;
         }
 
+        dragColumnsChanged = true;
+
         /* Everything has changed, so rebuild our view of things. */
-        this.buildColumnInfo();
+        buildColumnInfo();
     }
+
+    return this;
+};
+
+$(document).ready(function() {
+    $("div.datagrid-wrapper").datagrid();
 });
 
-YAHOO.util.Event.on(window, "load", function() {
-    DJBLETS.datagrids.onPageLoad();
-});
-
-YAHOO.util.Event.on(document, "click", function(e) {
-    if (DJBLETS.datagrids.activeMenu != null) {
-        DJBLETS.datagrids.hideColumnsMenu();
-    }
-});
+})(jQuery);
