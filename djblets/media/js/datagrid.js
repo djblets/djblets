@@ -23,8 +23,6 @@ jQuery.fn.datagrid = function() {
     var dragIndex = 0;
     var dragLastX = 0;
 
-    /* Set up the drag-and-drop helper. */
-
     /* Add all the non-special columns to the list. */
     $("col", this).not(".datagrid-customize").each(function(i) {
         activeColumns.push(this.className);
