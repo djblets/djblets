@@ -67,7 +67,8 @@ def internal_login(request, username, password):
         return "Cookies must be enabled."
 
     auth.login(request, user)
-    request.session.delete_test_cookie()
+    if request.session.test_cookie_worked():
+        request.session.delete_test_cookie()
     user.last_login = datetime.datetime.now()
     user.save()
 
