@@ -1,8 +1,47 @@
 import logging
 import sys
+import time
+import traceback
 
 from django.conf import settings
+from django.db import connection
+from django.db.backends import util
+
 from djblets.log import init_logging, init_profile_logger
+
+
+class CursorDebugWrapper(util.CursorDebugWrapper):
+    """
+    Replacement for CursorDebugWrapper which stores a traceback in
+    `connection.queries`. This will dramatically increase the overhead of having
+    DEBUG=True, so use with caution.
+    """
+    def execute(self, sql, params=()):
+        start = time.time()
+        try:
+            return self.cursor.execute(sql, params)
+        finally:
+            stop = time.time()
+            sql = self.db.ops.last_executed_query(self.cursor, sql, params)
+            self.db.queries.append({
+                'sql': sql,
+                'time': stop - start,
+                'stack': traceback.format_stack(),
+            })
+util.CursorDebugWrapper = CursorDebugWrapper
+
+
+def reformat_sql(sql):
+    sql = sql.replace('`,`', '`, `')
+    sql = sql.replace('SELECT ', 'SELECT\t')
+    sql = sql.replace('` FROM ', '`\nFROM\t')
+    sql = sql.replace(' WHERE ', '\nWHERE\t')
+    sql = sql.replace(' INNER JOIN ', '\nINNER JOIN\t')
+    sql = sql.replace(' LEFT OUTER JOIN ', '\nLEFT OUTER JOIN\t')
+    sql = sql.replace(' OUTER JOIN ', '\nOUTER JOIN\t')
+    sql = sql.replace(' ON ', '\n    ON ')
+    sql = sql.replace(' ORDER BY ', '\nORDER BY\t')
+    return sql
 
 
 class LoggingMiddleware(object):
@@ -71,7 +110,9 @@ class LoggingMiddleware(object):
         """
         Processes an incoming request. This will set up logging.
         """
-        pass
+        if ('profiling' in request.GET and
+            getattr(settings, "LOGGING_ALLOW_PROFILING", False)):
+            settings.DEBUG = True
 
     def process_view(self, request, callback, callback_args, callback_kwargs):
         """
@@ -86,6 +127,7 @@ class LoggingMiddleware(object):
             import cProfile
             self.profiler = cProfile.Profile()
             args = (request,) + callback_args
+            settings.DEBUG = True
             return self.profiler.runcall(callback, *args, **callback_kwargs)
 
     def process_response(self, request, response):
@@ -112,5 +154,31 @@ class LoggingMiddleware(object):
                             "Profiling results for %s (HTTP %s):",
                             request.path, request.method)
             profile_log.log(logging.INFO, out.getvalue().strip())
+
+            profile_log.log(logging.INFO,
+                            '%d database queries made\n',
+                            len(connection.queries))
+
+            queries = {}
+            for query in connection.queries:
+                sql = reformat_sql(query['sql'])
+                stack = ''.join(query['stack'][:-1])
+                time = query['time']
+                if sql in queries:
+                    queries[sql].append((time, stack))
+                else:
+                    queries[sql] = [(time, stack)]
+
+            times = {}
+            for sql, entries in queries.iteritems():
+                time = sum((float(entry[0]) for entry in entries))
+                tracebacks = '\n\n'.join((entry[1] for entry in entries))
+                times[time] = \
+                    'SQL Query profile (%d times, %.3fs average)\n%s\n\n%s\n\n' % \
+                    (len(entries), time / len(entries), sql, tracebacks)
+
+            sorted_times = sorted(times.keys(), reverse=1)
+            for time in sorted_times:
+                profile_log.log(logging.INFO, times[time])
 
         return response
