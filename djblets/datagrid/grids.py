@@ -141,8 +141,8 @@ class Column(object):
             unsort_url = url_prefix + ','.join(sort_list[1:])
             sort_url   = url_prefix + ','.join(sort_list)
 
-        return mark_safe(render_to_string(self.datagrid.column_header_template,
-            RequestContext(self.datagrid.request, {
+        return mark_safe(render_to_string(
+            self.datagrid.column_header_template, {
                 'column': self,
                 'in_sort': in_sort,
                 'sort_ascending': sort_direction == self.SORT_ASCENDING,
@@ -185,13 +185,12 @@ class Column(object):
             except AttributeError:
                 pass
 
-        return mark_safe(render_to_string(self.datagrid.cell_template,
-            RequestContext(self.datagrid.request, {
-                'column': self,
-                'css_class': css_class,
-                'url': url,
-                'data': mark_safe(rendered_data)
-            })))
+        return mark_safe(render_to_string(self.datagrid.cell_template, {
+            'column': self,
+            'css_class': css_class,
+            'url': url,
+            'data': mark_safe(rendered_data)
+        })))
 
     def render_data(self, obj):
         """
