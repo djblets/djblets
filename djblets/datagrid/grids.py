@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import SiteProfileNotAvailable
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import InvalidPage, QuerySetPaginator
@@ -143,13 +144,14 @@ class Column(object):
 
         return mark_safe(render_to_string(
             self.datagrid.column_header_template, {
+                'MEDIA_URL': settings.MEDIA_URL,
                 'column': self,
                 'in_sort': in_sort,
                 'sort_ascending': sort_direction == self.SORT_ASCENDING,
                 'sort_primary': sort_primary,
                 'sort_url': sort_url,
                 'unsort_url': unsort_url,
-            })))
+            }))
     header = property(get_header)
 
     def get_url_params_except(self, *params):
@@ -186,11 +188,12 @@ class Column(object):
                 pass
 
         return mark_safe(render_to_string(self.datagrid.cell_template, {
+            'MEDIA_URL': settings.MEDIA_URL,
             'column': self,
             'css_class': css_class,
             'url': url,
             'data': mark_safe(rendered_data)
-        })))
+        }))
 
     def render_data(self, obj):
         """
