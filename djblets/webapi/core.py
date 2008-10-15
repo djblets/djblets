@@ -128,13 +128,7 @@ class WebAPIResponse(HttpResponse):
 
         if self.api_format == "json":
             content = JSONEncoderAdapter(MultiEncoder()).encode(self.api_data)
-            self.mimetype = "text/plain"
-
-            # Technically we should be returning this mimetype, but
-            # it makes debugging harder (since we won't be able to view it
-            # on the site). Nothing seems to mind being text/plain, so we'll
-            # keep it this way for now.
-            #self.mimetype="application/json"
+            self.mimetype="application/json"
         else:
             raise Http404
 
