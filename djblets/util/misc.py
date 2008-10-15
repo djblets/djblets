@@ -121,7 +121,7 @@ def cache_memoize(key, lookup_callable,
                        in a database due to the way things are accessed.
     """
     try:
-        site = Site.objects.get(pk=settings.SITE_ID)
+        site = Site.objects.get_current()
 
         # The install has a Site app, so prefix the domain to the key.
         key = "%s:%s" % (site.domain, key)
