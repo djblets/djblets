@@ -25,6 +25,17 @@
 
 
 import logging
+import zlib
+
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 from django.core.cache import cache
 from django.conf import settings
@@ -35,12 +46,80 @@ from django.views.decorators.cache import never_cache
 
 
 DEFAULT_EXPIRATION_TIME = 60 * 60 * 24 * 30 # 1 month
+CACHE_CHUNK_SIZE = 2**20 - 1024 # almost 1M (memcached's slab limit)
+
+
+class MissingChunkError(Exception):
+    pass
+
+
+def _cache_fetch_large_data(cache, key):
+    chunk_count = cache.get(key)
+    data = []
+
+    chunk_keys = ['%s-%d' % (key, i) for i in range(int(chunk_count))]
+    chunks = cache.get_many(chunk_keys)
+    for chunk_key in chunk_keys:
+        try:
+            data.append(chunks[chunk_key][0])
+        except KeyError:
+            logging.info('Cache miss for key %s.' % chunk_key)
+            raise MissingChunkError
+
+    data = ''.join(data)
+
+    data = zlib.decompress(data)
+    try:
+        unpickler = pickle.Unpickler(StringIO(data))
+        data = unpickler.load()
+    except Exception, e:
+        logging.warning("Unpickle error for cache key %s: %s." % (key, e))
+        raise e
+
+    return data
+
+
+def _cache_store_large_data(cache, key, data, expiration):
+    # We store large data in the cache broken into chunks that are 1M in size.
+    # To do this easily, we first pickle the data and compress it with zlib.
+    # This gives us a string which can be chunked easily. These are then stored
+    # individually in the cache as single-element lists (so the cache backend
+    # doesn't try to convert binary data to utf8). The number of chunks needed
+    # is stored in the cache under the unadorned key
+    file = StringIO()
+    pickler = pickle.Pickler(file)
+    pickler.dump(data)
+    data = file.getvalue()
+    data = zlib.compress(data)
+
+    i = 0
+    while len(data) > CACHE_CHUNK_SIZE:
+        chunk = data[0:CACHE_CHUNK_SIZE]
+        data = data[CACHE_CHUNK_SIZE:]
+        cache.set('%s-%d' % (key, i), chunk, expiration)
+        i += 1
+    cache.set('%s-%d' % (key, i), [data], expiration)
+
+    cache.set(key, '%d' % (i + 1), expiration)
 
 
 def cache_memoize(key, lookup_callable,
                   expiration=getattr(settings, "CACHE_EXPIRATION_TIME",
                                      DEFAULT_EXPIRATION_TIME),
-                  force_overwrite=False):
+                  force_overwrite=False,
+                  large_data=False):
+    """Memoize the results of a callable inside the configured cache.
+
+    Keyword arguments:
+    expiration      -- The expiration time for the key.
+    force_overwrite -- If True, the value will always be computed and stored
+                       regardless of whether it exists in the cache already.
+    large_data      -- If True, the resulting data will be pickled, gzipped,
+                       and (potentially) split up into megabyte-sized chunks.
+                       This is useful for very large, computationally
+                       intensive hunks of data which we don't want to store
+                       in a database due to the way things are accessed.
+    """
     try:
         site = Site.objects.get(pk=settings.SITE_ID)
 
@@ -50,21 +129,43 @@ def cache_memoize(key, lookup_callable,
         # The install doesn't have a Site app, so use the key as-is.
         pass
 
-    if not force_overwrite and cache.has_key(key):
-        return cache.get(key)
-    data = lookup_callable()
+    if large_data:
+        if not force_overwrite and cache.has_key(key):
+            try:
+                data = _cache_fetch_large_data(cache, key)
+                return data
+            except Exception, e:
+                logging.warning('Failed to fetch large data from cache for key %s: %s.' % (key, e))
+        else:
+            logging.info('Cache miss for key %s.' % key)
 
-    # Most people will be using memcached, and memcached has a limit of 1MB.
-    # Data this big should be broken up somehow, so let's warn about this.
-    if len(data) >= 1024 * 1024:
-        logging.warning("Cache data for key %s (length %s) may be too big "
-                        "for the cache." % (key, len(data)))
+        data = lookup_callable()
+        _cache_store_large_data(cache, key, data, expiration)
+        return data
 
-    try:
-        cache.set(key, data, expiration)
-    except:
-        pass
-    return data
+    else:
+        if not force_overwrite and cache.has_key(key):
+            return cache.get(key)
+        data = lookup_callable()
+
+        # Most people will be using memcached, and memcached has a limit of 1MB.
+        # Data this big should be broken up somehow, so let's warn about this.
+        # Users should hopefully be using large_data=True in this case.
+        # XXX - since 'data' may be a sequence that's not a string/unicode,
+        #       this can fail. len(data) might be something like '6' but the
+        #       data could exceed a megabyte. The best way to catch this would
+        #       be an exception, but while python-memcached defines an exception
+        #       type for this, it never uses it, choosing instead to fail
+        #       silently. WTF.
+        if len(data) >= CACHE_CHUNK_SIZE:
+            logging.warning("Cache data for key %s (length %s) may be too big "
+                            "for the cache." % (key, len(data)))
+
+        try:
+            cache.set(key, data, expiration)
+        except:
+            pass
+        return data
 
 
 def get_object_or_none(klass, *args, **kwargs):
