@@ -40,11 +40,13 @@ def crop_image(file, x, y, width, height):
     Crops an image at the specified coordinates and dimensions, returning the
     resulting URL of the cropped image.
     """
-    if file.find(".") != -1:
-        basename, format = file.rsplit('.', 1)
+    filename = file.name
+
+    if filename.find(".") != -1:
+        basename, format = filename.rsplit('.', 1)
         new_name = '%s_%s_%s_%s_%s.%s' % (basename, x, y, width, height, format)
     else:
-        basename = file
+        basename = filename
         new_name = '%s_%s_%s_%s_%s' % (basename, x, y, width, height)
 
     new_path = os.path.join(settings.MEDIA_ROOT, new_name)
@@ -52,7 +54,7 @@ def crop_image(file, x, y, width, height):
 
     if not os.path.exists(new_path):
         try:
-            image = Image.open(os.path.join(settings.MEDIA_ROOT, file))
+            image = Image.open(os.path.join(settings.MEDIA_ROOT, filename))
             image = image.crop((x, y, x + width, y + height))
             image.save(new_path, image.format)
         except (IOError, KeyError):
