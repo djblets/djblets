@@ -165,4 +165,17 @@ class JSONField(models.TextField):
         return self.encoder.encode(data)
 
     def loads(self, s):
-        return simplejson.loads(s, encoding=settings.DEFAULT_CHARSET)
+        val = simplejson.loads(s, encoding=settings.DEFAULT_CHARSET)
+
+        # XXX We need to investigate why this is happening once we have
+        #     a solid repro case.
+        if isinstance(val, basestring):
+            log.warning("JSONField decode error. Expected dictionary, got "
+                        "string for input '%s'" % s)
+            # For whatever reason, we may have gotten back
+            try:
+                val = simplejson.loads(val, encoding=settings.DEFAULT_CHARSET)
+            except:
+                pass
+
+        return val
