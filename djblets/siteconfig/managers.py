@@ -39,6 +39,8 @@ class SiteConfigurationManager(models.Manager):
         """
         Returns the site configuration on the active site.
         """
+        global _SITECONFIG_CACHE
+
         # This will handle raising a ImproperlyConfigured if not set up
         # properly.
         site = Site.objects.get_current()
@@ -47,3 +49,7 @@ class SiteConfigurationManager(models.Manager):
             _SITECONFIG_CACHE[site.id] = site.config.get()
 
         return _SITECONFIG_CACHE[site.id]
+
+    def clear_cache(self):
+        global _SITECONFIG_CACHE
+        _SITECONFIG_CACHE = {}
