@@ -23,7 +23,10 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from datetime import datetime
+
 from django.contrib.sites.models import Site
+from django.core.cache import cache
 from django.db import models
 
 from djblets.siteconfig.managers import SiteConfigurationManager
@@ -46,6 +49,10 @@ class SiteConfiguration(models.Model):
     settings = JSONField()
 
     objects = SiteConfigurationManager()
+
+    def __init__(self, *args, **kwargs):
+        models.Model.__init__(self, *args, **kwargs)
+        self._last_sync_time = datetime.now()
 
     def get(self, key, default=None):
         """
@@ -90,6 +97,25 @@ class SiteConfiguration(models.Model):
             _DEFAULTS[self.id] = {}
 
         return _DEFAULTS[self.id]
+
+    def is_expired(self):
+        """
+        Returns whether or not this SiteConfiguration is expired and needs
+        to be reloaded.
+        """
+        last_updated = cache.get(self.__get_sync_cache_key())
+        return (isinstance(last_updated, datetime) and
+                last_updated > self._last_sync_time)
+
+    def save(self, **kwargs):
+        now = datetime.now()
+        self._last_sync_time = now
+        cache.set(self.__get_sync_cache_key(), now)
+
+        super(SiteConfiguration, self).save(**kwargs)
+
+    def __get_sync_cache_key(self):
+        return "siteconfig-%d-last-updated" % self.id
 
     def __unicode__(self):
         return "%s (version %s)" % (unicode(self.site), self.version)
