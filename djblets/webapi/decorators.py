@@ -29,9 +29,14 @@ def webapi_login_required(view_func):
     """
     def _checklogin(request, api_format="json", *args, **kwargs):
         if request.user.is_authenticated():
-            return view_func(request, *args, **kwargs)
+            response = view_func(request, *args, **kwargs)
         else:
-            return WebAPIResponseError(request, NOT_LOGGED_IN)
+            response = WebAPIResponseError(request, NOT_LOGGED_IN)
+
+        if isinstance(response, WebAPIResponse):
+            response.api_format = api_format
+
+        return response
 
     return _checklogin
 
@@ -46,11 +51,16 @@ def webapi_permission_required(perm):
     def _dec(view_func):
         def _checkpermissions(request, api_format="json", *args, **kwargs):
             if not request.user.is_authenticated():
-                return WebAPIResponseError(request, NOT_LOGGED_IN)
+                response = WebAPIResponseError(request, NOT_LOGGED_IN)
             elif not request.user.has_perm(perm):
-                return WebAPIResponseError(request, PERMISSION_DENIED)
+                response = WebAPIResponseError(request, PERMISSION_DENIED)
+            else:
+                response = view_func(request, *args, **kwargs)
 
-            return view_func(request, *args, **kwargs)
+            if isinstance(response, WebAPIResponse):
+                response.api_format = api_format
+
+            return response
 
         return _checkpermissions
 

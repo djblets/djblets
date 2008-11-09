@@ -1,3 +1,6 @@
+from cStringIO import StringIO
+from xml.sax.saxutils import XMLGenerator
+
 from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.db.models.query import QuerySet
@@ -94,6 +97,86 @@ class JSONEncoderAdapter(simplejson.JSONEncoder):
         return result
 
 
+class XMLEncoderAdapter(object):
+    """
+    Adapts a WebAPIEncoder to output XML.
+
+    This takes an existing encoder and adapts it to output a simple XML format.
+    """
+
+    def __init__(self, encoder, *args, **kwargs):
+        self.encoder = encoder
+
+    def encode(self, o):
+        self.level = 0
+        self.doIndent = False
+
+        stream = StringIO()
+        self.xml = XMLGenerator(stream, settings.DEFAULT_CHARSET)
+        self.xml.startDocument()
+        self.startElement("rsp")
+        self.__encode(o)
+        self.endElement("rsp")
+        self.xml.endDocument()
+        self.xml = None
+
+        return stream.getvalue()
+
+    def __encode(self, o):
+        if isinstance(o, dict):
+            for key, value in o.iteritems():
+                self.startElement(key)
+                self.__encode(value)
+                self.endElement(key)
+        elif isinstance(o, list):
+            self.startElement("array")
+
+            for i in o:
+                self.startElement("item")
+                self.__encode(i)
+                self.endElement("item")
+
+            self.endElement("array")
+        elif isinstance(o, basestring):
+            self.text(o)
+        elif isinstance(o, int):
+            self.text("%d" % o)
+        elif isinstance(o, bool):
+            if o:
+                self.text("True")
+            else:
+                self.text("False")
+        elif o is None:
+            pass
+        else:
+            result = self.encoder.encode(o)
+
+            if result is None:
+                raise TypeError("%r is not XML serializable" % (o,))
+
+            return self.__encode(result)
+
+    def startElement(self, name, attrs={}):
+        self.addIndent()
+        self.xml.startElement(name, attrs)
+        self.level += 1
+        self.doIndent = True
+
+    def endElement(self, name):
+        self.level -= 1
+        self.addIndent()
+        self.xml.endElement(name)
+        self.doIndent = True
+
+    def text(self, value):
+        self.xml.characters(value)
+        self.doIndent = False
+
+    def addIndent(self):
+        if self.doIndent:
+            self.xml.ignorableWhitespace('\n' + ' ' * self.level)
+
+
 class WebAPIResponse(HttpResponse):
     """
     An API response, formatted for the desired file format.
@@ -128,7 +211,10 @@ class WebAPIResponse(HttpResponse):
 
         if self.api_format == "json":
             content = JSONEncoderAdapter(MultiEncoder()).encode(self.api_data)
-            self.mimetype="application/json"
+            self.mimetype = "application/json"
+        elif self.api_format == "xml":
+            content = XMLEncoderAdapter(MultiEncoder()).encode(self.api_data)
+            self.mimetype = "application/xml"
         else:
             raise Http404
 
