@@ -24,8 +24,12 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-import Image
 import os
+
+try:
+    from PIL import Image
+except ImportError:
+    import Image
 
 from django import template
 from django.conf import settings
