@@ -47,12 +47,16 @@ setup(name="Djblets",
       install_requires=['Django>=1.0.2', 'PIL'],
       dependency_links = [
           "http://www.review-board.org/downloads/mirror/",
+
+          # TODO: Replace wiht a releases/ directory after our first release.
+          "http://www.review-board.org/downloads/nightlies/",
       ],
       include_package_data=True,
       zip_safe=False,
       maintainer="Christian Hammond",
       maintainer_email="chipx86@chipx86.com",
       url="http://www.review-board.org/wiki/Djblets",
+      download_url="http://www.review-board.org/downloads/nightlies/",
       classifiers=[
           "Development Status :: 4 - Beta",
           "Environment :: Web Environment",
