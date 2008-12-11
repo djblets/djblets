@@ -24,6 +24,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import base64
+import logging
 from datetime import datetime
 
 from django.conf import settings
@@ -170,8 +171,8 @@ class JSONField(models.TextField):
         # XXX We need to investigate why this is happening once we have
         #     a solid repro case.
         if isinstance(val, basestring):
-            log.warning("JSONField decode error. Expected dictionary, got "
-                        "string for input '%s'" % s)
+            logging.warning("JSONField decode error. Expected dictionary, got "
+                            "string for input '%s'" % s)
             # For whatever reason, we may have gotten back
             try:
                 val = simplejson.loads(val, encoding=settings.DEFAULT_CHARSET)
