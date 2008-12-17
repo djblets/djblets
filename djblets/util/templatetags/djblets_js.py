@@ -47,6 +47,12 @@ def form_dialog_fields(form):
         else:
             s += "label: '%s', " % field.label_tag(field.label + ":")
 
+            if field.field.required:
+                s += "required: true, "
+
+            if field.field.help_text:
+                s += "help_text: '%s', " % field.field.help_text
+
         s += "widget: '%s' }," % unicode(field)
 
     # Chop off the last ','

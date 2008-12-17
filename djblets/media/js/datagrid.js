@@ -29,7 +29,7 @@ jQuery.fn.datagrid = function() {
     });
 
     /* Make the columns unselectable. */
-    $("th", this).unselectable();
+    $.ui.disableSelection($("th", this));
 
     /* Make the columns draggable. */
     $("th", this).not(".edit-columns").draggable({
