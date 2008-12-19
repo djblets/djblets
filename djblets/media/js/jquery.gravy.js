@@ -511,7 +511,7 @@ jQuery.fn.positionToSide = function(el, options) {
         var bestTop = null;
 
         for (var i = 0; i < options.side.length; i++) {
-            var side = options.side[i];
+            var side = options.side.charAt(i);
             var left = 0;
             var top = 0;
 
@@ -717,7 +717,7 @@ jQuery.tooltip = function(el, options) {
         side: 'b'
     }, options);
 
-    var self = $("<div></div>")
+    var self = $("<div/>")
         .appendTo("body")
         .addClass("tooltip")
         .hide();
