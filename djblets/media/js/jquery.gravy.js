@@ -672,7 +672,13 @@ $.widget("ui.modalBox", {
         var marginHoriz = $("body").getExtents("m", "lr");
         var marginVert  = $("body").getExtents("m", "tb");
         var winWidth    = $(window).width()  - marginHoriz;
-        var winHeight   = $(window).height() - marginVert;
+
+        /* Fix a jQuery/Opera 9.5 bug with broken window heights */
+        var winHeight = ($.browser.opera && $.browser.version > "9.5" &&
+                         $.fn.jquery <= "1.2.6"
+                         ? document.documentElement["clientHeight"]
+                         : $(window).height())
+                        - marginVert;
 
         if ($.browser.msie && $.browser.version == 6) {
             /* Width/height of 100% don't really work right in IE6. */
