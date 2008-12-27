@@ -492,7 +492,8 @@ $.expr[':'].inlineEditorDirty = function(a) {
 jQuery.fn.positionToSide = function(el, options) {
     options = jQuery.extend({
         side: 'b',
-        distance: 0
+        distance: 0,
+        fitOnScreen: false
     }, options);
 
     var offset = $(el).offset();
@@ -542,6 +543,15 @@ jQuery.fn.positionToSide = function(el, options) {
                 bestLeft = left;
                 bestTop = top;
             }
+        }
+
+        if (options.fitOnScreen) {
+            bestLeft = Math.min(bestLeft,
+                                scrollLeft + scrollWidth -
+                                thisWidth);
+            bestTop = Math.min(bestTop,
+                               scrollTop + scrollHeight -
+                               thisHeight);
         }
 
         $(this).move(bestLeft, bestTop, "absolute");
