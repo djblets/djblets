@@ -33,7 +33,8 @@ from djblets.siteconfig.models import SiteConfiguration
 
 @staff_member_required
 def site_settings(request, form_class,
-                  template_name="siteconfig/settings.html"):
+                  template_name="siteconfig/settings.html",
+                  extra_context={}):
     """
     Provides a front-end for customizing Review Board settings.
     """
@@ -48,7 +49,10 @@ def site_settings(request, form_class,
     else:
         form = form_class(siteconfig)
 
-    return render_to_response(template_name, RequestContext(request, {
+    context = {
         'form': form,
         'saved': request.GET.get('saved', 0)
-    }))
+    }
+    context.update(extra_context)
+
+    return render_to_response(template_name, RequestContext(request, context))
