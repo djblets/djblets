@@ -585,7 +585,7 @@ $.widget("ui.modalBox", {
                 .move(0, 0, "fixed")
                 .width("100%")
                 .height("100%")
-                .keydown(function() { return false; });
+                .keydown(function(e) { e.stopPropagation(); });
         }
 
         this.box = $("<div/>")
@@ -593,7 +593,7 @@ $.widget("ui.modalBox", {
             .addClass("modalbox")
             .move(0, 0, "absolute")
             .css({zIndex: 11001})
-            .keydown(function() { return false; });
+            .keydown(function(e) { e.stopPropagation(); });
 
         this.inner = $("<div/>")
             .appendTo(this.box)
