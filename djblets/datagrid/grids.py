@@ -277,7 +277,7 @@ class DataGrid(object):
         self.state_loaded = False
         self.page_num = 0
         self.id = None
-        self.extra_context = extra_context
+        self.extra_context = dict(extra_context)
 
         if not hasattr(request, "datagrid_count"):
             request.datagrid_count = 0
