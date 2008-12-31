@@ -264,7 +264,7 @@ class DataGrid(object):
         * 'cell_template':          The template used to render a cell of
                                     data. The default is 'datagrid/cell.html'
     """
-    def __init__(self, request, queryset=None, title=""):
+    def __init__(self, request, queryset=None, title="", extra_context={}):
         self.request = request
         self.queryset = queryset
         self.rows = []
@@ -277,6 +277,7 @@ class DataGrid(object):
         self.state_loaded = False
         self.page_num = 0
         self.id = None
+        self.extra_context = extra_context
 
         if not hasattr(request, "datagrid_count"):
             request.datagrid_count = 0
@@ -498,7 +499,7 @@ class DataGrid(object):
             query = query.select_related(depth=1)
 
         self.paginator = QuerySetPaginator(query, self.paginate_by,
-                                         self.paginate_orphans)
+                                           self.paginate_orphans)
 
         page_num = self.request.GET.get('page', 1)
 
@@ -527,22 +528,25 @@ class DataGrid(object):
         """
         self.load_state()
 
+        context = {
+            'datagrid': self,
+            'is_paginated': self.page.has_other_pages(),
+            'results_per_page': self.paginate_by,
+            'has_next': self.page.has_next(),
+            'has_previous': self.page.has_previous(),
+            'page': self.page.number,
+            'next': self.page.next_page_number(),
+            'previous': self.page.previous_page_number(),
+            'last_on_page': self.page.end_index(),
+            'first_on_page': self.page.start_index(),
+            'pages': self.paginator.num_pages,
+            'hits': self.paginator.count,
+            'page_range': self.paginator.page_range,
+        }
+        context.update(self.extra_context)
+
         return mark_safe(render_to_string(self.listview_template,
-            RequestContext(self.request, {
-                'datagrid': self,
-                'is_paginated': self.page.has_other_pages(),
-                'results_per_page': self.paginate_by,
-                'has_next': self.page.has_next(),
-                'has_previous': self.page.has_previous(),
-                'page': self.page.number,
-                'next': self.page.next_page_number(),
-                'previous': self.page.previous_page_number(),
-                'last_on_page': self.page.end_index(),
-                'first_on_page': self.page.start_index(),
-                'pages': self.paginator.num_pages,
-                'hits': self.paginator.count,
-                'page_range': self.paginator.page_range,
-            })))
+            RequestContext(self.request, context)))
 
     @cache_control(no_cache=True, no_store=True, max_age=0,
                    must_revalidate=True)
@@ -568,9 +572,10 @@ class DataGrid(object):
             'datagrid': self
         }
         context.update(extra_context)
+        context.update(self.extra_context)
 
         return render_to_response(template_name, RequestContext(self.request,
-                                                 context))
+                                                                context))
 
     @staticmethod
     def link_to_object(obj, value):
