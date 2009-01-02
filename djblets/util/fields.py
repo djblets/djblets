@@ -177,6 +177,9 @@ class JSONField(models.TextField):
             try:
                 val = simplejson.loads(val, encoding=settings.DEFAULT_CHARSET)
             except:
-                pass
+                # Still not good enough. There's probably embedded
+                # unicode markers (like u'foo') in the string. We have to
+                # eval it.
+                val = eval(val)
 
         return val
