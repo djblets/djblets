@@ -35,7 +35,7 @@ def run_tests(*args):
 test.run_tests = run_tests
 
 
-VERSION = "0.4"
+VERSION = "0.5alpha1"
 
 
 setup(name="Djblets",
