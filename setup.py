@@ -36,6 +36,13 @@ test.run_tests = run_tests
 
 
 VERSION = "0.5alpha1"
+IS_RELEASE = True
+
+
+if IS_RELEASE:
+    download_url = "http://www.review-board.org/downloads/releases/"
+else:
+    download_url = "http://www.review-board.org/downloads/nightlies/"
 
 
 setup(name="Djblets",
@@ -47,18 +54,16 @@ setup(name="Djblets",
       install_requires=['Django>=1.0.2', 'PIL'],
       dependency_links = [
           "http://www.review-board.org/downloads/mirror/",
-
-          # TODO: Replace wiht a releases/ directory after our first release.
-          "http://www.review-board.org/downloads/nightlies/",
+          download_url,
       ],
       include_package_data=True,
       zip_safe=False,
       maintainer="Christian Hammond",
       maintainer_email="chipx86@chipx86.com",
       url="http://www.review-board.org/wiki/Djblets",
-      download_url="http://www.review-board.org/downloads/nightlies/",
+      download_url=download_url,
       classifiers=[
-          "Development Status :: 4 - Beta",
+          "Development Status :: 3 - Alpha",
           "Environment :: Web Environment",
           "Framework :: Django",
           "Intended Audience :: Developers",
