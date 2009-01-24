@@ -276,8 +276,8 @@ $.widget("ui.inlineEditor", {
             self._fitWidthToParent();
         });
 
-        if (this.options.forceOpen) {
-            self.startEdit();
+        if (this.options.forceOpen || this.options.startOpen) {
+            self.startEdit(true);
         }
     },
 
@@ -286,7 +286,7 @@ $.widget("ui.inlineEditor", {
      *
      * This triggers the "beginEdit" signal.
      */
-    startEdit: function() {
+    startEdit: function(preventAnimation) {
         this._initialValue = this.element.text();
         this._editing = true;
 
@@ -298,7 +298,7 @@ $.widget("ui.inlineEditor", {
             this._field.val(value);
         }
 
-        this.showEditor();
+        this.showEditor(preventAnimation);
         this.element.triggerHandler("beginEdit");
     },
 
@@ -338,7 +338,7 @@ $.widget("ui.inlineEditor", {
         return this._field.val();
     },
 
-    showEditor: function() {
+    showEditor: function(preventAnimation) {
         var self = this;
 
         if (this._editIcon) {
@@ -361,11 +361,17 @@ $.widget("ui.inlineEditor", {
             // TODO: Set autosize min height
             this._field
                 .autoSizeTextArea("setMinHeight", newHeight)
-                .css("overflow", "hidden")
-                .height(elHeight)
-                .animate({
-                    height: newHeight
-                }, 350);
+                .css("overflow", "hidden");
+
+            if (preventAnimation) {
+                this._field.height(newHeight);
+            } else {
+                this._field
+                    .height(elHeight)
+                    .animate({
+                        height: newHeight
+                    }, 350);
+            }
         }
 
         /* Execute this after the animation, if we performed one. */
@@ -478,6 +484,7 @@ $.extend($.ui.inlineEditor, {
         notifyUnchangedCompletion: false,
         showButtons: true,
         showEditIcon: true,
+        startOpen: false,
         stripTags: false,
         useEditIconOnly: false
     }
