@@ -3,11 +3,11 @@
 {% block title %}{{datagrid.title}}{% endblock %}
 
 {% block extrahead %}
-<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}djblets/css/datagrid.css" />
+<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}djblets/css/datagrid.css?{{MEDIA_SERIAL}}" />
 <script type="text/javascript" src="{{MEDIA_URL}}djblets/js/jquery-1.2.6.min.js"></script>
-<script type="text/javascript" src="{{MEDIA_URL}}djblets/js/jquery-ui-1.6rc1.packed.js"></script>
-<script type="text/javascript" src="{{MEDIA_URL}}djblets/js/jquery.gravy.js"></script>
-<script type="text/javascript" src="{{MEDIA_URL}}djblets/js/datagrid.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}djblets/js/jquery-ui-1.6rc2.min.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}djblets/js/jquery.gravy.js?{{MEDIA_SERIAL}}"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}djblets/js/datagrid.js?{{MEDIA_SERIAL}}"></script>
 {% endblock %}
 
 {% block content %}

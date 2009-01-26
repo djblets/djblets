@@ -1,1 +1,1 @@
-recursive-include djblets *.txt *.html *.css *.js *.htc
+recursive-include djblets *.txt *.html *.css *.js *.htc *.png *.jpg *.gif
