@@ -30,9 +30,10 @@ import os
 from django import template
 from django.template import TemplateSyntaxError
 from django.template.defaultfilters import stringfilter
+from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
-from djblets.util.decorators import blocktag
+from djblets.util.decorators import basictag, blocktag
 
 
 register = template.Library()
@@ -72,6 +73,16 @@ def ifuserorperm(context, nodelist, user, perm):
         return nodelist.render(context)
 
     return ''
+
+
+@register.tag
+@basictag(takes_context=True)
+def include_as_string(context, template_name):
+    s = render_to_string(template_name, context)
+    s = s.replace("'", "\\'")
+    s = s.replace("\n", "\\\n")
+    return "'%s'" % s
+
 
 @register.tag
 @blocktag
