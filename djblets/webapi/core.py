@@ -192,6 +192,7 @@ class WebAPIResponse(HttpResponse):
         self.api_data = {'stat': stat}
         self.api_data.update(obj)
         self.api_format = api_format
+        self.content_set = False
 
     def _get_content(self):
         """
@@ -213,18 +214,24 @@ class WebAPIResponse(HttpResponse):
 
                 return None
 
+        if not self.content_set:
+            adapter = None
+            encoder = MultiEncoder()
 
-        if self.api_format == "json":
-            content = JSONEncoderAdapter(MultiEncoder()).encode(self.api_data)
-        elif self.api_format == "xml":
-            content = XMLEncoderAdapter(MultiEncoder()).encode(self.api_data)
-        else:
-            raise Http404
+            if self.api_format == "json":
+                adapter = JSONEncoderAdapter(encoder)
+            elif self.api_format == "xml":
+                adapter = XMLEncoderAdapter(encoder)
+            else:
+                raise Http404
 
-        if self.callback != None:
-            content = "%s(%s);" % (self.callback, content)
+            content = adapter.encode(self.api_data)
 
-        self.content = content
+            if self.callback != None:
+                content = "%s(%s);" % (self.callback, content)
+
+            self.content = content
+            self.content_set = True
 
         return super(WebAPIResponse, self)._get_content()
 
