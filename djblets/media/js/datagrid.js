@@ -28,27 +28,28 @@ jQuery.fn.datagrid = function() {
         activeColumns.push(this.className);
     });
 
-    /* Make the columns unselectable. */
-    $.ui.disableSelection($("th", this));
+    $("th", this)
+        /* Make the columns unselectable. */
+        .disableSelection()
 
-    /* Make the columns draggable. */
-    $("th", this).not(".edit-columns").draggable({
-        appendTo: "body",
-        axis: "x",
-        containment: $("thead:first", this),
-        cursor: "move",
-        helper: function() {
-            return $("<div></div>")
-                .addClass("datagrid-header-drag datagrid-header")
-                .width($(this).width())
-                .height($(this).height())
-                .css("top", $(this).offset().top)
-                .html($(this).html());
-        },
-        start: startColumnDrag,
-        stop: endColumnDrag,
-        drag: onColumnDrag
-    });
+        /* Make the columns draggable. */
+        .not(".edit-columns").draggable({
+            appendTo: "body",
+            axis: "x",
+            containment: $("thead:first", this),
+            cursor: "move",
+            helper: function() {
+                return $("<div/>")
+                    .addClass("datagrid-header-drag datagrid-header")
+                    .width($(this).width())
+                    .height($(this).height())
+                    .css("top", $(this).offset().top)
+                    .html($(this).html());
+            },
+            start: startColumnDrag,
+            stop: endColumnDrag,
+            drag: onColumnDrag
+        });
 
     /* Register callbacks for the columns. */
     $("tr", menu).each(function(i) {
@@ -219,7 +220,7 @@ jQuery.fn.datagrid = function() {
          * Check the direction we're moving and see if we're ready to switch
          * with another column.
          */
-        var x = e.pageX;
+        var x = e.originalEvent.pageX;
 
         if (x == dragLastX) {
             /* No change that we care about. Bail out. */

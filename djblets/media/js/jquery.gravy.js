@@ -198,7 +198,7 @@ $.widget("ui.inlineEditor", {
         this._field.keypress(function(e) {
             switch (e.keyCode) {
                 case 10:
-                case $.keyCode.ENTER:
+                case $.ui.keyCode.ENTER:
                     /* Enter */
                     if (!self.options.forceOpen &&
                         (!self.options.multiline || e.ctrlKey)) {
@@ -210,7 +210,7 @@ $.widget("ui.inlineEditor", {
                     }
                     break;
 
-                case $.keyCode.ESCAPE:
+                case $.ui.keyCode.ESCAPE:
                     /* Escape */
                     if (!self.options.forceOpen) {
                         self.cancel();
@@ -652,6 +652,9 @@ $.widget("ui.modalBox", {
 
     destroy: function() {
         var self = this;
+
+        if (!this.element.data("modalBox"))
+            return;
 
         this.element
             .removeData("modalBox")
