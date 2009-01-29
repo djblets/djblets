@@ -182,7 +182,12 @@ class WebAPIResponse(HttpResponse):
     An API response, formatted for the desired file format.
     """
     def __init__(self, request, obj={}, stat='ok', api_format="json"):
-        super(WebAPIResponse, self).__init__()
+        if api_format == "json":
+            mimetype = "application/json"
+        elif api_format == "xml":
+            mimetype = "application/xml"
+
+        super(WebAPIResponse, self).__init__(mimetype=mimetype)
         self.callback = request.GET.get('callback', None)
         self.api_data = {'stat': stat}
         self.api_data.update(obj)
@@ -211,10 +216,8 @@ class WebAPIResponse(HttpResponse):
 
         if self.api_format == "json":
             content = JSONEncoderAdapter(MultiEncoder()).encode(self.api_data)
-            self.mimetype = "application/json"
         elif self.api_format == "xml":
             content = XMLEncoderAdapter(MultiEncoder()).encode(self.api_data)
-            self.mimetype = "application/xml"
         else:
             raise Http404
 
