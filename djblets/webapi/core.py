@@ -183,9 +183,18 @@ class WebAPIResponse(HttpResponse):
     """
     def __init__(self, request, obj={}, stat='ok', api_format="json"):
         if api_format == "json":
-            mimetype = "application/json"
+            if request.FILES:
+                # When uploading a file using AJAX to a webapi view,
+                # we must set the mimetype to text/plain. If we use
+                # application/json instead, the browser will ask the user
+                # to save the file. It's not great, but it's what we must do.
+                mimetype = "text/plain"
+            else:
+                mimetype = "application/json"
         elif api_format == "xml":
             mimetype = "application/xml"
+        else:
+            raise Http404
 
         super(WebAPIResponse, self).__init__(mimetype=mimetype)
         self.callback = request.GET.get('callback', None)
@@ -246,7 +255,7 @@ class WebAPIResponseError(WebAPIResponse):
     A general error response, containing an error code and a human-readable
     message.
     """
-    def __init__(self, request, err, extra_params={}, api_format="json"):
+    def __init__(self, request, err, extra_params={}, *args, **kwargs):
         errdata = {
             'err': {
                 'code': err.code,
@@ -255,15 +264,15 @@ class WebAPIResponseError(WebAPIResponse):
         }
         errdata.update(extra_params)
 
-        WebAPIResponse.__init__(self, request, obj=errdata,
-                                api_format=api_format, stat="fail")
+        WebAPIResponse.__init__(self, request, obj=errdata, stat="fail",
+                                *args, **kwargs)
 
 
 class WebAPIResponseFormError(WebAPIResponseError):
     """
     An error response class designed to return all errors from a form class.
     """
-    def __init__(self, request, form, api_format="json"):
+    def __init__(self, request, form, *args, **kwargs):
         fields = {}
 
         for field in form.errors:
@@ -271,7 +280,7 @@ class WebAPIResponseFormError(WebAPIResponseError):
 
         WebAPIResponseError.__init__(self, request, INVALID_FORM_DATA, {
             'fields': fields
-        }, api_format=api_format)
+        }, *args, **kwargs)
 
 
 __registered_encoders = None
