@@ -40,9 +40,9 @@ IS_RELEASE = False
 
 
 if IS_RELEASE:
-    download_url = "http://www.review-board.org/downloads/releases/"
+    download_url = "http://downloads.review-board.org/releases/"
 else:
-    download_url = "http://www.review-board.org/downloads/nightlies/"
+    download_url = "http://downloads.review-board.org/nightlies/"
 
 
 setup(name="Djblets",
@@ -53,7 +53,7 @@ setup(name="Djblets",
       packages=find_packages(),
       install_requires=['Django>=1.0.2', 'PIL'],
       dependency_links = [
-          "http://www.review-board.org/downloads/mirror/",
+          "http://downloads.review-board.org/mirror/",
           download_url,
       ],
       include_package_data=True,
