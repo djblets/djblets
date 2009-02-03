@@ -72,6 +72,8 @@ def mediaSerial(request):
                     if mtime > MEDIA_SERIAL:
                         MEDIA_SERIAL = mtime
 
+        setattr(settings, "MEDIA_SERIAL", MEDIA_SERIAL)
+
     return {'MEDIA_SERIAL': MEDIA_SERIAL}
 
 
@@ -101,5 +103,7 @@ def ajaxSerial(request):
 
                     if mtime > AJAX_SERIAL:
                         AJAX_SERIAL = mtime
+
+        setattr(settings, "AJAX_SERIAL", AJAX_SERIAL)
 
     return {'AJAX_SERIAL': AJAX_SERIAL}
