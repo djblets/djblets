@@ -196,6 +196,8 @@ $.widget("ui.inlineEditor", {
         }
 
         this._field.keypress(function(e) {
+            e.stopPropagation();
+
             switch (e.keyCode) {
                 case 10:
                 case $.ui.keyCode.ENTER:
