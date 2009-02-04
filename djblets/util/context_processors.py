@@ -32,6 +32,7 @@ from django.conf import settings
 def settingsVars(request):
     return {'settings': settings}
 
+
 def siteRoot(request):
     """
     Exposes a SITE_ROOT variable in templates. This assumes that the
@@ -41,8 +42,6 @@ def siteRoot(request):
     return {'SITE_ROOT': settings.SITE_ROOT}
 
 
-MEDIA_SERIAL = 0
-
 def mediaSerial(request):
     """
     Exposes a media serial number that can be appended to a media filename
@@ -50,34 +49,12 @@ def mediaSerial(request):
     The next time the file is updated and the server is restarted, a new
     path will be accessed and cached.
 
-    If settings.MEDIA_SERIAL exists, this will use that. Otherwise, it will
-    crawl the media files (using directories in MEDIA_SERIAL_DIRS if
-    specified, or all of MEDIA_ROOT otherwise), figuring out the latest
-    timestamp, and use that instead.
+    This returns the value of settings.MEDIA_SERIAL, which must either be
+    set manually or ideally should be set to the value of
+    djblets.util.misc.generate_media_serial().
     """
-    global MEDIA_SERIAL
+    return {'MEDIA_SERIAL': getattr(settings, "MEDIA_SERIAL", "")}
 
-    if hasattr(settings, "MEDIA_SERIAL"):
-        MEDIA_SERIAL = settings.MEDIA_SERIAL
-    elif MEDIA_SERIAL == 0:
-        media_dirs = getattr(settings, "MEDIA_SERIAL_DIRS", ["."])
-
-        for media_dir in media_dirs:
-            media_path = os.path.join(settings.MEDIA_ROOT, media_dir)
-
-            for root, dirs, files in os.walk(media_path):
-                for name in files:
-                    mtime = int(os.stat(os.path.join(root, name)).st_mtime)
-
-                    if mtime > MEDIA_SERIAL:
-                        MEDIA_SERIAL = mtime
-
-        setattr(settings, "MEDIA_SERIAL", MEDIA_SERIAL)
-
-    return {'MEDIA_SERIAL': MEDIA_SERIAL}
-
-
-AJAX_SERIAL = 0
 
 def ajaxSerial(request):
     """
@@ -85,25 +62,8 @@ def ajaxSerial(request):
     dynamic loads of URLs in order to make a URL that can be cached forever
     without fear of change.
 
-    If settings.AJAX_SERIAL exists, this will use that. Otherwise, it will
-    crawl the template files (using directories in TEMPLATE_DIRS), figuring
-    out the latest timestamp, and use that instead.
+    This returns the value of settings.AJAX_SERIAL, which must either be
+    set manually or ideally should be set to the value of
+    djblets.util.misc.generate_ajax_serial().
     """
-    global AJAX_SERIAL
-
-    if hasattr(settings, "AJAX_SERIAL"):
-        AJAX_SERIAL = settings.AJAX_SERIAL
-    elif AJAX_SERIAL == 0:
-        template_dirs = getattr(settings, "TEMPLATE_DIRS", ["."])
-
-        for template_path in template_dirs:
-            for root, dirs, files in os.walk(template_path):
-                for name in files:
-                    mtime = int(os.stat(os.path.join(root, name)).st_mtime)
-
-                    if mtime > AJAX_SERIAL:
-                        AJAX_SERIAL = mtime
-
-        setattr(settings, "AJAX_SERIAL", AJAX_SERIAL)
-
-    return {'AJAX_SERIAL': AJAX_SERIAL}
+    return {'AJAX_SERIAL': getattr(settings, "AJAX_SERIAL", "")}
