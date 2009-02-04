@@ -1,0 +1,34 @@
+version 0.5 alpha 2 (3-February-2009):
+	* JavaScript:
+		* We now include and require jQuery 1.3.1 and jQueyr-ui 1.6rc5.
+
+		* Added support for starting an inlineEditor in the opened state,
+		  and prevent animations when starting or forcing it to be open.
+
+		* Disabled keypress propagation for inlineEditor. This fixes a bug
+		  in Review Board's diff viewer (bug #838).
+
+	* djblets.gravatars (new):
+		* Added basic support for gravatars. This provides a {% gravatars %}
+		  template tag for displaying a gravatar based on a User object.
+		  See http://www.gravatar.com/ for more information on Gravatars.
+
+	* djblets.util:
+		* Added a {% include_as_string %} tag for including a template
+		  as a JavaScript string.
+
+		* Added the ability to generate media and AJAX serial numbers based
+		  on the media files and template files. These can be appended to
+		  the media and AJAX URLs which, in combination with aggressive
+		  Expires headers, can drastically speed up load times of sites.
+
+		  See djblets.util.context_processors and
+		  djblets.util.misc.generate_cache_serials.
+
+	* djblets.webapi:
+		* Set the mime type for JSON responses to application/json,
+		  except when responding to an upload, in which case text/plain
+		  is used.
+
+		* Fixed a bug where WebAPIResponse._get_content was called too
+		  frequently and in some cases generated a 500 error.
