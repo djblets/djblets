@@ -53,3 +53,28 @@ def get_modified_since(request, last_modified):
         return (if_modified_since == http_date(last_modified))
 
     return False
+
+
+def set_etag(response, etag):
+    """
+    Sets the ETag header in a response.
+    """
+    response['ETag'] = etag
+
+
+def etag_if_none_match(request, etag):
+    """
+    Checks if an ETag matches the If-None-Match header sent by the browser.
+    This can be used to bail early if no updates have been performed since
+    the last access to the page.
+    """
+    return etag == request.META.get('If-None-Match', None)
+
+
+def etag_if_match(request, etag):
+    """
+    Checks if an ETag matches the If-Match header sent by the browser. This
+    is used by PUT requests to to indicate that the update should only happen
+    if the specified ETag matches the header.
+    """
+    return etag == request.META.get('If-Match', None)
