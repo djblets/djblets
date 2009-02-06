@@ -121,11 +121,12 @@ $.widget("ui.autoSizeTextArea", {
         }
 
         this.element.css("overflow", "hidden");
+        this.oldLength = this.element.val().length;
 
         if (this.options.growOnKeyUp) {
             this.element
-                .keyup(function() {
-                    self.autoSize();
+                .keyup(function(e) {
+                    self.autoSize(e);
                 })
                 .triggerHandler("keyup");
         }
@@ -139,18 +140,34 @@ $.widget("ui.autoSizeTextArea", {
      * grow to accommodate the content. We then set the text area to the
      * resulting width.
      */
-    autoSize: function() {
-        this._proxyEl
-            .width(this.element.width())
-            .move(-10000, -10000)
-             .html(this.element.val()
-                .htmlEncode()
-                .replace(/\n/g, "<br />&nbsp;"));
+    autoSize: function(e) {
+        var needsResize = false;
+        var newLength = this.element.val().length;
+        var newHeight = 0;
 
-        this.element
-            .height(Math.max(this.options.minHeight,
-                             this._proxyEl.outerHeight()))
-            .triggerHandler("resize");
+        if (this.element[0].scrollHeight != this.element.height()) {
+            /* We know the height grew, so queue a resize. */
+            needsResize = true;
+            newHeight = this.element[0].scrollHeight;
+        } else if (this.oldLength > newLength) {
+            /* The size may have decreased. Check the number of lines. */
+            needsResize = true;
+
+            this._proxyEl
+                .width(this.element.width())
+                .move(-10000, -10000)
+                 .text(this.element.val() + "\n");
+            newHeight = this._proxyEl.outerHeight();
+        }
+
+        if (needsResize) {
+
+            this.element
+                .height(Math.max(this.options.minHeight, newHeight))
+                .triggerHandler("resize");
+        }
+
+        this.oldLength = newLength;
     },
 
     setMinHeight: function(minHeight) {
