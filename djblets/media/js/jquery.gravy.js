@@ -125,10 +125,9 @@ $.widget("ui.autoSizeTextArea", {
 
         if (this.options.growOnKeyUp) {
             this.element
-                .keyup(function(e) {
-                    self.autoSize(e);
-                })
-                .triggerHandler("keyup");
+                .keyup(function() {
+                    self.autoSize();
+                });
         }
     },
 
@@ -140,7 +139,7 @@ $.widget("ui.autoSizeTextArea", {
      * grow to accommodate the content. We then set the text area to the
      * resulting width.
      */
-    autoSize: function(e) {
+    autoSize: function() {
         var needsResize = false;
         var newLength = this.element.val().length;
         var newHeight = 0;
@@ -156,7 +155,7 @@ $.widget("ui.autoSizeTextArea", {
             this._proxyEl
                 .width(this.element.width())
                 .move(-10000, -10000)
-                 .text(this.element.val() + "\n");
+                .text(this.element.val() + "\n");
             newHeight = this._proxyEl.outerHeight();
         }
 
@@ -205,8 +204,16 @@ $.widget("ui.inlineEditor", {
 
         if (this.options.multiline) {
             this._field = $("<textarea/>")
-                .appendTo(this._form)
-                .autoSizeTextArea();
+                .appendTo(this._form);
+
+            if (!$.browser.safari) {
+                /*
+                 * Released versions of Safari seem broken with auto-sized
+                 * text areas. For now, we'll only enable this for other
+                 * browsers.
+                 */
+                this._field.autoSizeTextArea();
+            }
         } else {
             this._field = $('<input type="text"/>')
                 .appendTo(this._form);
