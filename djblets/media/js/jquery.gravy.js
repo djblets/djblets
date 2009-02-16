@@ -4,6 +4,35 @@ $.extend($.browser, {
     chrome: /chrome/.test(navigator.userAgent.toLowerCase())
 });
 
+$.fn.old_html = $.fn.html;
+
+
+/*
+ * IE has broken innerHTML support. Newlines and other whitespace is stripped
+ * from the HTML, even when inserting into a <pre>. This doesn't happen,
+ * however, if the whole html is wrapped in a <pre> before being set.
+ * So our new version of html() wraps it and then removes that inner <pre>
+ * tag.
+ */
+$.fn.html = function(value) {
+    var removePre = false;
+
+    if ($.browser.msie && value && this[0] &&
+        /^(pre|textarea)$/i.test(this[0].tagName)) {
+        value = "<pre>" + value + "</pre>";
+        removePre = true;
+    }
+
+    var ret = this.old_html(value);
+
+    if (removePre) {
+        var preTag = this.children();
+        preTag.replaceWith(preTag.contents());
+    }
+
+    return ret;
+}
+
 jQuery.fn.extend({
     /*
      * Sets one or more elements' visibility based on the specified value.
