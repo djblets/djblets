@@ -1,3 +1,24 @@
+version 0.5 alpha 3 (15-February-2009):
+	* JavaScript Bugs Fixed:
+		* Fixed some major performance issues in autoSizeTextArea.
+
+		* Fixed a bug with Safari and inlineEditor where Safari would
+		  sometimes crash due to autoSizeTextArea. We now just disable
+		  the autoSizeTextArea functionality.
+
+		* inlineEditor no longer allows startEdit to be called when editing
+		  is already enabled.
+
+	* New Features:
+		* Added new set_etag, etag_if_none_match, etag_if_match functions
+		  for working with ETags.
+
+		* Added a new jQuery.fn.html() method that works around IE's broken
+		  innerHTML implementation. innerHTML in IE would strip whitespace,
+		  which was bad when inserting into <pre> and <textarea> tags.
+
+
+
 version 0.5 alpha 2 (3-February-2009):
 	* JavaScript:
 		* We now include and require jQuery 1.3.1 and jQueyr-ui 1.6rc5.
