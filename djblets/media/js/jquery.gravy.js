@@ -313,6 +313,10 @@ $.widget("ui.inlineEditor", {
      * This triggers the "beginEdit" signal.
      */
     startEdit: function(preventAnimation) {
+        if (this._editing) {
+            return;
+        }
+
         this._initialValue = this.element.text();
         this._editing = true;
 
@@ -368,7 +372,7 @@ $.widget("ui.inlineEditor", {
         var self = this;
 
         if (this._editIcon) {
-            if (this.options.multiline) {
+            if (this.options.multiline && !preventAnimation) {
                 this._editIcon.fadeOut();
             } else {
                 this._editIcon.hide();
