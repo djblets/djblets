@@ -1,5 +1,9 @@
 (function($) {
 
+$.extend($.browser, {
+    chrome: /chrome/.test(navigator.userAgent.toLowerCase())
+});
+
 jQuery.fn.extend({
     /*
      * Sets one or more elements' visibility based on the specified value.
@@ -206,7 +210,7 @@ $.widget("ui.inlineEditor", {
             this._field = $("<textarea/>")
                 .appendTo(this._form);
 
-            if (!$.browser.safari) {
+            if ($.browser.chrome || !$.browser.safari) {
                 /*
                  * Released versions of Safari seem broken with auto-sized
                  * text areas. For now, we'll only enable this for other
