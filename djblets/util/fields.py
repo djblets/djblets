@@ -76,6 +76,8 @@ class Base64Field(models.TextField):
     that no modifications to the text occurs and that you can read/write
     the data in any database with any encoding.
     """
+    serialize_to_string = True
+
     def contribute_to_class(self, cls, name):
         super(Base64Field, self).contribute_to_class(cls, name)
         setattr(cls, self.name, Base64FieldCreator(self))
@@ -91,6 +93,14 @@ class Base64Field(models.TextField):
             return value
         else:
             return Base64DecodedValue(base64.decodestring(value))
+
+    def value_to_string(self, obj):
+        value = self._get_val_from_obj(obj)
+
+        if isinstance(value, Base64DecodedValue):
+            return base64.encodestring(value)
+        else:
+            return value
 
 
 class ModificationTimestampField(models.DateTimeField):
@@ -126,6 +136,8 @@ class JSONField(models.TextField):
     Python data types and is transparently encoded/decoded to/from a JSON
     string in the database.
     """
+    serialize_to_string = True
+
     def __init__(self, verbose_name=None, name=None,
                  encoder=DjangoJSONEncoder(), **kwargs):
         models.TextField.__init__(self, verbose_name, name, blank=True,
@@ -162,24 +174,32 @@ class JSONField(models.TextField):
 
         setattr(instance, self.attname, value)
 
+    def get_db_prep_save(self, value):
+        if not isinstance(value, basestring):
+            value = self.dumps(value)
+
+        return super(JSONField, self).get_db_prep_save(value)
+
+    def value_to_string(self, obj):
+        return self.dumps(getattr(obj, self.attname, None))
+
     def dumps(self, data):
         return self.encoder.encode(data)
 
-    def loads(self, s):
-        val = simplejson.loads(s, encoding=settings.DEFAULT_CHARSET)
+    def loads(self, val):
+        try:
+            val = simplejson.loads(val, encoding=settings.DEFAULT_CHARSET)
 
-        # XXX We need to investigate why this is happening once we have
-        #     a solid repro case.
-        if isinstance(val, basestring):
-            logging.warning("JSONField decode error. Expected dictionary, got "
-                            "string for input '%s'" % s)
-            # For whatever reason, we may have gotten back
-            try:
+            # XXX We need to investigate why this is happening once we have
+            #     a solid repro case.
+            if isinstance(val, basestring):
+                logging.warning("JSONField decode error. Expected dictionary, "
+                                "got string for input '%s'" % s)
+                # For whatever reason, we may have gotten back
                 val = simplejson.loads(val, encoding=settings.DEFAULT_CHARSET)
-            except:
-                # Still not good enough. There's probably embedded
-                # unicode markers (like u'foo') in the string. We have to
-                # eval it.
-                val = eval(val)
+        except ValueError:
+            # There's probably embedded unicode markers (like u'foo') in the
+            # string. We have to eval it.
+            val = eval(val)
 
         return val
