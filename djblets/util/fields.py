@@ -82,11 +82,14 @@ class Base64Field(models.TextField):
         super(Base64Field, self).contribute_to_class(cls, name)
         setattr(cls, self.name, Base64FieldCreator(self))
 
-    def get_db_prep_save(self, value):
+    def get_db_prep_value(self, value):
         if isinstance(value, Base64DecodedValue):
             value = base64.encodestring(value)
 
-        return super(Base64Field, self).get_db_prep_save(value)
+        return value
+
+    def save_form_data(self, instance, data):
+        setattr(instance, self.name, Base64DecodedValue(data))
 
     def to_python(self, value):
         if isinstance(value, Base64DecodedValue):
@@ -181,7 +184,7 @@ class JSONField(models.TextField):
         return super(JSONField, self).get_db_prep_save(value)
 
     def value_to_string(self, obj):
-        return self.dumps(getattr(obj, self.attname, None))
+        return self.dumps(self.value_from_object(obj))
 
     def dumps(self, data):
         return self.encoder.encode(data)
