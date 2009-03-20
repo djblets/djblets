@@ -311,8 +311,14 @@ $.widget("ui.inlineEditor", {
 
         if (this.options.showEditIcon) {
             this._editIcon =
-                $('<img src="' + this.options.editIconPath + '"/>')
+                $("<a/>")
+                .attr('href', '#')
+                .attr("role", "button")
+                .attr("aria-label", "Edit this field")
                 .addClass("editicon")
+                .append(
+                    $('<img src="' + this.options.editIconPath + '"/>')
+                )
                 .click(function() {
                     self.startEdit();
                 });
@@ -920,7 +926,10 @@ $.funcQueue = function(name) {
         }
 
         var func = queues[name].shift();
-        func();
+
+        if (func) {
+            func();
+        }
     };
 
     /*
