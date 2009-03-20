@@ -72,4 +72,5 @@ def gravatar(user, size=None):
     if params:
         url += "?" + "&".join(params)
 
-    return '<img src="%s" width="%s" height="%s" />' % (url, size, size)
+    return '<img src="%s" width="%s" height="%s" alt="%s"/>' % \
+           (url, size, size, user.get_full_name() or user.username)
