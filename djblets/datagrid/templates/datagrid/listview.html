@@ -43,6 +43,8 @@
     <img src="{{column.image_url}}" width="{{column.image_width}}" height="{{column.image_height}}" alt="{{column.image_alt}}" />
 {%   endif %}
     {{column.detailed_label|default_if_none:""}}</a>
+   </td>
+  </tr>
 {%  endwith %}
 {% endfor %}
  </table>
