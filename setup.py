@@ -36,7 +36,7 @@ test.run_tests = run_tests
 
 
 VERSION = "0.5alpha3"
-IS_RELEASE = True
+IS_RELEASE = False
 
 
 if IS_RELEASE:
