@@ -665,7 +665,6 @@ $.widget("ui.modalBox", {
         }
 
         this.box = $("<div/>")
-            .appendTo("body")
             .addClass("modalbox")
             .move(0, 0, "absolute")
             .css({zIndex: 11001})
@@ -703,6 +702,8 @@ $.widget("ui.modalBox", {
                     self.element.modalBox("destroy");
                 }
             });
+
+        this.box.appendTo("body")
 
         $.each(this.options.buttons, function() {
             $(this).appendTo(self._buttons);
@@ -813,13 +814,13 @@ jQuery.tooltip = function(el, options) {
     }, options);
 
     var self = $("<div/>")
-        .appendTo("body")
         .addClass("tooltip")
-        .hide();
+        .hide()
+        .appendTo("body");
 
     el.hover(
         function() {
-            if (self.html() != "") {
+            if (self.children()) {
                 self
                     .positionToSide(el, {
                         side: options.side,
