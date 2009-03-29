@@ -35,8 +35,8 @@ def run_tests(*args):
 test.run_tests = run_tests
 
 
-VERSION = "0.5alpha3"
-IS_RELEASE = False
+VERSION = "0.5beta1"
+IS_RELEASE = True
 
 
 if IS_RELEASE:
@@ -63,7 +63,7 @@ setup(name="Djblets",
       url="http://www.review-board.org/wiki/Djblets",
       download_url=download_url,
       classifiers=[
-          "Development Status :: 3 - Alpha",
+          "Development Status :: 4 - Beta",
           "Environment :: Web Environment",
           "Framework :: Django",
           "Intended Audience :: Developers",

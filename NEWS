@@ -1,3 +1,31 @@
+version 0.5 beta 1 (28-March-2009):
+	* JavaScript:
+		* Moved to using jQuery 1.3.2.
+
+		* Small performance improvements in tooltip and modalBox.
+
+		* The edit icons in an inlineEditor are now accessible, so they can
+		  be activated by pressing the Enter key in Firefox. Patch by
+		  Brad Taylor. (Bug #965)
+
+	* djblets.util.fields:
+		* JSONField and Base64Field now properly serialize to a JSON file,
+		  so long as the patch at http://code.djangoproject.com/ticket/9522
+		  is applied.
+
+		* Objects saved in the admin UI that have a Base64Field no longer
+		  causes garbage in the field. The fields are now saved properly.
+		  (Bug #918)
+
+	* djblets.gravatars:
+		* Added an "alt" attribute for the generated gravatar image, in order
+		  to fix XHTML compliance.
+
+	* djblets.datagrids:
+		* Fixed some XHTML validation errors. Patch by Onkar Shinde.
+		  (Bug #932)
+
+
 version 0.5 alpha 3 (15-February-2009):
 	* JavaScript Bugs Fixed:
 		* Fixed some major performance issues in autoSizeTextArea.
