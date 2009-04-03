@@ -18,6 +18,3 @@ class RegisteredExtension(models.Model):
 
     def __unicode__(self):
         return self.name
-
-    class Admin:
-        list_display = ('class_name', 'name', 'enabled')
