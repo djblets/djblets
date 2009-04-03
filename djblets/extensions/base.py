@@ -53,6 +53,8 @@ class Settings(dict):
 
 
 class Extension(object):
+    is_configurable = False
+
     def __init__(self):
         self.hooks = set()
         self.admin_ext_resolver = None
@@ -77,18 +79,6 @@ class Extension(object):
     admin_urlconf = property(_get_admin_urlconf)
 
 
-    def get_is_configurable(self):
-        """
-        Returns whether or not this extension can be configured. Extensions
-        returning true should have a config/ URL in their admin_url_patterns.
-        """
-        return False
-
-    # Don't bind directly to the function or extensions won't be able to
-    # override it.
-    is_configurable = property(lambda self: self.get_is_configurable())
-
-
 class ExtensionInfo(object):
     def __init__(self, entrypoint, ext_class):
         metadata = {}
@@ -111,6 +101,9 @@ class ExtensionInfo(object):
         self.enabled = False
         self.htdocs_path = os.path.join(settings.EXTENSIONS_MEDIA_ROOT,
                                         self.name)
+
+    def __unicode__(self):
+        return "%s %s (enabled = %s)" % (self.name, self.version, self.enabled)
 
 
 class ExtensionHook(object):
@@ -216,6 +209,8 @@ class ExtensionManager(object):
             import pkg_resources
 
         for entrypoint in pkg_resources.iter_entry_points(self.key):
+            registered_ext = None
+
             try:
                 ext_class = entrypoint.load()
 
@@ -239,7 +234,7 @@ class ExtensionManager(object):
             # If the ext_class has a registration variable that's set, then
             # it's already been loaded. We don't want to bother creating a
             # new one.
-            if not getattr(ext_class, "registration", None):
+            if not hasattr(ext_class, "registration"):
                 if class_name in registered_extensions:
                     registered_ext = registered_extensions[class_name]
                 else:
@@ -255,7 +250,7 @@ class ExtensionManager(object):
 
                 ext_class.registration = registered_ext
 
-            if (registered_ext.enabled and
+            if (ext_class.registration.enabled and
                 not ext_class.id in self._extension_instances):
                 self.__init_extension(ext_class)
 
@@ -285,7 +280,7 @@ class ExtensionManager(object):
     def __uninit_extension(self, extension):
         extension.shutdown()
 
-        if extension.admin_urlpatterns:
+        if hasattr(extension, "admin_urlpatterns"):
             for urlpattern in extension.admin_urlpatterns:
                 self._admin_ext_resolver.url_patterns.remove(urlpattern)
 

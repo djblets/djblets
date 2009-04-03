@@ -55,8 +55,10 @@ class TemplateHook(ExtensionHook):
             self.__class__._by_name[name].append(self)
 
     def shutdown(self):
-        super(URLHook, self).shutdown()
-        self.__class__.by_name[name].remove(self)
+        super(TemplateHook, self).shutdown()
+
+        print "shutting down %s" % self.name
+        self.__class__._by_name[self.name].remove(self)
 
     @classmethod
     def by_name(cls, name):
