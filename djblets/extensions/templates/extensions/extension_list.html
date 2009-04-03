@@ -17,7 +17,7 @@
     <th>Version</th>
     <th>Author</th>
     <th>Summary</th>
-	<th>Actions</th>
+    <th>Actions</th>
    </tr>
   </thead>
   <tbody>
@@ -27,18 +27,18 @@
     <td>{{extension.info.version}}</td>
     <td>{{extension.info.author}}</td>
     <td>{{extension.info.summary}}</td>
-	<td class="actions">
+    <td class="actions">
      <ul>
 {% if extension.info.enabled %}
-	  <li><a href="{% url disable_extension extension.id %}" class="disablelink">Disable</a></li>
+      <li><a href="{% url disable_extension extension.id %}" class="disablelink">Disable</a></li>
 {% else %}
-	  <li><a href="{% url enable_extension extension.id %}" class="enablelink">Enable</a></li>
+      <li><a href="{% url enable_extension extension.id %}" class="enablelink">Enable</a></li>
 {% endif %}
 {% if extension.info.enabled and extension.is_configurable %}
       <li><a href="{{extension.id}}/config/" class="changelink">Configure</a></li>
 {% endif %}
      </ul>
-	</td>
+    </td>
    </tr>
 {% endfor %}
   </tbody>
