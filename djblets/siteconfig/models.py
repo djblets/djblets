@@ -115,7 +115,7 @@ class SiteConfiguration(models.Model):
         super(SiteConfiguration, self).save(**kwargs)
 
     def __get_sync_cache_key(self):
-        return "siteconfig-%s-last-updated" % self.id
+        return "%s:siteconfig:%s:last-updated" % (self.site.domain, self.id)
 
     def __unicode__(self):
         return "%s (version %s)" % (unicode(self.site), self.version)
