@@ -39,6 +39,7 @@ class SiteConfigurationManager(models.Manager):
         """
         Returns the site configuration on the active site.
         """
+        from djblets.siteconfig.models import SiteConfiguration
         global _SITECONFIG_CACHE
 
         # This will handle raising a ImproperlyConfigured if not set up
@@ -46,7 +47,8 @@ class SiteConfigurationManager(models.Manager):
         site = Site.objects.get_current()
 
         if site.id not in _SITECONFIG_CACHE:
-            _SITECONFIG_CACHE[site.id] = site.config.get()
+            _SITECONFIG_CACHE[site.id] = \
+                SiteConfiguration.objects.get(site=site)
 
         return _SITECONFIG_CACHE[site.id]
 

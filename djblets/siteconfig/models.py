@@ -112,6 +112,12 @@ class SiteConfiguration(models.Model):
         self._last_sync_time = now
         cache.set(self.__get_sync_cache_key(), now)
 
+        # The cached siteconfig might be stale now. We'll want a refresh.
+        # Also refresh the Site cache, since callers may get this from
+        # Site.config.
+        SiteConfiguration.objects.clear_cache()
+        Site.objects.clear_cache()
+
         super(SiteConfiguration, self).save(**kwargs)
 
     def __get_sync_cache_key(self):
