@@ -8,44 +8,26 @@
 <h1>Manage Extensions</h1>
 
 <div id="content-main">
-
-<div class="module" id="changelist">
- <table>
-  <thead>
-   <tr>
-    <th>Name</th>
-    <th>Version</th>
-    <th>Author</th>
-    <th>Summary</th>
-    <th>Actions</th>
-   </tr>
-  </thead>
-  <tbody>
+ <ul class="extensions">
 {% for extension in extensions %}
-   <tr class="{% cycle row1,row2 %}">
-    <td>{{extension.info.name}}</td>
-    <td>{{extension.info.version}}</td>
-    <td>{{extension.info.author}}</td>
-    <td>{{extension.info.summary}}</td>
-    <td class="actions">
-     <ul>
+  <li class="extension {% cycle row1,row2 %}">
+   <h1>{{extension.info.name}} <span class="version">{{extension.info.version}}</span></h1>
+   <p class="author">{{extension.info.author}}</p>
+   <div class="description">
+    {{extension.info.summary}}
+   </div>
+   <ul class="object-tools">
 {% if extension.info.enabled %}
-      <li><a href="{% url disable_extension extension.id %}" class="disablelink">Disable</a></li>
+    <li><a href="{% url disable_extension extension.id %}" class="disablelink">Disable</a></li>
 {%  if extension.is_configurable %}
-      <li><a href="{{extension.id}}/config/" class="changelink">Configure</a></li>
+    <li><a href="{{extension.id}}/config/" class="changelink">Configure</a></li>
 {%  endif %}
 {% else %}
-      <li><a href="{% url enable_extension extension.id %}" class="enablelink">Enable</a></li>
+    <li><a href="{% url enable_extension extension.id %}" class="enablelink">Enable</a></li>
 {% endif %}
-     </ul>
-    </td>
-   </tr>
+   </ul>
+  </li>
 {% endfor %}
-  </tbody>
- </table>
- <p class="paginator">
-  {{extensions|length}} registered extensions
- </p>
-</div>
+ </ul>
 </div>
 {% endblock %}
