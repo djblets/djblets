@@ -124,6 +124,8 @@ def ageid(timestamp):
       4 or more  age5
       ========== ====
     """
+    if timestamp is None:
+        return ""
 
     # Convert datetime.date into datetime.datetime
     if timestamp.__class__ is not datetime.datetime:
