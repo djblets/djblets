@@ -321,6 +321,7 @@ $.widget("ui.inlineEditor", {
                 )
                 .click(function() {
                     self.startEdit();
+                    return false;
                 });
 
             if (this.options.multiline) {
