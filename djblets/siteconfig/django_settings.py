@@ -23,6 +23,9 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+import os
+import time
+
 from django.conf import settings
 
 
@@ -37,7 +40,6 @@ locale_settings_map = {
     'locale_language_code':        'LANGUAGE_CODE',
     'locale_month_day_format':     'MONTH_DAY_FORMAT',
     'locale_time_format':          'TIME_FORMAT',
-    'locale_time_zone':            'TIME_ZONE',
     'locale_year_month_format':    'YEAR_MONTH_FORMAT',
 }
 
@@ -162,3 +164,7 @@ def apply_django_settings(siteconfig, settings_map=None):
                 setting_key = setting_data
 
             setattr(settings, setting_key, value)
+
+    if hasattr(time, 'tzset'):
+        os.environ['TZ'] = settings.TIME_ZONE
+        time.tzset()
