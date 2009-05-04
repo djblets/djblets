@@ -35,8 +35,8 @@ def run_tests(*args):
 test.run_tests = run_tests
 
 
-VERSION = "0.5beta2"
-IS_RELEASE = False
+VERSION = "0.5rc1"
+IS_RELEASE = True
 
 
 if IS_RELEASE:
