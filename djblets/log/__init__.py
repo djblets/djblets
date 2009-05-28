@@ -73,12 +73,20 @@ def init_logging():
 
     log_path = os.path.join(log_directory, log_name + ".log")
 
-    logging.basicConfig(
-        level=log_level,
-        format=format_str,
-        filename=log_path,
-        filemode='a'
-    )
+    try:
+        logging.basicConfig(
+            level=log_level,
+            format=format_str,
+            filename=log_path,
+            filemode='a'
+        )
+    except IOError:
+        logging.basicConfig(
+            level=log_level,
+            format=format_str,
+        )
+        logging.warning("Could not open logfile %s. Logging to stderr",
+                        log_path)
 
     if settings.DEBUG:
         # In DEBUG mode, log to the console as well.
