@@ -197,7 +197,7 @@ class JSONField(models.TextField):
             #     a solid repro case.
             if isinstance(val, basestring):
                 logging.warning("JSONField decode error. Expected dictionary, "
-                                "got string for input '%s'" % s)
+                                "got string for input '%s'" % val)
                 # For whatever reason, we may have gotten back
                 val = simplejson.loads(val, encoding=settings.DEFAULT_CHARSET)
         except ValueError:
