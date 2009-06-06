@@ -468,6 +468,7 @@ class DataGrid(object):
         rendering the datagrid.
         """
         query = self.queryset
+        use_select_related = False
 
         # Generate the actual list of fields we'll be sorting by
         sort_list = []
@@ -483,12 +484,19 @@ class DataGrid(object):
                 db_field = self.db_field_map[base_sort_item]
                 sort_list.append(prefix + db_field)
 
+                # Lookups spanning tables require that we query from those
+                # tables. In order to keep things simple, we'll just use
+                # select_related so that we don't have to figure out the
+                # table relationships. We only do this if we have a lookup
+                # spanning tables.
+                if '.' in db_field:
+                    use_select_related = True
+
         if sort_list:
             query = query.order_by(*sort_list)
 
-        # Get some of the objects we're likely to look up, in order to
-        # reduce future queries.
-        query = query.select_related(depth=1)
+        if use_select_related:
+            query = query.select_related(depth=1)
 
         self.paginator = QuerySetPaginator(query, self.paginate_by,
                                            self.paginate_orphans)
