@@ -263,8 +263,15 @@ class DataGrid(object):
                                     'datagrid/column_header.html'
         * 'cell_template':          The template used to render a cell of
                                     data. The default is 'datagrid/cell.html'
+        * 'optimize_sorts':         Whether or not to optimize queries when
+                                    using multiple sorts. This can offer a
+                                    speed improvement, but may need to be
+                                    turned off for more advanced querysets
+                                    (such as when using extra()).
+                                    The default is True.
     """
-    def __init__(self, request, queryset=None, title="", extra_context={}):
+    def __init__(self, request, queryset=None, title="", extra_context={},
+                 optimize_sorts=True):
         self.request = request
         self.queryset = queryset
         self.rows = []
@@ -278,6 +285,7 @@ class DataGrid(object):
         self.page_num = 0
         self.id = None
         self.extra_context = dict(extra_context)
+        self.optimize_sorts = optimize_sorts
 
         if not hasattr(request, "datagrid_count"):
             request.datagrid_count = 0
@@ -495,9 +503,6 @@ class DataGrid(object):
         if sort_list:
             query = query.order_by(*sort_list)
 
-        if use_select_related:
-            query = query.select_related(depth=1)
-
         self.paginator = QuerySetPaginator(query, self.paginate_by,
                                            self.paginate_orphans)
 
@@ -513,12 +518,62 @@ class DataGrid(object):
             raise Http404
 
         self.rows = []
+        id_list = None
 
-        for obj in self.page.object_list:
+        if self.optimize_sorts and len(sort_list) > 0:
+            # This can be slow when sorting by multiple columns. If we
+            # have multiple items in the sort list, we'll request just the
+            # IDs and then fetch the actual details from that.
+            id_list = list(self.page.object_list.distinct().values_list(
+                'pk', flat=True))
+
+            # Make sure to unset the order. We can't meaningfully order these
+            # results in the query, as what we really want is to keep it in
+            # the order specified in id_list, and we certainly don't want
+            # the database to do any special ordering (possibly slowing things
+            # down). We'll set the order properly in a minute.
+            self.page.object_list = self.post_process_queryset(
+                self.queryset.model.objects.filter(pk__in=id_list).order_by())
+
+        if use_select_related:
+            self.page.object_list = \
+                self.page.object_list.select_related(depth=1)
+
+        if id_list:
+            # The database will give us the items in a more or less random
+            # order, since it doesn't know to keep it in the order provided by
+            # the ID list. This will place the results back in the order we
+            # expect.
+            index = dict([(id, pos) for (pos, id) in enumerate(id_list)])
+            object_list = [None] * len(id_list)
+
+            for obj in list(self.page.object_list):
+                object_list[index[obj.id]] = obj
+        else:
+            # Grab the whole list at once. We know it won't be too large,
+            # and it will prevent one query per row.
+            object_list = list(self.page.object_list)
+
+        for obj in object_list:
             self.rows.append({
                 'object': obj,
                 'cells': [column.render_cell(obj) for column in self.columns]
             })
+
+    def post_process_queryset(self, queryset):
+        """
+        Processes a QuerySet after the initial query has been built and
+        pagination applied. This is only used when optimizing a sort.
+
+        By default, this just returns the existing queryset. Custom datagrid
+        subclasses can override this to add additional queries (such as
+        subqueries in an extra() call) for use in the cell renderers.
+
+        When optimize_sorts is True, subqueries (using extra()) on the initial
+        QuerySet passed to the datagrid will be stripped from the final
+        result. This function can be used to re-add those subqueries.
+        """
+        return queryset
 
     def render_listview(self):
         """
