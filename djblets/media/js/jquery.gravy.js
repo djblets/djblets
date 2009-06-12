@@ -893,6 +893,7 @@ jQuery.extend(String.prototype, {
 
 
 var queues = {};
+var queuesInProgress = {};
 
 /*
  * A set of utility functions for implementing a queue of functions.
@@ -913,32 +914,49 @@ $.funcQueue = function(name) {
     /*
      * Adds a function to the queue.
      *
+     * This will just add the item to the queue. To start the queue, run
+     * start() after adding the function.
+     *
      * @param {function} func  The function to add.
      */
     this.add = function(func) {
-        queues[name].push(func);
+        if (func) {
+            queues[name].push(func);
+        }
     };
 
     /*
      * Invokes the next function in the queue.
+     *
+     * This should only be called when a task in the queue is finished.
+     * Calling this function will immediately process the next item in the
+     * queue, out of order.
+     *
+     * Callers wanting to ensure the queue is running after adding the
+     * initial item should call start() instead.
      */
     this.next = function() {
-        if (queues[name].length == 0) {
-            return;
-        }
+        if (queuesInProgress[name]) {
+            var func = queues[name].shift();
 
-        var func = queues[name].shift();
-
-        if (func) {
-            func();
+            if (func) {
+                func();
+            } else {
+                queuesInProgress[name] = false;
+            }
         }
     };
 
     /*
      * Begins the queue.
+     *
+     * If a queue has already been started, this will do nothing.
      */
     this.start = function() {
-        self.next();
+        if (!queuesInProgress[name] && queues[name].length > 0) {
+            queuesInProgress[name] = true;
+            self.next();
+        }
     };
 
     return this;
