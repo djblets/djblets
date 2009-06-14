@@ -1,3 +1,30 @@
+version 0.5 rc2 (13-June-2009):
+	* General:
+		* Properly list the license as MIT, not GPL, in setup.py.
+		  (Bug #1120)
+
+	* JavaScript:
+		* Prevent funcQueue.start() from being called when the queue is
+		  already started.
+
+	* djblets.datagrid:
+		* Added speedups when sorting columns. We used to generate an SQL
+		  query that pulled in all information in the order specified by
+		  the columns, but this could be slow for large data sets. We now
+		  do the minimal query, retrieving only the object IDs, and then
+		  fetch data on those specific IDs in a second query. The end result
+		  is a significant speedup in rendering datagrids when used with
+		  large amounts of data.
+
+	* djblets.log:
+		* Fix logging when we're unable to write to the log file. We now
+		  fall back on stderr. Patch by Paolo Borelli.
+
+	* djblets.util.fields:
+		* Fixed a typo in a variable name that caused problems in JSONField
+		  when getting data in an unexpected format.
+
+
 version 0.5 rc1 (3-May-2009):
 	* JavaScript:
 		* Clicking the edit icons for inlineEditors no longer causes the
