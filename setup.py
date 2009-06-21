@@ -39,18 +39,17 @@ def run_tests(*args):
 test.run_tests = run_tests
 
 
-VERSION = "0.5rc3"
-IS_RELEASE = False
+from djblets import get_package_version, is_release
 
 
-if IS_RELEASE:
+if is_release():
     download_url = "http://downloads.review-board.org/releases/"
 else:
     download_url = "http://downloads.review-board.org/nightlies/"
 
 
 setup(name="Djblets",
-      version=VERSION,
+      version=get_package_version(),
       test_suite="dummy",
       license="MIT",
       description="A collection of useful classes and functions for Django",
