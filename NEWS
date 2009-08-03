@@ -1,3 +1,22 @@
+version 0.5.1 final (2-August-2009):
+	* JavaScript:
+		* Added a clear() function to $.funcQueue(), which clears the
+		  queue and prevents any further processing until it's next started.
+
+	* djblets.util.filesystem:
+		* Added the new djblets.util.filesystem for filesystem-related
+		  functionality.
+
+		* This currently contains is_exe_in_path, which checks if an
+		  executale exists in the system path. This will do intelligent
+		  file extension determination. It expects an application name without
+		  a file extension (such as "cvs") and will append the ".exe" on
+		  Windows. This is an improvement over the method we used in Review
+		  Board before where we blindly searched for "cvs" (which could in
+		  theory exist yet not be an executable) on Windows, or "cvs.exe"
+		  (which could in theory exist yet not be an executable) on Linux.
+
+
 version 0.5 final (20-June-2009):
 	* Final release of Djblets 0.5.
 
