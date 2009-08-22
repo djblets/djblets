@@ -959,6 +959,14 @@ $.funcQueue = function(name) {
         }
     };
 
+    /*
+     * Clears the queue, removing all pending functions.
+     */
+    this.clear = function() {
+        queues[name] = [];
+        queuesInProgress[name] = false;
+    };
+
     return this;
 }
 
