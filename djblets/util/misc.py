@@ -26,6 +26,7 @@
 
 
 import logging
+import md5
 import os
 import zlib
 
@@ -49,6 +50,10 @@ from django.views.decorators.cache import never_cache
 
 DEFAULT_EXPIRATION_TIME = 60 * 60 * 24 * 30 # 1 month
 CACHE_CHUNK_SIZE = 2**20 - 1024 # almost 1M (memcached's slab limit)
+
+# memcached key size constraint (typically 250, but leave a few bytes for the
+# large data handling)
+MAX_KEY_SIZE = 240
 
 
 class MissingChunkError(Exception):
@@ -130,6 +135,13 @@ def cache_memoize(key, lookup_callable,
     except:
         # The install doesn't have a Site app, so use the key as-is.
         pass
+
+    # Adhere to memcached key size limit
+    if len(key) > MAX_KEY_SIZE:
+        digest = md5.new(key).hexdigest();
+
+        # Replace the excess part of the key with a digest of the key
+        key = key[:MAX_KEY_SIZE - len(digest)] + digest
 
     if large_data:
         if not force_overwrite and cache.has_key(key):
