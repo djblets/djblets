@@ -1,7 +1,7 @@
 #
 # djblets_forms.py -- Form-related template tags
 #
-# Copyright (c) 2008  Christian Hammond
+# Copyright (c) 2008-2009  Christian Hammond
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
