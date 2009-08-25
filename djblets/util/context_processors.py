@@ -1,5 +1,5 @@
 #
-# djblets/util/context_processors.py
+# context_processors.py -- Miscellaneous context processors
 #
 # Copyright (c) 2007-2009  Christian Hammond
 # Copyright (c) 2007-2009  David Trowbridge

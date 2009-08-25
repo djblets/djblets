@@ -1,7 +1,8 @@
 #
-# djblets.auth.views
+# views.py -- Views for the authentication app
 #
-# Copyright (c) 2007  David Trowbridge
+# Copyright (c) 2007-2009  Christian Hammond
+# Copyright (c) 2007-2009  David Trowbridge
 # Copyright (C) 2007 Micah Dowty
 #
 # Permission is hereby granted, free of charge, to any person obtaining
