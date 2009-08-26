@@ -96,20 +96,3 @@ class ChangeProfileForm(forms.Form):
     first_name = forms.CharField(max_length=30)
     last_name = forms.CharField(max_length=30)
     email = forms.EmailField()
-
-
-class ResetPasswordForm(forms.Form):
-    password1 = forms.CharField(min_length=5, max_length=30,
-                                widget=forms.PasswordInput)
-    password2 = forms.CharField(widget=forms.PasswordInput)
-
-    def clean_password2(self):
-        # XXX Compatibility with Django 0.96 and 1.0
-        formdata = getattr(self, "cleaned_data",
-                           getattr(self, "clean_data", None))
-
-        if 'password1' in formdata:
-            if formdata['password1'] != formdata['password2']:
-                raise forms.ValidationError('Passwords must match')
-        return formdata['password2']
-
