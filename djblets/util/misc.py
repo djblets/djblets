@@ -26,9 +26,15 @@
 
 
 import logging
-import md5
 import os
 import zlib
+
+try:
+    import hashlib
+    new_md5 = hashlib.md5
+except ImportError:
+    import md5
+    new_md5 = md5.new
 
 try:
     import cPickle as pickle
@@ -138,7 +144,7 @@ def cache_memoize(key, lookup_callable,
 
     # Adhere to memcached key size limit
     if len(key) > MAX_KEY_SIZE:
-        digest = md5.new(key).hexdigest();
+        digest = new_md5(key).hexdigest();
 
         # Replace the excess part of the key with a digest of the key
         key = key[:MAX_KEY_SIZE - len(digest)] + digest
