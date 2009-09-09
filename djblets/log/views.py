@@ -34,6 +34,7 @@ from urllib import urlencode
 
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
+from django.http import Http404
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from django.utils.translation import ugettext as _
@@ -228,6 +229,13 @@ def get_log_filtersets(request, requested_levels,
 @staff_member_required
 def server_log(request, template_name='log/log.html'):
     """Displays the server log."""
+
+    # First check if logging is even configured. If it's not, just return
+    # a 404.
+    if (not getattr(settings, "LOGGING_ENABLED", False) or
+        not getattr(settings, "LOGGING_DIRECTORY", None)):
+        raise Http404()
+
     requested_levels = []
 
     # Get the list of levels to show.
