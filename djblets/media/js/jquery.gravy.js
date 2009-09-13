@@ -335,6 +335,7 @@ $.widget("ui.inlineEditor", {
         if (!this.options.useEditIconOnly) {
             this.element.click(function() {
                 self.startEdit();
+                return false;
             });
         }
 
