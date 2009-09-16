@@ -1,3 +1,33 @@
+version 0.5.2 final (15-September-2009):
+	* General:
+		* Added copyright and MIT license headers to all files.
+
+	* JavaScript:
+		* inlineEditors now prevent the event from bubbling up when
+		  clicking their target element. This means that a target element
+		  inside of an <a href="..."> will no longer cause the page to
+		  change when clicking the element. (Bug #1221)
+
+	* djblets.auth:
+		* Deleted the password recovery code. It was intended for use in
+		  an old version of Django and has since been supplanted by
+		  Django. We don't believe anyone is using it or should be
+		  encouraged to use it.
+
+	* djblets.log:
+		* Added a Server Log view for administration UIs. This is used
+		  to display the server log (using the Python logging defaults from
+		  djblets.log). The log is filterable and sortable.
+
+		* Exceptions are now logged when using LoggingMiddleware. When an
+		  exception occurs, the stack, username and URL are logged.
+
+	* djblets.util.misc:
+		* cache_memoize will now always ensure that cache keys will never
+		  exceed the maximum key length. If the key is larger, an md5sum
+		  of the key is used instead. Patch by Thilo-Alexander Ginkel.
+
+
 version 0.5.1 final (2-August-2009):
 	* JavaScript:
 		* Added a clear() function to $.funcQueue(), which clears the
