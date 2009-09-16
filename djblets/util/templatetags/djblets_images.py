@@ -25,6 +25,7 @@
 
 
 import os
+import tempfile
 
 try:
     from cStringIO import StringIO
@@ -38,6 +39,7 @@ except ImportError:
 
 from django import template
 from django.conf import settings
+from django.core.files import File
 
 
 register = template.Library()
@@ -68,9 +70,16 @@ def crop_image(file, x, y, width, height):
             image = Image.open(data)
             image = image.crop((x, y, x + width, y + height))
 
-            new_file = storage.open(new_name, 'wb')
-            image.save(new_file, image.format)
-            new_file.close()
+            (fd, filename) = tempfile.mkstemp()
+            file = os.fdopen(fd, 'w+b')
+            image.save(file, image.format)
+            file.close()
+
+            file = File(open(filename, 'rb'))
+            storage.save(new_file, file)
+            file.close()
+
+            os.unlink(filename)
         except (IOError, KeyError):
             return ""
 
@@ -105,9 +114,16 @@ def thumbnail(file, size='400x100'):
             image = Image.open(data)
             image.thumbnail([x, y], Image.ANTIALIAS)
 
-            new_file = storage.open(miniature, 'wb')
-            image.save(new_file, image.format)
-            new_file.close()
+            (fd, filename) = tempfile.mkstemp()
+            file = os.fdopen(fd, 'w+b')
+            image.save(file, image.format)
+            file.close()
+
+            file = File(open(filename, 'rb'))
+            storage.save(miniature, file)
+            file.close()
+
+            os.unlink(filename)
         except (IOError, KeyError), e:
             return ""
 
