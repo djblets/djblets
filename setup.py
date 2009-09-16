@@ -42,13 +42,16 @@ test.run_tests = run_tests
 from djblets import get_package_version, is_release
 
 
+PACKAGE_NAME = 'Djblets'
+
 if is_release():
-    download_url = "http://downloads.review-board.org/releases/"
+    download_url = 'http://downloads.review-board.org/releases/%s/%s.%s/' % \
+                   (PACKAGE_NAME, VERSION[0], VERSION[1])
 else:
-    download_url = "http://downloads.review-board.org/nightlies/"
+    download_url = 'http://downloads.review-board.org/nightlies/'
 
 
-setup(name="Djblets",
+setup(name=PACKAGE_NAME,
       version=get_package_version(),
       test_suite="dummy",
       license="MIT",

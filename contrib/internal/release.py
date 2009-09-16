@@ -8,15 +8,19 @@ import os
 import re
 import sys
 
-from djblets import get_package_version
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+from djblets import get_package_version, VERSION
 
 
 PY_VERSIONS = ["2.4", "2.5", "2.6"]
 
 LATEST_PY_VERSION = PY_VERSIONS[-1]
 
+PACKAGE_NAME = 'Djblets'
+
 RELEASES_URL = \
-    "review-board.org:/var/www/downloads.review-board.org/htdocs/releases/"
+    'review-board.org:/var/www/downloads.review-board.org/' \
+    'htdocs/releases/%s/%s.%s/' % (PACKAGE_NAME, VERSION[0], VERSION[1])
 
 
 built_files = []
@@ -36,11 +40,12 @@ def run_setup(target, pyver = LATEST_PY_VERSION):
 def build_targets():
     for pyver in PY_VERSIONS:
         run_setup("bdist_egg", pyver)
-        built_files.append("dist/Djblets-%s-py%s.egg" %
-                           (get_package_version(), pyver))
+        built_files.append("dist/%s-%s-py%s.egg" %
+                           (PACKAGE_NAME, get_package_version(), pyver))
 
     run_setup("sdist")
-    built_files.append("dist/Djblets-%s.tar.gz" % get_package_version())
+    built_files.append("dist/%s-%s.tar.gz" %
+                       (PACKAGE_NAME, get_package_version()))
 
 
 def build_news():
@@ -108,13 +113,13 @@ def build_news():
 
     content = content.rstrip()
 
-    filename = "dist/Djblets-%s.NEWS" % get_package_version()
+    filename = "dist/%s-%s.NEWS" % (PACKAGE_NAME, get_package_version())
     built_files.append(filename)
     fp = open(filename, "w")
     fp.write(content)
     fp.close()
 
-    filename = "dist/Djblets-%s.NEWS.html" % get_package_version()
+    filename = "dist/%s-%s.NEWS.html" % (PACKAGE_NAME, get_package_version())
     fp = open(filename, "w")
     fp.write(html_content)
     fp.close()
