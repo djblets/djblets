@@ -39,7 +39,7 @@ def run_tests(*args):
 test.run_tests = run_tests
 
 
-from djblets import get_package_version, is_release
+from djblets import get_package_version, is_release, VERSION
 
 
 PACKAGE_NAME = 'Djblets'
