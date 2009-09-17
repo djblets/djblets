@@ -1,3 +1,8 @@
+version 0.5.3 final (17-September-2009):
+	* djblets.siteconfig:
+		* Updated to work with Django 1.1's admin UI stylesheets.
+
+
 version 0.5.2 final (15-September-2009):
 	* General:
 		* Added copyright and MIT license headers to all files.
