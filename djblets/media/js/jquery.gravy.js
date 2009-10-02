@@ -134,9 +134,19 @@ $.widget("ui.autoSizeTextArea", {
     _init: function() {
         var self = this;
 
+        if ($.browser.safari && $.browser.version < 531.9) {
+            /*
+             * Older versions of WebKit have some crasher bugs and height
+             * computation bugs that prevent this from working. In those
+             * cases, we just want to turn off auto-sizing altogether.
+             */
+            return;
+        }
+
         this._proxyEl = $("<pre/>")
             .appendTo("body")
-            .move(-10000, -10000, "absolute");
+            .move(-10000, -10000, "absolute")
+            .css("white-space", "pre-wrap");
 
         if ($.browser.msie) {
             //this._proxyEl.css("white-space", "pre-wrap"); // CSS 3
@@ -176,11 +186,14 @@ $.widget("ui.autoSizeTextArea", {
         var needsResize = false;
         var newLength = this.element.val().length;
         var newHeight = 0;
+        var normHeight = this.element[0].scrollHeight +
+                         (this.element.height() -
+                          this.element[0].clientHeight);
 
-        if (this.element[0].scrollHeight != this.element.height()) {
+        if (normHeight != this.element.height()) {
             /* We know the height grew, so queue a resize. */
             needsResize = true;
-            newHeight = this.element[0].scrollHeight;
+            newHeight = normHeight;
         } else if (this.oldLength > newLength) {
             /* The size may have decreased. Check the number of lines. */
             needsResize = true;
@@ -193,7 +206,6 @@ $.widget("ui.autoSizeTextArea", {
         }
 
         if (needsResize) {
-
             this.element
                 .height(Math.max(this.options.minHeight, newHeight))
                 .triggerHandler("resize");
@@ -237,16 +249,8 @@ $.widget("ui.inlineEditor", {
 
         if (this.options.multiline) {
             this._field = $("<textarea/>")
-                .appendTo(this._form);
-
-            if ($.browser.chrome || !$.browser.safari) {
-                /*
-                 * Released versions of Safari seem broken with auto-sized
-                 * text areas. For now, we'll only enable this for other
-                 * browsers.
-                 */
-                this._field.autoSizeTextArea();
-            }
+                .appendTo(this._form)
+                .autoSizeTextArea();
         } else {
             this._field = $('<input type="text"/>')
                 .appendTo(this._form);
