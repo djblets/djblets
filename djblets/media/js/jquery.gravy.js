@@ -145,12 +145,19 @@ $.widget("ui.autoSizeTextArea", {
 
         this._proxyEl = $("<pre/>")
             .appendTo("body")
-            .move(-10000, -10000, "absolute")
-            .css("white-space", "pre-wrap");
+            .move(-10000, -10000, "absolute");
 
-        if ($.browser.msie) {
-            //this._proxyEl.css("white-space", "pre-wrap"); // CSS 3
-        } else if ($.browser.mozilla) {
+        if (!$.browser.msie) {
+            /*
+             * Set white-space to pre-wrap on browsers that support it.
+             * Most browsers will either ignore this or accept it as the
+             * main value if they understand it. IE, however, will complain,
+             * so we don't want to set it there. (Bug #1349)
+             */
+            this._proxyEl.css("white-space", "pre-wrap"); // Standards-compliant
+        }
+
+        if ($.browser.mozilla) {
             this._proxyEl.css("white-space", "-moz-pre-wrap"); // Mozilla, 1999+
         } else if ($.browser.opera) {
             // Opera 4-6
