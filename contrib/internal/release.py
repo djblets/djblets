@@ -19,7 +19,7 @@ LATEST_PY_VERSION = PY_VERSIONS[-1]
 PACKAGE_NAME = 'Djblets'
 
 RELEASES_URL = \
-    'review-board.org:/var/www/downloads.review-board.org/' \
+    'reviewboard.org:/var/www/downloads.reviewboard.org/' \
     'htdocs/releases/%s/%s.%s/' % (PACKAGE_NAME, VERSION[0], VERSION[1])
 
 
@@ -51,7 +51,7 @@ def build_targets():
 def build_news():
     def linkify_bugs(line):
         return re.sub(r'(Bug #(\d+))',
-                      r'<a href="http://www.review-board.org/bug/\2">\1</a>',
+                      r'<a href="http://www.reviewboard.org/bug/\2">\1</a>',
                       line)
 
     content = ""

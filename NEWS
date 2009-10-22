@@ -1,3 +1,9 @@
+version 0.5.5 final (22-October-2009):
+	* JavaScript:
+		* Fix a bug on Internet Explorer when setting the white-space
+		  property on an auto-size text area. (Bug #1349)
+
+
 version 0.5.4 final (4-October-2009):
 	* djblets.datagrid:
 		* Compatibility updates for the Django 1.2 development branch.
