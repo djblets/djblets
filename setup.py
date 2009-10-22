@@ -57,7 +57,7 @@ setup(name=PACKAGE_NAME,
       license="MIT",
       description="A collection of useful classes and functions for Django",
       packages=find_packages(),
-      install_requires=['Django>=1.0.2', 'PIL'],
+      install_requires=['Django>=1.1.1', 'PIL'],
       dependency_links = [
           "http://downloads.review-board.org/mirror/",
           download_url,
