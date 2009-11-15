@@ -42,6 +42,10 @@ class RegistrationForm(forms.Form):
     password2 = forms.CharField(widget=forms.PasswordInput)
     email = forms.EmailField()
 
+    def __init__(self, request=None, *args, **kwargs):
+        super(RegistrationForm, self).__init__(*args, **kwargs)
+        self.request = request
+
     def clean_password2(self):
         # XXX Compatibility with Django 0.96 and 1.0
         formdata = getattr(self, "cleaned_data",

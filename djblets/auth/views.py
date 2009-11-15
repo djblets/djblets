@@ -89,9 +89,10 @@ def login(request, next_page, template_name="accounts/login.html",
 ###########################
 
 def register(request, next_page, form_class=RegistrationForm,
+             extra_context={},
              template_name="accounts/register.html"):
     if request.POST:
-        form = form_class(request.POST)
+        form = form_class(data=request.POST, request=request)
         form.full_clean()
         validate_test_cookie(form, request)
 
@@ -109,10 +110,16 @@ def register(request, next_page, form_class=RegistrationForm,
 
                 return HttpResponseRedirect(next_page)
     else:
-        form = form_class()
+        form = form_class(request=request)
 
     request.session.set_test_cookie()
-    return render_to_response(template_name, RequestContext(request, {'form': form}))
+
+    context = {
+        'form': form,
+    }
+    context.update(extra_context)
+
+    return render_to_response(template_name, RequestContext(request, context))
 
 ###########################
 #     Profile Editing     #
