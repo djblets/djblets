@@ -24,6 +24,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+import logging
 import os
 import tempfile
 
@@ -59,6 +60,7 @@ def crop_image(file, x, y, width, height):
         new_name = '%s_%s_%s_%s_%s.%s' % (basename, x, y, width, height, format)
     else:
         basename = filename
+        format = None
         new_name = '%s_%s_%s_%s_%s' % (basename, x, y, width, height)
 
     if not storage.exists(new_name):
@@ -72,15 +74,19 @@ def crop_image(file, x, y, width, height):
 
             (fd, filename) = tempfile.mkstemp()
             file = os.fdopen(fd, 'w+b')
-            image.save(file, image.format)
+            image.save(file, format or image.format)
             file.close()
 
             file = File(open(filename, 'rb'))
-            storage.save(new_file, file)
+            storage.save(new_name, file)
             file.close()
 
             os.unlink(filename)
-        except (IOError, KeyError):
+        except (IOError, KeyError), e:
+            logging.error('Error cropping image file %s at %d, %d, %d, %d '
+                          'and saving as %s %s: %s' %
+                          (filename, x, y, width, height, new_name, e),
+                          exc_info=1)
             return ""
 
     return storage.url(new_name)
@@ -125,6 +131,9 @@ def thumbnail(file, size='400x100'):
 
             os.unlink(filename)
         except (IOError, KeyError), e:
+            logging.error('Error thumbnailing image file %s and saving '
+                          'as %s: %s' % (filename, miniature, e),
+                          exc_info=1)
             return ""
 
     return storage.url(miniature)
