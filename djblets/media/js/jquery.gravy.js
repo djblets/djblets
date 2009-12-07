@@ -695,20 +695,20 @@ $.widget("ui.modalBox", {
         if (this.options.title) {
             this.titleBox = $("<h1/>")
                 .appendTo(this.inner)
-                .addClass("modalbox-title")
+                .addClass(this.options.modalBoxTitleClass)
                 .text(this.options.title);
         }
 
         this.element
             .appendTo(this.inner)
-            .addClass("modalbox-contents")
+            .addClass(this.options.modalBoxContentsClass)
             .bind("DOMSubtreeModified", function() {
                 self.resize();
             });
 
         this._buttons = $("<div/>")
             .appendTo(this.inner)
-            .addClass("modalbox-buttons")
+            .addClass(this.options.modalBoxButtonsClass)
             .click(function(e) {
                 /* Check here so that buttons can call stopPropagation(). */
                 if (e.target.tagName == "INPUT") {
@@ -814,6 +814,9 @@ $.extend($.ui.modalBox, {
         buttons: [$('<input type="button" value="Close"/>')],
         discardOnClose: true,
         fadeBackground: true,
+        modalBoxButtonsClass: "modalbox-buttons",
+        modalBoxContentsClass: "modalbox-contents",
+        modalBoxTitleClass: "modalbox-title",
         stretchX: false,
         stretchY: false,
         title: null
