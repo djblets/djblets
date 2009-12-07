@@ -208,7 +208,8 @@ class WebAPIResponse(HttpResponse):
     """
     An API response, formatted for the desired file format.
     """
-    def __init__(self, request, obj={}, stat='ok', api_format="json"):
+    def __init__(self, request, obj={}, stat='ok', api_format="json",
+                 status=200, headers={}):
         if api_format == "json":
             if request.FILES:
                 # When uploading a file using AJAX to a webapi view,
@@ -221,14 +222,20 @@ class WebAPIResponse(HttpResponse):
         elif api_format == "xml":
             mimetype = "application/xml"
         else:
-            raise Http404
+            self.status_code = 400
+            self.content_set = True
+            return
 
-        super(WebAPIResponse, self).__init__(mimetype=mimetype)
+        super(WebAPIResponse, self).__init__(mimetype=mimetype,
+                                             status=status)
         self.callback = request.GET.get('callback', None)
         self.api_data = {'stat': stat}
         self.api_data.update(obj)
         self.api_format = api_format
         self.content_set = False
+
+        for header, value in headers.iteritems():
+            self[header] = value
 
     def _get_content(self):
         """
@@ -259,7 +266,7 @@ class WebAPIResponse(HttpResponse):
             elif self.api_format == "xml":
                 adapter = XMLEncoderAdapter(encoder)
             else:
-                raise Http404
+                assert False
 
             content = adapter.encode(self.api_data)
 
@@ -292,6 +299,7 @@ class WebAPIResponseError(WebAPIResponse):
         errdata.update(extra_params)
 
         WebAPIResponse.__init__(self, request, obj=errdata, stat="fail",
+                                status=err.http_status, headers=err.headers,
                                 *args, **kwargs)
 
 
