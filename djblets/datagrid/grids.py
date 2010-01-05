@@ -28,6 +28,7 @@ from django.conf import settings
 from django.contrib.auth.models import SiteProfileNotAvailable
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import InvalidPage, QuerySetPaginator
+from django.db.models import ForeignKey
 from django.http import Http404, HttpResponse
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
@@ -81,6 +82,7 @@ class Column(object):
         self.link_func = link_func or \
             (lambda x, y: self.datagrid.link_to_object(x, y))
         self.css_class = css_class
+        self.data_cache = {}
 
         # State
         self.active = False
@@ -226,12 +228,39 @@ class Column(object):
         """
         Renders the column data to a string. This may contain HTML.
         """
-        value = getattr(obj, self.field_name)
+        id_field = '%s_id' % self.field_name
 
-        if callable(value):
-            return value()
+        # Look for this directly so that we don't end up fetching the
+        # data for the object.
+        if id_field in obj.__dict__:
+            pk = obj.__dict__[id_field]
+
+            if pk in self.data_cache:
+                return self.data_cache[pk]
+            else:
+                value = getattr(obj, self.field_name)
+                self.data_cache[pk] = value
+                return value
         else:
-            return value
+            value = getattr(obj, self.field_name)
+
+            if callable(value):
+                return value()
+            else:
+                return value
+
+    def augment_queryset(self, queryset):
+        """Augments a queryset with new queries.
+
+        Subclasses can override this to extend the queryset to provide
+        additional information, usually using queryset.extra(). This must
+        return a queryset based on the original queryset.
+
+        This should not restrict the query in any way, or the datagrid may
+        not operate properly. It must only add additional data to the
+        queryset.
+        """
+        return queryset
 
 
 class DateTimeColumn(Column):
@@ -545,13 +574,13 @@ class DataGrid(object):
             raise Http404
 
         self.rows = []
-        id_list = None
+        self.id_list = []
 
         if self.optimize_sorts and len(sort_list) > 0:
             # This can be slow when sorting by multiple columns. If we
             # have multiple items in the sort list, we'll request just the
             # IDs and then fetch the actual details from that.
-            id_list = list(self.page.object_list.distinct().values_list(
+            self.id_list = list(self.page.object_list.distinct().values_list(
                 'pk', flat=True))
 
             # Make sure to unset the order. We can't meaningfully order these
@@ -560,19 +589,20 @@ class DataGrid(object):
             # the database to do any special ordering (possibly slowing things
             # down). We'll set the order properly in a minute.
             self.page.object_list = self.post_process_queryset(
-                self.queryset.model.objects.filter(pk__in=id_list).order_by())
+                self.queryset.model.objects.filter(
+                    pk__in=self.id_list).order_by())
 
         if use_select_related:
             self.page.object_list = \
                 self.page.object_list.select_related(depth=1)
 
-        if id_list:
+        if self.id_list:
             # The database will give us the items in a more or less random
             # order, since it doesn't know to keep it in the order provided by
             # the ID list. This will place the results back in the order we
             # expect.
-            index = dict([(id, pos) for (pos, id) in enumerate(id_list)])
-            object_list = [None] * len(id_list)
+            index = dict([(id, pos) for (pos, id) in enumerate(self.id_list)])
+            object_list = [None] * len(self.id_list)
 
             for obj in list(self.page.object_list):
                 object_list[index[obj.id]] = obj
@@ -600,6 +630,9 @@ class DataGrid(object):
         QuerySet passed to the datagrid will be stripped from the final
         result. This function can be used to re-add those subqueries.
         """
+        for column in self.columns:
+            queryset = column.augment_queryset(queryset)
+
         return queryset
 
     def render_listview(self):
