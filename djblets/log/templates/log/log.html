@@ -2,6 +2,8 @@
 {% load adminmedia %}
 {% load i18n %}
 
+{% block title %}{% trans "Server Log" %}{% endblock %}
+
 {% block extrastyle %}
 {{block.super}}
 <link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/changelists.css" />
