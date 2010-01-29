@@ -74,6 +74,32 @@ jQuery.fn.extend({
                     ? "absolute" : posType);
             }
         });
+    },
+
+    /*
+     * Scrolls an element so that it's fully in view, if it wasn't already.
+     *
+     * @return {jQuery} This jQuery.
+     */
+    scrollIntoView: function() {
+        return $(this).each(function() {
+            var offset = $(this).offset();
+            var scrollLeft = $(document).scrollLeft();
+            var elLeft = (scrollLeft + $(window).width()) -
+                         (offset.left + $(this).outerWidth(true));
+
+            if (elLeft < 0) {
+                $(window).scrollLeft(scrollLeft - elLeft);
+            }
+
+            var scrollTop = $(document).scrollTop();
+            var elTop = (scrollTop + $(window).height()) -
+                        (offset.top + $(this).outerHeight(true));
+
+            if (elTop < 0) {
+                $(window).scrollTop(scrollTop - elTop);
+            }
+        });
     }
 });
 
