@@ -54,14 +54,12 @@ def crop_image(file, x, y, width, height):
     """
     filename = file.name
     storage = file.storage
+    basename = filename
 
     if filename.find(".") != -1:
-        basename, format = filename.rsplit('.', 1)
-        new_name = '%s_%s_%s_%s_%s.%s' % (basename, x, y, width, height, format)
-    else:
-        basename = filename
-        format = None
-        new_name = '%s_%s_%s_%s_%s' % (basename, x, y, width, height)
+        basename = filename.rsplit('.', 1)[0]
+    new_name = '%s_%d_%d_%d_%d.png' % (basename, x, y, width, height)
+
 
     if not storage.exists(new_name):
         try:
@@ -74,7 +72,7 @@ def crop_image(file, x, y, width, height):
 
             (fd, filename) = tempfile.mkstemp()
             file = os.fdopen(fd, 'w+b')
-            image.save(file, format or image.format)
+            image.save(file, 'png')
             file.close()
 
             file = File(open(filename, 'rb'))
@@ -84,7 +82,7 @@ def crop_image(file, x, y, width, height):
             os.unlink(filename)
         except (IOError, KeyError), e:
             logging.error('Error cropping image file %s at %d, %d, %d, %d '
-                          'and saving as %s %s: %s' %
+                          'and saving as %s: %s' %
                           (filename, x, y, width, height, new_name, e),
                           exc_info=1)
             return ""
