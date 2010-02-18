@@ -605,7 +605,7 @@ class DataGrid(object):
             object_list = [None] * len(self.id_list)
 
             for obj in list(self.page.object_list):
-                object_list[index[obj.id]] = obj
+                object_list[index[obj.pk]] = obj
         else:
             # Grab the whole list at once. We know it won't be too large,
             # and it will prevent one query per row.
