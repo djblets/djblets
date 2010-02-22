@@ -1,4 +1,5 @@
 {% load datagrid %}
+{% load i18n %}
 <div class="datagrid-wrapper" id="{{datagrid.id}}">
  <div class="datagrid-titlebox">
 {% block datagrid_title %}
@@ -17,7 +18,7 @@
     <tr class="datagrid-headers">
 {% for column in datagrid.columns %}
      {{column.get_header}}{% endfor %}
-     <th class="edit-columns datagrid-header" id="{{datagrid.id}}-edit">...</th>
+     <th class="edit-columns datagrid-header" id="{{datagrid.id}}-edit"><img src="{{MEDIA_URL}}djblets/images/datagrid/edit.png" border="0" width="20" height="14" alt="{% trans "Edit columns" %}" /></th>
     </tr>
    </thead>
    <tbody>
