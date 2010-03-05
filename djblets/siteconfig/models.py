@@ -52,7 +52,12 @@ class SiteConfiguration(models.Model):
 
     def __init__(self, *args, **kwargs):
         models.Model.__init__(self, *args, **kwargs)
-        self._last_sync_time = datetime.now()
+
+        cache_key = self.__get_sync_cache_key()
+
+        # Add this key if it doesn't already exist.
+        cache.add(cache_key, 1)
+        self._last_sync_gen = cache.get(cache_key)
 
     def get(self, key, default=None):
         """
@@ -103,25 +108,25 @@ class SiteConfiguration(models.Model):
         Returns whether or not this SiteConfiguration is expired and needs
         to be reloaded.
         """
-        last_updated = cache.get(self.__get_sync_cache_key())
-        return (isinstance(last_updated, datetime) and
-                last_updated > self._last_sync_time)
+        sync_gen = cache.get(self.__get_sync_cache_key())
 
-    def save(self, **kwargs):
-        now = datetime.now()
-        self._last_sync_time = now
-        cache.set(self.__get_sync_cache_key(), now)
+        return (sync_gen is None or
+                (type(sync_gen) == int and sync_gen > self._last_sync_gen))
 
-        # The cached siteconfig might be stale now. We'll want a refresh.
-        # Also refresh the Site cache, since callers may get this from
-        # Site.config.
-        SiteConfiguration.objects.clear_cache()
-        Site.objects.clear_cache()
+    def save(self, clear_caches=True, **kwargs):
+        self._last_sync_gen = cache.incr(self.__get_sync_cache_key())
+
+        if clear_caches:
+            # The cached siteconfig might be stale now. We'll want a refresh.
+            # Also refresh the Site cache, since callers may get this from
+            # Site.config.
+            SiteConfiguration.objects.clear_cache()
+            Site.objects.clear_cache()
 
         super(SiteConfiguration, self).save(**kwargs)
 
     def __get_sync_cache_key(self):
-        return "%s:siteconfig:%s:last-updated" % (self.site.domain, self.id)
+        return "%s:siteconfig:%s:generation" % (self.site.domain, self.id)
 
     def __unicode__(self):
         return "%s (version %s)" % (unicode(self.site), self.version)
