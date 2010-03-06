@@ -98,7 +98,7 @@ class SiteConfigTest(TestCase):
         # stale cache around for another thread.
         siteconfig2.save(clear_caches=False)
 
-        cache.delete('%s:siteconfig:%s:last-updated' %
+        cache.delete('%s:siteconfig:%s:generation' %
                      (siteconfig2.site.domain, siteconfig2.id))
 
         self.assertTrue(siteconfig1.is_expired())

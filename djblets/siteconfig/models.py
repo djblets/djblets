@@ -111,10 +111,15 @@ class SiteConfiguration(models.Model):
         sync_gen = cache.get(self.__get_sync_cache_key())
 
         return (sync_gen is None or
-                (type(sync_gen) == int and sync_gen > self._last_sync_gen))
+                (type(sync_gen) == int and sync_gen != self._last_sync_gen))
 
     def save(self, clear_caches=True, **kwargs):
-        self._last_sync_gen = cache.incr(self.__get_sync_cache_key())
+        cache_key = self.__get_sync_cache_key()
+
+        try:
+            self._last_sync_gen = cache.incr(cache_key)
+        except ValueError:
+            self._last_sync_gen = cache.add(cache_key, 1)
 
         if clear_caches:
             # The cached siteconfig might be stale now. We'll want a refresh.
