@@ -36,7 +36,7 @@ from django.http import HttpResponse, Http404
 from django.utils import simplejson
 from django.utils.encoding import force_unicode
 
-from djblets.webapi.errors import INVALID_FORM_DATA
+from djblets.webapi.errors import INVALID_FORM_DATA, INVALID_ATTRIBUTE
 
 
 class WebAPIEncoder(object):
@@ -282,6 +282,52 @@ class WebAPIResponse(HttpResponse):
         super(WebAPIResponse, self)._set_content(value)
 
     content = property(_get_content, _set_content)
+
+
+class WebAPIResponsePaginated(WebAPIResponse):
+    """
+    A response containing a list of results with pagination.
+
+    This accepts the following parameters to the URL:
+
+    * start - The index of the first item (0-based index).
+    * max-results - The maximum number of results to return in the request.
+    """
+    def __init__(self, request, queryset, results_key="results",
+                 prev_key="prev_href", next_key="next_href",
+                 total_results_key="total_results",
+                 default_max_results=25, max_results_cap=200,
+                 *args, **kwargs):
+        try:
+            start = int(request.GET.get('start', 0))
+        except ValueError:
+            start = 0
+
+        try:
+            max_results = \
+                min(int(request.GET.get('max-results', default_max_results)),
+                    max_results_cap)
+        except ValueError:
+            max_results = default_max_results
+
+        results = list(queryset[start:start + max_results])
+        total_results = queryset.count()
+
+        data = {
+            results_key: results,
+            total_results_key: total_results,
+        }
+
+        if start > 0:
+            data[prev_key] = "%s?start=%s&max-results=%s" % \
+                             (request.path, max(start - max_results, 0),
+                              max_results)
+
+        if start + len(results) < total_results:
+            data[next_key] = "%s?start=%s&max-results=%s" % \
+                             (request.path, start + max_results, max_results)
+
+        WebAPIResponse.__init__(self, request, obj=data, *args, **kwargs)
 
 
 class WebAPIResponseError(WebAPIResponse):
