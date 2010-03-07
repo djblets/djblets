@@ -36,6 +36,11 @@ class WebAPIError(object):
         self.headers = headers
 
 
+WWW_AUTHENTICATE_HEADERS = {
+    'WWW-Authenticate': 'Basic realm="Web API"',
+}
+
+
 #
 # Standard error messages
 #
@@ -58,11 +63,13 @@ INVALID_ATTRIBUTE         = WebAPIError(102,
                                         http_status=400)
 NOT_LOGGED_IN             = WebAPIError(103,
                                         "You are not logged in",
-                                        http_status=403)
+                                        http_status=401,
+                                        headers=WWW_AUTHENTICATE_HEADERS)
 LOGIN_FAILED              = WebAPIError(104,
                                         "The username or password was "
                                         "not correct",
-                                        http_status=403)
+                                        http_status=401,
+                                        headers=WWW_AUTHENTICATE_HEADERS)
 INVALID_FORM_DATA         = WebAPIError(105,
                                         "One or more fields had errors",
                                         http_status=400)

@@ -52,9 +52,17 @@ def webapi(view_func):
 def webapi_login_required(view_func):
     """
     Checks that the user is logged in before invoking the view. If the user
-    is not logged in, a NOT_LOGGED_IN error is returned.
+    is not logged in, a NOT_LOGGED_IN error (HTTP 401 Unauthorized) is
+    returned.
     """
     def _checklogin(request, api_format="json", *args, **kwargs):
+        from djblets.webapi.auth import basic_access_login
+
+        if not request.user.is_authenticated():
+            # See if the request contains authentication tokens
+            if 'HTTP_AUTHORIZATION' in request.META:
+                basic_access_login(request)
+
         if request.user.is_authenticated():
             response = view_func(request, *args, **kwargs)
         else:
