@@ -36,7 +36,7 @@ class WebAPIResource(object):
             # Not all clients can do anything other than GET or POST.
             # So, in the case of POST, we allow overriding the method
             # used.
-            method = request.POST.get('method', method)
+            method = request.POST.get('method', kwargs.get('method', method))
 
         if method in self.allowed_methods:
             if (method == "GET" and
@@ -90,8 +90,9 @@ class WebAPIResource(object):
         return self.name + 's'
 
     def put(self, request, *args, **kwargs):
-        if 'action' in request.POST:
-            action = request.POST.get('action')
+        action = request.POST.get('action', kwargs.get('action', None))
+
+        if action and action != 'set':
             action_func = getattr(self, 'action_%s' % action)
 
             if callable(action_func):
