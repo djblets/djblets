@@ -25,6 +25,8 @@
 #
 
 
+from django.http import HttpRequest
+
 from djblets.util.decorators import simple_decorator
 from djblets.webapi.core import WebAPIResponse, WebAPIResponseError
 from djblets.webapi.errors import NOT_LOGGED_IN, PERMISSION_DENIED
@@ -55,8 +57,16 @@ def webapi_login_required(view_func):
     is not logged in, a NOT_LOGGED_IN error (HTTP 401 Unauthorized) is
     returned.
     """
-    def _checklogin(request, api_format="json", *args, **kwargs):
+    def _checklogin(*args, **kwargs):
         from djblets.webapi.auth import basic_access_login
+
+        if isinstance(args[0], HttpRequest):
+            request = args[0]
+        else:
+            # This should be in a class then.
+            assert len(args) > 1
+            request = args[1]
+            assert isinstance(request, HttpRequest)
 
         if not request.user.is_authenticated():
             # See if the request contains authentication tokens
@@ -64,12 +74,12 @@ def webapi_login_required(view_func):
                 basic_access_login(request)
 
         if request.user.is_authenticated():
-            response = view_func(request, *args, **kwargs)
+            response = view_func(*args, **kwargs)
         else:
             response = WebAPIResponseError(request, NOT_LOGGED_IN)
 
         if isinstance(response, WebAPIResponse):
-            response.api_format = api_format
+            response.api_format = kwargs.get('api_format', 'json')
 
         return response
 
