@@ -142,23 +142,23 @@ class WebAPIResource(object):
     def get_queryset(self, request, *args, **kwargs):
         return self.model.objects.all()
 
-    def get_url_patterns(cls):
+    def get_url_patterns(self):
         urlpatterns = never_cache_patterns('',
-            url(r'^$', cls, name='%s-resource' % cls.name_plural),
+            url(r'^$', self, name='%s-resource' % self.name_plural),
         )
 
-        if cls.uri_object_key:
+        if self.uri_object_key:
             # If the resource has particular items in it...
-            base_regex = r'^(?P<%s>%s)/' % (cls.uri_object_key,
-                                            cls.uri_object_key_regex)
+            base_regex = r'^(?P<%s>%s)/' % (self.uri_object_key,
+                                            self.uri_object_key_regex)
 
             urlpatterns += never_cache_patterns('',
-                url(base_regex + '$', cls, name='%s-resource' % cls.name),
+                url(base_regex + '$', self, name='%s-resource' % self.name),
             )
         else:
             base_regex = r'^'
 
-        for resource in cls.child_resources:
+        for resource in self.child_resources:
             child_regex = base_regex + resource.name_plural + '/'
             urlpatterns += patterns('',
                 url(child_regex, include(resource.get_url_patterns())),
