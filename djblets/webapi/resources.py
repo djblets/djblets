@@ -1,4 +1,5 @@
 from django.conf.urls.defaults import include, patterns, url
+from django.contrib.auth.models import User, Group
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.http import HttpResponseNotAllowed, HttpResponse
@@ -11,9 +12,11 @@ from djblets.webapi.errors import WebAPIError
 
 class WebAPIResource(object):
     model = None
-    uri_id_key = None
     fields = ()
     uris = {}
+    uri_object_key_regex = '[0-9]+'
+    uri_object_key = None
+    model_object_key = 'pk'
     child_resources = []
 
     allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
@@ -30,8 +33,8 @@ class WebAPIResource(object):
 
         if method in self.allowed_methods:
             if (method == "GET" and
-                self.uri_id_key is not None and
-                self.uri_id_key not in kwargs):
+                self.uri_object_key is not None and
+                self.uri_object_key not in kwargs):
                 view = self.get_list
             else:
                 view = getattr(self, self.method_mapping.get(method, None))
@@ -189,3 +192,33 @@ class WebAPIResource(object):
             data[field] = value
 
         return data
+
+
+class UserResource(WebAPIResource):
+    model = User
+    fields = (
+        'id', 'username', 'first_name', 'last_name', 'fullname',
+        'email', 'url'
+    )
+
+    uri_object_key = 'username'
+    uri_object_key_regex = '[A-Za-z0-9_-]+'
+    model_object_key = 'username'
+
+    allowed_methods = ('GET',)
+
+    def serialize_fullname_field(self, user):
+        return user.get_full_name()
+
+    def serialize_url_field(self, user):
+        return user.get_absolute_url()
+
+
+class GroupResource(WebAPIResource):
+    model = Group
+    fields = ('id', 'name')
+    allowed_methods = ('GET',)
+
+
+userResource = UserResource()
+groupResource = GroupResource()
