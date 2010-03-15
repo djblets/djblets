@@ -7,7 +7,8 @@ from django.http import HttpResponseNotAllowed, HttpResponse
 from djblets.util.misc import never_cache_patterns
 from djblets.webapi.core import WebAPIResponse, WebAPIResponseError
 from djblets.webapi.decorators import webapi_login_required
-from djblets.webapi.errors import WebAPIError
+from djblets.webapi.errors import WebAPIError, DOES_NOT_EXIST, \
+                                  PERMISSION_DENIED
 
 
 class WebAPIResource(object):
@@ -176,9 +177,10 @@ class WebAPIResource(object):
         data = {}
 
         if self.uri_object_key:
+            object_key = getattr(obj, self.model_object_key)
             data['href'] = reverse('%s-resource' % self.name, kwargs={
                                        'api_format': api_format,
-                                       self.uri_object_key: obj.id,
+                                       self.uri_object_key: object_key,
                                    })
 
         for field in self.fields:
@@ -222,6 +224,11 @@ class UserResource(WebAPIResource):
 class GroupResource(WebAPIResource):
     model = Group
     fields = ('id', 'name')
+
+    uri_object_key = 'group_name'
+    uri_object_key_regex = '[A-Za-z0-9_-]+'
+    model_object_key = 'name'
+
     allowed_methods = ('GET',)
 
 
