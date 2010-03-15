@@ -56,7 +56,7 @@ class WebAPIEncoder(object):
     )
     """
 
-    def encode(self, o):
+    def encode(self, o, *args, **kwargs):
         """
         Encodes an object.
 
@@ -71,7 +71,7 @@ class BasicAPIEncoder(WebAPIEncoder):
     """
     A basic encoder that encodes dates, times, QuerySets, Users, and Groups.
     """
-    def encode(self, o):
+    def encode(self, o, *args, **kwargs):
         if isinstance(o, QuerySet):
             return list(o)
         elif isinstance(o, User):
@@ -110,13 +110,18 @@ class JSONEncoderAdapter(simplejson.JSONEncoder):
         simplejson.JSONEncoder.__init__(self, *args, **kwargs)
         self.encoder = encoder
 
+    def encode(self, o, *args, **kwargs):
+        self.encode_args = args
+        self.encode_kwargs = kwargs
+        return super(JSONEncoderAdapter, self).encode(o)
+
     def default(self, o):
         """
         Encodes an object using the supplied WebAPIEncoder.
 
         If the encoder is unable to encode this object, a TypeError is raised.
         """
-        result = self.encoder.encode(o)
+        result = self.encoder.encode(o, *self.encode_args, **self.encode_kwargs)
 
         if result is None:
             raise TypeError("%r is not JSON serializable" % (o,))
@@ -134,7 +139,7 @@ class XMLEncoderAdapter(object):
     def __init__(self, encoder, *args, **kwargs):
         self.encoder = encoder
 
-    def encode(self, o):
+    def encode(self, o, *args, **kwargs):
         self.level = 0
         self.doIndent = False
 
@@ -142,25 +147,25 @@ class XMLEncoderAdapter(object):
         self.xml = XMLGenerator(stream, settings.DEFAULT_CHARSET)
         self.xml.startDocument()
         self.startElement("rsp")
-        self.__encode(o)
+        self.__encode(o, *args, **kwargs)
         self.endElement("rsp")
         self.xml.endDocument()
         self.xml = None
 
         return stream.getvalue()
 
-    def __encode(self, o):
+    def __encode(self, o, *args, **kwargs):
         if isinstance(o, dict):
             for key, value in o.iteritems():
                 self.startElement(key)
-                self.__encode(value)
+                self.__encode(value, *args, **kwargs)
                 self.endElement(key)
         elif isinstance(o, list):
             self.startElement("array")
 
             for i in o:
                 self.startElement("item")
-                self.__encode(i)
+                self.__encode(i, *args, **kwargs)
                 self.endElement("item")
 
             self.endElement("array")
@@ -176,12 +181,12 @@ class XMLEncoderAdapter(object):
         elif o is None:
             pass
         else:
-            result = self.encoder.encode(o)
+            result = self.encoder.encode(o, *args, **kwargs)
 
             if result is None:
                 raise TypeError("%r is not XML serializable" % (o,))
 
-            return self.__encode(result)
+            return self.__encode(result, *args, **kwargs)
 
     def startElement(self, name, attrs={}):
         self.addIndent()
@@ -248,9 +253,9 @@ class WebAPIResponse(HttpResponse):
         the content is generated, but after the response is created.
         """
         class MultiEncoder(WebAPIEncoder):
-            def encode(self, o):
+            def encode(self, *args, **kwargs):
                 for encoder in get_registered_encoders():
-                    result = encoder.encode(o)
+                    result = encoder.encode(*args, **kwargs)
 
                     if result is not None:
                         return result
@@ -268,7 +273,7 @@ class WebAPIResponse(HttpResponse):
             else:
                 assert False
 
-            content = adapter.encode(self.api_data)
+            content = adapter.encode(self.api_data, api_format=self.api_format)
 
             if self.callback != None:
                 content = "%s(%s);" % (self.callback, content)
