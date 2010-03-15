@@ -14,23 +14,29 @@ from djblets.webapi.errors import WebAPIError, DOES_NOT_EXIST, \
 class WebAPIResource(object):
     model = None
     fields = ()
-    uris = {}
     uri_object_key_regex = '[0-9]+'
     uri_object_key = None
     model_object_key = 'pk'
     child_resources = []
+    actions = {}
 
     allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
 
     method_mapping = {
         'GET': 'get',
         'POST': 'create',
-        'PUT': 'update',
+        'PUT': 'put',
         'DELETE': 'delete',
     }
 
     def __call__(self, request, api_format="json", *args, **kwargs):
-        method = request.GET.get('method', request.method)
+        method = request.method
+
+        if method == 'POST':
+            # Not all clients can do anything other than GET or POST.
+            # So, in the case of POST, we allow overriding the method
+            # used.
+            method = request.POST.get('method', method)
 
         if method in self.allowed_methods:
             if (method == "GET" and
@@ -82,6 +88,20 @@ class WebAPIResource(object):
     @property
     def name_plural(self):
         return self.name + 's'
+
+    def put(self, request, *args, **kwargs):
+        if 'action' in request.POST:
+            action = request.POST.get('action')
+            action_func = getattr(self, 'action_%s' % action)
+
+            if callable(action_func):
+                return action_func(request, *args, **kwargs)
+            else:
+                return INVALID_ACTION, {
+                    'action': action,
+                }
+        else:
+            return self.update(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
         if not self.model or self.uri_object_key is None:

@@ -76,3 +76,6 @@ INVALID_FORM_DATA         = WebAPIError(105,
 MISSING_ATTRIBUTE         = WebAPIError(106,
                                         "Missing value for the attribute",
                                         http_status=400)
+INVALID_ACTION            = WebAPIError(108,
+                                        "Invalid action",
+                                        http_status=400)
