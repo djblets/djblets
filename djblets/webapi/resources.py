@@ -1,6 +1,7 @@
 from django.conf.urls.defaults import include, patterns, url
 from django.core.urlresolvers import reverse
 from django.db import models
+from django.http import HttpResponseNotAllowed, HttpResponse
 
 from djblets.util.misc import never_cache_patterns
 from djblets.webapi.core import WebAPIResponse, WebAPIResponseError
@@ -53,6 +54,10 @@ class WebAPIResource(object):
                                           status=result[0],
                                           obj=result[1],
                                           api_format=api_format)
+            elif isinstance(result, HttpResponse):
+                return result
+            else:
+                raise AssertionError(result)
         else:
             return HttpResponseNotAllowed(self.allowed_methods)
 
