@@ -83,12 +83,14 @@ class WebAPIResource(object):
         return self.name + 's'
 
     def get(self, request, *args, **kwargs):
-        if not self.model:
+        if not self.model or self.uri_object_key is None:
             return HttpResponseNotAllowed(self.allowed_methods)
 
         try:
             queryset = self.get_queryset(request, *args, **kwargs)
-            obj = queryset.get(pk=kwargs[self.uri_id_key])
+            obj = queryset.get({
+                self.model_object_key: kwargs[self.uri_object_key]
+            })
         except self.model.DoesNotExist:
             return DOES_NOT_EXIST
 
@@ -119,12 +121,14 @@ class WebAPIResource(object):
 
     @webapi_login_required
     def delete(self, request, api_format, *args, **kwargs):
-        if not self.model:
+        if not self.model or self.uri_object_key is None:
             return HttpResponseNotAllowed(self.allowed_methods)
 
         try:
             queryset = self.get_queryset(request, *args, **kwargs)
-            obj = queryset.filter(pk=kwargs[self.uri_id_key])
+            obj = queryset.filter({
+                self.model_object_key: kwargs[self.uri_object_key]
+            })
         except self.model.DoesNotExist:
             return DOES_NOT_EXIST
 
@@ -136,16 +140,17 @@ class WebAPIResource(object):
         return 204, {}
 
     def get_queryset(self, request, *args, **kwargs):
-        return self.model.all()
+        return self.model.objects.all()
 
     def get_url_patterns(cls):
         urlpatterns = never_cache_patterns('',
             url(r'^$', cls, name='%s-resource' % cls.name_plural),
         )
 
-        if cls.uri_id_key:
+        if cls.uri_object_key:
             # If the resource has particular items in it...
-            base_regex = r'^(?P<%s>[0-9]+)/' % cls.uri_id_key
+            base_regex = r'^(?P<%s>%s)/' % (cls.uri_object_key,
+                                            cls.uri_object_key_regex)
 
             urlpatterns += never_cache_patterns('',
                 url(base_regex + '$', cls, name='%s-resource' % cls.name),
@@ -168,13 +173,13 @@ class WebAPIResource(object):
         return True
 
     def serialize_object(self, obj, api_format='json', *args, **kwargs):
-        data = {
-            'href': reverse('%s-resource' % self.name,
-                            kwargs={
-                                'api_format': api_format,
-                                self.uri_id_key: obj.id,
-                            })
-        }
+        data = {}
+
+        if self.uri_object_key:
+            data['href'] = reverse('%s-resource' % self.name, kwargs={
+                                       'api_format': api_format,
+                                       self.uri_object_key: obj.id,
+                                   })
 
         for field in self.fields:
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
