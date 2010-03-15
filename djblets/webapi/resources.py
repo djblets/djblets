@@ -11,9 +11,10 @@ from djblets.webapi.errors import WebAPIError
 
 class WebAPIResource(object):
     model = None
-    uri_id_key = 'object_id'
+    uri_id_key = None
     fields = ()
     uris = {}
+    child_resources = []
 
     allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
 
@@ -28,7 +29,9 @@ class WebAPIResource(object):
         method = request.GET.get('method', request.method)
 
         if method in self.allowed_methods:
-            if method == "GET" and self.uri_id_key not in kwargs:
+            if (method == "GET" and
+                self.uri_id_key is not None and
+                self.uri_id_key not in kwargs):
                 view = self.get_list
             else:
                 view = getattr(self, self.method_mapping.get(method, None))
@@ -132,16 +135,28 @@ class WebAPIResource(object):
     def get_queryset(self, request, *args, **kwargs):
         return self.model.all()
 
-    def get_url_patterns(self):
-        if not self.uri_id_key:
-            return patterns('')
-
-        item_regex = r'^(?P<%s>[0-9]+)/$' % self.uri_id_key
-
-        return never_cache_patterns('',
-            url(r'^$', self, name='%s-resource' % self.name_plural),
-            url(item_regex, self, name='%s-resource' % self.name),
+    def get_url_patterns(cls):
+        urlpatterns = never_cache_patterns('',
+            url(r'^$', cls, name='%s-resource' % cls.name_plural),
         )
+
+        if cls.uri_id_key:
+            # If the resource has particular items in it...
+            base_regex = r'^(?P<%s>[0-9]+)/' % cls.uri_id_key
+
+            urlpatterns += never_cache_patterns('',
+                url(base_regex + '$', cls, name='%s-resource' % cls.name),
+            )
+        else:
+            base_regex = r'^'
+
+        for resource in cls.child_resources:
+            child_regex = base_regex + resource.name_plural + '/'
+            urlpatterns += patterns('',
+                url(child_regex, include(resource.get_url_patterns())),
+            )
+
+        return urlpatterns
 
     def has_access_permissions(self, request, obj, *args, **kwargs):
         return True
@@ -154,7 +169,7 @@ class WebAPIResource(object):
             'href': reverse('%s-resource' % self.name,
                             kwargs={
                                 'api_format': api_format,
-                                self.uri_id_key: obj.id
+                                self.uri_id_key: obj.id,
                             })
         }
 
