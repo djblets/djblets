@@ -37,6 +37,27 @@ class WebAPIResource(object):
             # So, in the case of POST, we allow overriding the method
             # used.
             method = request.POST.get('method', kwargs.get('method', method))
+        elif method == 'PUT':
+            # Normalize the PUT data so we can get to it.
+            # This is due to Django's treatment of PUT vs. POST. They claim
+            # that PUT, unlike POST, is not necessarily represented as form
+            # data, so they do not parse it. However, that gives us no clean way
+            # of accessing the data. So we pretend it's POST for a second in
+            # order to parse.
+            #
+            # This must be done only for legitimate PUT requests, not faked
+            # ones using ?method=PUT.
+            try:
+                request.method = 'POST'
+                request._load_post_and_files()
+                request.method = 'PUT'
+            except AttributeError:
+                request.META['REQUEST_METHOD'] = 'POST'
+                request._load_post_and_files()
+                request.META['REQUEST_METHOD'] = 'PUT'
+
+        request.PUT = request.POST
+
 
         if method in self.allowed_methods:
             if (method == "GET" and
@@ -49,7 +70,7 @@ class WebAPIResource(object):
             view = None
 
         if view and callable(view):
-            result = view(request, *args, **kwargs)
+            result = view(request, api_format=api_format, *args, **kwargs)
 
             if isinstance(result, WebAPIResponse):
                 return result
@@ -90,7 +111,7 @@ class WebAPIResource(object):
         return self.name + 's'
 
     def put(self, request, *args, **kwargs):
-        action = request.POST.get('action', kwargs.get('action', None))
+        action = request.PUT.get('action', kwargs.get('action', None))
 
         if action and action != 'set':
             action_func = getattr(self, 'action_%s' % action)
@@ -212,7 +233,7 @@ class WebAPIResource(object):
             else:
                 value = getattr(obj, field)
 
-                if isinstance(value, models.ManyToManyField):
+                if callable(getattr(value, 'all', None)):
                     value = value.all()
                 elif isinstance(value, models.ForeignKey):
                     value = value.get()
