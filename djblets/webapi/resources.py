@@ -169,7 +169,7 @@ class WebAPIResource(object):
 
         try:
             queryset = self.get_queryset(request, *args, **kwargs)
-            obj = queryset.filter(**{
+            obj = queryset.get(**{
                 self.model_object_key: kwargs[self.uri_object_key]
             })
         except self.model.DoesNotExist:

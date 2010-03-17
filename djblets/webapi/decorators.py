@@ -32,17 +32,29 @@ from djblets.webapi.core import WebAPIResponse, WebAPIResponseError
 from djblets.webapi.errors import NOT_LOGGED_IN, PERMISSION_DENIED
 
 
+def _find_httprequest(args):
+    if isinstance(args[0], HttpRequest):
+        request = args[0]
+    else:
+        # This should be in a class then.
+        assert len(args) > 1
+        request = args[1]
+        assert isinstance(request, HttpRequest)
+
+    return request
+
+
 @simple_decorator
 def webapi(view_func):
     """
     Checks the API format desired for this handler and sets it in the
     resulting WebAPIResponse.
     """
-    def _dec(request, api_format="json", *args, **kwargs):
-        response = view_func(request, *args, **kwargs)
+    def _dec(*args, **kwargs):
+        response = view_func(*args, **kwargs)
 
         if isinstance(response, WebAPIResponse):
-            response.api_format = api_format
+            response.api_format = kwargs.get('api_format', 'json')
 
         return response
 
@@ -60,13 +72,7 @@ def webapi_login_required(view_func):
     def _checklogin(*args, **kwargs):
         from djblets.webapi.auth import basic_access_login
 
-        if isinstance(args[0], HttpRequest):
-            request = args[0]
-        else:
-            # This should be in a class then.
-            assert len(args) > 1
-            request = args[1]
-            assert isinstance(request, HttpRequest)
+        request = _find_httprequest(args)
 
         if not request.user.is_authenticated():
             # See if the request contains authentication tokens
@@ -94,16 +100,18 @@ def webapi_permission_required(perm):
     does not have the proper permissions.
     """
     def _dec(view_func):
-        def _checkpermissions(request, api_format="json", *args, **kwargs):
+        def _checkpermissions(*args, **kwargs):
+            request = _find_httprequest(args)
+
             if not request.user.is_authenticated():
                 response = WebAPIResponseError(request, NOT_LOGGED_IN)
             elif not request.user.has_perm(perm):
                 response = WebAPIResponseError(request, PERMISSION_DENIED)
             else:
-                response = view_func(request, *args, **kwargs)
+                response = view_func(*args, **kwargs)
 
             if isinstance(response, WebAPIResponse):
-                response.api_format = api_format
+                response.api_format = kwargs.get('api_format', 'json')
 
             return response
 
