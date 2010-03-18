@@ -24,7 +24,7 @@ class WebAPIResource(object):
 
     method_mapping = {
         'GET': 'get',
-        'POST': 'create',
+        'POST': 'post',
         'PUT': 'put',
         'DELETE': 'delete',
     }
@@ -81,7 +81,7 @@ class WebAPIResource(object):
                 if isinstance(result[0], WebAPIError):
                     return WebAPIResponseError(request,
                                                err=result[0],
-                                               obj=result[1],
+                                               extra_params=result[1],
                                                api_format=api_format)
                 else:
                     return WebAPIResponse(request,
@@ -109,6 +109,20 @@ class WebAPIResource(object):
     @property
     def name_plural(self):
         return self.name + 's'
+
+    def post(self, *args, **kwargs):
+        if 'POST' not in self.allowed_methods:
+            return HttpResponseNotAllowed(self.allowed_methods)
+
+        if (self.uri_object_key is None or
+            kwargs.get(self.uri_object_key, None) is None):
+            return self.create(*args, **kwargs)
+
+        # Don't allow POSTs on children by default.
+        allowed_methods = list(self.allowed_methods)
+        allowed_methods.remove('POST')
+
+        return HttpResponseNotAllowed(allowed_methods)
 
     def put(self, request, *args, **kwargs):
         action = request.PUT.get('action', kwargs.get('action', None))
