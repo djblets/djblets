@@ -1,6 +1,6 @@
 from django.conf.urls.defaults import include, patterns, url
 from django.contrib.auth.models import User, Group
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse, NoReverseMatch
 from django.db import models
 from django.http import HttpResponseNotAllowed, HttpResponse
 
@@ -233,11 +233,10 @@ class WebAPIResource(object):
         data = {}
 
         if self.uri_object_key:
-            object_key = getattr(obj, self.model_object_key)
-            data['href'] = reverse('%s-resource' % self.name, kwargs={
-                                       'api_format': api_format,
-                                       self.uri_object_key: object_key,
-                                   })
+            href = self.get_href(obj, api_format=api_format)
+
+            if href:
+                data['href'] = href
 
         for field in self.fields:
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
@@ -255,6 +254,29 @@ class WebAPIResource(object):
             data[field] = value
 
         return data
+
+    def get_href(self, obj, *args, **kwargs):
+        object_key = getattr(obj, self.model_object_key)
+        resource_name = '%s-resource' % self.name
+        parent_ids = self.get_href_parent_ids(obj, *args, **kwargs)
+
+        href_kwargs = {
+            self.uri_object_key: object_key,
+        }
+        href_kwargs.update(parent_ids)
+
+        try:
+            return reverse(resource_name, kwargs=href_kwargs)
+        except NoReverseMatch:
+            href_kwargs['api_format'] = kwargs.get('api_format', None)
+
+            try:
+                return reverse(resource_name, kwargs=href_kwargs)
+            except NoReverseMatch:
+                raise AssertionError()
+
+    def get_href_parent_ids(self, obj, *args, **kwargs):
+        return {}
 
 
 class UserResource(WebAPIResource):
