@@ -17,7 +17,8 @@ class WebAPIResource(object):
     uri_object_key_regex = '[0-9]+'
     uri_object_key = None
     model_object_key = 'pk'
-    child_resources = []
+    list_child_resources = []
+    item_child_resources = []
     actions = {}
 
     allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
@@ -204,6 +205,12 @@ class WebAPIResource(object):
             url(r'^$', self, name='%s-resource' % self.name_plural),
         )
 
+        for resource in self.list_child_resources:
+            child_regex = r'^' + resource.name_plural + '/'
+            urlpatterns += patterns('',
+                url(child_regex, include(resource.get_url_patterns())),
+            )
+
         if self.uri_object_key:
             # If the resource has particular items in it...
             base_regex = r'^(?P<%s>%s)/' % (self.uri_object_key,
@@ -212,14 +219,12 @@ class WebAPIResource(object):
             urlpatterns += never_cache_patterns('',
                 url(base_regex + '$', self, name='%s-resource' % self.name),
             )
-        else:
-            base_regex = r'^'
 
-        for resource in self.child_resources:
-            child_regex = base_regex + resource.name_plural + '/'
-            urlpatterns += patterns('',
-                url(child_regex, include(resource.get_url_patterns())),
-            )
+            for resource in self.item_child_resources:
+                child_regex = base_regex + resource.name_plural + '/'
+                urlpatterns += patterns('',
+                    url(child_regex, include(resource.get_url_patterns())),
+                )
 
         return urlpatterns
 
