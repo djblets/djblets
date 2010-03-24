@@ -155,18 +155,21 @@ class WebAPIResource(object):
         if not self.has_access_permissions(request, obj, *args, **kwargs):
             return PERMISSION_DENIED
 
+        key = self.name.replace('-', '_')
+
         return 200, {
-            self.name: self.serialize_object(obj, *args, **kwargs),
+            key: self.serialize_object(obj, *args, **kwargs),
         }
 
     def get_list(self, request, *args, **kwargs):
         if not self.model:
             return HttpResponseNotAllowed(self.allowed_methods)
 
+        key = self.name_plural.replace('-', '_')
+
         # TODO: Paginate this.
         return 200, {
-            self.name_plural: self.get_queryset(request, is_list=True,
-                                                *args, **kwargs),
+            key: self.get_queryset(request, is_list=True, *args, **kwargs),
         }
 
     @webapi_login_required
