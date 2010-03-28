@@ -6,7 +6,9 @@
 
 import os
 import re
+import shutil
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from djblets import __version__, __version_info__, is_release
@@ -31,12 +33,21 @@ built_files = []
 def execute(cmdline):
     print ">>> %s" % cmdline
     if os.system(cmdline) != 0:
-        print "!!! Error invoking command."
+        sys.stderr.write('!!! Error invoking command.\n')
         sys.exit(1)
 
 
-def run_setup(target, pyver = LATEST_PY_VERSION):
+def run_setup(target, pyver=LATEST_PY_VERSION):
     execute("python%s ./setup.py release %s" % (pyver, target))
+
+
+def clone_git_tree(git_dir):
+    new_git_dir = tempfile.mkdtemp(prefix='djblets-release.')
+
+    os.chdir(new_git_dir)
+    execute('git clone %s .' % git_dir)
+
+    return new_git_dir
 
 
 def build_targets():
@@ -150,9 +161,16 @@ def main():
                          'djblets/__init__.py\n')
         sys.exit(1)
 
+    cur_dir = os.getcwd()
+    git_dir = clone_git_tree(cur_dir)
+
     build_targets()
     build_news()
     upload_files()
+
+    os.chdir(cur_dir)
+    shutil.rmtree(git_dir)
+
     tag_release()
     register_release()
 
