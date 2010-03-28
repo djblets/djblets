@@ -209,3 +209,13 @@ class LoggingMiddleware(object):
                 profile_log.log(logging.INFO, times[time])
 
         return response
+
+    def process_exception(self, request, exception):
+        """Handle for exceptions on a page.
+
+        Logs the exception, along with the username and path where the
+        exception occurred.
+        """
+        logging.error("Exception thrown for user %s at %s\n\n%s",
+                      request.user, request.build_absolute_uri(),
+                      exception, exc_info=1)

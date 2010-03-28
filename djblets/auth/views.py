@@ -37,7 +37,7 @@ from django.template.context import RequestContext, Context
 from django.http import HttpResponseRedirect
 
 from djblets.auth.forms import RegistrationForm, ChangePasswordForm, \
-                               ChangeProfileForm, ResetPasswordForm
+                               ChangeProfileForm
 from djblets.auth.util import internal_login, get_user, validate_test_cookie, \
                               validate_old_password
 
@@ -89,9 +89,10 @@ def login(request, next_page, template_name="accounts/login.html",
 ###########################
 
 def register(request, next_page, form_class=RegistrationForm,
+             extra_context={},
              template_name="accounts/register.html"):
     if request.POST:
-        form = form_class(request.POST)
+        form = form_class(data=request.POST, request=request)
         form.full_clean()
         validate_test_cookie(form, request)
 
@@ -109,10 +110,16 @@ def register(request, next_page, form_class=RegistrationForm,
 
                 return HttpResponseRedirect(next_page)
     else:
-        form = form_class()
+        form = form_class(request=request)
 
     request.session.set_test_cookie()
-    return render_to_response(template_name, RequestContext(request, {'form': form}))
+
+    context = {
+        'form': form,
+    }
+    context.update(extra_context)
+
+    return render_to_response(template_name, RequestContext(request, context))
 
 ###########################
 #     Profile Editing     #
@@ -145,110 +152,3 @@ def do_change_profile(request):
         request.user.save()
         request.user.message_set.create(message="Your profile was updated successfully.")
     return form
-
-###########################
-#     Lost Password       #
-###########################
-
-def send_mail_to_user(user, template_name, **context_dict):
-    """Send a single email message to a registered user. This formats their
-       email address using their full name, and automatically treats the
-       first non-blank line of the rendered template as a message subject.
-
-       The template context will automatically include 'user'.
-       """
-    context = Context(context_dict)
-    context['user'] = user
-    subject, message = loader.render_to_string(template_name, context).lstrip().split("\n", 1)
-    subject = subject.strip()
-    message = message.strip()
-
-    # Sanitize the user's name for inclusion in an RFC822 header
-    full_name = re.sub("[!<>@:;\\\\'\"\[\]\r\n\t]", "", user.get_full_name().strip())
-    send_mail(subject, message, None, ["%s <%s>" % (full_name, user.email)])
-
-def lost(request, next_page, recovery_page,
-         mail_template_name='accounts/recovery_mail.txt',
-         form_template_name='accounts/recovery_form.html',
-         sent_template_name='accounts/recovery_mail_sent.html'):
-    error = None
-    if request.POST:
-        user = get_user(request.POST.get('username'))
-        if not user:
-            error = "Incorrect username."
-        if not error:
-            # Password recovery works via a special kind of session
-            # which is transmitted over e-mail, rather than via a
-            # cookie. Create a session which includes the username
-            # this request was generated for.
-
-            key = Session.objects.get_new_session_key()
-            expire_date = datetime.datetime.now() + datetime.timedelta(hours=12)
-            Session.objects.save(key, {
-                'account_recovery_session': True,
-                'username': user.username,
-                }, expire_date)
-
-            send_mail_to_user(user, mail_template_name,
-                              request = request,
-                              recovery_path = recovery_page % key)
-            return render_to_response(sent_template_name)
-    return render_to_response(form_template_name, RequestContext(request, {'error': error}))
-
-def get_recovery_session(key):
-    """Get an account recovery session, with extra checks to make sure
-       it's the right type of session and it hasn't expired.
-       """
-    try:
-        session = Session.objects.get(session_key=key)
-    except Session.DoesNotExist:
-        return None
-
-    if session.expire_date < datetime.datetime.now():
-        return None
-
-    decoded = session.get_decoded()
-    if not decoded.get('account_recovery_session'):
-        return None
-    return decoded
-
-def reset(request, key, next_page,
-          form_template_name='accounts/reset_password.html',
-          error_template_name='accounts/recovery_key_error.html'):
-    session = get_recovery_session(key)
-    if not session:
-        return render_to_response(error_template_name, RequestContext(request))
-    user = get_user(session.get('username'))
-
-    if request.POST:
-        form = ResetPasswordForm(request.POST)
-        form.full_clean()
-        validate_test_cookie(form, request)
-
-        if not form.errors:
-            # XXX Compatibility with Django 0.96 and 1.0
-            formdata = getattr(form, "cleaned_data",
-                               getattr(form, "clean_data", None))
-
-            user.set_password(formdata['password1'])
-            user.save()
-
-            # Try to log in using the new password
-            loginError = internal_login(request, user.username,
-                                        formdata['password1'])
-            if loginError:
-                # This might happen if the account is deactivated.
-                form.errors['submit'] = forms.util.ErrorList([loginError])
-            else:
-                # We're in successfully. Expire the recovery session.
-                Session.objects.save(key, None, datetime.datetime.now())
-                return HttpResponseRedirect(next_page)
-    else:
-        form = None
-
-    request.session.set_test_cookie()
-    return render_to_response(form_template_name, RequestContext(request, {
-        'form_path': request.path,
-        'username': user.username,
-        'form': form,
-        }))

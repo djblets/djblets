@@ -48,8 +48,10 @@ mail_settings_map = {
     'mail_default_from':           'DEFAULT_FROM_EMAIL',
     'mail_host':                   'EMAIL_HOST',
     'mail_port':                   'EMAIL_PORT',
-    'mail_host_user':              'EMAIL_HOST_USER',
-    'mail_host_password':          'EMAIL_HOST_PASSWORD',
+    'mail_host_user':              { 'key': 'EMAIL_HOST_USER',
+                                     'deserialize_func': str },
+    'mail_host_password':          { 'key': 'EMAIL_HOST_PASSWORD',
+                                     'deserialize_func': str },
     'mail_use_tls':                'EMAIL_USE_TLS',
 }
 

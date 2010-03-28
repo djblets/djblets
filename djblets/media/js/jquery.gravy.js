@@ -74,6 +74,32 @@ jQuery.fn.extend({
                     ? "absolute" : posType);
             }
         });
+    },
+
+    /*
+     * Scrolls an element so that it's fully in view, if it wasn't already.
+     *
+     * @return {jQuery} This jQuery.
+     */
+    scrollIntoView: function() {
+        return $(this).each(function() {
+            var offset = $(this).offset();
+            var scrollLeft = $(document).scrollLeft();
+            var elLeft = (scrollLeft + $(window).width()) -
+                         (offset.left + $(this).outerWidth(true));
+
+            if (elLeft < 0) {
+                $(window).scrollLeft(scrollLeft - elLeft);
+            }
+
+            var scrollTop = $(document).scrollTop();
+            var elTop = (scrollTop + $(window).height()) -
+                        (offset.top + $(this).outerHeight(true));
+
+            if (elTop < 0) {
+                $(window).scrollTop(scrollTop - elTop);
+            }
+        });
     }
 });
 
@@ -134,13 +160,30 @@ $.widget("ui.autoSizeTextArea", {
     _init: function() {
         var self = this;
 
+        if ($.browser.safari && $.browser.version < 531.9) {
+            /*
+             * Older versions of WebKit have some crasher bugs and height
+             * computation bugs that prevent this from working. In those
+             * cases, we just want to turn off auto-sizing altogether.
+             */
+            return;
+        }
+
         this._proxyEl = $("<pre/>")
             .appendTo("body")
             .move(-10000, -10000, "absolute");
 
-        if ($.browser.msie) {
-            //this._proxyEl.css("white-space", "pre-wrap"); // CSS 3
-        } else if ($.browser.mozilla) {
+        if (!$.browser.msie) {
+            /*
+             * Set white-space to pre-wrap on browsers that support it.
+             * Most browsers will either ignore this or accept it as the
+             * main value if they understand it. IE, however, will complain,
+             * so we don't want to set it there. (Bug #1349)
+             */
+            this._proxyEl.css("white-space", "pre-wrap"); // Standards-compliant
+        }
+
+        if ($.browser.mozilla) {
             this._proxyEl.css("white-space", "-moz-pre-wrap"); // Mozilla, 1999+
         } else if ($.browser.opera) {
             // Opera 4-6
@@ -176,11 +219,14 @@ $.widget("ui.autoSizeTextArea", {
         var needsResize = false;
         var newLength = this.element.val().length;
         var newHeight = 0;
+        var normHeight = this.element[0].scrollHeight +
+                         (this.element.height() -
+                          this.element[0].clientHeight);
 
-        if (this.element[0].scrollHeight != this.element.height()) {
+        if (normHeight != this.element.height()) {
             /* We know the height grew, so queue a resize. */
             needsResize = true;
-            newHeight = this.element[0].scrollHeight;
+            newHeight = normHeight;
         } else if (this.oldLength > newLength) {
             /* The size may have decreased. Check the number of lines. */
             needsResize = true;
@@ -193,7 +239,6 @@ $.widget("ui.autoSizeTextArea", {
         }
 
         if (needsResize) {
-
             this.element
                 .height(Math.max(this.options.minHeight, newHeight))
                 .triggerHandler("resize");
@@ -237,16 +282,8 @@ $.widget("ui.inlineEditor", {
 
         if (this.options.multiline) {
             this._field = $("<textarea/>")
-                .appendTo(this._form);
-
-            if ($.browser.chrome || !$.browser.safari) {
-                /*
-                 * Released versions of Safari seem broken with auto-sized
-                 * text areas. For now, we'll only enable this for other
-                 * browsers.
-                 */
-                this._field.autoSizeTextArea();
-            }
+                .appendTo(this._form)
+                .autoSizeTextArea();
         } else {
             this._field = $('<input type="text"/>')
                 .appendTo(this._form);
@@ -335,6 +372,7 @@ $.widget("ui.inlineEditor", {
         if (!this.options.useEditIconOnly) {
             this.element.click(function() {
                 self.startEdit();
+                return false;
             });
         }
 
@@ -683,20 +721,20 @@ $.widget("ui.modalBox", {
         if (this.options.title) {
             this.titleBox = $("<h1/>")
                 .appendTo(this.inner)
-                .addClass("modalbox-title")
+                .addClass(this.options.modalBoxTitleClass)
                 .text(this.options.title);
         }
 
         this.element
             .appendTo(this.inner)
-            .addClass("modalbox-contents")
+            .addClass(this.options.modalBoxContentsClass)
             .bind("DOMSubtreeModified", function() {
                 self.resize();
             });
 
         this._buttons = $("<div/>")
             .appendTo(this.inner)
-            .addClass("modalbox-buttons")
+            .addClass(this.options.modalBoxButtonsClass)
             .click(function(e) {
                 /* Check here so that buttons can call stopPropagation(). */
                 if (e.target.tagName == "INPUT") {
@@ -802,6 +840,9 @@ $.extend($.ui.modalBox, {
         buttons: [$('<input type="button" value="Close"/>')],
         discardOnClose: true,
         fadeBackground: true,
+        modalBoxButtonsClass: "modalbox-buttons",
+        modalBoxContentsClass: "modalbox-contents",
+        modalBoxTitleClass: "modalbox-title",
         stretchX: false,
         stretchY: false,
         title: null

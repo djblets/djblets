@@ -30,6 +30,7 @@ from djblets.siteconfig.models import SiteConfiguration
 
 class SiteConfigurationAdmin(admin.ModelAdmin):
     list_display = ('site', 'version')
+    readonly_fields = ('settings',)
 
 
 admin.site.register(SiteConfiguration, SiteConfigurationAdmin)

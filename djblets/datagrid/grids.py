@@ -28,11 +28,13 @@ from django.conf import settings
 from django.contrib.auth.models import SiteProfileNotAvailable
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import InvalidPage, QuerySetPaginator
+from django.db.models import ForeignKey
 from django.http import Http404, HttpResponse
 from django.shortcuts import render_to_response
-from django.template.context import RequestContext
+from django.template.context import RequestContext, Context
 from django.template.defaultfilters import date, timesince
-from django.template.loader import render_to_string
+from django.template.loader import render_to_string, get_template
+from django.utils.cache import patch_cache_control
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import cache_control
@@ -80,6 +82,9 @@ class Column(object):
         self.link_func = link_func or \
             (lambda x, y: self.datagrid.link_to_object(x, y))
         self.css_class = css_class
+
+        self.data_cache = {}
+        self.cell_render_cache = {}
 
         # State
         self.active = False
@@ -168,16 +173,21 @@ class Column(object):
             unsort_url = url_prefix + ','.join(sort_list[1:])
             sort_url   = url_prefix + ','.join(sort_list)
 
-        return mark_safe(render_to_string(
-            self.datagrid.column_header_template, {
-                'MEDIA_URL': settings.MEDIA_URL,
-                'column': self,
-                'in_sort': in_sort,
-                'sort_ascending': sort_direction == self.SORT_ASCENDING,
-                'sort_primary': sort_primary,
-                'sort_url': sort_url,
-                'unsort_url': unsort_url,
-            }))
+        if not self.datagrid.column_header_template_obj:
+            self.datagrid.column_header_template_obj = \
+                get_template(self.datagrid.column_header_template)
+
+        ctx = Context({
+            'MEDIA_URL': settings.MEDIA_URL,
+            'column': self,
+            'in_sort': in_sort,
+            'sort_ascending': sort_direction == self.SORT_ASCENDING,
+            'sort_primary': sort_primary,
+            'sort_url': sort_url,
+            'unsort_url': unsort_url,
+        })
+
+        return mark_safe(self.datagrid.column_header_template_obj.render(ctx))
     header = property(get_header)
 
     def get_url_params_except(self, *params):
@@ -197,40 +207,78 @@ class Column(object):
         """
         Renders the table cell containing column data.
         """
-        rendered_data = self.render_data(obj)
-        css_class = ""
-        url = ""
+        key = rendered_data = self.render_data(obj)
 
-        if self.css_class:
-            if callable(self.css_class):
-                css_class = self.css_class(obj)
-            else:
-                css_class = self.css_class
+        if key not in self.cell_render_cache:
+            css_class = ""
+            url = ""
 
-        if self.link:
-            try:
-                url = self.link_func(obj, rendered_data)
-            except AttributeError:
-                pass
+            if self.css_class:
+                if callable(self.css_class):
+                    css_class = self.css_class(obj)
+                else:
+                    css_class = self.css_class
 
-        return mark_safe(render_to_string(self.datagrid.cell_template, {
-            'MEDIA_URL': settings.MEDIA_URL,
-            'column': self,
-            'css_class': css_class,
-            'url': url,
-            'data': mark_safe(rendered_data)
-        }))
+            if self.link:
+                try:
+                    url = self.link_func(obj, rendered_data)
+                except AttributeError:
+                    pass
+
+            if not self.datagrid.cell_template_obj:
+                self.datagrid.cell_template_obj = \
+                    get_template(self.datagrid.cell_template)
+
+            ctx = Context({
+                'MEDIA_URL': settings.MEDIA_URL,
+                'column': self,
+                'css_class': css_class,
+                'url': url,
+                'data': mark_safe(rendered_data)
+            })
+
+            self.cell_render_cache[key] = \
+                mark_safe(self.datagrid.cell_template_obj.render(ctx))
+
+        return self.cell_render_cache[key]
 
     def render_data(self, obj):
         """
         Renders the column data to a string. This may contain HTML.
         """
-        value = getattr(obj, self.field_name)
+        id_field = '%s_id' % self.field_name
 
-        if callable(value):
-            return value()
+        # Look for this directly so that we don't end up fetching the
+        # data for the object.
+        if id_field in obj.__dict__:
+            pk = obj.__dict__[id_field]
+
+            if pk in self.data_cache:
+                return self.data_cache[pk]
+            else:
+                value = getattr(obj, self.field_name)
+                self.data_cache[pk] = value
+                return value
         else:
-            return value
+            value = getattr(obj, self.field_name)
+
+            if callable(value):
+                return value()
+            else:
+                return value
+
+    def augment_queryset(self, queryset):
+        """Augments a queryset with new queries.
+
+        Subclasses can override this to extend the queryset to provide
+        additional information, usually using queryset.extra(). This must
+        return a queryset based on the original queryset.
+
+        This should not restrict the query in any way, or the datagrid may
+        not operate properly. It must only add additional data to the
+        queryset.
+        """
+        return queryset
 
 
 class DateTimeColumn(Column):
@@ -312,6 +360,8 @@ class DataGrid(object):
         self.id = None
         self.extra_context = dict(extra_context)
         self.optimize_sorts = optimize_sorts
+        self.cell_template_obj = None
+        self.column_header_template_obj = None
 
         if not hasattr(request, "datagrid_count"):
             request.datagrid_count = 0
@@ -543,14 +593,13 @@ class DataGrid(object):
         except InvalidPage:
             raise Http404
 
-        self.rows = []
-        id_list = None
+        self.id_list = []
 
         if self.optimize_sorts and len(sort_list) > 0:
             # This can be slow when sorting by multiple columns. If we
             # have multiple items in the sort list, we'll request just the
             # IDs and then fetch the actual details from that.
-            id_list = list(self.page.object_list.distinct().values_list(
+            self.id_list = list(self.page.object_list.distinct().values_list(
                 'pk', flat=True))
 
             # Make sure to unset the order. We can't meaningfully order these
@@ -559,32 +608,35 @@ class DataGrid(object):
             # the database to do any special ordering (possibly slowing things
             # down). We'll set the order properly in a minute.
             self.page.object_list = self.post_process_queryset(
-                self.queryset.model.objects.filter(pk__in=id_list).order_by())
+                self.queryset.model.objects.filter(
+                    pk__in=self.id_list).order_by())
 
         if use_select_related:
             self.page.object_list = \
                 self.page.object_list.select_related(depth=1)
 
-        if id_list:
+        if self.id_list:
             # The database will give us the items in a more or less random
             # order, since it doesn't know to keep it in the order provided by
             # the ID list. This will place the results back in the order we
             # expect.
-            index = dict([(id, pos) for (pos, id) in enumerate(id_list)])
-            object_list = [None] * len(id_list)
+            index = dict([(id, pos) for (pos, id) in enumerate(self.id_list)])
+            object_list = [None] * len(self.id_list)
 
             for obj in list(self.page.object_list):
-                object_list[index[obj.id]] = obj
+                object_list[index[obj.pk]] = obj
         else:
             # Grab the whole list at once. We know it won't be too large,
             # and it will prevent one query per row.
             object_list = list(self.page.object_list)
 
-        for obj in object_list:
-            self.rows.append({
+        self.rows = [
+            {
                 'object': obj,
                 'cells': [column.render_cell(obj) for column in self.columns]
-            })
+            }
+            for obj in object_list
+        ]
 
     def post_process_queryset(self, queryset):
         """
@@ -599,6 +651,9 @@ class DataGrid(object):
         QuerySet passed to the datagrid will be stripped from the final
         result. This function can be used to re-add those subqueries.
         """
+        for column in self.columns:
+            queryset = column.augment_queryset(queryset)
+
         return queryset
 
     def render_listview(self):
@@ -629,14 +684,15 @@ class DataGrid(object):
         return mark_safe(render_to_string(self.listview_template,
             RequestContext(self.request, context)))
 
-    @cache_control(no_cache=True, no_store=True, max_age=0,
-                   must_revalidate=True)
-    def render_listview_to_response(self):
+    def render_listview_to_response(self, request=None):
         """
         Renders the listview to a response, preventing caching in the
         process.
         """
-        return HttpResponse(unicode(self.render_listview()))
+        response = HttpResponse(unicode(self.render_listview()))
+        patch_cache_control(response, no_cache=True, no_store=True, max_age=0,
+                            must_revalidate=True)
+        return response
 
     def render_to_response(self, template_name, extra_context={}):
         """
@@ -660,7 +716,7 @@ class DataGrid(object):
 
     @staticmethod
     def link_to_object(obj, value):
-        return obj.get_absolute_url()
+        return  obj.get_absolute_url()
 
     @staticmethod
     def link_to_value(obj, value):

@@ -5,7 +5,6 @@ from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from django.template.loader import render_to_string
 
-from djblets.feedview import feedparser
 from djblets.util.misc import cache_memoize
 
 
@@ -19,6 +18,8 @@ def view_feed(request, url, template_name="feedview/feed-page.html",
     a cached copy if available in order to reduce hits to the server.
     """
     def fetch_feed():
+        from djblets.feedview import feedparser
+
         data = urllib2.urlopen(url).read()
 
         parser = feedparser.parse(data)

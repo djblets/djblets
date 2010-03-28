@@ -35,6 +35,24 @@ from djblets.webapi.decorators import webapi
 from djblets.webapi.errors import LOGIN_FAILED
 
 
+def basic_access_login(request):
+    try:
+        realm, encoded_auth = request.META['HTTP_AUTHORIZATION'].split(' ')
+        username, password = encoded_auth.decode('base64').split(':')
+    except ValueError:
+        return
+
+    if realm != 'Basic':
+        return
+
+    user = auth.authenticate(username=username, password=password)
+
+    if user and user.is_active:
+        auth.login(request, user)
+        user.last_login = datetime.now()
+        user.save()
+
+
 @require_POST
 @webapi
 def account_login(request, apitype="json"):

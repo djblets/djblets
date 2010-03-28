@@ -24,7 +24,14 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+import logging
 import os
+import tempfile
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 try:
     from PIL import Image
@@ -33,6 +40,7 @@ except ImportError:
 
 from django import template
 from django.conf import settings
+from django.core.files import File
 
 
 register = template.Library()
@@ -45,26 +53,41 @@ def crop_image(file, x, y, width, height):
     resulting URL of the cropped image.
     """
     filename = file.name
+    storage = file.storage
+    basename = filename
 
     if filename.find(".") != -1:
-        basename, format = filename.rsplit('.', 1)
-        new_name = '%s_%s_%s_%s_%s.%s' % (basename, x, y, width, height, format)
-    else:
-        basename = filename
-        new_name = '%s_%s_%s_%s_%s' % (basename, x, y, width, height)
+        basename = filename.rsplit('.', 1)[0]
+    new_name = '%s_%d_%d_%d_%d.png' % (basename, x, y, width, height)
 
-    new_path = os.path.join(settings.MEDIA_ROOT, new_name)
-    new_url = os.path.join(settings.MEDIA_URL, new_name)
 
-    if not os.path.exists(new_path):
+    if not storage.exists(new_name):
         try:
-            image = Image.open(os.path.join(settings.MEDIA_ROOT, filename))
+            file = storage.open(filename)
+            data = StringIO(file.read())
+            file.close()
+
+            image = Image.open(data)
             image = image.crop((x, y, x + width, y + height))
-            image.save(new_path, image.format)
-        except (IOError, KeyError):
+
+            (fd, filename) = tempfile.mkstemp()
+            file = os.fdopen(fd, 'w+b')
+            image.save(file, 'png')
+            file.close()
+
+            file = File(open(filename, 'rb'))
+            storage.save(new_name, file)
+            file.close()
+
+            os.unlink(filename)
+        except (IOError, KeyError), e:
+            logging.error('Error cropping image file %s at %d, %d, %d, %d '
+                          'and saving as %s: %s' %
+                          (filename, x, y, width, height, new_name, e),
+                          exc_info=1)
             return ""
 
-    return new_url
+    return storage.url(new_name)
 
 
 # From http://www.djangosnippets.org/snippets/192
@@ -84,17 +107,31 @@ def thumbnail(file, size='400x100'):
         basename = filename
         miniature = '%s_%s' % (basename, size)
 
-    miniature_filename = os.path.join(settings.MEDIA_ROOT, miniature)
-    miniature_url = os.path.join(settings.MEDIA_URL, miniature)
+    storage = file.storage
 
-    if not os.path.exists(miniature_filename):
+    if not storage.exists(miniature):
         try:
-            image = Image.open(os.path.join(settings.MEDIA_ROOT, filename))
+            file = storage.open(filename, 'rb')
+            data = StringIO(file.read())
+            file.close()
+
+            image = Image.open(data)
             image.thumbnail([x, y], Image.ANTIALIAS)
-            image.save(miniature_filename, image.format)
-        except IOError:
-            return ""
-        except KeyError:
+
+            (fd, filename) = tempfile.mkstemp()
+            file = os.fdopen(fd, 'w+b')
+            image.save(file, image.format)
+            file.close()
+
+            file = File(open(filename, 'rb'))
+            storage.save(miniature, file)
+            file.close()
+
+            os.unlink(filename)
+        except (IOError, KeyError), e:
+            logging.error('Error thumbnailing image file %s and saving '
+                          'as %s: %s' % (filename, miniature, e),
+                          exc_info=1)
             return ""
 
-    return miniature_url
+    return storage.url(miniature)
