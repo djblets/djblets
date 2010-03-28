@@ -66,3 +66,7 @@ def get_package_version():
 
 def is_release():
     return VERSION[5]
+
+
+__version_info__ = VERSION[:-1]
+__version__ = get_package_version()
