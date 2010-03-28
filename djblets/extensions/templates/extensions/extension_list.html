@@ -1,15 +1,21 @@
 {% extends "admin/base_site.html" %}
 {% load adminmedia admin_list i18n %}
-{% block stylesheet %}{% admin_media_prefix %}css/changelists.css{% endblock %}
 
 {% block title %}{% trans "Manage Extensions" %} {{block.super}}{% endblock %}
 
+{% block extrahead %}
+<link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/forms.css" />
+<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}djblets/css/admin.css" />
+{{block.super}}
+{% endblock %}
+
 {% block content %}
-<h1>Manage Extensions</h1>
+<h1>{% trans "Manage Extensions" %}</h1>
 
 <div id="content-main">
+{% if extensions %}
  <ul class="extensions">
-{% for extension in extensions %}
+{%  for extension in extensions %}
   <li class="extension {% cycle row1,row2 %}">
    <h1>{{extension.info.name}} <span class="version">{{extension.info.version}}</span></h1>
    <p class="author">{{extension.info.author}}</p>
@@ -17,17 +23,20 @@
     {{extension.info.summary}}
    </div>
    <ul class="object-tools">
-{% if extension.info.enabled %}
+{%   if extension.info.enabled %}
     <li><a href="{% url disable_extension extension.id %}" class="disablelink">Disable</a></li>
-{%  if extension.is_configurable %}
+{%    if extension.is_configurable %}
     <li><a href="{{extension.id}}/config/" class="changelink">Configure</a></li>
-{%  endif %}
-{% else %}
+{%    endif %}
+{%   else %}
     <li><a href="{% url enable_extension extension.id %}" class="enablelink">Enable</a></li>
-{% endif %}
+{%   endif %}
    </ul>
   </li>
-{% endfor %}
+{%  endfor %}
  </ul>
+{% else %}
+ <p>{% trans "There are no extensions installed." %}</p>
+{% endif %}
 </div>
 {% endblock %}
