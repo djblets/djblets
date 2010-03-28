@@ -1,3 +1,20 @@
+version 0.5.9 final (28-March-2010):
+	* djblets.util:
+		* cache_memoize now converts all keys to plain strings, instead of
+		  allowing unicode to be passed to the backend. Not all cache
+		  backends allow for unicode keys.
+
+	* djblets.siteconfig:
+		* The same change for cache keys was made here as well.
+
+	* djblets:
+		* Added ez_setup.py to the source distribution.
+		* Added djblets.__version__ and djblets.__version_info__.
+		  __version__ is a variable containing the results of
+		  djblets.get_package_version(), and __version_info__ contains
+		  the version parts in a tuple.
+
+
 version 0.5.8 final (27-March-2010):
 	* djblets.datagrid:
 		* Made many more speed improvements in the datagrids.
