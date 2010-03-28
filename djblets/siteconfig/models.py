@@ -131,7 +131,7 @@ class SiteConfiguration(models.Model):
         super(SiteConfiguration, self).save(**kwargs)
 
     def __get_sync_cache_key(self):
-        return "%s:siteconfig:%s:generation" % (self.site.domain, self.id)
+        return str("%s:siteconfig:%s:generation" % (self.site.domain, self.id))
 
     def __unicode__(self):
         return "%s (version %s)" % (unicode(self.site), self.version)
