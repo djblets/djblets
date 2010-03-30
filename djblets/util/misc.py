@@ -149,6 +149,10 @@ def cache_memoize(key, lookup_callable,
         # Replace the excess part of the key with a digest of the key
         key = key[:MAX_KEY_SIZE - len(digest)] + digest
 
+    # Make sure this is a non-unicode string, in order to prevent errors
+    # with some backends.
+    key = str(key)
+
     if large_data:
         if not force_overwrite and cache.has_key(key):
             try:
