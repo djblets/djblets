@@ -21,7 +21,7 @@ class WebAPIResource(object):
     item_child_resources = []
     actions = {}
 
-    allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
+    allowed_methods = ('GET',)
 
     method_mapping = {
         'GET': 'get',
