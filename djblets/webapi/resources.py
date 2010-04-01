@@ -182,9 +182,18 @@ class WebAPIResource(object):
         key = self.name_plural.replace('-', '_')
 
         # TODO: Paginate this.
-        return 200, {
+        data = {
             key: self.get_queryset(request, is_list=True, *args, **kwargs),
         }
+
+        if self.list_child_resources:
+            data['related_hrefs'] = {}
+
+            for resource in self.list_child_resources:
+                data['related_hrefs'][resource.name_plural] = \
+                    resource.name_plural + '/'
+
+        return 200, data
 
     @webapi_login_required
     def create(self, request, api_format, *args, **kwargs):
@@ -274,6 +283,16 @@ class WebAPIResource(object):
                     value = value.get()
 
             data[field] = value
+
+        if self.item_child_resources:
+            data['related_hrefs'] = {}
+
+            base_href = self.get_href(obj, api_format=api_format)
+
+            for resource in self.item_child_resources:
+                if resource.uri_object_key:
+                    data['related_hrefs'][resource.name_plural] = \
+                        '%s%s/' % (base_href, resource.name_plural)
 
         return data
 
