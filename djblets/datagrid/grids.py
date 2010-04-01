@@ -83,13 +83,15 @@ class Column(object):
             (lambda x, y: self.datagrid.link_to_object(x, y))
         self.css_class = css_class
 
-        self.data_cache = {}
-        self.cell_render_cache = {}
+        self.reset()
 
+    def reset(self):
         # State
         self.active = False
         self.last = False
         self.width = 0
+        self.data_cache = {}
+        self.cell_render_cache = {}
 
     def get_toggle_url(self):
         """
@@ -389,9 +391,7 @@ class DataGrid(object):
                 column.id = attr
 
                 # Reset the column.
-                column.active = False
-                column.last = False
-                column.width = 0
+                column.reset()
 
                 if not column.field_name:
                     column.field_name = column.id
