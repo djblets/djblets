@@ -331,7 +331,8 @@ class WebAPIResponseError(WebAPIResponse):
     A general error response, containing an error code and a human-readable
     message.
     """
-    def __init__(self, request, err, extra_params={}, *args, **kwargs):
+    def __init__(self, request, err, extra_params={}, headers=None,
+                 *args, **kwargs):
         errdata = {
             'err': {
                 'code': err.code,
@@ -340,8 +341,11 @@ class WebAPIResponseError(WebAPIResponse):
         }
         errdata.update(extra_params)
 
+        headers = headers or {}
+        headers.update(err.headers)
+
         WebAPIResponse.__init__(self, request, obj=errdata, stat="fail",
-                                status=err.http_status, headers=err.headers,
+                                status=err.http_status, headers=headers,
                                 *args, **kwargs)
 
 
