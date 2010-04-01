@@ -207,7 +207,9 @@ class Column(object):
         """
         Renders the table cell containing column data.
         """
-        key = rendered_data = self.render_data(obj)
+        rendered_data = self.render_data(obj)
+
+        key = "%s:%s" % (self.last, rendered_data)
 
         if key not in self.cell_render_cache:
             css_class = ""
