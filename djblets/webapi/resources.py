@@ -118,6 +118,16 @@ class WebAPIResource(object):
     def name_plural(self):
         return self.name + 's'
 
+    def get_object(self, request, *args, **kwargs):
+        assert self.model
+        assert self.uri_object_key
+
+        queryset = self.get_queryset(request, *args, **kwargs)
+
+        return queryset.get(**{
+            self.model_object_key: kwargs[self.uri_object_key]
+        })
+
     def post(self, *args, **kwargs):
         if 'POST' not in self.allowed_methods:
             return HttpResponseNotAllowed(self.allowed_methods)
@@ -152,10 +162,7 @@ class WebAPIResource(object):
             return HttpResponseNotAllowed(self.allowed_methods)
 
         try:
-            queryset = self.get_queryset(request, *args, **kwargs)
-            obj = queryset.get(**{
-                self.model_object_key: kwargs[self.uri_object_key]
-            })
+            obj = self.get_object(request, *args, **kwargs)
         except self.model.DoesNotExist:
             return DOES_NOT_EXIST
 
