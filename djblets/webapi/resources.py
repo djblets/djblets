@@ -257,8 +257,11 @@ class WebAPIResource(object):
     def has_access_permissions(self, request, obj, *args, **kwargs):
         return True
 
+    def has_modify_permissions(self, request, obj, *args, **kwargs):
+        return False
+
     def has_delete_permissions(self, request, obj, *args, **kwargs):
-        return True
+        return False
 
     def serialize_object(self, obj, api_format='json', *args, **kwargs):
         data = {}
