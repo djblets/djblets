@@ -79,15 +79,22 @@ class WebAPIResource(object):
                 return WebAPIResponseError(request, err=result,
                                            api_format=api_format)
             elif isinstance(result, tuple):
+                headers = {}
+
+                if len(result) == 3:
+                    headers = result[2]
+
                 if isinstance(result[0], WebAPIError):
                     return WebAPIResponseError(request,
                                                err=result[0],
+                                               headers=headers,
                                                extra_params=result[1],
                                                api_format=api_format)
                 else:
                     return WebAPIResponse(request,
                                           status=result[0],
                                           obj=result[1],
+                                          headers=headers,
                                           api_format=api_format)
             elif isinstance(result, HttpResponse):
                 return result
