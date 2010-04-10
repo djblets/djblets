@@ -314,7 +314,10 @@ class WebAPIResource(object):
         except NoReverseMatch:
             href_kwargs['api_format'] = kwargs.get('api_format', None)
 
-            return reverse(resource_name, kwargs=href_kwargs)
+            try:
+                return reverse(resource_name, kwargs=href_kwargs)
+            except NoReverseMatch:
+                return None
 
     def get_href_parent_ids(self, obj, *args, **kwargs):
         return {}
