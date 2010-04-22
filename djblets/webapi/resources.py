@@ -12,6 +12,171 @@ from djblets.webapi.errors import WebAPIError, DOES_NOT_EXIST, \
 
 
 class WebAPIResource(object):
+    """A resource living at a specific URL, representing an object or list
+    of objects.
+
+    A WebAPIResource is a RESTful resource living at a specific URL. It
+    can represent either an object or a list of objects, and can respond
+    to various HTTP methods (GET, POST, PUT, DELETE).
+
+    Subclasses are expected to override functions and variables in order to
+    provide specific functionality, such as modifying the resource or
+    creating a new resource.
+
+
+    Representing Models
+    -------------------
+
+    Most resources will have ``model`` set to a Model subclass, and
+    ``fields`` set to list the fields that would be shown when
+    navigating to the resource. Each resource will also include a
+    ``href`` attribute pointing to the URL of the resource (relative to the
+    domain) and a ``child_hrefs`` dictionary attribute mapping child
+    resource names to their paths.
+
+    Resource associated with a model may want to override the ``get_queryset``
+    function to return a queryset with a more specific query.
+
+    By default, an individual object's key name in the resulting payloads
+    will be set to the lowercase class name of the object, and the plural
+    version used for lists will be the same but with 's' appended to it. This
+    can be overridden by setting ``name`` and ``name_plural``.
+
+
+    Matching Objects
+    ----------------
+
+    Objects are generally queried by their numeric object ID and mapping that
+    to the object's ``pk`` attribute. For this to work, the ``uri_object_key``
+    attribute must be set to the name in the regex for the URL that will
+    be captured and passed to the handlers for this resource. The
+    ``uri_object_key_regex`` attribute can be overridden to specify the
+    regex for matching this ID (useful for capturing names instead of
+    numeric IDs) and ``model_object_key`` can be overridden to specify the
+    model field that will be matched against.
+
+
+    Parents and URLs
+    ----------------
+
+    Resources typically have a parent resource, of which the resource is
+    a subclass. Resources will often list their children (by setting
+    ``list_child_resources`` and ``item_child_resources`` in a subclass
+    to lists of other WebAPIResource instances). This makes the entire tree
+    navigatable. The URLs are built up automatically, so long as the result
+    of get_url_patterns() from top-level resources are added to the Django
+    url_patterns variables commonly found in urls.py.
+
+    Child objects should override the ``get_href_parent_ids`` function to
+    return a dictionary of parent objects' ``uri_object_key`` values to
+    the actual parent objects' values for these keys. This allows
+    WebAPIResource to build a URL with the right values filled in in order
+    to make a URL to this object.
+
+
+    Object Serialization
+    --------------------
+
+    Objects are serialized through the ``serialize_object`` function.
+    This rarely needs to be overridden, but can be called from WebAPIEncoders
+    in order to serialize the object. By default, this will loop through
+    the ``fields`` variable and add each value to the resulting dictionary.
+
+    Values can be specially serialized by creating functions in the form of
+    ``serialize_<fieldname>_field``. These functions take the object being
+    serialized and must return a value that can be fed to the encoder.
+
+
+    Handling Requests
+    -----------------
+
+    WebAPIResource calls the following functions based on the type of
+    HTTP request:
+
+    * ``get`` - HTTP GET for individual objects.
+    * ``get_list`` - HTTP GET for resources representing lists of objects.
+    * ``create`` - HTTP POST on resources representing lists of objects.
+                   This is expected to return the object and an HTTP
+                   status of 201 CREATED, on success.
+    * ``update`` - HTTP PUT on individual objects to modify their state
+                   based on full or partial data.
+    * ``delete`` - HTTP DELETE on an individual object. This is expected
+                   to return a status of HTTP 204 No Content on success.
+                   The default implementation just deletes the object.
+
+    Any function that is not implemented will return an HTTP 405 Method
+    Not Allowed. Functions that have handlers provided should set
+    ``allowed_methods`` to a tuple of the HTTP methods allowed. For example::
+
+        allowed_methods = ('GET', POST', 'DELETE')
+
+    These functions are passed an HTTPRequest and a list of arguments
+    captured in the URL and are expected to return standard HTTP response
+    codes, along with a payload in most cases. The functions can return any of:
+
+    * A HttpResponse
+    * A WebAPIResponse
+    * A WebAPIError
+    * A tuple of (WebAPIError, Payload)
+    * A tuple of (WebAPIError, Payload Dictionary, Headers Dictionary)
+    * A tuple of (HTTP status, Payload)
+    * A tuple of (HTTP status, Payload Dictionary, Headers Dictionary)
+
+    In general, it's best to return one of the tuples containing an HTTP
+    status, and not any object, but there are cases where an object is
+    necessary.
+
+    Commonly, a handler will need to fetch parent objects in order to make
+    some request. The values for all captured object IDs in the URL are passed
+    to the handler, but it's best to not use these directly. Instead, the
+    handler should accept a **kwargs parameter, and then call the parent
+    resource's ``get_object`` function and pass in that **kwargs. For example::
+
+      def create(self, request, *args, **kwargs):
+          try:
+              my_parent = myParentResource.get_object(request, *args, **kwargs)
+          except ObjectDoesNotExist:
+              return DOES_NOT_EXIST
+
+
+    Actions
+    -------
+
+    There are times when a caller may want to do something on a resource,
+    rather than just modifying it. For this, WebAPIResource supports actions.
+    An action is any HTTP PUT to a URL that has an ``action=<name>`` parameter.
+
+    WebAPIResource will intercept these requests and look for a function
+    on the subclass beginning with ``action_``. If found, it will call
+    that function instead of ``update``. The one exception is an action
+    value of ``set``, which will call the standard ``update`` function.
+
+
+    Faking HTTP Methods
+    -------------------
+
+    There are clients that can't actually request anything but HTTP POST
+    and HTTP GET. An HTML form is one such example, and Flash applications
+    are another. For these cases, an HTTP POST can be made, with a special
+    ``method`` parameter passed to the URL. This can be set to the HTTP
+    method that's desired. For example, ``PUT`` or ``DELETE``.
+
+
+    Permissions
+    -----------
+
+    Unless overridden, an object cannot be modified, created, or deleted
+    if the user is not logged in and if an appropriate permission function
+    does not return True. These permission functions are:
+
+    * ``has_access_permissions`` - Used for HTTP GET calls. Returns True
+                                   by default.
+    * ``has_modify_permissions`` - Used for HTTP POST or PUT calls, if
+                                   called by the subclass. Returns False
+                                   by default.
+    * ``has_delete_permissions`` - Used for HTTP DELETE permissions. Returns
+                                   False by default.
+    """
     model = None
     fields = ()
     uri_object_key_regex = '[0-9]+'
@@ -31,6 +196,7 @@ class WebAPIResource(object):
     }
 
     def __call__(self, request, api_format="json", *args, **kwargs):
+        """Invokes the correct HTTP handler based on the type of request."""
         method = request.method
 
         if method == 'POST':
@@ -109,6 +275,7 @@ class WebAPIResource(object):
 
     @property
     def name(self):
+        """Returns the name of the object, used for keys in the payloads."""
         if self.model:
             return self.model.__name__.lower()
         else:
@@ -116,9 +283,18 @@ class WebAPIResource(object):
 
     @property
     def name_plural(self):
+        """Returns the plural name of the object, used for lists."""
         return self.name + 's'
 
     def get_object(self, request, *args, **kwargs):
+        """Returns an object, given captured parameters from a URL.
+
+        This will perform a query for the object, taking into account
+        ``model_object_key``, ``uri_object_key``, and any captured parameters
+        from the URL.
+
+        This requires that ``model`` and ``uri_object_key`` be set.
+        """
         assert self.model
         assert self.uri_object_key
 
@@ -129,6 +305,16 @@ class WebAPIResource(object):
         })
 
     def post(self, *args, **kwargs):
+        """Handles HTTP POSTs.
+
+        This is not meant to be overridden unless there are specific needs.
+
+        This will invoke ``create`` if doing an HTTP POST on a list resource.
+
+        By default, an HTTP POST is not allowed on individual object
+        resourcces.
+        """
+
         if 'POST' not in self.allowed_methods:
             return HttpResponseNotAllowed(self.allowed_methods)
 
@@ -143,6 +329,13 @@ class WebAPIResource(object):
         return HttpResponseNotAllowed(allowed_methods)
 
     def put(self, request, *args, **kwargs):
+        """Handles HTTP PUTs.
+
+        This is not meant to be overridden unless there are specific needs.
+
+        This will invoke either ``update``, or a function beginning with
+        ``action_`` if a ``action=`` value is set in the request.
+        """
         action = request.PUT.get('action', kwargs.get('action', None))
 
         if action and action != 'set':
@@ -158,6 +351,13 @@ class WebAPIResource(object):
             return self.update(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
+        """Handles HTTP GETs to individual object resources.
+
+        By default, this will check for access permissions and query for
+        the object. It will then return a serialized form of the object.
+
+        This may need to be overridden if needing more complex logic.
+        """
         if not self.model or self.uri_object_key is None:
             return HttpResponseNotAllowed(self.allowed_methods)
 
@@ -176,6 +376,11 @@ class WebAPIResource(object):
         }
 
     def get_list(self, request, *args, **kwargs):
+        """Handles HTTP GETs to list resources.
+
+        By default, this will query for a list of objects and return the
+        list in a serialized form.
+        """
         if not self.model:
             return HttpResponseNotAllowed(self.allowed_methods)
 
@@ -187,24 +392,46 @@ class WebAPIResource(object):
         }
 
         if self.list_child_resources:
-            data['related_hrefs'] = {}
+            data['child_hrefs'] = {}
 
             for resource in self.list_child_resources:
-                data['related_hrefs'][resource.name_plural] = \
+                data['child_hrefs'][resource.name_plural] = \
                     resource.name_plural + '/'
 
         return 200, data
 
     @webapi_login_required
     def create(self, request, api_format, *args, **kwargs):
+        """Handles HTTP POST requests to list resources.
+
+        This is used to create a new object on the list, given the
+        data provided in the request. It should usually return
+        HTTP 201 Created upon success.
+
+        By default, this returns HTTP 405 Method Not Allowed.
+        """
         return HttpResponseNotAllowed(self.allowed_methods)
 
     @webapi_login_required
     def update(self, request, api_format, *args, **kwargs):
+        """Handles HTTP PUT requests to object resources.
+
+        This is used to update an object, given full or partial data provided
+        in the request. It should usually return HTTP 200 OK upon success.
+
+        By default, this returns HTTP 405 Method Not Allowed.
+        """
         return HttpResponseNotAllowed(self.allowed_methods)
 
     @webapi_login_required
     def delete(self, request, api_format, *args, **kwargs):
+        """Handles HTTP DELETE requests to object resources.
+
+        This is used to delete an object, if the user has permissions to
+        do so.
+
+        By default, this deletes the object and returns HTTP 204 No Content.
+        """
         if not self.model or self.uri_object_key is None:
             return HttpResponseNotAllowed(self.allowed_methods)
 
@@ -223,10 +450,24 @@ class WebAPIResource(object):
 
         return 204, {}
 
-    def get_queryset(self, request, *args, **kwargs):
+    def get_queryset(self, request, is_list=False, *args, **kwargs):
+        """Returns a queryset used for querying objects or lists of objects.
+
+        This can be overridden to filter the object list, such as for hiding
+        non-public objects.
+
+        The ``is_list`` parameter can be used to specialize the query based
+        on whether an individual object or a list of objects is being queried.
+        """
         return self.model.objects.all()
 
     def get_url_patterns(self):
+        """Returns the Django URL patterns for this object and its children.
+
+        This is used to automatically build up the URL hierarchy for all
+        objects. Projects should call this for top-level resources and
+        return them in the ``urls.py`` files.
+        """
         urlpatterns = never_cache_patterns('',
             url(r'^$', self, name='%s-resource' % self.name_plural),
         )
@@ -255,15 +496,19 @@ class WebAPIResource(object):
         return urlpatterns
 
     def has_access_permissions(self, request, obj, *args, **kwargs):
+        """Returns whether or not the user has read access to this object."""
         return True
 
     def has_modify_permissions(self, request, obj, *args, **kwargs):
+        """Returns whether or not the user can modify this object."""
         return False
 
     def has_delete_permissions(self, request, obj, *args, **kwargs):
+        """Returns whether or not the user can delete this object."""
         return False
 
     def serialize_object(self, obj, api_format='json', *args, **kwargs):
+        """Serializes the object into a Python dictionary."""
         data = {}
 
         if self.uri_object_key:
@@ -288,18 +533,19 @@ class WebAPIResource(object):
             data[field] = value
 
         if self.item_child_resources:
-            data['related_hrefs'] = {}
+            data['child_hrefs'] = {}
 
             base_href = self.get_href(obj, api_format=api_format)
 
             for resource in self.item_child_resources:
                 if resource.uri_object_key:
-                    data['related_hrefs'][resource.name_plural] = \
+                    data['child_hrefs'][resource.name_plural] = \
                         '%s%s/' % (base_href, resource.name_plural)
 
         return data
 
     def get_href(self, obj, *args, **kwargs):
+        """Returns the URL for this object."""
         object_key = getattr(obj, self.model_object_key)
         resource_name = '%s-resource' % self.name
         parent_ids = self.get_href_parent_ids(obj, *args, **kwargs)
@@ -320,10 +566,23 @@ class WebAPIResource(object):
                 return None
 
     def get_href_parent_ids(self, obj, *args, **kwargs):
+        """Returns a dictionary mapping parent object keys to their values for
+        an object.
+
+        This is meant to be overridden for child objects. It should return
+        a dictionary that maps parent object keys (the parents'
+        uri_object_key values) to the actual values needed to build a full
+        path to this object. For example:
+
+            return {
+                'parentobj_id': obj.parentobj.id,
+            }
+        """
         return {}
 
 
 class UserResource(WebAPIResource):
+    """A default resource for representing a Django User model."""
     model = User
     fields = (
         'id', 'username', 'first_name', 'last_name', 'fullname',
@@ -344,6 +603,7 @@ class UserResource(WebAPIResource):
 
 
 class GroupResource(WebAPIResource):
+    """A default resource for representing a Django Group model."""
     model = Group
     fields = ('id', 'name')
 
