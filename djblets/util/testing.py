@@ -1,7 +1,8 @@
 #
 # testing.py -- Some classes useful for unit testing django-based applications
 #
-# Copyright (c) 2007-2009  David Trowbridge
+# Copyright (c) 2007-2010  Christian Hammond
+# Copyright (c) 2007-2010  David Trowbridge
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -23,34 +24,4 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-from django.template import Node
-from django.test import TestCase
-
-
-class StubNodeList(Node):
-    def __init__(self, default_text):
-        self.default_text = default_text
-
-    def render(self, context):
-        return self.default_text
-
-
-class StubParser:
-    def __init__(self, default_text):
-        self.default_text = default_text
-
-    def parse(self, until):
-        return StubNodeList(self.default_text)
-
-    def delete_first_token(self):
-        pass
-
-
-class TagTest(TestCase):
-    """Base testing setup for custom template tags"""
-
-    def setUp(self):
-        self.parser = StubParser(self.getContentText())
-
-    def getContentText(self):
-        return "content"
+from djblets.testing import StubNodeList, StubParser, TagTest
