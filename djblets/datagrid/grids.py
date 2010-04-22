@@ -210,25 +210,24 @@ class Column(object):
         Renders the table cell containing column data.
         """
         rendered_data = self.render_data(obj)
+        url = ''
+        css_class = ''
 
-        key = "%s:%s" % (self.last, rendered_data)
+        if self.link:
+            try:
+                url = self.link_func(obj, rendered_data)
+            except AttributeError:
+                pass
+
+        if self.css_class:
+            if callable(self.css_class):
+                css_class = self.css_class(obj)
+            else:
+                css_class = self.css_class
+
+        key = "%s:%s:%s:%s" % (self.last, rendered_data, url, css_class)
 
         if key not in self.cell_render_cache:
-            css_class = ""
-            url = ""
-
-            if self.css_class:
-                if callable(self.css_class):
-                    css_class = self.css_class(obj)
-                else:
-                    css_class = self.css_class
-
-            if self.link:
-                try:
-                    url = self.link_func(obj, rendered_data)
-                except AttributeError:
-                    pass
-
             if not self.datagrid.cell_template_obj:
                 self.datagrid.cell_template_obj = \
                     get_template(self.datagrid.cell_template)
@@ -718,7 +717,7 @@ class DataGrid(object):
 
     @staticmethod
     def link_to_object(obj, value):
-        return  obj.get_absolute_url()
+        return obj.get_absolute_url()
 
     @staticmethod
     def link_to_value(obj, value):
