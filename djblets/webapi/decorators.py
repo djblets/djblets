@@ -118,3 +118,92 @@ def webapi_permission_required(perm):
         return _checkpermissions
 
     return _dec
+
+
+def webapi_request_fields(required={}, optional={}, allow_unknown=False):
+    """Validates incoming fields for a request.
+
+    This is a helpful decorator for ensuring that the fields in the request
+    match what the caller expects.
+
+    If any field is set in the request that is not in either ``required``
+    or ``optional`` and ``allow_unknown`` is True, the response will be an
+    INVALID_FORM_DATA error. The exceptions are the special fields ``action``,
+    ``method`` and ``callback``.
+
+    If any field in ``required`` is not passed in the request, these will
+    also be listed in the INVALID_FORM_DATA response.
+
+    The ``required`` and ``optional`` parameters are dictionaries
+    mapping field name to an info dictionary, which contains the following
+    keys:
+
+      * ``type`` - The data type for the field.
+      * ```description`` - A description of the field.
+
+    For example:
+
+        @webapi_request_fields(required={
+            'name': {
+                'type': str,
+                'description': 'The name of the object',
+            }
+        })
+    """
+    def _dec(view_func):
+        def _validate(*args, **kwargs):
+            request = _find_httprequest(args)
+
+            if request.method == 'GET':
+                request_fields = request.GET
+            else:
+                request_fields = request.POST
+
+            invalid_fields = {}
+            supported_fields = required.copy()
+            supported_fields.update(optional)
+
+            if not allow_unknown:
+                for field_name in request_fields:
+                    if field_name in ('action', 'method', 'callback'):
+                        # These are special names and can be ignored.
+                        continue
+
+                    if field_name not in supported_fields:
+                        invalid_fields[field_name] = ['Field is not supported']
+
+            for field_name, info in required.iteritems():
+                temp_fields = request_fields
+
+                if info['type'] == file:
+                    temp_fields = request.FILES
+
+                if temp_fields.get(field_name, None) is None:
+                    invalid_fields[field_name] = ['This field is required']
+
+            if invalid_fields:
+                return INVALID_FORM_DATA, {
+                    'fields': invalid_fields,
+                }
+
+            new_kwargs = kwargs.copy()
+
+            for field_name, info in supported_fields.iteritems():
+                if isinstance(info['type'], file):
+                    continue
+
+                value = request_fields.get(field_name, None)
+
+                if value is not None:
+                    if issubclass(info['type'], bool):
+                        value = value in (1, "1", True, "True")
+                    elif issubclass(info['type'], int):
+                        value = int(value)
+
+                new_kwargs[field_name] = value
+
+            return view_func(*args, **new_kwargs)
+
+        return _validate
+
+    return _dec
