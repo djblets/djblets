@@ -67,11 +67,13 @@ class WebAPIResource(object):
     of get_url_patterns() from top-level resources are added to the Django
     url_patterns variables commonly found in urls.py.
 
-    Child objects should override the ``get_href_parent_ids`` function to
-    return a dictionary of parent objects' ``uri_object_key`` values to
-    the actual parent objects' values for these keys. This allows
-    WebAPIResource to build a URL with the right values filled in in order
-    to make a URL to this object.
+    Child objects should set the ``model_parent_key`` variable to the
+    field name of the object's parent in the resource hierarchy. This
+    allows WebAPIResource to build a URL with the right values filled in in
+    order to make a URL to this object.
+
+    If the parent is dynamic based on certain conditions, then the
+    ``get_parent_object`` function can be overridden instead.
 
 
     Object Serialization
@@ -177,23 +179,27 @@ class WebAPIResource(object):
     * ``has_delete_permissions`` - Used for HTTP DELETE permissions. Returns
                                    False by default.
     """
+
+    # Configuration
     model = None
     fields = ()
     uri_object_key_regex = '[0-9]+'
     uri_object_key = None
     model_object_key = 'pk'
+    model_parent_key = None
     list_child_resources = []
     item_child_resources = []
-    actions = {}
-
     allowed_methods = ('GET',)
 
+    # State
     method_mapping = {
         'GET': 'get',
         'POST': 'post',
         'PUT': 'put',
         'DELETE': 'delete',
     }
+
+    _parent_resource = None
 
     def __call__(self, request, api_format="json", *args, **kwargs):
         """Invokes the correct HTTP handler based on the type of request."""
@@ -473,6 +479,7 @@ class WebAPIResource(object):
         )
 
         for resource in self.list_child_resources:
+            resource._parent_resource = self
             child_regex = r'^' + resource.name_plural + '/'
             urlpatterns += patterns('',
                 url(child_regex, include(resource.get_url_patterns())),
@@ -488,6 +495,7 @@ class WebAPIResource(object):
             )
 
             for resource in self.item_child_resources:
+                resource._parent_resource = self
                 child_regex = base_regex + resource.name_plural + '/'
                 urlpatterns += patterns('',
                     url(child_regex, include(resource.get_url_patterns())),
@@ -525,7 +533,7 @@ class WebAPIResource(object):
             else:
                 value = getattr(obj, field)
 
-                if callable(getattr(value, 'all', None)):
+                if isinstance(value, models.Manager):
                     value = value.all()
                 elif isinstance(value, models.ForeignKey):
                     value = value.get()
@@ -548,7 +556,7 @@ class WebAPIResource(object):
         """Returns the URL for this object."""
         object_key = getattr(obj, self.model_object_key)
         resource_name = '%s-resource' % self.name
-        parent_ids = self.get_href_parent_ids(obj, *args, **kwargs)
+        parent_ids = self.get_href_parent_ids(obj)
 
         href_kwargs = {
             self.uri_object_key: object_key,
@@ -565,20 +573,34 @@ class WebAPIResource(object):
             except NoReverseMatch:
                 return None
 
-    def get_href_parent_ids(self, obj, *args, **kwargs):
+    def get_href_parent_ids(self, obj):
         """Returns a dictionary mapping parent object keys to their values for
         an object.
-
-        This is meant to be overridden for child objects. It should return
-        a dictionary that maps parent object keys (the parents'
-        uri_object_key values) to the actual values needed to build a full
-        path to this object. For example:
-
-            return {
-                'parentobj_id': obj.parentobj.id,
-            }
         """
-        return {}
+        parent_ids = {}
+
+        if self._parent_resource: #and self.model_parent_key:
+            assert self._parent_resource.uri_object_key
+
+            parent_obj = self.get_parent_object(obj)
+            parent_ids = self._parent_resource.get_href_parent_ids(parent_obj)
+            parent_ids[self._parent_resource.uri_object_key] = \
+                getattr(parent_obj, self._parent_resource.model_object_key)
+
+        return parent_ids
+
+    def get_parent_object(self, obj):
+        """Returns the parent of an object.
+
+        By default, this uses ``model_parent_key`` to figure out the parent,
+        but it can be overridden for more complex behavior.
+        """
+        parent_obj = getattr(obj, self.model_parent_key)
+
+        if isinstance(parent_obj, (models.Manager, models.ForeignKey)):
+            parent_obj = parent_obj.get()
+
+        return parent_obj
 
 
 class UserResource(WebAPIResource):
