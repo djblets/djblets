@@ -300,7 +300,16 @@ class WebAPIResource(object):
     @property
     def list_result_key(self):
         """Returns the key for lists of objects in the payload."""
-        return self.item_result_key + 's'
+        return self.name_plural.replace('-', '_')
+
+    @property
+    def uri_name(self):
+        """Returns the name of the resource in the URI.
+
+        This can be overridden when the name in the URI needs to differ
+        from the name used for the resource.
+        """
+        return self.name_plural
 
     def get_object(self, request, *args, **kwargs):
         """Returns an object, given captured parameters from a URL.
@@ -501,7 +510,7 @@ class WebAPIResource(object):
 
             for resource in self.item_child_resources:
                 resource._parent_resource = self
-                child_regex = base_regex + resource.name_plural + '/'
+                child_regex = base_regex + resource.uri_name + '/'
                 urlpatterns += patterns('',
                     url(child_regex, include(resource.get_url_patterns())),
                 )
