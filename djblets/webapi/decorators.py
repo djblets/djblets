@@ -129,7 +129,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
 
     If any field is set in the request that is not in either ``required``
     or ``optional`` and ``allow_unknown`` is True, the response will be an
-    INVALID_FORM_DATA error. The exceptions are the special fields ``action``,
+    INVALID_FORM_DATA error. The exceptions are the special fields
     ``method`` and ``callback``.
 
     If any field in ``required`` is not passed in the request, these will
@@ -166,7 +166,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
 
             if not allow_unknown:
                 for field_name in request_fields:
-                    if field_name in ('action', 'method', 'callback'):
+                    if field_name in ('method', 'callback'):
                         # These are special names and can be ignored.
                         continue
 

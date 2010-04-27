@@ -8,7 +8,7 @@ from djblets.util.misc import never_cache_patterns
 from djblets.webapi.core import WebAPIResponse, WebAPIResponseError
 from djblets.webapi.decorators import webapi_login_required
 from djblets.webapi.errors import WebAPIError, DOES_NOT_EXIST, \
-                                  PERMISSION_DENIED, INVALID_ACTION
+                                  PERMISSION_DENIED
 
 
 class WebAPIResource(object):
@@ -139,19 +139,6 @@ class WebAPIResource(object):
               my_parent = myParentResource.get_object(request, *args, **kwargs)
           except ObjectDoesNotExist:
               return DOES_NOT_EXIST
-
-
-    Actions
-    -------
-
-    There are times when a caller may want to do something on a resource,
-    rather than just modifying it. For this, WebAPIResource supports actions.
-    An action is any HTTP PUT to a URL that has an ``action=<name>`` parameter.
-
-    WebAPIResource will intercept these requests and look for a function
-    on the subclass beginning with ``action_``. If found, it will call
-    that function instead of ``update``. The one exception is an action
-    value of ``set``, which will call the standard ``update`` function.
 
 
     Faking HTTP Methods
@@ -358,22 +345,9 @@ class WebAPIResource(object):
 
         This is not meant to be overridden unless there are specific needs.
 
-        This will invoke either ``update``, or a function beginning with
-        ``action_`` if a ``action=`` value is set in the request.
+        This will just invoke ``update``.
         """
-        action = request.PUT.get('action', kwargs.get('action', None))
-
-        if action and action != 'set':
-            action_func = getattr(self, 'action_%s' % action)
-
-            if callable(action_func):
-                return action_func(request, *args, **kwargs)
-            else:
-                return INVALID_ACTION, {
-                    'action': action,
-                }
-        else:
-            return self.update(request, *args, **kwargs)
+        return self.update(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
         """Handles HTTP GETs to individual object resources.
