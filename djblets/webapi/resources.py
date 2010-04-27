@@ -668,5 +668,5 @@ class GroupResource(WebAPIResource):
     allowed_methods = ('GET',)
 
 
-userResource = UserResource()
-groupResource = GroupResource()
+user_resource = UserResource()
+group_resource = GroupResource()

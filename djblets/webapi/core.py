@@ -72,14 +72,14 @@ class BasicAPIEncoder(WebAPIEncoder):
     A basic encoder that encodes dates, times, QuerySets, Users, and Groups.
     """
     def encode(self, o, api_format, *args, **kwargs):
-        from djblets.webapi.resources import userResource, groupResource
+        from djblets.webapi.resources import user_resource, group_resource
 
         if isinstance(o, QuerySet):
             return list(o)
         elif isinstance(o, User):
-            return userResource.serialize_object(o, api_format=api_format)
+            return user_resource.serialize_object(o, api_format=api_format)
         elif isinstance(o, Group):
-            return groupResource.serialize_object(o, api_format=api_format)
+            return group_resource.serialize_object(o, api_format=api_format)
         else:
             try:
                 return DjangoJSONEncoder().default(o)
