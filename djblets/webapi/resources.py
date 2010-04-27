@@ -652,6 +652,9 @@ class UserResource(WebAPIResource):
     def serialize_url_field(self, user):
         return user.get_absolute_url()
 
+    def has_modify_permissions(self, request, user, *args, **kwargs):
+        """Returns whether or not the user can modify this object."""
+        return request.user.is_authenticated() and user.pk == request.user.pk
 
 class GroupResource(WebAPIResource):
     """A default resource for representing a Django Group model."""
