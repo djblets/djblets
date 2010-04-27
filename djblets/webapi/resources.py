@@ -8,7 +8,7 @@ from djblets.util.misc import never_cache_patterns
 from djblets.webapi.core import WebAPIResponse, WebAPIResponseError
 from djblets.webapi.decorators import webapi_login_required
 from djblets.webapi.errors import WebAPIError, DOES_NOT_EXIST, \
-                                  PERMISSION_DENIED
+                                  PERMISSION_DENIED, INVALID_ACTION
 
 
 class WebAPIResource(object):
