@@ -611,6 +611,31 @@ class WebAPIResource(object):
         return parent_obj
 
 
+class RootResource(WebAPIResource):
+    """The root of a resource tree.
+
+    This is meant to be instantiated with a list of immediate child
+    resources. The result of ``get_url_patterns`` should be included in
+    a project's ``urls.py``.
+    """
+    name = 'root'
+    name_plural = 'root'
+
+    def __init__(self, child_resources=[]):
+        super(RootResource, self).__init__()
+        self.list_child_resources = child_resources
+
+    def get(self, request, *args, **kwargs):
+        child_hrefs = {}
+
+        for resource in self.list_child_resources:
+            child_hrefs[resource.name_plural] = resource.name_plural + '/'
+
+        return 200, {
+            'child_hrefs': child_hrefs,
+        }
+
+
 class UserResource(WebAPIResource):
     """A default resource for representing a Django User model."""
     model = User
