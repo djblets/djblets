@@ -292,6 +292,16 @@ class WebAPIResource(object):
         """Returns the plural name of the object, used for lists."""
         return self.name + 's'
 
+    @property
+    def item_result_key(self):
+        """Returns the key for single objects in the payload."""
+        return self.name.replace('-', '_')
+
+    @property
+    def list_result_key(self):
+        """Returns the key for lists of objects in the payload."""
+        return self.item_result_key + 's'
+
     def get_object(self, request, *args, **kwargs):
         """Returns an object, given captured parameters from a URL.
 
@@ -375,10 +385,8 @@ class WebAPIResource(object):
         if not self.has_access_permissions(request, obj, *args, **kwargs):
             return PERMISSION_DENIED
 
-        key = self.name.replace('-', '_')
-
         return 200, {
-            key: self.serialize_object(obj, *args, **kwargs),
+            self.item_result_key: self.serialize_object(obj, *args, **kwargs),
         }
 
     def get_list(self, request, *args, **kwargs):
