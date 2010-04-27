@@ -29,7 +29,8 @@ from django.http import HttpRequest
 
 from djblets.util.decorators import simple_decorator
 from djblets.webapi.core import WebAPIResponse, WebAPIResponseError
-from djblets.webapi.errors import NOT_LOGGED_IN, PERMISSION_DENIED
+from djblets.webapi.errors import NOT_LOGGED_IN, PERMISSION_DENIED, \
+                                  INVALID_FORM_DATA
 
 
 def _find_httprequest(args):
@@ -181,11 +182,6 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                 if temp_fields.get(field_name, None) is None:
                     invalid_fields[field_name] = ['This field is required']
 
-            if invalid_fields:
-                return INVALID_FORM_DATA, {
-                    'fields': invalid_fields,
-                }
-
             new_kwargs = kwargs.copy()
 
             for field_name, info in supported_fields.iteritems():
@@ -199,8 +195,26 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                         value = value in (1, "1", True, "True")
                     elif issubclass(info['type'], int):
                         value = int(value)
+                    elif issubclass(info['type'], (list, tuple)):
+                        # This is a multiple-choice. Make sure the value is
+                        # valid.
+                        choices = info['type']
+
+                        if value not in choices:
+                            invalid_fields[field_name] = [
+                                "'%s' is not a valid value. Valid values "
+                                "are: %s" % (
+                                    value,
+                                    ', '.join(["'%s'" for choice in choices])
+                                )
+                            ]
 
                 new_kwargs[field_name] = value
+
+            if invalid_fields:
+                return INVALID_FORM_DATA, {
+                    'fields': invalid_fields,
+                }
 
             return view_func(*args, **new_kwargs)
 
