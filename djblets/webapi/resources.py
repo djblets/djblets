@@ -234,8 +234,8 @@ class WebAPIResource(object):
 
         if method in self.allowed_methods:
             if (method == "GET" and
-                self.uri_object_key is not None and
-                self.uri_object_key not in kwargs):
+                (self.uri_object_key is None or
+                 self.uri_object_key not in kwargs)):
                 view = self.get_list
             else:
                 view = getattr(self, self.method_mapping.get(method, None))
@@ -395,15 +395,12 @@ class WebAPIResource(object):
         By default, this will query for a list of objects and return the
         list in a serialized form.
         """
-        if not self.model:
-            return HttpResponseNotAllowed(self.allowed_methods)
+        data = {}
 
-        key = self.name_plural.replace('-', '_')
-
-        # TODO: Paginate this.
-        data = {
-            key: self.get_queryset(request, is_list=True, *args, **kwargs),
-        }
+        if self.model:
+            # TODO: Paginate this.
+            data[self.list_result_key] = \
+                self.get_queryset(request, is_list=True, *args, **kwargs)
 
         if self.list_child_resources:
             data['child_hrefs'] = {}
@@ -554,9 +551,8 @@ class WebAPIResource(object):
             base_href = self.get_href(obj, api_format=api_format)
 
             for resource in self.item_child_resources:
-                if resource.uri_object_key:
-                    data['child_hrefs'][resource.name_plural] = \
-                        '%s%s/' % (base_href, resource.name_plural)
+                data['child_hrefs'][resource.name_plural] = \
+                    '%s%s/' % (base_href, resource.name_plural)
 
         return data
 
@@ -587,7 +583,7 @@ class WebAPIResource(object):
         """
         parent_ids = {}
 
-        if self._parent_resource: #and self.model_parent_key:
+        if self._parent_resource and self.model_parent_key:
             assert self._parent_resource.uri_object_key
 
             parent_obj = self.get_parent_object(obj)
