@@ -24,4 +24,5 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-from djblets.testing import StubNodeList, StubParser, TagTest
+from djblets.testing.testcases import StubNodeList, StubParser, \
+                                      TagTest, TestCase

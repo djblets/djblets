@@ -31,7 +31,7 @@ from django.contrib.auth.models import Group, User
 from django.http import HttpRequest
 
 from djblets.datagrid.grids import Column, DataGrid, DateTimeSinceColumn
-from djblets.util.testing import TestCase
+from djblets.testing.testcases import TestCase
 
 
 def populate_groups():
