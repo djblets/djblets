@@ -12,6 +12,7 @@ jQuery.fn.datagrid = function() {
     var editButton = $("#" + gridId + "-edit");
     var menu = $("#" + gridId + "-menu");
     var editColumns = $("th.edit-columns", this);
+    var summaryCells = $("td.summary", this);
 
     /* State */
     var activeColumns = [];
@@ -66,6 +67,22 @@ jQuery.fn.datagrid = function() {
         evt.stopPropagation();
         toggleColumnsMenu();
     });
+
+    /*
+     * Attaches click event listener to all summary td elements,
+     * following href of child anchors if present.  This is being
+     * done to complement the "cursor:pointer" style that is
+     * already applied to the same elements. (Bug #1022)
+     */
+    summaryCells.click(
+        function(evt) {
+            evt.stopPropagation();
+            var cellHref = $("a", evt.target).attr("href");
+            if (cellHref){
+                window.location.href = cellHref;
+            }
+        }
+    );
 
     $(document.body).click(hideColumnsMenu);
 
