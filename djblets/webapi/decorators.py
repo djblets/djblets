@@ -191,11 +191,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                 value = request_fields.get(field_name, None)
 
                 if value is not None:
-                    if issubclass(info['type'], bool):
-                        value = value in (1, "1", True, "True")
-                    elif issubclass(info['type'], int):
-                        value = int(value)
-                    elif issubclass(info['type'], (list, tuple)):
+                    if type(info['type']) in (list, tuple):
                         # This is a multiple-choice. Make sure the value is
                         # valid.
                         choices = info['type']
@@ -207,6 +203,15 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                                     value,
                                     ', '.join(["'%s'" for choice in choices])
                                 )
+                            ]
+                    elif issubclass(info['type'], bool):
+                        value = value in (1, "1", True, "True")
+                    elif issubclass(info['type'], int):
+                        try:
+                            value = int(value)
+                        except ValueError:
+                            invalid_fields[field_name] = [
+                                "'%s' is not an integer" % value
                             ]
 
                 new_kwargs[field_name] = value
