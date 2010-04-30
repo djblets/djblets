@@ -221,7 +221,7 @@ class WebAPIResource(object):
 
         if method in self.allowed_methods:
             if (method == "GET" and
-                (self.uri_object_key is None or
+                (self.uri_object_key is not None and
                  self.uri_object_key not in kwargs)):
                 view = self.get_list
             else:
@@ -390,7 +390,7 @@ class WebAPIResource(object):
 
             for resource in self.list_child_resources:
                 data['child_hrefs'][resource.name_plural] = \
-                    resource.name_plural + '/'
+                    resource.uri_name + '/'
 
         return 200, data
 
@@ -468,7 +468,7 @@ class WebAPIResource(object):
 
         for resource in self.list_child_resources:
             resource._parent_resource = self
-            child_regex = r'^' + resource.name_plural + '/'
+            child_regex = r'^' + resource.uri_name + '/'
             urlpatterns += patterns('',
                 url(child_regex, include(resource.get_url_patterns())),
             )
@@ -535,7 +535,7 @@ class WebAPIResource(object):
 
             for resource in self.item_child_resources:
                 data['child_hrefs'][resource.name_plural] = \
-                    '%s%s/' % (base_href, resource.name_plural)
+                    '%s%s/' % (base_href, resource.uri_name)
 
         return data
 
@@ -608,7 +608,7 @@ class RootResource(WebAPIResource):
         child_hrefs = {}
 
         for resource in self.list_child_resources:
-            child_hrefs[resource.name_plural] = resource.name_plural + '/'
+            child_hrefs[resource.name_plural] = resource.uri_name + '/'
 
         return 200, {
             'child_hrefs': child_hrefs,
