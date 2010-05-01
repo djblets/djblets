@@ -211,7 +211,7 @@ class WebAPIResource(object):
             # Not all clients can do anything other than GET or POST.
             # So, in the case of POST, we allow overriding the method
             # used.
-            method = request.POST.get('method', kwargs.get('method', method))
+            method = request.POST.get('_method', kwargs.get('_method', method))
         elif method == 'PUT':
             # Normalize the PUT data so we can get to it.
             # This is due to Django's treatment of PUT vs. POST. They claim
