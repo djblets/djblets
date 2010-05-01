@@ -298,12 +298,12 @@ class WebAPIResource(object):
     @property
     def item_result_key(self):
         """Returns the key for single objects in the payload."""
-        return self.name.replace('-', '_')
+        return self.name
 
     @property
     def list_result_key(self):
         """Returns the key for lists of objects in the payload."""
-        return self.name_plural.replace('-', '_')
+        return self.name_plural
 
     @property
     def uri_name(self):
@@ -312,7 +312,7 @@ class WebAPIResource(object):
         This can be overridden when the name in the URI needs to differ
         from the name used for the resource.
         """
-        return self.name_plural
+        return self.name_plural.replace('_', '-')
 
     def get_object(self, request, *args, **kwargs):
         """Returns an object, given captured parameters from a URL.
@@ -479,7 +479,7 @@ class WebAPIResource(object):
         return them in the ``urls.py`` files.
         """
         urlpatterns = never_cache_patterns('',
-            url(r'^$', self, name='%s-resource' % self.name_plural),
+            url(r'^$', self, name=self._build_named_url(self.name_plural)),
         )
 
         for resource in self.list_child_resources:
@@ -495,7 +495,8 @@ class WebAPIResource(object):
                                             self.uri_object_key_regex)
 
             urlpatterns += never_cache_patterns('',
-                url(base_regex + '$', self, name='%s-resource' % self.name),
+                url(base_regex + '$', self,
+                    name=self._build_named_url(self.name))
             )
 
             for resource in self.item_child_resources:
@@ -602,17 +603,15 @@ class WebAPIResource(object):
         if not self.uri_object_key:
             return None
 
-        object_key = getattr(obj, self.model_object_key)
-        resource_name = '%s-resource' % self.name
-
         href_kwargs = {
-            self.uri_object_key: object_key,
+            self.uri_object_key: getattr(obj, self.model_object_key),
         }
         href_kwargs.update(self.get_href_parent_ids(obj))
 
         try:
             return request.build_absolute_uri(
-                reverse(resource_name, kwargs=href_kwargs))
+                reverse(self._build_named_url(self.name),
+                        kwargs=href_kwargs))
         except NoReverseMatch:
             return None
 
@@ -644,6 +643,10 @@ class WebAPIResource(object):
             parent_obj = parent_obj.get()
 
         return parent_obj
+
+    def _build_named_url(self, name):
+        """Builds a Django URL name from the provided name."""
+        return '%s-resource' % name.replace('_', '-')
 
 
 class RootResource(WebAPIResource):
