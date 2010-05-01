@@ -5,7 +5,8 @@ from django.db import models
 from django.http import HttpResponseNotAllowed, HttpResponse
 
 from djblets.util.misc import never_cache_patterns
-from djblets.webapi.core import WebAPIResponse, WebAPIResponseError
+from djblets.webapi.core import WebAPIResponse, WebAPIResponseError, \
+                                WebAPIResponsePaginated
 from djblets.webapi.decorators import webapi_login_required
 from djblets.webapi.errors import WebAPIError, DOES_NOT_EXIST, \
                                   PERMISSION_DENIED
@@ -394,18 +395,21 @@ class WebAPIResource(object):
         By default, this will query for a list of objects and return the
         list in a serialized form.
         """
-        data = {}
+        data = {
+            'links': self.get_links_for_resources(self.list_child_resources,
+                                                  request=request,
+                                                  *args, **kwargs),
+        }
 
         if self.model:
-            # TODO: Paginate this.
-            data[self.list_result_key] = \
-                self.get_queryset(request, is_list=True, *args, **kwargs)
-
-        data['links'] = self.get_links_for_resources(self.list_child_resources,
-                                                     request=request,
-                                                     *args, **kwargs)
-
-        return 200, data
+            return WebAPIResponsePaginated(
+                request,
+                queryset=self.get_queryset(request, is_list=True,
+                                           *args, **kwargs),
+                results_key=self.list_result_key,
+                extra_data=data)
+        else:
+            return data
 
     @webapi_login_required
     def create(self, request, api_format, *args, **kwargs):
