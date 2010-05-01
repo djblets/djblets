@@ -396,9 +396,8 @@ class WebAPIResource(object):
         list in a serialized form.
         """
         data = {
-            'links': self.get_links_for_resources(self.list_child_resources,
-                                                  request=request,
-                                                  *args, **kwargs),
+            'links': self.get_links(self.list_child_resources,
+                                    request=request, *args, **kwargs),
         }
 
         if self.model:
@@ -539,20 +538,18 @@ class WebAPIResource(object):
 
             data[field] = value
 
-        if self.item_child_resources:
-            data['links'] = \
-                self.get_links_for_resources(self.item_child_resources,
-                                             obj, *args, **kwargs)
+        data['links'] = \
+            self.get_links(self.item_child_resources, obj, *args, **kwargs)
 
         return data
 
-    def get_links_for_resources(self, resources, obj=None, request=None,
-                                *args, **kwargs):
+    def get_links(self, resources=[], obj=None, request=None,
+                  *args, **kwargs):
         links = {}
         base_href = None
 
         if obj:
-            base_href = self.get_href(obj, request=request, *args, **kwargs)
+            base_href = self.get_href(obj, request, *args, **kwargs)
 
         if not base_href:
             # We may have received None from the URL above.
@@ -600,33 +597,24 @@ class WebAPIResource(object):
 
         return links
 
-    def get_href(self, obj, request=None, *args, **kwargs):
+    def get_href(self, obj, request, *args, **kwargs):
         """Returns the URL for this object."""
+        if not self.uri_object_key:
+            return None
+
         object_key = getattr(obj, self.model_object_key)
         resource_name = '%s-resource' % self.name
-        parent_ids = self.get_href_parent_ids(obj)
 
         href_kwargs = {
             self.uri_object_key: object_key,
         }
-        href_kwargs.update(parent_ids)
-
-        href = None
+        href_kwargs.update(self.get_href_parent_ids(obj))
 
         try:
-            href = reverse(resource_name, kwargs=href_kwargs)
+            return request.build_absolute_uri(
+                reverse(resource_name, kwargs=href_kwargs))
         except NoReverseMatch:
-            href_kwargs['api_format'] = kwargs.get('api_format', None)
-
-            try:
-                href = reverse(resource_name, kwargs=href_kwargs)
-            except NoReverseMatch:
-                return
-
-        if request:
-            href = request.build_absolute_uri(href)
-
-        return href
+            return None
 
     def get_href_parent_ids(self, obj):
         """Returns a dictionary mapping parent object keys to their values for
@@ -676,9 +664,8 @@ class RootResource(WebAPIResource):
 
     def get(self, request, *args, **kwargs):
         data = {
-            'links': self.get_links_for_resources(self.list_child_resources,
-                                                  request=request,
-                                                  *args, **kwargs),
+            'links': self.get_links(self.list_child_resources,
+                                    request=request, *args, **kwargs),
         }
 
         if self._include_uri_templates:
