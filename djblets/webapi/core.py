@@ -71,15 +71,15 @@ class BasicAPIEncoder(WebAPIEncoder):
     """
     A basic encoder that encodes dates, times, QuerySets, Users, and Groups.
     """
-    def encode(self, o, api_format, *args, **kwargs):
+    def encode(self, o, *args, **kwargs):
         from djblets.webapi.resources import user_resource, group_resource
 
         if isinstance(o, QuerySet):
             return list(o)
         elif isinstance(o, User):
-            return user_resource.serialize_object(o, api_format=api_format)
+            return user_resource.serialize_object(o, *args, **kwargs)
         elif isinstance(o, Group):
-            return group_resource.serialize_object(o, api_format=api_format)
+            return group_resource.serialize_object(o, *args, **kwargs)
         else:
             try:
                 return DjangoJSONEncoder().default(o)
@@ -224,6 +224,7 @@ class WebAPIResponse(HttpResponse):
 
         super(WebAPIResponse, self).__init__(mimetype=mimetype,
                                              status=status)
+        self.request = request
         self.callback = request.GET.get('callback', None)
         self.api_data = {'stat': stat}
         self.api_data.update(obj)
@@ -264,7 +265,8 @@ class WebAPIResponse(HttpResponse):
             else:
                 assert False
 
-            content = adapter.encode(self.api_data, api_format=self.api_format)
+            content = adapter.encode(self.api_data, api_format=self.api_format,
+                                     request=self.request)
 
             if self.callback != None:
                 content = "%s(%s);" % (self.callback, content)

@@ -29,10 +29,25 @@ class WebAPIResource(object):
 
     Most resources will have ``model`` set to a Model subclass, and
     ``fields`` set to list the fields that would be shown when
-    navigating to the resource. Each resource will also include a
-    ``href`` attribute pointing to the URL of the resource (relative to the
-    domain) and a ``child_hrefs`` dictionary attribute mapping child
-    resource names to their paths.
+
+    Each resource will also include a ``link`` dictionary that maps
+    a key (resource name or action) to a dictionary containing the URL
+    (``href``) and the HTTP method that's to be used for that URL
+    (``method``). This will include a special ``self`` key that links to
+    that resource's actual location.
+
+    An example of this might be::
+
+       'links': {
+           'self': {
+               'method': 'GET',
+               'href': '/path/to/this/resource/'
+           },
+           'update': {
+               'method': 'PUT',
+               'href': '/path/to/this/resource/'
+           }
+       }
 
     Resource associated with a model may want to override the ``get_queryset``
     function to return a queryset with a more specific query.
@@ -369,7 +384,8 @@ class WebAPIResource(object):
             return PERMISSION_DENIED
 
         return 200, {
-            self.item_result_key: self.serialize_object(obj, *args, **kwargs),
+            self.item_result_key: self.serialize_object(obj, request=request,
+                                                        *args, **kwargs),
         }
 
     def get_list(self, request, *args, **kwargs):
@@ -385,12 +401,9 @@ class WebAPIResource(object):
             data[self.list_result_key] = \
                 self.get_queryset(request, is_list=True, *args, **kwargs)
 
-        if self.list_child_resources:
-            data['child_hrefs'] = {}
-
-            for resource in self.list_child_resources:
-                data['child_hrefs'][resource.name_plural] = \
-                    resource.uri_name + '/'
+        data['links'] = self.get_links_for_resources(self.list_child_resources,
+                                                     request=request,
+                                                     *args, **kwargs)
 
         return 200, data
 
@@ -503,15 +516,9 @@ class WebAPIResource(object):
         """Returns whether or not the user can delete this object."""
         return False
 
-    def serialize_object(self, obj, api_format='json', *args, **kwargs):
+    def serialize_object(self, obj, *args, **kwargs):
         """Serializes the object into a Python dictionary."""
         data = {}
-
-        if self.uri_object_key:
-            href = self.get_href(obj, api_format=api_format)
-
-            if href:
-                data['href'] = href
 
         for field in self.fields:
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
@@ -529,17 +536,67 @@ class WebAPIResource(object):
             data[field] = value
 
         if self.item_child_resources:
-            data['child_hrefs'] = {}
-
-            base_href = self.get_href(obj, api_format=api_format)
-
-            for resource in self.item_child_resources:
-                data['child_hrefs'][resource.name_plural] = \
-                    '%s%s/' % (base_href, resource.uri_name)
+            data['links'] = \
+                self.get_links_for_resources(self.item_child_resources,
+                                             obj, *args, **kwargs)
 
         return data
 
-    def get_href(self, obj, *args, **kwargs):
+    def get_links_for_resources(self, resources, obj=None, request=None,
+                                *args, **kwargs):
+        links = {}
+        base_href = None
+
+        if obj:
+            base_href = self.get_href(obj, request=request, *args, **kwargs)
+
+        if not base_href:
+            # We may have received None from the URL above.
+            if request:
+                base_href = request.build_absolute_uri()
+            else:
+                base_href = ''
+
+        links['self'] = {
+            'method': 'GET',
+            'href': base_href,
+        }
+
+        # base_href without any query arguments.
+        i = base_href.find('?')
+
+        if i != -1:
+            clean_base_href = base_href[:i]
+        else:
+            clean_base_href = base_href
+
+        if 'POST' in self.allowed_methods and not obj:
+            links['create'] = {
+                'method': 'POST',
+                'href': clean_base_href,
+            }
+
+        if 'PUT' in self.allowed_methods and obj:
+            links['update'] = {
+                'method': 'PUT',
+                'href': clean_base_href,
+            }
+
+        if 'DELETE' in self.allowed_methods and obj:
+            links['delete'] = {
+                'method': 'DELETE',
+                'href': clean_base_href,
+            }
+
+        for resource in resources:
+            links[resource.name_plural] = {
+                'method': 'GET',
+                'href': '%s%s/' % (clean_base_href, resource.uri_name),
+            }
+
+        return links
+
+    def get_href(self, obj, request=None, *args, **kwargs):
         """Returns the URL for this object."""
         object_key = getattr(obj, self.model_object_key)
         resource_name = '%s-resource' % self.name
@@ -550,15 +607,22 @@ class WebAPIResource(object):
         }
         href_kwargs.update(parent_ids)
 
+        href = None
+
         try:
-            return reverse(resource_name, kwargs=href_kwargs)
+            href = reverse(resource_name, kwargs=href_kwargs)
         except NoReverseMatch:
             href_kwargs['api_format'] = kwargs.get('api_format', None)
 
             try:
-                return reverse(resource_name, kwargs=href_kwargs)
+                href = reverse(resource_name, kwargs=href_kwargs)
             except NoReverseMatch:
-                return None
+                return
+
+        if request:
+            href = request.build_absolute_uri(href)
+
+        return href
 
     def get_href_parent_ids(self, obj):
         """Returns a dictionary mapping parent object keys to their values for
@@ -605,13 +669,10 @@ class RootResource(WebAPIResource):
         self.list_child_resources = child_resources
 
     def get(self, request, *args, **kwargs):
-        child_hrefs = {}
-
-        for resource in self.list_child_resources:
-            child_hrefs[resource.name_plural] = resource.uri_name + '/'
-
         return 200, {
-            'child_hrefs': child_hrefs,
+            'links': self.get_links_for_resources(self.list_child_resources,
+                                                  request=request,
+                                                  *args, **kwargs)
         }
 
 
@@ -638,6 +699,7 @@ class UserResource(WebAPIResource):
     def has_modify_permissions(self, request, user, *args, **kwargs):
         """Returns whether or not the user can modify this object."""
         return request.user.is_authenticated() and user.pk == request.user.pk
+
 
 class GroupResource(WebAPIResource):
     """A default resource for representing a Django Group model."""
