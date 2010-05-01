@@ -664,16 +664,67 @@ class RootResource(WebAPIResource):
     name = 'root'
     name_plural = 'root'
 
-    def __init__(self, child_resources=[]):
+    def __init__(self, child_resources=[], include_uri_templates=True):
         super(RootResource, self).__init__()
         self.list_child_resources = child_resources
+        self._uri_templates = {}
+        self._include_uri_templates = include_uri_templates
 
     def get(self, request, *args, **kwargs):
-        return 200, {
+        data = {
             'links': self.get_links_for_resources(self.list_child_resources,
                                                   request=request,
-                                                  *args, **kwargs)
+                                                  *args, **kwargs),
         }
+
+        if self._include_uri_templates:
+            data['uri_templates'] = self.get_uri_templates(request, *args,
+                                                           **kwargs)
+
+        return 200, data
+
+    def get_uri_templates(self, request, *args, **kwargs):
+        """Returns all URI templates in the resource tree.
+
+        REST APIs can be very chatty if a client wants to be well-behaved
+        and crawl the resource tree asking for the links, instead of
+        hard-coding the paths. The benefit is that they can keep from
+        breaking when paths change. The downside is that it can take many
+        HTTP requests to get the right resource.
+
+        This list of all URI templates allows clients who know the resource
+        name and the data they care about to simply plug them into the
+        URI template instead of trying to crawl over the whole tree. This
+        can make things far more efficient.
+        """
+        if not self._uri_templates:
+            self._uri_templates = {}
+            base_href = request.build_absolute_uri()
+
+            for name, href in self._walk_resources(self, base_href):
+                self._uri_templates[name] = href
+
+        return self._uri_templates
+
+    def _walk_resources(self, resource, list_href):
+        yield resource.name_plural, list_href
+
+        for child in resource.list_child_resources:
+            child_href = list_href + child.uri_name + '/'
+
+            for name, href in self._walk_resources(child, child_href):
+                yield name, href
+
+        if resource.uri_object_key:
+            object_href = '%s{%s}/' % (list_href, resource.uri_object_key)
+
+            yield resource.name, object_href
+
+            for child in resource.item_child_resources:
+                child_href = object_href + child.uri_name + '/'
+
+                for name, href in self._walk_resources(child, child_href):
+                    yield name, href
 
 
 class UserResource(WebAPIResource):
