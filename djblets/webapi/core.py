@@ -292,10 +292,10 @@ class WebAPIResponsePaginated(WebAPIResponse):
     * max-results - The maximum number of results to return in the request.
     """
     def __init__(self, request, queryset, results_key="results",
-                 prev_key="prev_href", next_key="next_href",
+                 prev_key="prev", next_key="next",
                  total_results_key="total_results",
                  default_max_results=25, max_results_cap=200,
-                 *args, **kwargs):
+                 extra_data={}, *args, **kwargs):
         try:
             start = int(request.GET.get('start', 0))
         except ValueError:
@@ -315,15 +315,23 @@ class WebAPIResponsePaginated(WebAPIResponse):
             results_key: results,
             total_results_key: total_results,
         }
+        data.update(extra_data)
+
+        full_path = request.build_absolute_uri(request.path)
 
         if start > 0:
-            data[prev_key] = "%s?start=%s&max-results=%s" % \
-                             (request.path, max(start - max_results, 0),
-                              max_results)
+            data['links'][prev_key] = {
+                'method': 'GET',
+                'href': '%s?start=%s&max-results=%s' %
+                        (full_path, max(start - max_results, 0), max_results),
+            }
 
         if start + len(results) < total_results:
-            data[next_key] = "%s?start=%s&max-results=%s" % \
-                             (request.path, start + max_results, max_results)
+            data['links'][next_key] = {
+                'method': 'GET',
+                'href': '%s?start=%s&max-results=%s' %
+                        (full_path, start + max_results, max_results),
+            }
 
         WebAPIResponse.__init__(self, request, obj=data, *args, **kwargs)
 
