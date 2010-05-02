@@ -111,16 +111,16 @@ class WebAPIResource(object):
     WebAPIResource calls the following functions based on the type of
     HTTP request:
 
-    * ``get`` - HTTP GET for individual objects.
-    * ``get_list`` - HTTP GET for resources representing lists of objects.
-    * ``create`` - HTTP POST on resources representing lists of objects.
-                   This is expected to return the object and an HTTP
-                   status of 201 CREATED, on success.
-    * ``update`` - HTTP PUT on individual objects to modify their state
-                   based on full or partial data.
-    * ``delete`` - HTTP DELETE on an individual object. This is expected
-                   to return a status of HTTP 204 No Content on success.
-                   The default implementation just deletes the object.
+      * ``get`` - HTTP GET for individual objects.
+      * ``get_list`` - HTTP GET for resources representing lists of objects.
+      * ``create`` - HTTP POST on resources representing lists of objects.
+                     This is expected to return the object and an HTTP
+                     status of 201 CREATED, on success.
+      * ``update`` - HTTP PUT on individual objects to modify their state
+                     based on full or partial data.
+      * ``delete`` - HTTP DELETE on an individual object. This is expected
+                     to return a status of HTTP 204 No Content on success.
+                     The default implementation just deletes the object.
 
     Any function that is not implemented will return an HTTP 405 Method
     Not Allowed. Functions that have handlers provided should set
@@ -132,13 +132,13 @@ class WebAPIResource(object):
     captured in the URL and are expected to return standard HTTP response
     codes, along with a payload in most cases. The functions can return any of:
 
-    * A HttpResponse
-    * A WebAPIResponse
-    * A WebAPIError
-    * A tuple of (WebAPIError, Payload)
-    * A tuple of (WebAPIError, Payload Dictionary, Headers Dictionary)
-    * A tuple of (HTTP status, Payload)
-    * A tuple of (HTTP status, Payload Dictionary, Headers Dictionary)
+      * A HttpResponse
+      * A WebAPIResponse
+      * A WebAPIError
+      * A tuple of (WebAPIError, Payload)
+      * A tuple of (WebAPIError, Payload Dictionary, Headers Dictionary)
+      * A tuple of (HTTP status, Payload)
+      * A tuple of (HTTP status, Payload Dictionary, Headers Dictionary)
 
     In general, it's best to return one of the tuples containing an HTTP
     status, and not any object, but there are cases where an object is
@@ -163,7 +163,7 @@ class WebAPIResource(object):
     There are clients that can't actually request anything but HTTP POST
     and HTTP GET. An HTML form is one such example, and Flash applications
     are another. For these cases, an HTTP POST can be made, with a special
-    ``method`` parameter passed to the URL. This can be set to the HTTP
+    ``_method`` parameter passed to the URL. This can be set to the HTTP
     method that's desired. For example, ``PUT`` or ``DELETE``.
 
 
