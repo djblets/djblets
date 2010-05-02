@@ -30,7 +30,6 @@ from xml.sax.saxutils import XMLGenerator
 
 from django.conf import settings
 from django.contrib.auth.models import User, Group
-from django.db.models.query import QuerySet
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse, Http404
 from django.utils import simplejson
@@ -65,26 +64,6 @@ class WebAPIEncoder(object):
         the superclass's encode method.
         """
         return None
-
-
-class BasicAPIEncoder(WebAPIEncoder):
-    """
-    A basic encoder that encodes dates, times, QuerySets, Users, and Groups.
-    """
-    def encode(self, o, *args, **kwargs):
-        from djblets.webapi.resources import user_resource, group_resource
-
-        if isinstance(o, QuerySet):
-            return list(o)
-        elif isinstance(o, User):
-            return user_resource.serialize_object(o, *args, **kwargs)
-        elif isinstance(o, Group):
-            return group_resource.serialize_object(o, *args, **kwargs)
-        else:
-            try:
-                return DjangoJSONEncoder().default(o)
-            except TypeError:
-                return None
 
 
 class JSONEncoderAdapter(simplejson.JSONEncoder):
@@ -205,7 +184,7 @@ class WebAPIResponse(HttpResponse):
     An API response, formatted for the desired file format.
     """
     def __init__(self, request, obj={}, stat='ok', api_format="json",
-                 status=200, headers={}):
+                 status=200, headers={}, encoders=[]):
         if api_format == "json":
             if request.FILES:
                 # When uploading a file using AJAX to a webapi view,
@@ -230,6 +209,7 @@ class WebAPIResponse(HttpResponse):
         self.api_data.update(obj)
         self.api_format = api_format
         self.content_set = False
+        self.encoders = encoders or get_registered_encoders()
 
         for header, value in headers.iteritems():
             self[header] = value
@@ -245,8 +225,11 @@ class WebAPIResponse(HttpResponse):
         the content is generated, but after the response is created.
         """
         class MultiEncoder(WebAPIEncoder):
+            def __init__(self, encoders):
+                self.encoders = encoders
+
             def encode(self, *args, **kwargs):
-                for encoder in get_registered_encoders():
+                for encoder in self.encoders:
                     result = encoder.encode(*args, **kwargs)
 
                     if result is not None:
@@ -256,7 +239,7 @@ class WebAPIResponse(HttpResponse):
 
         if not self.content_set:
             adapter = None
-            encoder = MultiEncoder()
+            encoder = MultiEncoder(self.encoders)
 
             if self.api_format == "json":
                 adapter = JSONEncoderAdapter(encoder)
@@ -403,3 +386,10 @@ def get_registered_encoders():
             __registered_encoders.append(encoder_class())
 
     return __registered_encoders
+
+
+# Backwards-compatibility
+#
+# This must be done after the classes in order to avoid a
+# circular import problem.
+from djblets.webapi.encoders import BasicAPIEncoder
