@@ -2,6 +2,7 @@ from django.conf.urls.defaults import include, patterns, url
 from django.contrib.auth.models import User, Group
 from django.core.urlresolvers import reverse, NoReverseMatch
 from django.db import models
+from django.db.models.query import QuerySet
 from django.http import HttpResponseNotAllowed, HttpResponse
 
 from djblets.util.misc import never_cache_patterns
@@ -159,6 +160,20 @@ class WebAPIResource(object):
               my_parent = myParentResource.get_object(request, *args, **kwargs)
           except ObjectDoesNotExist:
               return DOES_NOT_EXIST
+
+
+    Expanding Resources
+    -------------------
+
+    The resulting data returned from a resource will by default provide
+    links to child resources. If a lot of aggregated data is needed, then
+    instead of making several queries the caller can use the ``?expand=``
+    parameter. This takes a comma-separated list of keys in the resource
+    names found in the payloads and expands them instead of linking to them.
+
+    This can result in really large downloads, if deep expansion is made
+    when accessing lists of resources. However, it can also result in less
+    strain on the server if used correctly.
 
 
     Faking HTTP Methods
@@ -540,7 +555,13 @@ class WebAPIResource(object):
 
     def serialize_object(self, obj, *args, **kwargs):
         """Serializes the object into a Python dictionary."""
-        data = {}
+        data = {
+            'links': self.get_links(self.item_child_resources, obj,
+                                    *args, **kwargs),
+        }
+
+        request = kwargs.get('request', None)
+        expanded_resources = request.GET.get('expand', '').split(',')
 
         for field in self.fields:
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
@@ -555,10 +576,55 @@ class WebAPIResource(object):
                 elif isinstance(value, models.ForeignKey):
                     value = value.get()
 
-            data[field] = value
+            expand_field = field in expanded_resources
 
-        data['links'] = \
-            self.get_links(self.item_child_resources, obj, *args, **kwargs)
+            if isinstance(value, models.Model) and not expand_field:
+                resource = get_resource_for_object(value)
+                assert resource
+
+                data['links'][field] = {
+                    'method': 'GET',
+                    'href': resource.get_href(value, *args, **kwargs),
+                    'title': unicode(value),
+                }
+            elif isinstance(value, QuerySet) and not expand_field:
+                data[field] = [
+                    {
+                        'method': 'GET',
+                        'href': get_resource_for_object(o).get_href(
+                                    o, *args, **kwargs),
+                        'title': unicode(o),
+                    }
+                    for o in value.all()
+                ]
+            else:
+                data[field] = value
+
+        for resource_name in expanded_resources:
+            if resource_name not in data['links']:
+                continue
+
+            # Try to find the resource from the child list.
+            found = False
+
+            for resource in self.item_child_resources:
+                if resource.name_plural == resource_name:
+                    found = True
+                    break
+
+            if not found or not resource.model:
+                continue
+
+            del data['links'][resource_name]
+
+            extra_kwargs = {
+                self.uri_object_key: getattr(obj, self.model_object_key),
+            }
+            extra_kwargs.update(**kwargs)
+            extra_kwargs.update(self.get_href_parent_ids(obj))
+
+            data[resource_name] = resource.get_queryset(
+                is_list=True, *args, **extra_kwargs)
 
         return data
 
@@ -634,12 +700,8 @@ class WebAPIResource(object):
         }
         href_kwargs.update(self.get_href_parent_ids(obj))
 
-        try:
-            return request.build_absolute_uri(
-                reverse(self._build_named_url(self.name),
-                        kwargs=href_kwargs))
-        except NoReverseMatch:
-            return None
+        return request.build_absolute_uri(
+            reverse(self._build_named_url(self.name), kwargs=href_kwargs))
 
     def get_href_parent_ids(self, obj):
         """Returns a dictionary mapping parent object keys to their values for
