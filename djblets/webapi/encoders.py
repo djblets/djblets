@@ -3,6 +3,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
 
 from djblets.webapi.core import WebAPIEncoder
+from djblets.webapi.resources import get_resource_for_object
 
 
 class BasicAPIEncoder(WebAPIEncoder):
@@ -32,3 +33,20 @@ class BasicAPIEncoder(WebAPIEncoder):
                 return DjangoJSONEncoder().default(o)
             except TypeError:
                 return None
+
+
+class ResourceAPIEncoder(WebAPIEncoder):
+    """An encoder that encodes objects based on registered resources."""
+    def encode(self, o, *args, **kwargs):
+        if isinstance(o, QuerySet):
+            return list(o)
+
+        resource = get_resource_for_object(o)
+
+        if resource:
+            return resource.serialize_object(o, *args, **kwargs)
+
+        try:
+            return DjangoJSONEncoder().default(o)
+        except TypeError:
+            return None

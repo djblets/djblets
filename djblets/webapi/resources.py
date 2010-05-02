@@ -12,6 +12,10 @@ from djblets.webapi.errors import WebAPIError, DOES_NOT_EXIST, \
                                   PERMISSION_DENIED
 
 
+_model_to_resources = {}
+_name_to_resources = {}
+
+
 class WebAPIResource(object):
     """A resource living at a specific URL, representing an object or list
     of objects.
@@ -204,6 +208,10 @@ class WebAPIResource(object):
     }
 
     _parent_resource = None
+
+    def __init__(self):
+        _name_to_resources[self.name] = self
+        _name_to_resources[self.name_plural] = self
 
     def __call__(self, request, api_format="json", *args, **kwargs):
         """Invokes the correct HTTP handler based on the type of request."""
@@ -776,5 +784,33 @@ class GroupResource(WebAPIResource):
     allowed_methods = ('GET',)
 
 
+def register_resource_for_model(model, resource):
+    """Registers a resource as the official location for a model.
+
+    ``resource`` can be a callable function that takes an instance of
+    ``model`` and returns a ``WebAPIResource``.
+    """
+    _model_to_resources[model] = resource
+
+
+def get_resource_for_object(obj):
+    """Returns the resource for an object."""
+    resource = _model_to_resources.get(obj.__class__, None)
+
+    if not isinstance(resource, WebAPIResource) and callable(resource):
+        resource = resource(obj)
+
+    return resource
+
+def get_resource_from_name(name):
+    """Returns the resource of the specified name."""
+    return _name_to_resources.get(name, None)
+
+
 user_resource = UserResource()
 group_resource = GroupResource()
+
+# These are good defaults, and will be overridden if another class calls
+# register_resource_for_model on these models.
+register_resource_for_model(User, user_resource)
+register_resource_for_model(Group, group_resource)
