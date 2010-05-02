@@ -237,8 +237,10 @@ class WebAPIResource(object):
 
         if method in self.allowed_methods:
             if (method == "GET" and
-                (self.uri_object_key is not None and
-                 self.uri_object_key not in kwargs)):
+                ((self.uri_object_key is not None and
+                  self.uri_object_key not in kwargs) or
+                 (self.uri_object_key is None and
+                  self.list_child_resources))):
                 view = self.get_list
             else:
                 view = getattr(self, self.method_mapping.get(method, None))
@@ -408,7 +410,7 @@ class WebAPIResource(object):
                 results_key=self.list_result_key,
                 extra_data=data)
         else:
-            return data
+            return 200, data
 
     @webapi_login_required
     def create(self, request, api_format, *args, **kwargs):
@@ -665,7 +667,7 @@ class RootResource(WebAPIResource):
         self._uri_templates = {}
         self._include_uri_templates = include_uri_templates
 
-    def get(self, request, *args, **kwargs):
+    def get_list(self, request, *args, **kwargs):
         data = {
             'links': self.get_links(self.list_child_resources,
                                     request=request, *args, **kwargs),
