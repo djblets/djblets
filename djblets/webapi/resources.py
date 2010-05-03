@@ -50,7 +50,7 @@ class WebAPIResource(object):
            }
        }
 
-    Resource associated with a model may want to override the ``get_queryset``
+    Resources associated with a model may want to override the ``get_queryset``
     function to return a queryset with a more specific query.
 
     By default, an individual object's key name in the resulting payloads
@@ -548,6 +548,14 @@ class WebAPIResource(object):
 
     def get_links(self, resources=[], obj=None, request=None,
                   *args, **kwargs):
+        """Returns a dictionary of links coming off this resource.
+
+        The resulting links will point to the resources passed in
+        ``resources``, and will also provide special resources for
+        ``self`` (which points back to the official location for this
+        resource) and one per HTTP method/operation allowed on this
+        resource.
+        """
         links = {}
         base_href = None
 
