@@ -278,6 +278,7 @@ class WebAPIResponsePaginated(WebAPIResponse):
                  prev_key="prev", next_key="next",
                  total_results_key="total_results",
                  default_max_results=25, max_results_cap=200,
+                 serialize_object_func=None,
                  extra_data={}, *args, **kwargs):
         try:
             start = int(request.GET.get('start', 0))
@@ -291,7 +292,14 @@ class WebAPIResponsePaginated(WebAPIResponse):
         except ValueError:
             max_results = default_max_results
 
-        results = list(queryset[start:start + max_results])
+        results = queryset[start:start + max_results]
+
+        if serialize_object_func:
+            results = [serialize_object_func(obj)
+                       for obj in results]
+        else:
+            results = list(results)
+
         total_results = queryset.count()
 
         data = {
