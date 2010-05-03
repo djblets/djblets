@@ -166,7 +166,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
 
             if not allow_unknown:
                 for field_name in request_fields:
-                    if field_name in ('method', 'callback'):
+                    if field_name in ('_method', 'callback'):
                         # These are special names and can be ignored.
                         continue
 
