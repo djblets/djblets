@@ -190,6 +190,7 @@ class WebAPIResource(object):
     uri_object_key = None
     model_object_key = 'pk'
     model_parent_key = None
+    singleton = False
     list_child_resources = []
     item_child_resources = []
     allowed_methods = ('GET',)
@@ -326,13 +327,16 @@ class WebAPIResource(object):
         This requires that ``model`` and ``uri_object_key`` be set.
         """
         assert self.model
-        assert self.uri_object_key
+        assert self.singleton or self.uri_object_key
 
         queryset = self.get_queryset(request, *args, **kwargs)
 
-        return queryset.get(**{
-            self.model_object_key: kwargs[self.uri_object_key]
-        })
+        if self.singleton:
+            return queryset.get()
+        else:
+            return queryset.get(**{
+                self.model_object_key: kwargs[self.uri_object_key]
+            })
 
     def post(self, *args, **kwargs):
         """Handles HTTP POSTs.
@@ -375,7 +379,8 @@ class WebAPIResource(object):
 
         This may need to be overridden if needing more complex logic.
         """
-        if not self.model or self.uri_object_key is None:
+        if (not self.model or
+            (self.uri_object_key is None and not self.singleton)):
             return HttpResponseNotAllowed(self.allowed_methods)
 
         try:
@@ -491,10 +496,13 @@ class WebAPIResource(object):
                 url(child_regex, include(resource.get_url_patterns())),
             )
 
-        if self.uri_object_key:
+        if self.uri_object_key or self.singleton:
             # If the resource has particular items in it...
-            base_regex = r'^(?P<%s>%s)/' % (self.uri_object_key,
-                                            self.uri_object_key_regex)
+            if self.uri_object_key:
+                base_regex = r'^(?P<%s>%s)/' % (self.uri_object_key,
+                                                self.uri_object_key_regex)
+            elif self.singleton:
+                base_regex = r'^'
 
             urlpatterns += never_cache_patterns('',
                 url(base_regex + '$', self,
@@ -632,12 +640,12 @@ class WebAPIResource(object):
         parent_ids = {}
 
         if self._parent_resource and self.model_parent_key:
-            assert self._parent_resource.uri_object_key
-
             parent_obj = self.get_parent_object(obj)
             parent_ids = self._parent_resource.get_href_parent_ids(parent_obj)
-            parent_ids[self._parent_resource.uri_object_key] = \
-                getattr(parent_obj, self._parent_resource.model_object_key)
+
+            if self._parent_resource.uri_object_key:
+                parent_ids[self._parent_resource.uri_object_key] = \
+                    getattr(parent_obj, self._parent_resource.model_object_key)
 
         return parent_ids
 
