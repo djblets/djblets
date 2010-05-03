@@ -30,7 +30,6 @@ from xml.sax.saxutils import XMLGenerator
 
 from django.conf import settings
 from django.contrib.auth.models import User, Group
-from django.db.models.query import QuerySet
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse, Http404
 from django.utils import simplejson
@@ -56,7 +55,7 @@ class WebAPIEncoder(object):
     )
     """
 
-    def encode(self, o):
+    def encode(self, o, *args, **kwargs):
         """
         Encodes an object.
 
@@ -65,35 +64,6 @@ class WebAPIEncoder(object):
         the superclass's encode method.
         """
         return None
-
-
-class BasicAPIEncoder(WebAPIEncoder):
-    """
-    A basic encoder that encodes dates, times, QuerySets, Users, and Groups.
-    """
-    def encode(self, o):
-        if isinstance(o, QuerySet):
-            return list(o)
-        elif isinstance(o, User):
-            return {
-                'id': o.id,
-                'username': o.username,
-                'first_name': o.first_name,
-                'last_name': o.last_name,
-                'fullname': o.get_full_name(),
-                'email': o.email,
-                'url': o.get_absolute_url(),
-            }
-        elif isinstance(o, Group):
-            return {
-                'id': o.id,
-                'name': o.name,
-            }
-        else:
-            try:
-                return DjangoJSONEncoder().default(o)
-            except TypeError:
-                return None
 
 
 class JSONEncoderAdapter(simplejson.JSONEncoder):
@@ -110,13 +80,18 @@ class JSONEncoderAdapter(simplejson.JSONEncoder):
         simplejson.JSONEncoder.__init__(self, *args, **kwargs)
         self.encoder = encoder
 
+    def encode(self, o, *args, **kwargs):
+        self.encode_args = args
+        self.encode_kwargs = kwargs
+        return super(JSONEncoderAdapter, self).encode(o)
+
     def default(self, o):
         """
         Encodes an object using the supplied WebAPIEncoder.
 
         If the encoder is unable to encode this object, a TypeError is raised.
         """
-        result = self.encoder.encode(o)
+        result = self.encoder.encode(o, *self.encode_args, **self.encode_kwargs)
 
         if result is None:
             raise TypeError("%r is not JSON serializable" % (o,))
@@ -134,7 +109,7 @@ class XMLEncoderAdapter(object):
     def __init__(self, encoder, *args, **kwargs):
         self.encoder = encoder
 
-    def encode(self, o):
+    def encode(self, o, *args, **kwargs):
         self.level = 0
         self.doIndent = False
 
@@ -142,25 +117,25 @@ class XMLEncoderAdapter(object):
         self.xml = XMLGenerator(stream, settings.DEFAULT_CHARSET)
         self.xml.startDocument()
         self.startElement("rsp")
-        self.__encode(o)
+        self.__encode(o, *args, **kwargs)
         self.endElement("rsp")
         self.xml.endDocument()
         self.xml = None
 
         return stream.getvalue()
 
-    def __encode(self, o):
+    def __encode(self, o, *args, **kwargs):
         if isinstance(o, dict):
             for key, value in o.iteritems():
                 self.startElement(key)
-                self.__encode(value)
+                self.__encode(value, *args, **kwargs)
                 self.endElement(key)
         elif isinstance(o, list):
             self.startElement("array")
 
             for i in o:
                 self.startElement("item")
-                self.__encode(i)
+                self.__encode(i, *args, **kwargs)
                 self.endElement("item")
 
             self.endElement("array")
@@ -176,12 +151,12 @@ class XMLEncoderAdapter(object):
         elif o is None:
             pass
         else:
-            result = self.encoder.encode(o)
+            result = self.encoder.encode(o, *args, **kwargs)
 
             if result is None:
                 raise TypeError("%r is not XML serializable" % (o,))
 
-            return self.__encode(result)
+            return self.__encode(result, *args, **kwargs)
 
     def startElement(self, name, attrs={}):
         self.addIndent()
@@ -209,7 +184,7 @@ class WebAPIResponse(HttpResponse):
     An API response, formatted for the desired file format.
     """
     def __init__(self, request, obj={}, stat='ok', api_format="json",
-                 status=200, headers={}):
+                 status=200, headers={}, encoders=[]):
         if api_format == "json":
             if request.FILES:
                 # When uploading a file using AJAX to a webapi view,
@@ -228,11 +203,13 @@ class WebAPIResponse(HttpResponse):
 
         super(WebAPIResponse, self).__init__(mimetype=mimetype,
                                              status=status)
+        self.request = request
         self.callback = request.GET.get('callback', None)
         self.api_data = {'stat': stat}
         self.api_data.update(obj)
         self.api_format = api_format
         self.content_set = False
+        self.encoders = encoders or get_registered_encoders()
 
         for header, value in headers.iteritems():
             self[header] = value
@@ -248,9 +225,12 @@ class WebAPIResponse(HttpResponse):
         the content is generated, but after the response is created.
         """
         class MultiEncoder(WebAPIEncoder):
-            def encode(self, o):
-                for encoder in get_registered_encoders():
-                    result = encoder.encode(o)
+            def __init__(self, encoders):
+                self.encoders = encoders
+
+            def encode(self, *args, **kwargs):
+                for encoder in self.encoders:
+                    result = encoder.encode(*args, **kwargs)
 
                     if result is not None:
                         return result
@@ -259,7 +239,7 @@ class WebAPIResponse(HttpResponse):
 
         if not self.content_set:
             adapter = None
-            encoder = MultiEncoder()
+            encoder = MultiEncoder(self.encoders)
 
             if self.api_format == "json":
                 adapter = JSONEncoderAdapter(encoder)
@@ -268,7 +248,8 @@ class WebAPIResponse(HttpResponse):
             else:
                 assert False
 
-            content = adapter.encode(self.api_data)
+            content = adapter.encode(self.api_data, api_format=self.api_format,
+                                     request=self.request)
 
             if self.callback != None:
                 content = "%s(%s);" % (self.callback, content)
@@ -294,10 +275,11 @@ class WebAPIResponsePaginated(WebAPIResponse):
     * max-results - The maximum number of results to return in the request.
     """
     def __init__(self, request, queryset, results_key="results",
-                 prev_key="prev_href", next_key="next_href",
+                 prev_key="prev", next_key="next",
                  total_results_key="total_results",
                  default_max_results=25, max_results_cap=200,
-                 *args, **kwargs):
+                 serialize_object_func=None,
+                 extra_data={}, *args, **kwargs):
         try:
             start = int(request.GET.get('start', 0))
         except ValueError:
@@ -310,22 +292,37 @@ class WebAPIResponsePaginated(WebAPIResponse):
         except ValueError:
             max_results = default_max_results
 
-        results = list(queryset[start:start + max_results])
+        results = queryset[start:start + max_results]
+
+        if serialize_object_func:
+            results = [serialize_object_func(obj)
+                       for obj in results]
+        else:
+            results = list(results)
+
         total_results = queryset.count()
 
         data = {
             results_key: results,
             total_results_key: total_results,
         }
+        data.update(extra_data)
+
+        full_path = request.build_absolute_uri(request.path)
 
         if start > 0:
-            data[prev_key] = "%s?start=%s&max-results=%s" % \
-                             (request.path, max(start - max_results, 0),
-                              max_results)
+            data['links'][prev_key] = {
+                'method': 'GET',
+                'href': '%s?start=%s&max-results=%s' %
+                        (full_path, max(start - max_results, 0), max_results),
+            }
 
         if start + len(results) < total_results:
-            data[next_key] = "%s?start=%s&max-results=%s" % \
-                             (request.path, start + max_results, max_results)
+            data['links'][next_key] = {
+                'method': 'GET',
+                'href': '%s?start=%s&max-results=%s' %
+                        (full_path, start + max_results, max_results),
+            }
 
         WebAPIResponse.__init__(self, request, obj=data, *args, **kwargs)
 
@@ -335,7 +332,8 @@ class WebAPIResponseError(WebAPIResponse):
     A general error response, containing an error code and a human-readable
     message.
     """
-    def __init__(self, request, err, extra_params={}, *args, **kwargs):
+    def __init__(self, request, err, extra_params={}, headers={},
+                 *args, **kwargs):
         errdata = {
             'err': {
                 'code': err.code,
@@ -344,8 +342,11 @@ class WebAPIResponseError(WebAPIResponse):
         }
         errdata.update(extra_params)
 
+        headers = headers.copy()
+        headers.update(err.headers)
+
         WebAPIResponse.__init__(self, request, obj=errdata, stat="fail",
-                                status=err.http_status, headers=err.headers,
+                                status=err.http_status, headers=headers,
                                 *args, **kwargs)
 
 
@@ -393,3 +394,10 @@ def get_registered_encoders():
             __registered_encoders.append(encoder_class())
 
     return __registered_encoders
+
+
+# Backwards-compatibility
+#
+# This must be done after the classes in order to avoid a
+# circular import problem.
+from djblets.webapi.encoders import BasicAPIEncoder
