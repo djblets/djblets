@@ -1,7 +1,11 @@
 (function($) {
 
+var userAgent = navigator.userAgent.toLowerCase();
+
 $.extend($.browser, {
-    chrome: /chrome/.test(navigator.userAgent.toLowerCase())
+    chrome: /chrome/.test(userAgent),
+    mobileSafari: /webkit.*mobile/.test(userAgent),
+    mobileSafariIPad: /ipad.*webkit.*mobile/.test(userAgent)
 });
 
 $.fn.old_html = $.fn.html;
@@ -31,6 +35,30 @@ $.fn.html = function(value) {
     }
 
     return ret;
+}
+
+/*
+ * $.offset() on Safari on the iPad returns incorrect values, so this code
+ * will compensate.
+ *
+ * See http://dev.jquery.com/ticket/6446
+ */
+if ($.browser.mobileSafariIPad) {
+    $.fn.old_offset = $.fn.offset;
+
+    $.fn.offset = function(offset) {
+        var result = this.old_offset(offset);
+
+        if (result.top) {
+            result.top -= window.scrollY;
+        }
+
+        if (result.left) {
+            result.left -= window.scrollX;
+        }
+
+        return result;
+    }
 }
 
 jQuery.fn.extend({
@@ -860,6 +888,11 @@ jQuery.tooltip = function(el, options) {
         .hide()
         .appendTo("body");
 
+    if ($.browser.mobileSafari) {
+        /* Tooltips don't make sense on touchpads. Silently ignore. */
+        return self;
+    }
+
     el.hover(
         function() {
             if (self.children()) {
@@ -878,6 +911,39 @@ jQuery.tooltip = function(el, options) {
     return self;
 };
 
+$.fn.proxyTouchEvents = function(events) {
+    events = events || "touchstart touchmove touchend";
+
+    return $(this).bind(events, function(event) {
+        var touches = event.originalEvent.changedTouches;
+        var first = touches[0];
+        var type = "";
+
+        switch (event.type) {
+        case "touchstart":
+            type = "mousedown";
+            break;
+
+        case "touchmove":
+            type = "mousemove";
+            break;
+
+        case "touchend":
+            type = "mouseup";
+            break;
+        }
+
+        var mouseEvent = document.createEvent("MouseEvent");
+        mouseEvent.initMouseEvent(type, true, true, window, 1,
+                                  first.screenX, first.screenY,
+                                  first.clientX, first.clientY,
+                                  false, false, false, false, 0, null);
+
+        if (!event.target.dispatchEvent(mouseEvent)) {
+            event.preventDefault();
+        }
+    });
+};
 
 jQuery.extend(String.prototype, {
     strip: function() {
