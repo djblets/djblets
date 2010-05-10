@@ -28,6 +28,12 @@
 from datetime import datetime
 import logging
 import os
+import sys
+
+try:
+    from logging import WatchedFileHandler
+except ImportError:
+    from djblets.log.handlers import WatchedFileHandler
 
 from django.conf import settings
 
@@ -101,12 +107,17 @@ def init_logging():
     log_path = os.path.join(log_directory, log_name + ".log")
 
     try:
-        logging.basicConfig(
-            level=log_level,
-            format=format_str,
-            filename=log_path,
-            filemode='a'
-        )
+        if sys.platform == 'win32':
+            handler = logging.FileHandler(log_path)
+        else:
+            handler = WatchedFileHandler(log_path)
+
+        handler.setLevel(log_level)
+        handler.setFormatter(logging.Formatter(format_str))
+
+        root = logging.getLogger('')
+        root.addHandler(handler)
+        root.setLevel(log_level)
     except IOError:
         logging.basicConfig(
             level=log_level,
@@ -140,8 +151,14 @@ def init_profile_logger():
 
     if (enabled and log_directory and log_name and not _profile_log and
         getattr(settings, "LOGGING_ALLOW_PROFILING", False)):
-        handler = logging.FileHandler(
-            os.path.join(log_directory, log_name + ".prof"))
+
+        filename = os.path.join(log_directory, log_name + ".prof")
+
+        if sys.platform == 'win32':
+            handler = logging.FileHandler(filename)
+        else:
+            handler = WatchedFileHandler(filename)
+
         handler.setLevel(logging.INFO)
         handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
 
