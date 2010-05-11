@@ -49,9 +49,6 @@ class SiteSettingsForm(forms.Form):
         ```disabled_fields''' and ```disabled_reasons''' variables set on
         this form.
         """
-        if hasattr(self, "Meta"):
-            save_blacklist = getattr(self.Meta, "save_blacklist", [])
-
         for field in self.fields:
             value = self.siteconfig.get(field)
 

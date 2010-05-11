@@ -1363,8 +1363,7 @@ class _FeedParserMixin:
     _start_producturl = _start_link
 
     def _end_link(self):
-        value = self.pop('link')
-        context = self._getContext()
+        self.pop('link')
     _end_producturl = _end_link
 
     def _start_guid(self, attrsD):
@@ -1389,7 +1388,6 @@ class _FeedParserMixin:
         if self.svgOK: return
         value = self.popContent('title')
         if not value: return
-        context = self._getContext()
         self.hasTitle = 1
     _end_dc_title = _end_title
 
@@ -1414,7 +1412,7 @@ class _FeedParserMixin:
         if self._summaryKey == 'content':
             self._end_content()
         else:
-            value = self.popContent('description')
+            self.popContent('description')
         self._summaryKey = None
     _end_abstract = _end_description
     _end_dc_description = _end_description
@@ -3047,7 +3045,6 @@ def _parse_date_w3dtf(dateString):
                  '(?:(?P<julian>\d\d\d)'
                  '|(?P<month>\d\d)(?:(?P=dsep)(?P<day>\d\d))?))?')
     __tzd_re = '(?P<tzd>[-+](?P<tzdhours>\d\d)(?::?(?P<tzdminutes>\d\d))|Z)'
-    __tzd_rx = re.compile(__tzd_re)
     __time_re = ('(?P<hours>\d\d)(?P<tsep>:|)(?P<minutes>\d\d)'
                  '(?:(?P=tsep)(?P<seconds>\d\d(?:[.,]\d+)?))?'
                  + __tzd_re)

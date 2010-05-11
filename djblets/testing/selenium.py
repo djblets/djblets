@@ -20,7 +20,6 @@ __docformat__ = "restructuredtext en"
 
 import httplib
 import urllib
-import re
 
 class selenium:
     """
@@ -196,7 +195,6 @@ class selenium:
         response = conn.getresponse()
         #print response.status, response.reason
         data = unicode(response.read(), "UTF-8")
-        result = response.reason
         #print "Selenium Result: " + repr(data) + "\n\n"
         if (not data.startswith('OK')):
             raise Exception, data
@@ -246,10 +244,10 @@ class selenium:
     def get_boolean_array(self, verb, args):
         boolarr = self.get_string_array(verb, args)
         for i in range(len(boolarr)):
-            if ("true" == boolstr):
+            if ("true" == boolarr[i]):
                 boolarr[i] = True
                 continue
-            if ("false" == boolstr):
+            if ("false" == boolarr[i]):
                 boolarr[i] = False
                 continue
             raise ValueError, "result is neither 'true' nor 'false': " + boolarr[i]

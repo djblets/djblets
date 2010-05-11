@@ -1,6 +1,6 @@
 from django.conf.urls.defaults import include, patterns, url
 from django.contrib.auth.models import User, Group
-from django.core.urlresolvers import reverse, NoReverseMatch
+from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models.query import QuerySet
 from django.http import HttpResponseNotAllowed, HttpResponse

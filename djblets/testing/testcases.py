@@ -251,9 +251,6 @@ class TestServerThread(threading.Thread):
         if (settings.DATABASE_ENGINE == 'sqlite3' and
             (not settings.TEST_DATABASE_NAME or
              settings.TEST_DATABASE_NAME == ':memory:')):
-            from django.db import connection
-            db_name = connection.creation.create_test_db(0)
-
             # Import the fixture data into the test database.
             if hasattr(self, 'fixtures'):
                 # We have to use this slightly awkward syntax due to the fact

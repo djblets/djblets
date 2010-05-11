@@ -29,13 +29,11 @@ from cStringIO import StringIO
 from xml.sax.saxutils import XMLGenerator
 
 from django.conf import settings
-from django.contrib.auth.models import User, Group
-from django.core.serializers.json import DjangoJSONEncoder
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse
 from django.utils import simplejson
 from django.utils.encoding import force_unicode
 
-from djblets.webapi.errors import INVALID_FORM_DATA, INVALID_ATTRIBUTE
+from djblets.webapi.errors import INVALID_FORM_DATA
 
 
 class WebAPIEncoder(object):

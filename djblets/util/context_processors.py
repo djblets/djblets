@@ -24,10 +24,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-import os
-from datetime import datetime
-
 from django.conf import settings
+
 
 def settingsVars(request):
     return {'settings': settings}
