@@ -39,7 +39,6 @@ except ImportError:
     import Image
 
 from django import template
-from django.conf import settings
 from django.core.files import File
 
 

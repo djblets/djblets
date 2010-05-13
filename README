@@ -1,0 +1,76 @@
+Djblets is a set of utility classes and functions for web applications
+written using Django and Python.
+
+This is part of the Review Board project. To report a bug, please use the
+Review Board bug tracker at http://www.reviewboard.org/bugs/
+
+
+Modules
+=======
+
+auth
+----
+
+Flexible forms for registration processing and other useful forms.
+
+
+datagrid
+--------
+
+Customizable datagrids that represent paginated lists of database objects.
+Users can customize the list of columns they list, reorder them, and sort
+them. Datagrids take care of all the hard work behind the scenes.
+
+
+feedview
+--------
+
+Views and templates for providing a simple RSS reader. Handles caching the
+feeds for quick access.
+
+
+gravatars
+---------
+
+Template tags for inserting gravatars in a page.
+
+
+log
+---
+
+Provides middleware that handles log initialization (with support for
+reopening the log file after log rotation). If enabled in settings,
+all pages can take a ?profiling=1 parameter that will log both code and SQL
+profiling information to a separate log file.
+
+
+siteconfig
+----------
+
+A powerful module for offering dynamic settings configuration in a web UI.
+It wraps the Django settings module, stores serialized data in the database,
+and loads it into the in-memory settings module. With siteconfig, webapps
+can provide rich settings UIs without requiring that the adminsitrator
+modify their settings.py.
+
+
+testing
+-------
+
+Helper classes for unit tests. Includes some small classes for testing basic
+template tags, and classes for easily integrating Selenium unit tests.
+
+
+util
+----
+
+A collection of various utility functions, template tags, and more.
+
+
+webapi
+------
+
+A rich framework for implementing RESTful APIs in a web application.
+Webapps can either provide a complete resource tree through the
+WebAPIResource classes, or custom, simplified API handlers using
+the basic WebAPIResponse classes.

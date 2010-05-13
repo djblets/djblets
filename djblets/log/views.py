@@ -105,7 +105,7 @@ def iter_log_lines(from_timestamp, to_timestamp, requested_levels):
 
     try:
         fp = open(log_filename, 'r')
-    except IOError, e:
+    except IOError:
         # We'd log this, but it'd do very little good in practice.
         # It would only appear on the console when using the development
         # server, but production users would never see anything. So,
