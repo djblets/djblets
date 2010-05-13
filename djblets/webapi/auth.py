@@ -55,7 +55,7 @@ def basic_access_login(request):
 
 @require_POST
 @webapi
-def account_login(request, apitype="json"):
+def account_login(request, *args, **kwargs):
     username = request.POST.get('username', None)
     password = request.POST.get('password', None)
 
@@ -72,6 +72,6 @@ def account_login(request, apitype="json"):
 
 
 @webapi
-def account_logout(request, apitype="json"):
+def account_logout(request, *args, **kwargs):
     auth.logout(request)
     return WebAPIResponse(request)
