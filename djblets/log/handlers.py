@@ -54,7 +54,8 @@ class WatchedFileHandler(logging.FileHandler):
     Schroeder.
     """
     def __init__(self, filename, mode='a', encoding=None, delay=0):
-        logging.FileHandler.__init__(self, filename, mode, encoding, delay)
+        logging.FileHandler.__init__(self, filename, mode, encoding)
+
         if not os.path.exists(self.baseFilename):
             self.dev, self.ino = -1, -1
         else:
