@@ -140,6 +140,7 @@ class SeleniumUnitTest(TransactionTestCase):
         try:
             cls.selenium.start()
         except Exception, e:
+            cls.selenium = None
             raise SkipTest(e)
 
     @classmethod
