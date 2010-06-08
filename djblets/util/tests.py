@@ -27,9 +27,12 @@
 import datetime
 import unittest
 
+from django.http import HttpRequest
 from django.template import Token, TOKEN_TEXT, TemplateSyntaxError
 from django.utils.html import strip_spaces_between_tags
 
+from djblets.util.http import get_http_accept_lists, \
+                              get_http_requested_mimetype
 from djblets.util.misc import cache_memoize
 from djblets.util.testing import TestCase, TagTest
 from djblets.util.templatetags import djblets_deco
@@ -118,6 +121,65 @@ class ErrorBoxTest(TagTest):
                                                         Token(TOKEN_TEXT,
                                                               'errorbox "id" ' +
                                                               '"foo"')))
+
+
+class HttpTest(TestCase):
+    def setUp(self):
+        self.request = HttpRequest()
+        self.request.META['HTTP_ACCEPT'] = \
+            'application/json;q=0.5,application/xml,text/plain;q=0.0,*/*;q=0.0'
+
+    def test_http_accept_lists(self):
+        """Testing djblets.http.get_http_accept_lists"""
+
+        acceptable_mimetypes, unacceptable_mimetypes = \
+            get_http_accept_lists(self.request)
+
+        self.assertEqual(acceptable_mimetypes,
+                         ['application/xml', 'application/json'])
+        self.assertEqual(unacceptable_mimetypes, ['text/plain', '*/*'])
+
+    def test_get_requested_mimetype_with_supported_mimetype(self):
+        """Testing djblets.http.get_requested_mimetype with supported mimetype"""
+        self.assertEqual(
+            get_http_requested_mimetype(self.request, ['foo/bar',
+                                                       'application/json']),
+            'application/json')
+        self.assertEqual(
+            get_http_requested_mimetype(self.request, ['application/xml']),
+            'application/xml')
+        self.assertEqual(
+            get_http_requested_mimetype(self.request, ['application/json',
+                                                       'application/xml']),
+            'application/xml')
+
+    def test_get_requested_mimetype_with_no_consensus(self):
+        """Testing djblets.http.get_requested_mimetype with no consensus between client and server"""
+        self.request = HttpRequest()
+        self.request.META['HTTP_ACCEPT'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+
+        self.assertEqual(
+            get_http_requested_mimetype(self.request, ['application/json',
+                                                       'application/x-foo']),
+            'application/json')
+
+    def test_get_requested_mimetype_with_wildcard_supported_mimetype(self):
+        """Testing djblets.http.get_requested_mimetype with supported */* mimetype"""
+        self.request = HttpRequest()
+        self.request.META['HTTP_ACCEPT'] = '*/*'
+        self.assertEqual(
+            get_http_requested_mimetype(self.request, ['application/json',
+                                                       'application/xml']),
+            'application/json')
+
+    def test_get_requested_mimetype_with_unsupported_mimetype(self):
+        """Testing djblets.http.get_requested_mimetype with unsupported mimetype"""
+        self.assertEqual(
+            get_http_requested_mimetype(self.request, ['text/plain']),
+            None)
+        self.assertEqual(
+            get_http_requested_mimetype(self.request, ['foo/bar']),
+            None)
 
 
 class AgeIdTest(TagTest):
