@@ -23,7 +23,13 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from django.http import HttpResponse
+
 from djblets.util.dates import http_date
+
+
+class HttpResponseNotAcceptable(HttpResponse):
+    status_code = 406
 
 
 def set_last_modified(response, timestamp):
@@ -78,3 +84,93 @@ def etag_if_match(request, etag):
     if the specified ETag matches the header.
     """
     return etag == request.META.get('If-Match', None)
+
+
+def get_http_accept_lists(request):
+    """Returns lists of mimetypes from the request's Accept header.
+
+    This will return two lists, a list of acceptable mimetypes in order
+    of requested priority, and a list of unacceptable mimetypes.
+    """
+    # Check cached copies for this in the request so we only ever do it once.
+    if (hasattr(request, 'djblets_acceptable_mimetypes') and
+        hasattr(request, 'djblets_unacceptable_mimetypes')):
+        return request.djblets_acceptable_mimetypes, \
+               request.djblets_unacceptable_mimetypes
+
+    acceptable_mimetypes = []
+    unacceptable_mimetypes = []
+
+    for accept_item in request.META.get('HTTP_ACCEPT', '').strip().split(','):
+        parts = accept_item.strip().split(";")
+        mimetype = parts[0]
+        priority = 1.0
+
+        for part in parts[1:]:
+            try:
+                key, value = part.split('=')
+            except ValueError:
+                # There's no '=' in that part.
+                continue
+
+            if key == 'q':
+                try:
+                    priority = float(value)
+                except ValueError:
+                    # The value isn't a number.
+                    continue
+
+        if priority == 0:
+            unacceptable_mimetypes.append(mimetype)
+        else:
+            acceptable_mimetypes.append((mimetype, priority))
+
+    acceptable_mimetypes.sort(key=lambda x: x[1], reverse=True)
+    acceptable_mimetypes = [mimetype[0] for mimetype in acceptable_mimetypes]
+
+    setattr(request, 'djblets_acceptable_mimetypes', acceptable_mimetypes)
+    setattr(request, 'djblets_unacceptable_mimetypes', unacceptable_mimetypes)
+
+    return acceptable_mimetypes, unacceptable_mimetypes
+
+
+def get_http_requested_mimetype(request, supported_mimetypes):
+    """Gets the mimetype that should be used for returning content.
+
+    This is based on the client's requested list of mimetypes (in the
+    HTTP Accept header) and the supported list of mimetypes that can be
+    returned in this request.
+
+    If a valid mimetype that can be used is found, it will be returned.
+    Otherwise, None is returned, and the caller is expected to return
+    HttpResponseNotAccepted.
+    """
+    acceptable_mimetypes, unacceptable_mimetypes = \
+        get_http_accept_lists(request)
+
+    supported_mimetypes_set = set(supported_mimetypes)
+    acceptable_mimetypes_set = set(acceptable_mimetypes)
+    unacceptable_mimetypes_set = set(unacceptable_mimetypes)
+
+    if not supported_mimetypes_set.intersection(acceptable_mimetypes_set):
+        # None of the requested mimetypes are in the supported list.
+        # See if there are any mimetypes that are explicitly forbidden.
+        if '*/*' in unacceptable_mimetypes:
+            acceptable_mimetypes = []
+            unacceptable_mimetypes = supported_mimetypes
+        else:
+            acceptable_mimetypes = \
+                supported_mimetypes_set.difference(unacceptable_mimetypes_set)
+
+    if acceptable_mimetypes:
+        for mimetype in acceptable_mimetypes:
+            if mimetype in supported_mimetypes:
+                return mimetype
+
+    # We didn't find any mimetypes that are on the supported list.
+    # We need to choose a default now.
+    for mimetype in supported_mimetypes:
+        if mimetype not in unacceptable_mimetypes:
+            return mimetype
+
+    return None
