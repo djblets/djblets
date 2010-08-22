@@ -215,6 +215,9 @@ class WebAPIResource(object):
     item_child_resources = []
     allowed_methods = ('GET',)
 
+    allowed_item_mimetypes = WebAPIResponse.supported_mimetypes
+    allowed_list_mimetypes = WebAPIResponse.supported_mimetypes
+
     # State
     method_mapping = {
         'GET': 'get',
@@ -230,7 +233,7 @@ class WebAPIResource(object):
         _name_to_resources[self.name_plural] = self
         _class_to_resources[self.__class__] = self
 
-    def __call__(self, request, api_format="json", *args, **kwargs):
+    def __call__(self, request, api_format=None, *args, **kwargs):
         """Invokes the correct HTTP handler based on the type of request."""
         method = request.method
 

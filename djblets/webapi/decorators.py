@@ -85,9 +85,6 @@ def webapi_login_required(view_func):
         else:
             response = WebAPIResponseError(request, NOT_LOGGED_IN)
 
-        if isinstance(response, WebAPIResponse):
-            response.api_format = kwargs.get('api_format', 'json')
-
         return response
 
     return _checklogin
@@ -110,9 +107,6 @@ def webapi_permission_required(perm):
                 response = WebAPIResponseError(request, PERMISSION_DENIED)
             else:
                 response = view_func(*args, **kwargs)
-
-            if isinstance(response, WebAPIResponse):
-                response.api_format = kwargs.get('api_format', 'json')
 
             return response
 
