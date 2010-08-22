@@ -15,6 +15,7 @@ from djblets.webapi.errors import WebAPIError, DOES_NOT_EXIST, \
 
 _model_to_resources = {}
 _name_to_resources = {}
+_class_to_resources = {}
 
 
 class WebAPIResource(object):
@@ -227,6 +228,7 @@ class WebAPIResource(object):
     def __init__(self):
         _name_to_resources[self.name] = self
         _name_to_resources[self.name_plural] = self
+        _class_to_resources[self.__class__] = self
 
     def __call__(self, request, api_format="json", *args, **kwargs):
         """Invokes the correct HTTP handler based on the type of request."""
@@ -867,6 +869,10 @@ def get_resource_for_object(obj):
 def get_resource_from_name(name):
     """Returns the resource of the specified name."""
     return _name_to_resources.get(name, None)
+
+def get_resource_from_class(klass):
+    """Returns the resource with the specified resource class."""
+    return _class_to_resources.get(klass, None)
 
 
 user_resource = UserResource()
