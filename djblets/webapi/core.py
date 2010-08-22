@@ -125,10 +125,16 @@ class XMLEncoderAdapter(object):
     def __encode(self, o, *args, **kwargs):
         if isinstance(o, dict):
             for key, value in o.iteritems():
-                self.startElement(key)
+                attrs = {}
+
+                if isinstance(key, int):
+                    attrs['value'] = str(key)
+                    key = 'int'
+
+                self.startElement(key, attrs)
                 self.__encode(value, *args, **kwargs)
                 self.endElement(key)
-        elif isinstance(o, list):
+        elif isinstance(o, (tuple, list)):
             self.startElement("array")
 
             for i in o:
