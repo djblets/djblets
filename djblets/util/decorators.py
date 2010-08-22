@@ -57,6 +57,38 @@ def simple_decorator(decorator):
     return new_decorator
 
 
+def augment_method_from(klass):
+    """Augments a class's method with new decorators or documentation.
+
+    This is useful when a class needs to add new decorators or new
+    documentation to a parent class's method, without changing the behavior
+    or burying the existing decorators.
+
+    The methods using this decorator can provide code to run at the end of
+    the parent function. Usually, though, it will just have an empty body
+    of ``pass``.
+    """
+    def _dec(func):
+        def _call(*args, **kwargs):
+            try:
+                f = real_func(*args, **kwargs)
+            finally:
+                func(*args, **kwargs)
+
+            return f
+
+        real_func = getattr(klass, func.__name__)
+
+        _call.__name__ = func.__name__
+        _call.__doc__ = func.__doc__ or real_func.__doc__
+        _call.__dict__.update(real_func.__dict__)
+        _call.__dict__.update(func.__dict__)
+
+        return _call
+
+    return _dec
+
+
 def basictag(takes_context=False):
     """
     A decorator similar to Django's @register.simple_tag that optionally
