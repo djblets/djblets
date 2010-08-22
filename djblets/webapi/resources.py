@@ -264,7 +264,7 @@ class WebAPIResource(object):
                 ((self.uri_object_key is not None and
                   self.uri_object_key not in kwargs) or
                  (self.uri_object_key is None and
-                  self.list_child_resources))):
+                  (self.list_child_resources or not self.singleton)))):
                 view = self.get_list
             else:
                 view = getattr(self, self.method_mapping.get(method, None))
@@ -818,7 +818,7 @@ class UserResource(WebAPIResource):
     )
 
     uri_object_key = 'username'
-    uri_object_key_regex = '[A-Za-z0-9_-]+'
+    uri_object_key_regex = '[A-Za-z0-9@\._-]+'
     model_object_key = 'username'
 
     allowed_methods = ('GET',)
