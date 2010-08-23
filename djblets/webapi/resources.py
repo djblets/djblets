@@ -263,10 +263,11 @@ class WebAPIResource(object):
 
         if method in self.allowed_methods:
             if (method == "GET" and
+                not self.singleton and
                 ((self.uri_object_key is not None and
                   self.uri_object_key not in kwargs) or
                  (self.uri_object_key is None and
-                  (self.list_child_resources or not self.singleton)))):
+                  self.list_child_resources))):
                 view = self.get_list
             else:
                 view = getattr(self, self.method_mapping.get(method, None))
@@ -321,7 +322,10 @@ class WebAPIResource(object):
     @property
     def name_plural(self):
         """Returns the plural name of the object, used for lists."""
-        return self.name + 's'
+        if self.singleton:
+            return self.name
+        else:
+            return self.name + 's'
 
     @property
     def item_result_key(self):
@@ -610,7 +614,7 @@ class WebAPIResource(object):
             found = False
 
             for resource in self.item_child_resources:
-                if resource.name_plural == resource_name:
+                if resource.singleton:
                     found = True
                     break
 
@@ -747,7 +751,7 @@ class RootResource(WebAPIResource):
     a project's ``urls.py``.
     """
     name = 'root'
-    name_plural = 'root'
+    singleton = True
 
     def __init__(self, child_resources=[], include_uri_templates=True):
         super(RootResource, self).__init__()
@@ -755,7 +759,11 @@ class RootResource(WebAPIResource):
         self._uri_templates = {}
         self._include_uri_templates = include_uri_templates
 
-    def get_list(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves the list of top-level resources, and a list of
+        :term:`URI templates` for accessing any resource in the tree.
+        """
         data = {
             'links': self.get_links(self.list_child_resources,
                                     request=request, *args, **kwargs),
