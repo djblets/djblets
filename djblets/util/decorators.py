@@ -77,12 +77,15 @@ def augment_method_from(klass):
 
             return f
 
-        real_func = getattr(klass, func.__name__)
+        augmented_func = getattr(klass, func.__name__)
 
         _call.__name__ = func.__name__
-        _call.__doc__ = func.__doc__ or real_func.__doc__
-        _call.__dict__.update(real_func.__dict__)
+        _call.__doc__ = func.__doc__ or augmented_func.__doc__
+        _call.__dict__.update(augmented_func.__dict__)
         _call.__dict__.update(func.__dict__)
+
+        real_func = _call.__dict__.get('_augmented_func', augmented_func)
+        _call.__dict__['_augmented_func'] = real_func
 
         return _call
 
