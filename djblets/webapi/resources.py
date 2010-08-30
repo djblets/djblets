@@ -270,10 +270,8 @@ class WebAPIResource(object):
         if method in self.allowed_methods:
             if (method == "GET" and
                 not self.singleton and
-                ((self.uri_object_key is not None and
-                  self.uri_object_key not in kwargs) or
-                 (self.uri_object_key is None and
-                  self.list_child_resources))):
+                (self.uri_object_key is None or
+                 self.uri_object_key not in kwargs)):
                 view = self.get_list
             else:
                 view = getattr(self, self.method_mapping.get(method, None))
@@ -639,7 +637,7 @@ class WebAPIResource(object):
             found = False
 
             for resource in self.item_child_resources:
-                if resource.singleton:
+                if resource_name in [resource.name, resource.name_plural]:
                     found = True
                     break
 
