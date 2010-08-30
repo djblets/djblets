@@ -209,7 +209,8 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                                 "'%s' is not a valid value. Valid values "
                                 "are: %s" % (
                                     value,
-                                    ', '.join(["'%s'" for choice in choices])
+                                    ', '.join(["'%s'" % choice
+                                               for choice in choices])
                                 )
                             ]
                     elif issubclass(info['type'], bool):
