@@ -196,7 +196,10 @@ class WebAPIResponse(HttpResponse):
     def __init__(self, request, obj={}, stat='ok', api_format=None,
                  status=200, headers={}, encoders=[]):
         if not api_format:
-            api_format = request.GET.get('api_format', None)
+            if request.method == 'GET':
+                api_format = request.GET.get('api_format', None)
+            else:
+                api_format = request.POST.get('api_format', None)
 
         if not api_format:
             mimetype = get_http_requested_mimetype(request, self.supported_mimetypes)
