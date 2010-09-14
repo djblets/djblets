@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from djblets import __version__, __version_info__, is_release
 
 
-PY_VERSIONS = ["2.4", "2.5", "2.6"]
+PY_VERSIONS = ["2.4", "2.5", "2.6", "2.7"]
 
 LATEST_PY_VERSION = PY_VERSIONS[-1]
 
