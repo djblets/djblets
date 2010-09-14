@@ -28,7 +28,7 @@
 from django.http import HttpRequest
 
 from djblets.util.decorators import simple_decorator
-from djblets.webapi.core import WebAPIResponse, WebAPIResponseError
+from djblets.webapi.core import WebAPIResponseError
 from djblets.webapi.errors import NOT_LOGGED_IN, PERMISSION_DENIED, \
                                   INVALID_FORM_DATA
 
