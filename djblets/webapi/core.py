@@ -33,6 +33,7 @@ from django.http import HttpResponse
 from django.utils import simplejson
 from django.utils.encoding import force_unicode
 
+from djblets.util.http import get_http_requested_mimetype
 from djblets.webapi.errors import INVALID_FORM_DATA
 
 
@@ -125,10 +126,16 @@ class XMLEncoderAdapter(object):
     def __encode(self, o, *args, **kwargs):
         if isinstance(o, dict):
             for key, value in o.iteritems():
-                self.startElement(key)
+                attrs = {}
+
+                if isinstance(key, int):
+                    attrs['value'] = str(key)
+                    key = 'int'
+
+                self.startElement(key, attrs)
                 self.__encode(value, *args, **kwargs)
                 self.endElement(key)
-        elif isinstance(o, list):
+        elif isinstance(o, (tuple, list)):
             self.startElement("array")
 
             for i in o:
@@ -181,23 +188,39 @@ class WebAPIResponse(HttpResponse):
     """
     An API response, formatted for the desired file format.
     """
-    def __init__(self, request, obj={}, stat='ok', api_format="json",
+    supported_mimetypes = [
+        'application/json',
+        'application/xml',
+    ]
+
+    def __init__(self, request, obj={}, stat='ok', api_format=None,
                  status=200, headers={}, encoders=[]):
-        if api_format == "json":
-            if request.FILES:
-                # When uploading a file using AJAX to a webapi view,
-                # we must set the mimetype to text/plain. If we use
-                # application/json instead, the browser will ask the user
-                # to save the file. It's not great, but it's what we must do.
-                mimetype = "text/plain"
+        if not api_format:
+            if request.method == 'GET':
+                api_format = request.GET.get('api_format', None)
             else:
-                mimetype = "application/json"
+                api_format = request.POST.get('api_format', None)
+
+        if not api_format:
+            mimetype = get_http_requested_mimetype(request, self.supported_mimetypes)
+        elif api_format == "json":
+            mimetype = 'application/json'
         elif api_format == "xml":
-            mimetype = "application/xml"
+            mimetype = 'application/xml'
         else:
+            mimetype = None
+
+        if not mimetype:
             self.status_code = 400
             self.content_set = True
             return
+
+        if mimetype == 'application/json' and request.FILES:
+            # When uploading a file using AJAX to a webapi view,
+            # we must set the mimetype to text/plain. If we use
+            # application/json instead, the browser will ask the user
+            # to save the file. It's not great, but it's what we must do.
+            mimetype = 'text/plain'
 
         super(WebAPIResponse, self).__init__(mimetype=mimetype,
                                              status=status)
@@ -205,8 +228,8 @@ class WebAPIResponse(HttpResponse):
         self.callback = request.GET.get('callback', None)
         self.api_data = {'stat': stat}
         self.api_data.update(obj)
-        self.api_format = api_format
         self.content_set = False
+        self.mimetype = mimetype
         self.encoders = encoders or get_registered_encoders()
 
         for header, value in headers.iteritems():
@@ -239,15 +262,15 @@ class WebAPIResponse(HttpResponse):
             adapter = None
             encoder = MultiEncoder(self.encoders)
 
-            if self.api_format == "json":
+            # See the note above about the check for text/plain.
+            if self.mimetype in ['application/json', 'text/plain']:
                 adapter = JSONEncoderAdapter(encoder)
-            elif self.api_format == "xml":
+            elif self.mimetype == "application/xml":
                 adapter = XMLEncoderAdapter(encoder)
             else:
                 assert False
 
-            content = adapter.encode(self.api_data, api_format=self.api_format,
-                                     request=self.request)
+            content = adapter.encode(self.api_data, request=self.request)
 
             if self.callback != None:
                 content = "%s(%s);" % (self.callback, content)

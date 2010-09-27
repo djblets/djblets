@@ -28,7 +28,7 @@
 from django.http import HttpRequest
 
 from djblets.util.decorators import simple_decorator
-from djblets.webapi.core import WebAPIResponse, WebAPIResponseError
+from djblets.webapi.core import WebAPIResponseError
 from djblets.webapi.errors import NOT_LOGGED_IN, PERMISSION_DENIED, \
                                   INVALID_FORM_DATA
 
@@ -47,23 +47,34 @@ def _find_httprequest(args):
 
 @simple_decorator
 def webapi(view_func):
-    """
-    Checks the API format desired for this handler and sets it in the
-    resulting WebAPIResponse.
-    """
-    def _dec(*args, **kwargs):
-        response = view_func(*args, **kwargs)
+    """Indicates that a view is a Web API handler."""
+    return view_func
 
-        if isinstance(response, WebAPIResponse):
-            response.api_format = kwargs.get('api_format', 'json')
 
-        return response
+def webapi_response_errors(*errors):
+    """Specifies the type of errors that the response may return.
+
+    This can be used for generating documentation or schemas that cover
+    the possible error responses of methods on a resource.
+    """
+    def _dec(view_func):
+        def _call(*args, **kwargs):
+            return view_func(*args, **kwargs)
+
+        _call.__name__ = view_func.__name__
+        _call.__doc__ = view_func.__doc__
+        _call.__dict__.update(view_func.__dict__)
+
+        existing_errors = getattr(view_func, 'response_errors', set())
+        _call.response_errors = existing_errors.union(set(errors))
+
+        return _call
 
     return _dec
 
 
+@webapi_response_errors(NOT_LOGGED_IN)
 @simple_decorator
-@webapi
 def webapi_login_required(view_func):
     """
     Checks that the user is logged in before invoking the view. If the user
@@ -85,15 +96,14 @@ def webapi_login_required(view_func):
         else:
             response = WebAPIResponseError(request, NOT_LOGGED_IN)
 
-        if isinstance(response, WebAPIResponse):
-            response.api_format = kwargs.get('api_format', 'json')
-
         return response
+
+    view_func.login_required = True
 
     return _checklogin
 
 
-@webapi
+@webapi_response_errors(NOT_LOGGED_IN, PERMISSION_DENIED)
 def webapi_permission_required(perm):
     """
     Checks that the user is logged in and has the appropriate permissions
@@ -111,9 +121,6 @@ def webapi_permission_required(perm):
             else:
                 response = view_func(*args, **kwargs)
 
-            if isinstance(response, WebAPIResponse):
-                response.api_format = kwargs.get('api_format', 'json')
-
             return response
 
         return _checkpermissions
@@ -121,6 +128,7 @@ def webapi_permission_required(perm):
     return _dec
 
 
+@webapi_response_errors(INVALID_FORM_DATA)
 def webapi_request_fields(required={}, optional={}, allow_unknown=False):
     """Validates incoming fields for a request.
 
@@ -201,7 +209,8 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                                 "'%s' is not a valid value. Valid values "
                                 "are: %s" % (
                                     value,
-                                    ', '.join(["'%s'" for choice in choices])
+                                    ', '.join(["'%s'" % choice
+                                               for choice in choices])
                                 )
                             ]
                     elif issubclass(info['type'], bool):
@@ -222,6 +231,18 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                 }
 
             return view_func(*args, **new_kwargs)
+
+        _validate.__name__ = view_func.__name__
+        _validate.__doc__ = view_func.__doc__
+        _validate.__dict__.update(view_func.__dict__)
+        _validate.required_fields = required.copy()
+        _validate.optional_fields = optional.copy()
+
+        if hasattr(view_func, 'required_fields'):
+            _validate.required_fields.update(view_func.required_fields)
+
+        if hasattr(view_func, 'optional_fields'):
+            _validate.optional_fields.update(view_func.optional_fields)
 
         return _validate
 

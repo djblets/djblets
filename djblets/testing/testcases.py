@@ -106,6 +106,7 @@ class SeleniumUnitTest(TransactionTestCase):
     server_address = None
     test_url = None
     selenium = None
+    server_thread = None
 
     def setUp(self):
         if (not self.reuse_live_server or

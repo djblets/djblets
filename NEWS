@@ -1,4 +1,114 @@
-version 0.6.1 final (13-May-2010):
+version 0.6.4 final (14-September-2010):
+	* djblets.testing:
+		* An undefined variable error when using the Selenium test support
+		  has been fixed.
+
+	* djblets.util:
+		* Added an augment_method_from decorator for augmenting existing
+		  functions.
+
+		  This allows a subclass to augment a parent class's function's
+		  documentation and decorators. The existing decorators are
+		  automatically inherited. Where this becomes useful is where you have
+		  several classes that share common logic, but may need further
+		  restrictions or new documentation.
+
+		  The defined function is meant to have an empty body (or 'pass'),
+		  but it can contain code wich will be executed after the parent
+		  function. No returned values will be used, however.
+
+	* djblets.webapi:
+		* When serializing a dictionary in a webapi response into XML, we
+		  now properly serialize keys that are integers. They are serialized
+		  as <int value="...">.
+
+		* Fixed a circular dependency that occured between resources.py,
+		  encoders.py, and core.py (depending on which was first imported).
+
+		* The User resource now accepts a '.' in the username.
+
+		* List-only resources now always have their get_list function called,
+		  regardless of whether it had list_child_resources defined.
+
+		* Singleton resources (resources that exist as a single child item
+		  with no object list) must now have the 'singleton' parameter set
+		  to 'True'.
+
+		* HTTP Accept mimetypes and ?api_format= are now supported properly
+		  for resources.
+
+		* Specifying api_format in POST requests now works.
+
+		* Resource classes instances can now be queried by class, using
+		  the get_resource_from_class function.
+
+		* Resource classes can now be introspected:
+
+			* Functions can list which error classes the client can expect
+			  to receive using the @webapi_response_errors decorator. It can
+			  be queried using function.response_errors.
+
+			* The list of fields that can or must be specified for
+			  HTTP GET/PUT/POST can now be queried. It can be queried using
+			  function.required_fields and function.optional_fields.
+
+			* Usage of @webapi_login_required can now be checked by accessing
+			  function.login_required.
+
+			* The list of fields on a resource should now be a dictionary,
+			  which can include a description of the field.
+
+			* The custom links on a resource can now be explicitly listed
+			  by overriding the get_related_links function.
+
+
+version 0.6.3 final (4-July-2010):
+	* djblets.testing:
+		* Fixed Selenium unit testing to properly skip the tests when
+		  the Selenium server was down.
+
+	* djblets.util:
+		* Added utility functions for HTTP Accept-based content negotation.
+
+		  This adds new get_http_requested_mimetype and get_http_accept_lists
+		  functions for doing content negotiation using the HTTP Accept request
+		  header. This header allows clients to tell the server which mimetypes
+		  it accepts or explicitly forbids, based on priorities, so that the
+		  server can send the right data. This can allow a single URL to return
+		  various forms of data based on the client (HTML, PDF, JSON, etc.).
+
+		  The get_http_accept_lists() function parses the HTTP Accept request
+		  header and returns sorted lists of acceptable mimetypes and
+		  unacceptable mimetypes.  These are sorted based on the priorities in
+		  the header.
+
+		  The get_http_requested_mimetype() function takes a HttpRequest and a
+		  list of supported mimetypes for that URL and then, based on the
+		  results of get_http_accept_lists() and the supported mimetypes,
+		  determines what mimetype the server should be using. If nothing is
+		  supported, it will return None, and the server is expected to return
+		  a HttpResponseNotAcceptable.
+
+	* JavaScript:
+		* This adds some stuff to gravy to make sites work better on the
+		  iPhone/iPad versions of Safari.  A new $.proxyTouchEvents function
+		  has been added, which causes touch screen events to be forwarded to
+		  existing mouse event handlers. It's intended for basic use cases
+		  where multi-touch events really don't need to be handled.
+
+		* $.browser has been updated with a 'mobileSafari' check, making it
+		  easier to determine whether we're running on the iPhone/iPad.
+
+		* A workaround for jQuery bug #6446 has been implemented, which
+		  basically fixes an issue with the result from $.offset() being
+		  incorrect.
+
+		* Tooltips are disabled on iPhone/Pad, as they're really not at all
+		  useful and their hover events manage to get in the way of other
+		  events.
+
+
+version 0.6.2 final (13-May-2010):
 	* djblets.log:
 		* Fix a compatibility error with Python 2.4 and 2.5.
 

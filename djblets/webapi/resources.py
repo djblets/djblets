@@ -5,16 +5,20 @@ from django.db import models
 from django.db.models.query import QuerySet
 from django.http import HttpResponseNotAllowed, HttpResponse
 
+from djblets.util.decorators import augment_method_from
 from djblets.util.misc import never_cache_patterns
 from djblets.webapi.core import WebAPIResponse, WebAPIResponseError, \
                                 WebAPIResponsePaginated
-from djblets.webapi.decorators import webapi_login_required
+from djblets.webapi.decorators import webapi_login_required, \
+                                      webapi_response_errors, \
+                                      webapi_request_fields
 from djblets.webapi.errors import WebAPIError, DOES_NOT_EXIST, \
                                   PERMISSION_DENIED
 
 
 _model_to_resources = {}
 _name_to_resources = {}
+_class_to_resources = {}
 
 
 class WebAPIResource(object):
@@ -204,7 +208,7 @@ class WebAPIResource(object):
 
     # Configuration
     model = None
-    fields = ()
+    fields = {}
     uri_object_key_regex = '[0-9]+'
     uri_object_key = None
     model_object_key = 'pk'
@@ -213,6 +217,9 @@ class WebAPIResource(object):
     list_child_resources = []
     item_child_resources = []
     allowed_methods = ('GET',)
+
+    allowed_item_mimetypes = WebAPIResponse.supported_mimetypes
+    allowed_list_mimetypes = WebAPIResponse.supported_mimetypes
 
     # State
     method_mapping = {
@@ -227,8 +234,9 @@ class WebAPIResource(object):
     def __init__(self):
         _name_to_resources[self.name] = self
         _name_to_resources[self.name_plural] = self
+        _class_to_resources[self.__class__] = self
 
-    def __call__(self, request, api_format="json", *args, **kwargs):
+    def __call__(self, request, api_format=None, *args, **kwargs):
         """Invokes the correct HTTP handler based on the type of request."""
         method = request.method
 
@@ -261,10 +269,9 @@ class WebAPIResource(object):
 
         if method in self.allowed_methods:
             if (method == "GET" and
-                ((self.uri_object_key is not None and
-                  self.uri_object_key not in kwargs) or
-                 (self.uri_object_key is None and
-                  self.list_child_resources))):
+                not self.singleton and
+                (self.uri_object_key is None or
+                 self.uri_object_key not in kwargs)):
                 view = self.get_list
             else:
                 view = getattr(self, self.method_mapping.get(method, None))
@@ -319,7 +326,10 @@ class WebAPIResource(object):
     @property
     def name_plural(self):
         """Returns the plural name of the object, used for lists."""
-        return self.name + 's'
+        if self.singleton:
+            return self.name
+        else:
+            return self.name + 's'
 
     @property
     def item_result_key(self):
@@ -394,6 +404,7 @@ class WebAPIResource(object):
         """
         return self.update(request, *args, **kwargs)
 
+    @webapi_response_errors(DOES_NOT_EXIST, PERMISSION_DENIED)
     def get(self, request, *args, **kwargs):
         """Handles HTTP GETs to individual object resources.
 
@@ -419,6 +430,23 @@ class WebAPIResource(object):
                                                         *args, **kwargs),
         }
 
+    @webapi_request_fields(
+        optional={
+            'start': {
+                'type': int,
+                'description': 'The 0-based index of the first result in the '
+                               'list. The start index is usually the previous '
+                               'start index plus the number of previous '
+                               'results. By default, this is 0.',
+            },
+            'max-results': {
+                'type': int,
+                'description': 'The maximum number of results to return in '
+                               'this list. By default, this is 25.',
+            }
+        },
+        allow_unknown=True
+    )
     def get_list(self, request, *args, **kwargs):
         """Handles HTTP GETs to list resources.
 
@@ -464,6 +492,7 @@ class WebAPIResource(object):
         return HttpResponseNotAllowed(self.allowed_methods)
 
     @webapi_login_required
+    @webapi_response_errors(DOES_NOT_EXIST, PERMISSION_DENIED)
     def delete(self, request, api_format, *args, **kwargs):
         """Handles HTTP DELETE requests to object resources.
 
@@ -563,7 +592,7 @@ class WebAPIResource(object):
         request = kwargs.get('request', None)
         expanded_resources = request.GET.get('expand', '').split(',')
 
-        for field in self.fields:
+        for field in list(self.fields):
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
 
             if serialize_func and callable(serialize_func):
@@ -608,7 +637,7 @@ class WebAPIResource(object):
             found = False
 
             for resource in self.item_child_resources:
-                if resource.name_plural == resource_name:
+                if resource_name in [resource.name, resource.name_plural]:
                     found = True
                     break
 
@@ -688,7 +717,30 @@ class WebAPIResource(object):
                 'href': '%s%s/' % (clean_base_href, resource.uri_name),
             }
 
+        for key, info in self.get_related_links(obj, request).iteritems():
+            links[key] = {
+                'method': info['method'],
+                'href': info['href'],
+            }
+
+            if 'title' in info:
+                links[key]['title'] = info['title']
+
         return links
+
+    def get_related_links(self, obj=None, request=None, *args, **kwargs):
+        """Returns links related to this resource.
+
+        The result should be a dictionary of link names to a dictionary of
+        information. The information should contain:
+
+        * 'method' - The HTTP method
+        * 'href' - The URL
+        * 'title' - The title of the link (optional)
+        * 'resource' - The WebAPIResource instance
+        * 'list-resource' - True if this links to a list resource (optional)
+        """
+        return {}
 
     def get_href(self, obj, request, *args, **kwargs):
         """Returns the URL for this object."""
@@ -745,7 +797,7 @@ class RootResource(WebAPIResource):
     a project's ``urls.py``.
     """
     name = 'root'
-    name_plural = 'root'
+    singleton = True
 
     def __init__(self, child_resources=[], include_uri_templates=True):
         super(RootResource, self).__init__()
@@ -753,7 +805,11 @@ class RootResource(WebAPIResource):
         self._uri_templates = {}
         self._include_uri_templates = include_uri_templates
 
-    def get_list(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieves the list of top-level resources, and a list of
+        :term:`URI templates` for accessing any resource in the tree.
+        """
         data = {
             'links': self.get_links(self.list_child_resources,
                                     request=request, *args, **kwargs),
@@ -812,13 +868,41 @@ class RootResource(WebAPIResource):
 class UserResource(WebAPIResource):
     """A default resource for representing a Django User model."""
     model = User
-    fields = (
-        'id', 'username', 'first_name', 'last_name', 'fullname',
-        'email', 'url'
-    )
+    fields = {
+        'id': {
+            'type': int,
+            'description': 'The numeric ID of the user.',
+        },
+        'username': {
+            'type': str,
+            'description': "The user's username.",
+        },
+        'first_name': {
+            'type': str,
+            'description': "The user's first name.",
+        },
+        'last_name': {
+            'type': str,
+            'description': "The user's last name.",
+        },
+        'fullname': {
+            'type': str,
+            'description': "The user's full name (first and last).",
+        },
+        'email': {
+            'type': str,
+            'description': "The user's e-mail address",
+        },
+        'url': {
+            'type': str,
+            'description': "The URL to the user's page on the site. "
+                           "This is deprecated and will be removed in a "
+                           "future version.",
+        },
+    }
 
     uri_object_key = 'username'
-    uri_object_key_regex = '[A-Za-z0-9_-]+'
+    uri_object_key_regex = '[A-Za-z0-9@\._-]+'
     model_object_key = 'username'
 
     allowed_methods = ('GET',)
@@ -832,6 +916,11 @@ class UserResource(WebAPIResource):
     def has_modify_permissions(self, request, user, *args, **kwargs):
         """Returns whether or not the user can modify this object."""
         return request.user.is_authenticated() and user.pk == request.user.pk
+
+    @augment_method_from(WebAPIResource)
+    def get_list(self, *args, **kwargs):
+        """Retrieves the list of users on the site."""
+        pass
 
 
 class GroupResource(WebAPIResource):
@@ -867,6 +956,10 @@ def get_resource_for_object(obj):
 def get_resource_from_name(name):
     """Returns the resource of the specified name."""
     return _name_to_resources.get(name, None)
+
+def get_resource_from_class(klass):
+    """Returns the resource with the specified resource class."""
+    return _class_to_resources.get(klass, None)
 
 
 user_resource = UserResource()
