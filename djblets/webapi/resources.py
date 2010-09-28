@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models.query import QuerySet
 from django.http import HttpResponseNotAllowed, HttpResponse
+from django.views.decorators.vary import vary_on_headers
 
 from djblets.util.decorators import augment_method_from
 from djblets.util.misc import never_cache_patterns
@@ -236,6 +237,7 @@ class WebAPIResource(object):
         _name_to_resources[self.name_plural] = self
         _class_to_resources[self.__class__] = self
 
+    @vary_on_headers('Accept')
     def __call__(self, request, api_format=None, *args, **kwargs):
         """Invokes the correct HTTP handler based on the type of request."""
         method = request.method
