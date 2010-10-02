@@ -386,10 +386,10 @@ class ExtensionManager(object):
 
         # Run evolve to do any table modification
         try:
-            django_evolution = Evolution()
-            django_evolution.evolve(verbosity=0, interactive=False,
-                                    execute=True, hint=True,
-                                    compile_sql=False, purge=False)
+            evolution = Evolution()
+            evolution.evolve(verbosity=0, interactive=False,
+                             execute=True, hint=True,
+                             compile_sql=False, purge=False)
         except CommandError, e:
             # Something went wrong while running django-evolution, so
             # grab the output.  We can't raise right away because we
