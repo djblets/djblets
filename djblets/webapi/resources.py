@@ -6,15 +6,22 @@ from django.db.models.query import QuerySet
 from django.http import HttpResponseNotAllowed, HttpResponse
 from django.views.decorators.vary import vary_on_headers
 
+from djblets.extensions.base import RegisteredExtension
+from djblets.extensions.errors import DisablingExtensionError, \
+                                      EnablingExtensionError, \
+                                      InvalidExtensionError
 from djblets.util.decorators import augment_method_from
 from djblets.util.misc import never_cache_patterns
 from djblets.webapi.core import WebAPIResponse, WebAPIResponseError, \
                                 WebAPIResponsePaginated
 from djblets.webapi.decorators import webapi_login_required, \
+                                      webapi_request_fields, \
                                       webapi_response_errors, \
-                                      webapi_request_fields
+                                      webapi_permission_required
 from djblets.webapi.errors import WebAPIError, DOES_NOT_EXIST, \
-                                  PERMISSION_DENIED
+                                  PERMISSION_DENIED, \
+                                  ENABLE_EXTENSION_FAILED, \
+                                  DISABLE_EXTENSION_FAILED
 
 
 _model_to_resources = {}
@@ -937,6 +944,69 @@ class GroupResource(WebAPIResource):
     allowed_methods = ('GET',)
 
 
+class ExtensionResource(WebAPIResource):
+    """A default resource for representing an Extension model."""
+    model = RegisteredExtension
+    fields = ('class_name', 'name', 'enabled', 'installed')
+    name = 'extension'
+    plural_name = 'extensions'
+    uri_object_key = 'extension_name'
+    uri_object_key_regex = '[.A-Za-z0-9_-]+'
+    model_object_key = 'class_name'
+
+    allowed_methods = ('GET', 'PUT',)
+
+    def __init__(self, extension_manager):
+        super(ExtensionResource, self).__init__()
+        self.extension_manager = extension_manager
+
+    @webapi_login_required
+    def get_list(self, request, *args, **kwargs):
+        return WebAPIResource.get_list(self, request, *args, **kwargs)
+
+    @webapi_login_required
+    @webapi_permission_required('extensions.change_registeredextension')
+    @webapi_request_fields(
+        required={
+            'enabled': {
+                'type': bool,
+                'description': 'Whether or not to make the extension active.'
+            },
+        },
+    )
+    def update(self, request, *args, **kwargs):
+        # Try to find the registered extension
+        try:
+            registered_extension = self.get_object(request, *args, **kwargs)
+        except ObjectDoesNotExist:
+            return DOES_NOT_EXIST
+
+        try:
+            ext_class = self.extension_manager.get_installed_extension(
+                registered_extension.class_name)
+        except InvalidExtensionError:
+            return DOES_NOT_EXIST
+
+        if kwargs.get('enabled'):
+            try:
+                self.extension_manager.enable_extension(ext_class.id)
+            except (EnablingExtensionError, InvalidExtensionError), e:
+                return ENABLE_EXTENSION_FAILED.with_message(e.message)
+        else:
+            try:
+                self.extension_manager.disable_extension(ext_class.id)
+            except (DisablingExtensionError, InvalidExtensionError), e:
+                return DISABLE_EXTENSION_FAILED.with_message(e.message)
+
+        # Refetch extension, since the ExtensionManager may have changed
+        # the model.
+        registered_extension = self.get_object(request, *args, **kwargs)
+
+        return 200, {
+            self.item_result_key: registered_extension
+        }
+
+
 def register_resource_for_model(model, resource):
     """Registers a resource as the official location for a model.
 
@@ -954,6 +1024,7 @@ def get_resource_for_object(obj):
         resource = resource(obj)
 
     return resource
+
 
 def get_resource_from_name(name):
     """Returns the resource of the specified name."""

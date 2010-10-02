@@ -1,12 +1,19 @@
+import logging
 import os
+import pkg_resources
 import shutil
 import sys
 
 from django.conf import settings
 from django.conf.urls.defaults import patterns, include
 from django.core.exceptions import ImproperlyConfigured
+from django.core.management import call_command
 from django.core.urlresolvers import get_resolver, get_mod_func
+from django.db.models import loading
 
+from djblets.extensions.errors import DisablingExtensionError, \
+                                      EnablingExtensionError, \
+                                      InvalidExtensionError
 from djblets.extensions.models import RegisteredExtension
 
 
@@ -54,6 +61,7 @@ class Settings(dict):
 
 class Extension(object):
     is_configurable = False
+    requirements = []
 
     def __init__(self):
         self.hooks = set()
@@ -80,7 +88,7 @@ class Extension(object):
 
 
 class ExtensionInfo(object):
-    def __init__(self, entrypoint, ext_class):
+    def __init__(self, entrypoint, ext_class, manager):
         metadata = {}
 
         for line in entrypoint.dist.get_metadata_lines("PKG-INFO"):
@@ -98,6 +106,7 @@ class ExtensionInfo(object):
         self.author_email = metadata.get('Author-email')
         self.license = metadata.get('License')
         self.url = metadata.get('Home-page')
+        self.app_name = '.'.join(ext_class.__module__.split('.')[:-1])
         self.enabled = False
         self.htdocs_path = os.path.join(settings.EXTENSIONS_MEDIA_ROOT,
                                         self.name)
@@ -158,29 +167,61 @@ class ExtensionManager(object):
     def get_installed_extensions(self):
         return self._extension_classes.values()
 
+    def get_installed_extension(self, extension_id):
+        if extension_id not in self._extension_classes:
+            raise InvalidExtensionError(extension_id)
+
+        return self._extension_classes[extension_id]
+
+    def get_dependent_extensions(self, dependency_extension_id):
+        if dependency_extension_id not in self._extension_instances:
+            raise InvalidExtensionError(dependency_extension_id)
+
+        dependency = self.get_installed_extension(dependency_extension_id)
+        result = []
+
+        for extension_id, extension in self._extension_classes.iteritems():
+            if extension_id == dependency_extension_id:
+                continue
+
+            for ext_requirement in extension.info.requirements:
+                if ext_requirement == dependency:
+                    result.append(extension_id)
+
+        return result
+
     def enable_extension(self, extension_id):
         if extension_id in self._extension_instances:
             # It's already enabled.
             return
 
         if extension_id not in self._extension_classes:
-            # Invalid class.
-            # TODO: Raise an exception
-            return
+            raise InvalidExtensionError(extension_id)
 
         ext_class = self._extension_classes[extension_id]
+
+        # Enable extension dependencies
+        for requirement_id in ext_class.requirements:
+            self.enable_extension(requirement_id)
+
+        self.__install_extension(ext_class)
         ext_class.registration.enabled = True
         ext_class.registration.save()
-        self.__install_extension(ext_class)
         return self.__init_extension(ext_class)
 
     def disable_extension(self, extension_id):
         if extension_id not in self._extension_instances:
-            # Invalid extension.
-            # TODO: Raise an exception
+            # It's not enabled.
             return
 
+        if extension_id not in self._extension_classes:
+            raise InvalidExtensionError(extension_id)
+
         extension = self._extension_instances[extension_id]
+
+        for dependent_id in self.get_dependent_extensions(extension_id):
+            self.disable_extension(dependent_id)
+
         extension.registration.enabled = False
         extension.registration.save()
         self.__uninstall_extension(extension)
@@ -217,7 +258,7 @@ class ExtensionManager(object):
                 # Don't override the info if we've previously loaded this
                 # class.
                 if not getattr(ext_class, "info", None):
-                    ext_class.info = ExtensionInfo(entrypoint, ext_class)
+                    ext_class.info = ExtensionInfo(entrypoint, ext_class, self)
             except Exception, e:
                 print "Error loading extension %s: %s" % (entrypoint.name, e)
                 continue
@@ -257,12 +298,20 @@ class ExtensionManager(object):
         # At this point, if we're reloading, it's possible that the user
         # has removed some extensions. Go through and remove any that we
         # can no longer find.
-        for class_name in self._extension_classes.keys():
+        #
+        # While we're at it, since we're at a point where we've seen all
+        # extensions, we can set the ExtensionInfo.requirements for
+        # each extension
+        for class_name, ext_class in self._extension_classes.iteritems():
             if class_name not in found_extensions:
                 if class_name in self._extension_instances:
                     self.disable_extension(class_name)
 
                 del self._extension_classes[class_name]
+            else:
+                ext_class.info.requirements = \
+                    [self.get_installed_extension(requirement_id)
+                     for requirement_id in ext_class.requirements]
 
     def __init_extension(self, ext_class):
         assert ext_class.id not in self._extension_instances
@@ -285,6 +334,7 @@ class ExtensionManager(object):
                 self._admin_ext_resolver.url_patterns.remove(urlpattern)
 
         extension.info.enabled = False
+
         del self._extension_instances[extension.id]
 
     def __install_extension(self, ext_class):
@@ -293,7 +343,6 @@ class ExtensionManager(object):
         This will install the contents of htdocs into the
         EXTENSIONS_MEDIA_ROOT directory.
         """
-        import pkg_resources
 
         ext_path = ext_class.info.htdocs_path
         ext_path_exists = os.path.exists(ext_path)
@@ -309,6 +358,10 @@ class ExtensionManager(object):
                 pkg_resources.resource_filename(ext_class.__module__, "htdocs")
 
             shutil.copytree(extracted_path, ext_path, symlinks=True)
+
+        # Mark the extension as installed
+        ext_class.registration.installed = True
+        ext_class.registration.save()
 
     def __uninstall_extension(self, extension):
         """

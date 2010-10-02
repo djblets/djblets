@@ -1,0 +1,63 @@
+#activity-indicator {
+  background-color: #fce94f;
+  background-image: url("../images/extensions/spinner.gif");
+  background-position: 0.4em 0.4em;
+  background-repeat: no-repeat;
+  border: 1px #c4a000 solid;
+  border-top: 0;
+  font-weight: bold;
+  left: 50%;
+  margin-left: -3em;
+  padding: 0.5em 0.6em 0.5em 2.2em;
+  position: fixed;
+  text-align: center;
+  top: 0;
+  width: 6em;
+  z-index: 20000;
+}
+
+/****************************************************************************
+ * Modal Boxes
+ ****************************************************************************/
+
+
+.modalbox {
+  background-color: white;
+  background-image: url('../images/extensions/box_top_bg.png');
+  background-position: top left;
+  background-repeat: repeat-x;
+  border: 1px #888A85 solid;
+  margin: 10px;
+}
+
+.modalbox-title {
+  background: #a2bedc url('../images/extensions/title_box_top_bg.png') repeat-x top left;
+  border-bottom: 1px #728eac solid;
+  font-size: 120%;
+  margin: 0;
+  padding: 5px 10px 5px 5px;
+}
+
+.modalbox-inner {
+  background-image: url('../images/extensions/box_bottom_bg.png');
+  background-position: bottom left;
+  background-repeat: repeat-x;
+  padding-bottom: 1px; /* IE wants this and it does no harm. */
+}
+
+.modalbox-contents {
+  margin: 10px;
+  position: relative; /* Makes this the offsetParent for calculations. */
+}
+
+.modalbox-buttons {
+  bottom: 0;
+  margin: 10px;
+  position: absolute;
+  right: 0;
+  text-align: right;
+}
+
+.modalbox-buttons input {
+  margin-left: 10px;
+}

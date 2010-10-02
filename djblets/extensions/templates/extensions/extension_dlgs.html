@@ -1,0 +1,26 @@
+<script type="text/javascript">
+
+var SITE_ROOT = "{{SITE_ROOT}}";
+
+$(document).ready(function() {
+    /*
+     * Extension IDs have periods in them.  In order to select them
+     * with jQuery, the periods must be escaped with double slashes.
+     */
+
+{%  for extension in extensions %}
+    $('#' + ('{{extension.id}}'.replace(/\./g, '\\.')) + '-enable')
+        .click(function() {
+            send_extension_webapi_request('{{extension.id}}', {enabled: "True"});
+            return false;
+        }
+    );
+    $('#' + ('{{extension.id}}'.replace(/\./g, '\\.')) + '-disable')
+        .click(function() {
+            send_extension_webapi_request('{{extension.id}}', {enabled: "False"});
+            return false;
+        }
+    );
+{%  endfor %}
+});
+</script>

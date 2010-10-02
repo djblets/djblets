@@ -13,18 +13,8 @@ def extension_list(request, extension_manager,
     extension_manager.load()
 
     return render_to_response(template_name, RequestContext(request, {
-        'extensions': extension_manager.get_installed_extensions(),
+        'extensions': extension_manager.get_installed_extensions()
     }))
-
-
-@staff_member_required
-def set_extension_enabled(request, ext_class, enabled, extension_manager):
-    if enabled:
-        extension_manager.enable_extension(ext_class)
-    else:
-        extension_manager.disable_extension(ext_class)
-
-    return HttpResponseRedirect("../../")
 
 
 @staff_member_required

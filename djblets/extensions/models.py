@@ -14,6 +14,7 @@ class RegisteredExtension(models.Model):
     class_name = models.CharField(max_length=128, unique=True)
     name = models.CharField(max_length=32)
     enabled = models.BooleanField(default=False)
+    installed = models.BooleanField(default=False)
     settings = JSONField()
 
     def __unicode__(self):
