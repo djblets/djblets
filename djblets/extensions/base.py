@@ -8,13 +8,20 @@ from django.conf import settings
 from django.conf.urls.defaults import patterns, include
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.core.urlresolvers import get_resolver, get_mod_func
 from django.db.models import loading
 
+from django_evolution.management.commands.evolve import Command as Evolution
+
 from djblets.extensions.errors import DisablingExtensionError, \
                                       EnablingExtensionError, \
+                                      InstallExtensionError, \
                                       InvalidExtensionError
 from djblets.extensions.models import RegisteredExtension
+from djblets.extensions.signals import extension_initialized, \
+                                       extension_uninitialized
+
 
 
 if not hasattr(settings, "EXTENSIONS_MEDIA_ROOT"):
@@ -62,6 +69,7 @@ class Settings(dict):
 class Extension(object):
     is_configurable = False
     requirements = []
+    resources = []
 
     def __init__(self):
         self.hooks = set()
@@ -108,6 +116,7 @@ class ExtensionInfo(object):
         self.url = metadata.get('Home-page')
         self.app_name = '.'.join(ext_class.__module__.split('.')[:-1])
         self.enabled = False
+        self.installed = False
         self.htdocs_path = os.path.join(settings.EXTENSIONS_MEDIA_ROOT,
                                         self.name)
 
@@ -147,6 +156,7 @@ class ExtensionManager(object):
 
         self._extension_classes = {}
         self._extension_instances = {}
+
         self._admin_ext_resolver = get_resolver(None)
 
         _extension_managers.append(self)
@@ -322,7 +332,10 @@ class ExtensionManager(object):
         if extension.is_configurable:
             self.__install_admin_urls(extension)
 
+        extension.info.installed = extension.registration.installed
         extension.info.enabled = True
+        settings.INSTALLED_APPS.append(extension.info.app_name)
+        extension_initialized.send(self, ext_class=extension)
 
         return extension
 
@@ -334,6 +347,8 @@ class ExtensionManager(object):
                 self._admin_ext_resolver.url_patterns.remove(urlpattern)
 
         extension.info.enabled = False
+        settings.INSTALLED_APPS.remove(extension.info.app_name)
+        extension_uninitialized.send(self, ext_class=extension)
 
         del self._extension_instances[extension.id]
 
@@ -343,7 +358,6 @@ class ExtensionManager(object):
         This will install the contents of htdocs into the
         EXTENSIONS_MEDIA_ROOT directory.
         """
-
         ext_path = ext_class.info.htdocs_path
         ext_path_exists = os.path.exists(ext_path)
 
@@ -358,6 +372,30 @@ class ExtensionManager(object):
                 pkg_resources.resource_filename(ext_class.__module__, "htdocs")
 
             shutil.copytree(extracted_path, ext_path, symlinks=True)
+
+        # Mark the extension as installed
+        ext_class.registration.installed = True
+        ext_class.registration.save()
+
+        # Now let's build any tables that this extension might need
+        settings.INSTALLED_APPS.append(ext_class.info.app_name)
+
+        # Call syncdb to create the new tables
+        loading.cache.loaded = False
+        call_command('syncdb', verbosity=0, interactive=False)
+
+        # Run evolve to do any table modification
+        try:
+            django_evolution = Evolution()
+            django_evolution.evolve(verbosity=0, interactive=False,
+                                    execute=True, hint=True,
+                                    compile_sql=False, purge=False)
+        except CommandError, e:
+            # Something went wrong while running django-evolution, so
+            # grab the output.  We can't raise right away because we
+            # still need to put stdout back the way it was
+            logging.error(e.message)
+            raise InstallExtensionError(e.message)
 
         # Mark the extension as installed
         ext_class.registration.installed = True

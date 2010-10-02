@@ -8,6 +8,11 @@ class DisablingExtensionError(Exception):
     pass
 
 
+class InstallExtensionError(Exception):
+    """An error indicating that an extension could not be installed"""
+    pass
+
+
 class InvalidExtensionError(Exception):
     """An error indicating that an extension does not exist"""
     def __init__(self, extension_id):
