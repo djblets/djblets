@@ -338,7 +338,8 @@ class ExtensionManager(object):
 
         extension.info.installed = extension.registration.installed
         extension.info.enabled = True
-        settings.INSTALLED_APPS.append(extension.info.app_name)
+        self.__add_to_installed_apps(extension)
+        self.__reset_templatetags_cache()
         extension_initialized.send(self, ext_class=extension)
 
         return extension
@@ -350,11 +351,26 @@ class ExtensionManager(object):
             for urlpattern in extension.admin_urlpatterns:
                 self._admin_ext_resolver.url_patterns.remove(urlpattern)
 
+        self.__remove_from_installed_apps(extension)
+        self.__reset_templatetags_cache()
         extension.info.enabled = False
-        settings.INSTALLED_APPS.remove(extension.info.app_name)
         extension_uninitialized.send(self, ext_class=extension)
 
         del self._extension_instances[extension.id]
+
+    def __reset_templatetags_cache(self):
+        """
+        Clears the Django templatetags_modules cache.
+        """
+        # We'll import templatetags_modules here because
+        # we want the most recent copy of templatetags_modules
+        from django.template import get_templatetags_modules, \
+                                    templatetags_modules
+        # Wipe out the contents
+        del(templatetags_modules[:])
+
+        # And reload the cache
+        get_templatetags_modules()
 
     def __install_extension(self, ext_class):
         """
@@ -382,7 +398,7 @@ class ExtensionManager(object):
         ext_class.registration.save()
 
         # Now let's build any tables that this extension might need
-        settings.INSTALLED_APPS.append(ext_class.info.app_name)
+        self.__add_to_installed_apps(ext_class)
 
         # Call syncdb to create the new tables
         loading.cache.loaded = False
@@ -404,7 +420,8 @@ class ExtensionManager(object):
         # Remove this again, since we only needed it for syncdb and
         # evolve.  __init_extension will add it again later in
         # the install.
-        settings.INSTALLED_APPS.remove(ext_class.info.app_name)
+        self.__remove_from_installed_apps(ext_class)
+
         # Mark the extension as installed
         ext_class.registration.installed = True
         ext_class.registration.save()
@@ -440,6 +457,13 @@ class ExtensionManager(object):
             self._admin_ext_resolver.url_patterns.extend(
                 extension.admin_urlpatterns)
 
+    def __add_to_installed_apps(self, extension):
+        if extension.info.app_name not in settings.INSTALLED_APPS:
+            settings.INSTALLED_APPS.append(extension.info.app_name)
+
+    def __remove_from_installed_apps(self, extension):
+        if extension.info.app_name in settings.INSTALLED_APPS:
+            settings.INSTALLED_APPS.remove(extension.info.app_name)
 
 def get_extension_managers():
     return _extension_managers

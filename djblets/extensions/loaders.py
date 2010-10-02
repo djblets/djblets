@@ -1,7 +1,5 @@
-try:
-    from pkg_resources import resource_string
-except ImportError:
-    resource_string = None
+import pkg_resources
+from pkg_resources import _manager as manager
 
 from django.template import TemplateDoesNotExist
 from django.conf import settings
@@ -13,19 +11,19 @@ def load_template_source(template_name, template_dirs=None):
     """
     Loads templates from enabled extensions.
     """
-    if resource_string:
+    if manager:
         resource = "templates/" + template_name
 
         for extmgr in get_extension_managers():
             for ext in extmgr.get_enabled_extensions():
-                package = ext.__module__
+                package = ext.info.app_name
 
                 try:
-                    return (resource_string(package, resource),
+                    return (manager.resource_string(package, resource),
                             'extension:%s:%s ' % (package, resource))
                 except Exception, e:
                     pass
 
     raise TemplateDoesNotExist, template_name
 
-load_template_source.is_usable = resource_string is not None
+load_template_source.is_usable = manager is not None
