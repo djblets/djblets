@@ -18,7 +18,8 @@ def template_hook_point(context, name):
     """
     s = ""
     for hook in TemplateHook.by_name(name):
-        s += render_to_string(hook.template_name, context)
+        if hook.applies_to(context):
+            s += render_to_string(hook.template_name, context)
 
     return s
 

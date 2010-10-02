@@ -96,7 +96,7 @@ class Extension(object):
 
 
 class ExtensionInfo(object):
-    def __init__(self, entrypoint, ext_class, manager):
+    def __init__(self, entrypoint, ext_class):
         metadata = {}
 
         for line in entrypoint.dist.get_metadata_lines("PKG-INFO"):
@@ -214,7 +214,11 @@ class ExtensionManager(object):
         for requirement_id in ext_class.requirements:
             self.enable_extension(requirement_id)
 
-        self.__install_extension(ext_class)
+        try:
+            self.__install_extension(ext_class)
+        except InstallExtensionError, e:
+            raise EnablingExtensionError(e.message)
+
         ext_class.registration.enabled = True
         ext_class.registration.save()
         return self.__init_extension(ext_class)
@@ -232,10 +236,10 @@ class ExtensionManager(object):
         for dependent_id in self.get_dependent_extensions(extension_id):
             self.disable_extension(dependent_id)
 
-        extension.registration.enabled = False
-        extension.registration.save()
         self.__uninstall_extension(extension)
         self.__uninit_extension(extension)
+        extension.registration.enabled = False
+        extension.registration.save()
 
     def load(self):
         """
@@ -268,7 +272,7 @@ class ExtensionManager(object):
                 # Don't override the info if we've previously loaded this
                 # class.
                 if not getattr(ext_class, "info", None):
-                    ext_class.info = ExtensionInfo(entrypoint, ext_class, self)
+                    ext_class.info = ExtensionInfo(entrypoint, ext_class)
             except Exception, e:
                 print "Error loading extension %s: %s" % (entrypoint.name, e)
                 continue
@@ -397,6 +401,10 @@ class ExtensionManager(object):
             logging.error(e.message)
             raise InstallExtensionError(e.message)
 
+        # Remove this again, since we only needed it for syncdb and
+        # evolve.  __init_extension will add it again later in
+        # the install.
+        settings.INSTALLED_APPS.remove(ext_class.info.app_name)
         # Mark the extension as installed
         ext_class.registration.installed = True
         ext_class.registration.save()
