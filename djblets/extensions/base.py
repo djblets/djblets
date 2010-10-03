@@ -263,7 +263,7 @@ class ExtensionManager(object):
             del sys.modules['pkg_resources']
             import pkg_resources
 
-        for entrypoint in pkg_resources.iter_entry_points(self.key):
+        for entrypoint in self._entrypoint_iterator():
             registered_ext = None
 
             try:
@@ -464,6 +464,10 @@ class ExtensionManager(object):
     def __remove_from_installed_apps(self, extension):
         if extension.info.app_name in settings.INSTALLED_APPS:
             settings.INSTALLED_APPS.remove(extension.info.app_name)
+
+    def _entrypoint_iterator(self):
+        return pkg_resources.iter_entry_points(self.key)
+
 
 def get_extension_managers():
     return _extension_managers
