@@ -267,6 +267,15 @@ def realname(user):
 
 @register.filter
 @stringfilter
+def startswith(value1, value2):
+    """
+    Returns true if value1 starts with value2.
+    """
+    return value1.startswith(value2)
+
+
+@register.filter
+@stringfilter
 def paragraphs(text):
     """
     Adds <p>...</p> tags around blocks of text in a string. This expects
