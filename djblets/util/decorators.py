@@ -28,6 +28,7 @@
 from inspect import getargspec
 
 from django import template
+from django.conf import settings
 from django.template import TemplateSyntaxError, Variable
 
 
@@ -210,3 +211,20 @@ def blocktag(tag_func):
     _setup_tag.__doc__ = tag_func.__doc__
     _setup_tag.__dict__.update(tag_func.__dict__)
     return _setup_tag
+
+
+@simple_decorator
+def root_url(url_func):
+    """Decorates a function that returns a URL in order to add the SITE_ROOT."""
+    def _add_root(*args, **kwargs):
+        url = url_func(*args, **kwargs)
+
+        if url[0] != '/':
+            raise ValueError('Returned URL is not absolute')
+
+        if hasattr(settings, 'SITE_ROOT'):
+            return '%s%s' % (settings.SITE_ROOT, url[1:])
+        else:
+            return url
+
+    return _add_root
