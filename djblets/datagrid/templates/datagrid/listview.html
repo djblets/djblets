@@ -18,7 +18,7 @@
     <tr class="datagrid-headers">
 {% for column in datagrid.columns %}
      {{column.get_header}}{% endfor %}
-     <th class="edit-columns datagrid-header" id="{{datagrid.id}}-edit"><img src="{{MEDIA_URL}}djblets/images/datagrid/edit.png" border="0" width="20" height="14" alt="{% trans "Edit columns" %}" /></th>
+     <th class="edit-columns datagrid-header" id="{{datagrid.id}}-edit"><img src="{{MEDIA_URL}}djblets/images/datagrid/edit.png?{{MEDIA_SERIAL}}" border="0" width="20" height="14" alt="{% trans "Edit columns" %}" /></th>
     </tr>
    </thead>
    <tbody>
@@ -38,7 +38,7 @@
 {% for column in datagrid.all_columns %}
 {%  with column.toggle_url as toggle_url %}
   <tr class="{{column.id}}">
-   <td><div class="datagrid-menu-checkbox">{% if column.active %}<img src="{{MEDIA_URL}}djblets/images/datagrid/checkmark.png" width="8" height="8" border="0" alt="X" />{% endif %}</div></td>
+   <td><div class="datagrid-menu-checkbox">{% if column.active %}<img src="{{MEDIA_URL}}djblets/images/datagrid/checkmark.png?{{MEDIA_SERIAL}}" width="8" height="8" border="0" alt="X" />{% endif %}</div></td>
    <td class="datagrid-menu-label"><a href="#">
 {%   if column.image_url %}
     <img src="{{column.image_url}}" width="{{column.image_width}}" height="{{column.image_height}}" alt="{{column.image_alt}}" />
