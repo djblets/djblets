@@ -364,7 +364,7 @@ class WebAPIResource(object):
         assert self.model
         assert self.singleton or self.uri_object_key
 
-        queryset = self.get_queryset(request, *args, **kwargs)
+        queryset = self.get_queryset(request, *args, **kwargs).select_related()
 
         if self.singleton:
             return queryset.get()
@@ -464,7 +464,7 @@ class WebAPIResource(object):
             return WebAPIResponsePaginated(
                 request,
                 queryset=self.get_queryset(request, is_list=True,
-                                           *args, **kwargs),
+                                           *args, **kwargs).select_related(),
                 results_key=self.list_result_key,
                 extra_data=data)
         else:
