@@ -209,43 +209,6 @@ class JSONField(models.TextField):
         return val
 
 
-class CounterProxy(object):
-    def __init__(self, field):
-        self.field = field
-        self._locks = {}
-
-    def __set__(self, obj, value):
-        obj.__dict__[self.field.name] = value
-
-    def __get__(self, obj, type=None):
-        if obj is None:
-            raise AttributeError('Can only be accessed via an instance.')
-
-        if obj in self._locks:
-            # Prevent the possibility of recursive lookups where this
-            # same CounterField on this same instance tries to initialize
-            # more than once. In this case, this will have the updated
-            # value shortly.
-            return None
-
-        #value = self.field.value_from_object(obj)
-        value = obj.__dict__[self.field.name]
-
-        if value is None:
-            if (self.field._initializer and
-                callable(self.field._initializer)):
-                self._locks[obj] = 1
-                value = self.field._initializer(obj)
-                del self._locks[obj]
-            else:
-                value = 0
-
-            setattr(obj, self.field.attname, value)
-            #obj.save()
-
-        return value
-
-
 class CounterField(models.IntegerField):
     """A field that provides atomic counter updating and smart initialization.
 
@@ -325,7 +288,8 @@ class CounterField(models.IntegerField):
 
         def _reinit(model_instance):
             """Re-initializes the value in the database from the initializer."""
-            if self._initializer and callable(self._initializer):
+            if (model_instance.pk and self._initializer and
+                callable(self._initializer)):
                 self._locks[model_instance] = 1
                 value = self._initializer(model_instance)
                 del self._locks[model_instance]
@@ -333,7 +297,9 @@ class CounterField(models.IntegerField):
                 value = 0
 
             setattr(model_instance, self.attname, value)
-            model_instance.save()
+
+            if model_instance.pk:
+                model_instance.save()
 
         super(CounterField, self).contribute_to_class(cls, name)
 
