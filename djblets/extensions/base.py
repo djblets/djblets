@@ -409,7 +409,8 @@ class ExtensionManager(object):
             evolution = Evolution()
             evolution.evolve(verbosity=0, interactive=False,
                              execute=True, hint=True,
-                             compile_sql=False, purge=False)
+                             compile_sql=False, purge=False,
+                             database=False)
         except CommandError, e:
             # Something went wrong while running django-evolution, so
             # grab the output.  We can't raise right away because we
