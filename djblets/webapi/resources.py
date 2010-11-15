@@ -467,8 +467,8 @@ class WebAPIResource(object):
                                            *args, **kwargs).select_related(),
                 results_key=self.list_result_key,
                 serialize_object_func =
-                    lambda obj: self.serialize_object(obj, request=request,
-                                                      *args, **kwargs),
+                    lambda obj: get_resource_for_object(obj).serialize_object(
+                        obj, request=request, *args, **kwargs),
                 extra_data=data)
         else:
             return 200, data
