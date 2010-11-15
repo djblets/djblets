@@ -722,7 +722,8 @@ class WebAPIResource(object):
                 'href': '%s%s/' % (clean_base_href, resource.uri_name),
             }
 
-        for key, info in self.get_related_links(obj, request).iteritems():
+        for key, info in self.get_related_links(obj, request,
+                                                *args, **kwargs).iteritems():
             links[key] = {
                 'method': info['method'],
                 'href': info['href'],
