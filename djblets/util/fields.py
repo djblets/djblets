@@ -30,6 +30,7 @@ from datetime import datetime
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
+from django.db.models import F
 from django.utils import simplejson
 from django.utils.encoding import smart_unicode
 
@@ -206,3 +207,120 @@ class JSONField(models.TextField):
             val = eval(val)
 
         return val
+
+
+class CounterField(models.IntegerField):
+    """A field that provides atomic counter updating and smart initialization.
+
+    The CounterField makes it easy to atomically update an integer,
+    incrementing or decrementing it, without raise conditions or conflicts.
+    It can update a single instance at a time, or a batch of objects at once.
+
+    CounterField is useful for storing counts of objects, reducing the number
+    of queries performed. This requires that the calling code properly
+    increments or decrements at all the right times, of course.
+
+    This takes an optional ``initializer`` parameter that, if provided, can
+    be used to auto-populate the field the first time the model instance is
+    loaded, perhaps based on querying a number of related objects. The value
+    passed to ``initializer`` must be a function taking the model instance
+    as a parameter, and must return an integer.
+
+    The model instance will gain four new functions:
+
+        * ``increment_{field_name}`` - Atomically increment by one.
+        * ``decrement_{field_name}`` - Atomically decrement by one.
+        * ``reload_{field_name}`` - Reload the value in this instance from the
+                                    database.
+        * ``reinit_{field_name}`` - Re-initializes the stored field using the
+                                    initializer function.
+
+    The field on the class (not the instance) provides two functions for
+    batch-updating models:
+
+        * ``increment`` - Takes a queryset and increments this field for
+                          each object.
+        * ``decrement`` - Takes a queryset and decrements this field for
+                          each object.
+    """
+
+    def __init__(self, verbose_name=None, name=None,
+                 initializer=None, default=None, **kwargs):
+        kwargs.update({
+            'blank': True,
+            'null': True,
+        })
+
+        super(CounterField, self).__init__(verbose_name, name, default=default,
+                                           **kwargs)
+
+        self._initializer = initializer
+        self._locks = {}
+
+    def increment(self, queryset):
+        """Increments this field on every object in the provided queryset."""
+        queryset.update(**{self.attname: F(self.attname) + 1})
+
+    def decrement(self, queryset):
+        """Decrements this field on every object in the provided queryset."""
+        queryset.update(**{self.attname: F(self.attname) - 1})
+
+    def contribute_to_class(self, cls, name):
+        def _increment(model_instance, reload_object=True):
+            """Increments this field by one."""
+            self.increment(cls.objects.filter(pk=model_instance.pk))
+
+            if reload_object:
+                _reload(model_instance)
+
+        def _decrement(model_instance, reload_object=True):
+            """Decrements this field by one."""
+            self.decrement(cls.objects.filter(pk=model_instance.pk))
+
+            if reload_object:
+                _reload(model_instance)
+
+        def _reload(model_instance):
+            """Reloads the value in this instance from the database."""
+            q = cls.objects.filter(pk=model_instance.pk)
+            setattr(model_instance, self.attname,
+                    q.values(self.attname)[0][self.attname])
+
+        def _reinit(model_instance):
+            """Re-initializes the value in the database from the initializer."""
+            if (model_instance.pk and self._initializer and
+                callable(self._initializer)):
+                self._locks[model_instance] = 1
+                value = self._initializer(model_instance)
+                del self._locks[model_instance]
+            else:
+                value = 0
+
+            setattr(model_instance, self.attname, value)
+
+            if model_instance.pk:
+                model_instance.save()
+
+        super(CounterField, self).contribute_to_class(cls, name)
+
+        setattr(cls, 'increment_%s' % self.name, _increment)
+        setattr(cls, 'decrement_%s' % self.name, _decrement)
+        setattr(cls, 'reload_%s' % self.name, _reload)
+        setattr(cls, 'reinit_%s' % self.name, _reinit)
+        setattr(cls, self.attname, self)
+
+        models.signals.post_init.connect(self._post_init, sender=cls)
+
+    def _post_init(self, instance=None, **kwargs):
+        if not instance or instance in self._locks:
+            # Prevent the possibility of recursive lookups where this
+            # same CounterField on this same instance tries to initialize
+            # more than once. In this case, this will have the updated
+            # value shortly.
+            return
+
+        value = self.value_from_object(instance)
+
+        if value is None:
+            reinit = getattr(instance, 'reinit_%s' % self.name)
+            reinit()
