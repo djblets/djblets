@@ -1,3 +1,12 @@
+version 0.6.6 final (22-November-2010):
+	* djblets.util:
+		* Fixed a compatibility problem with JSONField and Django 1.1. It
+		  was assuming support for Django 1.2's multi-database support.
+
+		* Fixed multi-database support in Django 1.2 with JSONField, where
+		  the default connection was always being used in one case.
+
+
 version 0.6.5 final (20-November-2010):
 	* djblets.datagrid:
 		* MEDIA_SERIAL is now used for all the images in the datagrid
