@@ -67,5 +67,8 @@ class SiteConfigurationManager(models.Manager):
 
         for key, siteconfig in _SITECONFIG_CACHE.copy().iteritems():
             if siteconfig.is_expired():
-                # This is stale. Get rid of it so we can load it next time.
-                del _SITECONFIG_CACHE[key]
+                try:
+                    # This is stale. Get rid of it so we can load it next time.
+                    del _SITECONFIG_CACHE[key]
+                except KeyError:
+                    pass
