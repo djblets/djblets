@@ -178,11 +178,11 @@ class JSONField(models.TextField):
 
         setattr(instance, self.attname, value)
 
-    def get_db_prep_save(self, value, connection=None):
+    def get_db_prep_save(self, value, *args, **kwargs):
         if not isinstance(value, basestring):
             value = self.dumps(value)
 
-        return super(JSONField, self).get_db_prep_save(value, connection=None)
+        return super(JSONField, self).get_db_prep_save(value, *args, **kwargs)
 
     def value_to_string(self, obj):
         return self.dumps(self.value_from_object(obj))
