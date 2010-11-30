@@ -27,15 +27,16 @@
  <h1>{{form.Meta.title}}</h1>
 
  <form action="." method="post"{% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
+{% block form_content %}
 {% if form.Meta.fieldsets %}
 {%  for fieldset in form.Meta.fieldsets %}
   <fieldset class="module aligned{% if fieldset.classes %}{% for class in fieldset.classes %} {{class}}{% endfor %}{% endif %}"{% if fieldset.id %} id="fieldset_{{fieldset.id}}"{% endif %}>
-{% if fieldset.title %}<h2>{{fieldset.title}}</h2>{% endif %}
+{%   if fieldset.title %}<h2>{{fieldset.title}}</h2>{% endif %}
 {%   if fieldset.description %}
    <div class="description">
     {{fieldset.description|paragraphs}}
    </div>
-{% endif %}
+{%   endif %}
 {%   for fieldname in fieldset.fields %}
 {%    with form|getitem:fieldname as field %}
 {%     include "siteconfig/settings_field.html" %}
@@ -50,6 +51,7 @@
 {%   endfor %}
   </fieldset>
 {% endif %}
+{% endblock %}
   <div class="submit-row">
    <input type="submit" value="{% trans "Save" %}" class="default" />
    <div style="clear: both"></div>
