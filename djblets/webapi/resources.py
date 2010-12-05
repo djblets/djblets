@@ -8,8 +8,10 @@ from django.views.decorators.vary import vary_on_headers
 
 from djblets.util.decorators import augment_method_from
 from djblets.util.misc import never_cache_patterns
-from djblets.webapi.core import WebAPIResponse, WebAPIResponseError, \
-                                WebAPIResponsePaginated
+from djblets.webapi.core import WebAPIResponse, \
+                                WebAPIResponseError, \
+                                WebAPIResponsePaginated, \
+                                SPECIAL_PARAMS
 from djblets.webapi.decorators import webapi_login_required, \
                                       webapi_response_errors, \
                                       webapi_request_fields
@@ -291,8 +293,26 @@ class WebAPIResource(object):
             elif isinstance(result, tuple):
                 headers = {}
 
+                if method == 'GET':
+                    request_params = request.GET
+                else:
+                    request_params = request.POST
+
                 if len(result) == 3:
                     headers = result[2]
+
+                if 'Location' in headers:
+                    extra_querystr = '&'.join([
+                        '%s=%s' % (param, request_params[param])
+                        for param in SPECIAL_PARAMS
+                        if param in request_params
+                    ])
+
+                    if extra_querystr:
+                        if '?' in headers['Location']:
+                            headers['Location'] += '&' + extra_querystr
+                        else:
+                            headers['Location'] += '?' + extra_querystr
 
                 if isinstance(result[0], WebAPIError):
                     return WebAPIResponseError(request,

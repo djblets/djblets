@@ -28,7 +28,7 @@
 from django.http import HttpRequest
 
 from djblets.util.decorators import simple_decorator
-from djblets.webapi.core import WebAPIResponseError
+from djblets.webapi.core import WebAPIResponseError, SPECIAL_PARAMS
 from djblets.webapi.errors import NOT_LOGGED_IN, PERMISSION_DENIED, \
                                   INVALID_FORM_DATA
 
@@ -174,7 +174,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
 
             if not allow_unknown:
                 for field_name in request_fields:
-                    if field_name in ('_method', 'callback', 'api_format'):
+                    if field_name in SPECIAL_PARAMS:
                         # These are special names and can be ignored.
                         continue
 
