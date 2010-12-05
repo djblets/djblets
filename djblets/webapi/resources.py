@@ -510,10 +510,7 @@ class WebAPIResource(object):
             return HttpResponseNotAllowed(self.allowed_methods)
 
         try:
-            queryset = self.get_queryset(request, *args, **kwargs)
-            obj = queryset.get(**{
-                self.model_object_key: kwargs[self.uri_object_key]
-            })
+            obj = self.get_object(request, *args, **kwargs)
         except self.model.DoesNotExist:
             return DOES_NOT_EXIST
 
