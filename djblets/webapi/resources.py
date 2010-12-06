@@ -612,7 +612,8 @@ class WebAPIResource(object):
         }
 
         request = kwargs.get('request', None)
-        expanded_resources = request.GET.get('expand', '').split(',')
+        expand = request.GET.get('expand', request.POST.get('expand', ''))
+        expanded_resources = expand.split(',')
 
         for field in list(self.fields):
             serialize_func = getattr(self, "serialize_%s_field" % field, None)

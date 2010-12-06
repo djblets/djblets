@@ -37,7 +37,7 @@ from djblets.util.http import get_http_requested_mimetype
 from djblets.webapi.errors import INVALID_FORM_DATA
 
 
-SPECIAL_PARAMS = ('api_format', 'callback', '_method')
+SPECIAL_PARAMS = ('api_format', 'callback', '_method', 'expand')
 
 
 class WebAPIEncoder(object):
