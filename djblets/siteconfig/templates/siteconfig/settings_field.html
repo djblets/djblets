@@ -10,7 +10,7 @@
     {% label_tag field %}
     {% if label_first %}{{field}}{% endif %}
     {% if field.help_text %}<p class="help">{{field.help_text}}</p>{% endif %}
-    {% if form.disabled_reasons|contains:fieldname %}<p class="disabled-reason">{{form.disabled_reasons|getitem:fieldname|safe}}</p>{% endif %}
+    {% if form.disabled_reasons|contains:field.name %}<p class="disabled-reason">{{form.disabled_reasons|getitem:field.name|safe}}</p>{% endif %}
    </div>
 {%     endwith %}
 {%    endif %}
