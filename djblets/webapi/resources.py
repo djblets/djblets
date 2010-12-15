@@ -16,7 +16,7 @@ from djblets.webapi.decorators import webapi_login_required, \
                                       webapi_response_errors, \
                                       webapi_request_fields
 from djblets.webapi.errors import WebAPIError, DOES_NOT_EXIST, \
-                                  PERMISSION_DENIED
+                                  NOT_LOGGED_IN, PERMISSION_DENIED
 
 
 _model_to_resources = {}
@@ -426,7 +426,7 @@ class WebAPIResource(object):
         """
         return self.update(request, *args, **kwargs)
 
-    @webapi_response_errors(DOES_NOT_EXIST, PERMISSION_DENIED)
+    @webapi_response_errors(DOES_NOT_EXIST, NOT_LOGGED_IN, PERMISSION_DENIED)
     def get(self, request, *args, **kwargs):
         """Handles HTTP GETs to individual object resources.
 
@@ -445,7 +445,10 @@ class WebAPIResource(object):
             return DOES_NOT_EXIST
 
         if not self.has_access_permissions(request, obj, *args, **kwargs):
-            return PERMISSION_DENIED
+            if request.user.is_authenticated():
+                return PERMISSION_DENIED
+            else:
+                return NOT_LOGGED_IN
 
         return 200, {
             self.item_result_key: self.serialize_object(obj, request=request,
@@ -517,7 +520,7 @@ class WebAPIResource(object):
         return HttpResponseNotAllowed(self.allowed_methods)
 
     @webapi_login_required
-    @webapi_response_errors(DOES_NOT_EXIST, PERMISSION_DENIED)
+    @webapi_response_errors(DOES_NOT_EXIST, NOT_LOGGED_IN, PERMISSION_DENIED)
     def delete(self, request, api_format, *args, **kwargs):
         """Handles HTTP DELETE requests to object resources.
 
@@ -535,7 +538,10 @@ class WebAPIResource(object):
             return DOES_NOT_EXIST
 
         if not self.has_delete_permissions(request, obj, *args, **kwargs):
-            return PERMISSION_DENIED
+            if request.user.is_authenticated():
+                return PERMISSION_DENIED
+            else:
+                return NOT_LOGGED_IN
 
         obj.delete()
 
