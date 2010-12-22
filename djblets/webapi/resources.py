@@ -8,6 +8,7 @@ from django.views.decorators.vary import vary_on_headers
 
 from djblets.util.decorators import augment_method_from
 from djblets.util.misc import never_cache_patterns
+from djblets.webapi.auth import check_login
 from djblets.webapi.core import WebAPIResponse, \
                                 WebAPIResponseError, \
                                 WebAPIResponsePaginated, \
@@ -242,6 +243,8 @@ class WebAPIResource(object):
     @vary_on_headers('Accept')
     def __call__(self, request, api_format=None, *args, **kwargs):
         """Invokes the correct HTTP handler based on the type of request."""
+        check_login(request)
+
         method = request.method
 
         if method == 'POST':
