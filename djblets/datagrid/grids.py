@@ -230,8 +230,7 @@ class Column(object):
                 self.datagrid.cell_template_obj = \
                     get_template(self.datagrid.cell_template)
 
-            ctx = Context({
-                'MEDIA_URL': settings.MEDIA_URL,
+            ctx = RequestContext(self.datagrid.request, {
                 'column': self,
                 'css_class': css_class,
                 'url': url,
