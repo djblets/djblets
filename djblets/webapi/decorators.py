@@ -28,7 +28,7 @@
 from django.http import HttpRequest
 
 from djblets.util.decorators import simple_decorator
-from djblets.webapi.core import WebAPIResponseError
+from djblets.webapi.core import WebAPIResponseError, SPECIAL_PARAMS
 from djblets.webapi.errors import NOT_LOGGED_IN, PERMISSION_DENIED, \
                                   INVALID_FORM_DATA
 
@@ -82,21 +82,12 @@ def webapi_login_required(view_func):
     returned.
     """
     def _checklogin(*args, **kwargs):
-        from djblets.webapi.auth import basic_access_login
-
         request = _find_httprequest(args)
 
-        if not request.user.is_authenticated():
-            # See if the request contains authentication tokens
-            if 'HTTP_AUTHORIZATION' in request.META:
-                basic_access_login(request)
-
         if request.user.is_authenticated():
-            response = view_func(*args, **kwargs)
+            return view_func(*args, **kwargs)
         else:
-            response = WebAPIResponseError(request, NOT_LOGGED_IN)
-
-        return response
+            return WebAPIResponseError(request, NOT_LOGGED_IN)
 
     view_func.login_required = True
 
@@ -174,7 +165,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
 
             if not allow_unknown:
                 for field_name in request_fields:
-                    if field_name in ('_method', 'callback'):
+                    if field_name in SPECIAL_PARAMS:
                         # These are special names and can be ignored.
                         continue
 

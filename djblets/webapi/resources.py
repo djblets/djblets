@@ -14,13 +14,16 @@ from djblets.extensions.errors import DisablingExtensionError, \
 
 from djblets.util.decorators import augment_method_from
 from djblets.util.misc import never_cache_patterns
-from djblets.webapi.core import WebAPIResponse, WebAPIResponseError, \
-                                WebAPIResponsePaginated
+from djblets.webapi.auth import check_login
+from djblets.webapi.core import WebAPIResponse, \
+                                WebAPIResponseError, \
+                                WebAPIResponsePaginated, \
+                                SPECIAL_PARAMS
 from djblets.webapi.decorators import webapi_login_required, \
                                       webapi_request_fields, \
                                       webapi_response_errors, \
                                       webapi_permission_required
-from djblets.webapi.errors import WebAPIError, DISABLE_EXTENSION_FAILED, \
+from djblets.webapi.errors import WebAPIError, \
                                   DOES_NOT_EXIST, \
                                   ENABLE_EXTENSION_FAILED, \
                                   DISABLE_EXTENSION_FAILED, \
@@ -250,6 +253,8 @@ class WebAPIResource(object):
     @vary_on_headers('Accept')
     def __call__(self, request, api_format=None, *args, **kwargs):
         """Invokes the correct HTTP handler based on the type of request."""
+        check_login(request)
+
         method = request.method
 
         if method == 'POST':
@@ -301,8 +306,26 @@ class WebAPIResource(object):
             elif isinstance(result, tuple):
                 headers = {}
 
+                if method == 'GET':
+                    request_params = request.GET
+                else:
+                    request_params = request.POST
+
                 if len(result) == 3:
                     headers = result[2]
+
+                if 'Location' in headers:
+                    extra_querystr = '&'.join([
+                        '%s=%s' % (param, request_params[param])
+                        for param in SPECIAL_PARAMS
+                        if param in request_params
+                    ])
+
+                    if extra_querystr:
+                        if '?' in headers['Location']:
+                            headers['Location'] += '&' + extra_querystr
+                        else:
+                            headers['Location'] += '?' + extra_querystr
 
                 if isinstance(result[0], WebAPIError):
                     return WebAPIResponseError(request,
@@ -416,7 +439,7 @@ class WebAPIResource(object):
         """
         return self.update(request, *args, **kwargs)
 
-    @webapi_response_errors(DOES_NOT_EXIST, PERMISSION_DENIED)
+    @webapi_response_errors(DOES_NOT_EXIST, NOT_LOGGED_IN, PERMISSION_DENIED)
     def get(self, request, *args, **kwargs):
         """Handles HTTP GETs to individual object resources.
 
@@ -435,7 +458,10 @@ class WebAPIResource(object):
             return DOES_NOT_EXIST
 
         if not self.has_access_permissions(request, obj, *args, **kwargs):
-            return PERMISSION_DENIED
+            if request.user.is_authenticated():
+                return PERMISSION_DENIED
+            else:
+                return NOT_LOGGED_IN
 
         return 200, {
             self.item_result_key: self.serialize_object(obj, request=request,
@@ -507,7 +533,7 @@ class WebAPIResource(object):
         return HttpResponseNotAllowed(self.allowed_methods)
 
     @webapi_login_required
-    @webapi_response_errors(DOES_NOT_EXIST, PERMISSION_DENIED)
+    @webapi_response_errors(DOES_NOT_EXIST, NOT_LOGGED_IN, PERMISSION_DENIED)
     def delete(self, request, api_format, *args, **kwargs):
         """Handles HTTP DELETE requests to object resources.
 
@@ -520,15 +546,15 @@ class WebAPIResource(object):
             return HttpResponseNotAllowed(self.allowed_methods)
 
         try:
-            queryset = self.get_queryset(request, *args, **kwargs)
-            obj = queryset.get(**{
-                self.model_object_key: kwargs[self.uri_object_key]
-            })
+            obj = self.get_object(request, *args, **kwargs)
         except self.model.DoesNotExist:
             return DOES_NOT_EXIST
 
         if not self.has_delete_permissions(request, obj, *args, **kwargs):
-            return PERMISSION_DENIED
+            if request.user.is_authenticated():
+                return PERMISSION_DENIED
+            else:
+                return NOT_LOGGED_IN
 
         obj.delete()
 
@@ -605,7 +631,8 @@ class WebAPIResource(object):
         }
 
         request = kwargs.get('request', None)
-        expanded_resources = request.GET.get('expand', '').split(',')
+        expand = request.GET.get('expand', request.POST.get('expand', ''))
+        expanded_resources = expand.split(',')
 
         for field in list(self.fields):
             serialize_func = getattr(self, "serialize_%s_field" % field, None)

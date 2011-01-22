@@ -25,14 +25,22 @@
 #
 
 
-from datetime import datetime
-
 from django.contrib import auth
 from django.views.decorators.http import require_POST
 
 from djblets.webapi.core import WebAPIResponse, WebAPIResponseError
 from djblets.webapi.decorators import webapi
 from djblets.webapi.errors import LOGIN_FAILED
+
+
+def check_login(request):
+    """Checks if a login request was made.
+
+    If the client specifies a HTTP_AUTHORIZATION header, this will attempt
+    to authenticate using a supported authentication method.
+    """
+    if 'HTTP_AUTHORIZATION' in request.META:
+        basic_access_login(request)
 
 
 def basic_access_login(request):
@@ -45,12 +53,21 @@ def basic_access_login(request):
     if realm != 'Basic':
         return
 
-    user = auth.authenticate(username=username, password=password)
+    # Don't authenticate if a user is already logged in and the
+    # username matches.
+    #
+    # Note that this does mean that a new password will fail. However,
+    # the user is already logged in, and querying the backend for every
+    # request is excessive, so it's a tradeoff. The user already has access
+    # to the server at this point anyway.
 
-    if user and user.is_active:
-        auth.login(request, user)
-        user.last_login = datetime.now()
-        user.save()
+    if request.user.is_anonymous() or request.user.username != username:
+        user = auth.authenticate(username=username, password=password)
+
+        if user and user.is_active:
+            auth.login(request, user)
+        else:
+            auth.logout(request)
 
 
 @require_POST
@@ -65,8 +82,6 @@ def account_login(request, *args, **kwargs):
         return WebAPIResponseError(request, LOGIN_FAILED)
 
     auth.login(request, user)
-    user.last_login = datetime.now()
-    user.save()
 
     return WebAPIResponse(request)
 

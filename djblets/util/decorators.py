@@ -72,7 +72,7 @@ def augment_method_from(klass):
     def _dec(func):
         def _call(*args, **kwargs):
             try:
-                f = real_func(*args, **kwargs)
+                f = augmented_func(*args, **kwargs)
             finally:
                 func(*args, **kwargs)
 
