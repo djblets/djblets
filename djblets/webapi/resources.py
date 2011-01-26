@@ -23,11 +23,12 @@ from djblets.webapi.decorators import webapi_login_required, \
                                       webapi_request_fields, \
                                       webapi_response_errors, \
                                       webapi_permission_required
-from djblets.webapi.errors import WebAPIError, \
+from djblets.webapi.errors import DISABLE_EXTENSION_FAILED, \
                                   DOES_NOT_EXIST, \
                                   ENABLE_EXTENSION_FAILED, \
-                                  DISABLE_EXTENSION_FAILED, \
-                                  PERMISSION_DENIED
+                                  NOT_LOGGED_IN, \
+                                  PERMISSION_DENIED, \
+                                  WebAPIError
 
 
 _model_to_resources = {}
