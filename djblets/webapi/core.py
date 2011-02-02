@@ -403,7 +403,7 @@ def get_registered_encoders():
         try:
             encoders = settings.WEB_API_ENCODERS
         except AttributeError:
-            encoders = (BasicAPIEncoder,)
+            encoders = ('BasicAPIEncoder',)
 
         for encoder in encoders:
             encoder_path = encoder.split('.')
