@@ -48,7 +48,7 @@ def gravatar(user, size=None):
 
     See http://www.gravatar.com/ for more information.
     """
-    if not user.email:
+    if user.is_anonymous() or not user.email:
         return ""
 
     email = user.email.strip().lower()
