@@ -144,7 +144,8 @@ class JSONField(models.TextField):
 
     def __init__(self, verbose_name=None, name=None,
                  encoder=DjangoJSONEncoder(), **kwargs):
-        models.TextField.__init__(self, verbose_name, name, blank=True,
+        blank = kwargs.pop('blank', True)
+        models.TextField.__init__(self, verbose_name, name, blank=blank,
                                   **kwargs)
         self.encoder = encoder
 
