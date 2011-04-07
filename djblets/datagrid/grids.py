@@ -24,6 +24,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+import traceback
 from django.conf import settings
 from django.contrib.auth.models import SiteProfileNotAvailable
 from django.core.exceptions import ObjectDoesNotExist
@@ -660,27 +661,30 @@ class DataGrid(object):
 
         This can be called from templates.
         """
-        self.load_state()
+        try:
+            self.load_state()
 
-        context = {
-            'datagrid': self,
-            'is_paginated': self.page.has_other_pages(),
-            'results_per_page': self.paginate_by,
-            'has_next': self.page.has_next(),
-            'has_previous': self.page.has_previous(),
-            'page': self.page.number,
-            'next': self.page.next_page_number(),
-            'previous': self.page.previous_page_number(),
-            'last_on_page': self.page.end_index(),
-            'first_on_page': self.page.start_index(),
-            'pages': self.paginator.num_pages,
-            'hits': self.paginator.count,
-            'page_range': self.paginator.page_range,
-        }
-        context.update(self.extra_context)
+            context = {
+                'datagrid': self,
+                'is_paginated': self.page.has_other_pages(),
+                'results_per_page': self.paginate_by,
+                'has_next': self.page.has_next(),
+                'has_previous': self.page.has_previous(),
+                'page': self.page.number,
+                'next': self.page.next_page_number(),
+                'previous': self.page.previous_page_number(),
+                'last_on_page': self.page.end_index(),
+                'first_on_page': self.page.start_index(),
+                'pages': self.paginator.num_pages,
+                'hits': self.paginator.count,
+                'page_range': self.paginator.page_range,
+            }
+            context.update(self.extra_context)
 
-        return mark_safe(render_to_string(self.listview_template,
-            RequestContext(self.request, context)))
+            return mark_safe(render_to_string(self.listview_template,
+                RequestContext(self.request, context)))
+        except Exception, e:
+            return mark_safe('<pre>%s</pre>' % traceback.format_exc())
 
     def render_listview_to_response(self, request=None):
         """
