@@ -25,6 +25,8 @@
 
 from django import template
 from django.forms import BooleanField
+from django.utils.encoding import force_unicode
+from django.utils.html import escape
 
 
 register = template.Library()
@@ -54,7 +56,7 @@ def label_tag(field):
     if classes:
         s += ' class="%s"' % " ".join(classes)
 
-    s += '>%s' % field.label
+    s += '>%s' % force_unicode(escape(field.label))
 
     if not is_checkbox:
         s += ':'
