@@ -364,8 +364,8 @@ class ExtensionManager(object):
         """
         # We'll import templatetags_modules here because
         # we want the most recent copy of templatetags_modules
-        from django.template import get_templatetags_modules, \
-                                    templatetags_modules
+        from django.template.base import get_templatetags_modules, \
+                                         templatetags_modules
         # Wipe out the contents
         del(templatetags_modules[:])
 
