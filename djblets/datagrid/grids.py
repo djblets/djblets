@@ -99,7 +99,10 @@ class Column(object):
         columns = [column.id for column in self.datagrid.columns]
 
         if self.active:
-            columns.remove(self.id)
+            try:
+                columns.remove(self.id)
+            except ValueError:
+                pass
         else:
             columns.append(self.id)
 
