@@ -133,8 +133,8 @@ def init_logging():
         console_log.setFormatter(logging.Formatter(format_str))
         logging.getLogger('').addHandler(console_log)
 
-    logging.info("Logging to %s with a minimum level of %s",
-                 log_path, log_level_name)
+        logging.debug("Logging to %s with a minimum level of %s",
+                      log_path, log_level_name)
 
     _logging_setup = True
 
