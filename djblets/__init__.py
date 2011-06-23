@@ -1,8 +1,8 @@
 #
 # __init__.py -- Basic version and package information
 #
-# Copyright (c) 2007-2010  Christian Hammond
-# Copyright (c) 2007-2010  David Trowbridge
+# Copyright (c) 2007-2011  Christian Hammond
+# Copyright (c) 2007-2011  David Trowbridge
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -31,7 +31,7 @@
 #
 #   (Major, Minor, Micro, alpha/beta/rc/final, Release Number, Released)
 #
-VERSION = (0, 6, 8, 'alpha', 0, False)
+VERSION = (0, 6, 8, 'final', 0, True)
 
 
 def get_version_string():
