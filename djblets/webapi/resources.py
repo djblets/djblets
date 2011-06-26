@@ -1,12 +1,20 @@
+try:
+    from hashlib import sha1
+except ImportError:
+    from sha import sha as sha1
+
 from django.conf.urls.defaults import include, patterns, url
 from django.contrib.auth.models import User, Group
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models.query import QuerySet
-from django.http import HttpResponseNotAllowed, HttpResponse
+from django.http import HttpResponseNotAllowed, HttpResponse, \
+                        HttpResponseNotModified
 from django.views.decorators.vary import vary_on_headers
 
 from djblets.util.decorators import augment_method_from
+from djblets.util.http import get_modified_since, etag_if_none_match, \
+                              set_last_modified, set_etag
 from djblets.util.misc import never_cache_patterns
 from djblets.webapi.auth import check_login
 from djblets.webapi.core import WebAPIResponse, \
@@ -208,6 +216,45 @@ class WebAPIResource(object):
                                    by default.
     * ``has_delete_permissions`` - Used for HTTP DELETE permissions. Returns
                                    False by default.
+
+
+    Browser Caching
+    ---------------
+
+    To improve performance, resources can make use of browser-side caching.
+    If a resource is accessed more than once, and it hasn't changed,
+    the resource will return an :http:`304`.
+
+    There are two methods for caching: Last Modified headers, and ETags.
+
+    Last Modified
+    ~~~~~~~~~~~~~
+
+    A resource can set ``last_modified_field`` to the name of a DateTimeField
+    in the model. This will be used to determine if the resource has changed
+    since the last request.
+
+    If a bit more work is needed, the ``get_last_modified`` function
+    can instead be overridden. This takes the request and object and is
+    expected to return a timestamp.
+
+    ETags
+    ~~~~~
+
+    ETags are arbitrary, unique strings that represent the state of a resource.
+    There should only ever be one possible ETag per state of the resource.
+
+    A resource can set the ``etag_field`` to the name of a field in the
+    model.
+
+    If no field really works, ``autogenerate_etags`` can be set. This will
+    generate a suitable ETag based on all fields in the resource. For this
+    to work correctly, no custom data can be added to the payload, and
+    links cannot be dynamic.
+
+    If more work is needed, the ``get_etag`` function can instead be
+    overridden. It will take a request and object and is expected to return
+    a string.
     """
 
     # Configuration
@@ -217,6 +264,9 @@ class WebAPIResource(object):
     uri_object_key = None
     model_object_key = 'pk'
     model_parent_key = None
+    last_modified_field = None
+    etag_field = None
+    autogenerate_etags = False
     singleton = False
     list_child_resources = []
     item_child_resources = []
@@ -240,7 +290,7 @@ class WebAPIResource(object):
         _name_to_resources[self.name_plural] = self
         _class_to_resources[self.__class__] = self
 
-    @vary_on_headers('Accept')
+    @vary_on_headers('Accept', 'Cookie')
     def __call__(self, request, api_format=None, *args, **kwargs):
         """Invokes the correct HTTP handler based on the type of request."""
         check_login(request)
@@ -272,7 +322,6 @@ class WebAPIResource(object):
                 request.META['REQUEST_METHOD'] = 'PUT'
 
         request.PUT = request.POST
-
 
         if method in self.allowed_methods:
             if (method == "GET" and
@@ -430,7 +479,7 @@ class WebAPIResource(object):
         return self.update(request, *args, **kwargs)
 
     @webapi_response_errors(DOES_NOT_EXIST, NOT_LOGGED_IN, PERMISSION_DENIED)
-    def get(self, request, *args, **kwargs):
+    def get(self, request, api_format, *args, **kwargs):
         """Handles HTTP GETs to individual object resources.
 
         By default, this will check for access permissions and query for
@@ -453,10 +502,34 @@ class WebAPIResource(object):
             else:
                 return NOT_LOGGED_IN
 
-        return 200, {
+        last_modified_timestamp = self.get_last_modified(request, obj)
+
+        if (last_modified_timestamp and
+            get_modified_since(request, last_modified_timestamp)):
+            return HttpResponseNotModified()
+
+        etag = self.get_etag(request, obj)
+
+        if etag and etag_if_none_match(request, etag):
+            return HttpResponseNotModified()
+
+        data = {
             self.item_result_key: self.serialize_object(obj, request=request,
                                                         *args, **kwargs),
         }
+
+        response = WebAPIResponse(request,
+                                  status=200,
+                                  obj=data,
+                                  api_format=api_format)
+
+        if last_modified_timestamp:
+            set_last_modified(response, last_modified_timestamp)
+
+        if etag:
+            set_etag(response, etag)
+
+        return response
 
     @webapi_request_fields(
         optional={
@@ -817,6 +890,49 @@ class WebAPIResource(object):
 
         return parent_obj
 
+    def get_last_modified(self, request, obj):
+        """Returns the last modified timestamp of an object.
+
+        By default, this uses ``last_modified_field`` to determine what
+        field in the model represents the last modified timestamp of
+        the object.
+
+        This can be overridden for more complex behavior.
+        """
+        if self.last_modified_field:
+            return getattr(obj, self.last_modified_field)
+
+        return None
+
+    def get_etag(self, request, obj):
+        """Returns the ETag representing the state of the object.
+
+        By default, this uses ``etag_field`` to determine what field in
+        the model is unique enough to represent the state of the object.
+
+        This can be overridden for more complex behavior.
+        """
+        if self.etag_field:
+            return unicode(getattr(obj, self.etag_field))
+        elif self.autogenerate_etags:
+            return self.generate_etag(obj, self.fields)
+
+        return None
+
+    def generate_etag(self, obj, fields):
+        """Generates an ETag from the serialized values of all given fields."""
+        values = []
+
+        for field in fields:
+            serialize_func = getattr(self, "serialize_%s_field" % field, None)
+
+            if serialize_func and callable(serialize_func):
+                values.append(serialize_func(obj))
+            else:
+                values.append(unicode(getattr(obj, field)))
+
+        return sha1(':'.join(fields)).hexdigest()
+
     def _build_named_url(self, name):
         """Builds a Django URL name from the provided name."""
         return '%s-resource' % name.replace('_', '-')
@@ -838,11 +954,21 @@ class RootResource(WebAPIResource):
         self._uri_templates = {}
         self._include_uri_templates = include_uri_templates
 
+    def get_etag(self, request, obj, *args, **kwargs):
+        return sha1('%s:%s' %
+                    (self._include_uri_templates,
+                     ':'.join(repr(self.list_child_resources)))).hexdigest()
+
     def get(self, request, *args, **kwargs):
         """
         Retrieves the list of top-level resources, and a list of
         :term:`URI templates` for accessing any resource in the tree.
         """
+        etag = self.get_etag(request, None)
+
+        if etag_if_none_match(request, etag):
+            return HttpResponseNotModified()
+
         data = {
             'links': self.get_links(self.list_child_resources,
                                     request=request, *args, **kwargs),
@@ -852,7 +978,9 @@ class RootResource(WebAPIResource):
             data['uri_templates'] = self.get_uri_templates(request, *args,
                                                            **kwargs)
 
-        return 200, data
+        return 200, data, {
+            'ETag': etag,
+        }
 
     def get_uri_templates(self, request, *args, **kwargs):
         """Returns all URI templates in the resource tree.
@@ -937,6 +1065,7 @@ class UserResource(WebAPIResource):
     uri_object_key = 'username'
     uri_object_key_regex = '[A-Za-z0-9@\._-]+'
     model_object_key = 'username'
+    autogenerate_etags = True
 
     allowed_methods = ('GET',)
 
@@ -964,6 +1093,7 @@ class GroupResource(WebAPIResource):
     uri_object_key = 'group_name'
     uri_object_key_regex = '[A-Za-z0-9_-]+'
     model_object_key = 'name'
+    autogenerate_etags = True
 
     allowed_methods = ('GET',)
 
