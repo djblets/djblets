@@ -41,16 +41,15 @@ class RegistrationForm(forms.Form):
                                 widget=forms.PasswordInput)
     password2 = forms.CharField(widget=forms.PasswordInput)
     email = forms.EmailField()
+    first_name = forms.CharField(max_length=30, required=False)
+    last_name = forms.CharField(max_length=30, required=False)
 
     def __init__(self, request=None, *args, **kwargs):
         super(RegistrationForm, self).__init__(*args, **kwargs)
         self.request = request
 
     def clean_password2(self):
-        # XXX Compatibility with Django 0.96 and 1.0
-        formdata = getattr(self, "cleaned_data",
-                           getattr(self, "clean_data", None))
-
+        formdata = self.cleaned_data
         if 'password1' in formdata:
             if formdata['password1'] != formdata['password2']:
                 raise forms.ValidationError('Passwords must match')
@@ -58,15 +57,15 @@ class RegistrationForm(forms.Form):
 
     def save(self):
         if not self.errors:
-            # XXX Compatibility with Django 0.96 and 1.0
-            formdata = getattr(self, "cleaned_data",
-                               getattr(self, "clean_data", None))
-
+            formdata = self.cleaned_data
             d = dict((k, v.encode("utf8")) for k, v in formdata.iteritems())
             try:
                 user = auth.models.User.objects.create_user(d['username'],
                                                             d['email'],
                                                             d['password1'])
+                user.first_name = d['first_name']
+                user.last_name = d['last_name']
+                user.save()
                 return user
             except:
                 # We check for duplicate users here instead of clean, since it's
@@ -86,10 +85,7 @@ class ChangePasswordForm(forms.Form):
     new_password2 = forms.CharField(widget=forms.PasswordInput)
 
     def clean_new_password2(self):
-        # XXX Compatibility with Django 0.96 and 1.0
-        formdata = getattr(self, "cleaned_data",
-                           getattr(self, "clean_data", None))
-
+        formdata = self.cleaned_data
         if 'new_password1' in formdata:
             if formdata['new_password1'] != formdata['new_password2']:
                 raise forms.ValidationError('Passwords must match')
