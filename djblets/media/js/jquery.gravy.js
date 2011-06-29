@@ -461,7 +461,16 @@ $.widget("ui.inlineEditor", {
         }
     },
 
-    cancel: function() {
+    cancel: function(force) {
+        if (!force && this.options.promptOnCancel && this.dirty()) {
+            if (confirm("You have unsaved changes. Are you " +
+                        "sure you want to discard them?")) {
+                this.cancel(true);
+            }
+
+            return;
+        }
+
         this.hideEditor();
         this.element.triggerHandler("cancel", [this._initialValue]);
     },
@@ -618,6 +627,7 @@ $.extend($.ui.inlineEditor, {
         formatResult: null,
         multiline: false,
         notifyUnchangedCompletion: false,
+        promptOnCancel: true,
         showButtons: true,
         showEditIcon: true,
         startOpen: false,
