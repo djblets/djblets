@@ -326,7 +326,7 @@ $.widget("ui.inlineEditor", {
                     /* Enter */
                     if (!self.options.forceOpen &&
                         (!self.options.multiline || e.ctrlKey)) {
-                        self.save();
+                        self.submit();
                     }
 
                     if (!self.options.multiline) {
@@ -343,6 +343,25 @@ $.widget("ui.inlineEditor", {
 
                 default:
                     return;
+            }
+        }).keydown(function(e) {
+            e.stopPropagation();
+
+            var keyCode = e.keyCode ? e.keyCode :
+                            e.charCode ? e.charCode : e.which;
+
+            switch (keyCode) {
+                case 83:
+                case 115:
+                    /* s or S */
+                    if (e.ctrlKey) {
+                        self.save();
+                        return false;
+                    }
+                    break;
+
+                default:
+                    break;
             }
         });
 
@@ -362,7 +381,7 @@ $.widget("ui.inlineEditor", {
                 .val("OK")
                 .addClass("save")
                 .appendTo(this._buttons)
-                .click(function() { self.save(); });
+                .click(function() { self.submit(); });
 
             var cancelButton =
                 $('<input type="button"/>')
@@ -451,14 +470,18 @@ $.widget("ui.inlineEditor", {
             this.element.html($.isFunction(this.options.formatResult)
                               ? this.options.formatResult(encodedValue)
                               : encodedValue);
+            this._initialValue = this.element.text();
         }
-
-        this.hideEditor();
 
         if (dirty || this.options.notifyUnchangedCompletion) {
             this.element.triggerHandler("complete",
                                         [value, this._initialValue]);
         }
+    },
+
+    submit: function() {
+        this.hideEditor();
+        this.save();
     },
 
     cancel: function(force) {
