@@ -101,7 +101,11 @@ def register(request, next_page, form_class=RegistrationForm,
                                          password=formdata['password1'])
                 assert user
                 auth.login(request, user)
-                request.session.delete_test_cookie()
+                try:
+                    request.session.delete_test_cookie()
+                except KeyError:
+                    # Do nothing
+                    pass
 
                 return HttpResponseRedirect(next_page)
     else:
