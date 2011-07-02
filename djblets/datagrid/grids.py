@@ -636,7 +636,7 @@ class DataGrid(object):
                 'object': obj,
                 'cells': [column.render_cell(obj) for column in self.columns]
             }
-            for obj in object_list
+            for obj in object_list if obj is not None
         ]
 
     def post_process_queryset(self, queryset):
