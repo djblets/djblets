@@ -127,8 +127,9 @@ jQuery.fn.datagrid = function() {
      * @param {function} onSuccess   Optional callback on successful save.
      */
     function saveColumns(columnsStr, onSuccess) {
-        var url = window.location.pathname +
-                  "?gridonly=1&datagrid-id=" + gridId +
+        var search = window.location.search || "?";
+        var url = window.location.pathname + search +
+                  "&gridonly=1&datagrid-id=" + gridId +
                   "&columns=" + columnsStr;
 
         jQuery.get(url, onSuccess);
