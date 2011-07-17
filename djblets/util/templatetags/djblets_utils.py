@@ -68,11 +68,39 @@ def ifuserorperm(context, nodelist, user, perm):
         Owner-specific content here...
         {% endifuserorperm %}
     """
-    req_user = context.get('user', None)
-    if user == req_user or req_user.has_perm(perm):
+    if _check_userorperm(context, user, perm):
         return nodelist.render(context)
 
     return ''
+
+
+@register.tag
+@blocktag
+def ifnotuserandperm(context, nodelist, user, perm):
+    """
+    The opposite of ifuserorperm.
+
+    Renders content if the logged in user is not the specified user and doesn't
+    have the specified permission.
+
+    Example::
+
+        {% ifuserorperm myobject.user "myobject.can_change_status" %}
+        Owner-specific content here...
+        {% endifuserorperm %}
+        {% ifnotuserandperm myobject.user "myobject.can_change_status" %}
+        Another owner-specific content here...
+        {% endifnotuserandperm %}
+    """
+    if not _check_userorperm(context, user, perm):
+        return nodelist.render(context)
+
+    return ''
+
+
+def _check_userorperm(context, user, perm):
+    req_user = context.get('user', None)
+    return user == req_user or req_user.has_perm(perm)
 
 
 @register.tag
