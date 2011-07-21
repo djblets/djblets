@@ -20,3 +20,5 @@ djblets/util/misc.py:*: redefinition of unused 'pickle' from line *
 djblets/util/misc.py:*: redefinition of unused 'StringIO' from line *
 djblets/util/templatetags/djblets_images.py:*: redefinition of unused 'StringIO' from line *
 djblets/util/templatetags/djblets_images.py:*: redefinition of unused 'Image' from line *
+djblets/webapi/core.py:*: 'BasicAPIEncoder' imported but unused
+djblets/webapi/resources.py:*: redefinition of unused 'sha1' from line *

@@ -1,3 +1,53 @@
+version 0.6.8 final (21-July-2011):
+	* djblets.auth:
+		* Add optional first and last name fields to RegistrationForm.
+
+		* Prevent occasional errors when calling delete_test_cookie().
+
+		  Sometimes validate_test_cookie() will work and then delete
+		  delete_test_cookie() will throw an error. If the test cookie is
+		  already gone from the session, we no longer care if it fails to
+		  be deleted.
+
+	* djblets.datagrid:
+		* Fixed an occasional crash due to id_list not being set. (Bug #1526)
+
+		* Fixed an occasional rendering error caused by a 'None' object being
+		  rendered.
+
+		* Changing datagrid columns no longer loses the current page you're on,
+		  or other view settings. Patch by Simon Wu.
+
+	* djblets.util:
+		* Added a ifnotuserandperm template tag, which is the negation of
+		  ifuserandperm. Patch by Hongbin Lu.
+
+	* djblets.webapi:
+		* Add support for browser-side caching of webapi resources.
+
+		  WebAPIResource now has a few new properties and methods for handling
+		  browser-side caching. Resources can handle Last Modified timestamps
+		  or ETags, and generate them either based on fields or through custom
+		  functions.
+
+		  This can speed up access to resources, improving performance both
+		  client-side and server-side.
+
+	* JavaScript:
+		* Prompt when canceling a dirty inlineEditor by default. (Bug #2096)
+
+		  inlineEditor now prompts the user if they cancel via Escape or the
+		  Cancel button when the editor is dirty. The user has a chance to
+		  change his mind instead of just losing everything he wrote. This can
+		  be turned off per-inlineEditor.
+
+		* Support Control-S for saving on inlineEditors. (Bug #1958)
+
+		  When editing a long block of text on an edit field, it's handy to be
+		  able to save periodically. Now, pressing Control-S will now trigger a
+		  save without closing the field. Patch by Hongbin Lu.
+
+
 version 0.6.7 final (23-June-2011):
 	* djblets.datagrid:
 		* Fixed an occasional ValueError with the datagrid.
