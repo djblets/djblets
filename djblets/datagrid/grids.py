@@ -355,6 +355,7 @@ class DataGrid(object):
         self.columns = []
         self.all_columns = []
         self.db_field_map = {}
+        self.id_list = []
         self.paginator = None
         self.page = None
         self.sort_list = None
