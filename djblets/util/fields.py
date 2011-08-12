@@ -149,8 +149,8 @@ class JSONField(models.TextField):
                                   **kwargs)
         self.encoder = encoder
 
-    def db_type(self, connection=None):
-        return "text"
+    def get_internal_type(self):
+        return "TextField"
 
     def contribute_to_class(self, cls, name):
         def get_json(model_instance):
