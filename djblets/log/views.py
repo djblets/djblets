@@ -178,7 +178,7 @@ def get_log_filtersets(request, requested_levels,
     one_week_ago = today - datetime.timedelta(days=7)
     one_week_ago_str = one_week_ago.strftime('%Y-%m-%d')
     month_range = calendar.monthrange(today.year, today.month)
-    this_month_begin_str = today.strftime('%Y-%m-') + str(month_range[0])
+    this_month_begin_str = today.strftime('%Y-%m-01')
     this_month_end_str = today.strftime('%Y-%m-') + str(month_range[1])
 
     date_filters = [
