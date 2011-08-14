@@ -140,25 +140,7 @@ def cache_memoize(key, lookup_callable,
     compress_large_data -- Compresses the data with zlib compression when
                            large_data is True.
     """
-    try:
-        site = Site.objects.get_current()
-
-        # The install has a Site app, so prefix the domain to the key.
-        key = "%s:%s" % (site.domain, key)
-    except:
-        # The install doesn't have a Site app, so use the key as-is.
-        pass
-
-    # Adhere to memcached key size limit
-    if len(key) > MAX_KEY_SIZE:
-        digest = new_md5(key).hexdigest();
-
-        # Replace the excess part of the key with a digest of the key
-        key = key[:MAX_KEY_SIZE - len(digest)] + digest
-
-    # Make sure this is a non-unicode string, in order to prevent errors
-    # with some backends.
-    key = str(key)
+    key = make_cache_key(key)
 
     if large_data:
         if not force_overwrite and cache.has_key(key):
@@ -198,6 +180,35 @@ def cache_memoize(key, lookup_callable,
         except:
             pass
         return data
+
+
+def make_cache_key(key):
+    """Creates a cache key guaranteed to avoid conflicts and size limits.
+
+    The cache key will be prefixed by the site's domain, and will be
+    changed to an MD5SUM if it's larger than the maximum key size.
+    """
+    try:
+        site = Site.objects.get_current()
+
+        # The install has a Site app, so prefix the domain to the key.
+        key = "%s:%s" % (site.domain, key)
+    except:
+        # The install doesn't have a Site app, so use the key as-is.
+        pass
+
+    # Adhere to memcached key size limit
+    if len(key) > MAX_KEY_SIZE:
+        digest = new_md5(key).hexdigest();
+
+        # Replace the excess part of the key with a digest of the key
+        key = key[:MAX_KEY_SIZE - len(digest)] + digest
+
+    # Make sure this is a non-unicode string, in order to prevent errors
+    # with some backends.
+    key = str(key)
+
+    return key
 
 
 def get_object_or_none(klass, *args, **kwargs):
