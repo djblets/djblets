@@ -24,6 +24,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+import logging
+
 from django.conf import settings
 from django.contrib.auth.models import SiteProfileNotAvailable
 from django.core.exceptions import ObjectDoesNotExist
@@ -232,6 +234,11 @@ class Column(object):
             if not self.datagrid.cell_template_obj:
                 self.datagrid.cell_template_obj = \
                     get_template(self.datagrid.cell_template)
+
+                if not self.datagrid.cell_template_obj:
+                    logging.error("Unable to load template '%s' for datagrid "
+                                  "cell. This may be an installation issue." %
+                                  self.datagrid.cell_template)
 
             ctx = RequestContext(self.datagrid.request, {
                 'column': self,
