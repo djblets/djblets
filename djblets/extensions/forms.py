@@ -27,7 +27,8 @@ from django import forms
 
 
 class SettingsForm(forms.Form):
-    """
+    """Settings form for extension configuration.
+
     A base form for loading/saving settings for an extension. This is meant
     to be overridden by extensions to provide configuration pages. Any fields
     defined by the form will be loaded and saved automatically.

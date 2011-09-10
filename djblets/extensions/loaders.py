@@ -33,9 +33,7 @@ from djblets.extensions.base import get_extension_managers
 
 
 def load_template_source(template_name, template_dirs=None):
-    """
-    Loads templates from enabled extensions.
-    """
+    """Loads templates from enabled extensions."""
     if manager:
         resource = "templates/" + template_name
 

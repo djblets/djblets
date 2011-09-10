@@ -30,7 +30,8 @@ from djblets.extensions.base import ExtensionHook, ExtensionHookPoint
 
 
 class URLHook(ExtensionHook):
-    """
+    """Custom URL hook.
+
     A hook that installs custom URLs. These URLs reside in a project-specified
     parent URL.
     """
@@ -62,7 +63,8 @@ class URLHook(ExtensionHook):
 
 
 class TemplateHook(ExtensionHook):
-    """
+    """Custom templates hook.
+
     A hook that renders a template at hook points defined in another template.
     """
     __metaclass__ = ExtensionHookPoint
@@ -83,7 +85,6 @@ class TemplateHook(ExtensionHook):
     def shutdown(self):
         super(TemplateHook, self).shutdown()
 
-        print "shutting down %s" % self.name
         self.__class__._by_name[self.name].remove(self)
 
     def applies_to(self, context):

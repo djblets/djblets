@@ -29,7 +29,8 @@ from djblets.util.fields import JSONField
 
 
 class RegisteredExtension(models.Model):
-    """
+    """Extension registration info.
+
     An extension that was both installed and enabled at least once. This
     may contain settings for the extension.
 

@@ -92,9 +92,20 @@ class Settings(dict):
 
 
 class Extension(object):
+    """Base class for an extension.
+
+    Extensions must subclass for this class. They'll automatically have
+    support for settings, adding hooks, and plugging into the administration
+    UI.
+
+    If an extension supports configuration in the UI, it should set
+    :py:attr:`is_configurable` to True.
+
+    Extensions should list all other extension names that they require in
+    :py:attr:`requirements`.
+    """
     is_configurable = False
     requirements = []
-    resources = []
 
     def __init__(self):
         self.hooks = set()
@@ -102,6 +113,12 @@ class Extension(object):
         self.settings = Settings(self)
 
     def shutdown(self):
+        """Shuts down the extension.
+
+        This will shut down every registered hook.
+
+        Subclasses should override this if they need custom shutdown behavior.
+        """
         for hook in self.hooks:
             hook.shutdown()
 
@@ -121,6 +138,13 @@ class Extension(object):
 
 
 class ExtensionInfo(object):
+    """Information on an extension.
+
+    This class stores the information and metadata on an extension. This
+    includes the name, version, author information, where it can be downloaded,
+    whether or not it's enabled or installed, and anything else that may be
+    in the Python package for the extension.
+    """
     def __init__(self, entrypoint, ext_class):
         metadata = {}
 
@@ -150,6 +174,20 @@ class ExtensionInfo(object):
 
 
 class ExtensionHook(object):
+    """The base class for a hook into some part of the project.
+
+    ExtensionHooks are classes that can hook into an
+    :py:class:`ExtensionHookPoint` to provide some level of functionality
+    in a project. A project should provide a subclass of ExtensionHook that
+    will provide functions for getting data or anything else that's needed,
+    and then extensions will subclass that specific ExtensionHook.
+
+    A base ExtensionHook subclass must use :py:class:`ExtensionHookPoint`
+    as a metaclass. For example::
+
+        class NavigationHook(ExtensionHook):
+            __metaclass__ = ExtensionHookPoint
+    """
     def __init__(self, extension):
         self.extension = extension
         self.extension.hooks.add(self)
@@ -160,6 +198,12 @@ class ExtensionHook(object):
 
 
 class ExtensionHookPoint(type):
+    """A metaclass used for base Extension Hooks.
+
+    Base :py:class:`ExtensionHook` classes use :py:class:`ExtensionHookPoint`
+    as a metaclass. This metaclass stores the list of registered hooks that
+    an :py:class:`ExtensionHook` will automatically register with.
+    """
     def __init__(cls, name, bases, attrs):
         super(ExtensionHookPoint, cls).__init__(name, bases, attrs)
 
@@ -167,13 +211,40 @@ class ExtensionHookPoint(type):
             cls.hooks = []
 
     def add_hook(cls, hook):
+        """Adds an ExtensionHook to the list of active hooks.
+
+        This is called automatically by :py:class:`ExtensionHook`.
+        """
         cls.hooks.append(hook)
 
     def remove_hook(cls, hook):
+        """Removes an ExtensionHook from the list of active hooks.
+
+        This is called automatically by :py:class:`ExtensionHook`.
+        """
         cls.hooks.remove(hook)
 
 
 class ExtensionManager(object):
+    """A manager for all extensions.
+
+    ExtensionManager manages the extensions available to a project. It can
+    scan for new extensions, enable or disable them, determine dependencies,
+    install into the database, and uninstall.
+
+    An installed extension is one that has been installed by a Python package
+    on the system.
+
+    A registered extension is one that has been installed and information then
+    placed in the database. This happens automatically after scanning for
+    an installed extension. The registration data stores whether or not it's
+    enabled, and stores various pieces of information on the extension.
+
+    An enabled extension is one that is actively enabled and hooked into the
+    project.
+
+    Each project should have one ExtensionManager.
+    """
     def __init__(self, key):
         self.key = key
 
@@ -191,24 +262,29 @@ class ExtensionManager(object):
             "djblets.extensions.views.extension_list")
 
     def get_enabled_extension(self, extension_id):
+        """Returns an enabled extension with the given ID."""
         if extension_id in self._extension_instances:
             return self._extension_instances[extension_id]
 
         return None
 
     def get_enabled_extensions(self):
+        """Returns the list of all enabled extensions."""
         return self._extension_instances.values()
 
     def get_installed_extensions(self):
+        """Returns the list of all installed extensions."""
         return self._extension_classes.values()
 
     def get_installed_extension(self, extension_id):
+        """Returns the installed extension with the given ID."""
         if extension_id not in self._extension_classes:
             raise InvalidExtensionError(extension_id)
 
         return self._extension_classes[extension_id]
 
     def get_dependent_extensions(self, dependency_extension_id):
+        """Returns a list of all extensions required by an extension."""
         if dependency_extension_id not in self._extension_instances:
             raise InvalidExtensionError(dependency_extension_id)
 
@@ -226,6 +302,12 @@ class ExtensionManager(object):
         return result
 
     def enable_extension(self, extension_id):
+        """Enables an extension.
+
+        Enabling an extension will install any data files the extension
+        may need, any tables in the database, perform any necessary
+        database migrations, and then will start up the extension.
+        """
         if extension_id in self._extension_instances:
             # It's already enabled.
             return
@@ -249,6 +331,13 @@ class ExtensionManager(object):
         return self._init_extension(ext_class)
 
     def disable_extension(self, extension_id):
+        """Disables an extension.
+
+        Disabling an extension will remove any data files the extension
+        installed and then shut down the extension and all of its hooks.
+
+        It will not delete any data from the database.
+        """
         if extension_id not in self._extension_instances:
             # It's not enabled.
             return
@@ -353,6 +442,12 @@ class ExtensionManager(object):
                      for requirement_id in ext_class.requirements]
 
     def _init_extension(self, ext_class):
+        """Initializes an extension.
+
+        This will register the extension, install any URLs that it may need,
+        and make it available in Django's list of apps. It will then notify
+        that the extension has been initialized.
+        """
         assert ext_class.id not in self._extension_instances
         extension = ext_class()
         extension.extension_manager = self
@@ -370,6 +465,12 @@ class ExtensionManager(object):
         return extension
 
     def _uninit_extension(self, extension):
+        """Uninitializes the extension.
+
+        This will shut down the extension, remove any URLs, remove it from
+        Django's list of apps, and send a signal saying the extension was
+        shut down.
+        """
         extension.shutdown()
 
         if hasattr(extension, "admin_urlpatterns"):
@@ -384,9 +485,7 @@ class ExtensionManager(object):
         del self._extension_instances[extension.id]
 
     def _reset_templatetags_cache(self):
-        """
-        Clears the Django templatetags_modules cache.
-        """
+        """Clears the Django templatetags_modules cache."""
         # We'll import templatetags_modules here because
         # we want the most recent copy of templatetags_modules
         from django.template.base import get_templatetags_modules, \
@@ -398,7 +497,8 @@ class ExtensionManager(object):
         get_templatetags_modules()
 
     def _install_extension(self, ext_class):
-        """
+        """Installs extension data.
+
         Performs any installation necessary for an extension.
         This will install the contents of htdocs into the
         EXTENSIONS_MEDIA_ROOT directory.
@@ -453,7 +553,8 @@ class ExtensionManager(object):
         ext_class.registration.save()
 
     def _uninstall_extension(self, extension):
-        """
+        """Uninstalls extension data.
+
         Performs any uninstallation necessary for an extension.
         This will uninstall the contents of
         EXTENSIONS_MEDIA_ROOT/extension-name/.
@@ -465,6 +566,11 @@ class ExtensionManager(object):
             shutil.rmtree(ext_path, ignore_errors=True)
 
     def _install_admin_urls(self, extension):
+        """Installs administration URLs.
+
+        This provides URLs for configuring an extension, plus any additional
+        admin urlpatterns that the extension provides.
+        """
         urlconf = extension.admin_urlconf
 
         if hasattr(urlconf, "urlpatterns"):
