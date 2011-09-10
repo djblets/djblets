@@ -1,3 +1,28 @@
+#
+# base.py -- Base classes for extensions.
+#
+# Copyright (c) 2010-2011  Beanbag, Inc.
+# Copyright (c) 2008-2010  Christian Hammond
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 import logging
 import os
 import pkg_resources
@@ -215,13 +240,13 @@ class ExtensionManager(object):
             self.enable_extension(requirement_id)
 
         try:
-            self.__install_extension(ext_class)
+            self._install_extension(ext_class)
         except InstallExtensionError, e:
             raise EnablingExtensionError(e.message)
 
         ext_class.registration.enabled = True
         ext_class.registration.save()
-        return self.__init_extension(ext_class)
+        return self._init_extension(ext_class)
 
     def disable_extension(self, extension_id):
         if extension_id not in self._extension_instances:
@@ -236,8 +261,8 @@ class ExtensionManager(object):
         for dependent_id in self.get_dependent_extensions(extension_id):
             self.disable_extension(dependent_id)
 
-        self.__uninstall_extension(extension)
-        self.__uninit_extension(extension)
+        self._uninstall_extension(extension)
+        self._uninit_extension(extension)
         extension.registration.enabled = False
         extension.registration.save()
 
@@ -307,7 +332,7 @@ class ExtensionManager(object):
 
             if (ext_class.registration.enabled and
                 not ext_class.id in self._extension_instances):
-                self.__init_extension(ext_class)
+                self._init_extension(ext_class)
 
         # At this point, if we're reloading, it's possible that the user
         # has removed some extensions. Go through and remove any that we
@@ -327,38 +352,38 @@ class ExtensionManager(object):
                     [self.get_installed_extension(requirement_id)
                      for requirement_id in ext_class.requirements]
 
-    def __init_extension(self, ext_class):
+    def _init_extension(self, ext_class):
         assert ext_class.id not in self._extension_instances
         extension = ext_class()
         extension.extension_manager = self
         self._extension_instances[extension.id] = extension
 
         if extension.is_configurable:
-            self.__install_admin_urls(extension)
+            self._install_admin_urls(extension)
 
         extension.info.installed = extension.registration.installed
         extension.info.enabled = True
-        self.__add_to_installed_apps(extension)
-        self.__reset_templatetags_cache()
+        self._add_to_installed_apps(extension)
+        self._reset_templatetags_cache()
         extension_initialized.send(self, ext_class=extension)
 
         return extension
 
-    def __uninit_extension(self, extension):
+    def _uninit_extension(self, extension):
         extension.shutdown()
 
         if hasattr(extension, "admin_urlpatterns"):
             for urlpattern in extension.admin_urlpatterns:
                 self._admin_ext_resolver.url_patterns.remove(urlpattern)
 
-        self.__remove_from_installed_apps(extension)
-        self.__reset_templatetags_cache()
+        self._remove_from_installed_apps(extension)
+        self._reset_templatetags_cache()
         extension.info.enabled = False
         extension_uninitialized.send(self, ext_class=extension)
 
         del self._extension_instances[extension.id]
 
-    def __reset_templatetags_cache(self):
+    def _reset_templatetags_cache(self):
         """
         Clears the Django templatetags_modules cache.
         """
@@ -372,7 +397,7 @@ class ExtensionManager(object):
         # And reload the cache
         get_templatetags_modules()
 
-    def __install_extension(self, ext_class):
+    def _install_extension(self, ext_class):
         """
         Performs any installation necessary for an extension.
         This will install the contents of htdocs into the
@@ -398,7 +423,7 @@ class ExtensionManager(object):
         ext_class.registration.save()
 
         # Now let's build any tables that this extension might need
-        self.__add_to_installed_apps(ext_class)
+        self._add_to_installed_apps(ext_class)
 
         # Call syncdb to create the new tables
         loading.cache.loaded = False
@@ -419,15 +444,15 @@ class ExtensionManager(object):
             raise InstallExtensionError(e.message)
 
         # Remove this again, since we only needed it for syncdb and
-        # evolve.  __init_extension will add it again later in
+        # evolve.  _init_extension will add it again later in
         # the install.
-        self.__remove_from_installed_apps(ext_class)
+        self._remove_from_installed_apps(ext_class)
 
         # Mark the extension as installed
         ext_class.registration.installed = True
         ext_class.registration.save()
 
-    def __uninstall_extension(self, extension):
+    def _uninstall_extension(self, extension):
         """
         Performs any uninstallation necessary for an extension.
         This will uninstall the contents of
@@ -439,7 +464,7 @@ class ExtensionManager(object):
         if ext_path_exists:
             shutil.rmtree(ext_path, ignore_errors=True)
 
-    def __install_admin_urls(self, extension):
+    def _install_admin_urls(self, extension):
         urlconf = extension.admin_urlconf
 
         if hasattr(urlconf, "urlpatterns"):
@@ -458,11 +483,11 @@ class ExtensionManager(object):
             self._admin_ext_resolver.url_patterns.extend(
                 extension.admin_urlpatterns)
 
-    def __add_to_installed_apps(self, extension):
+    def _add_to_installed_apps(self, extension):
         if extension.info.app_name not in settings.INSTALLED_APPS:
             settings.INSTALLED_APPS.append(extension.info.app_name)
 
-    def __remove_from_installed_apps(self, extension):
+    def _remove_from_installed_apps(self, extension):
         if extension.info.app_name in settings.INSTALLED_APPS:
             settings.INSTALLED_APPS.remove(extension.info.app_name)
 

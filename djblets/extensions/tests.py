@@ -1,18 +1,43 @@
-import os
+#
+# tests.py -- Unit tests for extensions.
+#
+# Copyright (c) 2010-2011  Beanbag, Inc.
+# Copyright (c) 2008-2010  Christian Hammond
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import os
 
 from django.conf import settings
 from django.conf.urls.defaults import include, patterns
 from django.core import urlresolvers
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import get_resolver
+from mock import Mock
+
 from djblets.extensions.base import _extension_managers, Extension, \
                                     ExtensionHook, ExtensionHookPoint, \
                                     ExtensionInfo, ExtensionManager, \
                                     Settings
 from djblets.extensions.hooks import TemplateHook, URLHook
 from djblets.testing.testcases import TestCase
-from mock import Mock, patch_object
 
 
 class SettingsTest(TestCase):
@@ -337,7 +362,7 @@ class URLHookTest(TestCase):
         self.assertTrue(self.url_hook in self.test_extension.hooks)
 
     def test_shutdown_removes_urls(self):
-        """On shutdown, a URLHook's patterns should no longer be in its 
+        """On shutdown, a URLHook's patterns should no longer be in its
            parent URL resolver's pattern collection."""
         self.url_hook.shutdown()
         self.assertFalse(set(self.patterns)

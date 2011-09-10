@@ -1,7 +1,8 @@
 #
-# djblets/extensions/admin.py
+# admin.py -- Admin UI model registration.
 #
-# Copyright (c) 2008-2009  Christian Hammond
+# Copyright (c) 2010-2011  Beanbag, Inc.
+# Copyright (c) 2008-2010  Christian Hammond
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -21,7 +22,6 @@
 # CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
 
 from django.contrib import admin
 
@@ -33,4 +33,3 @@ class RegisteredExtensionAdmin(admin.ModelAdmin):
 
 
 admin.site.register(RegisteredExtension, RegisteredExtensionAdmin)
-
