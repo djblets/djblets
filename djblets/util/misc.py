@@ -66,7 +66,7 @@ class MissingChunkError(Exception):
     pass
 
 
-def _cache_fetch_large_data(cache, key):
+def _cache_fetch_large_data(cache, key, compress_large_data):
     chunk_count = cache.get(key)
     data = []
 
@@ -81,7 +81,9 @@ def _cache_fetch_large_data(cache, key):
 
     data = ''.join(data)
 
-    data = zlib.decompress(data)
+    if compress_large_data:
+        data = zlib.decompress(data)
+
     try:
         unpickler = pickle.Unpickler(StringIO(data))
         data = unpickler.load()
@@ -92,7 +94,7 @@ def _cache_fetch_large_data(cache, key):
     return data
 
 
-def _cache_store_large_data(cache, key, data, expiration):
+def _cache_store_large_data(cache, key, data, expiration, compress_large_data):
     # We store large data in the cache broken into chunks that are 1M in size.
     # To do this easily, we first pickle the data and compress it with zlib.
     # This gives us a string which can be chunked easily. These are then stored
@@ -103,13 +105,15 @@ def _cache_store_large_data(cache, key, data, expiration):
     pickler = pickle.Pickler(file)
     pickler.dump(data)
     data = file.getvalue()
-    data = zlib.compress(data)
+
+    if compress_large_data:
+        data = zlib.compress(data)
 
     i = 0
     while len(data) > CACHE_CHUNK_SIZE:
         chunk = data[0:CACHE_CHUNK_SIZE]
         data = data[CACHE_CHUNK_SIZE:]
-        cache.set('%s-%d' % (key, i), chunk, expiration)
+        cache.set('%s-%d' % (key, i), [chunk], expiration)
         i += 1
     cache.set('%s-%d' % (key, i), [data], expiration)
 
@@ -120,43 +124,28 @@ def cache_memoize(key, lookup_callable,
                   expiration=getattr(settings, "CACHE_EXPIRATION_TIME",
                                      DEFAULT_EXPIRATION_TIME),
                   force_overwrite=False,
-                  large_data=False):
+                  large_data=False,
+                  compress_large_data=True):
     """Memoize the results of a callable inside the configured cache.
 
     Keyword arguments:
-    expiration      -- The expiration time for the key.
-    force_overwrite -- If True, the value will always be computed and stored
-                       regardless of whether it exists in the cache already.
-    large_data      -- If True, the resulting data will be pickled, gzipped,
-                       and (potentially) split up into megabyte-sized chunks.
-                       This is useful for very large, computationally
-                       intensive hunks of data which we don't want to store
-                       in a database due to the way things are accessed.
+    expiration          -- The expiration time for the key.
+    force_overwrite     -- If True, the value will always be computed and stored
+                           regardless of whether it exists in the cache already.
+    large_data          -- If True, the resulting data will be pickled, gzipped,
+                           and (potentially) split up into megabyte-sized chunks.
+                           This is useful for very large, computationally
+                           intensive hunks of data which we don't want to store
+                           in a database due to the way things are accessed.
+    compress_large_data -- Compresses the data with zlib compression when
+                           large_data is True.
     """
-    try:
-        site = Site.objects.get_current()
-
-        # The install has a Site app, so prefix the domain to the key.
-        key = "%s:%s" % (site.domain, key)
-    except:
-        # The install doesn't have a Site app, so use the key as-is.
-        pass
-
-    # Adhere to memcached key size limit
-    if len(key) > MAX_KEY_SIZE:
-        digest = new_md5(key).hexdigest();
-
-        # Replace the excess part of the key with a digest of the key
-        key = key[:MAX_KEY_SIZE - len(digest)] + digest
-
-    # Make sure this is a non-unicode string, in order to prevent errors
-    # with some backends.
-    key = str(key)
+    key = make_cache_key(key)
 
     if large_data:
         if not force_overwrite and cache.has_key(key):
             try:
-                data = _cache_fetch_large_data(cache, key)
+                data = _cache_fetch_large_data(cache, key, compress_large_data)
                 return data
             except Exception, e:
                 logging.warning('Failed to fetch large data from cache for key %s: %s.' % (key, e))
@@ -164,7 +153,8 @@ def cache_memoize(key, lookup_callable,
             logging.info('Cache miss for key %s.' % key)
 
         data = lookup_callable()
-        _cache_store_large_data(cache, key, data, expiration)
+        _cache_store_large_data(cache, key, data, expiration,
+                                compress_large_data)
         return data
 
     else:
@@ -190,6 +180,35 @@ def cache_memoize(key, lookup_callable,
         except:
             pass
         return data
+
+
+def make_cache_key(key):
+    """Creates a cache key guaranteed to avoid conflicts and size limits.
+
+    The cache key will be prefixed by the site's domain, and will be
+    changed to an MD5SUM if it's larger than the maximum key size.
+    """
+    try:
+        site = Site.objects.get_current()
+
+        # The install has a Site app, so prefix the domain to the key.
+        key = "%s:%s" % (site.domain, key)
+    except:
+        # The install doesn't have a Site app, so use the key as-is.
+        pass
+
+    # Adhere to memcached key size limit
+    if len(key) > MAX_KEY_SIZE:
+        digest = new_md5(key).hexdigest();
+
+        # Replace the excess part of the key with a digest of the key
+        key = key[:MAX_KEY_SIZE - len(digest)] + digest
+
+    # Make sure this is a non-unicode string, in order to prevent errors
+    # with some backends.
+    key = str(key)
+
+    return key
 
 
 def get_object_or_none(klass, *args, **kwargs):

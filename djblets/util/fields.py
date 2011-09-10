@@ -149,9 +149,6 @@ class JSONField(models.TextField):
                                   **kwargs)
         self.encoder = encoder
 
-    def db_type(self, connection=None):
-        return "text"
-
     def contribute_to_class(self, cls, name):
         def get_json(model_instance):
             return self.dumps(getattr(model_instance, self.attname, None))
@@ -289,8 +286,13 @@ class CounterField(models.IntegerField):
 
         def _reinit(model_instance):
             """Re-initializes the value in the database from the initializer."""
-            if (model_instance.pk and self._initializer and
-                callable(self._initializer)):
+            if not model_instance.pk:
+                # We don't want to end up defaulting this to 0 if creating a
+                # new instance. Instead, we'll want to handle this the next
+                # time the object is accessed.
+                return
+
+            if self._initializer and callable(self._initializer):
                 self._locks[model_instance] = 1
                 value = self._initializer(model_instance)
                 del self._locks[model_instance]

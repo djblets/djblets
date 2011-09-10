@@ -204,15 +204,22 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                                                for choice in choices])
                                 )
                             ]
-                    elif issubclass(info['type'], bool):
-                        value = value in (1, "1", True, "True")
-                    elif issubclass(info['type'], int):
+                    else:
                         try:
-                            value = int(value)
-                        except ValueError:
-                            invalid_fields[field_name] = [
-                                "'%s' is not an integer" % value
-                            ]
+                            if issubclass(info['type'], bool):
+                                value = value in (1, "1", True, "True")
+                            elif issubclass(info['type'], int):
+                                try:
+                                    value = int(value)
+                                except ValueError:
+                                    invalid_fields[field_name] = [
+                                        "'%s' is not an integer" % value
+                                    ]
+                        except TypeError:
+                            # The field isn't a class type. This is a
+                            # coding error on the developer's side.
+                            raise TypeError("%s is not a valid field type" %
+                                            info['type'])
 
                 new_kwargs[field_name] = value
 

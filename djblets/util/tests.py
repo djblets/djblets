@@ -27,13 +27,15 @@
 import datetime
 import unittest
 
+from django.contrib.sites.models import Site
+from django.core.cache import cache
 from django.http import HttpRequest
 from django.template import Token, TOKEN_TEXT, TemplateSyntaxError
 from django.utils.html import strip_spaces_between_tags
 
 from djblets.util.http import get_http_accept_lists, \
                               get_http_requested_mimetype
-from djblets.util.misc import cache_memoize
+from djblets.util.misc import cache_memoize, CACHE_CHUNK_SIZE
 from djblets.util.testing import TestCase, TagTest
 from djblets.util.templatetags import djblets_deco
 from djblets.util.templatetags import djblets_email
@@ -45,14 +47,14 @@ def normalize_html(s):
 
 
 class CacheTest(TestCase):
-    def testCacheMemoize(self):
+    def test_cache_memoize(self):
         """Testing cache_memoize"""
         cacheKey = "abc123"
         testStr = "Test 123"
 
-        def cacheFunc(cacheCalled=False):
-            self.assert_(not cacheCalled)
-            cacheCalled = True
+        def cacheFunc(cacheCalled=[]):
+            self.assertTrue(not cacheCalled)
+            cacheCalled.append(True)
             return testStr
 
         result = cache_memoize(cacheKey, cacheFunc)
@@ -61,6 +63,34 @@ class CacheTest(TestCase):
         # Call a second time. We should only call cacheFunc once.
         result = cache_memoize(cacheKey, cacheFunc)
         self.assertEqual(result, testStr)
+
+    def test_cache_memoize_large_files(self):
+        """Testing cache_memoize with large files"""
+        cacheKey = "abc123"
+
+        # This takes into account the size of the pickle data, and will
+        # get us to exactly 2 chunks of data in cache.
+        data = 'x' * (CACHE_CHUNK_SIZE * 2 - 8)
+
+        def cacheFunc(cacheCalled=[]):
+            self.assertTrue(not cacheCalled)
+            cacheCalled.append(True)
+            return data
+
+        result = cache_memoize(cacheKey, cacheFunc, large_data=True,
+                               compress_large_data=False)
+        self.assertEqual(result, data)
+
+        site = Site.objects.get_current()
+        full_key = '%s:%s' % (site.domain, cacheKey)
+        self.assertTrue(cache.has_key(full_key))
+        self.assertTrue(cache.has_key('%s-0' % full_key))
+        self.assertTrue(cache.has_key('%s-1' % full_key))
+        self.assertFalse(cache.has_key('%s-2' % full_key))
+
+        result = cache_memoize(cacheKey, cacheFunc, large_data=True,
+                               compress_large_data=False)
+        self.assertEqual(result, data)
 
 
 class BoxTest(TagTest):

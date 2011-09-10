@@ -24,6 +24,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+import logging
+
 from django.conf import settings
 from django.contrib.auth.models import SiteProfileNotAvailable
 from django.core.exceptions import ObjectDoesNotExist
@@ -99,7 +101,10 @@ class Column(object):
         columns = [column.id for column in self.datagrid.columns]
 
         if self.active:
-            columns.remove(self.id)
+            try:
+                columns.remove(self.id)
+            except ValueError:
+                pass
         else:
             columns.append(self.id)
 
@@ -230,6 +235,11 @@ class Column(object):
                 self.datagrid.cell_template_obj = \
                     get_template(self.datagrid.cell_template)
 
+                if not self.datagrid.cell_template_obj:
+                    logging.error("Unable to load template '%s' for datagrid "
+                                  "cell. This may be an installation issue." %
+                                  self.datagrid.cell_template)
+
             ctx = RequestContext(self.datagrid.request, {
                 'column': self,
                 'css_class': css_class,
@@ -352,6 +362,7 @@ class DataGrid(object):
         self.columns = []
         self.all_columns = []
         self.db_field_map = {}
+        self.id_list = []
         self.paginator = None
         self.page = None
         self.sort_list = None
@@ -633,7 +644,7 @@ class DataGrid(object):
                 'object': obj,
                 'cells': [column.render_cell(obj) for column in self.columns]
             }
-            for obj in object_list
+            for obj in object_list if obj is not None
         ]
 
     def post_process_queryset(self, queryset):

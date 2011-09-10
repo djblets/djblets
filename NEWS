@@ -1,3 +1,162 @@
+version 0.6.11 final (10-September-2011):
+	* djblets.testing:
+		* Added a new TestCase class and @add_fixtures decorator for
+		  having fixtures specific to text functions.
+
+	* djblets.util:
+		* Fixed defaults on counter fields on new model instances.
+
+		  Counter fields on new model instances were being set to 0, preventing
+		  them from recomputing the next time they're accessed. This would
+		  cause any new models to be incorrect. They're now initialized to
+		  NULL instead. (Bug #2268)
+
+
+version 0.6.10 final (20-August-2011):
+	* djblets.datagrid:
+		* Log failed attempts at finding cell templates, in order to aid
+		  debugging.
+
+	* djblets.feedview:
+		* Don't fail with an uncaught exception if loading an RSS feed fails.
+		  (Bug #2189)
+
+		  If loading the RSS feed fails (if it's behind a proxy, for example),
+		  feedview would raise an error. Now it provides the error data for
+		  the caller to render.
+
+	* djblets.log:
+		* Fixed a date range calculation bug in the log viewer. (Bug #2218)
+
+		  The "This Month" view in the log viewer was broken due to it
+		  attempting to use the beginning of the date range calculated, which
+		  was 0, instead of 01.  Since we can assume the start of the month
+		  will continue to be 1 for the foreseeable future, we can just
+		  hardcode this and be safe.
+
+		  Patch by Lee Loucks.
+
+	* djblets.util:
+		* Added a make_cache_key function for generating usable cache keys.
+
+		  The make_cache_key function generates a cache key guaranteed to be
+		  able to fit inside the memcached key length restrictions. It will
+		  generate a MD5 hash of the key if it exceeds the length.
+
+		  This is the same logic that cache_memoize uses to build the keys.
+		  It can be used to perform other operations on that key.
+
+		  Patch by Vlad Filippov.
+
+		* Allow JSONField to store up to 4GB of data on MySQL. (Bug #1481)
+
+		  JSONField on MySQL was hard-coding the "TEXT" column type,
+		  allowing only 64KB of data. Now it uses the default for Django's
+		  TextField, which is 4GB.
+
+		  This won't break compatibility with existing fields, but those
+		  fields won't gain the benefits. To update an existing field on
+		  MySQL, you will need to perform the following:
+
+		      ALTER TABLE table_name MODIFY field_name LONGTEXT;
+
+		* Fixed a storage problem with large cache data. (Bug #1660)
+
+		  Large cache data was encoded incorrectly, causing anything stored to
+		  become unloadable, meaning it'd have to be recomputed. This was due
+		  to a string being stored for all but the last chunk, instead of a
+		  string wrapped in a list.  This affects any data that, after being
+		  picked and zlib-compressed, is over 1MB in size.
+
+	* djblets.webapi:
+
+		* Make it easier to debug invalid data types in @webapi_request_fields.
+
+		  If using an invalid data type in the @webapi_request_fields listing,
+		  you'd see a cryptic error being raised. Now the field is ignored
+		  and an error is logged.
+
+
+version 0.6.9 final (21-July-2011):
+	* djblets.auth:
+		* Add optional first and last name fields to RegistrationForm.
+
+		* Prevent occasional errors when calling delete_test_cookie().
+
+		  Sometimes validate_test_cookie() will work and then delete
+		  delete_test_cookie() will throw an error. If the test cookie is
+		  already gone from the session, we no longer care if it fails to
+		  be deleted.
+
+	* djblets.datagrid:
+		* Fixed an occasional crash due to id_list not being set. (Bug #1526)
+
+		* Fixed an occasional rendering error caused by a 'None' object being
+		  rendered.
+
+		* Changing datagrid columns no longer loses the current page you're on,
+		  or other view settings. Patch by Simon Wu.
+
+	* djblets.util:
+		* Added a ifnotuserandperm template tag, which is the negation of
+		  ifuserandperm. Patch by Hongbin Lu.
+
+	* djblets.webapi:
+		* Add support for browser-side caching of webapi resources.
+
+		  WebAPIResource now has a few new properties and methods for handling
+		  browser-side caching. Resources can handle Last Modified timestamps
+		  or ETags, and generate them either based on fields or through custom
+		  functions.
+
+		  This can speed up access to resources, improving performance both
+		  client-side and server-side.
+
+	* JavaScript:
+		* Prompt when canceling a dirty inlineEditor by default. (Bug #2096)
+
+		  inlineEditor now prompts the user if they cancel via Escape or the
+		  Cancel button when the editor is dirty. The user has a chance to
+		  change his mind instead of just losing everything he wrote. This can
+		  be turned off per-inlineEditor.
+
+		* Support Control-S for saving on inlineEditors. (Bug #1958)
+
+		  When editing a long block of text on an edit field, it's handy to be
+		  able to save periodically. Now, pressing Control-S will now trigger a
+		  save without closing the field. Patch by Hongbin Lu.
+
+
+version 0.6.8 final (23-June-2011):
+	* djblets.datagrid:
+		* Fixed an occasional ValueError with the datagrid.
+
+		  On occasion, the "active" state of a column can sometimes be
+		  True when the column isn't in self.datagrid.columns, which meant
+		  it would throw a ValueError when trying to remove itself from the
+		  list. We're more bullet-proof now.
+
+	* djblets.gravatars:
+		* The gravatar templatetag no longer errors out if the provided user
+		  is anonymous.
+
+	* djblets.log:
+		* The "Logging to..." lines are now only logged when settings.DEBUG
+		  is on.
+
+	* djblets.util:
+		* JSONField no longer errors out if blank=False is used. (Bug #2015)
+
+		* Fixed escaping of label names in label_tag() on newer versions
+		 of Django.
+
+	* djblets.webapi:
+		* Fixed a problem when settings.WEB_API_ENCODERS isn't set.
+
+		  Our fallback for when this setting wasn't set was broken, causing
+		  new errors.
+
+
 version 0.6.7 final (9-January-2011):
 	* djblets.datagrid:
 		* The datagrids now use a RequestContext when rendering cells, allowing

@@ -31,7 +31,7 @@ from django.conf import settings
 from django.core.handlers.wsgi import WSGIHandler
 from django.core.servers import basehttp
 from django.template import Node
-from django.test.testcases import call_command, TestCase, TransactionTestCase
+from django.test import testcases
 from nose import SkipTest
 
 
@@ -54,6 +54,28 @@ class StubParser:
         pass
 
 
+class TestCase(testcases.TestCase):
+    """Base class for test cases.
+
+    Individual tests on this TestCase can use the :py:func:`add_fixtures`
+    decorator to add or replace the fixtures used for the test.
+    """
+    def __call__(self, *args, **kwargs):
+        method = getattr(self, self._testMethodName)
+        old_fixtures = getattr(self, 'fixtures', [])
+
+        if hasattr(method, '_fixtures'):
+            if getattr(method, '_replace_fixtures'):
+                self.fixtures = method._fixtures
+            else:
+                self.fixtures = old_fixtures + method._fixtures
+
+        super(TestCase, self).__call__(*args, **kwargs)
+
+        if old_fixtures:
+            self.fixtures = old_fixtures
+
+
 class TagTest(TestCase):
     """Base testing setup for custom template tags"""
 
@@ -64,7 +86,7 @@ class TagTest(TestCase):
         return "content"
 
 
-class SeleniumUnitTest(TransactionTestCase):
+class SeleniumUnitTest(TestCase):
     """A unit test that makes use of the Selenium browser automation tool.
 
     SeleniumUnitTest makes it easy to write unit tests that make use of
@@ -264,7 +286,7 @@ class TestServerThread(threading.Thread):
             if hasattr(self, 'fixtures'):
                 # We have to use this slightly awkward syntax due to the fact
                 # that we're using *args and **kwargs together.
-                call_command('loaddata', verbosity=0, *self.fixtures)
+                testcases.call_command('loaddata', verbosity=0, *self.fixtures)
 
         # Loop until we get a stop event.
         while not self._stopevent.isSet():
