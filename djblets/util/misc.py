@@ -76,7 +76,7 @@ def _cache_fetch_large_data(cache, key, compress_large_data):
         try:
             data.append(chunks[chunk_key][0])
         except KeyError:
-            logging.info('Cache miss for key %s.' % chunk_key)
+            logging.debug('Cache miss for key %s.' % chunk_key)
             raise MissingChunkError
 
     data = ''.join(data)
@@ -150,7 +150,7 @@ def cache_memoize(key, lookup_callable,
             except Exception, e:
                 logging.warning('Failed to fetch large data from cache for key %s: %s.' % (key, e))
         else:
-            logging.info('Cache miss for key %s.' % key)
+            logging.debug('Cache miss for key %s.' % key)
 
         data = lookup_callable()
         _cache_store_large_data(cache, key, data, expiration,
