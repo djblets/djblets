@@ -3,6 +3,10 @@ from djblets.extensions.errors import DisablingExtensionError, \
                                       EnablingExtensionError, \
                                       InstallExtensionError, \
                                       InvalidExtensionError
+from djblets.webapi.decorators import webapi_login_required, \
+                                      webapi_permission_required, \
+                                      webapi_request_fields
+from djblets.webapi.resources import WebAPIResource
 
 
 class ExtensionResource(WebAPIResource):
