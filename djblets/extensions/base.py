@@ -106,6 +106,7 @@ class Extension(object):
     """
     is_configurable = False
     requirements = []
+    resources = []
 
     def __init__(self):
         self.hooks = set()
