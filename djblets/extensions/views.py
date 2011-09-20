@@ -31,6 +31,15 @@ from django.template.context import RequestContext
 from djblets.extensions.base import ExtensionManager
 
 
+def _has_disabled_requirements(extension):
+    """Returns whether an extension has one or more disabled requirements."""
+    for requirement in extension.info.requirements:
+        if not requirement.info.enabled:
+            return True
+
+    return False
+
+
 @staff_member_required
 def extension_list(request, extension_manager,
                    template_name='extensions/extension_list.html'):
@@ -38,7 +47,15 @@ def extension_list(request, extension_manager,
     extension_manager.load()
 
     return render_to_response(template_name, RequestContext(request, {
-        'extensions': extension_manager.get_installed_extensions()
+        'extensions': [
+            {
+                'id': extension.id,
+                'info': extension.info,
+                'has_disabled_requirements':
+                    _has_disabled_requirements(extension),
+            }
+            for extension in extension_manager.get_installed_extensions()
+        ]
     }))
 
 

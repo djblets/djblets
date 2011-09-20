@@ -42,7 +42,7 @@
 {%   endif %}
    </ul>
 {%   if not extension.info.enabled %}
-{%     if extension|has_disabled_requirements %}
+{%     if extension.has_disabled_requirements %}
    <h4>{% trans "Enabling this will also enable the following extension(s):" %}</h4>
    <ul>
 {%       for requirement in extension.info.requirements %}
