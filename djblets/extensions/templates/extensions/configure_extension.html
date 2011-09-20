@@ -1,0 +1,64 @@
+{% extends "admin/base_site.html" %}
+{% load adminmedia admin_list djblets_forms djblets_utils i18n %}
+{% block stylesheet %}{% admin_media_prefix %}css/forms.css{% endblock %}
+
+{% block title %}
+{%  if enabled %}
+{% blocktrans with extension.info.name as name %}Configure {{name}}{% endblocktrans %}
+{%  else %}
+{% trans "Invalid Extension" %}
+{%  endif %}
+{{block.super}}
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+ <a href="../../../">{% trans "Home" %}</a> &rsaquo;
+ <a href="{% url djblets.extensions.views.extension_list %}">{% trans "Extensions" %}</a> &rsaquo;
+ {{extension.info.name}}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+ <h1>{% blocktrans with extension.info.name as name %}Configure {{name}}{% endblocktrans %}</h1>
+
+{%  if form.error_dict %}
+ <p class="errornote">
+  {% blocktrans count form.error_dict.items|length as counter %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktrans %}
+ </p>
+{%  endif %}
+
+
+{%  if enabled %}
+{%   if extension.is_configurable %}
+ <form action="." method="post"{% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
+  <fieldset class="module aligned">
+{%   for field in form %}
+{%    if field.is_hidden %}
+   {{field}}
+{%    else %}
+{%     with field|form_field_has_label_first as label_first %}
+   <div class="form-row{% if not label_first %} checkbox-row{% endif%}{% if field.errors %} error{% endif %}">
+    {{field.errors}}
+    {% if not label_first %}{{field}}{% endif %}
+    {% label_tag field %}
+    {% if label_first %}{{field}}{% endif %}
+    {% if field.help_text %}<p class="help">{{field.help_text}}</p>{% endif %}
+   </div>
+{%     endwith %}
+{%    endif %}
+{%   endfor %}
+  </fieldset>
+  <div class="submit-row">
+   <input type="submit" value="{% trans "Save" %}" class="default" />
+  </div>
+ </form>
+{%   else %}
+<p>{% trans "This extension is not configurable." %}</p>
+{%   endif %}
+{%  else %}
+<p>{% trans "This extension is not enabled." %}</p>
+{%  endif %}
+</div>
+{% endblock %}

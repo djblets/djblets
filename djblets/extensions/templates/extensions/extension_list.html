@@ -1,0 +1,63 @@
+{% extends "admin/base_site.html" %}
+{% load adminmedia admin_list djblets_extensions i18n %}
+
+{% block title %}{% trans "Manage Extensions" %} {{block.super}}{% endblock %}
+
+{% block extrahead %}
+<link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/forms.css" />
+<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}djblets/css/admin.css" />
+<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}djblets/css/extensions.css?{{MEDIA_SERIAL}}" />
+<script type="text/javascript" src="{{MEDIA_URL}}djblets/js/jquery-1.3.2.min.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}djblets/js/jquery-ui-1.6rc5.min.js"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}djblets/js/jquery.gravy.js?{{MEDIA_SERIAL}}"></script>
+<script type="text/javascript" src="{{MEDIA_URL}}djblets/js/extensions.js?{{MEDIA_SERIAL}}"></script>
+
+{{block.super}}
+{% endblock %}
+
+{% block content %}
+
+{% include "extensions/extension_dlgs.html" %}
+
+<h1>{% trans "Manage Extensions" %}</h1>
+
+<div id="content-main">
+{% if extensions %}
+ <ul class="extensions">
+{%  for extension in extensions %}
+  <li class="extension {% cycle row1,row2 %}">
+   <h1>{{extension.info.name}} <span class="version">{{extension.info.version}}</span></h1>
+   <p class="author">{{extension.info.author}}</p>
+   <div class="description">
+    {{extension.info.summary}}
+   </div>
+   <ul class="object-tools">
+{%   if extension.info.enabled %}
+    <li><a id="{{extension.id}}-disable" href="#" class="disablelink">Disable</a></li>
+{%    if extension.is_configurable %}
+    <li><a href="{{extension.id}}/config/" class="changelink">Configure</a></li>
+{%    endif %}
+{%   else %}
+    <li><a id="{{extension.id}}-enable" href="#" class="enablelink">Enable</a></li>
+{%   endif %}
+   </ul>
+{%   if not extension.info.enabled %}
+{%     if extension|has_disabled_requirements %}
+   <h4>{% trans "Enabling this will also enable the following extension(s):" %}</h4>
+   <ul>
+{%       for requirement in extension.info.requirements %}
+{%         if not requirement.info.enabled %}
+     <li>{{requirement.info.name}}</li>
+{%         endif %}
+{%       endfor %}
+   </ul>
+{%     endif %}
+{%   endif %}
+  </li>
+{%  endfor %}
+ </ul>
+{% else %}
+ <p>{% trans "There are no extensions installed." %}</p>
+{% endif %}
+</div>
+{% endblock %}

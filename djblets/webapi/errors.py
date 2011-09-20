@@ -35,6 +35,16 @@ class WebAPIError(object):
         self.http_status = http_status
         self.headers = headers
 
+    def with_message(self, msg):
+        """
+        Overrides the default message for a WebAPIError with something
+        more context specific.
+
+        Example:
+        return ENABLE_EXTENSION_FAILED.with_message('some error message')
+        """
+        self.msg = msg
+        return self
 
 WWW_AUTHENTICATE_HEADERS = {
     'WWW-Authenticate': 'Basic realm="Web API"',
@@ -76,3 +86,11 @@ INVALID_FORM_DATA         = WebAPIError(105,
 MISSING_ATTRIBUTE         = WebAPIError(106,
                                         "Missing value for the attribute",
                                         http_status=400)
+ENABLE_EXTENSION_FAILED   = WebAPIError(107, "There was a problem enabling "
+                                             "the extension",
+                                        http_status=500) # 500 Internal Server
+                                                         #     Error
+DISABLE_EXTENSION_FAILED  = WebAPIError(108, "There was a problem disabling "
+                                             "the extension",
+                                        http_status=500) # 500 Internal Server
+                                                         #     Error

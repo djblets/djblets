@@ -22,10 +22,15 @@ from djblets.webapi.core import WebAPIResponse, \
                                 WebAPIResponsePaginated, \
                                 SPECIAL_PARAMS
 from djblets.webapi.decorators import webapi_login_required, \
+                                      webapi_request_fields, \
                                       webapi_response_errors, \
-                                      webapi_request_fields
-from djblets.webapi.errors import WebAPIError, DOES_NOT_EXIST, \
-                                  NOT_LOGGED_IN, PERMISSION_DENIED
+                                      webapi_permission_required
+from djblets.webapi.errors import DISABLE_EXTENSION_FAILED, \
+                                  DOES_NOT_EXIST, \
+                                  ENABLE_EXTENSION_FAILED, \
+                                  NOT_LOGGED_IN, \
+                                  PERMISSION_DENIED, \
+                                  WebAPIError
 
 
 _model_to_resources = {}
@@ -1115,6 +1120,7 @@ def get_resource_for_object(obj):
         resource = resource(obj)
 
     return resource
+
 
 def get_resource_from_name(name):
     """Returns the resource of the specified name."""
