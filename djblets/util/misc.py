@@ -46,11 +46,13 @@ try:
 except ImportError:
     from StringIO import StringIO
 
+from contextlib import contextmanager
 from django.core.cache import cache
 from django.conf import settings
 from django.conf.urls.defaults import url, RegexURLPattern
 from django.contrib.sites.models import Site
 from django.db.models.manager import Manager
+from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
 
 
@@ -309,3 +311,47 @@ def generate_cache_serials():
     """
     generate_media_serial()
     generate_ajax_serial()
+
+
+@contextmanager
+def controlled_subprocess(process_name, process):
+    """
+    A context manager for a subprocess that guarantees that a process
+    is terminated, even if exceptions are thrown while using it.
+
+    The process_name argument is used for logging when the process goes
+    down fighting.  The process argument is a process returned by
+    subprocess.Popen.
+
+    Example usage:
+
+    process = subprocess.Popen(['patch', '-o', newfile, oldfile])
+
+    with controlled_subprocess("patch", process) as p:
+        # ... do things with the process p
+
+    Once outside the with block, you can rest assured that the subprocess
+    is no longer running.
+    """
+
+    caught_exception = None
+
+    try:
+        yield process
+    except Exception as e:
+        caught_exception = e
+
+    # If we haven't gotten a returncode at this point, we assume the
+    # process is blocked.  Let's kill it.
+    if process.returncode is None and process.poll() is None:
+        logging.warning(_("The process '%s' with PID '%s' did not exit " +
+                          "cleanly and will be killed automatically.") %
+                        (process_name, process.pid))
+        process.kill()
+        # Now that we've killed the process, we'll grab the return code,
+        # in order to clear the zombie.
+        process.wait()
+
+    # If we caught an exception earlier, re-raise it.
+    if caught_exception:
+        raise caught_exception
