@@ -151,8 +151,8 @@ class LoggingMiddleware(object):
         """
         if getattr(settings, 'LOGGING_PAGE_TIMES', False):
             request._page_timedloginfo = \
-                log_timed('Page request on %s by %s' %
-                          (request.path, request.user))
+                log_timed('Page request: HTTP %s %s (by %s)' %
+                          (request.method, request.path, request.user))
 
         if ('profiling' in request.GET and
             getattr(settings, "LOGGING_ALLOW_PROFILING", False)):
