@@ -1,3 +1,15 @@
+version 0.6.13 final (7-October-2011):
+	* djblets.log:
+		* Include the HTTP method in the new page request logs.
+
+	* djblets.util:
+		* Moved controlled_subprocess into djblets.util.contextmanagers.
+
+		  This makes it easier to selectively import on Python 2.4.
+
+		* Fixed a syntax error in controlled_subprocess on Python 2.4 and 2.5.
+
+
 version 0.6.12 final (6-October-2011):
 	* djblets.log:
 		* Allow logging page access times.
