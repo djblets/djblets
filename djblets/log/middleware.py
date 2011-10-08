@@ -34,7 +34,7 @@ from django.conf import settings
 from django.db import connection
 from django.db.backends import util
 
-from djblets.log import init_logging, init_profile_logger
+from djblets.log import init_logging, init_profile_logger, log_timed
 
 
 class CursorDebugWrapper(util.CursorDebugWrapper):
@@ -124,6 +124,18 @@ class LoggingMiddleware(object):
     for possible values in the format string.
 
 
+    LOGGING_PAGE_TIMES
+    ------------------
+
+    Default: False
+
+    If enabled, page access times will be logged. Specifically, it will log
+    the initial request, the finished render and response, and the total
+    time it look.
+
+    The username and page URL will be included in the logs.
+
+
     LOGGING_LEVEL
     -------------
 
@@ -137,6 +149,11 @@ class LoggingMiddleware(object):
         """
         Processes an incoming request. This will set up logging.
         """
+        if getattr(settings, 'LOGGING_PAGE_TIMES', False):
+            request._page_timedloginfo = \
+                log_timed('Page request: HTTP %s %s (by %s)' %
+                          (request.method, request.path, request.user))
+
         if ('profiling' in request.GET and
             getattr(settings, "LOGGING_ALLOW_PROFILING", False)):
             settings.DEBUG = True
@@ -162,6 +179,11 @@ class LoggingMiddleware(object):
         Handler for processing a response. Dumps the profiling information
         to the profile log file.
         """
+        timedloginfo = getattr(request, '_page_timedloginfo', None)
+
+        if timedloginfo:
+            timedloginfo.done()
+
         if ('profiling' in request.GET and
             getattr(settings, "LOGGING_ALLOW_PROFILING", False)):
 

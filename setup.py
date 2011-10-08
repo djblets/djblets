@@ -45,10 +45,10 @@ from djblets import get_package_version, is_release, VERSION
 PACKAGE_NAME = 'Djblets'
 
 if is_release():
-    download_url = 'http://downloads.review-board.org/releases/%s/%s.%s/' % \
+    download_url = 'http://downloads.reviewboard.org/releases/%s/%s.%s/' % \
                    (PACKAGE_NAME, VERSION[0], VERSION[1])
 else:
-    download_url = 'http://downloads.review-board.org/nightlies/'
+    download_url = 'http://downloads.reviewboard.org/nightlies/'
 
 
 setup(name=PACKAGE_NAME,
@@ -59,14 +59,14 @@ setup(name=PACKAGE_NAME,
       packages=find_packages(),
       install_requires=['Django>=1.1.1', 'PIL'],
       dependency_links = [
-          "http://downloads.review-board.org/mirror/",
+          "http://downloads.reviewboard.org/mirror/",
           download_url,
       ],
       include_package_data=True,
       zip_safe=False,
       maintainer="Christian Hammond",
       maintainer_email="chipx86@chipx86.com",
-      url="http://www.review-board.org/wiki/Djblets",
+      url="http://www.reviewboard.org/wiki/Djblets",
       download_url=download_url,
       classifiers=[
           "Development Status :: 4 - Beta",
