@@ -304,6 +304,13 @@ def startswith(value1, value2):
 
 @register.filter
 @stringfilter
+def endswith(value1, value2):
+    """Returns true if value1 ends with value2."""
+    return value1.endswith(value2)
+
+
+@register.filter
+@stringfilter
 def paragraphs(text):
     """
     Adds <p>...</p> tags around blocks of text in a string. This expects
