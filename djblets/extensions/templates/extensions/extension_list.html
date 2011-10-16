@@ -7,8 +7,8 @@
 <link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/forms.css" />
 <link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}djblets/css/admin.css" />
 <link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}djblets/css/extensions.css?{{MEDIA_SERIAL}}" />
-<script type="text/javascript" src="{{MEDIA_URL}}djblets/js/jquery-1.3.2.min.js"></script>
-<script type="text/javascript" src="{{MEDIA_URL}}djblets/js/jquery-ui-1.6rc5.min.js"></script>
+{% include "js/jquery.html" %}
+{% include "js/jquery-ui.html" %}
 <script type="text/javascript" src="{{MEDIA_URL}}djblets/js/jquery.gravy.js?{{MEDIA_SERIAL}}"></script>
 <script type="text/javascript" src="{{MEDIA_URL}}djblets/js/extensions.js?{{MEDIA_SERIAL}}"></script>
 
