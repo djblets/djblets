@@ -47,7 +47,7 @@ def check_login(request):
 def basic_access_login(request):
     try:
         realm, encoded_auth = request.META['HTTP_AUTHORIZATION'].split(' ')
-        username, password = encoded_auth.decode('base64').split(':')
+        username, password = encoded_auth.decode('base64').split(':', 1)
     except ValueError:
         logging.warning("Failed to parse HTTP_AUTHORIZATION header %s" %
                         request.META['HTTP_AUTHORIZATION'],
