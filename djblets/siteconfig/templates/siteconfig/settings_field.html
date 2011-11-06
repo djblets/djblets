@@ -7,7 +7,7 @@
    <div class="form-row{% if not label_first %} checkbox-row{% endif%}{% if field.errors %} error{% endif %}">
     {{field.errors}}
     {% if not label_first %}{{field}}{% endif %}
-    {% label_tag field %}
+    {% if not form.fields_no_label %}{% label_tag field %}{% endif %}
     {% if label_first %}{{field}}{% endif %}
     {% if field.help_text %}<p class="help">{{field.help_text}}</p>{% endif %}
     {% if form.disabled_reasons|contains:field.name %}<p class="disabled-reason">{{form.disabled_reasons|getitem:field.name|safe}}</p>{% endif %}
