@@ -1,0 +1,2 @@
+{% load djblets_utils %}
+<!--[if {{condition|default:"IE"}}]><link href="{{url}}{% if MEDIA_SERIAL %}?{{MEDIA_SERIAL}}{% endif %}" rel="stylesheet{% if url|endswith:"less" %}/less{% endif %}" type="text/css" media="{{media|default:"all"}}" title="{{title|default:"all"}}" charset="utf-8" /><![endif]-->
