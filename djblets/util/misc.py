@@ -47,8 +47,9 @@ except ImportError:
     from StringIO import StringIO
 
 from django.core.cache import cache
+from django.core.urlresolvers import RegexURLPattern
 from django.conf import settings
-from django.conf.urls.defaults import url, RegexURLPattern
+from django.conf.urls.defaults import url
 from django.contrib.sites.models import Site
 from django.db.models.manager import Manager
 from django.utils.translation import ugettext as _
