@@ -1,4 +1,4 @@
-version 0.6.14 final (7-November-2011):
+version 0.6.14 final (9-November-2011):
 	* djblets.compress:
 		* Added a new filters for django-compress that handles lesscss
 		  (http://lesscss.org) files and automatically converts/deploys as
