@@ -8,29 +8,33 @@ try:
 except ImportError:
     from StringIO import StringIO
 
-from compress.filter_base import FilterBase, FilterError
+from pipeline.compilers import CompilerBase, CompilerError
 from django.conf import settings
 
 
-LESSCSS_URL = getattr(settings, 'LESSCSS_URL',
-                      'http://blesscss.cloudfoundry.com/min')
-LESSCSS_IMPORT_PATHS = getattr(settings, 'LESSCSS_IMPORT_PATHS', [])
+BLESS_URL = getattr(settings, 'BLESS_URL',
+                    'http://blesscss.cloudfoundry.com/min')
+BLESS_IMPORT_PATHS = getattr(settings, 'BLESS_IMPORT_PATHS', [])
 
 
-class LessCSSFilter(FilterBase):
+class BlessCompiler(CompilerBase):
+    output_extension = 'css'
     IMPORT_RE = re.compile(r'^@import "([^"]+)";')
 
-    def filter_css(self, lesscss):
+    def match_file(self, filename):
+        return filename.endswith('.less')
+
+    def compile_file(self, content, path):
         if self.verbose:
-            print 'Converting lesscss using %s' % LESSCSS_URL
+            print 'Converting lesscss using %s' % BLESS_URL
 
         boundary = mimetools.choose_boundary()
 
-        content  = '--%s\r\n' % boundary
-        content += 'Content-Disposition: form-data; name="style.less"\r\n'
-        content += '\r\n'
+        blob  = '--%s\r\n' % boundary
+        blob += 'Content-Disposition: form-data; name="style.less"\r\n'
+        blob += '\r\n'
 
-        for line in lesscss.splitlines(True):
+        for line in content.splitlines(True):
             m = self.IMPORT_RE.match(line)
 
             if m:
@@ -42,30 +46,30 @@ class LessCSSFilter(FilterBase):
 
                 line = self._load_import(filename)
 
-            content += line
+            blob += line
 
-        content += '\r\n'
-        content += '--%s--\r\n' % boundary
-        content += '\r\n'
+        blob += '\r\n'
+        blob += '--%s--\r\n' % boundary
+        blob += '\r\n'
 
         headers = {
             'Content-Type': 'multipart/form-data; boundary=%s' % boundary,
-            'Content-Length': str(len(content)),
+            'Content-Length': str(len(blob)),
         }
 
-        r = urllib2.Request(LESSCSS_URL, content, headers)
+        r = urllib2.Request(BLESS_URL, blob, headers)
 
         try:
             return urllib2.urlopen(r).read()
         except urllib2.HTTPError, e:
             if e.code == 400:
-                raise FilterError("Error processing lessCSS files: %s" %
-                                  e.read())
+                raise CompilerError("Error processing lessCSS files: %s" %
+                                    e.read())
 
             raise
 
     def _load_import(self, filename):
-        for import_path in LESSCSS_IMPORT_PATHS:
+        for import_path in BLESS_IMPORT_PATHS:
             path = os.path.join(settings.MEDIA_ROOT, import_path, filename)
 
             if os.path.exists(path):
@@ -75,4 +79,4 @@ class LessCSSFilter(FilterBase):
 
                 return content
 
-        raise FilterError('Unable to find import file "%s"' % filename)
+        raise CompilerError('Unable to find import file "%s"' % filename)
