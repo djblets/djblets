@@ -34,7 +34,8 @@ from django.template import Token, TOKEN_TEXT, TemplateSyntaxError
 from django.utils.html import strip_spaces_between_tags
 
 from djblets.util.http import get_http_accept_lists, \
-                              get_http_requested_mimetype
+                              get_http_requested_mimetype, \
+                              is_mimetype_a
 from djblets.util.misc import cache_memoize, CACHE_CHUNK_SIZE
 from djblets.util.testing import TestCase, TagTest
 from djblets.util.templatetags import djblets_deco
@@ -210,6 +211,14 @@ class HttpTest(TestCase):
         self.assertEqual(
             get_http_requested_mimetype(self.request, ['foo/bar']),
             None)
+
+    def test_is_mimetype_a(self):
+        """Testing djblets.util.http.is_mimetype_a"""
+        self.assertTrue(is_mimetype_a('application/json', 'application/json'))
+        self.assertTrue(is_mimetype_a('application/vnd.foo+json',
+                                      'application/json'))
+        self.assertFalse(is_mimetype_a('application/xml', 'application/json'))
+        self.assertFalse(is_mimetype_a('foo/vnd.bar+json', 'application/json'))
 
 
 class AgeIdTest(TagTest):

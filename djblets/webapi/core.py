@@ -33,7 +33,7 @@ from django.http import HttpResponse
 from django.utils import simplejson
 from django.utils.encoding import force_unicode
 
-from djblets.util.http import get_http_requested_mimetype
+from djblets.util.http import get_http_requested_mimetype, is_mimetype_a
 from djblets.webapi.errors import INVALID_FORM_DATA
 
 
@@ -197,28 +197,32 @@ class WebAPIResponse(HttpResponse):
     ]
 
     def __init__(self, request, obj={}, stat='ok', api_format=None,
-                 status=200, headers={}, encoders=[]):
+                 status=200, headers={}, encoders=[],
+                 mimetype=None, supported_mimetypes=None):
         if not api_format:
             if request.method == 'GET':
                 api_format = request.GET.get('api_format', None)
             else:
                 api_format = request.POST.get('api_format', None)
 
-        if not api_format:
-            mimetype = get_http_requested_mimetype(request, self.supported_mimetypes)
-        elif api_format == "json":
-            mimetype = 'application/json'
-        elif api_format == "xml":
-            mimetype = 'application/xml'
-        else:
-            mimetype = None
+        if not supported_mimetypes:
+            supported_mimetypes = self.supported_mimetypes
+
+        if not mimetype:
+            if not api_format:
+                mimetype = get_http_requested_mimetype(request,
+                                                       supported_mimetypes)
+            elif api_format == "json":
+                mimetype = 'application/json'
+            elif api_format == "xml":
+                mimetype = 'application/xml'
 
         if not mimetype:
             self.status_code = 400
             self.content_set = True
             return
 
-        if mimetype == 'application/json' and request.FILES:
+        if not request.is_ajax() and request.FILES:
             # When uploading a file using AJAX to a webapi view,
             # we must set the mimetype to text/plain. If we use
             # application/json instead, the browser will ask the user
@@ -266,9 +270,10 @@ class WebAPIResponse(HttpResponse):
             encoder = MultiEncoder(self.encoders)
 
             # See the note above about the check for text/plain.
-            if self.mimetype in ['application/json', 'text/plain']:
+            if (self.mimetype == 'text/plain' or
+                is_mimetype_a(self.mimetype, 'application/json')):
                 adapter = JSONEncoderAdapter(encoder)
-            elif self.mimetype == "application/xml":
+            elif is_mimetype_a(self.mimetype, "application/xml"):
                 adapter = XMLEncoderAdapter(encoder)
             else:
                 assert False
@@ -400,10 +405,8 @@ def get_registered_encoders():
     if __registered_encoders is None:
         __registered_encoders = []
 
-        try:
-            encoders = settings.WEB_API_ENCODERS
-        except AttributeError:
-            encoders = ('BasicAPIEncoder',)
+        encoders = getattr(settings, 'WEB_API_ENCODERS',
+                           ['djblets.webapi.encoders.BasicAPIEncoder'])
 
         for encoder in encoders:
             encoder_path = encoder.split('.')

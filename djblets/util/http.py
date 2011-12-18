@@ -159,8 +159,11 @@ def get_http_requested_mimetype(request, supported_mimetypes):
             acceptable_mimetypes = []
             unacceptable_mimetypes = supported_mimetypes
         else:
-            acceptable_mimetypes = \
-                supported_mimetypes_set.difference(unacceptable_mimetypes_set)
+            acceptable_mimetypes = [
+                mimetype
+                for mimetype in supported_mimetypes
+                if mimetype not in unacceptable_mimetypes_set
+            ]
 
     if acceptable_mimetypes:
         for mimetype in acceptable_mimetypes:
@@ -174,3 +177,19 @@ def get_http_requested_mimetype(request, supported_mimetypes):
             return mimetype
 
     return None
+
+
+def is_mimetype_a(mimetype, parent_mimetype):
+    """Returns whether or not a given mimetype is a subset of another.
+
+    This is generally used to determine if vendor-specific mimetypes is
+    a subset of another type. For example,
+    :mimetype:`application/vnd.djblets.foo+json` is a subset of
+    :mimetype:`application/json`.
+    """
+    parts = mimetype.split('/')
+    parent_parts = parent_mimetype.split('/')
+
+    return (parts[0] == parent_parts[0] and
+            (parts[1] == parent_parts[1] or
+             parts[1].endswith('+' + parent_parts[1])))
