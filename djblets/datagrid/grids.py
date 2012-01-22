@@ -37,9 +37,7 @@ from django.template.defaultfilters import date, timesince
 from django.template.loader import render_to_string, get_template
 from django.utils.cache import patch_cache_control
 from django.utils.safestring import mark_safe
-from django.utils.timezone import is_aware
 from django.utils.translation import ugettext as _
-import pytz
 
 
 class Column(object):
@@ -297,39 +295,23 @@ class DateTimeColumn(Column):
     """
     A column that renders a date or time.
     """
-    def __init__(self, label, format=None, sortable=True,
-                 timezone=pytz.utc, *args, **kwargs):
+    def __init__(self, label, format=None, sortable=True, *args, **kwargs):
         Column.__init__(self, label, sortable=sortable, *args, **kwargs)
         self.format = format
-        self.timezone = timezone
 
     def render_data(self, obj):
-        datetime = getattr(obj, self.field_name)
-
-        # If the datetime object is tz aware, convert to local timezone
-        if is_aware(datetime):
-            datetime = pytz.utc.normalize(datetime).astimezone(self.timezone)
-
-        return date(datetime, self.format)
+        return date(getattr(obj, self.field_name), self.format)
 
 
 class DateTimeSinceColumn(Column):
     """
     A column that renders a date or time relative to now.
     """
-    def __init__(self, label, sortable=True, timezone=pytz.utc,
-                 *args, **kwargs):
+    def __init__(self, label, sortable=True, *args, **kwargs):
         Column.__init__(self, label, sortable=sortable, *args, **kwargs)
-        self.timezone = timezone
 
     def render_data(self, obj):
-        datetime = getattr(obj, self.field_name)
-
-        # If the datetime object is tz aware, convert to local timezone
-        if is_aware(datetime):
-            datetime = pytz.utc.normalize(datetime).astimezone(self.timezone)
-
-        return _("%s ago") % timesince(datetime)
+        return _("%s ago") % timesince(getattr(obj, self.field_name))
 
 
 class DataGrid(object):
