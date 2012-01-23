@@ -588,7 +588,7 @@ class DataGrid(object):
         if sort_list:
             query = query.order_by(*sort_list)
 
-        self.paginator = QuerySetPaginator(query, self.paginate_by,
+        self.paginator = QuerySetPaginator(query.distinct(), self.paginate_by,
                                            self.paginate_orphans)
 
         page_num = self.request.GET.get('page', 1)
@@ -608,7 +608,7 @@ class DataGrid(object):
             # This can be slow when sorting by multiple columns. If we
             # have multiple items in the sort list, we'll request just the
             # IDs and then fetch the actual details from that.
-            self.id_list = list(self.page.object_list.distinct().values_list(
+            self.id_list = list(self.page.object_list.values_list(
                 'pk', flat=True))
 
             # Make sure to unset the order. We can't meaningfully order these
