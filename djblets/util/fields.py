@@ -25,6 +25,7 @@
 
 import base64
 import logging
+import pytz
 from datetime import datetime
 
 from django.conf import settings
@@ -33,6 +34,12 @@ from django.db import models
 from django.db.models import F
 from django.utils import simplejson
 from django.utils.encoding import smart_unicode
+try:
+    from django.utils.timezone import is_aware
+except ImportError:
+    pass
+
+from djblets.util.dates import get_tz_aware_utcnow
 
 
 class Base64DecodedValue(str):
@@ -125,6 +132,13 @@ class ModificationTimestampField(models.DateTimeField):
     def pre_save(self, model, add):
         if not add or getattr(model, self.attname) is None:
             value = datetime.now()
+
+            try:
+                if is_aware(value):
+                    value = get_tz_aware_utcnow()
+            except:
+                pass
+
             setattr(model, self.attname, value)
             return value
 

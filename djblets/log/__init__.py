@@ -57,7 +57,7 @@ class TimedLogInfo(object):
         self.warning_at = warning_at
         self.critical_at = critical_at
         self.default_level = default_level
-        self.start_time = datetime.now()
+        self.start_time = datetime.utcnow()
 
         if log_beginning:
             logging.log(self.default_level, "Begin: %s" % self.message)
@@ -68,7 +68,7 @@ class TimedLogInfo(object):
         operation will be written to the log file. The log level depends
         on how long the operation takes.
         """
-        delta = datetime.now() - self.start_time
+        delta = datetime.utcnow() - self.start_time
         level = self.default_level
 
         if delta.seconds >= self.critical_at:

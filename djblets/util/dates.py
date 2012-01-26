@@ -37,7 +37,7 @@ def http_date(timestamp):
     from django.utils.http import http_date
 
     if isinstance(timestamp, (DateField, datetime)):
-        return http_date(time.mktime(timestamp.timetuple()))
+        return http_date(time.timegm(timestamp.timetuple()))
     elif isinstance(timestamp, basestring):
         return timestamp
     else:
