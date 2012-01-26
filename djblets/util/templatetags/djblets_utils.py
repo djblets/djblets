@@ -32,13 +32,8 @@ from django.template import TemplateSyntaxError
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
-try:
-    from django.utils.timezone import is_aware
-except ImportError:
-    pass
 
 from djblets.util.decorators import basictag, blocktag
-from djblets.util.dates import get_tz_aware_utcnow
 
 
 register = template.Library()
@@ -165,14 +160,8 @@ def ageid(timestamp):
         timestamp = datetime.datetime(timestamp.year, timestamp.month,
                                       timestamp.day)
 
-    now = datetime.datetime.utcnow()
 
-    try:
-        if is_aware(timestamp):
-            now = get_tz_aware_utcnow()
-    except NameError:
-        pass
-
+    now = datetime.datetime.now()
     delta = now - (timestamp -
                    datetime.timedelta(0, 0, timestamp.microsecond))
 
