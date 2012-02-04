@@ -207,7 +207,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                     else:
                         try:
                             if issubclass(info['type'], bool):
-                                value = value in (1, "1", True, "True")
+                                value = value in (1, "1", True, "True", "true")
                             elif issubclass(info['type'], int):
                                 try:
                                     value = int(value)
