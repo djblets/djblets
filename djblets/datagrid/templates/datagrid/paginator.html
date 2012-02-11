@@ -1,5 +1,5 @@
 <div class="paginator">
- {% if show_first %}<a href="?{%if extra_query%}{{extra_query}}&{%endif%}page=1" title="First Page">&laquo;</a></span>{% endif %}
+ {% if show_first %}<a href="?{%if extra_query%}{{extra_query}}&{%endif%}page=1" title="First Page">&laquo;</a>{% endif %}
  {% if has_previous %}<a href="?{%if extra_query%}{{extra_query}}&{%endif%}page={{previous}}" title="Previous Page">&lt;</a></span>{% endif %}
 {% for pagenum in page_numbers %}
 {%  ifequal pagenum page %}

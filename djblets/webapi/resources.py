@@ -14,7 +14,8 @@ from django.views.decorators.vary import vary_on_headers
 
 from djblets.util.decorators import augment_method_from
 from djblets.util.http import get_modified_since, etag_if_none_match, \
-                              set_last_modified, set_etag
+                              set_last_modified, set_etag, \
+                              get_http_requested_mimetype
 from djblets.util.misc import never_cache_patterns
 from djblets.webapi.auth import check_login
 from djblets.webapi.core import WebAPIResponse, \
@@ -260,6 +261,47 @@ class WebAPIResource(object):
     If more work is needed, the ``get_etag`` function can instead be
     overridden. It will take a request and object and is expected to return
     a string.
+
+
+    Mimetypes
+    ---------
+
+    Resources should list the possible mimetypes they'll accept and return in
+    :py:attr:`allowed_list_mimetypes` (for resource lists) and
+    :py:attr:`allowed_item_mimetypes` (for resource items and singletons).
+    Entries in these lists are checked against the mimetypes requested in the
+    HTTP Accept header, and, by default, the returned data will be sent in
+    that mimetype.
+
+    By default, these lists will contain :mimetype:`application/json` and
+    :mimetype:`application/xml`, along with any resource-specific mimetypes,
+    if used.
+
+    Resource-specific Mimetypes
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    In order to better identify resources, resources can provide their
+    own custom mimetypes. These are known as vendor-specific mimetypes, and
+    are subsets of :mimetype:`application/json` and :mimetype:`application/xml`.
+    An example would be :mimetype:`application/vnd.example.com.myresource+json`.
+
+    To enable this on a resource, set :py:attr:`mimetype_vendor` to the
+    vendor name. This is often a domain name. For example::
+
+        mimetype_vendor = 'djblets.org'
+
+    The resource names will then be generated based on the name of the
+    resource (:py:attr:`name_plural` for resource lists, :py:attr:`name` for
+    resource items and singletons). These can be customized as well::
+
+        mimetype_list_resource_name = 'myresource-list'
+        mimetype_item_resource_name = 'myresource'
+
+    When these are used, any client requesting either the resource-specific
+    mimetype or the more generic mimetype will by default receive a payload
+    with the resource-specific mimetype. This makes it easier to identify
+    the schema of resource data without hard-coding any knowledge of the
+    URI.
     """
 
     # Configuration
@@ -276,9 +318,11 @@ class WebAPIResource(object):
     list_child_resources = []
     item_child_resources = []
     allowed_methods = ('GET',)
-
-    allowed_item_mimetypes = WebAPIResponse.supported_mimetypes
-    allowed_list_mimetypes = WebAPIResponse.supported_mimetypes
+    mimetype_vendor = None
+    mimetype_list_resource_name = None
+    mimetype_item_resource_name = None
+    allowed_list_mimetypes = list(WebAPIResponse.supported_mimetypes)
+    allowed_item_mimetypes = list(WebAPIResponse.supported_mimetypes)
 
     # State
     method_mapping = {
@@ -289,11 +333,24 @@ class WebAPIResource(object):
     }
 
     _parent_resource = None
+    _mimetypes_cache = None
 
     def __init__(self):
         _name_to_resources[self.name] = self
         _name_to_resources[self.name_plural] = self
         _class_to_resources[self.__class__] = self
+
+        if self.mimetype_vendor:
+            self.allowed_item_mimetypes = list(self.allowed_item_mimetypes)
+            self.allowed_list_mimetypes = list(self.allowed_list_mimetypes)
+
+            # Add resource-specific versions of supported mimetypes
+            for mimetypes, is_list in [(self.allowed_item_mimetypes, False),
+                                       (self.allowed_list_mimetypes, True)]:
+                for mimetype in WebAPIResponse.supported_mimetypes:
+                    if mimetype in mimetypes:
+                        mimetypes.append(self._build_resource_mimetype(mimetype,
+                                                                       is_list))
 
     @vary_on_headers('Accept', 'Cookie')
     def __call__(self, request, api_format=None, *args, **kwargs):
@@ -326,6 +383,8 @@ class WebAPIResource(object):
                 request._load_post_and_files()
                 request.META['REQUEST_METHOD'] = 'PUT'
 
+        request._djblets_webapi_method = method
+        request._djblets_webapi_kwargs = kwargs
         request.PUT = request.POST
 
         if method in self.allowed_methods:
@@ -345,8 +404,11 @@ class WebAPIResource(object):
             if isinstance(result, WebAPIResponse):
                 return result
             elif isinstance(result, WebAPIError):
-                return WebAPIResponseError(request, err=result,
-                                           api_format=api_format)
+                return WebAPIResponseError(
+                    request,
+                    err=result,
+                    api_format=api_format,
+                    mimetype=self._build_error_mimetype(request))
             elif isinstance(result, tuple):
                 headers = {}
 
@@ -372,17 +434,21 @@ class WebAPIResource(object):
                             headers['Location'] += '?' + extra_querystr
 
                 if isinstance(result[0], WebAPIError):
-                    return WebAPIResponseError(request,
-                                               err=result[0],
-                                               headers=headers,
-                                               extra_params=result[1],
-                                               api_format=api_format)
+                    return WebAPIResponseError(
+                        request,
+                        err=result[0],
+                        headers=headers,
+                        extra_params=result[1],
+                        api_format=api_format,
+                        mimetype=self._build_error_mimetype(request))
                 else:
-                    return WebAPIResponse(request,
-                                          status=result[0],
-                                          obj=result[1],
-                                          headers=headers,
-                                          api_format=api_format)
+                    return WebAPIResponse(
+                        request,
+                        status=result[0],
+                        obj=result[1],
+                        headers=headers,
+                        api_format=api_format,
+                        **self.build_response_args(request))
             elif isinstance(result, HttpResponse):
                 return result
             else:
@@ -428,6 +494,57 @@ class WebAPIResource(object):
         from the name used for the resource.
         """
         return self.name_plural.replace('_', '-')
+
+    def _build_resource_mimetype(self, mimetype, is_list):
+        if is_list:
+            resource_name = self.mimetype_list_resource_name or \
+                            self.name_plural.replace('_', '-')
+        else:
+            resource_name = self.mimetype_item_resource_name or \
+                            self.name.replace('_', '-')
+
+        return self._build_vendor_mimetype(mimetype, resource_name)
+
+    def _build_error_mimetype(self, request):
+        mimetype = get_http_requested_mimetype(
+            request, WebAPIResponse.supported_mimetypes)
+
+        if self.mimetype_vendor:
+            mimetype = self._build_vendor_mimetype(mimetype, 'error')
+
+        return mimetype
+
+    def _build_vendor_mimetype(self, mimetype, name):
+        parts = mimetype.split('/')
+
+        return '%s/vnd.%s.%s+%s' % (parts[0],
+                                    self.mimetype_vendor,
+                                    name,
+                                    parts[1])
+
+    def build_response_args(self, request):
+        is_list = (request._djblets_webapi_method == 'GET' and
+                   not self.singleton and
+                   (self.uri_object_key is None or
+                    self.uri_object_key not in request._djblets_webapi_kwargs))
+
+        if is_list:
+            supported_mimetypes = self.allowed_list_mimetypes
+        else:
+            supported_mimetypes = self.allowed_item_mimetypes
+
+        mimetype = get_http_requested_mimetype(request,
+                                               supported_mimetypes)
+
+        if (self.mimetype_vendor and
+            mimetype in WebAPIResponse.supported_mimetypes):
+            mimetype = self._build_resource_mimetype(mimetype,
+                                                     is_list)
+
+        return {
+            'supported_mimetypes': supported_mimetypes,
+            'mimetype': mimetype,
+        }
 
     def get_object(self, request, *args, **kwargs):
         """Returns an object, given captured parameters from a URL.
@@ -526,7 +643,8 @@ class WebAPIResource(object):
         response = WebAPIResponse(request,
                                   status=200,
                                   obj=data,
-                                  api_format=api_format)
+                                  api_format=api_format,
+                                  **self.build_response_args(request))
 
         if last_modified_timestamp:
             set_last_modified(response, last_modified_timestamp)
@@ -573,7 +691,8 @@ class WebAPIResource(object):
                 serialize_object_func =
                     lambda obj: get_resource_for_object(obj).serialize_object(
                         obj, request=request, *args, **kwargs),
-                extra_data=data)
+                extra_data=data,
+                **self.build_response_args(request))
         else:
             return 200, data
 
@@ -1129,6 +1248,12 @@ def get_resource_from_name(name):
 def get_resource_from_class(klass):
     """Returns the resource with the specified resource class."""
     return _class_to_resources.get(klass, None)
+
+def unregister_resource(resource):
+    """Unregisters a resource from the caches."""
+    del _name_to_resources[resource.name]
+    del _name_to_resources[resource.name_plural]
+    del _class_to_resources[resource.__class__]
 
 
 user_resource = UserResource()

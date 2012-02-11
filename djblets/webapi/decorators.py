@@ -28,7 +28,7 @@
 from django.http import HttpRequest
 
 from djblets.util.decorators import simple_decorator
-from djblets.webapi.core import WebAPIResponseError, SPECIAL_PARAMS
+from djblets.webapi.core import SPECIAL_PARAMS
 from djblets.webapi.errors import NOT_LOGGED_IN, PERMISSION_DENIED, \
                                   INVALID_FORM_DATA
 
@@ -87,7 +87,7 @@ def webapi_login_required(view_func):
         if request.user.is_authenticated():
             return view_func(*args, **kwargs)
         else:
-            return WebAPIResponseError(request, NOT_LOGGED_IN)
+            return NOT_LOGGED_IN
 
     view_func.login_required = True
 
@@ -106,9 +106,9 @@ def webapi_permission_required(perm):
             request = _find_httprequest(args)
 
             if not request.user.is_authenticated():
-                response = WebAPIResponseError(request, NOT_LOGGED_IN)
+                response = NOT_LOGGED_IN
             elif not request.user.has_perm(perm):
-                response = WebAPIResponseError(request, PERMISSION_DENIED)
+                response = PERMISSION_DENIED
             else:
                 response = view_func(*args, **kwargs)
 
@@ -207,7 +207,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                     else:
                         try:
                             if issubclass(info['type'], bool):
-                                value = value in (1, "1", True, "True")
+                                value = value in (1, "1", True, "True", "true")
                             elif issubclass(info['type'], int):
                                 try:
                                     value = int(value)
