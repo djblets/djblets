@@ -51,7 +51,6 @@ def extension_list(request, extension_manager,
             {
                 'id': extension.id,
                 'info': extension.info,
-                'is_configurable': extension.is_configurable,
                 'has_disabled_requirements':
                     _has_disabled_requirements(extension),
             }

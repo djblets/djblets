@@ -167,6 +167,7 @@ class ExtensionInfo(object):
         self.app_name = '.'.join(ext_class.__module__.split('.')[:-1])
         self.enabled = False
         self.installed = False
+        self.is_configurable = ext_class.is_configurable
         self.htdocs_path = os.path.join(settings.EXTENSIONS_MEDIA_ROOT,
                                         self.name)
 

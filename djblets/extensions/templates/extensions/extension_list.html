@@ -34,7 +34,7 @@
    <ul class="object-tools">
 {%   if extension.info.enabled %}
     <li><a id="{{extension.id}}-disable" href="#" class="disablelink">Disable</a></li>
-{%    if extension.is_configurable %}
+{%    if extension.info.is_configurable %}
     <li><a href="{{extension.id}}/config/" class="changelink">Configure</a></li>
 {%    endif %}
 {%   else %}
