@@ -1,6 +1,5 @@
 {% extends "admin/base_site.html" %}
 {% load adminmedia admin_list djblets_forms djblets_utils i18n %}
-{% block stylesheet %}{% admin_media_prefix %}css/forms.css{% endblock %}
 
 {% block title %}
 {%  if enabled %}
@@ -11,12 +10,10 @@
 {{block.super}}
 {% endblock %}
 
-{% block breadcrumbs %}
-<div class="breadcrumbs">
- <a href="../../../">{% trans "Home" %}</a> &rsaquo;
- <a href="{% url djblets.extensions.views.extension_list %}">{% trans "Extensions" %}</a> &rsaquo;
- {{extension.info.name}}
-</div>
+{% block extrahead %}
+<link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/forms.css" />
+<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}djblets/css/admin.css" />
+{{block.super}}
 {% endblock %}
 
 {% block content %}
@@ -34,6 +31,7 @@
 {%   if extension.is_configurable %}
  <form action="." method="post"{% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
   <fieldset class="module aligned">
+   <h2>{% blocktrans with extension.info.name as name %}{{name}} Settings{% endblocktrans %}</h2>
 {%   for field in form %}
 {%    if field.is_hidden %}
    {{field}}
