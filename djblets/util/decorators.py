@@ -203,7 +203,7 @@ def blocktag(tag_func):
                     "%r tag takes %d to %d arguments, got %d." % \
                     (tag_name, min_args, max_args, len(bits))
 
-        nodelist = parser.parse(('end%s' % tag_name),)
+        nodelist = parser.parse((('end%s' % tag_name),))
         parser.delete_first_token()
         return BlockTagNode(tag_name, tag_func, nodelist, bits)
 
