@@ -58,6 +58,8 @@ mail_settings_map = {
 site_settings_map = {
     'site_media_root':             'MEDIA_ROOT',
     'site_media_url':              'MEDIA_URL',
+    'site_static_root':            'STATIC_ROOT',
+    'site_static_url':             'STATIC_URL',
     'site_prepend_www':            'PREPEND_WWW',
     'site_upload_temp_dir':        'FILE_UPLOAD_TEMP_DIR',
     'site_upload_max_memory_size': 'FILE_UPLOAD_MAX_MEMORY_SIZE',

@@ -162,7 +162,7 @@ class ExtensionInfoTest(TestCase):
         self.test_summary = 'Test summary lorem ipsum'
         self.test_version = '1.0'
 
-        self.test_htdocs_path = os.path.join(settings.EXTENSIONS_MEDIA_ROOT,
+        self.test_htdocs_path = os.path.join(settings.EXTENSIONS_STATIC_ROOT,
                                              self.test_project_name)
 
         self.test_metadata = {
@@ -293,7 +293,7 @@ class ExtensionManagerTest(TestCase):
         self.test_summary = 'Test summary lorem ipsum'
         self.test_version = '1.0'
 
-        self.test_htdocs_path = os.path.join(settings.EXTENSIONS_MEDIA_ROOT,
+        self.test_htdocs_path = os.path.join(settings.EXTENSIONS_STATIC_ROOT,
                                              self.test_project_name)
 
         self.test_metadata = {

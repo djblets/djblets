@@ -57,9 +57,13 @@ setup(name=PACKAGE_NAME,
       license="MIT",
       description="A collection of useful classes and functions for Django",
       packages=find_packages(),
-      install_requires=['Django>=1.1.1', 'PIL'],
+      install_requires=[
+          'Django>=1.4b1',
+          'PIL'
+      ],
       dependency_links = [
           "http://downloads.reviewboard.org/mirror/",
+          'http://www.djangoproject.com/download/1.4-beta-1/tarball/#egg=Django-1.4b1',
           download_url,
       ],
       include_package_data=True,

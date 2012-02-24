@@ -183,7 +183,7 @@ class Column(object):
                 get_template(self.datagrid.column_header_template)
 
         ctx = Context({
-            'MEDIA_URL': settings.MEDIA_URL,
+            'STATIC_URL': settings.STATIC_URL,
             'column': self,
             'in_sort': in_sort,
             'sort_ascending': sort_direction == self.SORT_ASCENDING,

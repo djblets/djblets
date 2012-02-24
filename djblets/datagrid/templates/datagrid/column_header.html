@@ -1,15 +1,16 @@
-{% load i18n %}
+{% load djblets_utils i18n staticfiles %}
 {% if column.sortable %}
 <th onclick="javascript:window.location = '{{sort_url}}';" class="datagrid-header">
  <a href="{{sort_url}}">{% if column.label %}{{column.label}}{% endif %}
  {% if column.image_url %}<img src="{{column.image_url}}" width="{{column.image_width}}" height="{{column.image_height}}" alt="{{column.image_alt}}" />{% endif %}
 {% if in_sort %}
-  <img src="{{MEDIA_URL}}djblets/images/datagrid/sort_{% if sort_ascending %}asc{% else %}desc{% endif %}_{% if sort_primary %}primary{% else %}secondary{% endif %}.png"
+{% definevar sort_image %}djblets/images/datagrid/sort_{% if sort_ascending %}asc{% else %}desc{% endif %}_{% if sort_primary %}primary{% else %}secondary{% endif %}.png{% enddefinevar %}
+  <img src="{% static sort_image %}
    alt="({% if sort_ascending %}{% trans "Ascending" %}{% else %}{% trans "Descending" %}{% endif %})"
    width="9" height="5" border="0" />
  </a>
  <a class="datagrid-unsort" href="{{unsort_url}}">
-  <img src="{{MEDIA_URL}}djblets/images/datagrid/unsort.png" width="7" height="7" border="0" alt="{% trans "Unsort" %}" />
+  <img src="{% static "djblets/images/datagrid/unsort.png" %}" width="7" height="7" border="0" alt="{% trans "Unsort" %}" />
 {% endif %}
  </a>
 </th>

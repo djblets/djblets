@@ -1,11 +1,11 @@
 {% extends "admin/base_site.html" %}
-{% load adminmedia admin_list djblets_utils i18n %}
+{% load adminmedia admin_list djblets_utils i18n staticfiles %}
 
 {% block title %}{{form.Meta.title}} {{block.super}}{% endblock %}
 
 {% block extrahead %}
 <link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/forms.css" />
-<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}djblets/css/admin.css" />
+<link rel="stylesheet" type="text/css" href="{% static "djblets/css/admin.css" %}" />
 {{block.super}}
 {% endblock %}
 

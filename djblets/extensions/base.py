@@ -49,14 +49,9 @@ from djblets.extensions.signals import extension_initialized, \
 
 
 
-if not hasattr(settings, "EXTENSIONS_MEDIA_ROOT"):
+if not hasattr(settings, "EXTENSIONS_STATIC_ROOT"):
     raise ImproperlyConfigured, \
-          "settings.EXTENSIONS_MEDIA_ROOT must be defined"
-
-if not os.path.exists(settings.EXTENSIONS_MEDIA_ROOT):
-    raise ImproperlyConfigured, \
-          "%s must exist and must be writable by the web server." % \
-          settings.EXTENSIONS_MEDIA_ROOT
+          "settings.EXTENSIONS_STATIC_ROOT must be defined"
 
 
 _extension_managers = []
@@ -168,7 +163,7 @@ class ExtensionInfo(object):
         self.enabled = False
         self.installed = False
         self.is_configurable = ext_class.is_configurable
-        self.htdocs_path = os.path.join(settings.EXTENSIONS_MEDIA_ROOT,
+        self.htdocs_path = os.path.join(settings.EXTENSIONS_STATIC_ROOT,
                                         self.name)
 
     def __unicode__(self):
@@ -503,7 +498,7 @@ class ExtensionManager(object):
 
         Performs any installation necessary for an extension.
         This will install the contents of htdocs into the
-        EXTENSIONS_MEDIA_ROOT directory.
+        EXTENSIONS_STATIC_ROOT directory.
         """
         ext_path = ext_class.info.htdocs_path
         ext_path_exists = os.path.exists(ext_path)
@@ -559,7 +554,7 @@ class ExtensionManager(object):
 
         Performs any uninstallation necessary for an extension.
         This will uninstall the contents of
-        EXTENSIONS_MEDIA_ROOT/extension-name/.
+        EXTENSIONS_STATIC_ROOT/extension-name/.
         """
         ext_path = extension.info.htdocs_path
         ext_path_exists = os.path.exists(ext_path)

@@ -1,16 +1,16 @@
 {% extends "admin/base_site.html" %}
-{% load adminmedia admin_list djblets_extensions i18n %}
+{% load adminmedia admin_list djblets_extensions i18n staticfiles %}
 
 {% block title %}{% trans "Manage Extensions" %} {{block.super}}{% endblock %}
 
 {% block extrahead %}
 <link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/forms.css" />
-<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}djblets/css/admin.css" />
-<link rel="stylesheet" type="text/css" href="{{MEDIA_URL}}djblets/css/extensions.css?{{MEDIA_SERIAL}}" />
+<link rel="stylesheet" type="text/css" href="{% static "djblets/css/admin.css" %}" />
+<link rel="stylesheet" type="text/css" href="{% static "djblets/css/extensions.css" %}?{{MEDIA_SERIAL}}" />
 {% include "js/jquery.html" %}
 {% include "js/jquery-ui.html" %}
-<script type="text/javascript" src="{{MEDIA_URL}}djblets/js/jquery.gravy.js?{{MEDIA_SERIAL}}"></script>
-<script type="text/javascript" src="{{MEDIA_URL}}djblets/js/extensions.js?{{MEDIA_SERIAL}}"></script>
+<script type="text/javascript" src="{% static "djblets/js/jquery.gravy.js" %}?{{MEDIA_SERIAL}}"></script>
+<script type="text/javascript" src="{% static "djblets/js/extensions.js" %}?{{MEDIA_SERIAL}}"></script>
 
 {{block.super}}
 {% endblock %}

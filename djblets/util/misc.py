@@ -255,7 +255,7 @@ def generate_media_serial():
     path will be accessed and cached.
 
     This will crawl the media files (using directories in MEDIA_SERIAL_DIRS if
-    specified, or all of MEDIA_ROOT otherwise), figuring out the latest
+    specified, or all of STATIC_ROOT otherwise), figuring out the latest
     timestamp, and return that value.
     """
     MEDIA_SERIAL = getattr(settings, "MEDIA_SERIAL", 0)
@@ -264,7 +264,7 @@ def generate_media_serial():
         media_dirs = getattr(settings, "MEDIA_SERIAL_DIRS", ["."])
 
         for media_dir in media_dirs:
-            media_path = os.path.join(settings.MEDIA_ROOT, media_dir)
+            media_path = os.path.join(settings.STATIC_ROOT, media_dir)
 
             for root, dirs, files in os.walk(media_path):
                 for name in files:

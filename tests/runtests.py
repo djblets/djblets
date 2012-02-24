@@ -14,8 +14,8 @@ def run_tests(verbosity=1, interactive=False):
     setup_test_environment()
     settings.DEBUG = False
 
-    if not os.path.exists(settings.EXTENSIONS_MEDIA_ROOT):
-        os.mkdir(settings.EXTENSIONS_MEDIA_ROOT, 0755)
+    if not os.path.exists(settings.EXTENSIONS_STATIC_ROOT):
+        os.mkdir(settings.EXTENSIONS_STATIC_ROOT, 0755)
 
     old_db_name = 'default'
     connection.creation.create_test_db(verbosity, autoclobber=not interactive)

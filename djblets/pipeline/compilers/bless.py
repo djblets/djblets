@@ -70,7 +70,7 @@ class BlessCompiler(CompilerBase):
 
     def _load_import(self, filename):
         for import_path in BLESS_IMPORT_PATHS:
-            path = os.path.join(settings.MEDIA_ROOT, import_path, filename)
+            path = os.path.join(settings.STATIC_ROOT, import_path, filename)
 
             if os.path.exists(path):
                 fp = open(path, 'r')
