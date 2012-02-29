@@ -54,7 +54,7 @@ def gravatar(user, size=None):
     email = user.email.strip().lower()
     email_hash = md5(email).hexdigest()
 
-    url = "http://www.gravatar.com/avatar/%s.jpg" % email_hash
+    url = "http://www.gravatar.com/avatar/%s" % email_hash
     params = []
 
     if not size and hasattr(settings, "GRAVATAR_SIZE"):
