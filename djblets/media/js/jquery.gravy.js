@@ -405,6 +405,14 @@ $.widget("ui.inlineEditor", {
                     return false;
                 });
 
+            if (this.options.showRequiredFlag) {
+                this._editIcon.append(
+                    $("<span/>")
+                        .attr("aria-label", "This field is required")
+                        .addClass("required-flag")
+                        .text("*"));
+            }
+
             if (this.options.multiline) {
                 this._editIcon.appendTo(
                     $("label[for=" + this.element[0].id + "]"));
