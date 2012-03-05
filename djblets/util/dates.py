@@ -27,6 +27,7 @@ from datetime import datetime
 import time
 
 from django.db.models import DateField
+from django.utils.timezone import utc
 
 
 def http_date(timestamp):
@@ -37,7 +38,7 @@ def http_date(timestamp):
     from django.utils.http import http_date
 
     if isinstance(timestamp, (DateField, datetime)):
-        return http_date(time.mktime(timestamp.timetuple()))
+        return http_date(time.timegm(timestamp.timetuple()))
     elif isinstance(timestamp, basestring):
         return timestamp
     else:
@@ -55,3 +56,8 @@ def get_latest_timestamp(timestamps):
             latest = timestamp
 
     return latest
+
+
+def get_tz_aware_utcnow():
+    """Returns a UTC aware datetime object"""
+    return datetime.datetime.utcnow().replace(tzinfo=utc)

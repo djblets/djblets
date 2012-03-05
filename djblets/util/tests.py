@@ -225,7 +225,7 @@ class AgeIdTest(TagTest):
     def setUp(self):
         TagTest.setUp(self)
 
-        self.now = datetime.datetime.now()
+        self.now = datetime.datetime.utcnow()
 
         self.context = {
             'now':    self.now,

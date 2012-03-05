@@ -59,7 +59,8 @@ setup(name=PACKAGE_NAME,
       packages=find_packages(),
       install_requires=[
           'Django>=1.4b1',
-          'PIL'
+          'PIL',
+          'pytz'
       ],
       dependency_links = [
           "http://downloads.reviewboard.org/mirror/",
