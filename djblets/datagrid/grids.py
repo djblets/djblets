@@ -310,7 +310,7 @@ class DateTimeColumn(Column):
             datetime = pytz.utc.normalize(datetime).\
                 astimezone(self.timezone)
 
-        return date(getattr(obj, self.field_name), self.format)
+        return date(datetime, self.format)
 
 
 class DateTimeSinceColumn(Column):

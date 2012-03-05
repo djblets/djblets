@@ -23,8 +23,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-from datetime import datetime
-import time
+import calendar
+import datetime
 
 from django.db.models import DateField
 from django.utils.timezone import utc
@@ -38,7 +38,7 @@ def http_date(timestamp):
     from django.utils.http import http_date
 
     if isinstance(timestamp, (DateField, datetime)):
-        return http_date(time.timegm(timestamp.timetuple()))
+        return http_date(calendar.timegm(timestamp.timetuple()))
     elif isinstance(timestamp, basestring):
         return timestamp
     else:
