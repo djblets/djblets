@@ -25,6 +25,12 @@ def run_tests(verbosity=1, interactive=False):
                  '--doctest-extension=.txt',
                  '--cover-package=djblets']
 
+    # Don't test context manager code on Python 2.4.
+    try:
+        import contextlib
+    except ImportError:
+        nose_argv.append('--ignore-files=contextmanagers.py')
+
     if len(sys.argv) > 2:
         node_argv += sys.argv[2:]
 
