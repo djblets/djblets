@@ -27,9 +27,7 @@ import os
 
 from django.conf import settings
 from django.conf.urls.defaults import include, patterns
-from django.core import urlresolvers
 from django.core.exceptions import ImproperlyConfigured
-from django.core.urlresolvers import get_resolver
 from mock import Mock
 
 from djblets.extensions.base import _extension_managers, Extension, \

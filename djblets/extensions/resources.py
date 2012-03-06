@@ -1,11 +1,15 @@
+from django.conf.urls.defaults import patterns, include
+from django.core.exceptions import ObjectDoesNotExist
 from djblets.extensions.base import RegisteredExtension
 from djblets.extensions.errors import DisablingExtensionError, \
                                       EnablingExtensionError, \
-                                      InstallExtensionError, \
                                       InvalidExtensionError
 from djblets.webapi.decorators import webapi_login_required, \
                                       webapi_permission_required, \
                                       webapi_request_fields
+from djblets.webapi.errors import DOES_NOT_EXIST, \
+                                  ENABLE_EXTENSION_FAILED, \
+                                  DISABLE_EXTENSION_FAILED
 from djblets.webapi.resources import WebAPIResource
 
 

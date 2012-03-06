@@ -24,11 +24,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
-
-from djblets.extensions.base import ExtensionManager
 
 
 def _has_disabled_requirements(extension):

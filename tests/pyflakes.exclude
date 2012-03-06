@@ -1,3 +1,5 @@
+djblets/extensions/base.py:*: redefinition of unused 'pkg_resources' from line *
+djblets/extensions/base.py:*: 'pkg_resources' imported but unused
 djblets/feedview/feedparser.py:*: redefinition of unused '_StringIO' from line *
 djblets/feedview/feedparser.py:*: redefinition of unused 'gzip' from line *
 djblets/feedview/feedparser.py:*: redefinition of unused 'zlib' from line *

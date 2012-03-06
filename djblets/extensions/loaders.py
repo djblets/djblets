@@ -23,11 +23,9 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import pkg_resources
 from pkg_resources import _manager as manager
 
 from django.template import TemplateDoesNotExist
-from django.conf import settings
 
 from djblets.extensions.base import get_extension_managers
 
@@ -44,7 +42,7 @@ def load_template_source(template_name, template_dirs=None):
                 try:
                     return (manager.resource_string(package, resource),
                             'extension:%s:%s ' % (package, resource))
-                except Exception, e:
+                except Exception:
                     pass
 
     raise TemplateDoesNotExist, template_name

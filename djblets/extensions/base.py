@@ -39,8 +39,7 @@ from django.db.models import loading
 
 from django_evolution.management.commands.evolve import Command as Evolution
 
-from djblets.extensions.errors import DisablingExtensionError, \
-                                      EnablingExtensionError, \
+from djblets.extensions.errors import EnablingExtensionError, \
                                       InstallExtensionError, \
                                       InvalidExtensionError
 from djblets.extensions.models import RegisteredExtension

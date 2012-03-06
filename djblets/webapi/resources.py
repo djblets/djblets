@@ -24,11 +24,8 @@ from djblets.webapi.core import WebAPIResponse, \
                                 SPECIAL_PARAMS
 from djblets.webapi.decorators import webapi_login_required, \
                                       webapi_request_fields, \
-                                      webapi_response_errors, \
-                                      webapi_permission_required
-from djblets.webapi.errors import DISABLE_EXTENSION_FAILED, \
-                                  DOES_NOT_EXIST, \
-                                  ENABLE_EXTENSION_FAILED, \
+                                      webapi_response_errors
+from djblets.webapi.errors import DOES_NOT_EXIST, \
                                   NOT_LOGGED_IN, \
                                   PERMISSION_DENIED, \
                                   WebAPIError

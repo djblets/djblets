@@ -1,9 +1,8 @@
 from django import template
 from django.template.loader import render_to_string
 
-from djblets.extensions.base import ExtensionManager
 from djblets.extensions.hooks import TemplateHook
-from djblets.util.decorators import basictag, blocktag
+from djblets.util.decorators import basictag
 
 
 register = template.Library()
