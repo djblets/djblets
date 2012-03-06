@@ -320,16 +320,9 @@ class DateTimeSinceColumn(Column):
     def __init__(self, label, sortable=True, timezone=pytz.utc,
                  *args, **kwargs):
         Column.__init__(self, label, sortable=sortable, *args, **kwargs)
-        self.timezone = timezone
 
     def render_data(self, obj):
-        # If the datetime object is tz aware, conver it to local time
-        datetime = getattr(obj, self.field_name)
-        if is_aware(datetime):
-            datetime = pytz.utc.normalize(datetime).\
-                astimezone(self.timezone)
-
-            return _("%s ago") % timesince(getattr(obj, self.field_name))
+        return _("%s ago") % timesince(getattr(obj, self.field_name))
 
 
 class DataGrid(object):

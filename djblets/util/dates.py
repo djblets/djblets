@@ -24,7 +24,7 @@
 #
 
 import calendar
-import datetime
+from datetime import datetime
 
 from django.db.models import DateField
 from django.utils.timezone import utc
@@ -60,4 +60,4 @@ def get_latest_timestamp(timestamps):
 
 def get_tz_aware_utcnow():
     """Returns a UTC aware datetime object"""
-    return datetime.datetime.utcnow().replace(tzinfo=utc)
+    return datetime.utcnow().replace(tzinfo=utc)
