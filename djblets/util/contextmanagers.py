@@ -26,6 +26,8 @@
 from contextlib import contextmanager
 import logging
 
+from django.utils.translation import ugettext as _
+
 
 @contextmanager
 def controlled_subprocess(process_name, process):

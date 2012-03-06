@@ -3,11 +3,6 @@ import os
 import re
 import urllib2
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-
 from pipeline.compilers import CompilerBase, CompilerError
 from django.conf import settings
 
