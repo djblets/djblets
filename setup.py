@@ -58,13 +58,13 @@ setup(name=PACKAGE_NAME,
       description="A collection of useful classes and functions for Django",
       packages=find_packages(),
       install_requires=[
-          'Django>=1.4b1',
+          'Django>=1.4c1',
           'PIL',
           'pytz'
       ],
       dependency_links = [
           "http://downloads.reviewboard.org/mirror/",
-          'http://www.djangoproject.com/download/1.4-beta-1/tarball/#egg=Django-1.4b1',
+          'http://www.djangoproject.com/download/1.4-rc-1/tarball/#egg=Django-1.4c1',
           download_url,
       ],
       include_package_data=True,
