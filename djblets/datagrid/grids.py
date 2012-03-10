@@ -38,7 +38,6 @@ from django.template.defaultfilters import date, timesince
 from django.template.loader import render_to_string, get_template
 from django.utils.cache import patch_cache_control
 from django.utils.safestring import mark_safe
-from django.utils.timezone import is_aware
 from django.utils.translation import ugettext as _
 
 
@@ -306,7 +305,7 @@ class DateTimeColumn(Column):
     def render_data(self, obj):
         # If the datetime object is tz aware, conver it to local time
         datetime = getattr(obj, self.field_name)
-        if is_aware(datetime):
+        if settings.USE_TZ:
             datetime = pytz.utc.normalize(datetime).\
                 astimezone(self.timezone)
 

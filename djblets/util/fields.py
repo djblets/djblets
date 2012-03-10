@@ -33,7 +33,6 @@ from django.db import models
 from django.db.models import F
 from django.utils import simplejson
 from django.utils.encoding import smart_unicode
-from django.utils.timezone import is_aware
 
 from djblets.util.dates import get_tz_aware_utcnow
 
@@ -127,10 +126,11 @@ class ModificationTimestampField(models.DateTimeField):
 
     def pre_save(self, model, add):
         if not add or getattr(model, self.attname) is None:
-            value = datetime.now()
 
-            if is_aware(value):
+            if settings.USE_TZ:
                 value = get_tz_aware_utcnow()
+            else:
+                value = datetime.now()
 
             setattr(model, self.attname, value)
             return value

@@ -26,14 +26,15 @@
 #
 
 
+from datetime import datetime
+
 from django import forms
 from django.contrib import auth
 from django.conf import settings
 from django.http import HttpResponseRedirect
-
+from djblets.util.dates import get_tz_aware_utcnow
 from djblets.util.decorators import simple_decorator
 
-import datetime
 
 @simple_decorator
 def login_required(view_func):
@@ -70,7 +71,12 @@ def internal_login(request, username, password):
     auth.login(request, user)
     if request.session.test_cookie_worked():
         request.session.delete_test_cookie()
-    user.last_login = datetime.datetime.now()
+
+    if settings.USE_TZ:
+        user.last_login = get_tz_aware_utcnow()
+    else:
+        user.last_login = datetime.now()
+
     user.save()
 
 def validate_test_cookie(form, request):

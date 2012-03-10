@@ -32,6 +32,7 @@ from django.http import HttpRequest
 
 from djblets.datagrid.grids import Column, DataGrid, DateTimeSinceColumn
 from djblets.testing.testcases import TestCase
+from djblets.util.dates import get_tz_aware_utcnow
 
 
 def populate_groups():
@@ -59,7 +60,10 @@ class ColumnsTest(TestCase):
             time = None
 
         column = DateTimeSinceColumn("Test", field_name='time')
-        now = datetime.now()
+        if settings.USE_TZ:
+            now = get_tz_aware_utcnow()
+        else:
+            now = datetime.now()
 
         obj = DummyObj()
         obj.time = now
