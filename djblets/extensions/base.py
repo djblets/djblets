@@ -62,11 +62,44 @@ class Settings(dict):
     acts as a proxy for the extension's stored settings in the database.
 
     Callers must call save() when they want to make the settings persistent.
+
+    If a key is not found in the dictionary, extension.default_settings
+    will be checked as well.
     """
     def __init__(self, extension):
         dict.__init__(self)
         self.extension = extension
         self.load()
+
+    def __getitem__(self, key):
+        """Retrieve an item from the dictionary.
+
+        This will attempt to return a default value from
+        extension.default_settings if the setting has not
+        been set.
+        """
+        if super(Settings, self).__contains__(key):
+            return super(Settings, self).__getitem__(key)
+
+        if key in self.extension.default_settings:
+            return self.extension.default_settings[key]
+
+        raise KeyError(
+            'The settings key "%(key)s" was not found in extension %(ext)s' % {
+                'key': key,
+                'ext': self.extension.id
+            })
+
+    def __contains__(self, key):
+        """Indicate if the setting is present.
+
+        If the key is not present in the settings dictionary
+        check the default settings as well.
+        """
+        if super(Settings, self).__contains__(key):
+            return True
+
+        return key in self.extension.default_settings
 
     def load(self):
         """Loads the settings from the database."""
@@ -95,10 +128,14 @@ class Extension(object):
     If an extension supports configuration in the UI, it should set
     :py:attr:`is_configurable` to True.
 
+    If an extension would like to specify defaults for the settings
+    dictionary it should provide a dictionary in :py:attr:`default_settings`.
+
     Extensions should list all other extension names that they require in
     :py:attr:`requirements`.
     """
     is_configurable = False
+    default_settings = {}
     requirements = []
     resources = []
 
