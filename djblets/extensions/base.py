@@ -31,11 +31,14 @@ import sys
 
 from django.conf import settings
 from django.conf.urls.defaults import patterns, include
+from django.contrib.admin.sites import AdminSite
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.core.urlresolvers import get_resolver, get_mod_func
 from django.db.models import loading
+from django.utils.importlib import import_module
+from django.utils.module_loading import module_has_submodule
 
 from django_evolution.management.commands.evolve import Command as Evolution
 
@@ -131,11 +134,15 @@ class Extension(object):
     If an extension would like to specify defaults for the settings
     dictionary it should provide a dictionary in :py:attr:`default_settings`.
 
+    If an extension would like a django admin site for modifying the database,
+    it should set :py:attr:`has_admin_site` to True.
+
     Extensions should list all other extension names that they require in
     :py:attr:`requirements`.
     """
     is_configurable = False
     default_settings = {}
+    has_admin_site = False
     requirements = []
     resources = []
 
@@ -143,6 +150,7 @@ class Extension(object):
         self.hooks = set()
         self.admin_ext_resolver = None
         self.settings = Settings(self)
+        self.admin_site = None
 
     def shutdown(self):
         """Shuts down the extension.
@@ -199,6 +207,7 @@ class ExtensionInfo(object):
         self.enabled = False
         self.installed = False
         self.is_configurable = ext_class.is_configurable
+        self.has_admin_site = ext_class.has_admin_site
         self.htdocs_path = os.path.join(settings.EXTENSIONS_STATIC_ROOT,
                                         self.name)
 
@@ -486,8 +495,12 @@ class ExtensionManager(object):
         extension.extension_manager = self
         self._extension_instances[extension.id] = extension
 
-        if extension.is_configurable:
-            self._install_admin_urls(extension)
+        if extension.has_admin_site:
+            self._init_admin_site(extension)
+
+        # Installing the urls must occur after _init_admin_site(). The urls
+        # for the admin site will not be generated until it is called.
+        self._install_admin_urls(extension)
 
         extension.info.installed = extension.registration.installed
         extension.info.enabled = True
@@ -509,6 +522,13 @@ class ExtensionManager(object):
         if hasattr(extension, "admin_urlpatterns"):
             for urlpattern in extension.admin_urlpatterns:
                 self._admin_ext_resolver.url_patterns.remove(urlpattern)
+
+        if hasattr(extension, "admin_site_urlpatterns"):
+            for urlpattern in extension.admin_site_urlpatterns:
+                self._admin_ext_resolver.url_patterns.remove(urlpattern)
+
+        if extension.has_admin_site:
+            del extension.admin_site
 
         self._remove_from_installed_apps(extension)
         self._reset_templatetags_cache()
@@ -604,23 +624,64 @@ class ExtensionManager(object):
         This provides URLs for configuring an extension, plus any additional
         admin urlpatterns that the extension provides.
         """
-        urlconf = extension.admin_urlconf
+        prefix = self.get_absolute_url()
+        # Note that we're adding to the resolve list on the root of the
+        # install, and prefixing it with the admin extensions path.
+        # The reason we're not just making this a child of our extensions
+        # urlconf is that everything in there gets passed an
+        # extension_manager variable, and we don't want to force extensions
+        # to handle this.
 
-        if hasattr(urlconf, "urlpatterns"):
-            # Note that we're adding to the resolve list on the root of the
-            # install, and prefixing it with the admin extensions path.
-            # The reason we're not just making this a child of our extensions
-            # urlconf is that everything in there gets passed an
-            # extension_manager variable, and we don't want to force extensions
-            # to handle this.
-            prefix = self.get_absolute_url()
+        if extension.is_configurable:
+            urlconf = extension.admin_urlconf
+            if hasattr(urlconf, "urlpatterns"):
+                extension.admin_urlpatterns = patterns('',
+                    (r'^%s%s/config/' % (prefix, extension.id),
+                     include(urlconf.__name__)))
 
-            extension.admin_urlpatterns = patterns('',
-                (r'^%s%s/config/' % (prefix, extension.id),
-                 include(urlconf.__name__)))
+                self._admin_ext_resolver.url_patterns.extend(
+                    extension.admin_urlpatterns)
+
+        if extension.has_admin_site:
+            extension.admin_site_urlpatterns = patterns('',
+                (r'^%s%s/db/' % (prefix, extension.id),
+                include(extension.admin_site.urls)))
 
             self._admin_ext_resolver.url_patterns.extend(
-                extension.admin_urlpatterns)
+                extension.admin_site_urlpatterns)
+
+    def _init_admin_site(self, extension):
+        """Creates and initializes an admin site for an extension.
+
+        This creates the admin site and imports the extensions admin
+        module to register the models.
+
+        The url patterns for the admin site are generated in
+        _install_admin_urls().
+        """
+        extension.admin_site = AdminSite(extension.info.app_name)
+
+        # Import the extension's admin module.
+        try:
+            admin_module_name = '%s.admin' % extension.info.app_name
+            if admin_module_name in sys.modules:
+                # If the extension has been loaded previously and
+                # we are re-enabling it, we must reload the module.
+                # Just importing again will not cause the ModelAdmins
+                # to be registered.
+                reload(sys.modules[admin_module_name])
+            else:
+                import_module(admin_module_name)
+        except ImportError:
+            mod = import_module(extension.info.app_name)
+
+            # Decide whether to bubble up this error. If the app just
+            # doesn't have an admin module, we can ignore the error
+            # attempting to import it, otherwise we want it to bubble up.
+            if module_has_submodule(mod, 'admin'):
+                raise ImportError(
+                    "Importing admin module for extension %s failed"
+                    % extension.info.app_name)
 
     def _add_to_installed_apps(self, extension):
         if extension.info.app_name not in settings.INSTALLED_APPS:

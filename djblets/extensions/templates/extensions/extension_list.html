@@ -37,6 +37,9 @@
 {%    if extension.info.is_configurable %}
     <li><a href="{{extension.id}}/config/" class="changelink">Configure</a></li>
 {%    endif %}
+{%    if extension.info.has_admin_site %}
+    <li><a href="{{extension.id}}/db/" class="changelink">Database</a></li>
+{%    endif %}
 {%   else %}
     <li><a id="{{extension.id}}-enable" href="#" class="enablelink">Enable</a></li>
 {%   endif %}
