@@ -300,6 +300,7 @@ $.widget("ui.inlineEditor", {
         /* State */
         this._initialValue = null;
         this._editing = false;
+        this._dirty = false
 
         /* Elements */
         this._form = $("<form/>")
@@ -317,53 +318,49 @@ $.widget("ui.inlineEditor", {
                 .appendTo(this._form);
         }
 
-        this._field.keypress(function(e) {
-            e.stopPropagation();
+        this._field
+            .keydown(function(e) {
+                e.stopPropagation();
 
-            switch (e.keyCode) {
-                case 10:
-                case $.ui.keyCode.ENTER:
-                    /* Enter */
-                    if (!self.options.forceOpen &&
-                        (!self.options.multiline || e.ctrlKey)) {
-                        self.submit();
-                    }
+                var keyCode = e.keyCode ? e.keyCode :
+                                e.charCode ? e.charCode : e.which;
 
-                    if (!self.options.multiline) {
-                        e.preventDefault();
-                    }
-                    break;
+                switch (keyCode) {
+                    case $.ui.keyCode.ENTER:
+                        /* Enter */
+                        if (!self.options.forceOpen &&
+                            (!self.options.multiline || e.ctrlKey)) {
+                            self.submit();
+                        }
 
-                case $.ui.keyCode.ESCAPE:
-                    /* Escape */
-                    if (!self.options.forceOpen) {
-                        self.cancel();
-                    }
-                    break;
+                        if (!self.options.multiline) {
+                            e.preventDefault();
+                        }
+                        break;
 
-                default:
-                    return;
-            }
-        }).keydown(function(e) {
-            e.stopPropagation();
+                    case $.ui.keyCode.ESCAPE:
+                        /* Escape */
+                        if (!self.options.forceOpen) {
+                            self.cancel();
+                        }
+                        break;
 
-            var keyCode = e.keyCode ? e.keyCode :
-                            e.charCode ? e.charCode : e.which;
+                    case 83:
+                    case 115:
+                        /* s or S */
+                        if (e.ctrlKey) {
+                            self.save();
+                            return false;
+                        }
+                        break;
 
-            switch (keyCode) {
-                case 83:
-                case 115:
-                    /* s or S */
-                    if (e.ctrlKey) {
-                        self.save();
-                        return false;
-                    }
-                    break;
-
-                default:
-                    break;
-            }
-        });
+                    default:
+                        break;
+                }
+            })
+            .keyup(function(e) {
+                self._updateDirtyState();
+            });
 
         this._buttons = null;
 
@@ -442,8 +439,6 @@ $.widget("ui.inlineEditor", {
 
     /*
      * Puts the editor into edit mode.
-     *
-     * This triggers the "beginEdit" signal.
      */
     startEdit: function(preventAnimation) {
         if (this._editing) {
@@ -472,28 +467,27 @@ $.widget("ui.inlineEditor", {
         var value = this.value();
         var encodedValue = value.htmlEncode();
 
-        var dirty = (this._normalizeText(this._initialValue) != encodedValue);
-
-        if (dirty) {
+        if (this._dirty) {
             this.element.html($.isFunction(this.options.formatResult)
                               ? this.options.formatResult(encodedValue)
                               : encodedValue);
             this._initialValue = this.element.text();
         }
 
-        if (dirty || this.options.notifyUnchangedCompletion) {
+        if (this._dirty || this.options.notifyUnchangedCompletion) {
             this.element.triggerHandler("complete",
                                         [value, this._initialValue]);
         }
     },
 
     submit: function() {
-        this.hideEditor();
+        // hideEditor() resets the _dirty flag, thus we need to do save() first.
         this.save();
+        this.hideEditor();
     },
 
     cancel: function(force) {
-        if (!force && this.options.promptOnCancel && this.dirty()) {
+        if (!force && this.options.promptOnCancel && this._dirty) {
             if (confirm("You have unsaved changes. Are you " +
                         "sure you want to discard them?")) {
                 this.cancel(true);
@@ -599,12 +593,23 @@ $.widget("ui.inlineEditor", {
         });
 
         this._editing = false;
+        // Only update _dirty state after setting _editing to false.
+        this._updateDirtyState();
     },
 
     dirty: function() {
-        return this._editing &&
-               this._normalizeText(this._initialValue) !=
-               this.value().htmlEncode();
+        return this._dirty;
+    },
+
+    _updateDirtyState: function() {
+        var curDirtyState = this._editing &&
+                             this._normalizeText(this._initialValue) !=
+                             this.value().htmlEncode();
+
+        if (this._dirty != curDirtyState) {
+            this._dirty = curDirtyState;
+            this.element.triggerHandler("dirtyStateChanged", [this._dirty]);
+        }
     },
 
     _fitWidthToParent: function() {
