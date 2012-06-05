@@ -25,6 +25,10 @@
 
 
 from django import template
+from django.core.serializers import serialize
+from django.db.models.query import QuerySet
+from django.utils import simplejson
+from django.utils.safestring import mark_safe
 
 
 register = template.Library()
@@ -57,3 +61,14 @@ def form_dialog_fields(form):
 
     # Chop off the last ','
     return "[ %s ]" % s[:-1]
+
+
+
+@register.filter
+def json_dumps(value, indent=0):
+    if isinstance(value, QuerySet):
+        result = serialize('json', value, indent=indent)
+    else:
+        result = simplejson.dumps(value, indent=indent)
+
+    return mark_safe(result)
