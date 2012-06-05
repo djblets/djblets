@@ -1,3 +1,22 @@
+version 0.6.18 final (5-June-2012):
+	* djblets.siteconfig:
+		* Settings form rows in the template now have IDs indicating the row
+		  (in the form of "row-{{fieldname}}") and CSS class names
+		  ("field-{{fieldname}}").
+
+		* Help text for fields are now marked as safe, so that the contents
+		  aren't escaped.
+
+		* The form's disabled_reasons is no longer assumed to be populated.
+
+		* The initial field values are now always set. Previously, they would
+		  only be set if the field type was a boolean, or the value didn't
+		  evaluate to false, which broke numeric fields set to 0.
+
+	* djblets.util:
+		* Added a json_dumps filter, which serialized a value to JSON.
+
+
 version 0.6.17 final (2-April-2012):
 	* djblets.gravatars:
 		* Gravatars are no longer hard-coded to be jpegs. This was
