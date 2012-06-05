@@ -51,9 +51,7 @@ class SiteSettingsForm(forms.Form):
         """
         for field in self.fields:
             value = self.siteconfig.get(field)
-
-            if isinstance(value, bool) or value:
-                self.fields[field].initial = value
+            self.fields[field].initial = value
 
             if field in self.disabled_fields:
                 self.fields[field].widget.attrs['disabled'] = 'disabled'
