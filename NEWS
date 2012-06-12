@@ -1,3 +1,9 @@
+version 0.6.19 final (11-June-2012):
+	* JavaScript:
+		* inlineEditor no longer bubbles keypress events up. This helps prevent
+		  problems with global key handlers being greedy.
+
+
 version 0.6.18 final (5-June-2012):
 	* djblets.siteconfig:
 		* Settings form rows in the template now have IDs indicating the row
