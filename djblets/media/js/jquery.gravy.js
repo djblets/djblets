@@ -358,6 +358,9 @@ $.widget("ui.inlineEditor", {
                         break;
                 }
             })
+            .keypress(function(e) {
+                e.stopPropagation();
+            })
             .keyup(function(e) {
                 self._updateDirtyState();
             });
