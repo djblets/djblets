@@ -24,12 +24,42 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import subprocess
+import sys
+
 from ez_setup import use_setuptools
 use_setuptools()
 
+from distutils.core import Command
 from setuptools import setup, find_packages
-
+from setuptools.command.egg_info import egg_info
 from setuptools.command.test import test
+
+
+class BuildEggInfo(egg_info):
+    def run(self):
+        if ('sdist' in sys.argv or
+            'bdist_egg' in sys.argv or
+            'install' in sys.argv):
+            self.run_command('build_media')
+
+        egg_info.run(self)
+
+
+class BuildMedia(Command):
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        retcode = subprocess.call(['./contrib/internal/build-media.py'])
+
+        if retcode != 0:
+            raise RuntimeError('Failed to build media files')
 
 
 def run_tests(*args):
@@ -37,6 +67,11 @@ def run_tests(*args):
     os.system("tests/runtests.py")
 
 test.run_tests = run_tests
+
+cmdclasses = {
+    'egg_info': BuildEggInfo,
+    'build_media': BuildMedia,
+}
 
 
 from djblets import get_package_version, is_release, VERSION
@@ -57,6 +92,7 @@ setup(name=PACKAGE_NAME,
       license="MIT",
       description="A collection of useful classes and functions for Django",
       packages=find_packages(),
+      cmdclass=cmdclasses,
       install_requires=[
           'Django>=1.4',
           'PIL',
