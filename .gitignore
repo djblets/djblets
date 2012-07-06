@@ -1,0 +1,10 @@
+build
+dist
+djblets/static/*
+Djblets.egg-info
+
+.coverage
+
+*.rej
+*.orig
+.*.sw*
