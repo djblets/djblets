@@ -102,7 +102,11 @@ def ifnotuserandperm(context, nodelist, user, perm):
 
 def _check_userorperm(context, user, perm):
     req_user = context.get('user', None)
-    return user == req_user or req_user.has_perm(perm)
+
+    if req_user.has_perm(perm):
+        return True
+
+    return (isinstance(user, int) and user == req_user.pk) or user == req_user
 
 
 @register.tag
