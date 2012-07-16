@@ -28,6 +28,7 @@ import datetime
 import os
 
 from django import template
+from django.contrib.auth.models import AnonymousUser
 from django.template import TemplateSyntaxError
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
@@ -100,6 +101,9 @@ def ifnotuserandperm(context, nodelist, user, perm):
 
 def _check_userorperm(context, user, perm):
     req_user = context.get('user', None)
+
+    if isinstance(req_user, AnonymousUser):
+        return False
 
     if req_user.has_perm(perm):
         return True
