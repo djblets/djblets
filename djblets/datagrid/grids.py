@@ -31,6 +31,7 @@ from django.conf import settings
 from django.contrib.auth.models import SiteProfileNotAvailable
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import InvalidPage, QuerySetPaginator
+from django.db.models import ForeignKey
 from django.http import Http404, HttpResponse
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext, Context
@@ -207,6 +208,38 @@ class Column(object):
                 s += "%s=%s&" % (key, self.datagrid.request.GET[key])
 
         return s
+
+    def collect_objects(self, object_list):
+        """Iterates through the objects and builds a cache of data to display.
+
+        This optimizes the fetching of data in the grid by grabbing all the
+        IDs of related objects that will be queried for rendering, loading
+        them all at once, and populating the cache.
+        """
+        id_field = '%s_id' % self.field_name
+        ids = set()
+        model = None
+
+        for obj in object_list:
+            if not hasattr(obj, id_field):
+                # This isn't the field type you're looking for.
+                return
+
+            ids.add(getattr(obj, id_field))
+
+            if not model:
+                field = getattr(obj.__class__, self.field_name).field
+
+                try:
+                    model = field.rel.to
+                except AttributeError:
+                    # No idea what this is. Bail.
+                    return
+
+        if model:
+            for obj in model.objects.filter(pk__in=ids):
+                self.data_cache[obj.pk] = obj
+
 
     def render_cell(self, obj):
         """
@@ -647,6 +680,9 @@ class DataGrid(object):
             # Grab the whole list at once. We know it won't be too large,
             # and it will prevent one query per row.
             object_list = list(self.page.object_list)
+
+        for column in self.columns:
+            column.collect_objects(object_list)
 
         self.rows = [
             {
