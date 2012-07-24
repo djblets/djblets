@@ -1,3 +1,8 @@
+version 0.6.21 final (24-July-2012):
+	* djblets.util:
+		* Fixed a bug with ifuserorperm and non-int IDs.
+
+
 version 0.6.20 final (21-July-2012):
 	* djblets.datagrid:
 		* Improved performance of the datagrids.
