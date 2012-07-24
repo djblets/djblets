@@ -28,7 +28,7 @@ import datetime
 import os
 
 from django import template
-from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.models import AnonymousUser, User
 from django.template import TemplateSyntaxError
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
@@ -108,7 +108,8 @@ def _check_userorperm(context, user, perm):
     if req_user.has_perm(perm):
         return True
 
-    return (isinstance(user, int) and user == req_user.pk) or user == req_user
+    return ((isinstance(user, User) and user == req_user) or
+            user == req_user.pk)
 
 
 @register.tag
