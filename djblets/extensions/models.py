@@ -25,6 +25,7 @@
 
 from django.db import models
 
+from djblets.extensions.errors import InvalidExtensionError
 from djblets.util.fields import JSONField
 
 
@@ -45,3 +46,22 @@ class RegisteredExtension(models.Model):
 
     def __unicode__(self):
         return self.name
+
+    def get_extension_class(self):
+        """Retrieves the python object for the extensions class."""
+        try:
+            # Import the function here to avoid a mutual
+            # dependency.
+            from djblets.extensions.base import get_extension_managers
+        except:
+            return None
+
+        managers = get_extension_managers()
+        for manager in managers:
+            try:
+                extension = manager.get_installed_extension(self.class_name)
+                return extension
+            except InvalidExtensionError:
+                continue
+
+        return None

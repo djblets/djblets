@@ -105,6 +105,38 @@ class ExtensionResource(WebAPIResource):
 
         return self._url_patterns
 
+    def get_related_links(self, obj=None, request=None, *args, **kwargs):
+        """Returns links to the resources provided by the extension.
+
+        The result should be a dictionary of link names to a dictionary of
+        information. The information should contain:
+
+        * 'method' - The HTTP method
+        * 'href' - The URL
+        * 'title' - The title of the link (optional)
+        * 'resource' - The WebAPIResource instance
+        * 'list-resource' - True if this links to a list resource (optional)
+        """
+        links = {}
+
+        if obj and obj.enabled:
+            extension = obj.get_extension_class()
+
+            if not extension:
+                return links
+
+            for resource in extension.resources:
+                links[resource.name_plural] = {
+                    'method': 'GET',
+                    'href': "%s%s/" % (
+                        self.get_href(obj, request, *args, **kwargs),
+                        resource.uri_name),
+                    'resource': resource,
+                    'list-resource': not resource.singleton,
+                }
+
+        return links
+
     def _attach_extension_resources(self, extension):
         """
         Attaches an extensions resources to
@@ -127,7 +159,7 @@ class ExtensionResource(WebAPIResource):
         # For each resource, generate the URLs
         for resource in extension.resources:
             self._resource_url_patterns_map[extension].extend(patterns('',
-                (r'^%s/%s/' % (extension.id, resource.name_plural),
+                (r'^%s/%s/' % (extension.id, resource.uri_name),
                  include(resource.get_url_patterns()))))
 
         # It's possible that the ExtensionResource doesn't have
