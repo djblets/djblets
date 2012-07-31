@@ -36,6 +36,7 @@ from django.utils.timezone import is_aware
 
 from djblets.util.decorators import basictag, blocktag
 from djblets.util.dates import get_tz_aware_utcnow
+from djblets.util.humanize import humanize_list
 
 
 register = template.Library()
@@ -203,31 +204,7 @@ def user_displayname(user):
     return user.get_full_name() or user.username
 
 
-@register.filter
-def humanize_list(value):
-    """
-    Humanizes a list of values, inserting commands and "and" where appropriate.
-
-      ========================= ======================
-      Example List              Resulting string
-      ========================= ======================
-      ``["a"]``                 ``"a"``
-      ``["a", "b"]``            ``"a and b"``
-      ``["a", "b", "c"]``       ``"a, b and c"``
-      ``["a", "b", "c", "d"]``  ``"a, b, c, and d"``
-      ========================= ======================
-    """
-    if len(value) == 0:
-        return ""
-    elif len(value) == 1:
-        return value[0]
-
-    s = ", ".join(value[:-1])
-
-    if len(value) > 3:
-        s += ","
-
-    return "%s and %s" % (s, value[-1])
+register.filter('humanize_list', humanize_list)
 
 
 @register.filter
