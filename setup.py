@@ -94,7 +94,7 @@ setup(name=PACKAGE_NAME,
       packages=find_packages(),
       cmdclass=cmdclasses,
       install_requires=[
-          'Django>=1.4',
+          'Django>=1.4.1',
           'PIL',
           'pytz'
       ],
