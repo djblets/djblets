@@ -142,6 +142,62 @@ class WebAPIResourceTests(TestCase):
             view_kwargs={'id': 1},
             method='delete')
 
+    def test_get_with_item_mimetype(self):
+        """Testing WebAPIResource with GET and Item-Content-Type header"""
+        class TestResource(WebAPIResource):
+            allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
+            mimetype_vendor = 'djblets'
+            uri_object_key = 'id'
+
+            def get(self, *args, **kwargs):
+                return 200, {}
+
+            create = get
+            update = get
+            delete = get
+
+        self.test_resource = TestResource()
+        self._test_item_mimetype_responses(
+            self.test_resource,
+            '/api/tests/',
+            'application/vnd.djblets.testresources+json',
+            'application/vnd.djblets.testresources+xml',
+            'application/vnd.djblets.testresource+json',
+            'application/vnd.djblets.testresource+xml')
+        self._test_item_mimetype_responses(
+            self.test_resource,
+            '/api/tests/',
+            'application/vnd.djblets.testresource+json',
+            'application/vnd.djblets.testresource+xml',
+            None,
+            None,
+            method='post')
+
+        self._test_item_mimetype_responses(
+            self.test_resource,
+            '/api/tests/1/',
+            'application/vnd.djblets.testresource+json',
+            'application/vnd.djblets.testresource+xml',
+            None,
+            None,
+            view_kwargs={'id': 1},
+            method='put')
+        self._test_item_mimetype_responses(
+            self.test_resource,
+            '/api/tests/',
+            'application/vnd.djblets.testresources+json',
+            'application/vnd.djblets.testresources+xml',
+            'application/vnd.djblets.testresource+json',
+            'application/vnd.djblets.testresource+xml')
+        self._test_item_mimetype_responses(
+            self.test_resource,
+            '/api/tests/1/',
+            'application/vnd.djblets.testresource+json',
+            'application/vnd.djblets.testresource+xml',
+            None,
+            None,
+            view_kwargs={'id': 1},
+            method='delete')
 
     def _test_mimetype_responses(self, resource, url, json_mimetype,
                                  xml_mimetype, **kwargs):
@@ -170,3 +226,37 @@ class WebAPIResourceTests(TestCase):
         print response
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], response_mimetype)
+
+    def _test_item_mimetype_responses(self, resource, url, json_mimetype,
+                                      xml_mimetype, json_item_mimetype,
+                                      xml_item_mimetype, **kwargs):
+        self._test_item_mimetype_response(resource, url, '*/*',
+                                          json_item_mimetype, **kwargs)
+        self._test_item_mimetype_response(resource, url, 'application/json',
+                                          json_item_mimetype, **kwargs)
+        self._test_item_mimetype_response(resource, url, json_mimetype,
+                                          json_item_mimetype, **kwargs)
+        self._test_item_mimetype_response(resource, url, 'application/xml',
+                                          xml_item_mimetype, **kwargs)
+        self._test_item_mimetype_response(resource, url, xml_mimetype,
+                                          xml_item_mimetype, **kwargs)
+
+    def _test_item_mimetype_response(self, resource, url, accept_mimetype,
+                                     response_item_mimetype=None,
+                                     method='get', view_kwargs={}):
+        func = getattr(self.factory, method)
+
+        if accept_mimetype:
+            request = func(url, HTTP_ACCEPT=accept_mimetype)
+        else:
+            request = func(url)
+
+        response = resource(request, **view_kwargs)
+        print response
+        self.assertEqual(response.status_code, 200)
+
+        if response_item_mimetype:
+            self.assertEqual(response['Item-Content-Type'],
+                             response_item_mimetype)
+        else:
+            self.assertTrue('Item-Content-Type' not in response)

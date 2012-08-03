@@ -262,15 +262,22 @@ class WebAPIResource(object):
     ---------
 
     Resources should list the possible mimetypes they'll accept and return in
-    :py:attr:`allowed_list_mimetypes` (for resource lists) and
-    :py:attr:`allowed_item_mimetypes` (for resource items and singletons).
+    :py:attr:`allowed_mimetypes`. Each entry in the list is a dictionary
+    with 'list' containing a mimetype for resource lists, and 'item'
+    containing the equivalent mimetype for a resource item. In the case of
+    a singleton, 'item' will contain the mimetype. If the mimetype is not
+    applicable to one of the resource forms, the corresponding entry
+    should contain None.
+
     Entries in these lists are checked against the mimetypes requested in the
     HTTP Accept header, and, by default, the returned data will be sent in
-    that mimetype.
+    that mimetype. If the requested data is a resource list, the corresponding
+    resource item mimetype will also be sent in the 'Item-Content-Type'
+    header.
 
-    By default, these lists will contain :mimetype:`application/json` and
-    :mimetype:`application/xml`, along with any resource-specific mimetypes,
-    if used.
+    By default, this lists will have entries with both 'list' and 'item'
+    containing :mimetype:`application/json` and :mimetype:`application/xml`,
+    along with any resource-specific mimetypes, if used.
 
     Resource-specific Mimetypes
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -318,6 +325,10 @@ class WebAPIResource(object):
     mimetype_item_resource_name = None
     allowed_list_mimetypes = list(WebAPIResponse.supported_mimetypes)
     allowed_item_mimetypes = list(WebAPIResponse.supported_mimetypes)
+    allowed_mimetypes = [
+        {'list': mime, 'item': mime}
+        for mime in WebAPIResponse.supported_mimetypes
+    ]
 
     # State
     method_mapping = {
@@ -335,6 +346,33 @@ class WebAPIResource(object):
         _name_to_resources[self.name_plural] = self
         _class_to_resources[self.__class__] = self
 
+        # TODO: allowed_list_mimetypes and allowed_item_mimetypes
+        # will be deprecated in version 0.7 of djblets. This code
+        # maintains backwards compatibility for these lists while
+        # code is moved to the new allowed_mimetypes attribute.
+        # The following code block may be removed for version 0.7
+        # to remove the backwards compatibility.
+        item_mimetypes = []
+        list_mimetypes = []
+
+        for mime in self.allowed_mimetypes:
+            item_mimetypes.append(mime['item'])
+            list_mimetypes.append(mime['list'])
+
+        for mimetype in self.allowed_item_mimetypes:
+            if mimetype not in item_mimetypes:
+                self.allowed_mimetypes.append({
+                    'list': None,
+                    'item': mimetype,
+                })
+
+        for mimetype in self.allowed_list_mimetypes:
+            if mimetype not in list_mimetypes:
+                self.allowed_mimetypes.append({
+                    'list': mimetype,
+                    'item': None,
+                })
+
         if self.mimetype_vendor:
             self.allowed_item_mimetypes = list(self.allowed_item_mimetypes)
             self.allowed_list_mimetypes = list(self.allowed_list_mimetypes)
@@ -344,8 +382,29 @@ class WebAPIResource(object):
                                        (self.allowed_list_mimetypes, True)]:
                 for mimetype in WebAPIResponse.supported_mimetypes:
                     if mimetype in mimetypes:
-                        mimetypes.append(self._build_resource_mimetype(mimetype,
-                                                                       is_list))
+                        mimetypes.append(
+                            self._build_resource_mimetype(mimetype, is_list))
+        # End of compatibility code.
+
+        if self.mimetype_vendor:
+            # Generate list and item resource-specific mimetypes
+            # for each supported mimetype, and add them as a pair to the
+            # allowed mimetypes.
+            for mimetype_pair in self.allowed_mimetypes:
+                vend_mimetype_pair = {
+                    'list': None,
+                    'item': None,
+                }
+
+                for key, is_list in [('list', True), ('item', False)]:
+                    if (mimetype_pair[key] in
+                        WebAPIResponse.supported_mimetypes):
+                        vend_mimetype_pair[key] = \
+                            self._build_resource_mimetype(mimetype_pair[key],
+                                                          is_list)
+
+                if vend_mimetype_pair['list'] or vend_mimetype_pair['item']:
+                    self.allowed_mimetypes.append(vend_mimetype_pair)
 
     @vary_on_headers('Accept', 'Cookie')
     def __call__(self, request, api_format=None, *args, **kwargs):
@@ -437,13 +496,15 @@ class WebAPIResource(object):
                         api_format=api_format,
                         mimetype=self._build_error_mimetype(request))
                 else:
+                    response_args = self.build_response_args(request)
+                    headers.update(response_args.pop('headers', {}))
                     return WebAPIResponse(
                         request,
                         status=result[0],
                         obj=result[1],
                         headers=headers,
                         api_format=api_format,
-                        **self.build_response_args(request))
+                        **response_args)
             elif isinstance(result, HttpResponse):
                 return result
             else:
@@ -524,22 +585,37 @@ class WebAPIResource(object):
                     self.uri_object_key not in request._djblets_webapi_kwargs))
 
         if is_list:
-            supported_mimetypes = self.allowed_list_mimetypes
+            key = 'list'
         else:
-            supported_mimetypes = self.allowed_item_mimetypes
+            key = 'item'
 
-        mimetype = get_http_requested_mimetype(request,
-                                               supported_mimetypes)
+        supported_mimetypes = [
+            mime[key]
+            for mime in self.allowed_mimetypes
+            if mime[key]
+        ]
+
+        mimetype = get_http_requested_mimetype(request, supported_mimetypes)
 
         if (self.mimetype_vendor and
             mimetype in WebAPIResponse.supported_mimetypes):
-            mimetype = self._build_resource_mimetype(mimetype,
-                                                     is_list)
+            mimetype = self._build_resource_mimetype(mimetype, is_list)
 
-        return {
+        response_args = {
             'supported_mimetypes': supported_mimetypes,
             'mimetype': mimetype,
         }
+
+        if is_list:
+            for mimetype_pair in self.allowed_mimetypes:
+                if (mimetype_pair['list'] == mimetype and
+                    mimetype_pair['item']):
+                    response_args['headers'] = {
+                        'Item-Content-Type': mimetype_pair['item'],
+                    }
+                    break
+
+        return response_args
 
     def get_object(self, request, *args, **kwargs):
         """Returns an object, given captured parameters from a URL.
