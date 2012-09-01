@@ -28,9 +28,13 @@
  <table id="log-entries">
   <thead>
    <tr>
-    <th{% if sort_type %} class="sorted {% ifequal sort_type 'asc' %}ascending{% else %}descending{% endifequal %}"{% endif %}><a href="{{sort_url}}">{% trans "Timestamp" %}</a></th>
-    <th>{% trans "Level" %}</th>
-    <th>{% trans "Message" %}</th>
+    <th scope="col"{% if sort_type %} class="sorted sortable {% ifequal sort_type 'asc' %}ascending{% else %}descending{% endifequal %}"{% endif %}>
+     <div class="text">
+      <a href="{{sort_url}}">{% trans "Timestamp" %}</a>
+     </div>
+    </th>
+    <th scope="col"><div class="text">{% trans "Level" %}</div></th>
+    <th scope="col"><div class="text">{% trans "Message" %}</div></th>
    </tr>
   </thead>
   <tbody>
