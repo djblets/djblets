@@ -18,7 +18,7 @@
 
 {% block content %}
 <div id="content-main">
- <h1>{% blocktrans with extension.info.name as name %}Configure {{name}}{% endblocktrans %}</h1>
+ <h1 class="title">{% blocktrans with extension.info.name as name %}Configure {{name}}{% endblocktrans %}</h1>
 
 {%  if form.error_dict %}
  <p class="errornote">
