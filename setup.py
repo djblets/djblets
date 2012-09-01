@@ -98,8 +98,8 @@ setup(name=PACKAGE_NAME,
       cmdclass=cmdclasses,
       install_requires=[
           'Django>=1.4.1',
+          'django-pipeline>=1.2.16',
           'PIL',
-          'pipeline>=1.2.16',
           'pytz',
       ],
       dependency_links = [
