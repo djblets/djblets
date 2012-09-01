@@ -99,7 +99,8 @@ setup(name=PACKAGE_NAME,
       install_requires=[
           'Django>=1.4.1',
           'PIL',
-          'pytz'
+          'pipeline>=1.2.16',
+          'pytz',
       ],
       dependency_links = [
           "http://downloads.reviewboard.org/mirror/",
