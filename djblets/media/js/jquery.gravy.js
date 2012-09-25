@@ -1,3 +1,9 @@
+/*
+ * Copyright 2008-2010 Christian Hammond.
+ * Copyright 2010-2012 Beanbag, Inc.
+ *
+ * Licensed under the MIT license.
+ */
 (function($) {
 
 var userAgent = navigator.userAgent.toLowerCase();
