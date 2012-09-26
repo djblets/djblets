@@ -59,7 +59,11 @@ setup(name=PACKAGE_NAME,
       license="MIT",
       description="A collection of useful classes and functions for Django",
       packages=find_packages(),
-      install_requires=['Django==1.3.3', 'PIL'],
+      install_requires=[
+          'Django==1.3.3',
+          'feedparser>=5.1.2',
+          'PIL'
+      ],
       dependency_links = [
           "http://downloads.reviewboard.org/mirror/",
           download_url,
