@@ -19,7 +19,7 @@ def view_feed(request, url, template_name="feedview/feed-page.html",
     a cached copy if available in order to reduce hits to the server.
     """
     def fetch_feed():
-        from djblets.feedview import feedparser
+        import feedparser
 
         data = urllib2.urlopen(url).read()
 

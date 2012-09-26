@@ -99,6 +99,7 @@ setup(name=PACKAGE_NAME,
       install_requires=[
           'Django>=1.4.1',
           'django-pipeline>=1.2.16',
+          'feedparser>=5.1.2',
           'PIL',
           'pytz',
       ],

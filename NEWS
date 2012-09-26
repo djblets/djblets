@@ -59,6 +59,39 @@ version 0.7.0 final (2-August-2012):
 		  a dependency of djblets.
 
 
+version 0.6.24 final (25-September-2012):
+	* djblets.feedview:
+		* We now use the latest upstream of feedparser instead of an older
+		  bundled version. This keeps us updated and prevents a security
+		  issue with the version we shipped.
+
+
+version 0.6.23 final (24-September-2012):
+	* General:
+		* We now require Django 1.3.3.
+
+		  Previous versions claimed to work with Django 1.1.1 or higher,
+		  but for the remainder of the 0.6.x line, we plan to stay only on
+		  Django 1.3.x.
+
+		  For Django 1.4+ support, use the latest 0.7.x releases.
+
+	* djblets.util:
+		* Added djblets.util.humanize.
+
+		  This currently contains a humanize_list function. It's the same
+		  as the template filter we provide, but is a bit nicer to include
+		  and work with than a filter.
+
+	* djblets.webapi:
+		* Added an Item-Content-Type header to web API responses for
+		  list resources.
+
+		  This header contains the mimetype for the items in the list, making
+		  it possible to determine what to use when fetching the items. The
+		  documentation has been updated on how to use this.
+
+
 version 0.6.22 final (31-July-2012):
 	* djblets.util:
 		* User and AnonymousUser are no longer imported globally in
