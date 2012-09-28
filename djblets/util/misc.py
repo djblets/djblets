@@ -193,7 +193,12 @@ def make_cache_key(key):
         site = Site.objects.get_current()
 
         # The install has a Site app, so prefix the domain to the key.
-        key = "%s:%s" % (site.domain, key)
+        # If a SITE_ROOT is defined, also include that, to allow for multiple
+        # instances on the same host.
+        if settings.SITE_ROOT:
+            key = "%s:%s:%s" % (site.domain, settings.SITE_ROOT, key)
+        else:
+            key = "%s:%s" % (site.domain, key)
     except:
         # The install doesn't have a Site app, so use the key as-is.
         pass
