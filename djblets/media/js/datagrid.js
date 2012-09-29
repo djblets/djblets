@@ -256,10 +256,10 @@ jQuery.fn.datagrid = function() {
 
         if (x < dragLastX) {
             index = dragIndex - 1;
-            hitX = ui.absolutePosition.left;
+            hitX = ui.offset.left;
         } else {
             index = dragIndex + 1;
-            hitX = ui.absolutePosition.left + ui.helper.width();
+            hitX = ui.offset.left + ui.helper.width();
         }
 
         if (index >= 0 && index < columnMidpoints.length) {

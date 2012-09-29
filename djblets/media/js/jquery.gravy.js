@@ -33,7 +33,7 @@ $.fn.html = function(value) {
         removePre = true;
     }
 
-    var ret = this.old_html(value);
+    var ret = this.old_html.apply(this, value ? [value] : []);
 
     if (removePre) {
         var preTag = this.children();
@@ -295,11 +295,22 @@ $.extend($.ui.autoSizeTextArea, {
 
 
 $.widget("ui.inlineEditor", {
-    _init: function() {
-        if ($.data(this.element[0], "inlineEditor")) {
-            return;
-        }
+    options: {
+        cls: "",
+        extraHeight: 100,
+        forceOpen: false,
+        formatResult: null,
+        multiline: false,
+        notifyUnchangedCompletion: false,
+        promptOnCancel: true,
+        showButtons: true,
+        showEditIcon: true,
+        startOpen: false,
+        stripTags: false,
+        useEditIconOnly: false
+    },
 
+    _create: function() {
         /* Constants */
         var self = this;
 
@@ -663,23 +674,6 @@ $.widget("ui.inlineEditor", {
 });
 
 $.ui.inlineEditor.getter = "dirty field value";
-
-$.extend($.ui.inlineEditor, {
-    defaults: {
-        cls: "",
-        extraHeight: 100,
-        forceOpen: false,
-        formatResult: null,
-        multiline: false,
-        notifyUnchangedCompletion: false,
-        promptOnCancel: true,
-        showButtons: true,
-        showEditIcon: true,
-        startOpen: false,
-        stripTags: false,
-        useEditIconOnly: false
-    }
-});
 
 /* Allows quickly looking for dirty inline editors. Those dirty things. */
 $.expr[':'].inlineEditorDirty = function(a) {
