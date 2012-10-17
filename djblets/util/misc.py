@@ -195,8 +195,10 @@ def make_cache_key(key):
         # The install has a Site app, so prefix the domain to the key.
         # If a SITE_ROOT is defined, also include that, to allow for multiple
         # instances on the same host.
-        if settings.SITE_ROOT:
-            key = "%s:%s:%s" % (site.domain, settings.SITE_ROOT, key)
+        site_root = getattr(settings, 'SITE_ROOT', None)
+
+        if site_root:
+            key = "%s:%s:%s" % (site.domain, site_root, key)
         else:
             key = "%s:%s" % (site.domain, key)
     except:
