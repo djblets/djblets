@@ -191,6 +191,11 @@ $.fn.getExtents = function(types, sides) {
  * Auto-sizes a text area to make room for the contained content.
  */
 $.widget("ui.autoSizeTextArea", {
+    options: {
+        growOnKeyUp: true,
+        minHeight: 100
+    },
+
     _init: function() {
         var self = this;
 
@@ -283,13 +288,6 @@ $.widget("ui.autoSizeTextArea", {
 
     setMinHeight: function(minHeight) {
         this.options.minHeight = minHeight;
-    }
-});
-
-$.extend($.ui.autoSizeTextArea, {
-    defaults: {
-        growOnKeyUp: true,
-        minHeight: 100
     }
 });
 
@@ -762,6 +760,18 @@ jQuery.fn.delay = function(msec) {
 
 
 $.widget("ui.modalBox", {
+    options: {
+        buttons: [$('<input type="button" value="Close"/>')],
+        discardOnClose: true,
+        fadeBackground: true,
+        modalBoxButtonsClass: "modalbox-buttons",
+        modalBoxContentsClass: "modalbox-contents",
+        modalBoxTitleClass: "modalbox-title",
+        stretchX: false,
+        stretchY: false,
+        title: null
+    },
+
     _init: function() {
         var self = this;
 
@@ -911,20 +921,6 @@ $.widget("ui.modalBox", {
 });
 
 $.ui.modalBox.getter = "buttons";
-
-$.extend($.ui.modalBox, {
-    defaults: {
-        buttons: [$('<input type="button" value="Close"/>')],
-        discardOnClose: true,
-        fadeBackground: true,
-        modalBoxButtonsClass: "modalbox-buttons",
-        modalBoxContentsClass: "modalbox-contents",
-        modalBoxTitleClass: "modalbox-title",
-        stretchX: false,
-        stretchY: false,
-        title: null
-    }
-});
 
 
 jQuery.tooltip = function(el, options) {
