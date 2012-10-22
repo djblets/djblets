@@ -159,17 +159,20 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
             else:
                 request_fields = request.POST
 
+            extra_fields = {}
             invalid_fields = {}
             supported_fields = required.copy()
             supported_fields.update(optional)
 
-            if not allow_unknown:
-                for field_name in request_fields:
-                    if field_name in SPECIAL_PARAMS:
-                        # These are special names and can be ignored.
-                        continue
+            for field_name, value in request_fields.iteritems():
+                if field_name in SPECIAL_PARAMS:
+                    # These are special names and can be ignored.
+                    continue
 
-                    if field_name not in supported_fields:
+                if field_name not in supported_fields:
+                    if allow_unknown:
+                        extra_fields[field_name] = value
+                    else:
                         invalid_fields[field_name] = ['Field is not supported']
 
             for field_name, info in required.iteritems():
@@ -182,6 +185,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                     invalid_fields[field_name] = ['This field is required']
 
             new_kwargs = kwargs.copy()
+            new_kwargs['extra_fields'] = extra_fields
 
             for field_name, info in supported_fields.iteritems():
                 if isinstance(info['type'], file):
