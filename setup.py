@@ -60,7 +60,7 @@ setup(name=PACKAGE_NAME,
       description="A collection of useful classes and functions for Django",
       packages=find_packages(),
       install_requires=[
-          'Django==1.3.3',
+          'Django==1.3.4',
           'feedparser>=5.1.2',
           'PIL'
       ],
