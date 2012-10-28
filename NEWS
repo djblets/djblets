@@ -1,3 +1,12 @@
+version 0.6.25 final (27-October-2012):
+	* General:
+		* Require Django 1.3.4.
+
+		  This is a simple release that just bumps our Django requirement,
+		  in order to not have issues with consumers depending on the
+		  latest security release in the 1.3.x branch.
+
+
 version 0.6.24 final (25-September-2012):
 	* djblets.feedview:
 		* We now use the latest upstream of feedparser instead of an older
