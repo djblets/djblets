@@ -221,7 +221,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                             raise TypeError("%s is not a valid field type" %
                                             info['type'])
 
-                new_kwargs[field_name] = value
+                    new_kwargs[field_name] = value
 
             if invalid_fields:
                 return INVALID_FORM_DATA, {
