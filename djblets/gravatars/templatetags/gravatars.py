@@ -22,17 +22,18 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from md5 import md5
-
 from django import template
-from django.conf import settings
+
+from djblets.gravatars import get_gravatar_url
+from djblets.util.decorators import basictag
 
 
 register = template.Library()
 
 
-@register.simple_tag
-def gravatar(user, size=None):
+@register.tag
+@basictag(takes_context=True)
+def gravatar(context, user, size=None):
     """
     Outputs the HTML for displaying a user's gravatar.
 
@@ -48,29 +49,10 @@ def gravatar(user, size=None):
 
     See http://www.gravatar.com/ for more information.
     """
-    if user.is_anonymous() or not user.email:
-        return ""
+    url = get_gravatar_url(context['request'], user, size)
 
-    email = user.email.strip().lower()
-    email_hash = md5(email).hexdigest()
-
-    url = "http://www.gravatar.com/avatar/%s" % email_hash
-    params = []
-
-    if not size and hasattr(settings, "GRAVATAR_SIZE"):
-        size = settings.GRAVATAR_SIZE
-
-    if size:
-        params.append("s=%s" % size)
-
-    if hasattr(settings, "GRAVATAR_RATING"):
-        params.append("r=%s" % settings.GRAVATAR_RATING)
-
-    if hasattr(settings, "GRAVATAR_DEFAULT"):
-        params.append("d=%s" % settings.GRAVATAR_DEFAULT)
-
-    if params:
-        url += "?" + "&".join(params)
-
-    return '<img src="%s" width="%s" height="%s" alt="%s"/>' % \
-           (url, size, size, user.get_full_name() or user.username)
+    if url:
+        return '<img src="%s" width="%s" height="%s" alt="%s"/>' % \
+               (url, size, size, user.get_full_name() or user.username)
+    else:
+        return ''
