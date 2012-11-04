@@ -1,1 +1,3 @@
 REVIEWBOARD_URL = "http://reviews.reviewboard.org"
+TRACKING_BRANCH = "master"
+BRANCH = "master"
