@@ -896,7 +896,7 @@ class WebAPIResource(object):
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
 
             if serialize_func and callable(serialize_func):
-                value = serialize_func(obj)
+                value = serialize_func(obj, request=request)
             else:
                 value = getattr(obj, field)
 
@@ -1110,11 +1110,11 @@ class WebAPIResource(object):
         if self.etag_field:
             return unicode(getattr(obj, self.etag_field))
         elif self.autogenerate_etags:
-            return self.generate_etag(obj, self.fields)
+            return self.generate_etag(obj, self.fields, request=request)
 
         return None
 
-    def generate_etag(self, obj, fields):
+    def generate_etag(self, obj, fields, request):
         """Generates an ETag from the serialized values of all given fields."""
         values = []
 
@@ -1122,7 +1122,7 @@ class WebAPIResource(object):
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
 
             if serialize_func and callable(serialize_func):
-                values.append(serialize_func(obj))
+                values.append(serialize_func(obj, request=request))
             else:
                 values.append(unicode(getattr(obj, field)))
 
@@ -1264,10 +1264,10 @@ class UserResource(WebAPIResource):
 
     allowed_methods = ('GET',)
 
-    def serialize_fullname_field(self, user):
+    def serialize_fullname_field(self, user, **kwargs):
         return user.get_full_name()
 
-    def serialize_url_field(self, user):
+    def serialize_url_field(self, user, **kwargs):
         return user.get_absolute_url()
 
     def has_modify_permissions(self, request, user, *args, **kwargs):
