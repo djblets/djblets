@@ -1,3 +1,26 @@
+version 0.6.26 final (5-November-2012):
+	* djblets.gravatars:
+		* Added a get_gravatar_url() function, which can be used to get
+		  the URL for a user's gravatar without generating HTML.
+
+		* Made gravatar support smart enough to choose an HTTP vs. HTTPS
+		  URL, depending on what was used to access the page. (Bug #2768)
+
+	* djblets.webapi:
+		* generate_etag() and serialize_*_field() functions now take a
+		  request parameter.
+
+		  This requires that all callers update their serialize_*_field()
+		  functions to take a **kwargs parameter.
+
+		  This breaks backwards-compatibility, but is a necessary change.
+
+		* Resource handler functions that provide default values for
+		  parameters can now expect those to be used. Previously, when
+		  a parameter to the API wasn't provided, the value passed would
+		  be None.
+
+
 version 0.6.25 final (27-October-2012):
 	* General:
 		* Require Django 1.3.4.
