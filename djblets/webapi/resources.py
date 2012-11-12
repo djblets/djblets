@@ -355,6 +355,9 @@ class WebAPIResource(object):
         item_mimetypes = []
         list_mimetypes = []
 
+        # Copy this list, because otherwise we may modify the class-level version of it.
+        self.allowed_mimetypes = list(self.allowed_mimetypes)
+
         for mime in self.allowed_mimetypes:
             item_mimetypes.append(mime['item'])
             list_mimetypes.append(mime['list'])
