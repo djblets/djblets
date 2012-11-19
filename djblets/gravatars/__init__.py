@@ -36,11 +36,11 @@ def get_gravatar_url(request, user, size=None):
     email_hash = md5(email).hexdigest()
 
     if request.is_secure():
-        scheme = 'https'
+        url_base = 'https://secure.gravatar.com'
     else:
-        scheme = 'http'
+        url_base = 'http://www.gravatar.com'
 
-    url = "%s://www.gravatar.com/avatar/%s" % (scheme, email_hash)
+    url = "%s/avatar/%s" % (url_base, email_hash)
     params = []
 
     if not size and hasattr(settings, "GRAVATAR_SIZE"):
