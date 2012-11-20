@@ -296,6 +296,7 @@ $.widget("ui.inlineEditor", {
     options: {
         cls: "",
         extraHeight: 100,
+        fadeSpeedMS: 200,
         forceOpen: false,
         formatResult: null,
         multiline: false,
@@ -531,7 +532,7 @@ $.widget("ui.inlineEditor", {
 
         if (this._editIcon) {
             if (this.options.multiline && !preventAnimation) {
-                this._editIcon.fadeOut();
+                this._editIcon.fadeOut(this.options.fadeSpeedMS);
             } else {
                 this._editIcon.hide();
             }
@@ -541,8 +542,8 @@ $.widget("ui.inlineEditor", {
         this._form.show();
 
         if (this.options.multiline) {
-            var elHeight = this.element.height();
-            var newHeight = elHeight + this.options.extraHeight;
+            var elHeight = this.element.outerHeight(),
+                newHeight = elHeight + this.options.extraHeight;
 
             this._fitWidthToParent();
 
@@ -552,14 +553,18 @@ $.widget("ui.inlineEditor", {
                 .css("overflow", "hidden");
 
             if (preventAnimation) {
+                this._buttons.show();
                 this._field.height(newHeight);
             } else {
+                this._buttons.fadeIn();
                 this._field
                     .height(elHeight)
                     .animate({
                         height: newHeight
-                    }, 350);
+                    }, this.options.fadeSpeedMS);
             }
+        } else {
+            this._buttons.show();
         }
 
         /* Execute this after the animation, if we performed one. */
@@ -587,10 +592,11 @@ $.widget("ui.inlineEditor", {
         }
 
         this._field.blur();
+        this._buttons.fadeOut(this.options.fadeSpeedMS);
 
         if (this._editIcon) {
             if (this.options.multiline) {
-                this._editIcon.fadeIn();
+                this._editIcon.fadeIn(this.options.fadeSpeedMS);
             } else {
                 this._editIcon.show();
             }
@@ -600,8 +606,8 @@ $.widget("ui.inlineEditor", {
             this._field
                 .css("overflow", "hidden")
                 .animate({
-                    height: this.element.height()
-                }, 350);
+                    height: this.element.outerHeight()
+                }, this.options.fadeSpeedMS);
         }
 
         this._field.queue(function() {
@@ -635,21 +641,31 @@ $.widget("ui.inlineEditor", {
             return;
         }
 
-        var formParent = this._form.parent();
+        if (this.options.multiline) {
+            this._field
+                .css({
+                    '-webkit-box-sizing': 'border-box',
+                    '-moz-box-sizing': 'border-box',
+                    'box-sizing': 'border-box',
+                    'width': '100%'
+                });
+        } else {
+            var formParent = this._form.parent();
 
-        /*
-         * First make the field really small so it will fit on the
-         * first line, then figure out the offset and use it calculate
-         * the desired width.
-         */
-        this._field
-            .css("min-width", this.element.width())
-            .width(0)
-            .width(formParent.width() -
-                   (this._form.offset().left - formParent.offset().left) -
-                   this._field.getExtents("bp", "lr") -
-                   (this.options.multiline || !this._buttons
-                    ? 0 : this._buttons.outerWidth()));
+            /*
+             * First make the field really small so it will fit on the
+             * first line, then figure out the offset and use it calculate
+             * the desired width.
+             */
+            this._field
+                .css("min-width", this.element.innerWidth())
+                .width(0)
+                .outerWidth(formParent.innerWidth() -
+                            (this._form.offset().left -
+                             formParent.offset().left) -
+                            this._field.getExtents("bmp", "lr") -
+                            (this._buttons ? this._buttons.outerWidth() : 0));
+        }
     },
 
     _normalizeText: function(str) {
@@ -827,7 +843,8 @@ $.widget("ui.modalBox", {
                 if (e.target.tagName == "INPUT") {
                     self.element.modalBox("destroy");
                 }
-            });
+            })
+            .hide();
 
         this.box.appendTo("body")
 
