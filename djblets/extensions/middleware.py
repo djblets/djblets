@@ -23,9 +23,28 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from djblets.extensions.base import get_extension_managers
+
+
 class ExtensionsMiddleware(object):
-    """Middleware that takes the kwargs dict passed to a view, and
-    stashes it into the request.
-    """
+    """Middleware to manage extension lifecycles and data."""
+    def process_request(self, request):
+        self._check_expired()
+
     def process_view(self, request, view, args, kwargs):
         request._djblets_extensions_kwargs = kwargs
+
+    def _check_expired(self):
+        """Checks each ExtensionManager for expired extension state.
+
+        When the list of extensions on an ExtensionManager changes, or when
+        the configuration of an extension changes, any other threads/processes
+        holding onto extensions and configuration will go stale. This function
+        will check each of those to see if they need to re-load their
+        state.
+
+        This is meant to be called before every HTTP request.
+        """
+        for extension_manager in get_extension_managers():
+            if extension_manager.is_expired():
+                extension_manager.load(full_reload=True)

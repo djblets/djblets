@@ -35,6 +35,7 @@ from djblets.extensions.base import _extension_managers, Extension, \
                                     ExtensionInfo, ExtensionManager, \
                                     Settings
 from djblets.extensions.hooks import TemplateHook, URLHook
+from djblets.extensions.models import RegisteredExtension
 from djblets.testing.testcases import TestCase
 
 
@@ -263,18 +264,14 @@ class ExtensionHookPointTest(TestCase):
         self.assertTrue(self.dummy_hook not in self.extension_hook_class.hooks)
 
 
-class TestExtensionWithoutRegistration(Extension):
-    """An empty, dummy extension for testing"""
-    pass
-
-
 class ExtensionManagerTest(TestCase):
-
     def setUp(self):
+        class TestExtension(Extension):
+            """An empty, dummy extension for testing"""
+            pass
+
         self.key = 'test_key'
-        self.extension_class = TestExtensionWithoutRegistration
-        self.extension_id = \
-            'djblets.extensions.tests.TestExtensionWithoutRegistration'
+        self.extension_class = TestExtension
         self.manager = ExtensionManager(self.key)
         self.fake_entrypoint = Mock()
         self.fake_entrypoint.load = Mock(return_value=self.extension_class)
@@ -317,6 +314,9 @@ class ExtensionManagerTest(TestCase):
         )
         self.manager.load()
 
+    def tearDown(self):
+        self.manager.clear_sync_cache()
+
     def test_added_to_extension_managers(self):
         """An ExtensionManager gets added to the _extension_managers list
            in the djblets.extensions.base module."""
@@ -326,14 +326,14 @@ class ExtensionManagerTest(TestCase):
         """An ExtensionManager should return an empty collection when asked
            for the enabled extensions, if there are no extensions currently
            enabled."""
-        self.assertTrue(len(self.manager.get_enabled_extensions()) == 0)
+        self.assertEqual(len(self.manager.get_enabled_extensions()), 0)
 
     def test_load(self):
         """An ExtensionManager should load any extensions that it finds
            registered at entrypoints with its key.  The loaded extension
            should have an ExtensionRegistration and ExtensionInfo attached
            to its class."""
-        self.assertTrue(len(self.manager.get_installed_extensions()) == 1)
+        self.assertEqual(len(self.manager.get_installed_extensions()), 1)
         self.assertTrue(self.extension_class in
             self.manager.get_installed_extensions())
         self.assertTrue(hasattr(self.extension_class, 'info'))
@@ -342,6 +342,100 @@ class ExtensionManagerTest(TestCase):
         self.assertTrue(hasattr(self.extension_class, 'registration'))
         self.assertEqual(self.extension_class.registration.name,
             self.test_project_name)
+
+    def test_load_full_reload_hooks(self):
+        """Testing ExtensionManager.load(full_reload=True) with hook registration."""
+        self.assertEqual(len(self.manager.get_installed_extensions()), 1)
+
+        extension = self.extension_class()
+        extension = self.manager.enable_extension(self.extension_class.id)
+
+        URLHook(extension, ())
+        self.assertEqual(len(URLHook.hooks), 1)
+        self.assertEqual(URLHook.hooks[0].extension, extension)
+
+        self.manager.load(full_reload=True)
+
+        self.assertEqual(len(URLHook.hooks), 0)
+
+    def test_extension_list_sync(self):
+        """Testing extension list synchronization cross-process."""
+        key = 'extension-list-sync'
+
+        manager1 = ExtensionManager(key)
+        manager2 = ExtensionManager(key)
+
+        for manager in (manager1, manager2):
+            manager._entrypoint_iterator = Mock(
+                return_value=[self.fake_entrypoint]
+            )
+
+        manager1.load()
+        manager2.load()
+
+        self.assertEqual(len(manager1.get_installed_extensions()), 1)
+        self.assertEqual(len(manager2.get_installed_extensions()), 1)
+        self.assertEqual(len(manager1.get_enabled_extensions()), 0)
+        self.assertEqual(len(manager2.get_enabled_extensions()), 0)
+
+        manager1.enable_extension(self.extension_class.id)
+        self.assertEqual(len(manager1.get_enabled_extensions()), 1)
+        self.assertEqual(len(manager2.get_enabled_extensions()), 0)
+
+        self.assertFalse(manager1.is_expired())
+        self.assertTrue(manager2.is_expired())
+
+        manager2.load(full_reload=True)
+        self.assertEqual(len(manager1.get_enabled_extensions()), 1)
+        self.assertEqual(len(manager2.get_enabled_extensions()), 1)
+        self.assertFalse(manager1.is_expired())
+        self.assertFalse(manager2.is_expired())
+
+    def test_extension_settings_sync(self):
+        """Testing extension settings synchronization cross-process."""
+        key = 'extension-settings-sync'
+        setting_key = 'foo'
+        setting_val = 'abc123'
+
+        manager1 = ExtensionManager(key)
+        manager2 = ExtensionManager(key)
+
+        for manager in (manager1, manager2):
+            manager._entrypoint_iterator = Mock(
+                return_value=[self.fake_entrypoint]
+            )
+
+        manager1.load()
+
+        extension1 = manager1.enable_extension(self.extension_class.id)
+
+        manager2.load()
+
+        self.assertFalse(manager1.is_expired())
+        self.assertFalse(manager2.is_expired())
+
+        extension2 = manager2.get_enabled_extension(self.extension_class.id)
+        self.assertNotEqual(extension2, None)
+
+        self.assertFalse(setting_key in extension1.settings)
+        self.assertFalse(setting_key in extension2.settings)
+        extension1.settings[setting_key] = setting_val
+        extension1.settings.save()
+
+        self.assertFalse(setting_key in extension2.settings)
+
+        self.assertFalse(manager1.is_expired())
+        self.assertTrue(manager2.is_expired())
+
+        manager2.load(full_reload=True)
+        extension2 = manager2.get_enabled_extension(self.extension_class.id)
+
+        self.assertFalse(manager1.is_expired())
+        self.assertFalse(manager2.is_expired())
+        self.assertTrue(setting_key in extension1.settings)
+        self.assertTrue(setting_key in extension2.settings)
+        self.assertEqual(extension1.settings[setting_key], setting_val)
+        self.assertEqual(extension2.settings[setting_key], setting_val)
 
 
 class URLHookTest(TestCase):

@@ -23,15 +23,18 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import datetime
 import logging
 import os
 import pkg_resources
 import shutil
 import sys
+import time
 
 from django.conf import settings
 from django.conf.urls.defaults import patterns, include
 from django.contrib.admin.sites import AdminSite
+from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -39,7 +42,6 @@ from django.core.urlresolvers import get_resolver, get_mod_func
 from django.db.models import loading
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
-
 from django_evolution.management.commands.evolve import Command as Evolution
 
 from djblets.extensions.errors import EnablingExtensionError, \
@@ -48,6 +50,7 @@ from djblets.extensions.errors import EnablingExtensionError, \
 from djblets.extensions.models import RegisteredExtension
 from djblets.extensions.signals import extension_initialized, \
                                        extension_uninitialized
+from djblets.util.misc import make_cache_key
 
 
 
@@ -119,6 +122,9 @@ class Settings(dict):
         registration = self.extension.registration
         registration.settings = dict(self)
         registration.save()
+
+        # Make sure others are aware that the configuration changed.
+        self.extension.extension_manager._bump_sync_gen()
 
 
 class Extension(object):
@@ -295,9 +301,30 @@ class ExtensionManager(object):
         self._extension_classes = {}
         self._extension_instances = {}
 
+        # State synchronization
+        self._sync_key = make_cache_key('extensionmgr:%s:gen' % key)
+        self._last_sync_gen = None
+
         self._admin_ext_resolver = get_resolver(None)
 
         _extension_managers.append(self)
+
+    def is_expired(self):
+        """Returns whether or not the extension state is possibly expired.
+
+        Extension state covers the lists of extensions and each extension's
+        configuration. It can expire if the state synchronization value
+        falls out of cache or is changed.
+
+        Each ExtensionManager has its own state synchronization cache key.
+        """
+        sync_gen = cache.get(self._sync_key)
+
+        return (sync_gen is None or
+                (type(sync_gen) is int and sync_gen != self._last_sync_gen))
+
+    def clear_sync_cache(self):
+        cache.delete(self._sync_key)
 
     def get_absolute_url(self):
         return self._admin_ext_resolver.reverse(
@@ -370,7 +397,11 @@ class ExtensionManager(object):
 
         ext_class.registration.enabled = True
         ext_class.registration.save()
-        return self._init_extension(ext_class)
+        extension = self._init_extension(ext_class)
+
+        self._bump_sync_gen()
+
+        return extension
 
     def disable_extension(self, extension_id):
         """Disables an extension.
@@ -397,14 +428,23 @@ class ExtensionManager(object):
         extension.registration.enabled = False
         extension.registration.save()
 
-    def load(self):
+        self._bump_sync_gen()
+
+    def load(self, full_reload=False):
         """
         Loads all known extensions, initializing any that are recorded as
         being enabled.
 
         If this is called a second time, it will refresh the list of
-        extensions, adding new ones and removing deleted ones.
+        extensions, adding new ones and removing deleted ones.o
+
+        If full_reload is passed, all state is cleared and we reload all
+        extensions and state from scratch.
         """
+        if full_reload:
+            # We're reloading everything, so nuke all the cached copies.
+            self._clear_extensions()
+
         # Preload all the RegisteredExtension objects
         registered_extensions = {}
         for registered_ext in RegisteredExtension.objects.all():
@@ -430,7 +470,8 @@ class ExtensionManager(object):
                 if not getattr(ext_class, "info", None):
                     ext_class.info = ExtensionInfo(entrypoint, ext_class)
             except Exception, e:
-                print "Error loading extension %s: %s" % (entrypoint.name, e)
+                logging.error("Error loading extension %s: %s" %
+                              (entrypoint.name, e))
                 continue
 
             # A class's extension ID is its class name. We want to
@@ -449,20 +490,17 @@ class ExtensionManager(object):
                 if class_name in registered_extensions:
                     registered_ext = registered_extensions[class_name]
                 else:
-                    try:
-                        registered_ext = RegisteredExtension.objects.get(
-                            class_name=class_name)
-                    except RegisteredExtension.DoesNotExist:
-                        registered_ext = RegisteredExtension(
+                    registered_ext, is_new = \
+                        RegisteredExtension.objects.get_or_create(
                             class_name=class_name,
-                            name=entrypoint.dist.project_name
-                        )
-                        registered_ext.save()
+                            defaults={
+                                'name': entrypoint.dist.project_name
+                            })
 
                 ext_class.registration = registered_ext
 
             if (ext_class.registration.enabled and
-                not ext_class.id in self._extension_instances):
+                ext_class.id not in self._extension_instances):
                 self._init_extension(ext_class)
 
         # At this point, if we're reloading, it's possible that the user
@@ -482,6 +520,26 @@ class ExtensionManager(object):
                 ext_class.info.requirements = \
                     [self.get_installed_extension(requirement_id)
                      for requirement_id in ext_class.requirements]
+
+        # Add the sync generation if it doesn't already exist.
+        self._add_new_sync_gen()
+        self._last_sync_gen = cache.get(self._sync_key)
+
+    def _clear_extensions(self):
+        """Clear the entire list of known extensions.
+
+        This will bring the ExtensionManager back to the state where
+        it doesn't yet know about any extensions, requiring a re-load.
+        """
+        for extension in self._extension_instances.values():
+            self._uninit_extension(extension)
+
+        for extension_class in self._extension_classes.values():
+            delattr(extension_class, 'info')
+            delattr(extension_class, 'registration')
+
+        self._extension_classes = {}
+        self._extension_instances = {}
 
     def _init_extension(self, ext_class):
         """Initializes an extension.
@@ -693,6 +751,21 @@ class ExtensionManager(object):
 
     def _entrypoint_iterator(self):
         return pkg_resources.iter_entry_points(self.key)
+
+    def _bump_sync_gen(self):
+        """Bumps the synchronization generation value.
+
+        If there's an existing synchronization generation in cache,
+        increment it. Otherwise, start fresh with a new one.
+        """
+        try:
+            self._last_sync_gen = cache.incr(self._sync_key)
+        except ValueError:
+            self._last_sync_gen = self._add_new_sync_gen()
+
+    def _add_new_sync_gen(self):
+        val = time.mktime(datetime.datetime.now().timetuple())
+        return cache.add(self._sync_key, int(val))
 
 
 def get_extension_managers():

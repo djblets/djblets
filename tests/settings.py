@@ -95,4 +95,4 @@ for entry in os.listdir(base_path):
         INSTALLED_APPS += ["djblets.%s" % entry]
 
 
-print INSTALLED_APPS
+INSTALLED_APPS += ['django_evolution']
