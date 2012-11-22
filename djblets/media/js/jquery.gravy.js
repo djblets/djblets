@@ -386,7 +386,8 @@ $.widget("ui.inlineEditor", {
         if (this.options.showButtons) {
             this._buttons = $("<div/>")
                 .addClass("buttons")
-                .appendTo(this._form);
+                .appendTo(this._form)
+                .hide();
 
             if (!this.options.multiline) {
                 this._buttons.css("display", "inline");
@@ -843,8 +844,7 @@ $.widget("ui.modalBox", {
                 if (e.target.tagName == "INPUT") {
                     self.element.modalBox("destroy");
                 }
-            })
-            .hide();
+            });
 
         this.box.appendTo("body")
 
