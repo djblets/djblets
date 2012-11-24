@@ -564,7 +564,7 @@ $.widget("ui.inlineEditor", {
                         height: newHeight
                     }, this.options.fadeSpeedMS);
             }
-        } else {
+        } else if (this._buttons) {
             this._buttons.show();
         }
 
@@ -593,7 +593,10 @@ $.widget("ui.inlineEditor", {
         }
 
         this._field.blur();
-        this._buttons.fadeOut(this.options.fadeSpeedMS);
+
+        if (this._buttons) {
+            this._buttons.fadeOut(this.options.fadeSpeedMS);
+        }
 
         if (this._editIcon) {
             if (this.options.multiline) {
