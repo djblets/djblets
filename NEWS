@@ -78,6 +78,17 @@ version 0.7.0 final (2-August-2012):
 		  a dependency of djblets.
 
 
+verrsion 0.6.27 final (24-November-2012):
+	* djblets.gravatars:
+		* The gravatar URL used for HTTPS connections now uses
+		  https://secure.gravatar.com and not https://www.gravatar.com.
+
+	* djblets.webapi:
+		* The allowed_mimetypes list in WebAPIResource is no longer
+		  getting polluted with every WebAPIResource's allowed item and list
+		  mimetypes.
+
+
 version 0.6.26 final (5-November-2012):
 	* djblets.gravatars:
 		* Added a get_gravatar_url() function, which can be used to get
