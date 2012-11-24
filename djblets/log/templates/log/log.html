@@ -4,6 +4,8 @@
 
 {% block title %}{% trans "Server Log" %}{% endblock %}
 
+{% block bodyclass %}change-list{% endblock %}
+
 {% block extrastyle %}
 {{block.super}}
 <link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/changelists.css" />
@@ -45,8 +47,8 @@
    </tr>
 {%  endifchanged %}
    <tr class="level-{{level|lower}} {% cycle row1,row2 %}">
-    <td>{{timestamp|time:"H:i:s"}}</td>
-    <td>{{level}}</td>
+    <th>{{timestamp|time:"H:i:s"}}</td>
+    <th>{{level}}</td>
     <td><pre>{{message}}</pre></td>
    </tr>
 {% endfor %}

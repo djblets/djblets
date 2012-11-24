@@ -12,8 +12,6 @@
 {% block bodyclass %}{{block.super}} change-form{% endblock %}
 
 {% block content %}
-<div id="content-main">
-
 {%  if form.error_dict %}
  <p class="errornote">
   {% blocktrans count form.error_dict.items|length as counter %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktrans %}
@@ -28,6 +26,7 @@
 
  <h1 class="title">{{form.Meta.title}}</h1>
 
+<div id="content-main">
  <form action="." method="post"{% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
 {% block form_content %}
 {% if form.Meta.fieldsets %}
