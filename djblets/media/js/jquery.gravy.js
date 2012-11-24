@@ -184,7 +184,35 @@ $.fn.getExtents = function(types, sides) {
     });
 
     return val;
-}
+};
+
+
+/*
+ * If appropriate, reload gravatar <img> tags with retina resolution
+ * equivalents.
+ */
+$.fn.retinaGravatar = function() {
+    if (window.devicePixelRatio > 1) {
+        $(this).each(function() {
+            var src = $(this).attr('src'),
+                parts = src.split('=', 2),
+                baseurl,
+                size;
+
+            if (parts.length == 2) {
+                baseurl = parts[0];
+                size = parseInt(parts[1], 10);
+
+                $(this)
+                    .attr('src', baseurl + '=' + Math.floor(size * window.devicePixelRatio))
+                    .removeClass('gravatar')
+                    .addClass('gravatar-retina');
+            } else {
+                console.log('Failed to parse URL for gravatar ' + src);
+            }
+        });
+    }
+};
 
 
 /*

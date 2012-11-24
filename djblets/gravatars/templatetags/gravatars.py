@@ -52,7 +52,7 @@ def gravatar(context, user, size=None):
     url = get_gravatar_url(context['request'], user, size)
 
     if url:
-        return '<img src="%s" width="%s" height="%s" alt="%s"/>' % \
+        return '<img src="%s" width="%s" height="%s" alt="%s" class="gravatar"/>' % \
                (url, size, size, user.get_full_name() or user.username)
     else:
         return ''
