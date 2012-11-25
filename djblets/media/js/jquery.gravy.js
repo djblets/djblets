@@ -442,10 +442,29 @@ $.widget("ui.inlineEditor", {
         }
 
         if (!this.options.useEditIconOnly) {
-            this.element.click(function() {
-                self.startEdit();
-                return false;
-            });
+            /*
+             * Check if the mouse was dragged, so the editor isn't opened when
+             * text is selected.
+             */
+            var isDragging = true;
+
+            this.element
+                .mousedown(function() {
+                    isDragging = false;
+                    $(this).one("mousemove", function() {
+                        isDragging = true;
+                    });
+                })
+                .mouseup(function() {
+                    $(this).unbind("mousemove");
+                    var wasDragging = isDragging;
+                    isDragging = true;
+                    if (!wasDragging) {
+                        self.startEdit();
+                    }
+
+                    return false;
+                });
         }
 
         $(window).resize(function() {
