@@ -601,10 +601,16 @@ $.widget("ui.inlineEditor", {
                 .css("overflow", "hidden");
 
             if (preventAnimation) {
-                this._buttons.show();
+                if (this._buttons) {
+                    this._buttons.show();
+                }
+
                 this._field.height(newHeight);
             } else {
-                this._buttons.fadeIn();
+                if (this._buttons) {
+                    this._buttons.fadeIn();
+                }
+
                 this._field
                     .height(elHeight)
                     .animate({
