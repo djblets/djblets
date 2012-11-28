@@ -38,7 +38,7 @@ from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.core.urlresolvers import get_resolver, get_mod_func
+from django.core.urlresolvers import get_mod_func, reverse
 from django.db.models import loading
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
@@ -51,6 +51,7 @@ from djblets.extensions.models import RegisteredExtension
 from djblets.extensions.signals import extension_initialized, \
                                        extension_uninitialized
 from djblets.util.misc import make_cache_key
+from djblets.util.urlresolvers import DynamicURLResolver
 
 
 
@@ -155,7 +156,6 @@ class Extension(object):
     def __init__(self, extension_manager):
         self.extension_manager = extension_manager
         self.hooks = set()
-        self.admin_ext_resolver = None
         self.settings = Settings(self)
         self.admin_site = None
 
@@ -306,9 +306,16 @@ class ExtensionManager(object):
         self._sync_key = make_cache_key('extensionmgr:%s:gen' % key)
         self._last_sync_gen = None
 
-        self._admin_ext_resolver = get_resolver(None)
+        self.dynamic_urls = DynamicURLResolver()
 
         _extension_managers.append(self)
+
+    def get_url_patterns(self):
+        """Returns the URL patterns for the Extension Manager.
+
+        This should be included in the root urlpatterns for the site.
+        """
+        return patterns('', self.dynamic_urls)
 
     def is_expired(self):
         """Returns whether or not the extension state is possibly expired.
@@ -328,8 +335,7 @@ class ExtensionManager(object):
         cache.delete(self._sync_key)
 
     def get_absolute_url(self):
-        return self._admin_ext_resolver.reverse(
-            "djblets.extensions.views.extension_list")
+        return reverse("djblets.extensions.views.extension_list")
 
     def get_enabled_extension(self, extension_id):
         """Returns an enabled extension with the given ID."""
@@ -586,12 +592,12 @@ class ExtensionManager(object):
         extension.shutdown()
 
         if hasattr(extension, "admin_urlpatterns"):
-            for urlpattern in extension.admin_urlpatterns:
-                self._admin_ext_resolver.url_patterns.remove(urlpattern)
+            self.dynamic_urls.remove_patterns(
+                extension.admin_urlpatterns)
 
         if hasattr(extension, "admin_site_urlpatterns"):
-            for urlpattern in extension.admin_site_urlpatterns:
-                self._admin_ext_resolver.url_patterns.remove(urlpattern)
+            self.dynamic_urls.remove_patterns(
+                extension.admin_site_urlpatterns)
 
         if extension.has_admin_site:
             del extension.admin_site
@@ -690,7 +696,7 @@ class ExtensionManager(object):
         This provides URLs for configuring an extension, plus any additional
         admin urlpatterns that the extension provides.
         """
-        prefix = self.get_absolute_url()
+        prefix = self.get_absolute_url().lstrip('/')
         # Note that we're adding to the resolve list on the root of the
         # install, and prefixing it with the admin extensions path.
         # The reason we're not just making this a child of our extensions
@@ -705,7 +711,7 @@ class ExtensionManager(object):
                     (r'^%s%s/config/' % (prefix, extension.id),
                      include(urlconf.__name__)))
 
-                self._admin_ext_resolver.url_patterns.extend(
+                self.dynamic_urls.add_patterns(
                     extension.admin_urlpatterns)
 
         if extension.has_admin_site:
@@ -713,7 +719,7 @@ class ExtensionManager(object):
                 (r'^%s%s/db/' % (prefix, extension.id),
                 include(extension.admin_site.urls)))
 
-            self._admin_ext_resolver.url_patterns.extend(
+            self.dynamic_urls.add_patterns(
                 extension.admin_site_urlpatterns)
 
     def _init_admin_site(self, extension):

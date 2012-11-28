@@ -27,6 +27,7 @@ from django.conf import settings
 from django.core.urlresolvers import get_resolver, NoReverseMatch, reverse
 
 from djblets.extensions.base import ExtensionHook, ExtensionHookPoint
+from djblets.util.urlresolvers import DynamicURLResolver
 
 
 class URLHook(ExtensionHook):
@@ -40,26 +41,13 @@ class URLHook(ExtensionHook):
     def __init__(self, extension, patterns):
         super(URLHook, self).__init__(extension)
         self.patterns = patterns
-
-        # Install these patterns into the correct urlconf.
-        if hasattr(settings, "EXTENSION_ROOT_URLCONF"):
-            parent_urlconf = settings.EXTENSION_ROOT_URLCONF
-        elif hasattr(settings, "SITE_ROOT_URLCONF"):
-            parent_urlconf = settings.SITE_ROOT_URLCONF
-        else:
-            # Fall back on get_resolver's defaults.
-            parent_urlconf = None
-
-        self.parent_resolver = get_resolver(parent_urlconf)
-        assert self.parent_resolver
-
-        self.parent_resolver.url_patterns.extend(patterns)
+        self.dynamic_urls = self.extension.extension_manager.dynamic_urls
+        self.dynamic_urls.add_patterns(patterns)
 
     def shutdown(self):
         super(URLHook, self).shutdown()
 
-        for pattern in self.patterns:
-            self.parent_resolver.url_patterns.remove(pattern)
+        self.dynamic_urls.remove_patterns(self.patterns)
 
 
 class TemplateHook(ExtensionHook):

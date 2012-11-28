@@ -1,9 +1,11 @@
 from django.conf.urls.defaults import patterns, include
 from django.core.exceptions import ObjectDoesNotExist
+
 from djblets.extensions.base import RegisteredExtension
 from djblets.extensions.errors import DisablingExtensionError, \
                                       EnablingExtensionError, \
                                       InvalidExtensionError
+from djblets.util.urlresolvers import DynamicURLResolver
 from djblets.webapi.decorators import webapi_login_required, \
                                       webapi_permission_required, \
                                       webapi_request_fields
@@ -28,8 +30,7 @@ class ExtensionResource(WebAPIResource):
     def __init__(self, extension_manager):
         super(ExtensionResource, self).__init__()
         self._extension_manager = extension_manager
-        self._url_patterns = None
-        self._resource_url_patterns_queue = []
+        self._dynamic_patterns = DynamicURLResolver()
         self._resource_url_patterns_map = {}
 
         # We want ExtensionResource to notice when extensions are
@@ -90,20 +91,10 @@ class ExtensionResource(WebAPIResource):
         # We want extension resource URLs to be dynamically modifiable,
         # so we override get_url_patterns in order to capture and store
         # a reference to the url_patterns at /api/extensions/.
+        url_patterns = super(ExtensionResource, self).get_url_patterns()
+        url_patterns += patterns('', self._dynamic_patterns)
 
-        self._url_patterns = super(ExtensionResource, self).get_url_patterns()
-
-        # It's possible that some extensions were initialized before
-        # the extension resource URLs were fetched.  In that case, those
-        # extensions had their URLs queued up.  Dequeue them and add
-        # them to the URL patterns.
-
-        for url_patterns in self._resource_url_patterns_queue:
-            self._add_to_url_patterns(url_patterns)
-
-        self._resource_url_patterns_queue = []
-
-        return self._url_patterns
+        return url_patterns
 
     def get_related_links(self, obj=None, request=None, *args, **kwargs):
         """Returns links to the resources provided by the extension.
@@ -162,20 +153,8 @@ class ExtensionResource(WebAPIResource):
                 (r'^%s/%s/' % (extension.id, resource.uri_name),
                  include(resource.get_url_patterns()))))
 
-        # It's possible that the ExtensionResource doesn't have
-        # a reference to self._url_patterns yet (this happens when
-        # an application starts up with extensions that are already
-        # enabled).  In that case, we queue those URL patterns, and
-        # attach once we get a reference to self._url_patterns.
-        if not self._url_patterns:
-            self._resource_url_patterns_queue.append(
-                self._resource_url_patterns_map[extension])
-        else:
-            self._add_to_url_patterns(
-                self._resource_url_patterns_map[extension])
-
-    def _add_to_url_patterns(self, url_patterns):
-        self._url_patterns.extend(url_patterns)
+        self._dynamic_patterns.add_patterns(
+            self._resource_url_patterns_map[extension])
 
     def _unattach_extension_resources(self, extension):
         """
@@ -194,15 +173,15 @@ class ExtensionResource(WebAPIResource):
             return
 
         # Remove the URL patterns
-        for pattern in self._resource_url_patterns_map[extension]:
-            self._url_patterns.remove(pattern)
+        self._dynamic_patterns.remove_patterns(
+            self._resource_url_patterns_map[extension])
 
         # Delete the URL patterns so that we can regenerate
         # them when the extension is re-enabled.  This is to
         # avoid caching incorrect URL patterns during extension
         # development, when extension resources are likely to
         # change.
-        del(self._resource_url_patterns_map[extension])
+        del self._resource_url_patterns_map[extension]
 
     def _on_extension_initialized(self, sender, ext_class=None, **kwargs):
         """

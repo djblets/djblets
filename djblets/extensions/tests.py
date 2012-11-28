@@ -457,7 +457,7 @@ class URLHookTest(TestCase):
         """On initialization, a URLHook should extend its parent URL resolver's
            patterns with the patterns passed into the URLHook."""
         self.assertTrue(set(self.patterns)
-            .issubset(set(self.url_hook.parent_resolver.url_patterns)))
+            .issubset(set(self.url_hook.dynamic_urls.url_patterns)))
         # And the URLHook should be added to the extension's list of hooks
         self.assertTrue(self.url_hook in self.test_extension.hooks)
 
@@ -466,7 +466,7 @@ class URLHookTest(TestCase):
            parent URL resolver's pattern collection."""
         self.url_hook.shutdown()
         self.assertFalse(set(self.patterns)
-            .issubset(set(self.url_hook.parent_resolver.url_patterns)))
+            .issubset(set(self.url_hook.dynamic_urls.url_patterns)))
         # But the URLHook should still be in the extension's list of hooks
         self.assertTrue(self.url_hook in self.test_extension.hooks)
 
