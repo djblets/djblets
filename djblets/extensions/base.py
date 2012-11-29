@@ -152,7 +152,8 @@ class Extension(object):
     requirements = []
     resources = []
 
-    def __init__(self):
+    def __init__(self, extension_manager):
+        self.extension_manager = extension_manager
         self.hooks = set()
         self.admin_ext_resolver = None
         self.settings = Settings(self)
@@ -549,8 +550,15 @@ class ExtensionManager(object):
         that the extension has been initialized.
         """
         assert ext_class.id not in self._extension_instances
-        extension = ext_class()
-        extension.extension_manager = self
+
+        try:
+            extension = ext_class(extension_manager=self)
+        except Exception, e:
+            logging.error('Unable to initialize extension %s: %s'
+                          % (ext_class, e), exc_info=1)
+            raise EnablingExtensionError('Error initializing extension: %s'
+                                         % e)
+
         self._extension_instances[extension.id] = extension
 
         if extension.has_admin_site:

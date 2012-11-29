@@ -109,7 +109,9 @@ class TestExtensionWithRegistration(Extension):
 
 class ExtensionTest(TestCase):
     def setUp(self):
-        self.extension = TestExtensionWithRegistration()
+        manager = ExtensionManager('')
+        self.extension = \
+            TestExtensionWithRegistration(extension_manager=manager)
 
         for index in range(0, 5):
             self.extension.hooks.add(Mock())
@@ -213,7 +215,9 @@ class TestExtensionHook(ExtensionHook):
 
 class ExtensionHookTest(TestCase):
     def setUp(self):
-        self.extension = TestExtensionWithRegistration()
+        manager = ExtensionManager('')
+        self.extension = \
+            TestExtensionWithRegistration(extension_manager=manager)
         self.extension_hook = TestExtensionHook(self.extension)
 
     def test_extension_set(self):
@@ -242,7 +246,9 @@ class ExtensionHookTest(TestCase):
 
 class ExtensionHookPointTest(TestCase):
     def setUp(self):
-        self.extension = TestExtensionWithRegistration()
+        manager = ExtensionManager('')
+        self.extension = \
+            TestExtensionWithRegistration(extension_manager=manager)
         self.extension_hook_class = TestExtensionHook
         self.dummy_hook = Mock()
         self.extension_hook_class.add_hook(self.dummy_hook)
@@ -347,7 +353,7 @@ class ExtensionManagerTest(TestCase):
         """Testing ExtensionManager.load(full_reload=True) with hook registration."""
         self.assertEqual(len(self.manager.get_installed_extensions()), 1)
 
-        extension = self.extension_class()
+        extension = self.extension_class(extension_manager=self.manager)
         extension = self.manager.enable_extension(self.extension_class.id)
 
         URLHook(extension, ())
@@ -440,7 +446,9 @@ class ExtensionManagerTest(TestCase):
 
 class URLHookTest(TestCase):
     def setUp(self):
-        self.test_extension = TestExtensionWithRegistration()
+        manager = ExtensionManager('')
+        self.test_extension = \
+            TestExtensionWithRegistration(extension_manager=manager)
         self.patterns = patterns('',
             (r'^url_hook_test/', include('djblets.extensions.test.urls')))
         self.url_hook = URLHook(self.test_extension, self.patterns)
@@ -465,7 +473,9 @@ class URLHookTest(TestCase):
 
 class TemplateHookTest(TestCase):
     def setUp(self):
-        self.extension = TestExtensionWithRegistration()
+        manager = ExtensionManager('')
+        self.extension = \
+            TestExtensionWithRegistration(extension_manager=manager)
         self.hook_with_applies_name = "template-hook-with-applies-name"
         self.hook_no_applies_name = "template-hook-no-applies-name"
         self.template_hook_no_applies = TemplateHook(self.extension,
