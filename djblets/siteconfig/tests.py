@@ -27,6 +27,7 @@ from django.contrib.sites.models import Site
 from django.core.cache import cache
 
 from djblets.siteconfig.django_settings import apply_django_settings, \
+                                               cache_settings_map, \
                                                mail_settings_map
 from djblets.siteconfig.models import SiteConfiguration
 from djblets.util.testing import TestCase
@@ -108,3 +109,25 @@ class SiteConfigTest(TestCase):
         # See if we fetch the same one again
         siteconfig1 = SiteConfiguration.objects.get_current()
         self.assertEqual(siteconfig1.get('foobar'), 123)
+
+    def test_cache_backend(self):
+        """Testing cache backend setting with CACHES['default']"""
+        settings.CACHES = {
+            'default': {
+                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+                'LOCATION': 'foo',
+            },
+            'staticfiles': {
+                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+                'LOCATION': 'staticfiles-cache',
+            }
+        }
+
+        self.siteconfig.set('cache_backend', 'memcached://localhost:12345/')
+        apply_django_settings(self.siteconfig, cache_settings_map)
+
+        self.assertEqual(settings.CACHES['default']['BACKEND'],
+                         'django.core.cache.backends.memcached.CacheClass')
+        self.assertEqual(settings.CACHES['default']['LOCATION'],
+                         'localhost:12345')
+        self.assertTrue('staticfiles' in settings.CACHES)

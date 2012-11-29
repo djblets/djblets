@@ -27,6 +27,39 @@ import os
 import time
 
 from django.conf import settings
+from django.core.cache import DEFAULT_CACHE_ALIAS, parse_backend_uri
+
+
+def _set_cache_backend(settings, key, value):
+    if not value:
+        return
+
+    backend_classes = {
+        'db': 'db.DatabaseCache',
+        'dummy': 'dummy.DummyCache',
+        'file': 'filebased.FileBasedCache',
+        'locmem': 'locmem.LocMemCache',
+        'memcached': 'memcached.CacheClass',
+    }
+
+    try:
+        engine, host, params = parse_backend_uri(value)
+    except InvalidCacheBackendError, e:
+        logging.error('Invalid cache backend (%s) found while loading '
+                      'siteconfig: %s' % (value, e))
+        return
+
+    if engine in backend_classes:
+        engine = 'django.core.cache.backends.%s' % backend_classes[engine]
+    else:
+        engine = '%s.CacheClass' % engine
+
+    defaults = {
+        'BACKEND': engine,
+        'LOCATION': host,
+    }
+    defaults.update(params)
+    settings.CACHES[DEFAULT_CACHE_ALIAS] = defaults
 
 
 locale_settings_map = {
@@ -66,7 +99,8 @@ site_settings_map = {
 }
 
 cache_settings_map = {
-    'cache_backend':               'CACHE_BACKEND',
+    'cache_backend':               { 'key': 'CACHES',
+                                     'setter': _set_cache_backend },
     'cache_expiration_time':       'CACHE_EXPIRATION_TIME',
 }
 
@@ -157,9 +191,13 @@ def apply_django_settings(siteconfig, settings_map=None):
     for key, setting_data in settings_map.iteritems():
         if key in siteconfig.settings:
             value = siteconfig.get(key)
+            setter = setattr
 
             if isinstance(setting_data, dict):
                 setting_key = setting_data['key']
+
+                if 'setter' in setting_data:
+                    setter = setting_data['setter']
 
                 if ('deserialize_func' in setting_data and
                     callable(setting_data['deserialize_func'])):
@@ -167,7 +205,7 @@ def apply_django_settings(siteconfig, settings_map=None):
             else:
                 setting_key = setting_data
 
-            setattr(settings, setting_key, value)
+            setter(settings, setting_key, value)
 
     if hasattr(time, 'tzset'):
         os.environ['TZ'] = settings.TIME_ZONE
