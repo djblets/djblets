@@ -1,3 +1,10 @@
+version 0.7.4 final (29-November-2012):
+	* djblets.siteconfig:
+		* The stored cache_backend setting is now deserialized into
+		  settings.CACHES['backend']. This leaves other caches
+		  unaffected and stops accessing settings.CACHE_BACKEND.
+
+
 version 0.7.3 final (29-November-2012):
 	* This version contains all the fixes and functionality of 0.6.27.
 
