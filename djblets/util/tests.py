@@ -34,7 +34,6 @@ from django.core.cache import cache
 from django.core.urlresolvers import NoReverseMatch, reverse
 from django.http import HttpRequest
 from django.template import Token, TOKEN_TEXT, TemplateSyntaxError
-from django.test import TestCase
 from django.utils.html import strip_spaces_between_tags
 
 from djblets.util.http import get_http_accept_lists, \

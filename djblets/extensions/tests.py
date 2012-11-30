@@ -35,7 +35,6 @@ from djblets.extensions.base import _extension_managers, Extension, \
                                     ExtensionInfo, ExtensionManager, \
                                     Settings
 from djblets.extensions.hooks import TemplateHook, URLHook
-from djblets.extensions.models import RegisteredExtension
 from djblets.testing.testcases import TestCase
 
 

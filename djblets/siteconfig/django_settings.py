@@ -23,11 +23,13 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+import logging
 import os
 import time
 
 from django.conf import settings
-from django.core.cache import DEFAULT_CACHE_ALIAS, parse_backend_uri
+from django.core.cache import DEFAULT_CACHE_ALIAS, parse_backend_uri, \
+                              InvalidCacheBackendError
 
 
 def _set_cache_backend(settings, key, value):

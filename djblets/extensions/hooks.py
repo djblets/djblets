@@ -23,11 +23,9 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from django.conf import settings
-from django.core.urlresolvers import get_resolver, NoReverseMatch, reverse
+from django.core.urlresolvers import NoReverseMatch, reverse
 
 from djblets.extensions.base import ExtensionHook, ExtensionHookPoint
-from djblets.util.urlresolvers import DynamicURLResolver
 
 
 class URLHook(ExtensionHook):
