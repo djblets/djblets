@@ -1307,6 +1307,11 @@ def register_resource_for_model(model, resource):
     _model_to_resources[model] = resource
 
 
+def unregister_resource_for_model(model):
+    """Removes the official location for a model."""
+    del _model_to_resources[model]
+
+
 def get_resource_for_object(obj):
     """Returns the resource for an object."""
     resource = _model_to_resources.get(obj.__class__, None)
