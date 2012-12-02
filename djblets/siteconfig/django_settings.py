@@ -36,6 +36,12 @@ def _set_cache_backend(settings, key, value):
     if not value:
         return
 
+    if isinstance(value, dict):
+        if DEFAULT_CACHE_ALIAS in value:
+            settings.CACHES[DEFAULT_CACHE_ALIAS] = value[DEFAULT_CACHE_ALIAS]
+
+        return
+
     backend_classes = {
         'db': 'db.DatabaseCache',
         'dummy': 'dummy.DummyCache',

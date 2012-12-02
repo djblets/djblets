@@ -131,3 +131,25 @@ class SiteConfigTest(TestCase):
         self.assertEqual(settings.CACHES['default']['LOCATION'],
                          'localhost:12345')
         self.assertTrue('staticfiles' in settings.CACHES)
+
+    def test_cache_backend_with_caches(self):
+        """Testing cache backend setting with siteconfig-stored CACHES"""
+        settings.CACHES['staticfiles'] = {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'staticfiles-cache',
+        }
+
+        self.siteconfig.set('cache_backend', {
+            'default': {
+                'BACKEND': 'django.core.cache.backends.memcached.CacheClass',
+                'LOCATION': 'localhost:12345',
+            },
+        })
+
+        apply_django_settings(self.siteconfig, cache_settings_map)
+
+        self.assertEqual(settings.CACHES['default']['BACKEND'],
+                         'django.core.cache.backends.memcached.CacheClass')
+        self.assertEqual(settings.CACHES['default']['LOCATION'],
+                         'localhost:12345')
+        self.assertTrue('staticfiles' in settings.CACHES)
