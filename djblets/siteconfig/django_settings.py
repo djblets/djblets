@@ -28,46 +28,13 @@ import os
 import time
 
 from django.conf import settings
-from django.core.cache import DEFAULT_CACHE_ALIAS, parse_backend_uri, \
-                              InvalidCacheBackendError
+from django.core.cache import DEFAULT_CACHE_ALIAS
+
+from djblets.util.cache import normalize_cache_backend
 
 
 def _set_cache_backend(settings, key, value):
-    if not value:
-        return
-
-    if isinstance(value, dict):
-        if DEFAULT_CACHE_ALIAS in value:
-            settings.CACHES[DEFAULT_CACHE_ALIAS] = value[DEFAULT_CACHE_ALIAS]
-
-        return
-
-    backend_classes = {
-        'db': 'db.DatabaseCache',
-        'dummy': 'dummy.DummyCache',
-        'file': 'filebased.FileBasedCache',
-        'locmem': 'locmem.LocMemCache',
-        'memcached': 'memcached.CacheClass',
-    }
-
-    try:
-        engine, host, params = parse_backend_uri(value)
-    except InvalidCacheBackendError, e:
-        logging.error('Invalid cache backend (%s) found while loading '
-                      'siteconfig: %s' % (value, e))
-        return
-
-    if engine in backend_classes:
-        engine = 'django.core.cache.backends.%s' % backend_classes[engine]
-    else:
-        engine = '%s.CacheClass' % engine
-
-    defaults = {
-        'BACKEND': engine,
-        'LOCATION': host,
-    }
-    defaults.update(params)
-    settings.CACHES[DEFAULT_CACHE_ALIAS] = defaults
+    settings.CACHES[DEFAULT_CACHE_ALIAS] = normalize_cache_backend(value)
 
 
 locale_settings_map = {
