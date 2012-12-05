@@ -323,6 +323,7 @@ $.widget("ui.autoSizeTextArea", {
 $.widget("ui.inlineEditor", {
     options: {
         cls: "",
+        enabled: true,
         extraHeight: 100,
         fadeSpeedMS: 200,
         forceOpen: false,
@@ -344,7 +345,7 @@ $.widget("ui.inlineEditor", {
         /* State */
         this._initialValue = null;
         this._editing = false;
-        this._dirty = false
+        this._dirty = false;
 
         /* Elements */
         this._form = $("<form/>")
@@ -502,13 +503,43 @@ $.widget("ui.inlineEditor", {
         if (this.options.forceOpen || this.options.startOpen) {
             self.startEdit(true);
         }
+
+        if (this.options.enabled) {
+            self.enable();
+        } else {
+            self.disable();
+        }
+    },
+
+    /*
+     * Enables use of the inline editor.
+     */
+    enable: function() {
+        if (this._editing) {
+            this.showEditor();
+        }
+
+        this._editIcon.show();
+        this.options.enabled = true;
+    },
+
+    /*
+     * Disables use of the inline editor.
+     */
+    disable: function() {
+        if (this._editing) {
+            this.hideEditor();
+        }
+
+        this._editIcon.hide();
+        this.options.enabled = false;
     },
 
     /*
      * Puts the editor into edit mode.
      */
     startEdit: function(preventAnimation) {
-        if (this._editing) {
+        if (this._editing || !this.options.enabled) {
             return;
         }
 
@@ -518,9 +549,9 @@ $.widget("ui.inlineEditor", {
         var value = this._normalizeText(this._initialValue).htmlDecode();
 
         if (this.options.multiline && $.browser.msie) {
-            this._field.text(value);
+        this._field.text(value);
         } else {
-            this._field.val(value);
+        this._field.val(value);
         }
 
         this.showEditor(preventAnimation);
