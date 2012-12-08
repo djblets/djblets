@@ -1,3 +1,5 @@
+import logging
+
 from django.core.cache import DEFAULT_CACHE_ALIAS, parse_backend_uri, \
                               InvalidCacheBackendError
 
