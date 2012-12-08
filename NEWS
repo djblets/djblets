@@ -1,4 +1,31 @@
-version 0.7.4 final (30-November-2012):
+version 0.7.6 final (8-December-2012):
+	* JavaScript:
+		* inlineEditor now supports changing an "enabled" option, allowing
+		  editors to start out enabled or disabled, or dynamically change
+		  that state.
+
+		  Patch by Jesus Zambrano.
+
+	* djblets.siteconfig:
+		* Siteconfig now handles old-style CACHE_BACKEND values and
+		  new-style CACHES[cachename] dictionaries in hte 'cache_backend'
+		  setting.
+
+	* djblets.util.cache:
+		* Added normalize_cache_backend.
+
+		  This can take either an old-style CACHE_BACKEND or new-style
+		  CACHES[cachename] and return a valid entry for CACHES['default'].
+
+	* djblets.webapi:
+		* Added unregister_resource_for_model.
+
+		  This is useful for extensions that called register_resource_for_model.
+
+		  Patch by Steven MacLeod.
+
+
+version 0.7.5 final (30-November-2012):
 	* djblets.siteconfig:
 		* Fixed a couple missing imports.
 
