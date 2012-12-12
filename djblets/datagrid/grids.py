@@ -26,6 +26,7 @@
 
 import logging
 import pytz
+import urllib
 
 from django.conf import settings
 from django.contrib.auth.models import SiteProfileNotAvailable
@@ -200,13 +201,12 @@ class Column(object):
         Utility function to return a string containing URL parameters to
         this page with the specified parameter filtered out.
         """
-        s = ""
-
-        for key in self.datagrid.request.GET:
-            if key not in params:
-                s += "%s=%s&" % (key, self.datagrid.request.GET[key])
-
-        return s
+        result = urllib.urlencode([
+            (key, value)
+            for key, value in self.datagrid.request.GET.items()
+            if key not in params
+        ])
+        return result + '&'
 
     def collect_objects(self, object_list):
         """Iterates through the objects and builds a cache of data to display.
