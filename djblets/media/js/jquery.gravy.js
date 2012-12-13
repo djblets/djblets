@@ -415,12 +415,17 @@ $.widget("ui.inlineEditor", {
         if (this.options.showButtons) {
             this._buttons = $("<div/>")
                 .addClass("buttons")
-                .appendTo(this._form)
-                .hide();
+                .appendTo(this._form);
 
             if (!this.options.multiline) {
                 this._buttons.css("display", "inline");
             }
+
+            /*
+             * Hide it after we've set the display, so it'll know what to
+             * restore to when we call show().
+             */
+            this._buttons.hide();
 
             var saveButton =
                 $('<input type="button"/>')
@@ -549,9 +554,9 @@ $.widget("ui.inlineEditor", {
         var value = this._normalizeText(this._initialValue).htmlDecode();
 
         if (this.options.multiline && $.browser.msie) {
-        this._field.text(value);
+            this._field.text(value);
         } else {
-        this._field.val(value);
+            this._field.val(value);
         }
 
         this.showEditor(preventAnimation);
