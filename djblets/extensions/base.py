@@ -658,7 +658,7 @@ class ExtensionManager(object):
         try:
             evolution = Evolution()
             evolution.evolve(verbosity=0, interactive=False,
-                             execute=True, hint=True,
+                             execute=True, hint=False,
                              compile_sql=False, purge=False,
                              database=False)
         except CommandError, e:
