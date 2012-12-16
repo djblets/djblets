@@ -5,6 +5,11 @@ version 0.7.7 final (16-December-2012):
 
 		* Failures during rendering the datagrid now results in a traceback.
 
+	* djblets.extensions:
+		* Database evolutions are no longer applying using
+		  evolve --hint --execute. This fixes unintentional database
+		  changes elsewhere.
+
 	* JavaScript:
 		* The second display of an inlineEditor no longer breaks the size
 		  of the editor.
