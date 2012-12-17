@@ -23,7 +23,10 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from md5 import md5
+try:
+    from hashlib import md5
+except ImportError:
+    from md5 import md5
 
 
 def get_gravatar_url(request, user, size=None):
