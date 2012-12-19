@@ -524,7 +524,10 @@ $.widget("ui.inlineEditor", {
             this.showEditor();
         }
 
-        this._editIcon.show();
+        if (this._editIcon) {
+            this._editIcon.show();
+        }
+
         this.options.enabled = true;
     },
 
@@ -536,7 +539,10 @@ $.widget("ui.inlineEditor", {
             this.hideEditor();
         }
 
-        this._editIcon.hide();
+        if (this._editIcon) {
+            this._editIcon.hide();
+        }
+
         this.options.enabled = false;
     },
 
