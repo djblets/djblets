@@ -303,12 +303,15 @@ class Column(object):
                 self.data_cache[pk] = value
                 return value
         else:
-            value = getattr(obj, self.field_name)
+            # Follow . separators like in the django template library
+            value = obj
+            for field_name in filter(None, self.field_name.split('.')):
+                value = getattr(value, field_name)
 
-            if callable(value):
-                return value()
-            else:
-                return value
+                if callable(value):
+                    value = value()
+
+            return value
 
     def augment_queryset(self, queryset):
         """Augments a queryset with new queries.
