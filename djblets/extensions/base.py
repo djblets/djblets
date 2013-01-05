@@ -542,8 +542,11 @@ class ExtensionManager(object):
             self._uninit_extension(extension)
 
         for extension_class in self._extension_classes.values():
-            delattr(extension_class, 'info')
-            delattr(extension_class, 'registration')
+            if hasattr(extension_class, 'info'):
+                delattr(extension_class, 'info')
+
+            if hasattr(extension_class, 'registration'):
+                delattr(extension_class, 'registration')
 
         self._extension_classes = {}
         self._extension_instances = {}
