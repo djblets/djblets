@@ -5,6 +5,7 @@ except ImportError:
 
 from django.conf.urls.defaults import include, patterns, url
 from django.contrib.auth.models import User, Group
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models.query import QuerySet
@@ -630,6 +631,9 @@ class WebAPIResource(object):
         from the URL.
 
         This requires that ``model`` and ``uri_object_key`` be set.
+
+        Throws django.core.exceptions.ObjectDoesNotExist if the requested
+        object does not exist.
         """
         assert self.model
         assert self.singleton or self.uri_object_key
@@ -759,10 +763,15 @@ class WebAPIResource(object):
         }
 
         if self.model:
+            try:
+                queryset = self.get_queryset(request, is_list=True,
+                                             *args, **kwargs).select_related()
+            except ObjectDoesNotExist:
+                return DOES_NOT_EXIST
+
             return WebAPIResponsePaginated(
                 request,
-                queryset=self.get_queryset(request, is_list=True,
-                                           *args, **kwargs).select_related(),
+                queryset=queryset,
                 results_key=self.list_result_key,
                 serialize_object_func =
                     lambda obj: get_resource_for_object(obj).serialize_object(
@@ -825,6 +834,9 @@ class WebAPIResource(object):
 
     def get_queryset(self, request, is_list=False, *args, **kwargs):
         """Returns a queryset used for querying objects or lists of objects.
+
+        Throws django.core.exceptions.ObjectDoesNotExist if the requested
+        object does not exist.
 
         This can be overridden to filter the object list, such as for hiding
         non-public objects.
