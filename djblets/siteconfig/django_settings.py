@@ -24,10 +24,10 @@
 #
 
 import os
-import time
 
 from django.conf import settings
 from django.core.cache import DEFAULT_CACHE_ALIAS
+from django.utils import timezone
 
 from djblets.util.cache import normalize_cache_backend
 
@@ -36,9 +36,31 @@ def _set_cache_backend(settings, key, value):
     settings.CACHES[DEFAULT_CACHE_ALIAS] = normalize_cache_backend(value)
 
 
+def _set_timezone(settings, key, value):
+    settings.TIME_ZONE = value
+
+    # Internally, Django will also set os.environ['TZ'] to this value
+    # and call time.tzset() when initially loading settings. We don't do
+    # that, because it can have consequences.
+    #
+    # You can think of the timezone being set initially by Django as being
+    # the core timezone that will be used for anything outside of a request.
+    # What we set here is the timezone that Django will use in its own
+    # timezone-related functions (for DateTimeFields and the like).
+    #
+    # That does mean that time.localtime and other functions will not
+    # produce reliable dates. However, we need to ensure that any date/time
+    # code is timezone-aware anyway, and works with our setting.
+    #
+    # To see how using os.environ['TZ'] would cause us problems, read
+    # http://blog.chipx86.com/2013/01/26/weird-bugs-django-timezones-and-importing-from-eggs/
+    timezone.activate(settings.TIME_ZONE)
+
+
 locale_settings_map = {
     'locale_timezone':             { 'key': 'TIME_ZONE',
-                                     'deserialize_func': str },
+                                     'deserialize_func': str,
+                                     'setter': _set_timezone },
     'locale_language_code':        'LANGUAGE_CODE',
     'locale_date_format':          'DATE_FORMAT',
     'locale_datetime_format':      'DATETIME_FORMAT',
@@ -180,7 +202,3 @@ def apply_django_settings(siteconfig, settings_map=None):
                 setting_key = setting_data
 
             setter(settings, setting_key, value)
-
-    if hasattr(time, 'tzset'):
-        os.environ['TZ'] = settings.TIME_ZONE
-        time.tzset()
