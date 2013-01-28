@@ -897,7 +897,7 @@ $.widget("ui.modalBox", {
                 .css({
                     "background-color": "#000",
                     opacity: 0,
-                    zIndex: 11000
+                    zIndex: 99
                 })
                 .move(0, 0, "fixed")
                 .width("100%")
@@ -908,7 +908,7 @@ $.widget("ui.modalBox", {
         this.box = $("<div/>")
             .addClass("modalbox")
             .move(0, 0, "absolute")
-            .css({zIndex: 11001})
+            .css('z-index', 100)
             .keydown(function(e) { e.stopPropagation(); });
 
         this.inner = $("<div/>")
