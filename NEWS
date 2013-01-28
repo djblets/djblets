@@ -1,4 +1,4 @@
-version 0.7.9 final (27-January-2012):
+version 0.7.9 final (27-January-2013):
 	* JavaScript:
 		* modalBoxes now use z-indexes of 99 and 100 for the box and content,
 		  instead of 11000 and 11001.
