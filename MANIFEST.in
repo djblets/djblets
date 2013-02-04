@@ -1,5 +1,7 @@
 recursive-include contrib *
-recursive-include djblets *.txt *.html *.css *.js *.htc *.png *.jpg *.gif
+recursive-include djblets *.txt *.html *.css *.js *.htc *.png *.jpg *.gif *.rss
+include tests *
 include AUTHORS
 include NEWS
 include ez_setup.py
+
