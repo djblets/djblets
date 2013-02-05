@@ -293,10 +293,12 @@ class CounterField(models.IntegerField):
 
         def _reinit(model_instance):
             """Re-initializes the value in the database from the initializer."""
-            if not model_instance.pk:
+            if not (model_instance.pk or self._initializer or
+                    callable(self._initializer)):
                 # We don't want to end up defaulting this to 0 if creating a
-                # new instance. Instead, we'll want to handle this the next
-                # time the object is accessed.
+                # new instance unless an initializer is provided. Instead,
+                # we'll want to handle this the next time the object is
+                # accessed.
                 return
 
             if self._initializer and callable(self._initializer):
