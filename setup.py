@@ -98,7 +98,7 @@ setup(name=PACKAGE_NAME,
       cmdclass=cmdclasses,
       install_requires=[
           'Django>=1.4.3',
-          'django-pipeline>=1.2.16',
+          'django-pipeline>=1.2.24',
           'feedparser>=5.1.2',
           'PIL',
           'pytz',

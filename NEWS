@@ -1,3 +1,11 @@
+version 0.7.10 final (6-February-2013):
+	* djblets.util.fields:
+		* CounterField was failing to use the initializers for brand new
+		  instances of a model, defaulting to None instead.
+
+		  Patch by Raja Venkataraman.
+
+
 version 0.7.9 final (27-January-2013):
 	* JavaScript:
 		* modalBoxes now use z-indexes of 99 and 100 for the box and content,
