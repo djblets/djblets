@@ -1,8 +1,8 @@
 #
 # __init__.py -- Basic version and package information
 #
-# Copyright (c) 2007-2012  Christian Hammond
-# Copyright (c) 2007-2012  David Trowbridge
+# Copyright (c) 2007-2013  Christian Hammond
+# Copyright (c) 2007-2013  David Trowbridge
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
