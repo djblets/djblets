@@ -699,7 +699,11 @@ class ExtensionManager(object):
         This provides URLs for configuring an extension, plus any additional
         admin urlpatterns that the extension provides.
         """
-        prefix = self.get_absolute_url().lstrip(settings.SITE_ROOT)
+        prefix = self.get_absolute_url()
+
+        if hasattr(settings, 'SITE_ROOT'):
+            prefix = prefix.lstrip(settings.SITE_ROOT)
+
         # Note that we're adding to the resolve list on the root of the
         # install, and prefixing it with the admin extensions path.
         # The reason we're not just making this a child of our extensions
