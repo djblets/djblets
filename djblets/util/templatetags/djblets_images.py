@@ -45,6 +45,20 @@ from django.core.files import File
 register = template.Library()
 
 
+def save_image_to_storage(image, storage, filename):
+    """Save an image to storage."""
+    (fd, tmp) = tempfile.mkstemp()
+    file = os.fdopen(fd, 'w+b')
+    image.save(file, 'png')
+    file.close()
+
+    file = File(open(tmp, 'rb'))
+    storage.save(filename, file)
+    file.close()
+
+    os.unlink(tmp)
+
+
 @register.simple_tag
 def crop_image(file, x, y, width, height):
     """
@@ -69,16 +83,7 @@ def crop_image(file, x, y, width, height):
             image = Image.open(data)
             image = image.crop((x, y, x + width, y + height))
 
-            (fd, filename) = tempfile.mkstemp()
-            file = os.fdopen(fd, 'w+b')
-            image.save(file, 'png')
-            file.close()
-
-            file = File(open(filename, 'rb'))
-            storage.save(new_name, file)
-            file.close()
-
-            os.unlink(filename)
+            save_image_to_storage(image, storage, new_name)
         except (IOError, KeyError), e:
             logging.error('Error cropping image file %s at %d, %d, %d, %d '
                           'and saving as %s: %s' %
@@ -117,16 +122,7 @@ def thumbnail(file, size='400x100'):
             image = Image.open(data)
             image.thumbnail([x, y], Image.ANTIALIAS)
 
-            (fd, filename) = tempfile.mkstemp()
-            file = os.fdopen(fd, 'w+b')
-            image.save(file, image.format)
-            file.close()
-
-            file = File(open(filename, 'rb'))
-            storage.save(miniature, file)
-            file.close()
-
-            os.unlink(filename)
+            save_image_to_storage(image, storage, miniature)
         except (IOError, KeyError), e:
             logging.error('Error thumbnailing image file %s and saving '
                           'as %s: %s' % (filename, miniature, e),
