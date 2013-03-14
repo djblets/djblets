@@ -262,25 +262,27 @@ class CounterField(models.IntegerField):
         self._initializer = initializer
         self._locks = {}
 
-    def increment(self, queryset):
+    def increment(self, queryset, increment_by=1):
         """Increments this field on every object in the provided queryset."""
-        queryset.update(**{self.attname: F(self.attname) + 1})
+        queryset.update(**{self.attname: F(self.attname) + increment_by})
 
-    def decrement(self, queryset):
+    def decrement(self, queryset, decrement_by=1):
         """Decrements this field on every object in the provided queryset."""
-        queryset.update(**{self.attname: F(self.attname) - 1})
+        queryset.update(**{self.attname: F(self.attname) - decrement_by})
 
     def contribute_to_class(self, cls, name):
-        def _increment(model_instance, reload_object=True):
+        def _increment(model_instance, reload_object=True, increment_by=1):
             """Increments this field by one."""
-            self.increment(cls.objects.filter(pk=model_instance.pk))
+            self.increment(cls.objects.filter(pk=model_instance.pk),
+                           increment_by)
 
             if reload_object:
                 _reload(model_instance)
 
-        def _decrement(model_instance, reload_object=True):
+        def _decrement(model_instance, reload_object=True, decrement_by=1):
             """Decrements this field by one."""
-            self.decrement(cls.objects.filter(pk=model_instance.pk))
+            self.decrement(cls.objects.filter(pk=model_instance.pk),
+                           decrement_by)
 
             if reload_object:
                 _reload(model_instance)
