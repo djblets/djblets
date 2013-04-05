@@ -705,15 +705,15 @@ class WebAPIResource(object):
                 return NOT_LOGGED_IN
 
         last_modified_timestamp = self.get_last_modified(request, obj)
-
-        if (last_modified_timestamp and
-            get_modified_since(request, last_modified_timestamp)):
-            return HttpResponseNotModified()
-
         etag = self.get_etag(request, obj)
 
-        if etag and etag_if_none_match(request, etag):
+        if ((last_modified_timestamp and
+             get_modified_since(request, last_modified_timestamp)) or
+            (('If-None-Match' in request.META or etag) and
+             etag_if_none_match(request, etag))):
             return HttpResponseNotModified()
+
+
 
         data = {
             self.item_result_key: self.serialize_object(obj, request=request,
