@@ -25,7 +25,6 @@
 #
 
 import logging
-import pytz
 import traceback
 import urllib
 
@@ -41,6 +40,7 @@ from django.template.loader import render_to_string, get_template
 from django.utils.cache import patch_cache_control
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
+import pytz
 
 
 class Column(object):
@@ -240,8 +240,7 @@ class Column(object):
             for obj in model.objects.filter(pk__in=ids):
                 self.data_cache[obj.pk] = obj
 
-
-    def render_cell(self, obj):
+    def render_cell(self, obj, render_context):
         """
         Renders the table cell containing column data.
         """
@@ -273,7 +272,8 @@ class Column(object):
                                   "cell. This may be an installation issue." %
                                   self.datagrid.cell_template)
 
-            ctx = RequestContext(self.datagrid.request, {
+            ctx = Context(render_context)
+            ctx.update({
                 'column': self,
                 'css_class': css_class,
                 'url': url,
@@ -455,8 +455,7 @@ class DataGrid(object):
 
         self.all_columns.sort(key=lambda x: x.label)
 
-
-    def load_state(self):
+    def load_state(self, render_context=None):
         """
         Loads the state of the datagrid.
 
@@ -587,8 +586,7 @@ class DataGrid(object):
         self.state_loaded = True
 
         # Fetch the list of objects and have it ready.
-        self.precompute_objects()
-
+        self.precompute_objects(render_context)
 
     def load_extra_state(self, profile):
         """
@@ -600,7 +598,7 @@ class DataGrid(object):
         """
         return False
 
-    def precompute_objects(self):
+    def precompute_objects(self, render_context=None):
         """
         Builds the queryset and stores the list of objects for use in
         rendering the datagrid.
@@ -687,10 +685,14 @@ class DataGrid(object):
         for column in self.columns:
             column.collect_objects(object_list)
 
+        if render_context is None:
+            render_context = self._build_render_context()
+
         self.rows = [
             {
                 'object': obj,
-                'cells': [column.render_cell(obj) for column in self.columns]
+                'cells': [column.render_cell(obj, render_context)
+                          for column in self.columns]
             }
             for obj in object_list if obj is not None
         ]
@@ -713,16 +715,19 @@ class DataGrid(object):
 
         return queryset
 
-    def render_listview(self):
+    def render_listview(self, render_context=None):
         """
         Renders the standard list view of the grid.
 
         This can be called from templates.
         """
         try:
-            self.load_state()
+            if render_context is None:
+                render_context = self._build_render_context()
 
-            context = {
+            self.load_state(render_context)
+
+            context = Context({
                 'datagrid': self,
                 'is_paginated': self.page.has_other_pages(),
                 'results_per_page': self.paginate_by,
@@ -736,22 +741,23 @@ class DataGrid(object):
                 'pages': self.paginator.num_pages,
                 'hits': self.paginator.count,
                 'page_range': self.paginator.page_range,
-            }
+            })
             context.update(self.extra_context)
+            context.update(render_context)
 
             return mark_safe(render_to_string(self.listview_template,
-                RequestContext(self.request, context)))
+                                              context))
         except Exception:
             trace = traceback.format_exc();
             logging.error('Failed to render datagrid:\n%s' % trace)
             return mark_safe('<pre>%s</pre>' % trace)
 
-    def render_listview_to_response(self, request=None):
+    def render_listview_to_response(self, request=None, render_context=None):
         """
         Renders the listview to a response, preventing caching in the
         process.
         """
-        response = HttpResponse(unicode(self.render_listview()))
+        response = HttpResponse(unicode(self.render_listview(render_context)))
         patch_cache_control(response, no_cache=True, no_store=True, max_age=0,
                             must_revalidate=True)
         return response
@@ -760,21 +766,38 @@ class DataGrid(object):
         """
         Renders a template containing this datagrid as a context variable.
         """
-        self.load_state()
+        render_context = self._build_render_context()
+        self.load_state(render_context)
 
         # If the caller is requesting just this particular grid, return it.
         if self.request.GET.get('gridonly', False) and \
            self.request.GET.get('datagrid-id', None) == self.id:
-            return self.render_listview_to_response()
+            return self.render_listview_to_response(
+                render_context=render_context)
 
-        context = {
+        context = Context({
             'datagrid': self
-        }
+        })
         context.update(extra_context)
-        context.update(self.extra_context)
+        context.update(render_context)
 
-        return render_to_response(template_name, RequestContext(self.request,
-                                                                context))
+        return render_to_response(template_name, context)
+
+    def _build_render_context(self):
+        """Builds a dictionary containing RequestContext contents.
+
+        A RequestContext can be expensive, so it's best to reuse the
+        contents of one when possible. This is not easy with a standard
+        RequestContext, but it's possible to build one and then pull out
+        the contents into a dictionary.
+        """
+        request_context = RequestContext(self.request)
+        render_context = {}
+
+        for d in request_context:
+            render_context.update(d)
+
+        return render_context
 
     @staticmethod
     def link_to_object(obj, value):
