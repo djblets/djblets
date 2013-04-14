@@ -94,3 +94,9 @@ DISABLE_EXTENSION_FAILED  = WebAPIError(108, "There was a problem disabling "
                                              "the extension",
                                         http_status=500) # 500 Internal Server
                                                          #     Error
+EXTENSION_INSTALLED       = WebAPIError(109, "This extension has already been "
+                                             "installed.",
+                                        http_status=409)
+INSTALL_EXTENSION_FAILED  = WebAPIError(110, "An error occurred while "
+                                             "installing the extension",
+                                        http_status=409)

@@ -43,6 +43,7 @@ from django.db.models import loading
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
 from django_evolution.management.commands.evolve import Command as Evolution
+from setuptools.command import easy_install
 
 from djblets.extensions.errors import EnablingExtensionError, \
                                       InstallExtensionError, \
@@ -437,6 +438,32 @@ class ExtensionManager(object):
 
         self._bump_sync_gen()
 
+    def install_extension(self, install_url, package_name):
+        """Install an extension from a remote source.
+
+        Installs an extension from a remote URL containing the
+        extension egg. Installation may fail if a malformed install_url
+        or package_name is passed, which will cause an InstallExtensionError
+        exception to be raised. It is also assumed that the extension is not
+        already installed.
+        """
+
+        try:
+            easy_install.main(["-U", install_url])
+
+            # Update the entry points.
+            dist = pkg_resources.get_distribution(package_name)
+            dist.activate()
+            pkg_resources.working_set.add(dist)
+        except pkg_resources.DistributionNotFound:
+            raise InstallExtensionError("Invalid package name.")
+        except SystemError:
+            raise InstallExtensionError("Installation failed "
+                                        "(probably malformed URL).")
+
+        # Refresh the extension manager.
+        self.load(True)
+
     def load(self, full_reload=False):
         """
         Loads all known extensions, initializing any that are recorded as
@@ -458,13 +485,6 @@ class ExtensionManager(object):
             registered_extensions[registered_ext.class_name] = registered_ext
 
         found_extensions = {}
-
-        # Reload pkg_resources
-        import pkg_resources
-        if pkg_resources:
-            del pkg_resources
-            del sys.modules['pkg_resources']
-            import pkg_resources
 
         for entrypoint in self._entrypoint_iterator():
             registered_ext = None
