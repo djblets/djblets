@@ -1,3 +1,42 @@
+version 0.7.12 final (19-April-2013):
+	* djblets.datagrid:
+		* Massively speed up datagrid rendering.
+
+		  The rendering code for datagrids had a flaw where it would
+		  re-populate some state for every cell, and this could be very
+		  expensive. It's now reused on all cells.
+
+		  We saw this with one application where a datagrid would take
+		  6 seconds to render. Now it takes 0.5 seconds.
+
+	* djblets.extensions:
+		* Added an install_extension function to ExtensionManager.
+
+		  This can be used to install extensions dynamically from a file
+		  or URL.
+
+		  Patch by Surya Nallu.
+
+	* djblets.util.fields:
+		* CounterField now allows incrementing/decrementing by values other
+		  than 1.
+
+		  Patch by Raja Venkataraman.
+
+	* djblets.util.templatetags:
+		* The thumbnail and crop_image template tags now work with
+		  Django Storage backends.
+
+		* Added a save_image_to_storage function in djblets_images that
+		  makes it easy to save image data to Storage backends.
+
+	* djblets.webapi:
+		* Resources now consider both Last Modified and ETag headers
+		  simultaneously when determining if a cached payload is still
+		  valid. Previously, if the Last Modified timestamps were the same,
+		  the ETag check would fail.
+
+
 version 0.7.11 final (21-February-2013):
 	* General:
 		* Require Django 1.4.5 as a minimum.
