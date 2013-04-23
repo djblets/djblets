@@ -43,7 +43,9 @@ _console_log = None
 _profile_log = None
 
 DEFAULT_LOG_LEVEL = "DEBUG"
-DEFAULT_LINE_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
+DEFAULT_LINE_FORMAT = \
+    "%(asctime)s - %(levelname)s - %(request_info)s - %(message)s"
+DEFAULT_REQUEST_FORMAT = '%(user)s - %(path)s'
 
 
 class TimedLogInfo(object):
@@ -52,15 +54,17 @@ class TimedLogInfo(object):
     functionality and provides a way to end the timed logging operation.
     """
     def __init__(self, message, warning_at, critical_at, default_level,
-                 log_beginning):
+                 log_beginning, request):
         self.message = message
         self.warning_at = warning_at
         self.critical_at = critical_at
         self.default_level = default_level
         self.start_time = datetime.utcnow()
+        self.request = request
 
         if log_beginning:
-            logging.log(self.default_level, "Begin: %s" % self.message)
+            logging.log(self.default_level, "Begin: %s" % self.message,
+                        request=self.request)
 
     def done(self):
         """
@@ -76,10 +80,57 @@ class TimedLogInfo(object):
         elif delta.seconds >= self.warning_at:
             level = logging.WARNING
 
-        logging.log(self.default_level, "End: %s" % self.message)
+        logging.log(self.default_level, "End: %s" % self.message,
+                    request=self.request)
         logging.log(level, "%s took %s.%s seconds" % (self.message,
                                                       delta.seconds,
-                                                      delta.microseconds))
+                                                      delta.microseconds),
+                    request=self.request)
+
+
+class RequestLogFormatter(logging.Formatter):
+    def __init__(self, request_fmt, *args, **kwargs):
+        super(RequestLogFormatter, self).__init__(*args, **kwargs)
+        self.request_fmt = request_fmt
+
+    def format(self, record):
+        record.request_info = self.format_request(
+            getattr(record, 'request', None))
+
+        return super(RequestLogFormatter, self).format(record)
+
+    def format_request(self, request):
+        if request:
+            return self.request_fmt % request.__dict__
+        else:
+            return ''
+
+
+def _wrap_logger(logger):
+    """Wraps a logger, providing an extra 'request' argument."""
+    def _log_with_request(self, *args, **kwargs):
+        extra = kwargs.pop('extra', {})
+        request = kwargs.pop('request', None)
+
+        if request:
+            extra['request'] = request
+
+        kwargs['extra'] = extra
+
+        old_log(self, *args, **kwargs)
+
+    if not hasattr(logger, '_djblets_wrapped'):
+        # This should be a good assumption on all supported versions of Python.
+        assert hasattr(logger, '_log')
+        old_log = logger._log
+        logger._log = _log_with_request
+        logger._djblets_wrapped = True
+
+
+# Regardless of whether we have logging enabled, we'll want this to be
+# set so that logging calls don't fail when passing request.
+root = logging.getLogger('')
+_wrap_logger(root)
 
 
 def init_logging():
@@ -101,10 +152,14 @@ def init_logging():
     log_level_name = getattr(settings, 'LOGGING_LEVEL',
                              DEFAULT_LOG_LEVEL)
     log_level = logging.getLevelName(log_level_name)
+    request_format_str = getattr(settings, 'LOGGING_REQUEST_FORMAT',
+                                 DEFAULT_REQUEST_FORMAT)
     format_str = getattr(settings, 'LOGGING_LINE_FORMAT',
                          DEFAULT_LINE_FORMAT)
 
     log_path = os.path.join(log_directory, log_name + ".log")
+
+    formatter = RequestLogFormatter(request_format_str, format_str)
 
     try:
         if sys.platform == 'win32':
@@ -113,9 +168,8 @@ def init_logging():
             handler = WatchedFileHandler(log_path)
 
         handler.setLevel(log_level)
-        handler.setFormatter(logging.Formatter(format_str))
+        handler.setFormatter(formatter)
 
-        root = logging.getLogger('')
         root.addHandler(handler)
         root.setLevel(log_level)
     except IOError:
@@ -130,8 +184,8 @@ def init_logging():
         # In DEBUG mode, log to the console as well.
         console_log = logging.StreamHandler()
         console_log.setLevel(log_level)
-        console_log.setFormatter(logging.Formatter(format_str))
-        logging.getLogger('').addHandler(console_log)
+        console_log.setFormatter(formatter)
+        root.addHandler(console_log)
 
         logging.debug("Logging to %s with a minimum level of %s",
                       log_path, log_level_name)
@@ -192,7 +246,8 @@ def restart_logging():
 
 
 def log_timed(message, warning_at=5, critical_at=15,
-              log_beginning=True, default_level=logging.DEBUG):
+              log_beginning=True, default_level=logging.DEBUG,
+              request=None):
     """
     Times an operation, displaying a log message before and after the
     operation. The log level for the final log message containing the
@@ -200,4 +255,4 @@ def log_timed(message, warning_at=5, critical_at=15,
     the ``critical_at`` parameters.
     """
     return TimedLogInfo(message, warning_at, critical_at, default_level,
-                        log_beginning)
+                        log_beginning, request)

@@ -45,13 +45,18 @@ def check_login(request):
 
 
 def basic_access_login(request):
+    log_extra = {
+        'request': request,
+    }
+
     try:
         realm, encoded_auth = request.META['HTTP_AUTHORIZATION'].split(' ')
         username, password = encoded_auth.decode('base64').split(':', 1)
     except ValueError:
         logging.warning("Failed to parse HTTP_AUTHORIZATION header %s" %
                         request.META['HTTP_AUTHORIZATION'],
-                        exc_info=1)
+                        exc_info=1,
+                        extra=log_extra)
         return
 
     if realm != 'Basic':
@@ -66,13 +71,16 @@ def basic_access_login(request):
     # to the server at this point anyway.
 
     if request.user.is_anonymous() or request.user.username != username:
-        logging.debug("Attempting authentication on API for user %s" % username)
+        logging.debug("Attempting authentication on API for "
+                      "user %s" % username,
+                      extra=log_extra)
         user = auth.authenticate(username=username, password=password)
 
         if user and user.is_active:
             auth.login(request, user)
         else:
-            logging.debug("API Login failed. No valid user found.")
+            logging.debug("API Login failed. No valid user found.",
+                          extra=log_extra)
             auth.logout(request)
 
 

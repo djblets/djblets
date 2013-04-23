@@ -270,7 +270,10 @@ class Column(object):
                 if not self.datagrid.cell_template_obj:
                     logging.error("Unable to load template '%s' for datagrid "
                                   "cell. This may be an installation issue." %
-                                  self.datagrid.cell_template)
+                                  self.datagrid.cell_template,
+                                  extra={
+                                      'request': self.datagrid.request,
+                                  })
 
             ctx = Context(render_context)
             ctx.update({
@@ -749,7 +752,10 @@ class DataGrid(object):
                                               context))
         except Exception:
             trace = traceback.format_exc();
-            logging.error('Failed to render datagrid:\n%s' % trace)
+            logging.error('Failed to render datagrid:\n%s' % trace,
+                          extra={
+                              'request': request,
+                          })
             return mark_safe('<pre>%s</pre>' % trace)
 
     def render_listview_to_response(self, request=None, render_context=None):
