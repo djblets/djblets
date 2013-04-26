@@ -97,7 +97,7 @@ class RequestLogFormatter(logging.Formatter):
         record.request_info = self.format_request(
             getattr(record, 'request', None))
 
-        return super(RequestLogFormatter, self).format(record)
+        return logging.Formatter.format(self, record)
 
     def format_request(self, request):
         if request:
