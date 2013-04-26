@@ -23,8 +23,6 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-import os
-
 from django.conf import settings
 from django.core.cache import DEFAULT_CACHE_ALIAS
 from django.utils import timezone

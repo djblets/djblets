@@ -754,7 +754,7 @@ class DataGrid(object):
             trace = traceback.format_exc();
             logging.error('Failed to render datagrid:\n%s' % trace,
                           extra={
-                              'request': request,
+                              'request': self.request,
                           })
             return mark_safe('<pre>%s</pre>' % trace)
 

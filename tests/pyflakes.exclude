@@ -15,6 +15,7 @@ djblets/feedview/feedparser.py:*: redefinition of unused 'BeautifulSoup' from li
 djblets/feedview/feedparser.py:*: redefinition of unused 'OptionParser' from line *
 djblets/feedview/feedparser.py:*: redefinition of function '_tidy' from line *
 djblets/feedview/test_urls.py:*: 'handler500' imported but unused
+djblets/gravatars/__init__.py:*: redefinition of unused 'md5' from line *
 djblets/log/__init__.py:*: redefinition of unused 'WatchedFileHandler' from line *
 djblets/util/rooturl.py:*: 'handler404' imported but unused
 djblets/util/rooturl.py:*: 'handler500' imported but unused
