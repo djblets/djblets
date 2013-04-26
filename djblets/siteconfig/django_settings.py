@@ -24,6 +24,7 @@
 #
 
 from django.conf import settings
+from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import DEFAULT_CACHE_ALIAS
 from django.utils import timezone
 
@@ -32,6 +33,11 @@ from djblets.util.cache import normalize_cache_backend
 
 def _set_cache_backend(settings, key, value):
     settings.CACHES[DEFAULT_CACHE_ALIAS] = normalize_cache_backend(value)
+
+
+def _set_static_url(settings, key, value):
+    settings.STATIC_URL = value
+    staticfiles_storage.base_url = value
 
 
 def _set_timezone(settings, key, value):
@@ -86,7 +92,8 @@ site_settings_map = {
     'site_media_root':             'MEDIA_ROOT',
     'site_media_url':              'MEDIA_URL',
     'site_static_root':            'STATIC_ROOT',
-    'site_static_url':             'STATIC_URL',
+    'site_static_url':             { 'key': 'STATIC_URL',
+                                     'setter': _set_static_url },
     'site_prepend_www':            'PREPEND_WWW',
     'site_upload_temp_dir':        'FILE_UPLOAD_TEMP_DIR',
     'site_upload_max_memory_size': 'FILE_UPLOAD_MAX_MEMORY_SIZE',
