@@ -573,8 +573,9 @@ $.widget("ui.inlineEditor", {
      * Saves the contents of the editor.
      */
     save: function() {
-        var value = this.value();
-        var encodedValue = value.htmlEncode();
+        var value = this.value(),
+            encodedValue = value.htmlEncode(),
+            initialValue = this._initialValue;
 
         if (this._dirty) {
             this.element.html($.isFunction(this.options.formatResult)
@@ -585,7 +586,9 @@ $.widget("ui.inlineEditor", {
 
         if (this._dirty || this.options.notifyUnchangedCompletion) {
             this.element.triggerHandler("complete",
-                                        [value, this._initialValue]);
+                                        [value, initialValue]);
+        } else {
+            this.element.triggerHandler("cancel", [this._initialValue]);
         }
     },
 
