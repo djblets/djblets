@@ -33,7 +33,7 @@ $.fn.html = function(value) {
         removePre = true;
     }
 
-    var ret = this.old_html.apply(this, value ? [value] : []);
+    var ret = this.old_html.call(this, value);
 
     if (removePre) {
         var preTag = this.children();
