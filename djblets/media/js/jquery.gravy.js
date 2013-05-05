@@ -27,13 +27,13 @@ $.fn.old_html = $.fn.html;
 $.fn.html = function(value) {
     var removePre = false;
 
-    if ($.browser.msie && value && this[0] &&
+    if ($.browser.msie && value !== undefined && this[0] &&
         /^(pre|textarea)$/i.test(this[0].tagName)) {
         value = "<pre>" + value + "</pre>";
         removePre = true;
     }
 
-    var ret = this.old_html.call(this, value);
+    var ret = this.old_html.apply(this, value === undefined ? [] : [value]);
 
     if (removePre) {
         var preTag = this.children();
