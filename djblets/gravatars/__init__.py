@@ -28,14 +28,10 @@ try:
 except ImportError:
     from md5 import md5
 
+from django.conf import settings
 
-def get_gravatar_url(request, user, size=None):
-    from django.conf import settings
 
-    if user.is_anonymous() or not user.email:
-        return ""
-
-    email = user.email.strip().lower()
+def get_gravatar_url_for_email(request, email, size=None):
     email_hash = md5(email).hexdigest()
 
     if request.is_secure():
@@ -62,3 +58,13 @@ def get_gravatar_url(request, user, size=None):
         url += "?" + "&".join(params)
 
     return url
+
+
+def get_gravatar_url(request, user, size=None):
+    from django.conf import settings
+
+    if user.is_anonymous() or not user.email:
+        return ""
+
+    email = user.email.strip().lower()
+    return get_gravatar_url_for_email(request, email, size)
