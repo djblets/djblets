@@ -1210,12 +1210,16 @@ class RootResource(WebAPIResource):
         """
         if not self._uri_templates:
             self._uri_templates = {}
-            base_href = request.build_absolute_uri()
 
+        base_href = request.build_absolute_uri()
+        if base_href not in self._uri_templates:
+            templates = {}
             for name, href in self._walk_resources(self, base_href):
-                self._uri_templates[name] = href
+                templates[name] = href
 
-        return self._uri_templates
+            self._uri_templates[base_href] = templates
+
+        return self._uri_templates[base_href]
 
     def _walk_resources(self, resource, list_href):
         yield resource.name_plural, list_href
