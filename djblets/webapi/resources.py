@@ -943,6 +943,8 @@ class WebAPIResource(object):
                     }
                     for o in value.all()
                 ]
+            elif isinstance(value, QuerySet):
+                data[field] = list(value)
             else:
                 data[field] = value
 
