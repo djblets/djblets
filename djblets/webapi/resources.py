@@ -349,6 +349,9 @@ class WebAPIResource(object):
         _name_to_resources[self.name_plural] = self
         _class_to_resources[self.__class__] = self
 
+        # Mark this class, and any subclasses, to be Web API handlers
+        self.is_webapi_handler = True
+
         # TODO: allowed_list_mimetypes and allowed_item_mimetypes
         # will be deprecated in version 0.7 of djblets. This code
         # maintains backwards compatibility for these lists while
