@@ -8,3 +8,4 @@ Djblets.egg-info
 *.rej
 *.orig
 .*.sw*
+*.pyc
