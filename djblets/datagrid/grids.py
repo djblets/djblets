@@ -738,7 +738,7 @@ class DataGrid(object):
                 'has_previous': self.page.has_previous(),
                 'page': self.page.number,
                 'next': self.page.next_page_number(),
-                'previous': self.page.previous_page_number(),
+                'previous': None if not self.page.has_previous() else self.page.previous_page_number(),
                 'last_on_page': self.page.end_index(),
                 'first_on_page': self.page.start_index(),
                 'pages': self.paginator.num_pages,
