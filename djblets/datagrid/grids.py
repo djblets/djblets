@@ -729,6 +729,16 @@ class DataGrid(object):
                 render_context = self._build_render_context()
 
             self.load_state(render_context)
+            
+            if self.page.has_next():
+                next_page_number = self.page.next_page_number()
+            else:
+                next_page_number = None
+            
+            if self.page.has_previous():
+                previous_page_number = self.page.previous_page_number()
+            else:
+                previous_page_number = None
 
             context = Context({
                 'datagrid': self,
@@ -737,8 +747,8 @@ class DataGrid(object):
                 'has_next': self.page.has_next(),
                 'has_previous': self.page.has_previous(),
                 'page': self.page.number,
-                'next': self.page.next_page_number(),
-                'previous': None if not self.page.has_previous() else self.page.previous_page_number(),
+                'next': next_page_number,
+                'previous': previous_page_number,
                 'last_on_page': self.page.end_index(),
                 'first_on_page': self.page.start_index(),
                 'pages': self.paginator.num_pages,
