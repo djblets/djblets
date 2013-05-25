@@ -40,6 +40,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.core.urlresolvers import get_mod_func, reverse
 from django.db.models import loading
+from django.template.loader import template_source_loaders
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
 from django_evolution.management.commands.evolve import Command as Evolution
@@ -407,6 +408,7 @@ class ExtensionManager(object):
         ext_class.registration.save()
         extension = self._init_extension(ext_class)
 
+        self._clear_template_cache()
         self._bump_sync_gen()
 
         return extension
@@ -436,6 +438,7 @@ class ExtensionManager(object):
         extension.registration.enabled = False
         extension.registration.save()
 
+        self._clear_template_cache()
         self._bump_sync_gen()
 
     def install_extension(self, install_url, package_name):
@@ -478,6 +481,7 @@ class ExtensionManager(object):
         if full_reload:
             # We're reloading everything, so nuke all the cached copies.
             self._clear_extensions()
+            self._clear_template_cache()
 
         # Preload all the RegisteredExtension objects
         registered_extensions = {}
@@ -570,6 +574,13 @@ class ExtensionManager(object):
 
         self._extension_classes = {}
         self._extension_instances = {}
+
+    def _clear_template_cache(self):
+        """Clears the Django template caches."""
+        if template_source_loaders:
+            for template_loader in template_source_loaders:
+                if hasattr(template_loader, 'reset'):
+                    template_loader.reset()
 
     def _init_extension(self, ext_class):
         """Initializes an extension.
