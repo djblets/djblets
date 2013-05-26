@@ -100,8 +100,7 @@ class SettingsTest(TestCase):
 
 
 class TestExtensionWithRegistration(Extension):
-    """A dummy extension for testing, with mocked
-       registration and empty settings dict."""
+    """Dummy extension for testing."""
     registration = Mock()
     registration.settings = dict()
 
@@ -116,21 +115,19 @@ class ExtensionTest(TestCase):
             self.extension.hooks.add(Mock())
 
     def test_extension_constructor(self):
-        """Tests the Extension constructor, ensures the defaults are what we
-           expect"""
+        """Testing Extension construction"""
         self.assertEqual(type(self.extension.settings), Settings)
         self.assertEqual(self.extension, self.extension.settings.extension)
 
     def test_shutdown(self):
-        """Tests that shutdown calls shutdown on all hooks"""
+        """Testing Extension.shutdown"""
         self.extension.shutdown()
 
         for hook in self.extension.hooks:
             self.assertTrue(hook.shutdown.called)
 
-    def test_get_admin_URLConf(self):
-        """Tests that we can get and process admin URL configurations
-           for an extension"""
+    def test_get_admin_urlconf(self):
+        """Testing Extension with admin URLConfs"""
         did_fail = False
         old_module = self.extension.__class__.__module__
         self.extension.__class__.__module__ = 'djblets.extensions.test.test'
@@ -219,25 +216,15 @@ class ExtensionHookTest(TestCase):
             TestExtensionWithRegistration(extension_manager=manager)
         self.extension_hook = TestExtensionHook(self.extension)
 
-    def test_extension_set(self):
-        """Test to ensure that the ExtensionHook knows about the
-           associated Extension"""
+    def test_registration(self):
+        """Testing ExtensionHook registration"""
         self.assertEqual(self.extension, self.extension_hook.extension)
-
-    def test_extension_knows_about_hook(self):
-        """Test to ensure that the Extension knows about the associated
-           ExtensionHook through its hooks set."""
         self.assertTrue(self.extension_hook in self.extension.hooks)
-
-    def test_extension_hook_added_to_class_hooks(self):
-        """Test to ensure that the ExtensionHook class knows about the
-           instantiated ExtensionHook."""
         self.assertTrue(self.extension_hook in
                         self.extension_hook.__class__.hooks)
 
-    def test_shutdown_removes_hook_from_class_hooks(self):
-        """Test to ensure that when a hook is shutdown, that it is removed
-           from the class list of instantiated ExtensionHooks."""
+    def test_shutdown(self):
+        """Testing ExtensionHook.shutdown"""
         self.extension_hook.shutdown()
         self.assertTrue(self.extension_hook not in
                         self.extension_hook.__class__.hooks)
@@ -253,18 +240,15 @@ class ExtensionHookPointTest(TestCase):
         self.extension_hook_class.add_hook(self.dummy_hook)
 
     def test_extension_hook_class_gets_hooks(self):
-        """A class that derives from ExtensionHook gets a hooks collection for
-           the entire class."""
+        """Testing ExtensionHookPoint.hooks"""
         self.assertTrue(hasattr(self.extension_hook_class, "hooks"))
 
     def test_add_hook(self):
-        """An ExtensionHookPoint will remember some hook passed into it through
-           add_hook."""
+        """Testing ExtensionHookPoint.add_hook"""
         self.assertTrue(self.dummy_hook in self.extension_hook_class.hooks)
 
     def test_remove_hook(self):
-        """An ExtensionHookPoint will forget some hook passed into it through
-           remove_hook."""
+        """Testing ExtensionHookPoint.remove_hook"""
         self.extension_hook_class.remove_hook(self.dummy_hook)
         self.assertTrue(self.dummy_hook not in self.extension_hook_class.hooks)
 
@@ -323,33 +307,27 @@ class ExtensionManagerTest(TestCase):
         self.manager.clear_sync_cache()
 
     def test_added_to_extension_managers(self):
-        """An ExtensionManager gets added to the _extension_managers list
-           in the djblets.extensions.base module."""
+        """Testing ExtensionManager registration"""
         self.assertTrue(self.manager in _extension_managers)
 
     def test_get_enabled_extensions_returns_empty(self):
-        """An ExtensionManager should return an empty collection when asked
-           for the enabled extensions, if there are no extensions currently
-           enabled."""
+        """Testing ExtensionManager.get_enabled_extensions with no extensions"""
         self.assertEqual(len(self.manager.get_enabled_extensions()), 0)
 
     def test_load(self):
-        """An ExtensionManager should load any extensions that it finds
-           registered at entrypoints with its key.  The loaded extension
-           should have an ExtensionRegistration and ExtensionInfo attached
-           to its class."""
+        """Testing ExtensionManager.get_installed_extensions with loaded extensions"""
         self.assertEqual(len(self.manager.get_installed_extensions()), 1)
         self.assertTrue(self.extension_class in
-            self.manager.get_installed_extensions())
+                        self.manager.get_installed_extensions())
         self.assertTrue(hasattr(self.extension_class, 'info'))
         self.assertEqual(self.extension_class.info.name,
-            self.test_project_name)
+                         self.test_project_name)
         self.assertTrue(hasattr(self.extension_class, 'registration'))
         self.assertEqual(self.extension_class.registration.name,
-            self.test_project_name)
+                         self.test_project_name)
 
     def test_load_full_reload_hooks(self):
-        """Testing ExtensionManager.load(full_reload=True) with hook registration."""
+        """Testing ExtensionManager.load with full_reload=True"""
         self.assertEqual(len(self.manager.get_installed_extensions()), 1)
 
         extension = self.extension_class(extension_manager=self.manager)
@@ -364,7 +342,7 @@ class ExtensionManagerTest(TestCase):
         self.assertEqual(len(URLHook.hooks), 0)
 
     def test_extension_list_sync(self):
-        """Testing extension list synchronization cross-process."""
+        """Testing ExtensionManager extension list synchronization cross-process."""
         key = 'extension-list-sync'
 
         manager1 = ExtensionManager(key)
@@ -397,7 +375,7 @@ class ExtensionManagerTest(TestCase):
         self.assertFalse(manager2.is_expired())
 
     def test_extension_settings_sync(self):
-        """Testing extension settings synchronization cross-process."""
+        """Testing ExtensionManager extension settings synchronization cross-process."""
         key = 'extension-settings-sync'
         setting_key = 'foo'
         setting_val = 'abc123'
@@ -452,20 +430,22 @@ class URLHookTest(TestCase):
             (r'^url_hook_test/', include('djblets.extensions.test.urls')))
         self.url_hook = URLHook(self.test_extension, self.patterns)
 
-    def test_urls_appended(self):
-        """On initialization, a URLHook should extend its parent URL resolver's
-           patterns with the patterns passed into the URLHook."""
+    def test_url_registration(self):
+        """Testing URLHook URL registration"""
         self.assertTrue(set(self.patterns)
             .issubset(set(self.url_hook.dynamic_urls.url_patterns)))
         # And the URLHook should be added to the extension's list of hooks
         self.assertTrue(self.url_hook in self.test_extension.hooks)
 
     def test_shutdown_removes_urls(self):
-        """On shutdown, a URLHook's patterns should no longer be in its
-           parent URL resolver's pattern collection."""
+        """Testing URLHook.shutdown"""
+        # On shutdown, a URLHook's patterns should no longer be in its
+        # parent URL resolver's pattern collection.
         self.url_hook.shutdown()
-        self.assertFalse(set(self.patterns)
-            .issubset(set(self.url_hook.dynamic_urls.url_patterns)))
+        self.assertFalse(
+            set(self.patterns).issubset(
+                set(self.url_hook.dynamic_urls.url_patterns)))
+
         # But the URLHook should still be in the extension's list of hooks
         self.assertTrue(self.url_hook in self.test_extension.hooks)
 
@@ -495,50 +475,38 @@ class TemplateHookTest(TestCase):
         }
 
     def test_hook_added_to_class_by_name(self):
-        """The TemplateHook should be added to the _by_name collection
-           in the TemplateHook class."""
+        """Testing TemplateHook registration"""
         self.assertTrue(self.template_hook_with_applies in
-            self.template_hook_with_applies.__class__
-                ._by_name[self.hook_with_applies_name])
+                        self.template_hook_with_applies.__class__
+                            ._by_name[self.hook_with_applies_name])
+
         # The TemplateHook should also be added to the Extension's collection
         # of hooks.
         self.assertTrue(self.template_hook_with_applies in
-            self.extension.hooks)
+                        self.extension.hooks)
 
     def test_hook_shutdown(self):
-        """The TemplateHook should remove itself from the _by_name collection
-           in the TemplateHook class if the TemplateHook is shutdown."""
+        """Testing TemplateHook shutdown"""
         self.template_hook_with_applies.shutdown()
         self.assertTrue(self.template_hook_with_applies not in
-            self.template_hook_with_applies.__class__
-               ._by_name[self.hook_with_applies_name])
+                        self.template_hook_with_applies.__class__
+                            ._by_name[self.hook_with_applies_name])
+
         # The TemplateHook should still be in the Extension's collection
         # of hooks.
         self.assertTrue(self.template_hook_with_applies in
-            self.extension.hooks)
+                        self.extension.hooks)
 
-    def test_applies_by_default(self):
-        """If a TemplateHook was constructed without an apply_to collection,
-           then the applies_to method should automatically return True."""
+    def test_applies_to_default(self):
+        """Testing TemplateHook.applies_to defaults to everything"""
         self.assertTrue(self.template_hook_no_applies.applies_to(self.context))
         self.assertTrue(self.template_hook_no_applies.applies_to(None))
 
-    def test_applies_with_apply_to(self):
-        """If a TemplateHook was constructed with an apply_to collection,
-           then the applies_to method should return True if and only if
-           the desired URL in the context maps to one of the named URL's
-           in the apply_to collection."""
-        self.assertTrue(self.template_hook_with_applies
-            .applies_to(self.context))
-
-    def test_doesnt_apply_appropriately(self):
-        """If a TemplateHook was constructed with an apply_to collection,
-           and the desired URL in the context does not map to one of the
-           named URL's in the apply_to collection, then the applies_to
-           method should return False."""
+    def test_applies_to(self):
+        """Testing TemplateHook.applies_to customization"""
         self.fake_request.path_info = '/some_other/url'
-        self.assertFalse(self.template_hook_with_applies
-            .applies_to(self.context))
+        self.assertFalse(
+            self.template_hook_with_applies.applies_to(self.context))
 
 # A dummy function that acts as a View method
 test_view_method = Mock()
