@@ -28,6 +28,8 @@ $.fn.datagrid = function() {
         dragIndex = 0,
         dragLastX = 0;
 
+    $grid.data('datagrid', this);
+
     /* Add all the non-special columns to the list. */
     $grid.find("col").not(".datagrid-customize").each(function(i, col) {
         activeColumns.push(col.className);
@@ -93,6 +95,36 @@ $.fn.datagrid = function() {
 
 
     /********************************************************************
+     * Public methods
+     ********************************************************************/
+    this.reload = function() {
+        loadFromServer(null, true);
+    };
+
+
+    /********************************************************************
+     * Server communication
+     ********************************************************************/
+
+    function loadFromServer(params, reloadGrid) {
+        var search = window.location.search || '?',
+            url = window.location.pathname + search +
+                  '&gridonly=1&datagrid-id=' + gridId;
+
+        if (params) {
+            url += '&' + params;
+        }
+
+        $.get(url, function(html) {
+            if (reloadGrid) {
+                $grid.replaceWith(html);
+                $("#" + gridId).datagrid();
+            }
+        });
+    };
+
+
+    /********************************************************************
      * Column customization
      ********************************************************************/
 
@@ -133,15 +165,10 @@ $.fn.datagrid = function() {
      * Saves the new columns list on the server.
      *
      * @param {string}   columnsStr  The columns to display.
-     * @param {function} onSuccess   Optional callback on successful save.
+     * @param {boolean}  reloadGrid  Reload from the server.
      */
-    function saveColumns(columnsStr, onSuccess) {
-        var search = window.location.search || "?",
-            url = window.location.pathname + search +
-                  "&gridonly=1&datagrid-id=" + gridId +
-                  "&columns=" + columnsStr;
-
-        $.get(url, onSuccess);
+    function saveColumns(columnsStr, reloadGrid) {
+        loadFromServer('columns=' + columnsStr, reloadGrid);
     }
 
     /*
@@ -152,10 +179,7 @@ $.fn.datagrid = function() {
      * @param {string}  columnId  The ID of the column to toggle.
      */
     function toggleColumn(columnId) {
-        saveColumns(serializeColumns(columnId), function(html) {
-            $grid.replaceWith(html);
-            $("#" + gridId).datagrid();
-        });
+        saveColumns(serializeColumns(columnId), true);
     }
 
     /*
