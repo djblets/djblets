@@ -144,64 +144,122 @@ class ExtensionTest(TestCase):
 
 
 class ExtensionInfoTest(TestCase):
-    def setUp(self):
-        self.entrypoint = Mock()
-        self.entrypoint.dist = Mock()
+    def test_metadata_from_package(self):
+        """Testing ExtensionInfo metadata from package"""
+        entrypoint = Mock()
+        entrypoint.dist = Mock()
 
-        self.test_author = 'Test author lorem ipsum'
-        self.test_description = 'Test description lorem ipsum'
-        self.test_email = 'Test author@email.com'
-        self.test_home_page = 'http://www.example.com'
-        self.test_license = 'Test License MIT GPL Apache Drivers'
-        self.test_module_name = 'testextension.dummy.dummy'
-        self.test_module_to_app = 'testextension.dummy'
-        self.test_project_name = 'TestProjectName'
-        self.test_summary = 'Test summary lorem ipsum'
-        self.test_version = '1.0'
+        test_author = 'Test author lorem ipsum'
+        test_description = 'Test description lorem ipsum'
+        test_email = 'Test author@email.com'
+        test_home_page = 'http://www.example.com'
+        test_license = 'Test License MIT GPL Apache Drivers'
+        test_module_name = 'testextension.dummy.dummy'
+        test_module_to_app = 'testextension.dummy'
+        test_project_name = 'TestProjectName'
+        test_summary = 'Test summary lorem ipsum'
+        test_version = '1.0'
 
-        self.test_htdocs_path = os.path.join(settings.EXTENSIONS_STATIC_ROOT,
-                                             self.test_project_name)
+        test_htdocs_path = os.path.join(settings.EXTENSIONS_STATIC_ROOT,
+                                        test_project_name)
 
-        self.test_metadata = {
-            'Summary': self.test_summary,
-            'Description': self.test_description,
-            'Author': self.test_author,
-            'Author-email': self.test_email,
-            'License': self.test_license,
-            'Home-page': self.test_home_page,
+        test_metadata = {
+            'Name': test_project_name,
+            'Version': test_version,
+            'Summary': test_summary,
+            'Description': test_description,
+            'Author': test_author,
+            'Author-email': test_email,
+            'License': test_license,
+            'Home-page': test_home_page,
         }
 
-        self.entrypoint.dist.get_metadata_lines = Mock(
+        entrypoint.dist.get_metadata_lines = Mock(
             return_value=[
                 "%s: %s" % (key, value)
-                for key, value in self.test_metadata.iteritems()
+                for key, value in test_metadata.iteritems()
             ])
 
-        self.entrypoint.dist.project_name = self.test_project_name
-        self.entrypoint.dist.version = self.test_version
+        entrypoint.dist.project_name = test_project_name
+        entrypoint.dist.version = test_version
 
-        self.ext_class = Mock()
-        self.ext_class.__module__ = self.test_module_name
-        self.extension_info = ExtensionInfo(self.entrypoint, self.ext_class)
+        ext_class = Mock()
+        ext_class.__module__ = test_module_name
+        ext_class.metadata = None
+        extension_info = ExtensionInfo(entrypoint, ext_class)
 
-    def test_proper_construction(self):
-        """Tests that an ExtensionInfo class is correctly generated
-           from a given Extension class and entrypoint"""
-        self.assertEqual(self.extension_info.app_name, self.test_module_to_app)
-        self.assertEqual(self.extension_info.author, self.test_author)
-        self.assertEqual(self.extension_info.author_email, self.test_email)
-        self.assertEqual(self.extension_info.description,
-                         self.test_description)
-        self.assertFalse(self.extension_info.enabled)
-        self.assertEqual(self.extension_info.htdocs_path,
-                         self.test_htdocs_path)
-        self.assertFalse(self.extension_info.installed)
-        self.assertEqual(self.extension_info.license, self.test_license)
-        self.assertEqual(self.extension_info.metadata, self.test_metadata)
-        self.assertEqual(self.extension_info.name, self.test_project_name)
-        self.assertEqual(self.extension_info.summary, self.test_summary)
-        self.assertEqual(self.extension_info.url, self.test_home_page)
-        self.assertEqual(self.extension_info.version, self.test_version)
+        self.assertEqual(extension_info.app_name, test_module_to_app)
+        self.assertEqual(extension_info.author, test_author)
+        self.assertEqual(extension_info.author_email, test_email)
+        self.assertEqual(extension_info.description, test_description)
+        self.assertFalse(extension_info.enabled)
+        self.assertEqual(extension_info.htdocs_path, test_htdocs_path)
+        self.assertFalse(extension_info.installed)
+        self.assertEqual(extension_info.license, test_license)
+        self.assertEqual(extension_info.metadata, test_metadata)
+        self.assertEqual(extension_info.name, test_project_name)
+        self.assertEqual(extension_info.summary, test_summary)
+        self.assertEqual(extension_info.url, test_home_page)
+        self.assertEqual(extension_info.version, test_version)
+
+    def test_custom_metadata(self):
+        """Testing ExtensionInfo metadata from Extension.metadata"""
+        entrypoint = Mock()
+        entrypoint.dist = Mock()
+
+        test_author = 'Test author lorem ipsum'
+        test_description = 'Test description lorem ipsum'
+        test_email = 'Test author@email.com'
+        test_home_page = 'http://www.example.com'
+        test_license = 'Test License MIT GPL Apache Drivers'
+        test_module_name = 'testextension.dummy.dummy'
+        test_module_to_app = 'testextension.dummy'
+        test_project_name = 'TestProjectName'
+        test_summary = 'Test summary lorem ipsum'
+        test_version = '1.0'
+
+        test_htdocs_path = os.path.join(settings.EXTENSIONS_STATIC_ROOT,
+                                        test_project_name)
+
+        test_metadata = {
+            'Name': test_project_name,
+            'Version': test_version,
+            'Summary': test_summary,
+            'Description': test_description,
+            'Author': test_author,
+            'Author-email': test_email,
+            'License': test_license,
+            'Home-page': test_home_page,
+        }
+
+        entrypoint.dist.get_metadata_lines = Mock(
+            return_value=[
+                "%s: %s" % (key, 'Dummy')
+                for key, value in test_metadata.iteritems()
+            ])
+
+        entrypoint.dist.project_name = 'Dummy'
+        entrypoint.dist.version = 'Dummy'
+
+        ext_class = Mock()
+        ext_class.__module__ = test_module_name
+        ext_class.metadata = test_metadata
+
+        extension_info = ExtensionInfo(entrypoint, ext_class)
+
+        self.assertEqual(extension_info.app_name, test_module_to_app)
+        self.assertEqual(extension_info.author, test_author)
+        self.assertEqual(extension_info.author_email, test_email)
+        self.assertEqual(extension_info.description, test_description)
+        self.assertFalse(extension_info.enabled)
+        self.assertEqual(extension_info.htdocs_path, test_htdocs_path)
+        self.assertFalse(extension_info.installed)
+        self.assertEqual(extension_info.license, test_license)
+        self.assertEqual(extension_info.metadata, test_metadata)
+        self.assertEqual(extension_info.name, test_project_name)
+        self.assertEqual(extension_info.summary, test_summary)
+        self.assertEqual(extension_info.url, test_home_page)
+        self.assertEqual(extension_info.version, test_version)
 
 
 class TestExtensionHook(ExtensionHook):
@@ -281,6 +339,8 @@ class ExtensionManagerTest(TestCase):
                                              self.test_project_name)
 
         self.test_metadata = {
+            'Name': self.test_project_name,
+            'Version': self.test_version,
             'Summary': self.test_summary,
             'Description': self.test_description,
             'Author': self.test_author,

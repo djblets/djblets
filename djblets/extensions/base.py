@@ -149,6 +149,7 @@ class Extension(object):
     Extensions should list all other extension names that they require in
     :py:attr:`requirements`.
     """
+    metadata = None
     is_configurable = False
     default_settings = {}
     has_admin_site = False
@@ -203,9 +204,12 @@ class ExtensionInfo(object):
             if value != "UNKNOWN":
                 metadata[key] = value
 
+        if ext_class.metadata is not None:
+            metadata.update(ext_class.metadata)
+
         self.metadata = metadata
-        self.name = entrypoint.dist.project_name
-        self.version = entrypoint.dist.version
+        self.name = metadata.get('Name')
+        self.version = metadata.get('Version')
         self.summary = metadata.get('Summary')
         self.description = metadata.get('Description')
         self.author = metadata.get('Author')
