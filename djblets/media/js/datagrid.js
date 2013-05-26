@@ -11,31 +11,29 @@
  * Creates a datagrid. This will cause drag and drop and column
  * customization to be enabled.
  */
-jQuery.fn.datagrid = function() {
-    /* References */
-    var that = this;
-    var gridId = this.attr("id");
-    var editButton = $("#" + gridId + "-edit");
-    var menu = $("#" + gridId + "-menu");
-    var editColumns = $("th.edit-columns", this);
-    var summaryCells = $("td.summary", this);
+$.fn.datagrid = function() {
+    var $grid = this,
+        gridId = this.attr("id"),
+        $editButton = $("#" + gridId + "-edit"),
+        $menu = $("#" + gridId + "-menu"),
+        $summaryCells = $grid.find("td.summary");
 
-    /* State */
-    var activeColumns = [];
-    var activeMenu = null;
-    var columnMidpoints = [];
-    var dragColumn = null;
-    var dragColumnsChanged = false;
-    var dragColumnWidth = 0;
-    var dragIndex = 0;
-    var dragLastX = 0;
+        /* State */
+        activeColumns = [],
+        $activeMenu = null,
+        columnMidpoints = [],
+        dragColumn = null,
+        dragColumnsChanged = false,
+        dragColumnWidth = 0,
+        dragIndex = 0,
+        dragLastX = 0;
 
     /* Add all the non-special columns to the list. */
-    $("col", this).not(".datagrid-customize").each(function(i) {
-        activeColumns.push(this.className);
+    $grid.find("col").not(".datagrid-customize").each(function(i, col) {
+        activeColumns.push(col.className);
     });
 
-    $("th", this)
+    $grid.find("th")
         /* Make the columns unselectable. */
         .disableSelection()
 
@@ -43,15 +41,17 @@ jQuery.fn.datagrid = function() {
         .not(".edit-columns").draggable({
             appendTo: "body",
             axis: "x",
-            containment: $("thead:first", this),
+            containment: $grid.find("thead:first"),
             cursor: "move",
             helper: function() {
+                var $el = $(this);
+
                 return $("<div/>")
                     .addClass("datagrid-header-drag datagrid-header")
-                    .width($(this).width())
-                    .height($(this).height())
-                    .css("top", $(this).offset().top)
-                    .html($(this).html());
+                    .width($el.width())
+                    .height($el.height())
+                    .css("top", $el.offset().top)
+                    .html($el.html());
             },
             start: startColumnDrag,
             stop: endColumnDrag,
@@ -59,17 +59,16 @@ jQuery.fn.datagrid = function() {
         });
 
     /* Register callbacks for the columns. */
-    $("tr", menu).each(function(i) {
-        var className = this.className;
+    $menu.find("tr").each(function(i, row) {
+        var className = row.className;
 
-        $(".datagrid-menu-checkbox, .datagrid-menu-label a", this).click(
-            function() {
+        $(row).find(".datagrid-menu-checkbox, .datagrid-menu-label a")
+            .click(function() {
                 toggleColumn(className);
-            }
-        );
+            });
     });
 
-    editButton.click(function(evt) {
+    $editButton.click(function(evt) {
         evt.stopPropagation();
         toggleColumnsMenu();
     });
@@ -80,15 +79,15 @@ jQuery.fn.datagrid = function() {
      * done to complement the "cursor:pointer" style that is
      * already applied to the same elements. (Bug #1022)
      */
-    summaryCells.click(
-        function(evt) {
-            evt.stopPropagation();
-            var cellHref = $("a", evt.target).attr("href");
-            if (cellHref){
-                window.location.href = cellHref;
-            }
+    $summaryCells.click(function(evt) {
+        var cellHref = $(evt.target).find("a").attr("href");
+
+        evt.stopPropagation();
+
+        if (cellHref){
+            window.location.href = cellHref;
         }
-    );
+    });
 
     $(document.body).click(hideColumnsMenu);
 
@@ -101,9 +100,9 @@ jQuery.fn.datagrid = function() {
      * Hides the currently open columns menu.
      */
     function hideColumnsMenu() {
-        if (activeMenu != null) {
-            activeMenu.hide();
-            activeMenu = null;
+        if ($activeMenu !== null) {
+            $activeMenu.hide();
+            $activeMenu = null;
         }
     }
 
@@ -111,18 +110,22 @@ jQuery.fn.datagrid = function() {
      * Toggles the visibility of the specified columns menu.
      */
     function toggleColumnsMenu() {
-        if (menu.is(":visible")) {
+        var offset;
+
+        if ($menu.is(":visible")) {
             hideColumnsMenu();
         } else {
-            var offset = editButton.offset()
+            offset = $editButton.offset()
 
-            menu.css({
-                left: offset.left - menu.outerWidth() + editButton.outerWidth(),
-                top:  offset.top + editButton.outerHeight()
-            });
-            menu.show();
+            $menu
+                .css({
+                    left: offset.left - $menu.outerWidth() +
+                          $editButton.outerWidth(),
+                    top:  offset.top + $editButton.outerHeight()
+                })
+                .show();
 
-            activeMenu = menu;
+            $activeMenu = $menu;
         }
     }
 
@@ -133,12 +136,12 @@ jQuery.fn.datagrid = function() {
      * @param {function} onSuccess   Optional callback on successful save.
      */
     function saveColumns(columnsStr, onSuccess) {
-        var search = window.location.search || "?";
-        var url = window.location.pathname + search +
+        var search = window.location.search || "?",
+            url = window.location.pathname + search +
                   "&gridonly=1&datagrid-id=" + gridId +
                   "&columns=" + columnsStr;
 
-        jQuery.get(url, onSuccess);
+        $.get(url, onSuccess);
     }
 
     /*
@@ -150,7 +153,7 @@ jQuery.fn.datagrid = function() {
      */
     function toggleColumn(columnId) {
         saveColumns(serializeColumns(columnId), function(html) {
-            that.replaceWith(html);
+            $grid.replaceWith(html);
             $("#" + gridId).datagrid();
         });
     }
@@ -167,7 +170,7 @@ jQuery.fn.datagrid = function() {
         $(activeColumns).each(function(i) {
             var curColumn = activeColumns[i];
 
-            if (curColumn == addedColumn) {
+            if (curColumn === addedColumn) {
                 /* We're removing this column. */
                 addedColumn = null;
             } else {
@@ -209,7 +212,7 @@ jQuery.fn.datagrid = function() {
         buildColumnInfo();
 
         /* Hide the column but keep its area reserved. */
-        $(this).css("visibility", "hidden");
+        $(dragColumn).css("visibility", "hidden");
     }
 
     /*
@@ -219,8 +222,10 @@ jQuery.fn.datagrid = function() {
      * the new columns configuration.
      */
     function endColumnDrag() {
+        var $column = $(this);
+
         /* Re-show the column header. */
-        $(this).css("visibility", "visible");
+        $column.css("visibility", "visible");
 
         columnMidpoints = [];
 
@@ -244,15 +249,14 @@ jQuery.fn.datagrid = function() {
          * Check the direction we're moving and see if we're ready to switch
          * with another column.
          */
-        var x = e.originalEvent.pageX;
+        var x = e.originalEvent.pageX,
+            hitX = -1,
+            index = -1;
 
-        if (x == dragLastX) {
+        if (x === dragLastX) {
             /* No change that we care about. Bail out. */
             return;
         }
-
-        var hitX = -1;
-        var index = -1;
 
         if (x < dragLastX) {
             index = dragIndex - 1;
@@ -285,11 +289,11 @@ jQuery.fn.datagrid = function() {
         /* Clear and rebuild the list of mid points. */
         columnMidpoints = [];
 
-        $("th", that).not(".edit-columns").each(function(i) {
-            var column = $(this);
-            var offset = column.offset();
+        $grid.find("th").not(".edit-columns").each(function(i, column) {
+            var $column = $(column),
+                offset = $column.offset();
 
-            if (this == dragColumn) {
+            if (column === dragColumn) {
                 dragIndex = i;
 
                 /*
@@ -298,7 +302,7 @@ jQuery.fn.datagrid = function() {
                  */
                 width = dragColumnWidth;
             } else {
-                width = column.width();
+                width = $column.width();
             }
 
             columnMidpoints.push(Math.round(offset.left + width / 2));
@@ -318,25 +322,35 @@ jQuery.fn.datagrid = function() {
      */
     function swapColumnBefore(index, beforeIndex) {
         /* Swap the column info. */
-        var colTags = $("col", that);
+        var colTags = $grid.find("col"),
+            tempName,
+            table,
+            rowsLen,
+            i,
+            row,
+            cell,
+            beforeCell,
+            tempColSpan;
+
         $(colTags[index]).insertBefore($(colTags[beforeIndex]));
 
         /* Swap the list of active columns */
-        var tempName = activeColumns[index];
+        tempName = activeColumns[index];
         activeColumns[index] = activeColumns[beforeIndex];
         activeColumns[beforeIndex] = tempName;
 
         /* Swap the cells. This will include the headers. */
-        var table = $("table:first", that)[0];
-        for (var i = 0; i < table.rows.length; i++) {
-            var row = table.rows[i];
-            var cell = row.cells[index];
-            var beforeCell = row.cells[beforeIndex];
+        table = $grid.find("table:first")[0];
+
+        for (i = 0, rowsLen = table.rows.length; i < rowsLen; i++) {
+            row = table.rows[i];
+            cell = row.cells[index];
+            beforeCell = row.cells[beforeIndex];
 
             row.insertBefore(cell, beforeCell);
 
             /* Switch the colspans. */
-            var tempColSpan = cell.colSpan;
+            tempColSpan = cell.colSpan;
             cell.colSpan = beforeCell.colSpan;
             beforeCell.colSpan = tempColSpan;
         }
@@ -347,7 +361,7 @@ jQuery.fn.datagrid = function() {
         buildColumnInfo();
     }
 
-    return this;
+    return $grid;
 };
 
 $(document).ready(function() {
