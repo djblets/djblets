@@ -1,5 +1,4 @@
 from django import template
-from django.template.loader import render_to_string
 
 from djblets.extensions.hooks import TemplateHook
 from djblets.util.decorators import basictag
@@ -18,6 +17,6 @@ def template_hook_point(context, name):
     s = ""
     for hook in TemplateHook.by_name(name):
         if hook.applies_to(context):
-            s += render_to_string(hook.template_name, context)
+            s += hook.render_to_string(context.get('request', None), context)
 
     return s

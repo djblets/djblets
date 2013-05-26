@@ -24,6 +24,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from django.core.urlresolvers import NoReverseMatch, reverse
+from django.template.loader import render_to_string
 
 from djblets.extensions.base import ExtensionHook, ExtensionHookPoint
 
@@ -57,7 +58,7 @@ class TemplateHook(ExtensionHook):
 
     _by_name = {}
 
-    def __init__(self, extension, name, template_name, apply_to=[]):
+    def __init__(self, extension, name, template_name=None, apply_to=[]):
         super(TemplateHook, self).__init__(extension)
         self.name = name
         self.template_name = template_name
@@ -72,6 +73,14 @@ class TemplateHook(ExtensionHook):
         super(TemplateHook, self).shutdown()
 
         self.__class__._by_name[self.name].remove(self)
+
+    def render_to_string(self, request, context):
+        """Renders the content for the hook.
+
+        By default, this renders the provided template name to a string
+        and returns it.
+        """
+        return render_to_string(self.template_name, context)
 
     def applies_to(self, context):
         """Returns whether or not this TemplateHook should be applied given the
