@@ -1,3 +1,26 @@
+version 0.7.15 final (26-May-2013):
+	* djblets.extensions:
+		* Extension classes can now define a 'metadata' variable to override
+		  the package's metadata. This uses standard PyPI metadata fields.
+		  Using this, single Python package can provide several extensions.
+
+		* TemplateHooks subclasses can now override a new render_to_string
+		  function to do their own processing and rendering, instead of
+		  simply rendering the provided template_name.
+
+		* The template_name parameter to TemplateHook is now optional.
+
+		* The Django template loader cache is now reset when syncing
+		  extension settings or enabling/disabling an extension.
+
+	* djblets.webapi:
+		* Added a "is_webapi_handler" attribute to WebAPIResource.
+
+		  This allows for introspection from any middleware that's going
+		  to call a view. It can test if this is set on the view to know
+		  whether it's calling into an API handler.
+
+
 version 0.7.14 final (6-May-2013):
 	* JavaScript:
 		* inlineEditor now emits a "cancel" event when pressing OK without any
