@@ -274,6 +274,11 @@ $.widget("ui.autoSizeTextArea", {
         }
     },
 
+    destroy: function() {
+        this._proxyEl.remove();
+        $.Widget.prototype.destroy.call(this);
+    },
+
     /*
      * Auto-sizes a text area to match the content.
      *
@@ -326,6 +331,7 @@ $.widget("ui.inlineEditor", {
         enabled: true,
         extraHeight: 100,
         fadeSpeedMS: 200,
+        focusOnOpen: true,
         forceOpen: false,
         formatResult: null,
         multiline: false,
@@ -673,7 +679,10 @@ $.widget("ui.inlineEditor", {
             }
 
             self._fitWidthToParent();
-            self._field.focus();
+
+            if (self.options.focusOnOpen) {
+                self._field.focus();
+            }
 
             if (!self.options.multiline) {
                 self._field[0].select();
@@ -880,6 +889,7 @@ jQuery.fn.delay = function(msec) {
 $.widget("ui.modalBox", {
     options: {
         buttons: [$('<input type="button" value="Close"/>')],
+        container: 'body',
         discardOnClose: true,
         fadeBackground: true,
         modalBoxButtonsClass: "modalbox-buttons",
@@ -896,7 +906,7 @@ $.widget("ui.modalBox", {
         if (this.options.fadeBackground) {
             this.bgbox = $("<div/>")
                 .addClass("modalbox-bg")
-                .appendTo("body")
+                .appendTo(this.options.container)
                 .css({
                     "background-color": "#000",
                     opacity: 0,
@@ -913,6 +923,10 @@ $.widget("ui.modalBox", {
             .move(0, 0, "absolute")
             .css('z-index', 100)
             .keydown(function(e) { e.stopPropagation(); });
+
+        if (this.options.boxID) {
+            this.box.attr('id', this.options.boxID);
+        }
 
         this.inner = $("<div/>")
             .appendTo(this.box)
@@ -947,7 +961,7 @@ $.widget("ui.modalBox", {
                 }
             });
 
-        this.box.appendTo("body")
+        this.box.appendTo(this.options.container);
 
         $.each(this.options.buttons, function() {
             $(this).appendTo(self._buttons);
@@ -982,7 +996,7 @@ $.widget("ui.modalBox", {
         }
 
         if (!this.options.discardOnClose) {
-            this.element.appendTo("body");
+            this.element.appendTo(this.options.container);
         }
 
         this.box.remove();
@@ -1187,11 +1201,12 @@ $.funcQueue = function(name) {
      * This will just add the item to the queue. To start the queue, run
      * start() after adding the function.
      *
-     * @param {function} func  The function to add.
+     * @param {function} func    The function to add.
+     * @param {object}   context The context in which to invoke the function.
      */
-    this.add = function(func) {
+    this.add = function(func, context) {
         if (func) {
-            queues[name].push(func);
+            queues[name].push([func, context]);
         }
     };
 
@@ -1206,11 +1221,18 @@ $.funcQueue = function(name) {
      * initial item should call start() instead.
      */
     this.next = function() {
-        if (queuesInProgress[name]) {
-            var func = queues[name].shift();
+        var info,
+            func,
+            context;
 
-            if (func) {
-                func();
+        if (queuesInProgress[name]) {
+            info = queues[name].shift();
+
+            if (info) {
+                func = info[0];
+                context = info[1];
+
+                func.call(context);
             } else {
                 queuesInProgress[name] = false;
             }
