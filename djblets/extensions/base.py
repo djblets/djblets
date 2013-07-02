@@ -155,6 +155,7 @@ class Extension(object):
     has_admin_site = False
     requirements = []
     resources = []
+    apps = []
 
     def __init__(self, extension_manager):
         self.extension_manager = extension_manager
@@ -798,12 +799,14 @@ class ExtensionManager(object):
                     % extension.info.app_name)
 
     def _add_to_installed_apps(self, extension):
-        if extension.info.app_name not in settings.INSTALLED_APPS:
-            settings.INSTALLED_APPS.append(extension.info.app_name)
+        for app in extension.apps or [extension.info.app_name]:
+            if app not in settings.INSTALLED_APPS:
+                settings.INSTALLED_APPS.append(app)
 
     def _remove_from_installed_apps(self, extension):
-        if extension.info.app_name in settings.INSTALLED_APPS:
-            settings.INSTALLED_APPS.remove(extension.info.app_name)
+        for app in extension.apps or [extension.info.app_name]:
+            if app in settings.INSTALLED_APPS:
+                settings.INSTALLED_APPS.remove(app)
 
     def _entrypoint_iterator(self):
         return pkg_resources.iter_entry_points(self.key)
