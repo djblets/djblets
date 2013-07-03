@@ -24,6 +24,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from django.contrib.admin.views.decorators import staff_member_required
+from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 
@@ -59,25 +60,23 @@ def extension_list(request, extension_manager,
 @staff_member_required
 def configure_extension(request, ext_class, form_class, extension_manager,
                         template_name='extensions/configure_extension.html'):
-    context = {}
-    form = None
     extension = extension_manager.get_enabled_extension(ext_class.id)
 
-    if extension:
-        context['extension'] = extension
-        context['enabled'] = True
+    if not extension or not extension.is_configurable:
+        raise Http404
 
-        if extension.is_configurable:
-            if request.method == 'POST':
-                form = form_class(extension, request.POST, request.FILES)
+    if request.method == 'POST':
+        form = form_class(extension, request.POST, request.FILES)
 
-                if form.is_valid():
-                    form.save()
-            else:
-                form = form_class(extension)
+        if form.is_valid():
+            form.save()
 
-            context['form'] = form
+            return HttpResponseRedirect(request.path + '?saved=1')
     else:
-        context['enabled'] = False
+        form = form_class(extension)
 
-    return render_to_response(template_name, RequestContext(request, context))
+    return render_to_response(template_name, RequestContext(request, {
+        'extension': extension,
+        'form': form,
+        'saved': request.GET.get('saved', 0),
+    }))

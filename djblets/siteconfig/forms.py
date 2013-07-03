@@ -63,9 +63,11 @@ class SiteSettingsForm(forms.Form):
         if not self.errors:
             if hasattr(self, "Meta"):
                 save_blacklist = getattr(self.Meta, "save_blacklist", [])
+            else:
+                save_blacklist = []
 
             for key, value in self.cleaned_data.iteritems():
                 if key not in save_blacklist:
-                    self.siteconfig.settings[key] = value
+                    self.siteconfig.set(key, value)
 
             self.siteconfig.save()

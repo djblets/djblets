@@ -110,6 +110,9 @@ class Settings(dict):
 
         return key in self.extension.default_settings
 
+    def set(self, key, value):
+        self[key] = value
+
     def load(self):
         """Loads the settings from the database."""
         try:
@@ -478,7 +481,7 @@ class ExtensionManager(object):
         being enabled.
 
         If this is called a second time, it will refresh the list of
-        extensions, adding new ones and removing deleted ones.o
+        extensions, adding new ones and removing deleted ones.
 
         If full_reload is passed, all state is cleared and we reload all
         extensions and state from scratch.

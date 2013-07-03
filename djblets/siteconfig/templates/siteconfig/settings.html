@@ -24,7 +24,7 @@
  </ul>
 {% endif %}
 
- <h1 class="title">{{form.Meta.title}}</h1>
+ <h1 class="title">{% block form_title %}{{form.Meta.title}}{% endblock %}</h1>
 
 <div id="content-main">
  <form action="." method="post"{% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
