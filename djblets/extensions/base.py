@@ -220,6 +220,7 @@ class ExtensionInfo(object):
         self.author_email = metadata.get('Author-email')
         self.license = metadata.get('License')
         self.url = metadata.get('Home-page')
+        self.author_url = metadata.get('Author-home-page', self.url)
         self.app_name = '.'.join(ext_class.__module__.split('.')[:-1])
         self.enabled = False
         self.installed = False

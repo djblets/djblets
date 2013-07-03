@@ -15,6 +15,8 @@
 {{block.super}}
 {% endblock %}
 
+{% block bodyclass %}{{block.super}} extensions-list-page{% endblock %}
+
 {% block content %}
 
 {% include "extensions/extension_dlgs.html" %}
@@ -26,8 +28,18 @@
  <ul class="extensions">
 {%  for extension in extensions %}
   <li class="extension {% cycle row1,row2 %}">
-   <h1>{{extension.info.name}} <span class="version">{{extension.info.version}}</span></h1>
-   <p class="author">{{extension.info.author}}</p>
+   <div class="extension-header">
+    <h1>{{extension.info.name}} <span class="version">{{extension.info.version}}</span></h1>
+    <p class="author">
+{%   if extension.info.author_url %}
+     <a href="{{extension.info.author_url}}">
+{%   endif %}
+     {{extension.info.author}}
+{%   if extension.info.author_url %}
+     </a>
+{%   endif %}
+    </p>
+   </div>
    <div class="description">
     {{extension.info.summary}}
    </div>
