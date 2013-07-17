@@ -94,7 +94,7 @@ setup(name=PACKAGE_NAME,
       test_suite="dummy",
       license="MIT",
       description="A collection of useful classes and functions for Django",
-      packages=find_packages(),
+      packages=find_packages(exclude=["tests"]),
       cmdclass=cmdclasses,
       install_requires=[
           'Django>=1.4.5,<1.5',
