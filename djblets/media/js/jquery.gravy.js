@@ -328,6 +328,8 @@ $.widget("ui.autoSizeTextArea", {
 $.widget("ui.inlineEditor", {
     options: {
         cls: "",
+        editIconPath: null,
+        editIconClass: null,
         enabled: true,
         extraHeight: 100,
         fadeSpeedMS: 200,
@@ -457,13 +459,18 @@ $.widget("ui.inlineEditor", {
                 .attr("role", "button")
                 .attr("aria-label", "Edit this field")
                 .addClass("editicon")
-                .append(
-                    $('<img src="' + this.options.editIconPath + '"/>')
-                )
                 .click(function() {
                     self.startEdit();
                     return false;
                 });
+
+            if (this.options.editIconPath) {
+                this._editIcon.append(
+                    '<img src="' + this.options.editIconPath + '"/>');
+            } else if (this.options.editIconClass) {
+                this._editIcon.append(
+                    '<div class="' + this.options.editIconClass + '"></div>');
+            }
 
             if (this.options.showRequiredFlag) {
                 this._editIcon.append(

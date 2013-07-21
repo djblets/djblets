@@ -43,6 +43,8 @@
    <td class="datagrid-menu-label"><a href="#">
 {%   if column.image_url %}
     <img src="{{column.image_url}}" width="{{column.image_width}}" height="{{column.image_height}}" alt="{{column.image_alt}}" />
+{%   elif column.image_class %}
+    <div class="{{column.image_class}}"></div>
 {%   endif %}
     {{column.detailed_label|default_if_none:""}}</a>
    </td>

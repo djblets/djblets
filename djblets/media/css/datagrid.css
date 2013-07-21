@@ -76,7 +76,8 @@
   text-decoration: underline;
 }
 
-.datagrid-header img {
+.datagrid-header img,
+.datagrid-header div {
   vertical-align: middle;
 }
 
@@ -256,8 +257,9 @@
   text-decoration: none;
 }
 
-.datagrid-menu td img {
-  vertical-align: bottom;
+.datagrid-menu td img,
+.datagrid-menu td div {
+  vertical-align: sub;
 }
 
 .datagrid-menu-checkbox {

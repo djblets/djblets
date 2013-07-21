@@ -56,16 +56,23 @@ class Column(object):
     Columns can have an image, text, or both in the column header. The
     contents of the cells can be instructed to link to the object on the
     row or the data in the cell.
+
+    If a Column defines an image_class, then it will be assumed that the
+    class represents an icon, perhaps as part of a spritesheet, and will
+    display it in a <div>. An image_url cannot also be defined.
     """
     SORT_DESCENDING = 0
     SORT_ASCENDING = 1
 
     def __init__(self, label=None, detailed_label=None,
                  field_name=None, db_field=None,
-                 image_url=None, image_width=None, image_height=None,
-                 image_alt="", shrink=False, expand=False, sortable=False,
+                 image_url=None, image_class=None, image_width=None,
+                 image_height=None, image_alt="", shrink=False, expand=False,
+                 sortable=False,
                  default_sort_dir=SORT_DESCENDING, link=False,
                  link_func=None, cell_clickable=False, css_class=""):
+        assert not (image_class and image_url)
+
         self.id = None
         self.datagrid = None
         self.field_name = field_name
@@ -73,6 +80,7 @@ class Column(object):
         self.label = label
         self.detailed_label = detailed_label or self.label
         self.image_url = image_url
+        self.image_class = image_class
         self.image_width = image_width
         self.image_height = image_height
         self.image_alt = image_alt
