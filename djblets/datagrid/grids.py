@@ -38,6 +38,7 @@ from django.template.context import RequestContext, Context
 from django.template.defaultfilters import date, timesince
 from django.template.loader import render_to_string, get_template
 from django.utils.cache import patch_cache_control
+from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 import pytz
@@ -311,7 +312,7 @@ class Column(object):
                 return self.data_cache[pk]
             else:
                 value = getattr(obj, self.field_name)
-                self.data_cache[pk] = value
+                self.data_cache[pk] = escape(value)
                 return value
         else:
             # Follow . separators like in the django template library
@@ -322,7 +323,7 @@ class Column(object):
                 if callable(value):
                     value = value()
 
-            return value
+            return escape(value)
 
     def augment_queryset(self, queryset):
         """Augments a queryset with new queries.
