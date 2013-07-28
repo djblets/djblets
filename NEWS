@@ -22,7 +22,9 @@ version 0.7.16 final (27-July-2013):
 	* djblets.datagrid:
 		* Data pulled from the database and rendered into cells are always
 		  escaped now. Custom columns can still override this by providing
-		  their own rendering.
+		  their own rendering. This led to an XSS vulnerability.
+
+		  This is CVE-2013-4795.
 
 		* Columns can now specify an image_class instead of an image_url.
 		  This will render the icon as a <div> with the given CSS class name,
