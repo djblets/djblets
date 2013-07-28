@@ -367,6 +367,13 @@ version 0.7.0 final (2-August-2012):
 		  a dependency of djblets.
 
 
+version 0.6.29 final (27-July-2013):
+	* djblets.datagrid:
+		* Data pulled from the database and rendered into cells are always
+		  escaped now. Custom columns can still override this by providing
+		  their own rendering.
+
+
 version 0.6.28 final (20-February-2013):
 	* General:
 		* Require Django 1.3.7 as a minimum.
