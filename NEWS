@@ -446,7 +446,9 @@ version 0.6.29 final (27-July-2013):
 	* djblets.datagrid:
 		* Data pulled from the database and rendered into cells are always
 		  escaped now. Custom columns can still override this by providing
-		  their own rendering.
+		  their own rendering. This led to an XSS vulnerability.
+
+		  This is CVE-2013-4795.
 
 
 version 0.6.28 final (20-February-2013):
