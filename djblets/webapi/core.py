@@ -242,6 +242,10 @@ class WebAPIResponse(HttpResponse):
         for header, value in headers.iteritems():
             self[header] = value
 
+        # Prevent IE8 from trying to download some AJAX responses as if they
+        # were files.
+        self['X-Content-Type-Options'] = 'nosniff'
+
     def _get_content(self):
         """
         Returns the API response content in the appropriate format.
