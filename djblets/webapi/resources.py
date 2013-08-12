@@ -749,7 +749,11 @@ class WebAPIResource(object):
             'max-results': {
                 'type': int,
                 'description': 'The maximum number of results to return in '
-                               'this list. By default, this is 25.',
+                               'this list. By default, this is 25. There is '
+                               'a hard limit of 200; if you need more than '
+                               '200 results, you will need to make more than '
+                               'one request, using the "next" pagination '
+                               'link.',
             }
         },
         allow_unknown=True
