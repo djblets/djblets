@@ -60,9 +60,13 @@ def controlled_subprocess(process_name, process):
     # If we haven't gotten a returncode at this point, we assume the
     # process is blocked.  Let's kill it.
     if process.returncode is None and process.poll() is None:
-        logging.warning(_("The process '%s' with PID '%s' did not exit " +
-                          "cleanly and will be killed automatically.") %
-                        (process_name, process.pid))
+        logging.warning(
+            _("The process '%(name)s' with PID '%(pid)s' did not exit "
+              "cleanly and will be killed automatically.")
+            % {
+                'name': process_name,
+                'pid': process.pid,
+            })
         process.kill()
         # Now that we've killed the process, we'll grab the return code,
         # in order to clear the zombie.
