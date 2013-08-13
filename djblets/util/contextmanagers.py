@@ -25,8 +25,27 @@
 #
 from contextlib import contextmanager
 import logging
+import os
+import signal
+import sys
 
 from django.utils.translation import ugettext as _
+
+
+def kill_process(pid):
+    """Kill a process."""
+    # This is necessary because we need to continue supporting Python 2.5,
+    # which doesn't have Popen.kill(). This is inspired by
+    # http://stackoverflow.com/questions/1064335
+    if sys.platform == 'win32':
+        import ctypes
+        PROCESS_TERMINATE = 1
+        handle = ctypes.windll.kernel32.OpenProcess(
+            PROCESS_TERMINATE, False, pid)
+        ctypes.windll.kernel32.TerminateProcess(handle, -1)
+        ctypes.windll.kernel32.CloseHandle(handle)
+    else:
+        os.kill(pid, signal.SIGKILL)
 
 
 @contextmanager
@@ -67,7 +86,8 @@ def controlled_subprocess(process_name, process):
                 'name': process_name,
                 'pid': process.pid,
             })
-        process.kill()
+
+        kill_process(process.pid)
         # Now that we've killed the process, we'll grab the return code,
         # in order to clear the zombie.
         process.wait()
