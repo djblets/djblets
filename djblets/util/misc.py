@@ -52,6 +52,7 @@ from django.conf import settings
 from django.conf.urls.defaults import url
 from django.contrib.sites.models import Site
 from django.db.models.manager import Manager
+from django.utils import importlib
 from django.views.decorators.cache import never_cache
 
 
@@ -305,6 +306,36 @@ def generate_ajax_serial():
                         AJAX_SERIAL = mtime
 
         setattr(settings, "AJAX_SERIAL", AJAX_SERIAL)
+
+
+def generate_locale_serial(packages):
+    """Generate a locale serial for the given set of packages.
+
+    This will be equal to the most recent mtime of all the .mo files that
+    contribute to the localization of the given packages.
+    """
+    serial = 0
+
+    paths = []
+    for package in packages:
+        try:
+            p = importlib.import_module(package)
+            path = os.path.join(os.path.dirname(p.__file__), 'locale')
+            paths.append(path)
+        except Exception, e:
+            logging.error(
+                'Failed to import package %s to compute locale serial: %s'
+                % (package, e))
+
+    for locale_path in paths:
+        for root, dirs, files in os.walk(locale_path):
+            for name in files:
+                if name.endswith('.mo'):
+                    mtime = int(os.stat(os.path.join(root, name)).st_mtime)
+                    if mtime > serial:
+                        serial = mtime
+
+    return serial
 
 
 def generate_cache_serials():
