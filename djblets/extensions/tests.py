@@ -219,7 +219,7 @@ class ExtensionInfoTest(TestCase):
         test_version = '1.0'
 
         test_htdocs_path = os.path.join(settings.EXTENSIONS_STATIC_ROOT,
-                                        test_project_name)
+                                        'Dummy')
 
         test_metadata = {
             'Name': test_project_name,
