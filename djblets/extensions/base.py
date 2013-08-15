@@ -208,6 +208,10 @@ class ExtensionInfo(object):
             if value != "UNKNOWN":
                 metadata[key] = value
 
+        # Extensions will often override "Name" to be something
+        # user-presentable, but we sometimes need the package name
+        self.package_name = metadata.get('Name')
+
         if ext_class.metadata is not None:
             metadata.update(ext_class.metadata)
 
@@ -227,7 +231,7 @@ class ExtensionInfo(object):
         self.is_configurable = ext_class.is_configurable
         self.has_admin_site = ext_class.has_admin_site
         self.htdocs_path = os.path.join(settings.EXTENSIONS_STATIC_ROOT,
-                                        self.name)
+                                        self.package_name)
 
     def __unicode__(self):
         return "%s %s (enabled = %s)" % (self.name, self.version, self.enabled)
