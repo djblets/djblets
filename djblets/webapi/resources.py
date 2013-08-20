@@ -1250,6 +1250,27 @@ class RootResource(WebAPIResource):
                 for name, href in self._walk_resources(child, child_href):
                     yield name, href
 
+    def api_404_handler(self, request, api_format=None, *args, **kwargs):
+        """Default handler at the end of the URL patterns.
+
+        This returns an API 404, instead of a normal django 404."""
+        return WebAPIResponseError(
+            request,
+            err=DOES_NOT_EXIST,
+            api_format=api_format)
+
+    def get_url_patterns(self):
+        """Returns the Django URL patterns for this object and its children.
+
+        This returns the same list as WebAPIResource.get_url_patterns, but also
+        introduces a generic catch-all 404 handler which returns API errors
+        instead of HTML.
+        """
+        urlpatterns = super(RootResource, self).get_url_patterns()
+        urlpatterns += never_cache_patterns(
+            '', url(r'.*', self.api_404_handler))
+        return urlpatterns
+
 
 class UserResource(WebAPIResource):
     """A default resource for representing a Django User model."""
