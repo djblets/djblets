@@ -336,9 +336,11 @@ $.widget("ui.inlineEditor", {
         focusOnOpen: true,
         forceOpen: false,
         formatResult: null,
+        hasRawValue: false,
         multiline: false,
         notifyUnchangedCompletion: false,
         promptOnCancel: true,
+        rawValue: null,
         showButtons: true,
         showEditIcon: true,
         startOpen: false,
@@ -563,14 +565,20 @@ $.widget("ui.inlineEditor", {
      * Puts the editor into edit mode.
      */
     startEdit: function(preventAnimation) {
+        var value;
+
         if (this._editing || !this.options.enabled) {
             return;
         }
 
-        this._initialValue = this.element.text();
+        if (this.options.hasRawValue) {
+            this._initialValue = this.options.rawValue;
+            value = this._initialValue;
+        } else {
+            this._initialValue = this.element.text();
+            value = this._normalizeText(this._initialValue).htmlDecode();
+        }
         this._editing = true;
-
-        var value = this._normalizeText(this._initialValue).htmlDecode();
 
         if (this.options.multiline && $.browser.msie) {
             this._field.text(value);
@@ -600,6 +608,10 @@ $.widget("ui.inlineEditor", {
         if (this._dirty || this.options.notifyUnchangedCompletion) {
             this.element.triggerHandler("complete",
                                         [value, initialValue]);
+
+            if (this.options.hasRawValue) {
+                this.options.rawValue = value;
+            }
         } else {
             this.element.triggerHandler("cancel", [this._initialValue]);
         }
