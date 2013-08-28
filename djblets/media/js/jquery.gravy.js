@@ -540,7 +540,7 @@ $.widget("ui.inlineEditor", {
         }
 
         if (this._editIcon) {
-            this._editIcon.show();
+            this._editIcon.css('visibility', 'visible');
         }
 
         this.options.enabled = true;
@@ -555,7 +555,7 @@ $.widget("ui.inlineEditor", {
         }
 
         if (this._editIcon) {
-            this._editIcon.hide();
+            this._editIcon.css('visibility', 'hide');
         }
 
         this.options.enabled = false;
@@ -650,9 +650,20 @@ $.widget("ui.inlineEditor", {
 
         if (this._editIcon) {
             if (this.options.multiline && !preventAnimation) {
-                this._editIcon.fadeOut(this.options.fadeSpeedMS);
+                this._editIcon
+                    .animate({
+                        opacity: 0
+                    },
+                    this.options.fadeSpeedMS,
+                    'swing',
+                    function() {
+                        self._editIcon.css({
+                            opacity: 100,
+                            visibility: 'hidden'
+                        });
+                    })
             } else {
-                this._editIcon.hide();
+                this._editIcon.css('visibility', 'hidden');
             }
         }
 
@@ -726,9 +737,16 @@ $.widget("ui.inlineEditor", {
 
         if (this._editIcon) {
             if (this.options.multiline) {
-                this._editIcon.fadeIn(this.options.fadeSpeedMS);
+                this._editIcon
+                    .css({
+                        opacity: 0,
+                        visibility: 'visible'
+                    })
+                    .animate({
+                        opacity: 100
+                    }, this.options.fadeSpeedMS);
             } else {
-                this._editIcon.show();
+                this._editIcon.css('visibility', 'visible');
             }
         }
 
