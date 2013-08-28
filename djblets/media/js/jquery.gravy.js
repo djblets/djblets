@@ -220,6 +220,7 @@ $.fn.retinaGravatar = function() {
  */
 $.widget("ui.autoSizeTextArea", {
     options: {
+        fadeSpeedMS: 200,
         growOnKeyUp: true,
         minHeight: 100
     },
@@ -287,19 +288,20 @@ $.widget("ui.autoSizeTextArea", {
      * grow to accommodate the content. We then set the text area to the
      * resulting width.
      */
-    autoSize: function() {
-        var needsResize = false;
-        var newLength = this.element.val().length;
-        var newHeight = 0;
-        var normHeight = this.element[0].scrollHeight +
+    autoSize: function(force, animate, animateFrom) {
+        var needsResize = false,
+            newLength = this.element.val().length,
+            newHeight = 0,
+            normHeight = this.element[0].scrollHeight +
                          (this.element.height() -
-                          this.element[0].clientHeight);
+                          this.element[0].clientHeight),
+            targetHeight;
 
         if (normHeight != this.element.height()) {
             /* We know the height grew, so queue a resize. */
             needsResize = true;
             newHeight = normHeight;
-        } else if (this.oldLength > newLength) {
+        } else if (this.oldLength > newLength || force) {
             /* The size may have decreased. Check the number of lines. */
             needsResize = true;
 
@@ -311,9 +313,20 @@ $.widget("ui.autoSizeTextArea", {
         }
 
         if (needsResize) {
-            this.element
-                .height(Math.max(this.options.minHeight, newHeight))
-                .triggerHandler("resize");
+            targetHeight = Math.max(this.options.minHeight, newHeight);
+
+            if (animate) {
+                this.element
+                    .height(animateFrom)
+                    .animate({
+                        height: targetHeight
+                    }, this.options.fadeSpeedMS)
+                    .triggerHandler("resize");
+            } else {
+                this.element
+                    .height(targetHeight)
+                    .triggerHandler("resize");
+            }
         }
 
         this.oldLength = newLength;
@@ -337,6 +350,7 @@ $.widget("ui.inlineEditor", {
         forceOpen: false,
         formatResult: null,
         hasRawValue: false,
+        matchHeight: true,
         multiline: false,
         notifyUnchangedCompletion: false,
         promptOnCancel: true,
@@ -646,7 +660,9 @@ $.widget("ui.inlineEditor", {
     },
 
     showEditor: function(preventAnimation) {
-        var self = this;
+        var self = this,
+            elHeight,
+            newHeight;
 
         if (this._editIcon) {
             if (this.options.multiline && !preventAnimation) {
@@ -671,32 +687,44 @@ $.widget("ui.inlineEditor", {
         this._form.show();
 
         if (this.options.multiline) {
-            var elHeight = this.element.outerHeight(),
-                newHeight = elHeight + this.options.extraHeight;
+            elHeight = this.element.outerHeight();
+            newHeight = elHeight + this.options.extraHeight;
 
             this._fitWidthToParent();
 
-            // TODO: Set autosize min height
-            this._field
-                .autoSizeTextArea("setMinHeight", newHeight)
-                .css("overflow", "hidden");
+            if (this.options.matchHeight) {
+                // TODO: Set autosize min height
+                this._field
+                    .autoSizeTextArea("setMinHeight", newHeight)
+                    .css("overflow", "hidden");
 
-            if (preventAnimation) {
-                if (this._buttons) {
-                    this._buttons.show();
+                if (preventAnimation) {
+                    this._field.height(newHeight);
+                } else {
+                    this._field
+                        .height(elHeight)
+                        .animate({
+                            height: newHeight
+                        }, this.options.fadeSpeedMS);
                 }
-
-                this._field.height(newHeight);
             } else {
-                if (this._buttons) {
+                /*
+                 * If there's significant processing that happens between the
+                 * text and what's displayed in the element, it's likely that
+                 * the rendered size will be different from the editor size. In
+                 * that case, don't try to match sizes, just ask the field to
+                 * auto-size itself to the size of the source text.
+                 */
+                this._field.autoSizeTextArea('autoSize', true,
+                                             !preventAnimation, elHeight);
+            }
+
+            if (this._buttons) {
+                if (preventAnimation) {
+                    this._buttons.show();
+                } else {
                     this._buttons.fadeIn();
                 }
-
-                this._field
-                    .height(elHeight)
-                    .animate({
-                        height: newHeight
-                    }, this.options.fadeSpeedMS);
             }
         } else if (this._buttons) {
             this._buttons.show();
