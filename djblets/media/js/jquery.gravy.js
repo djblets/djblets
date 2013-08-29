@@ -840,6 +840,7 @@ $.widget("ui.inlineEditor", {
                             (this._form.offset().left -
                              formParent.offset().left) -
                             this._field.getExtents("bmp", "lr") -
+                            this._editIcon.width() -
                             (this._buttons ? this._buttons.outerWidth() : 0));
         }
     },
