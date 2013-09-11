@@ -737,6 +737,7 @@ class WebAPIResource(object):
 
         return response
 
+    @webapi_response_errors(NOT_LOGGED_IN, PERMISSION_DENIED, DOES_NOT_EXIST)
     @webapi_request_fields(
         optional={
             'start': {
@@ -768,6 +769,21 @@ class WebAPIResource(object):
             'links': self.get_links(self.list_child_resources,
                                     request=request, *args, **kwargs),
         }
+
+        if self._parent_resource and self.model_parent_key:
+            try:
+                parent_obj = self._parent_resource.get_object(
+                    request, *args, **kwargs)
+                if not self._parent_resource.has_access_permissions(
+                        request, parent_obj, *args, **kwargs):
+                    if request.user.is_authenticated():
+                        return PERMISSION_DENIED
+                    else:
+                        return NOT_LOGGED_IN
+            except:
+                # Other errors, like does-not-exist, will be caught by
+                # get_queryset below.
+                pass
 
         if self.model:
             try:
