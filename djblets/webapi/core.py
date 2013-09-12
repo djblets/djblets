@@ -290,10 +290,10 @@ class WebAPIResponse(HttpResponse):
             self.content = content
             self.content_set = True
 
-        return super(WebAPIResponse, self)._get_content()
+        return super(WebAPIResponse, self).content
 
     def _set_content(self, value):
-        super(WebAPIResponse, self)._set_content(value)
+        HttpResponse.content.fset(self, value)
 
     content = property(_get_content, _set_content)
 
