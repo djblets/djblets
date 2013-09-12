@@ -746,14 +746,19 @@ class DataGrid(object):
                 'has_next': self.page.has_next(),
                 'has_previous': self.page.has_previous(),
                 'page': self.page.number,
-                'next': self.page.next_page_number(),
-                'previous': self.page.previous_page_number(),
                 'last_on_page': self.page.end_index(),
                 'first_on_page': self.page.start_index(),
                 'pages': self.paginator.num_pages,
                 'hits': self.paginator.count,
                 'page_range': self.paginator.page_range,
             })
+
+            if self.page.has_next():
+                context['next'] = self.page.next_page_number()
+
+            if self.page.has_previous():
+                context['previous'] = self.page.pprevious_page_number()
+
             context.update(self.extra_context)
             context.update(render_context)
 
