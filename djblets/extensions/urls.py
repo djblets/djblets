@@ -23,7 +23,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from django.conf.urls.defaults import patterns
+from django.conf.urls import patterns
 
 
 urlpatterns = patterns('djblets.extensions.views',

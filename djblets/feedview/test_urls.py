@@ -1,5 +1,5 @@
 import os.path
-from django.conf.urls.defaults import patterns, handler500
+from django.conf.urls import patterns
 
 
 FEED_URL = "file://%s/testdata/sample.rss" % os.path.dirname(__file__)

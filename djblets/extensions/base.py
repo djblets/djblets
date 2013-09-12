@@ -32,7 +32,7 @@ import sys
 import time
 
 from django.conf import settings
-from django.conf.urls.defaults import patterns, include
+from django.conf.urls import patterns, include
 from django.contrib.admin.sites import AdminSite
 from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured

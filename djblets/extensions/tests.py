@@ -26,7 +26,7 @@
 import os
 
 from django.conf import settings
-from django.conf.urls.defaults import include, patterns
+from django.conf.urls import include, patterns
 from django.core.exceptions import ImproperlyConfigured
 from mock import Mock
 

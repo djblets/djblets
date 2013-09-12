@@ -3,7 +3,7 @@ try:
 except ImportError:
     from sha import sha as sha1
 
-from django.conf.urls.defaults import include, patterns, url
+from django.conf.urls import include, patterns, url
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
