@@ -26,6 +26,7 @@
 
 from django import forms
 from django.contrib import auth
+from django.core.exceptions import ValidationError
 
 from djblets.auth.util import get_user
 
@@ -52,7 +53,7 @@ class RegistrationForm(forms.Form):
         formdata = self.cleaned_data
         if 'password1' in formdata:
             if formdata['password1'] != formdata['password2']:
-                raise forms.ValidationError('Passwords must match')
+                raise ValidationError('Passwords must match')
         return formdata['password2']
 
     def save(self):
@@ -88,7 +89,7 @@ class ChangePasswordForm(forms.Form):
         formdata = self.cleaned_data
         if 'new_password1' in formdata:
             if formdata['new_password1'] != formdata['new_password2']:
-                raise forms.ValidationError('Passwords must match')
+                raise ValidationError('Passwords must match')
             return formdata['new_password2']
 
 
