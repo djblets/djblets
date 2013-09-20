@@ -987,7 +987,7 @@ $.widget("ui.modalBox", {
         this.box = $("<div/>")
             .addClass("modalbox")
             .move(0, 0, "absolute")
-            .css('z-index', 100)
+            .css('z-index', 2000)
             .keydown(function(e) { e.stopPropagation(); });
 
         if (this.options.boxID) {
