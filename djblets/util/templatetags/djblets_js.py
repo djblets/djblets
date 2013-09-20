@@ -65,7 +65,7 @@ def form_dialog_fields(form):
 
 
 @register.filter
-def json_dumps(value, indent=0):
+def json_dumps(value, indent=None):
     if isinstance(value, QuerySet):
         result = serialize('json', value, indent=indent)
     else:
