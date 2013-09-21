@@ -35,6 +35,14 @@ class WebAPIError(object):
         self.http_status = http_status
         self.headers = headers
 
+    def with_overrides(self, msg=None, headers=None):
+        """Overrides the default message and/or headers for an error."""
+        if headers is None:
+            headers = self.headers
+
+        return WebAPIError(self.code, msg or self.msg, self.http_status,
+                           headers)
+
     def with_message(self, msg):
         """
         Overrides the default message for a WebAPIError with something
@@ -43,8 +51,8 @@ class WebAPIError(object):
         Example:
         return ENABLE_EXTENSION_FAILED.with_message('some error message')
         """
-        self.msg = msg
-        return self
+        return self.with_overrides(msg)
+
 
 WWW_AUTHENTICATE_HEADERS = {
     'WWW-Authenticate': 'Basic realm="Web API"',
