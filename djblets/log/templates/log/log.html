@@ -1,6 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load adminmedia %}
-{% load i18n %}
+{% load i18n staticfiles %}
 
 {% block title %}{% trans "Server Log" %}{% endblock %}
 
@@ -8,7 +7,7 @@
 
 {% block extrastyle %}
 {{block.super}}
-<link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/changelists.css" />
+<link rel="stylesheet" type="text/css" href="{% static "admin/css/changelists.css" %}" />
 {% endblock %}
 
 {% block content %}
