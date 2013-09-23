@@ -60,7 +60,7 @@ class BuildMedia(Command):
 
     def run(self):
         retcode = subprocess.call([
-            'python', 'contrib/internal/build-media.py'])
+            sys.executable, 'contrib/internal/build-media.py'])
 
         if retcode != 0:
             raise RuntimeError('Failed to build media files')
