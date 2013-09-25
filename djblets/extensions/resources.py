@@ -16,9 +16,26 @@ from djblets.webapi.resources import WebAPIResource
 
 
 class ExtensionResource(WebAPIResource):
-    """A default resource for representing an Extension model."""
+    """Provides information on installed extensions."""
     model = RegisteredExtension
-    fields = ('class_name', 'name', 'enabled', 'installed')
+    fields = {
+        'class_name': {
+            'type': str,
+            'description': 'The class name for the extension.',
+        },
+        'name': {
+            'type': str,
+            'description': 'The name of the extension.',
+        },
+        'enabled': {
+            'type': bool,
+            'description': 'Whether or not the extension is enabled.',
+        },
+        'installed': {
+            'type': bool,
+            'description': 'Whether or not the extension is installed.',
+        },
+    }
     name = 'extension'
     plural_name = 'extensions'
     uri_object_key = 'extension_name'
@@ -43,6 +60,11 @@ class ExtensionResource(WebAPIResource):
 
     @webapi_login_required
     def get_list(self, request, *args, **kwargs):
+        """Returns the list of known extensions.
+
+        Each extension in the list has been installed, but may not be
+        enabled.
+        """
         return WebAPIResource.get_list(self, request, *args, **kwargs)
 
     @webapi_login_required
@@ -56,6 +78,11 @@ class ExtensionResource(WebAPIResource):
         },
     )
     def update(self, request, *args, **kwargs):
+        """Updates the state of the extension.
+
+        If ``enabled`` is true, then the extension will be enabled, if it is
+        not already. If false, it will be disabled.
+        """
         # Try to find the registered extension
         try:
             registered_extension = self.get_object(request, *args, **kwargs)

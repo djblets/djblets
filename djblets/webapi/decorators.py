@@ -114,6 +114,10 @@ def webapi_permission_required(perm):
 
             return response
 
+        _checkpermissions.__name__ = view_func.__name__
+        _checkpermissions.__doc__ = view_func.__doc__
+        _checkpermissions.__dict__.update(view_func.__dict__)
+
         return _checkpermissions
 
     return _dec
