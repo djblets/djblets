@@ -35,7 +35,7 @@ def run_tests(verbosity=1, interactive=False):
         nose_argv.append('--ignore-files=contextmanagers.py')
 
     if len(sys.argv) > 2:
-        node_argv += sys.argv[2:]
+        nose_argv += sys.argv[2:]
 
     nose.main(argv=nose_argv)
 

@@ -35,6 +35,10 @@ class WebAPIError(object):
         self.http_status = http_status
         self.headers = headers
 
+    def __repr__(self):
+        return '<API Error %d, HTTP %d: %s>' % (self.code, self.http_status,
+                                                self.msg)
+
     def with_overrides(self, msg=None, headers=None):
         """Overrides the default message and/or headers for an error."""
         if headers is None:

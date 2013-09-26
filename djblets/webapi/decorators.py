@@ -27,7 +27,6 @@
 
 from django.http import HttpRequest
 
-from djblets.util.decorators import simple_decorator
 from djblets.webapi.core import SPECIAL_PARAMS
 from djblets.webapi.errors import NOT_LOGGED_IN, PERMISSION_DENIED, \
                                   INVALID_FORM_DATA
@@ -45,7 +44,55 @@ def _find_httprequest(args):
     return request
 
 
-@simple_decorator
+def copy_webapi_decorator_data(from_func, to_func):
+    """Copies and merges data from one decorated function to another.
+
+    This will copy over the standard function information (name, docs,
+    and dictionary data), but will also handle intelligently merging
+    together data set by webapi decorators, such as the list of
+    possible errors.
+    """
+    from_errors = getattr(from_func, 'response_errors', set())
+    to_errors = getattr(to_func, 'response_errors', set())
+    from_required_fields = getattr(from_func, 'required_fields', {}).copy()
+    from_optional_fields = getattr(from_func, 'optional_fields', {}).copy()
+    to_required_fields = getattr(to_func, 'required_fields', {}).copy()
+    to_optional_fields = getattr(to_func, 'optional_fields', {}).copy()
+
+    to_func.__name__ = from_func.__name__
+    to_func.__doc__ = from_func.__doc__
+    to_func.__dict__.update(from_func.__dict__)
+
+    # Only copy if one of the two functions had this already.
+    if (hasattr(to_func, 'response_errors') or
+        hasattr(from_func, 'response_errors')):
+        to_func.response_errors = to_errors.union(from_errors)
+
+    if (hasattr(to_func, 'required_fields') or
+        hasattr(from_func, 'required_fields')):
+        to_func.required_fields = from_required_fields
+        to_func.required_fields.update(to_required_fields)
+        to_func.optional_fields = from_optional_fields
+        to_func.optional_fields.update(to_optional_fields)
+
+    return to_func
+
+
+def webapi_decorator(decorator):
+    """Decorator for simple webapi decorators.
+
+    This is meant to be used for other webapi decorators in order to
+    intelligently preserve information, like the possible response
+    errors. It handles merging lists of errors and other information
+    instead of overwriting one list with another, as simple_decorator
+    would do.
+    """
+    return copy_webapi_decorator_data(
+        decorator,
+        lambda f: copy_webapi_decorator_data(f, decorator(f)))
+
+
+@webapi_decorator
 def webapi(view_func):
     """Indicates that a view is a Web API handler."""
     return view_func
@@ -57,30 +104,26 @@ def webapi_response_errors(*errors):
     This can be used for generating documentation or schemas that cover
     the possible error responses of methods on a resource.
     """
+    @webapi_decorator
     def _dec(view_func):
         def _call(*args, **kwargs):
             return view_func(*args, **kwargs)
 
-        _call.__name__ = view_func.__name__
-        _call.__doc__ = view_func.__doc__
-        _call.__dict__.update(view_func.__dict__)
-
-        existing_errors = getattr(view_func, 'response_errors', set())
-        _call.response_errors = existing_errors.union(set(errors))
+        _call.response_errors = set(errors)
 
         return _call
 
     return _dec
 
 
-@webapi_response_errors(NOT_LOGGED_IN)
-@simple_decorator
+@webapi_decorator
 def webapi_login_required(view_func):
     """
     Checks that the user is logged in before invoking the view. If the user
     is not logged in, a NOT_LOGGED_IN error (HTTP 401 Unauthorized) is
     returned.
     """
+    @webapi_response_errors(NOT_LOGGED_IN)
     def _checklogin(*args, **kwargs):
         request = _find_httprequest(args)
 
@@ -89,19 +132,20 @@ def webapi_login_required(view_func):
         else:
             return NOT_LOGGED_IN
 
-    view_func.login_required = True
+    _checklogin.login_required = True
 
     return _checklogin
 
 
-@webapi_response_errors(NOT_LOGGED_IN, PERMISSION_DENIED)
 def webapi_permission_required(perm):
     """
     Checks that the user is logged in and has the appropriate permissions
     to access this view. A PERMISSION_DENIED error is returned if the user
     does not have the proper permissions.
     """
+    @webapi_decorator
     def _dec(view_func):
+        @webapi_response_errors(NOT_LOGGED_IN, PERMISSION_DENIED)
         def _checkpermissions(*args, **kwargs):
             request = _find_httprequest(args)
 
@@ -114,12 +158,15 @@ def webapi_permission_required(perm):
 
             return response
 
+        _checkpermissions.__name__ = view_func.__name__
+        _checkpermissions.__doc__ = view_func.__doc__
+        _checkpermissions.__dict__.update(view_func.__dict__)
+
         return _checkpermissions
 
     return _dec
 
 
-@webapi_response_errors(INVALID_FORM_DATA)
 def webapi_request_fields(required={}, optional={}, allow_unknown=False):
     """Validates incoming fields for a request.
 
@@ -150,7 +197,9 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
             }
         })
     """
+    @webapi_decorator
     def _dec(view_func):
+        @webapi_response_errors(INVALID_FORM_DATA)
         def _validate(*args, **kwargs):
             request = _find_httprequest(args)
 
@@ -234,9 +283,6 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
 
             return view_func(*args, **new_kwargs)
 
-        _validate.__name__ = view_func.__name__
-        _validate.__doc__ = view_func.__doc__
-        _validate.__dict__.update(view_func.__dict__)
         _validate.required_fields = required.copy()
         _validate.optional_fields = optional.copy()
 
