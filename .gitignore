@@ -1,6 +1,6 @@
 build
 dist
-djblets/static/*
+djblets/htdocs/*
 Djblets.egg-info
 
 .coverage
