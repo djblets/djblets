@@ -44,14 +44,14 @@ PIPELINE_JS = {
 PIPELINE_CSS = {
     'djblets-admin': {
         'source_filenames': (
-            'djblets/css/admin.css',
-            'djblets/css/extensions.css',
+            'djblets/css/admin.less',
+            'djblets/css/extensions.less',
         ),
         'output_filename': 'djblets/css/admin.min.css',
     },
     'djblets-datagrid': {
         'source_filenames': (
-            'djblets/css/datagrid.css',
+            'djblets/css/datagrid.less',
         ),
         'output_filename': 'djblets/css/datagrid.min.css',
     },
