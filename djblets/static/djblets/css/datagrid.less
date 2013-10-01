@@ -1,3 +1,5 @@
+@import "retina.less";
+
 .datagrid {
   border-collapse: collapse;
   width: 100%;
@@ -284,3 +286,36 @@
   }
 }
 
+.datagrid-icon {
+  background-repeat: no-repeat;
+  display: inline-block;
+  overflow: hidden;
+  text-indent: -99999px;
+  vertical-align: middle;
+
+  background-image: url("../images/datagrid/icons.png");
+  .at2x('../images/datagrid/icons.png', 66px, 16px);
+
+  // For IE7
+  zoom: 1;
+  *display: inline;
+}
+
+.icon(@name, @x, @y, @width, @height) {
+  .datagrid-icon-@{name} {
+    background-position: -@x -@y;
+    width: @width;
+    height: @height;
+  }
+}
+
+/*
+ * NOTE: Keep these in the same order as found in the spritesheet.
+ */
+.icon(edit, 1px, 1px, 18px, 14px);
+.icon(sort-asc-primary, 21px, 2px, 10px, 5px);
+.icon(sort-desc-primary, 21px, 9px, 10px, 5px);
+.icon(sort-asc-secondary, 33px, 2px, 10px, 5px);
+.icon(sort-desc-secondary, 33px, 9px, 10px, 5px);
+.icon(unsort, 45px, 2px, 8px, 8px);
+.icon(checkmark, 53px, -1px, 12px, 12px);
