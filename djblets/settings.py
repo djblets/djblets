@@ -36,7 +36,17 @@ PIPELINE_JS = {
         'output_filename': 'djblets/js/extensions.min.js',
     },
     'djblets-gravy': {
-        'source_filenames': ('djblets/js/jquery.gravy.js',),
+        'source_filenames': (
+            # These are in dependency order
+            'djblets/js/jquery.gravy.hacks.js',
+            'djblets/js/jquery.gravy.util.js',
+            'djblets/js/jquery.gravy.retina.js',
+            'djblets/js/jquery.gravy.autosize.js',
+            'djblets/js/jquery.gravy.inlineEditor.js',
+            'djblets/js/jquery.gravy.modalBox.js',
+            'djblets/js/jquery.gravy.tooltip.js',
+            'djblets/js/jquery.gravy.funcQueue.js',
+        ),
         'output_filename': 'djblets/js/jquery.gravy.min.js',
     },
 }
