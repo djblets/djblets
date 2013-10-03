@@ -23,7 +23,7 @@
 (function($) {
 
 
-$.tooltip = function(el, options) {
+$.tooltip = function($el, options) {
     options = $.extend({
         side: 'b'
     }, options);
@@ -33,23 +33,22 @@ $.tooltip = function(el, options) {
         .hide()
         .appendTo("body");
 
-    if ($.browser.mobileSafari) {
-        /* Tooltips don't make sense on touchpads. Silently ignore. */
-        return self;
-    }
-
-    el.hover(
-        function() {
+    /*
+     * We use mouseenter and mouseleave instead of hover() because we don't
+     * want to show tooltips as a result of touch events.
+     */
+    $el
+        .mouseenter(function() {
             if (self.children()) {
                 self
-                    .positionToSide(el, {
+                    .positionToSide($el, {
                         side: options.side,
                         distance: 10
                     })
                     .show();
             }
-        },
-        function() {
+        })
+        .mouseleave(function() {
             self.hide();
         });
 

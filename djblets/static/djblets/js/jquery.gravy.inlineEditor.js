@@ -279,11 +279,7 @@ $.widget("ui.inlineEditor", {
         }
         this._editing = true;
 
-        if (this.options.multiline && $.browser.msie) {
-            this._field.text(value);
-        } else {
-            this._field.val(value);
-        }
+        this._field.val(value);
 
         this.showEditor(preventAnimation);
         this.element.triggerHandler("beginEdit");

@@ -36,41 +36,17 @@ $.widget("ui.autoSizeTextArea", {
     _init: function() {
         var self = this;
 
-        if ($.browser.safari && $.browser.version < 531.9) {
-            /*
-             * Older versions of WebKit have some crasher bugs and height
-             * computation bugs that prevent this from working. In those
-             * cases, we just want to turn off auto-sizing altogether.
-             */
-            return;
-        }
-
         this._proxyEl = $("<pre/>")
             .appendTo("body")
             .move(-10000, -10000, "absolute");
 
-        if (!$.browser.msie) {
-            /*
-             * Set white-space to pre-wrap on browsers that support it.
-             * Most browsers will either ignore this or accept it as the
-             * main value if they understand it. IE, however, will complain,
-             * so we don't want to set it there. (Bug #1349)
-             */
-            this._proxyEl.css("white-space", "pre-wrap"); // Standards-compliant
-        }
-
-        if ($.browser.mozilla) {
-            this._proxyEl.css("white-space", "-moz-pre-wrap"); // Mozilla, 1999+
-        } else if ($.browser.opera) {
-            // Opera 4-6
-            this._proxyEl.css("white-space", "-pre-wrap");
-
-            // Opera 7
-            this._proxyEl.css({
-                "white-space": "-o-pre-wrap",
-                "word-wrap": "break-word"
-            });
-        }
+        /*
+         * Set white-space to pre-wrap on browsers that support it.
+         */
+        this._proxyEl.css({
+            "white-space": "pre-wrap",
+            "word-wrap": "break-word"
+        });
 
         this.element.css("overflow", "hidden");
         this.oldLength = this.element.val().length;

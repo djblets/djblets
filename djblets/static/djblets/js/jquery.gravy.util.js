@@ -23,6 +23,11 @@
 (function($) {
 
 
+if ($.support.touch === undefined) {
+    $.support.touch = ('ontouchstart' in window ||
+                       navigator.msMaxTouchPoints);
+}
+
 $.fn.extend({
     /*
      * Sets one or more elements' visibility based on the specified value.
@@ -58,9 +63,7 @@ $.fn.extend({
             });
 
             if (posType) {
-                $(this).css("position",
-                    (posType == "fixed" && $.browser.msie &&
-                     $.browser.version == 6) ? "absolute" : posType);
+                $(this).css("position", posType);
             }
         });
     },

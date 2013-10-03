@@ -23,24 +23,14 @@
 (function($) {
 
 
-var userAgent = navigator.userAgent.toLowerCase();
-
-$.extend($.browser, {
-    chrome: /chrome/.test(userAgent),
-    mobileSafari: /webkit.*mobile/.test(userAgent),
-    mobileSafariIPad: /ipad.*webkit.*mobile/.test(userAgent)
-});
-
-$.fn.old_html = $.fn.html;
-
-
 /*
- * IE has broken innerHTML support. Newlines and other whitespace is stripped
- * from the HTML, even when inserting into a <pre>. This doesn't happen,
- * however, if the whole html is wrapped in a <pre> before being set.
+ * IE <=8 has broken innerHTML support. Newlines and other whitespace is
+ * stripped from the HTML, even when inserting into a <pre>. This doesn't
+ * happen, however, if the whole html is wrapped in a <pre> before being set.
  * So our new version of html() wraps it and then removes that inner <pre>
  * tag.
  */
+$.fn.old_html = $.fn.html;
 $.fn.html = function(value) {
     var removePre = false;
 
@@ -59,31 +49,6 @@ $.fn.html = function(value) {
 
     return ret;
 };
-
-
-/*
- * $.offset() on Safari on the iPad returns incorrect values, so this code
- * will compensate.
- *
- * See http://dev.jquery.com/ticket/6446
- */
-if ($.browser.mobileSafariIPad) {
-    $.fn.old_offset = $.fn.offset;
-
-    $.fn.offset = function(offset) {
-        var result = this.old_offset(offset);
-
-        if (result.top) {
-            result.top -= window.scrollY;
-        }
-
-        if (result.left) {
-            result.left -= window.scrollX;
-        }
-
-        return result;
-    };
-}
 
 
 })(jQuery);
