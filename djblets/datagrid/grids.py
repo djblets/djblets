@@ -755,9 +755,13 @@ class DataGrid(object):
 
             if self.page.has_next():
                 context['next'] = self.page.next_page_number()
+            else:
+                context['next'] = None
 
             if self.page.has_previous():
-                context['previous'] = self.page.pprevious_page_number()
+                context['previous'] = self.page.previous_page_number()
+            else:
+                context['previous'] = None
 
             context.update(self.extra_context)
             context.update(render_context)
