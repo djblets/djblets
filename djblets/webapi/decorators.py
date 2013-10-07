@@ -52,6 +52,11 @@ def copy_webapi_decorator_data(from_func, to_func):
     together data set by webapi decorators, such as the list of
     possible errors.
     """
+    had_errors = (hasattr(to_func, 'response_errors') or
+                  hasattr(from_func, 'response_errors'))
+    had_fields = (hasattr(to_func, 'required_fields') or
+                  hasattr(from_func, 'required_fields'))
+
     from_errors = getattr(from_func, 'response_errors', set())
     to_errors = getattr(to_func, 'response_errors', set())
     from_required_fields = getattr(from_func, 'required_fields', {}).copy()
@@ -64,12 +69,10 @@ def copy_webapi_decorator_data(from_func, to_func):
     to_func.__dict__.update(from_func.__dict__)
 
     # Only copy if one of the two functions had this already.
-    if (hasattr(to_func, 'response_errors') or
-        hasattr(from_func, 'response_errors')):
+    if had_errors:
         to_func.response_errors = to_errors.union(from_errors)
 
-    if (hasattr(to_func, 'required_fields') or
-        hasattr(from_func, 'required_fields')):
+    if had_fields:
         to_func.required_fields = from_required_fields
         to_func.required_fields.update(to_required_fields)
         to_func.optional_fields = from_optional_fields
@@ -157,10 +160,6 @@ def webapi_permission_required(perm):
                 response = view_func(*args, **kwargs)
 
             return response
-
-        _checkpermissions.__name__ = view_func.__name__
-        _checkpermissions.__doc__ = view_func.__doc__
-        _checkpermissions.__dict__.update(view_func.__dict__)
 
         return _checkpermissions
 
