@@ -342,3 +342,49 @@ class QuoteTextFilterTest(unittest.TestCase):
         """Testing quote_text filter (level 2)"""
         self.assertEqual(djblets_email.quote_text("foo\nbar", 2),
                          "> > foo\n> > bar")
+
+
+class JSONFieldTests(unittest.TestCase):
+    """Unit tests for JSONField."""
+
+    def setUp(self):
+        from djblets.util.fields import JSONField
+        self.field = JSONField()
+
+    def test_loading_json_dict(self):
+        """Testing JSONField with loading a JSON dictionary"""
+        result = self.field.loads('{"a": 1, "b": 2}')
+        self.assertTrue(isinstance(result, dict))
+        self.assertTrue('a' in result)
+        self.assertTrue('b' in result)
+
+    def test_loading_json_broken_dict(self):
+        """Testing JSONField with loading a badly serialized JSON dictionary"""
+        result = self.field.loads('{u"a": 1, u"b": 2}')
+        self.assertTrue(isinstance(result, dict))
+        self.assertTrue('a' in result)
+        self.assertTrue('b' in result)
+
+    def test_loading_json_array(self):
+        """Testing JSONField with loading a JSON array"""
+        result = self.field.loads('[1, 2, 3]')
+        self.assertTrue(isinstance(result, list))
+        self.assertEqual(result, [1, 2, 3])
+
+    def test_loading_string(self):
+        """Testing JSONField with loading a stored string"""
+        result = self.field.loads('"foo"')
+        self.assertTrue(isinstance(result, dict))
+        self.assertEqual(result, {})
+
+    def test_loading_broken_string(self):
+        """Testing JSONField with loading a broken stored string"""
+        result = self.field.loads('u"foo"')
+        self.assertTrue(isinstance(result, dict))
+        self.assertEqual(result, {})
+
+    def test_loading_python_code(self):
+        """Testing JSONField with loading Python code"""
+        result = self.field.loads('locals()')
+        self.assertTrue(isinstance(result, dict))
+        self.assertEqual(result, {})
