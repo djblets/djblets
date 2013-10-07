@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% load djblets_deco %}
-{% load staticfiles %}
+{% load compressed djblets_deco %}
+
 {% block title %}{{datagrid.title}}{% endblock %}
 
 {% block extrahead %}
-<link rel="stylesheet" type="text/css" href="{% static "djblets/css/datagrid.css" %}" />
-{% include "js/jquery.html" %}
-{% include "js/jquery-ui.html" %}
-<script type="text/javascript" src="{% static "djblets/js/jquery.gravy.js" %}"></script>
-<script type="text/javascript" src="{% static "djblets/js/datagrid.js" %}"></script>
+{%  compressed_css "djblets-datagrid" %}
+{%  include "js/jquery.html" %}
+{%  include "js/jquery-ui.html" %}
+{%  compressed_js "djblets-gravy" %}
+{%  compressed_js "djblets-datagrid" %}
 {% endblock %}
 
 {% block content %}
-{% box %}
+{%  box %}
 {{datagrid.render_listview}}
-{% endbox %}
+{%  endbox %}
 {% endblock %}
