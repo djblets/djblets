@@ -151,6 +151,11 @@ class Extension(object):
 
     Extensions should list all other extension names that they require in
     :py:attr:`requirements`.
+
+    If an extension has any middleware, it should set :py:attr:`middleware`
+    to a list of class names. This extension's middleware will be loaded after
+    any middleware belonging to any extensions in the :py:attr:`requirements`
+    list.
     """
     metadata = None
     is_configurable = False
@@ -159,12 +164,14 @@ class Extension(object):
     requirements = []
     resources = []
     apps = []
+    middleware = []
 
     def __init__(self, extension_manager):
         self.extension_manager = extension_manager
         self.hooks = set()
         self.settings = Settings(self)
         self.admin_site = None
+        self.middleware_instances = [m() for m in self.middleware]
 
     def shutdown(self):
         """Shuts down the extension.
@@ -323,6 +330,9 @@ class ExtensionManager(object):
 
         self.dynamic_urls = DynamicURLResolver()
 
+        # Extension middleware instances, ordered by dependencies.
+        self.middleware = []
+
         _extension_managers.append(self)
 
     def get_url_patterns(self):
@@ -423,6 +433,7 @@ class ExtensionManager(object):
 
         self._clear_template_cache()
         self._bump_sync_gen()
+        self._recalculate_middleware()
 
         return extension
 
@@ -453,6 +464,7 @@ class ExtensionManager(object):
 
         self._clear_template_cache()
         self._bump_sync_gen()
+        self._recalculate_middleware()
 
     def install_extension(self, install_url, package_name):
         """Install an extension from a remote source.
@@ -502,6 +514,7 @@ class ExtensionManager(object):
             registered_extensions[registered_ext.class_name] = registered_ext
 
         found_extensions = {}
+        extensions_changed = False
 
         for entrypoint in self._entrypoint_iterator():
             registered_ext = None
@@ -546,6 +559,7 @@ class ExtensionManager(object):
             if (ext_class.registration.enabled and
                 ext_class.id not in self._extension_instances):
                 self._init_extension(ext_class)
+                extensions_changed = True
 
         # At this point, if we're reloading, it's possible that the user
         # has removed some extensions. Go through and remove any that we
@@ -560,6 +574,7 @@ class ExtensionManager(object):
                     self.disable_extension(class_name)
 
                 del self._extension_classes[class_name]
+                extensions_changed = True
             else:
                 ext_class.info.requirements = \
                     [self.get_installed_extension(requirement_id)
@@ -568,6 +583,9 @@ class ExtensionManager(object):
         # Add the sync generation if it doesn't already exist.
         self._add_new_sync_gen()
         self._last_sync_gen = cache.get(self._sync_key)
+
+        if extensions_changed:
+            self._recalculate_middleware()
 
     def _clear_extensions(self):
         """Clear the entire list of known extensions.
@@ -833,6 +851,38 @@ class ExtensionManager(object):
     def _add_new_sync_gen(self):
         val = time.mktime(datetime.datetime.now().timetuple())
         return cache.add(self._sync_key, int(val))
+
+    def _recalculate_middleware(self):
+        """Recalculates the list of middleware."""
+        self.middleware = []
+        done = set()
+
+        for e in self.get_enabled_extensions():
+            self.middleware.extend(self._get_extension_middleware(e, done))
+
+    def _get_extension_middleware(self, extension, done):
+        """Returns a list of middleware for 'extension' and its dependencies.
+
+        This is a recursive utility function initially called by
+        _recalculate_middleware() that ensures that middleware for all
+        dependencies are inserted before that of the given extension.  It
+        also ensures that each extension's middleware is inserted only once.
+        """
+        middleware = []
+
+        if extension in done:
+            return middleware
+
+        done.add(extension)
+
+        for req in extension.requirements:
+            e = self.get_enabled_extension(req)
+
+            if e:
+                middleware.extend(self._get_extension_middleware(e, done))
+
+        middleware.extend(extension.middleware_instances)
+        return middleware
 
 
 def get_extension_managers():

@@ -48,3 +48,74 @@ class ExtensionsMiddleware(object):
         for extension_manager in get_extension_managers():
             if extension_manager.is_expired():
                 extension_manager.load(full_reload=True)
+
+
+class ExtensionsMiddlewareRunner(object):
+    """Middleware to execute middleware from extensions.
+
+    The process_*() methods iterate over all extensions' middleware, calling
+    the given method if it exists. The semantics of how Django executes each
+    method are preserved.
+
+    This middleware should be loaded after the main extension middleware
+    (djblets.extensions.middleware.ExtensionsMiddleware). It's probably
+    a good idea to have it be at the very end so that everything else in the
+    core that needs to be initialized is done before any extension's
+    middleware is run.
+    """
+
+    def process_request(self, request):
+        return self._call_until('process_request', False, request)
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        return self._call_until('process_view', False, request, view_func,
+                                view_args, view_kwargs)
+
+    def process_template_response(self, request, response):
+        return self._call_chain_response('process_template_response', request,
+                                         response)
+
+    def process_response(self, request, response):
+        return self._call_chain_response('process_response', request, response)
+
+    def process_exception(self, request, exception):
+        return self._call_until('process_exception', True, request, exception)
+
+    def _call_until(self, func_name, reverse, *args, **kwargs):
+        """Call extension middleware until a truthy value is returned."""
+        r = None
+
+        for f in self._middleware_funcs(func_name, reverse):
+            r = f(*args, **kwargs)
+
+            if r:
+                break
+
+        return r
+
+    def _call_chain_response(self, func_name, request, response):
+        """Call extension middleware, passing response from one to the next."""
+        for f in self._middleware_funcs(func_name, True):
+            response = f(request, response)
+
+        return response
+
+    def _middleware_funcs(self, func_name, reverse=False):
+        """Generator yielding the given middleware function for all extensions.
+
+        If an extension's middleware does not implement 'func_name', it is
+        skipped.
+        """
+        middleware = []
+
+        for mgr in get_extension_managers():
+            middleware.extend(mgr.middleware)
+
+        if reverse:
+            middleware.reverse()
+
+        for m in middleware:
+            f = getattr(m, func_name, None)
+
+            if f:
+                yield f
