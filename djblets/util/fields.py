@@ -24,7 +24,6 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import base64
-import json
 import logging
 from datetime import datetime
 
@@ -32,6 +31,7 @@ from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.db.models import F
+from django.utils import simplejson
 from django.utils.encoding import smart_unicode
 
 from djblets.util.dates import get_tz_aware_utcnow
@@ -197,7 +197,7 @@ class JSONField(models.TextField):
 
     def loads(self, val):
         try:
-            val = json.loads(val, encoding=settings.DEFAULT_CHARSET)
+            val = simplejson.loads(val, encoding=settings.DEFAULT_CHARSET)
 
             # XXX We need to investigate why this is happening once we have
             #     a solid repro case.
@@ -205,7 +205,7 @@ class JSONField(models.TextField):
                 logging.warning("JSONField decode error. Expected dictionary, "
                                 "got string for input '%s'" % val)
                 # For whatever reason, we may have gotten back
-                val = json.loads(val, encoding=settings.DEFAULT_CHARSET)
+                val = simplejson.loads(val, encoding=settings.DEFAULT_CHARSET)
         except ValueError:
             # There's probably embedded unicode markers (like u'foo') in the
             # string. We have to eval it.
