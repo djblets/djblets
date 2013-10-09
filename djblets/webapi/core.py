@@ -317,7 +317,7 @@ class WebAPIResponsePaginated(WebAPIResponse):
                  serialize_object_func=None,
                  extra_data={}, *args, **kwargs):
         try:
-            start = int(request.GET.get('start', 0))
+            start = max(int(request.GET.get('start', 0)), 0)
         except ValueError:
             start = 0
 
