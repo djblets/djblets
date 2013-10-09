@@ -23,11 +23,11 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import json
 
 from django import template
 from django.core.serializers import serialize
 from django.db.models.query import QuerySet
+from django.utils import simplejson
 from django.utils.safestring import mark_safe
 
 
@@ -69,6 +69,6 @@ def json_dumps(value, indent=None):
     if isinstance(value, QuerySet):
         result = serialize('json', value, indent=indent)
     else:
-        result = json.dumps(value, indent=indent)
+        result = simplejson.dumps(value, indent=indent)
 
     return mark_safe(result)

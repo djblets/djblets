@@ -25,15 +25,12 @@
 #
 
 
-import json
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from cStringIO import StringIO
 from xml.sax.saxutils import XMLGenerator
 
 from django.conf import settings
 from django.http import HttpResponse
+from django.utils import simplejson
 from django.utils.encoding import force_unicode
 
 from djblets.util.http import get_http_requested_mimetype, is_mimetype_a
@@ -71,18 +68,18 @@ class WebAPIEncoder(object):
         return None
 
 
-class JSONEncoderAdapter(json.JSONEncoder):
+class JSONEncoderAdapter(simplejson.JSONEncoder):
     """
-    Adapts a WebAPIEncoder to be used with json.
+    Adapts a WebAPIEncoder to be used with simplejson.
 
     This takes an existing encoder and makes it available to use as a
-    json.JSONEncoder. This is used internally when generating JSON from a
-    WebAPIEncoder, but can be used in other projects for more specific
+    simplejson.JSONEncoder. This is used internally when generating JSON
+    from a WebAPIEncoder, but can be used in other projects for more specific
     purposes as well.
     """
 
     def __init__(self, encoder, *args, **kwargs):
-        json.JSONEncoder.__init__(self, *args, **kwargs)
+        simplejson.JSONEncoder.__init__(self, *args, **kwargs)
         self.encoder = encoder
 
     def encode(self, o, *args, **kwargs):
