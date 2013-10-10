@@ -152,6 +152,12 @@ class Extension(object):
     Extensions should list all other extension names that they require in
     :py:attr:`requirements`.
 
+    Extensions that have a JavaScript component can list their common
+    JavaScript files in py:attr:`js_files`, and the full name of their
+    JavaScript Extension subclass in :py:attr:`js_model_class`. It will
+    then be instantiated when loading any page that uses the
+    ``init_js_extensions`` template tag.
+
     If an extension has any middleware, it should set :py:attr:`middleware`
     to a list of class names. This extension's middleware will be loaded after
     any middleware belonging to any extensions in the :py:attr:`requirements`
@@ -165,6 +171,9 @@ class Extension(object):
     resources = []
     apps = []
     middleware = []
+
+    js_files = []
+    js_model_class = None
 
     def __init__(self, extension_manager):
         self.extension_manager = extension_manager
@@ -196,6 +205,14 @@ class Extension(object):
 
         return self._admin_urlconf_module
     admin_urlconf = property(_get_admin_urlconf)
+
+    def get_js_model_data(self):
+        """Returns model data for the Extension instance in JavaScript.
+
+        Subclasses can override this to return custom data to pass to
+        the extension.
+        """
+        return {}
 
 
 class ExtensionInfo(object):

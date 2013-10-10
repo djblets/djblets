@@ -31,8 +31,17 @@ PIPELINE_JS = {
         'source_filenames': ('djblets/js/datagrid.js',),
         'output_filename': 'djblets/js/datagrid.min.js',
     },
+    'djblets-extensions-admin': {
+        'source_filenames': ('djblets/js/extensions/admin.js',),
+        'output_filename': 'djblets/js/extensions-admin.min.js',
+    },
     'djblets-extensions': {
-        'source_filenames': ('djblets/js/extensions.js',),
+        'source_filenames': (
+            'djblets/js/extensions/base.js',
+            'djblets/js/extensions/models/extensionModel.js',
+            'djblets/js/extensions/models/extensionHookModel.js',
+            'djblets/js/extensions/models/extensionHookPointModel.js',
+        ),
         'output_filename': 'djblets/js/extensions.min.js',
     },
     'djblets-gravy': {
