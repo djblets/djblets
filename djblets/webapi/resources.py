@@ -756,6 +756,12 @@ class WebAPIResource(object):
                                     request=request, *args, **kwargs),
         }
 
+        if not self.has_list_access_permissions(request, *args, **kwargs):
+            if request.user.is_authenticated():
+                return PERMISSION_DENIED
+            else:
+                return NOT_LOGGED_IN
+
         if self.model:
             return WebAPIResponsePaginated(
                 request,
@@ -874,6 +880,24 @@ class WebAPIResource(object):
 
     def has_access_permissions(self, request, obj, *args, **kwargs):
         """Returns whether or not the user has read access to this object."""
+        return True
+
+    def has_list_access_permissions(self, request, *args, **kwargs):
+        """Returns whether or not the user has read access to this list."""
+        if self._parent_resource and self.model_parent_key:
+            try:
+                parent_obj = self._parent_resource.get_object(
+                    request, *args, **kwargs)
+
+                return self._parent_resource.has_access_permissions(
+                    request, parent_obj, *args, **kwargs)
+            except:
+                # Other errors, like Does Not Exist, should be caught
+                # separately. As of here, we'll allow it to pass, so that
+                # the error isn't a Permission Denied when it should be
+                # a Does Not Exist.
+                pass
+
         return True
 
     def has_modify_permissions(self, request, obj, *args, **kwargs):
