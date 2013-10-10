@@ -27,6 +27,11 @@ import base64
 import logging
 from datetime import datetime
 
+try:
+    from ast import literal_eval
+except ImportError:
+    from djblets.util.compat.ast_compat import literal_eval
+
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
@@ -209,7 +214,17 @@ class JSONField(models.TextField):
         except ValueError:
             # There's probably embedded unicode markers (like u'foo') in the
             # string. We have to eval it.
-            val = eval(val)
+            try:
+                val = literal_eval(val)
+            except Exception, e:
+                logging.error('Failed to eval JSONField data "%r": %s'
+                              % (val, e))
+                val = {}
+
+            if isinstance(val, basestring):
+                logging.warning('JSONField decode error after literal_eval: '
+                                'Expected dictionary, got string: %r' % val)
+                val = {}
 
         return val
 

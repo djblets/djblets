@@ -528,6 +528,14 @@ version 0.7.0 final (2-August-2012):
 		  a dependency of djblets.
 
 
+version 0.6.30 final (10-October-2013);
+	* Security updates:
+		* JSONField now corrects incorrectly stored contents in a safer way,
+		  to remove the risk of any exploits in a JSON payload.
+
+		  This is CVE-2013-4409
+
+
 version 0.6.29 final (27-July-2013):
 	* djblets.datagrid:
 		* Data pulled from the database and rendered into cells are always
