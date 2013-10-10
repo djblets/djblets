@@ -1,3 +1,56 @@
+version 0.7.19 final (10-October-2013):
+	* Security updates:
+		* JSONField now corrects incorrectly stored contents in a safer way,
+		  to remove the risk of any exploits in a JSON payload.
+
+		  This is CVE-2013-4409
+
+	* General:
+		* Updated much of the codebase to be more compatible with Django 1.5
+		  and newer. The upcoming Djblets 0.8 releases will be geared more
+		  heavily toward Django 1.5 compatibility.
+
+	* Packaging:
+		* Fixed building the static media for Djblets when using a Python
+		  interpreter other than the one named 'python' in the system path.
+		  Patch by Emmanuel Gil Peyrot.
+
+		* Djblets now requires django-pipeline 1.2.24. This version of
+		  Djblets does not work correctly with newer versions.
+
+	* djblets.extensions:
+		* Extensions can now add additional middleware by setting
+		  Extension.middleware to a list of middleware classes.
+
+		  Patch by Mark Côté.
+
+		* Updated ExtensionResource to use the modern, type-checked,
+		  documented field style, and to add missing documentation.
+
+	* djblets.util.templatetags.djblets_js:
+		* The json_dumps filter no longer defaults to indenting at all.
+		  Previously, it defaulted to 0, which did not indent code, but
+		  did preserve newlines.
+
+	* djblets.webapi:
+		* WebAPIError.with_message no longer overrides the original message
+		  for all other instances of that error.
+
+		* Added WebAPIError.with_overrides, which allows overriding the
+		  message and HTTP headers.
+
+		* The webapi decorators now preserve and merge webapi-related
+		  information from other decorators, such as the lists of
+		  response errors and optional/required fields.
+
+	* jquery.gravy:
+		* The modalBox z-index has been increased from its previously
+		  low z-index, to prevent other UI elements from more easily
+		  popping up over it.
+
+		  Patch by Natasha Dalal.
+
+
 version 0.7.18 final (15-September-2013):
 	* Security updates:
 		* We now require Django 1.4.8, which has some important security
@@ -526,6 +579,14 @@ version 0.7.0 final (2-August-2012):
 		* Added a TimeZoneField, which displays all known timezones for
 		  selection. The timezones come from the pytz module, which is now
 		  a dependency of djblets.
+
+
+version 0.6.30 final (10-October-2013);
+	* Security updates:
+		* JSONField now corrects incorrectly stored contents in a safer way,
+		  to remove the risk of any exploits in a JSON payload.
+
+		  This is CVE-2013-4409
 
 
 version 0.6.29 final (27-July-2013):
