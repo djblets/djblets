@@ -1,3 +1,9 @@
+version 0.7.21 final (11-October-2013):
+	* djblets.webapi:
+		* Added a has_list_access_permissions function, which is used to
+		  determine access to a list resource.
+
+
 version 0.7.20 final (11-October-2013):
 	* djblets.datagrid:
 		* Fixed pagination on the datagrid.
