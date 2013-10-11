@@ -586,6 +586,12 @@ version 0.7.0 final (2-August-2012):
 		  a dependency of djblets.
 
 
+version 0.6.31 final (11-October-2013):
+	* djblets.webapi:
+		* Added a has_list_access_permissions function, which is used to
+		  determine access to a list resource.
+
+
 version 0.6.30 final (10-October-2013);
 	* Security updates:
 		* JSONField now corrects incorrectly stored contents in a safer way,
