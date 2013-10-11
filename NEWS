@@ -1,3 +1,8 @@
+version 0.7.20 final (11-October-2013):
+	* djblets.datagrid:
+		* Fixed pagination on the datagrid.
+
+
 version 0.7.19 final (10-October-2013):
 	* Security updates:
 		* JSONField now corrects incorrectly stored contents in a safer way,
