@@ -329,11 +329,17 @@ class CondenseTagTest(TagTest):
     def getContentText(self):
         return "foo\nbar\n\n\n\n\n\n\nfoobar!"
 
-    def testPlain(self):
+    def test_plain(self):
         """Testing condense tag"""
         node = djblets_email.condense(self.parser,
                                       Token(TOKEN_TEXT, 'condense'))
         self.assertEqual(node.render({}), "foo\nbar\n\n\nfoobar!")
+
+    def test_with_max_indents(self):
+        """Testing condense tag with custom max_indents"""
+        node = djblets_email.condense(self.parser,
+                                      Token(TOKEN_TEXT, 'condense 1'))
+        self.assertEqual(node.render({}), "foo\nbar\nfoobar!")
 
 
 class QuoteTextFilterTest(unittest.TestCase):

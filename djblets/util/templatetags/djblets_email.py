@@ -46,13 +46,15 @@ def quoted_email(context, template_name):
 
 @register.tag
 @blocktag
-def condense(context, nodelist):
-    """
-    Condenses a block of text so that there are never more than three
-    consecutive newlines.
+def condense(context, nodelist, max_newlines=3):
+    """Condenses a block of text.
+
+    This will ensure that there are never more than the given number of
+    consecutive newlines. It's particularly useful when formatting plain text
+    output, to avoid issues with template tags adding unwanted newlines.
     """
     text = nodelist.render(context).strip()
-    text = re.sub("\n{4,}", "\n\n\n", text)
+    text = re.sub(r'\n{%d,}' % (max_newlines + 1), '\n' * max_newlines, text)
     return text
 
 
