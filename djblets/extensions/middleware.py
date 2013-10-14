@@ -23,7 +23,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from djblets.extensions.base import get_extension_managers
+from djblets.extensions.manager import get_extension_managers
 
 
 class ExtensionsMiddleware(object):

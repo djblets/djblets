@@ -23,11 +23,10 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from django.template import TemplateDoesNotExist
 from pkg_resources import _manager as manager
 
-from django.template import TemplateDoesNotExist
-
-from djblets.extensions.base import get_extension_managers
+from djblets.extensions.manager import get_extension_managers
 
 
 def load_template_source(template_name, template_dirs=None):

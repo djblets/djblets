@@ -1,8 +1,8 @@
 from django import template
 from django.contrib.staticfiles.templatetags.staticfiles import static
 
-from djblets.extensions.base import get_extension_managers
 from djblets.extensions.hooks import TemplateHook
+from djblets.extensions.manager import get_extension_managers
 from djblets.util.decorators import basictag
 
 

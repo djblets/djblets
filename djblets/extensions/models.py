@@ -52,7 +52,7 @@ class RegisteredExtension(models.Model):
         try:
             # Import the function here to avoid a mutual
             # dependency.
-            from djblets.extensions.base import get_extension_managers
+            from djblets.extensions.manager import get_extension_managers
         except:
             return None
 

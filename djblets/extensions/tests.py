@@ -1,7 +1,7 @@
 #
 # tests.py -- Unit tests for extensions.
 #
-# Copyright (c) 2010-2011  Beanbag, Inc.
+# Copyright (c) 2010-2013  Beanbag, Inc.
 # Copyright (c) 2008-2010  Christian Hammond
 #
 # Permission is hereby granted, free of charge, to any person obtaining
@@ -30,11 +30,11 @@ from django.conf.urls import include, patterns
 from django.core.exceptions import ImproperlyConfigured
 from mock import Mock
 
-from djblets.extensions.base import _extension_managers, Extension, \
-                                    ExtensionHook, ExtensionHookPoint, \
-                                    ExtensionInfo, ExtensionManager, \
-                                    Settings
-from djblets.extensions.hooks import TemplateHook, URLHook
+from djblets.extensions.extension import Extension, ExtensionInfo
+from djblets.extensions.hooks import (ExtensionHook, ExtensionHookPoint,
+                                      TemplateHook, URLHook)
+from djblets.extensions.manager import _extension_managers, ExtensionManager
+from djblets.extensions.settings import Settings
 from djblets.testing.testcases import TestCase
 
 
@@ -193,7 +193,7 @@ class ExtensionInfoTest(TestCase):
         self.assertEqual(extension_info.author_email, test_email)
         self.assertEqual(extension_info.description, test_description)
         self.assertFalse(extension_info.enabled)
-        self.assertEqual(extension_info.htdocs_path, test_htdocs_path)
+        self.assertEqual(extension_info.installed_htdocs_path, test_htdocs_path)
         self.assertFalse(extension_info.installed)
         self.assertEqual(extension_info.license, test_license)
         self.assertEqual(extension_info.metadata, test_metadata)
@@ -252,7 +252,7 @@ class ExtensionInfoTest(TestCase):
         self.assertEqual(extension_info.author_email, test_email)
         self.assertEqual(extension_info.description, test_description)
         self.assertFalse(extension_info.enabled)
-        self.assertEqual(extension_info.htdocs_path, test_htdocs_path)
+        self.assertEqual(extension_info.installed_htdocs_path, test_htdocs_path)
         self.assertFalse(extension_info.installed)
         self.assertEqual(extension_info.license, test_license)
         self.assertEqual(extension_info.metadata, test_metadata)

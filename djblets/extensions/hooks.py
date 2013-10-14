@@ -26,7 +26,57 @@
 from django.core.urlresolvers import NoReverseMatch, reverse
 from django.template.loader import render_to_string
 
-from djblets.extensions.base import ExtensionHook, ExtensionHookPoint
+
+class ExtensionHook(object):
+    """The base class for a hook into some part of the project.
+
+    ExtensionHooks are classes that can hook into an
+    :py:class:`ExtensionHookPoint` to provide some level of functionality
+    in a project. A project should provide a subclass of ExtensionHook that
+    will provide functions for getting data or anything else that's needed,
+    and then extensions will subclass that specific ExtensionHook.
+
+    A base ExtensionHook subclass must use :py:class:`ExtensionHookPoint`
+    as a metaclass. For example::
+
+        class NavigationHook(ExtensionHook):
+            __metaclass__ = ExtensionHookPoint
+    """
+    def __init__(self, extension):
+        self.extension = extension
+        self.extension.hooks.add(self)
+        self.__class__.add_hook(self)
+
+    def shutdown(self):
+        self.__class__.remove_hook(self)
+
+
+class ExtensionHookPoint(type):
+    """A metaclass used for base Extension Hooks.
+
+    Base :py:class:`ExtensionHook` classes use :py:class:`ExtensionHookPoint`
+    as a metaclass. This metaclass stores the list of registered hooks that
+    an :py:class:`ExtensionHook` will automatically register with.
+    """
+    def __init__(cls, name, bases, attrs):
+        super(ExtensionHookPoint, cls).__init__(name, bases, attrs)
+
+        if not hasattr(cls, "hooks"):
+            cls.hooks = []
+
+    def add_hook(cls, hook):
+        """Adds an ExtensionHook to the list of active hooks.
+
+        This is called automatically by :py:class:`ExtensionHook`.
+        """
+        cls.hooks.append(hook)
+
+    def remove_hook(cls, hook):
+        """Removes an ExtensionHook from the list of active hooks.
+
+        This is called automatically by :py:class:`ExtensionHook`.
+        """
+        cls.hooks.remove(hook)
 
 
 class URLHook(ExtensionHook):

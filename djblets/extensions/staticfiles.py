@@ -5,7 +5,7 @@ from django.contrib.staticfiles.utils import get_files
 from django.core.files.storage import FileSystemStorage
 from pkg_resources import resource_exists, resource_filename
 
-from djblets.extensions.base import get_extension_managers
+from djblets.extensions.manager import get_extension_managers
 
 
 class ExtensionStaticStorage(FileSystemStorage):
