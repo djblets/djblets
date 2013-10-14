@@ -254,8 +254,10 @@ class ExtensionInfo(object):
         self.installed = False
         self.is_configurable = ext_class.is_configurable
         self.has_admin_site = ext_class.has_admin_site
-        self.htdocs_path = os.path.join(settings.EXTENSIONS_STATIC_ROOT,
-                                        self.package_name)
+        self.installed_htdocs_path = \
+            os.path.join(settings.EXTENSIONS_STATIC_ROOT, self.package_name)
+        self.installed_static_path = \
+            os.path.join(settings.STATIC_ROOT, 'ext', ext_class.id)
 
     def __unicode__(self):
         return "%s %s (enabled = %s)" % (self.name, self.version, self.enabled)
@@ -538,11 +540,6 @@ class ExtensionManager(object):
 
             try:
                 ext_class = entrypoint.load()
-
-                # Don't override the info if we've previously loaded this
-                # class.
-                if not getattr(ext_class, "info", None):
-                    ext_class.info = ExtensionInfo(entrypoint, ext_class)
             except Exception, e:
                 logging.error("Error loading extension %s: %s" %
                               (entrypoint.name, e))
@@ -556,6 +553,11 @@ class ExtensionManager(object):
                                                    ext_class.__name__)
             self._extension_classes[class_name] = ext_class
             found_extensions[class_name] = ext_class
+
+            # Don't override the info if we've previously loaded this
+            # class.
+            if not getattr(ext_class, "info", None):
+                ext_class.info = ExtensionInfo(entrypoint, ext_class)
 
             # If the ext_class has a registration variable that's set, then
             # it's already been loaded. We don't want to bother creating a
@@ -710,20 +712,45 @@ class ExtensionManager(object):
         This will install the contents of htdocs into the
         EXTENSIONS_STATIC_ROOT directory.
         """
-        ext_path = ext_class.info.htdocs_path
-        ext_path_exists = os.path.exists(ext_path)
+        ext_htdocs_path = ext_class.info.installed_htdocs_path
+        ext_htdocs_path_exists = os.path.exists(ext_htdocs_path)
 
-        if ext_path_exists:
+        if ext_htdocs_path_exists:
             # First, get rid of the old htdocs contents, so we can start
             # fresh.
-            shutil.rmtree(ext_path, ignore_errors=True)
+            shutil.rmtree(ext_htdocs_path, ignore_errors=True)
 
-        if pkg_resources.resource_exists(ext_class.__module__, "htdocs"):
-            # Now install any new htdocs contents.
+        if pkg_resources.resource_exists(ext_class.__module__, 'htdocs'):
+            # This is an older extension that doesn't use the static file
+            # support. Log a deprecation notice and then install the files.
+            logging.warning('The %s extension uses the deprecated "htdocs" '
+                            'directory for static files. It should be updated '
+                            'to use a "static" directory instead.'
+                            % ext_class.info.name)
+
             extracted_path = \
-                pkg_resources.resource_filename(ext_class.__module__, "htdocs")
+                pkg_resources.resource_filename(ext_class.__module__, 'htdocs')
 
-            shutil.copytree(extracted_path, ext_path, symlinks=True)
+            shutil.copytree(extracted_path, ext_htdocs_path, symlinks=True)
+
+        # We only want to install static media on a non-DEBUG install.
+        # Otherwise, we run the risk of creating a new 'static' directory and
+        # causing Django to look up all static files (not just from
+        # extensions) from there instead of from their source locations.
+        if not settings.DEBUG:
+            ext_static_path = ext_class.info.installed_static_path
+            ext_static_path_exists = os.path.exists(ext_static_path)
+
+            if ext_static_path_exists:
+                # Also get rid of the old static contents.
+                shutil.rmtree(ext_static_path, ignore_errors=True)
+
+            if pkg_resources.resource_exists(ext_class.__module__, 'static'):
+                extracted_path = \
+                    pkg_resources.resource_filename(ext_class.__module__,
+                                                    'static')
+
+                shutil.copytree(extracted_path, ext_static_path, symlinks=True)
 
         # Mark the extension as installed
         ext_class.registration.installed = True
@@ -766,11 +793,10 @@ class ExtensionManager(object):
         This will uninstall the contents of
         EXTENSIONS_STATIC_ROOT/extension-name/.
         """
-        ext_path = extension.info.htdocs_path
-        ext_path_exists = os.path.exists(ext_path)
-
-        if ext_path_exists:
-            shutil.rmtree(ext_path, ignore_errors=True)
+        for path in (extension.info.installed_htdocs_path,
+                     extension.info.installed_static_path):
+            if os.path.exists(path):
+                shutil.rmtree(path, ignore_errors=True)
 
     def _install_admin_urls(self, extension):
         """Installs administration URLs.

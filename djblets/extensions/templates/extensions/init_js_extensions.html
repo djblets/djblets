@@ -1,9 +1,9 @@
-{% load djblets_js %}
+{% load djblets_extensions djblets_js %}
 
 {% for extension in extension_manager.get_enabled_extensions %}
 {%  if extension.js_files %}
 {%   for js_file in extension.js_files %}
-<script src="{{MEDIA_URL}}ext/{{extension.info.package_name}}/{{js_file}}"></script>
+<script src="{% ext_static extension js_file %}"></script>
 {%   endfor %}
 {%   if extension.js_model_class %}
 <script>
