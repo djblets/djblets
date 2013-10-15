@@ -44,6 +44,10 @@ class Extension(object):
     support for settings, adding hooks, and plugging into the administration
     UI.
 
+
+    Configuration
+    -------------
+
     If an extension supports configuration in the UI, it should set
     :py:attr:`is_configurable` to True.
 
@@ -53,14 +57,62 @@ class Extension(object):
     If an extension would like a django admin site for modifying the database,
     it should set :py:attr:`has_admin_site` to True.
 
+
+    Static Media
+    ------------
+
     Extensions should list all other extension names that they require in
     :py:attr:`requirements`.
 
-    Extensions that have a JavaScript component can list their common
-    JavaScript files in py:attr:`js_files`, and the full name of their
-    JavaScript Extension subclass in :py:attr:`js_model_class`. It will
-    then be instantiated when loading any page that uses the
-    ``init_js_extensions`` template tag.
+    Extensions can define static media bundle for Less/CSS and JavaScript
+    files, which will automatically be compiled, minified, combined, and
+    packaged. An Extension class can define a :py:attr:`css_bundles` and
+    a :py:attr:`js_bundles`. Each is a dictionary mapping bundle names
+    to bundle dictionary. These follow the Django Pipeline bundle format.
+
+    For example:
+
+        class MyExtension(Extension):
+            css_bundles = {
+                'default': {
+                    'source_filenames': ['css/default.css'],
+                    'output_filename': 'css/default.min.css',
+                },
+            }
+
+    ``source_filenames`` is a list of files within the extension module's
+    static/ directory that should be bundled together. When testing against
+    a developer install with ``DEBUG = True``, these files will be individually
+    loaded on the page. However, in a production install, with a properly
+    installed extension package, the compiled bundle file will be loaded
+    instead, offering a file size and download savings.
+
+    ``output_filename`` is optional. If not specified, the bundle name will
+    be used as a base for the filename.
+
+    A bundle name of ``default`` is special. It will be loaded automatically
+    on any page supporting extensions (provided the ``load_extensions_js`` and
+    ``load_extensions_css`` template tags are used).
+
+    Other bundle names can be loaded within a TemplateHook template using
+    ``{% ext_css_bundle extension "bundle-name" %}`` or
+    ``{% ext_js_bundle extension "bundle-name" %}``.
+
+
+    JavaScript extensions
+    ---------------------
+
+    An Extension subclass can define a :py:attr:`js_model_class` attribute
+    naming its JavaScript counterpart. This would be the variable name for the
+    (uninitialized) model for the extension, usually defined in the "default"
+    JavaScript bundle.
+
+    Any page using the ``init_js_extensions`` template tag will automatically
+    initialize these JavaScript extensions, passing the server-stored settings.
+
+
+    Middleware
+    ----------
 
     If an extension has any middleware, it should set :py:attr:`middleware`
     to a list of class names. This extension's middleware will be loaded after
@@ -76,7 +128,9 @@ class Extension(object):
     apps = []
     middleware = []
 
-    js_files = []
+    css_bundles = {}
+    js_bundles = {}
+
     js_model_class = None
 
     def __init__(self, extension_manager):
@@ -109,6 +163,10 @@ class Extension(object):
 
         return self._admin_urlconf_module
     admin_urlconf = property(_get_admin_urlconf)
+
+    def get_bundle_id(self, name):
+        """Returns the ID for a CSS or JavaScript bundle."""
+        return '%s-%s' % (self.id, name)
 
     def get_js_model_data(self):
         """Returns model data for the Extension instance in JavaScript.

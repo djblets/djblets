@@ -130,7 +130,13 @@ class TemplateHook(ExtensionHook):
         By default, this renders the provided template name to a string
         and returns it.
         """
-        return render_to_string(self.template_name, context)
+        context.push()
+        context['extension'] = self.extension
+
+        try:
+            return render_to_string(self.template_name, context)
+        finally:
+            context.pop()
 
     def applies_to(self, context):
         """Returns whether or not this TemplateHook should be applied given the

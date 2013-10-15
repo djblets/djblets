@@ -1,21 +1,16 @@
-{% load djblets_extensions djblets_js %}
+{% load djblets_js %}
 
-{% for extension in extension_manager.get_enabled_extensions %}
-{%  if extension.js_files %}
-{%   for js_file in extension.js_files %}
-<script src="{% ext_static extension js_file %}"></script>
-{%   endfor %}
-{%   if extension.js_model_class %}
+{% if extensions %}
 <script>
+{%  for extension in extensions %}
     new {{extension.js_model_class}}({
-{%    for key, value in extension.get_js_model_data.items %}
+{%   for key, value in extension.get_js_model_data.items %}
         {{key|json_dumps}}: {{value|json_dumps}},
-{%    endfor %}
+{%   endfor %}
         id: '{{extension.id}}',
         name: {{extension.info.name|json_dumps}},
         settings: {{extension.settings|json_dumps}}
     });
+{%  endfor %}
 </script>
-{%   endif %}
-{%  endif %}
-{% endfor %}
+{% endif %}

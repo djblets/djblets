@@ -315,7 +315,17 @@ class ExtensionManagerTest(TestCase):
     def setUp(self):
         class TestExtension(Extension):
             """An empty, dummy extension for testing"""
-            pass
+            css_bundles = {
+                'default': {
+                    'source_filenames': ['test.css'],
+                }
+            }
+
+            js_bundles = {
+                'default': {
+                    'source_filenames': ['test.js'],
+                }
+            }
 
         self.key = 'test_key'
         self.extension_class = TestExtension
@@ -400,6 +410,56 @@ class ExtensionManagerTest(TestCase):
         self.manager.load(full_reload=True)
 
         self.assertEqual(len(URLHook.hooks), 0)
+
+    def test_enable_registers_static_bundles(self):
+        """Testing ExtensionManager registers static bundles when enabling extension"""
+        settings.PIPELINE_CSS = {}
+        settings.PIPELINE_JS = {}
+
+        extension = self.extension_class(extension_manager=self.manager)
+        extension = self.manager.enable_extension(self.extension_class.id)
+
+        self.assertEqual(len(settings.PIPELINE_CSS), 1)
+        self.assertEqual(len(settings.PIPELINE_JS), 1)
+
+        key = '%s-default' % extension.id
+        self.assertIn(key, settings.PIPELINE_CSS)
+        self.assertIn(key, settings.PIPELINE_JS)
+
+        css_bundle = settings.PIPELINE_CSS[key]
+        js_bundle = settings.PIPELINE_JS[key]
+
+        self.assertIn('source_filenames', css_bundle)
+        self.assertEqual(css_bundle['source_filenames'],
+                         ['ext/%s/test.css' % extension.id])
+
+        self.assertIn('output_filename', css_bundle)
+        self.assertEqual(css_bundle['output_filename'],
+                         '%s/css/default.min.css' % extension.id)
+
+        self.assertIn('source_filenames', js_bundle)
+        self.assertEqual(js_bundle['source_filenames'],
+                         ['ext/%s/test.js' % extension.id])
+
+        self.assertIn('output_filename', js_bundle)
+        self.assertEqual(js_bundle['output_filename'],
+                         '%s/js/default.min.js' % extension.id)
+
+    def test_disable_unregisters_static_bundles(self):
+        """Testing ExtensionManager unregisters static bundles when disabling extension"""
+        settings.PIPELINE_CSS = {}
+        settings.PIPELINE_JS = {}
+
+        extension = self.extension_class(extension_manager=self.manager)
+        extension = self.manager.enable_extension(self.extension_class.id)
+
+        self.assertEqual(len(settings.PIPELINE_CSS), 1)
+        self.assertEqual(len(settings.PIPELINE_JS), 1)
+
+        self.manager.disable_extension(extension.id)
+
+        self.assertEqual(len(settings.PIPELINE_CSS), 0)
+        self.assertEqual(len(settings.PIPELINE_JS), 0)
 
     def test_extension_list_sync(self):
         """Testing ExtensionManager extension list synchronization cross-process."""

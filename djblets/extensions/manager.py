@@ -219,6 +219,7 @@ class ExtensionManager(object):
 
         self._uninstall_extension(extension)
         self._uninit_extension(extension)
+        self._unregister_static_bundles(extension)
         extension.registration.enabled = False
         extension.registration.save()
 
@@ -399,6 +400,8 @@ class ExtensionManager(object):
         # for the admin site will not be generated until it is called.
         self._install_admin_urls(extension)
 
+        self._register_static_bundles(extension)
+
         extension.info.installed = extension.registration.installed
         extension.info.enabled = True
         self._add_to_installed_apps(extension)
@@ -574,6 +577,61 @@ class ExtensionManager(object):
 
             self.dynamic_urls.add_patterns(
                 extension.admin_site_urlpatterns)
+
+    def _register_static_bundles(self, extension):
+        """Registers the extension's static bundles with Pipeline.
+
+        Each static bundle will appear as an entry in Pipeline. The
+        bundle name and filenames will be changed to include the extension
+        ID for the static file lookups.
+        """
+        def _add_prefix(filename):
+            return '%s/%s' % (extension.id, filename)
+
+        def _add_bundles(pipeline_bundles, extension_bundles, default_dir,
+                         ext):
+            for name, bundle in extension_bundles.iteritems():
+                new_bundle = bundle.copy()
+
+                new_bundle['source_filenames'] = [
+                    'ext/%s' % _add_prefix(filename)
+                    for filename in bundle.get('source_filenames', [])
+                ]
+
+                new_bundle['output_filename'] = _add_prefix(bundle.get(
+                    'output_filename',
+                    '%s/%s.min%s' % (default_dir, name, ext)))
+
+                pipeline_bundles[extension.get_bundle_id(name)] = new_bundle
+
+        if not hasattr(settings, 'PIPELINE_CSS'):
+            settings.PIPELINE_CSS = {}
+
+        if not hasattr(settings, 'PIPELINE_JS'):
+            settings.PIPELINE_JS = {}
+
+        _add_bundles(settings.PIPELINE_CSS, extension.css_bundles,
+                     'css', '.css')
+        _add_bundles(settings.PIPELINE_JS, extension.js_bundles,
+                     'js', '.js')
+
+    def _unregister_static_bundles(self, extension):
+        """Unregisters the extension's static bundles from Pipeline.
+
+        Every static bundle previously registered will be removed.
+        """
+        def _remove_bundles(pipeline_bundles, extension_bundles):
+            for name, bundle in extension_bundles.iteritems():
+                try:
+                    del pipeline_bundles[extension.get_bundle_id(name)]
+                except KeyError:
+                    pass
+
+        if hasattr(settings, 'PIPELINE_CSS'):
+            _remove_bundles(settings.PIPELINE_CSS, extension.css_bundles)
+
+        if hasattr(settings, 'PIPELINE_JS'):
+            _remove_bundles(settings.PIPELINE_JS, extension.js_bundles)
 
     def _init_admin_site(self, extension):
         """Creates and initializes an admin site for an extension.
