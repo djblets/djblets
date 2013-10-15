@@ -105,7 +105,7 @@ PIPELINE_JS_COMPRESSOR = 'pipeline.compressors.uglifyjs.UglifyJSCompressor'
 
 if not DEBUG or os.getenv('FORCE_BUILD_MEDIA', ''):
     PIPELINE_COMPILERS = ['pipeline.compilers.less.LessCompiler']
-    PIPELINE = True
+    PIPELINE_ENABLED = True
 elif DEBUG:
     PIPELINE_COMPILERS = []
-    PIPELINE = False
+    PIPELINE_ENABLED = False
