@@ -9,7 +9,8 @@ version 0.6.30 final (10-October-2013);
 		* JSONField now corrects incorrectly stored contents in a safer way,
 		  to remove the risk of any exploits in a JSON payload.
 
-		  This is CVE-2013-4409
+		  This is CVE-2013-4409, and was reported and patched by
+		  Frederik Braun.
 
 
 version 0.6.29 final (27-July-2013):
