@@ -483,9 +483,12 @@ $.widget("ui.inlineEditor", {
     },
 
     _updateDirtyState: function() {
-        var curDirtyState = this._editing &&
-                             this._normalizeText(this._initialValue) !=
-                             this.value().htmlEncode();
+        var value = (this.options.hasRawValue
+                     ? this.value()
+                     : this.value().htmlEncode()),
+            curDirtyState = this._editing &&
+                            this._normalizeText(this._initialValue) !=
+                            value;
 
         if (this._dirty != curDirtyState) {
             this._dirty = curDirtyState;
