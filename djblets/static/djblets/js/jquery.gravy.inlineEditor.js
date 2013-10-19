@@ -396,8 +396,7 @@ $.widget("ui.inlineEditor", {
                  * that case, don't try to match sizes, just ask the field to
                  * auto-size itself to the size of the source text.
                  */
-                this._field.autoSizeTextArea('autoSize', true,
-                                             !preventAnimation, elHeight);
+                self._field.autoSizeTextArea('autoSize', true, false, elHeight);
             }
 
             if (this._buttons) {
