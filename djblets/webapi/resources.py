@@ -326,8 +326,6 @@ class WebAPIResource(object):
     mimetype_vendor = None
     mimetype_list_resource_name = None
     mimetype_item_resource_name = None
-    allowed_list_mimetypes = list(WebAPIResponse.supported_mimetypes)
-    allowed_item_mimetypes = list(WebAPIResponse.supported_mimetypes)
     allowed_mimetypes = [
         {'list': mime, 'item': mime}
         for mime in WebAPIResponse.supported_mimetypes
@@ -352,48 +350,9 @@ class WebAPIResource(object):
         # Mark this class, and any subclasses, to be Web API handlers
         self.is_webapi_handler = True
 
-        # TODO: allowed_list_mimetypes and allowed_item_mimetypes
-        # will be deprecated in version 0.7 of djblets. This code
-        # maintains backwards compatibility for these lists while
-        # code is moved to the new allowed_mimetypes attribute.
-        # The following code block may be removed for version 0.7
-        # to remove the backwards compatibility.
-        item_mimetypes = []
-        list_mimetypes = []
-
-        # Copy this list, because otherwise we may modify the class-level version of it.
+        # Copy this list, because otherwise we may modify the class-level
+        # version of it.
         self.allowed_mimetypes = list(self.allowed_mimetypes)
-
-        for mime in self.allowed_mimetypes:
-            item_mimetypes.append(mime['item'])
-            list_mimetypes.append(mime['list'])
-
-        for mimetype in self.allowed_item_mimetypes:
-            if mimetype not in item_mimetypes:
-                self.allowed_mimetypes.append({
-                    'list': None,
-                    'item': mimetype,
-                })
-
-        for mimetype in self.allowed_list_mimetypes:
-            if mimetype not in list_mimetypes:
-                self.allowed_mimetypes.append({
-                    'list': mimetype,
-                    'item': None,
-                })
-
-        if self.mimetype_vendor:
-            self.allowed_item_mimetypes = list(self.allowed_item_mimetypes)
-            self.allowed_list_mimetypes = list(self.allowed_list_mimetypes)
-
-            # Add resource-specific versions of supported mimetypes
-            for mimetypes, is_list in [(self.allowed_item_mimetypes, False),
-                                       (self.allowed_list_mimetypes, True)]:
-                for mimetype in WebAPIResponse.supported_mimetypes:
-                    if mimetype in mimetypes:
-                        mimetypes.append(
-                            self._build_resource_mimetype(mimetype, is_list))
-        # End of compatibility code.
 
         if self.mimetype_vendor:
             # Generate list and item resource-specific mimetypes
@@ -406,8 +365,9 @@ class WebAPIResource(object):
                 }
 
                 for key, is_list in [('list', True), ('item', False)]:
-                    if (mimetype_pair[key] in
-                        WebAPIResponse.supported_mimetypes):
+                    if (key in mimetype_pair and
+                        (mimetype_pair[key] in
+                         WebAPIResponse.supported_mimetypes)):
                         vend_mimetype_pair[key] = \
                             self._build_resource_mimetype(mimetype_pair[key],
                                                           is_list)
@@ -607,7 +567,7 @@ class WebAPIResource(object):
         supported_mimetypes = [
             mime[key]
             for mime in self.allowed_mimetypes
-            if mime[key]
+            if mime.get(key)
         ]
 
         mimetype = get_http_requested_mimetype(request, supported_mimetypes)
@@ -623,8 +583,8 @@ class WebAPIResource(object):
 
         if is_list:
             for mimetype_pair in self.allowed_mimetypes:
-                if (mimetype_pair['list'] == mimetype and
-                    mimetype_pair['item']):
+                if (mimetype_pair.get('list') == mimetype and
+                    mimetype_pair.get('item')):
                     response_args['headers'] = {
                         'Item-Content-Type': mimetype_pair['item'],
                     }
