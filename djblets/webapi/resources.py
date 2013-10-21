@@ -8,6 +8,9 @@ from django.contrib.auth.models import User, Group
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db import models
+from django.db.models.fields.related import (
+    ManyRelatedObjectsDescriptor,
+    ReverseManyRelatedObjectsDescriptor)
 from django.db.models.query import QuerySet
 from django.http import HttpResponseNotAllowed, HttpResponse, \
                         HttpResponseNotModified
@@ -607,7 +610,13 @@ class WebAPIResource(object):
         assert self.model
         assert self.singleton or self.uri_object_key
 
-        queryset = self.get_queryset(request, *args, **kwargs).select_related()
+        if 'is_list' in kwargs:
+            # Don't pass this in to _get_queryset, since we're not fetching
+            # a list, and don't want the extra optimizations for lists to
+            # kick in.
+            del kwargs['is_list']
+
+        queryset = self._get_queryset(request, *args, **kwargs)
 
         if self.singleton:
             return queryset.get()
@@ -746,8 +755,8 @@ class WebAPIResource(object):
 
         if self.model:
             try:
-                queryset = self.get_queryset(request, is_list=True,
-                                             *args, **kwargs).select_related()
+                queryset = self._get_queryset(request, is_list=True,
+                                              *args, **kwargs)
             except ObjectDoesNotExist:
                 return DOES_NOT_EXIST
 
@@ -909,7 +918,7 @@ class WebAPIResource(object):
         expand = request.GET.get('expand', request.POST.get('expand', ''))
         expanded_resources = expand.split(',')
 
-        for field in list(self.fields):
+        for field in self.fields.iterkeys():
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
 
             if serialize_func and callable(serialize_func):
@@ -941,7 +950,7 @@ class WebAPIResource(object):
                                     o, *args, **kwargs),
                         'title': unicode(o),
                     }
-                    for o in value.all()
+                    for o in value
                 ]
             elif isinstance(value, QuerySet):
                 data[field] = list(value)
@@ -971,7 +980,7 @@ class WebAPIResource(object):
             extra_kwargs.update(**kwargs)
             extra_kwargs.update(self.get_href_parent_ids(obj))
 
-            data[resource_name] = resource.get_queryset(
+            data[resource_name] = resource._get_queryset(
                 is_list=True, *args, **extra_kwargs)
 
         return data
@@ -1150,6 +1159,38 @@ class WebAPIResource(object):
     def _build_named_url(self, name):
         """Builds a Django URL name from the provided name."""
         return '%s-resource' % name.replace('_', '-')
+
+    def _get_queryset(self, request, is_list=False, *args, **kwargs):
+        """Returns an optimized queryset.
+
+        This calls out to the resource's get_queryset(), and then performs
+        some optimizations to better fetch related objects, reducing future
+        lookups in this request.
+        """
+        queryset = self.get_queryset(request, is_list=is_list, *args, **kwargs)
+        queryset = queryset.select_related()
+
+        if is_list:
+            if not hasattr(self, '_prefetch_related_fields'):
+                self._prefetch_related_fields = []
+
+                for field in self.fields.iterkeys():
+                    if hasattr(self, 'serialize_%s_field' % field):
+                        continue
+
+                    field_type = getattr(self.model, field, None)
+
+                    if (field_type and
+                        isinstance(field_type,
+                                   (ReverseManyRelatedObjectsDescriptor,
+                                    ManyRelatedObjectsDescriptor))):
+                        self._prefetch_related_fields.append(field)
+
+            if self._prefetch_related_fields:
+                queryset = \
+                    queryset.prefetch_related(*self._prefetch_related_fields)
+
+        return queryset
 
 
 class RootResource(WebAPIResource):
