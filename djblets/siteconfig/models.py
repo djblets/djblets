@@ -51,9 +51,16 @@ class SiteConfiguration(models.Model):
     def __init__(self, *args, **kwargs):
         models.Model.__init__(self, *args, **kwargs)
 
-        cache_key = self.__get_sync_cache_key()
+        # Optimistically try to set the Site to the current site instance,
+        # which either is cached now or soon will be. That way, we avoid
+        # a lookup on the relation later.
+        cur_site = Site.objects.get_current()
+
+        if cur_site.pk == self.site_id:
+            self.site = cur_site
 
         # Add this key if it doesn't already exist.
+        cache_key = self.__get_sync_cache_key()
         cache.add(cache_key, 1)
         self._last_sync_gen = cache.get(cache_key)
 
