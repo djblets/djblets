@@ -528,18 +528,24 @@ class WebAPIResource(object):
     @property
     def name(self):
         """Returns the name of the object, used for keys in the payloads."""
-        if self.model:
-            return self.model.__name__.lower()
-        else:
-            return self.__name__.lower()
+        if not hasattr(self, '_name'):
+            if self.model:
+                self._name = self.model.__name__.lower()
+            else:
+                self._name = self.__name__.lower()
+
+        return self._name
 
     @property
     def name_plural(self):
         """Returns the plural name of the object, used for lists."""
-        if self.singleton:
-            return self.name
-        else:
-            return self.name + 's'
+        if not hasattr(self, '_name_plural'):
+            if self.singleton:
+                self._name_plural = self.name
+            else:
+                self._name_plural = self.name + 's'
+
+        return self._name_plural
 
     @property
     def item_result_key(self):
