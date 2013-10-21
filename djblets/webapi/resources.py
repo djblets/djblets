@@ -632,7 +632,7 @@ class WebAPIResource(object):
 
         return response_args
 
-    def get_object(self, request, *args, **kwargs):
+    def get_object(self, request, id_field=None, *args, **kwargs):
         """Returns an object, given captured parameters from a URL.
 
         This will perform a query for the object, taking into account
@@ -652,8 +652,10 @@ class WebAPIResource(object):
         if self.singleton:
             return queryset.get()
         else:
+            id_field = id_field or self.model_object_key
+
             return queryset.get(**{
-                self.model_object_key: kwargs[self.uri_object_key]
+                id_field: kwargs[self.uri_object_key]
             })
 
     def post(self, *args, **kwargs):
