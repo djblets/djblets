@@ -327,13 +327,15 @@ class WebAPIResponsePaginated(WebAPIResponse):
 
         results = queryset[start:start + max_results]
 
-        if serialize_object_func:
+        total_results = queryset.count()
+
+        if total_results == 0:
+            results = []
+        elif serialize_object_func:
             results = [serialize_object_func(obj)
                        for obj in results]
         else:
             results = list(results)
-
-        total_results = queryset.count()
 
         data = {
             results_key: results,
