@@ -44,7 +44,16 @@ $.widget("ui.inlineEditor", {
         showEditIcon: true,
         startOpen: false,
         stripTags: false,
-        useEditIconOnly: false
+        useEditIconOnly: false,
+        createMultilineField: function(editor) {
+            return $("<textarea/>").autoSizeTextArea();
+        },
+        setFieldValue: function(editor, value) {
+            editor._field.val(value);
+        },
+        getFieldValue: function(editor) {
+            return editor._field.val();
+        }
     },
 
     _create: function() {
@@ -64,15 +73,19 @@ $.widget("ui.inlineEditor", {
             .hide();
 
         if (this.options.multiline) {
-            this._field = $("<textarea/>")
-                .appendTo(this._form)
-                .autoSizeTextArea();
+            this._field = this.options.createMultilineField(this);
         } else {
-            this._field = $('<input type="text"/>')
-                .appendTo(this._form);
+            this._field = $('<input type="text"/>');
         }
 
+        /*
+         * We can only perform certain operations if this is a textarea
+         * element.
+         */
+        this._isTextArea = (this._field[0].tagName === 'TEXTAREA');
+
         this._field
+            .appendTo(this._form)
             .keydown(function(e) {
                 e.stopPropagation();
 
@@ -279,7 +292,7 @@ $.widget("ui.inlineEditor", {
         }
         this._editing = true;
 
-        this._field.val(value);
+        this.options.setFieldValue(this, value);
 
         this.showEditor(preventAnimation);
         this.element.triggerHandler("beginEdit");
@@ -337,7 +350,7 @@ $.widget("ui.inlineEditor", {
     },
 
     value: function() {
-        return this._field.val();
+        return this.options.getFieldValue(this);
     },
 
     showEditor: function(preventAnimation) {
@@ -373,30 +386,34 @@ $.widget("ui.inlineEditor", {
 
             this._fitWidthToParent();
 
-            if (this.options.matchHeight) {
-                // TODO: Set autosize min height
-                this._field
-                    .autoSizeTextArea("setMinHeight", newHeight)
-                    .css("overflow", "hidden");
-
-                if (preventAnimation) {
-                    this._field.height(newHeight);
-                } else {
+            if (this._isTextArea) {
+                if (this.options.matchHeight) {
+                    // TODO: Set autosize min height
                     this._field
-                        .height(elHeight)
-                        .animate({
-                            height: newHeight
-                        }, this.options.fadeSpeedMS);
+                        .autoSizeTextArea("setMinHeight", newHeight)
+                        .css("overflow", "hidden");
+
+                    if (preventAnimation) {
+                        this._field.height(newHeight);
+                    } else {
+                        this._field
+                            .height(elHeight)
+                            .animate({
+                                height: newHeight
+                            }, this.options.fadeSpeedMS);
+                    }
+                } else {
+                    /*
+                     * If there's significant processing that happens between
+                     * the text and what's displayed in the element, it's likely
+                     * that the rendered size will be different from the editor
+                     * size. In that case, don't try to match sizes, just ask
+                     * the field to auto-size itself to the size of the source
+                     * text.
+                     */
+                    this._field.autoSizeTextArea('autoSize', true, false,
+                                                 elHeight);
                 }
-            } else {
-                /*
-                 * If there's significant processing that happens between the
-                 * text and what's displayed in the element, it's likely that
-                 * the rendered size will be different from the editor size. In
-                 * that case, don't try to match sizes, just ask the field to
-                 * auto-size itself to the size of the source text.
-                 */
-                self._field.autoSizeTextArea('autoSize', true, false, elHeight);
             }
 
             if (this._buttons) {
@@ -412,7 +429,7 @@ $.widget("ui.inlineEditor", {
 
         /* Execute this after the animation, if we performed one. */
         this._field.queue(function() {
-            if (self.options.multiline) {
+            if (self.options.multiline && self._isTextArea) {
                 self._field.css("overflow", "auto");
             }
 
@@ -458,7 +475,10 @@ $.widget("ui.inlineEditor", {
             }
         }
 
-        if (this.options.multiline && this._editing) {
+        if (   this.options.multiline
+            && this.options.matchHeight
+            && this._editing
+            && this._isTextArea) {
             this._field
                 .css("overflow", "hidden")
                 .animate({
