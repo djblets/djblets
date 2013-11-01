@@ -1,3 +1,19 @@
+version 0.7.22 final (1-November-2013):
+	* djblets.extensions:
+		* AJAX_SERIAL is updated when extensions are enabled/disabled or their
+		  configuration changes, allowing templates using AJAX_SERIAL as part
+		  of their cache to invalidate.
+
+	* djblets.siteconfig:
+		* Reduced query counts for installs using siteconfig.
+
+	* djblets.webapi:
+		* Reduced query counts when returning payloads for list resources
+		  with no entries.
+
+		* Common attribute lookups on WebAPIResource are now cached.
+
+
 version 0.7.21 final (11-October-2013):
 	* djblets.webapi:
 		* Added a has_list_access_permissions function, which is used to
