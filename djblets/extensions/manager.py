@@ -344,6 +344,7 @@ class ExtensionManager(object):
         # Add the sync generation if it doesn't already exist.
         self._add_new_sync_gen()
         self._last_sync_gen = cache.get(self._sync_key)
+        settings.AJAX_SERIAL = self._last_sync_gen
 
         if extensions_changed:
             self._recalculate_middleware()
@@ -684,11 +685,18 @@ class ExtensionManager(object):
 
         If there's an existing synchronization generation in cache,
         increment it. Otherwise, start fresh with a new one.
+
+        This will also set ``settings.AJAX_SERIAL``, which will guarantee any
+        cached objects that depends on templates and use this serial number
+        will be invalidated, allowing TemplateHooks and other hooks
+        to be re-run.
         """
         try:
             self._last_sync_gen = cache.incr(self._sync_key)
         except ValueError:
             self._last_sync_gen = self._add_new_sync_gen()
+
+        settings.AJAX_SERIAL = self._last_sync_gen
 
     def _add_new_sync_gen(self):
         val = time.mktime(datetime.datetime.now().timetuple())
