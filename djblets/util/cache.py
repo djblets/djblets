@@ -36,7 +36,7 @@ def normalize_cache_backend(cache_backend):
 
     try:
         engine, host, params = parse_backend_uri(cache_backend)
-    except InvalidCacheBackendError, e:
+    except InvalidCacheBackendError as e:
         logging.error('Invalid cache backend (%s) found while loading '
                       'siteconfig: %s' % (cache_backend, e))
         return {}

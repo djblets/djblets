@@ -156,7 +156,7 @@ class Extension(object):
                 name = "%s.%s" % (get_mod_func(self.__class__.__module__)[0],
                                   "admin_urls")
                 self._admin_urlconf_module = __import__(name, {}, {}, [''])
-            except Exception, e:
+            except Exception as e:
                 raise ImproperlyConfigured, \
                     "Error while importing extension's admin URLconf %r: %s" % \
                     (name, e)

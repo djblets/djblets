@@ -98,12 +98,12 @@ class ExtensionResource(WebAPIResource):
         if kwargs.get('enabled'):
             try:
                 self._extension_manager.enable_extension(ext_class.id)
-            except (EnablingExtensionError, InvalidExtensionError), e:
+            except (EnablingExtensionError, InvalidExtensionError) as e:
                 return ENABLE_EXTENSION_FAILED.with_message(e.message)
         else:
             try:
                 self._extension_manager.disable_extension(ext_class.id)
-            except (DisablingExtensionError, InvalidExtensionError), e:
+            except (DisablingExtensionError, InvalidExtensionError) as e:
                 return DISABLE_EXTENSION_FAILED.with_message(e.message)
 
         # Refetch extension, since the ExtensionManager may have changed

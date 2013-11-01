@@ -184,7 +184,7 @@ class ExtensionManager(object):
 
         try:
             self._install_extension(ext_class)
-        except InstallExtensionError, e:
+        except InstallExtensionError as e:
             raise EnablingExtensionError(e.message)
 
         ext_class.registration.enabled = True
@@ -282,7 +282,7 @@ class ExtensionManager(object):
 
             try:
                 ext_class = entrypoint.load()
-            except Exception, e:
+            except Exception as e:
                 logging.error("Error loading extension %s: %s" %
                               (entrypoint.name, e))
                 continue
@@ -386,7 +386,7 @@ class ExtensionManager(object):
 
         try:
             extension = ext_class(extension_manager=self)
-        except Exception, e:
+        except Exception as e:
             logging.error('Unable to initialize extension %s: %s'
                           % (ext_class, e), exc_info=1)
             raise EnablingExtensionError('Error initializing extension: %s'
@@ -515,7 +515,7 @@ class ExtensionManager(object):
                              execute=True, hint=False,
                              compile_sql=False, purge=False,
                              database=False)
-        except CommandError, e:
+        except CommandError as e:
             # Something went wrong while running django-evolution, so
             # grab the output.  We can't raise right away because we
             # still need to put stdout back the way it was

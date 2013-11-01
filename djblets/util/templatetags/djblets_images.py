@@ -84,7 +84,7 @@ def crop_image(file, x, y, width, height):
             image = image.crop((x, y, x + width, y + height))
 
             save_image_to_storage(image, storage, new_name)
-        except (IOError, KeyError), e:
+        except (IOError, KeyError) as e:
             logging.error('Error cropping image file %s at %d, %d, %d, %d '
                           'and saving as %s: %s' %
                           (filename, x, y, width, height, new_name, e),
@@ -123,7 +123,7 @@ def thumbnail(file, size='400x100'):
             image.thumbnail([x, y], Image.ANTIALIAS)
 
             save_image_to_storage(image, storage, miniature)
-        except (IOError, KeyError), e:
+        except (IOError, KeyError) as e:
             logging.error('Error thumbnailing image file %s and saving '
                           'as %s: %s' % (filename, miniature, e),
                           exc_info=1)

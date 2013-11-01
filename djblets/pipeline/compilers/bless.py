@@ -31,7 +31,7 @@ class BlessCompiler(CompilerBase):
 
         try:
             fp = open(infile, 'r')
-        except IOError, e:
+        except IOError as e:
             raise CompilerError('Unable to read file %s' % infile)
 
         content = fp.read()
@@ -65,7 +65,7 @@ class BlessCompiler(CompilerBase):
 
         try:
             content = urllib2.urlopen(r).read()
-        except urllib2.HTTPError, e:
+        except urllib2.HTTPError as e:
             if e.code == 400:
                 raise CompilerError("Error processing lessCSS files: %s" %
                                     e.read())

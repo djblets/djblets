@@ -216,7 +216,7 @@ class JSONField(models.TextField):
             # string. We have to eval it.
             try:
                 val = literal_eval(val)
-            except Exception, e:
+            except Exception as e:
                 logging.error('Failed to eval JSONField data "%r": %s'
                               % (val, e))
                 val = {}

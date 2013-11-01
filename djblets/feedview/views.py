@@ -37,7 +37,7 @@ def view_feed(request, url, template_name="feedview/feed-page.html",
         return HttpResponse(cache_memoize("feed-%s" % url, fetch_feed,
                             cache_expiration,
                             force_overwrite=request.GET.has_key("reload")))
-    except (urllib2.URLError, httplib.HTTPException), e:
+    except (urllib2.URLError, httplib.HTTPException) as e:
         context = {
             'error': e,
         }

@@ -162,7 +162,7 @@ class SeleniumUnitTest(TestCase):
 
         try:
             cls.selenium.start()
-        except Exception, e:
+        except Exception as e:
             cls.selenium = None
             raise SkipTest(e)
 
@@ -265,7 +265,7 @@ class TestServerThread(threading.Thread):
                                         WSGIRequestHandler)
             httpd.set_app(handler)
             self.started.set()
-        except basehttp.WSGIServerException, e:
+        except basehttp.WSGIServerException as e:
             self.error = e
             self.started.set()
             return

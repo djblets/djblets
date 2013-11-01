@@ -73,7 +73,7 @@ def controlled_subprocess(process_name, process):
 
     try:
         yield process
-    except Exception, e:
+    except Exception as e:
         caught_exception = e
 
     # If we haven't gotten a returncode at this point, we assume the

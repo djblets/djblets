@@ -89,7 +89,7 @@ def _cache_fetch_large_data(cache, key, compress_large_data):
     try:
         unpickler = pickle.Unpickler(StringIO(data))
         data = unpickler.load()
-    except Exception, e:
+    except Exception as e:
         logging.warning("Unpickle error for cache key %s: %s." % (key, e))
         raise e
 
@@ -149,7 +149,7 @@ def cache_memoize(key, lookup_callable,
             try:
                 data = _cache_fetch_large_data(cache, key, compress_large_data)
                 return data
-            except Exception, e:
+            except Exception as e:
                 logging.warning('Failed to fetch large data from cache for key %s: %s.' % (key, e))
         else:
             logging.debug('Cache miss for key %s.' % key)
@@ -322,7 +322,7 @@ def generate_locale_serial(packages):
             p = importlib.import_module(package)
             path = os.path.join(os.path.dirname(p.__file__), 'locale')
             paths.append(path)
-        except Exception, e:
+        except Exception as e:
             logging.error(
                 'Failed to import package %s to compute locale serial: %s'
                 % (package, e))
