@@ -53,6 +53,14 @@ $.widget("ui.inlineEditor", {
         },
         getFieldValue: function(editor) {
             return editor._field.val();
+        },
+        isFieldDirty: function(editor, initialValue) {
+            var value = editor.options.getFieldValue(editor),
+                normValue = (editor.options.hasRawValue
+                             ? value
+                             : value.htmlEncode());
+
+            return normValue !== initialValue;
         }
     },
 
@@ -502,14 +510,12 @@ $.widget("ui.inlineEditor", {
     },
 
     _updateDirtyState: function() {
-        var value = (this.options.hasRawValue
-                     ? this.value()
-                     : this.value().htmlEncode()),
-            curDirtyState = this._editing &&
-                            this._normalizeText(this._initialValue) !=
-                            value;
+        var curDirtyState = (this._editing &&
+                             this.options.isFieldDirty(
+                                this,
+                                this._normalizeText(this._initialValue)));
 
-        if (this._dirty != curDirtyState) {
+        if (this._dirty !== curDirtyState) {
             this._dirty = curDirtyState;
             this.element.triggerHandler("dirtyStateChanged", [this._dirty]);
         }
