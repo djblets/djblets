@@ -27,6 +27,7 @@ import json
 
 from django import template
 from django.core.serializers import serialize
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
 from django.utils.safestring import mark_safe
 
@@ -69,6 +70,6 @@ def json_dumps(value, indent=None):
     if isinstance(value, QuerySet):
         result = serialize('json', value, indent=indent)
     else:
-        result = json.dumps(value, indent=indent)
+        result = json.dumps(value, indent=indent, cls=DjangoJSONEncoder)
 
     return mark_safe(result)
