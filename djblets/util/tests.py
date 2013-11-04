@@ -31,6 +31,7 @@ from django.conf import settings
 from django.conf.urls import include, patterns, url
 from django.contrib.sites.models import Site
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.core.urlresolvers import NoReverseMatch, reverse
 from django.http import HttpRequest
 from django.template import Token, TOKEN_TEXT, TemplateSyntaxError
@@ -361,6 +362,24 @@ class JSONFieldTests(unittest.TestCase):
         from djblets.util.fields import JSONField
         self.field = JSONField()
 
+    def test_dumps_with_json_dict(self):
+        """Testing JSONField with dumping a JSON dictionary"""
+        result = self.field.dumps({'a': 1})
+        self.assertTrue(isinstance(result, basestring))
+        self.assertEqual(result, '{"a": 1}')
+
+    def test_dumps_with_json_string(self):
+        """Testing JSONField with dumping a JSON string"""
+        result = self.field.dumps('{"a": 1, "b": 2}')
+        self.assertTrue(isinstance(result, basestring))
+        self.assertEqual(result, '{"a": 1, "b": 2}')
+
+    def test_dumps_with_json_dict(self):
+        """Testing JSONField with dumping a JSON dictionary"""
+        result = self.field.dumps({'a': 1})
+        self.assertTrue(isinstance(result, basestring))
+        self.assertEqual(result, '{"a": 1}')
+
     def test_loading_json_dict(self):
         """Testing JSONField with loading a JSON dictionary"""
         result = self.field.loads('{"a": 1, "b": 2}')
@@ -398,6 +417,19 @@ class JSONFieldTests(unittest.TestCase):
         result = self.field.loads('locals()')
         self.assertTrue(isinstance(result, dict))
         self.assertEqual(result, {})
+
+    def test_validate_with_valid_json_string(self):
+        """Testing JSONField with validating a valid JSON string"""
+        self.field.run_validators('{"a": 1, "b": 2}')
+
+    def test_validate_with_invalid_json_string(self):
+        """Testing JSONField with validating an invalid JSON string"""
+        self.assertRaises(ValidationError,
+                          lambda: self.field.run_validators('foo'))
+
+    def test_validate_with_json_dict(self):
+        """Testing JSONField with validating a JSON dictionary"""
+        self.field.run_validators({'a': 1, 'b': 2})
 
 
 class URLResolverTests(unittest.TestCase):

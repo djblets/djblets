@@ -34,6 +34,7 @@ except ImportError:
     from djblets.util.compat.ast_compat import literal_eval
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.db.models import F
@@ -146,6 +147,20 @@ class ModificationTimestampField(models.DateTimeField):
         return "DateTimeField"
 
 
+def validate_json(value):
+    """Validates content going into a JSONField.
+
+    This will raise a ValidationError if the value is a string
+    (representing a serialized JSON payload, possibly from the admin UI)
+    and cannot be loaded properly.
+    """
+    if isinstance(value, basestring):
+        try:
+            json.loads(value)
+        except ValueError, e:
+            raise ValidationError(str(e), code='invalid')
+
+
 class JSONField(models.TextField):
     """
     A field for storing JSON-encoded data. The data is accessible as standard
@@ -153,6 +168,7 @@ class JSONField(models.TextField):
     string in the database.
     """
     serialize_to_string = True
+    default_validators = [validate_json]
 
     def __init__(self, verbose_name=None, name=None,
                  encoder=DjangoJSONEncoder(), **kwargs):
@@ -198,7 +214,10 @@ class JSONField(models.TextField):
         return self.dumps(self.value_from_object(obj))
 
     def dumps(self, data):
-        return self.encoder.encode(data)
+        if isinstance(data, basestring):
+            return data
+        else:
+            return self.encoder.encode(data)
 
     def loads(self, val):
         try:
