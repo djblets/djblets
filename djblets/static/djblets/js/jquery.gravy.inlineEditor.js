@@ -275,7 +275,7 @@ $.widget("ui.inlineEditor", {
         }
 
         if (this._editIcon) {
-            this._editIcon.css('visibility', 'hide');
+            this._editIcon.css('visibility', 'hidden');
         }
 
         this.options.enabled = false;
