@@ -552,7 +552,7 @@ class ExtensionManager(object):
         prefix = self.get_absolute_url()
 
         if hasattr(settings, 'SITE_ROOT'):
-            prefix = prefix.lstrip(settings.SITE_ROOT)
+            prefix = prefix[len(settings.SITE_ROOT):]
 
         # Note that we're adding to the resolve list on the root of the
         # install, and prefixing it with the admin extensions path.
