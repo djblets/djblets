@@ -34,6 +34,7 @@ from xml.sax.saxutils import XMLGenerator
 
 from django.conf import settings
 from django.http import HttpResponse
+from django.utils import six
 from django.utils.encoding import force_unicode
 
 from djblets.util.http import get_http_requested_mimetype, is_mimetype_a
@@ -131,7 +132,7 @@ class XMLEncoderAdapter(object):
 
     def __encode(self, o, *args, **kwargs):
         if isinstance(o, dict):
-            for key, value in o.iteritems():
+            for key, value in six.iteritems(o):
                 attrs = {}
 
                 if isinstance(key, six.integer_types):
@@ -242,7 +243,7 @@ class WebAPIResponse(HttpResponse):
         self.mimetype = mimetype
         self.encoders = encoders or get_registered_encoders()
 
-        for header, value in headers.iteritems():
+        for header, value in six.iteritems(headers):
             self[header] = value
 
         # Prevent IE8 from trying to download some AJAX responses as if they

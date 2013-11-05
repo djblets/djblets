@@ -25,12 +25,12 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-
 from django.conf import settings
 from django.contrib import auth
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from django.http import HttpResponseRedirect
+from django.utils import six
 
 from djblets.auth.forms import RegistrationForm, ChangePasswordForm, \
                                ChangeProfileForm
@@ -71,8 +71,8 @@ def login(request, next_page, template_name="accounts/login.html",
         # URL handler that you want called at the time of render, rather than
         # being forced to expose it as a template tag or calling it upon
         # URL handler creation (which may be too early and only happens once).
-        for key, value in extra_context.items():
-            if callable(value):
+        for key, value in six.iteritems(extra_context):
+            if six.callable(value):
                 context[key] = value()
             else:
                 context[key] = value
@@ -146,7 +146,7 @@ def do_change_profile(request):
         formdata = getattr(form, "cleaned_data",
                            getattr(form, "clean_data", None))
 
-        for key, value in formdata.items():
+        for key, value in six.iteritems(formdata):
             setattr(request.user, key, value)
         request.user.save()
         request.user.message_set.create(message="Your profile was updated successfully.")

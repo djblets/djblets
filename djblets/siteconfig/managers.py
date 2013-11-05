@@ -25,6 +25,7 @@
 
 from django.contrib.sites.models import Site
 from django.db import models
+from django.utils import six
 
 
 _SITECONFIG_CACHE = {}
@@ -65,7 +66,7 @@ class SiteConfigurationManager(models.Manager):
         """
         global _SITECONFIG_CACHE
 
-        for key, siteconfig in _SITECONFIG_CACHE.copy().iteritems():
+        for key, siteconfig in six.iteritems(_SITECONFIG_CACHE.copy()):
             if siteconfig.is_expired():
                 try:
                     # This is stale. Get rid of it so we can load it next time.

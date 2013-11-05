@@ -24,6 +24,7 @@
 #
 
 from django.http import HttpResponse
+from django.utils import six
 
 from djblets.util.dates import http_date
 
@@ -53,7 +54,7 @@ def get_modified_since(request, last_modified):
     if_modified_since = request.META.get('HTTP_IF_MODIFIED_SINCE', None)
 
     if if_modified_since is not None:
-        if callable(last_modified):
+        if six.callable(last_modified):
             last_modified = last_modified()
 
         return (if_modified_since == http_date(last_modified))

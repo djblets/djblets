@@ -37,6 +37,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
+from django.utils import six
 from django.utils.translation import ugettext as _
 
 
@@ -80,13 +81,13 @@ def build_query_string(request, params):
     """
     query_parts = []
 
-    for key, value in request.GET.iteritems():
+    for key, value in six.iteritems(request.GET):
         if key not in params:
             query_parts.append(urlencode({
                 key: value
             }))
 
-    for key, value in params.iteritems():
+    for key, value in six.iteritems(params):
         if value is not None:
             query_parts.append(urlencode({
                 key: value

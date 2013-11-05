@@ -40,6 +40,7 @@ from django.core.management.base import CommandError
 from django.core.urlresolvers import reverse
 from django.db.models import loading
 from django.template.loader import template_source_loaders
+from django.utils import six
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
 from django_evolution.management.commands.evolve import Command as Evolution
@@ -131,11 +132,11 @@ class ExtensionManager(object):
 
     def get_enabled_extensions(self):
         """Returns the list of all enabled extensions."""
-        return self._extension_instances.values()
+        return list(self._extension_instances.values())
 
     def get_installed_extensions(self):
         """Returns the list of all installed extensions."""
-        return self._extension_classes.values()
+        return list(self._extension_classes.values())
 
     def get_installed_extension(self, extension_id):
         """Returns the installed extension with the given ID."""
@@ -152,7 +153,7 @@ class ExtensionManager(object):
         dependency = self.get_installed_extension(dependency_extension_id)
         result = []
 
-        for extension_id, extension in self._extension_classes.iteritems():
+        for extension_id, extension in six.iteritems(self._extension_classes):
             if extension_id == dependency_extension_id:
                 continue
 
@@ -329,7 +330,7 @@ class ExtensionManager(object):
         # While we're at it, since we're at a point where we've seen all
         # extensions, we can set the ExtensionInfo.requirements for
         # each extension
-        for class_name, ext_class in self._extension_classes.iteritems():
+        for class_name, ext_class in six.iteritems(self._extension_classes):
             if class_name not in found_extensions:
                 if class_name in self._extension_instances:
                     self.disable_extension(class_name)
@@ -355,10 +356,10 @@ class ExtensionManager(object):
         This will bring the ExtensionManager back to the state where
         it doesn't yet know about any extensions, requiring a re-load.
         """
-        for extension in self._extension_instances.values():
+        for extension in self.get_enabled_extensions():
             self._uninit_extension(extension)
 
-        for extension_class in self._extension_classes.values():
+        for extension_class in self.get_installed_extensions():
             if hasattr(extension_class, 'info'):
                 delattr(extension_class, 'info')
 
@@ -591,7 +592,7 @@ class ExtensionManager(object):
 
         def _add_bundles(pipeline_bundles, extension_bundles, default_dir,
                          ext):
-            for name, bundle in extension_bundles.iteritems():
+            for name, bundle in six.iteritems(extension_bundles):
                 new_bundle = bundle.copy()
 
                 new_bundle['source_filenames'] = [
@@ -622,7 +623,7 @@ class ExtensionManager(object):
         Every static bundle previously registered will be removed.
         """
         def _remove_bundles(pipeline_bundles, extension_bundles):
-            for name, bundle in extension_bundles.iteritems():
+            for name, bundle in six.iteritems(extension_bundles):
                 try:
                     del pipeline_bundles[extension.get_bundle_id(name)]
                 except KeyError:

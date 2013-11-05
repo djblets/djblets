@@ -28,6 +28,7 @@ import logging
 import traceback
 import urllib
 
+import pytz
 from django.conf import settings
 from django.contrib.auth.models import SiteProfileNotAvailable
 from django.core.exceptions import ObjectDoesNotExist
@@ -37,11 +38,11 @@ from django.shortcuts import render_to_response
 from django.template.context import RequestContext, Context
 from django.template.defaultfilters import date, timesince
 from django.template.loader import render_to_string, get_template
+from django.utils import six
 from django.utils.cache import patch_cache_control
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
-import pytz
 
 
 class Column(object):
@@ -213,7 +214,7 @@ class Column(object):
         """
         result = urllib.urlencode([
             (key, value)
-            for key, value in self.datagrid.request.GET.items()
+            for key, value in six.iteritems(self.datagrid.request.GET)
             if key not in params
         ])
         return result + '&'
@@ -264,7 +265,7 @@ class Column(object):
                 pass
 
         if self.css_class:
-            if callable(self.css_class):
+            if six.callable(self.css_class):
                 css_class = self.css_class(obj)
             else:
                 css_class = self.css_class
@@ -320,7 +321,7 @@ class Column(object):
             for field_name in filter(None, self.field_name.split('.')):
                 value = getattr(value, field_name)
 
-                if callable(value):
+                if six.callable(value):
                     value = value()
 
             return escape(value)

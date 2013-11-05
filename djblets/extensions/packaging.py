@@ -7,6 +7,7 @@ from distutils.command.build_py import build_py
 from distutils.core import Command
 from django.conf import settings
 from django.core.management import call_command
+from django.utils import six
 
 
 class BuildStaticFiles(Command):
@@ -75,12 +76,12 @@ class BuildStaticFiles(Command):
 
         # Begin building pipeline bundles for each of the bundles defined
         # in the extension.
-        for entrypoint_name, entrypoint in extension_entrypoints.iteritems():
+        for ep_name, entrypoint in six.iteritems(extension_entrypoints):
             try:
                 extension = entrypoint.load(require=False)
             except ImportError:
                 sys.stderr.write('Error loading the extension for entry '
-                                 'point %s\n' % entrypoint_name)
+                                 'point %s\n' % ep_name)
                 raise
 
             self._build_static_media(extension)
@@ -130,7 +131,7 @@ class BuildStaticFiles(Command):
 
     def _add_bundle(self, pipeline_bundles, extension_bundles, default_dir,
                     ext):
-        for name, bundle in extension_bundles.iteritems():
+        for name, bundle in six.iteritems(extension_bundles):
             if 'output_filename' not in bundle:
                 bundle['output_filename'] = \
                     '%s/%s.min%s' % (default_dir, name, ext)

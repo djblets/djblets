@@ -34,6 +34,7 @@ from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.db.models import F
+from django.utils import six
 from django.utils.encoding import smart_unicode
 
 from djblets.util.dates import get_tz_aware_utcnow
@@ -326,14 +327,14 @@ class CounterField(models.IntegerField):
         def _reinit(model_instance):
             """Re-initializes the value in the database from the initializer."""
             if not (model_instance.pk or self._initializer or
-                    callable(self._initializer)):
+                    six.callable(self._initializer)):
                 # We don't want to end up defaulting this to 0 if creating a
                 # new instance unless an initializer is provided. Instead,
                 # we'll want to handle this the next time the object is
                 # accessed.
                 return
 
-            if self._initializer and callable(self._initializer):
+            if self._initializer and six.callable(self._initializer):
                 self._locks[model_instance] = 1
                 value = self._initializer(model_instance)
                 del self._locks[model_instance]

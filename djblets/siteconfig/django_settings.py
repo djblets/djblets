@@ -26,7 +26,7 @@
 from django.conf import settings
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import DEFAULT_CACHE_ALIAS
-from django.utils import timezone
+from django.utils import six, timezone
 
 from djblets.util.cache import normalize_cache_backend
 
@@ -130,7 +130,7 @@ def generate_defaults(settings_map):
     """
     defaults = {}
 
-    for siteconfig_key, setting_data in settings_map.iteritems():
+    for siteconfig_key, setting_data in six.iteritems(settings_map):
         if isinstance(setting_data, dict):
             setting_key = setting_data['key']
         else:
@@ -189,7 +189,7 @@ def apply_django_settings(siteconfig, settings_map=None):
     if settings_map is None:
         settings_map = get_django_settings_map()
 
-    for key, setting_data in settings_map.iteritems():
+    for key, setting_data in six.iteritems(settings_map):
         if key in siteconfig.settings:
             value = siteconfig.get(key)
             setter = setattr
@@ -201,7 +201,7 @@ def apply_django_settings(siteconfig, settings_map=None):
                     setter = setting_data['setter']
 
                 if ('deserialize_func' in setting_data and
-                    callable(setting_data['deserialize_func'])):
+                    six.callable(setting_data['deserialize_func'])):
                     value = setting_data['deserialize_func'](value)
             else:
                 setting_key = setting_data

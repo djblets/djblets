@@ -28,6 +28,7 @@ import os
 from django.conf import settings
 from django.conf.urls import include, patterns
 from django.core.exceptions import ImproperlyConfigured
+from django.utils import six
 from mock import Mock
 
 from djblets.extensions.extension import Extension, ExtensionInfo
@@ -177,7 +178,7 @@ class ExtensionInfoTest(TestCase):
         entrypoint.dist.get_metadata_lines = Mock(
             return_value=[
                 "%s: %s" % (key, value)
-                for key, value in test_metadata.iteritems()
+                for key, value in six.iteritems(test_metadata)
             ])
 
         entrypoint.dist.project_name = test_project_name
@@ -235,7 +236,7 @@ class ExtensionInfoTest(TestCase):
         entrypoint.dist.get_metadata_lines = Mock(
             return_value=[
                 "%s: %s" % (key, 'Dummy')
-                for key, value in test_metadata.iteritems()
+                for key, value in six.iteritems(test_metadata)
             ])
 
         entrypoint.dist.project_name = 'Dummy'
@@ -362,7 +363,7 @@ class ExtensionManagerTest(TestCase):
         self.fake_entrypoint.dist.get_metadata_lines = Mock(
             return_value=[
                 "%s: %s" % (key, value)
-                for key, value in self.test_metadata.iteritems()
+                for key, value in six.iteritems(self.test_metadata)
             ])
 
         self.fake_entrypoint.dist.project_name = self.test_project_name

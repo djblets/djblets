@@ -27,6 +27,7 @@
 from django import forms
 from django.contrib import auth
 from django.core.exceptions import ValidationError
+from django.utils import six
 
 from djblets.auth.util import get_user
 
@@ -59,7 +60,7 @@ class RegistrationForm(forms.Form):
     def save(self):
         if not self.errors:
             formdata = self.cleaned_data
-            d = dict((k, v.encode("utf8")) for k, v in formdata.iteritems())
+            d = dict((k, v.encode("utf8")) for k, v in six.iteritems(formdata))
             try:
                 user = auth.models.User.objects.create_user(d['username'],
                                                             d['email'],

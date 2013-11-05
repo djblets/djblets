@@ -14,6 +14,7 @@ from django.db.models.fields.related import (
 from django.db.models.query import QuerySet
 from django.http import HttpResponseNotAllowed, HttpResponse, \
                         HttpResponseNotModified
+from django.utils import six
 from django.views.decorators.vary import vary_on_headers
 
 from djblets.util.decorators import augment_method_from
@@ -424,7 +425,7 @@ class WebAPIResource(object):
         else:
             view = None
 
-        if view and callable(view):
+        if view and six.callable(view):
             result = view(request, api_format=api_format, *args, **kwargs)
 
             if isinstance(result, WebAPIResponse):
@@ -918,10 +919,10 @@ class WebAPIResource(object):
         expand = request.GET.get('expand', request.POST.get('expand', ''))
         expanded_resources = expand.split(',')
 
-        for field in self.fields.iterkeys():
+        for field in six.iterkeys(self.fields):
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
 
-            if serialize_func and callable(serialize_func):
+            if serialize_func and six.callable(serialize_func):
                 value = serialize_func(obj, request=request)
             else:
                 value = getattr(obj, field)
@@ -1045,8 +1046,8 @@ class WebAPIResource(object):
                 'href': '%s%s/' % (clean_base_href, resource.uri_name),
             }
 
-        for key, info in self.get_related_links(obj, request,
-                                                *args, **kwargs).iteritems():
+        for key, info in six.iteritems(
+                self.get_related_links(obj, request, *args, **kwargs)):
             links[key] = {
                 'method': info['method'],
                 'href': info['href'],
@@ -1149,7 +1150,7 @@ class WebAPIResource(object):
         for field in fields:
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
 
-            if serialize_func and callable(serialize_func):
+            if serialize_func and six.callable(serialize_func):
                 values.append(serialize_func(obj, request=request))
             else:
                 values.append(six.text_type(getattr(obj, field)))
@@ -1174,7 +1175,7 @@ class WebAPIResource(object):
             if not hasattr(self, '_prefetch_related_fields'):
                 self._prefetch_related_fields = []
 
-                for field in self.fields.iterkeys():
+                for field in six.iterkeys(self.fields):
                     if hasattr(self, 'serialize_%s_field' % field):
                         continue
 
@@ -1396,7 +1397,7 @@ def get_resource_for_object(obj):
     """Returns the resource for an object."""
     resource = _model_to_resources.get(obj.__class__, None)
 
-    if not isinstance(resource, WebAPIResource) and callable(resource):
+    if not isinstance(resource, WebAPIResource) and six.callable(resource):
         resource = resource(obj)
 
     return resource

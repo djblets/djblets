@@ -24,8 +24,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-
 from django.http import HttpRequest
+from django.utils import six
 
 from djblets.webapi.core import SPECIAL_PARAMS
 from djblets.webapi.errors import NOT_LOGGED_IN, PERMISSION_DENIED, \
@@ -212,7 +212,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
             supported_fields = required.copy()
             supported_fields.update(optional)
 
-            for field_name, value in request_fields.iteritems():
+            for field_name, value in six.iteritems(request_fields):
                 if field_name in SPECIAL_PARAMS:
                     # These are special names and can be ignored.
                     continue
@@ -223,7 +223,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                     else:
                         invalid_fields[field_name] = ['Field is not supported']
 
-            for field_name, info in required.iteritems():
+            for field_name, info in six.iteritems(required):
                 temp_fields = request_fields
 
                 if info['type'] == file:
@@ -235,7 +235,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
             new_kwargs = kwargs.copy()
             new_kwargs['extra_fields'] = extra_fields
 
-            for field_name, info in supported_fields.iteritems():
+            for field_name, info in six.iteritems(supported_fields):
                 if isinstance(info['type'], file):
                     continue
 

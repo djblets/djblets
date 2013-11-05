@@ -24,6 +24,7 @@
 #
 
 from django import forms
+from django.utils import six
 
 
 class SiteSettingsForm(forms.Form):
@@ -66,7 +67,7 @@ class SiteSettingsForm(forms.Form):
             else:
                 save_blacklist = []
 
-            for key, value in self.cleaned_data.iteritems():
+            for key, value in six.iteritems(self.cleaned_data):
                 if key not in save_blacklist:
                     self.siteconfig.set(key, value)
 
