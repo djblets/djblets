@@ -157,7 +157,7 @@ def validate_json(value):
     if isinstance(value, basestring):
         try:
             json.loads(value)
-        except ValueError, e:
+        except ValueError as e:
             raise ValidationError(str(e), code='invalid')
 
 
