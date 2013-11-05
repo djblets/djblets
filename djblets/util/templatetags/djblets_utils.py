@@ -234,7 +234,7 @@ def exclude_item(container, item):
         if item in container:
             container.remove(item)
     else:
-        raise TemplateSyntaxError, "remove_item expects a list"
+        raise TemplateSyntaxError("remove_item expects a list")
 
     return container
 

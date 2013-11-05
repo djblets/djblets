@@ -33,8 +33,8 @@ from djblets.extensions.settings import Settings
 
 
 if not hasattr(settings, "EXTENSIONS_STATIC_ROOT"):
-    raise ImproperlyConfigured, \
-          "settings.EXTENSIONS_STATIC_ROOT must be defined"
+    raise ImproperlyConfigured(
+        "settings.EXTENSIONS_STATIC_ROOT must be defined")
 
 
 class Extension(object):
@@ -157,9 +157,9 @@ class Extension(object):
                                   "admin_urls")
                 self._admin_urlconf_module = __import__(name, {}, {}, [''])
             except Exception as e:
-                raise ImproperlyConfigured, \
-                    "Error while importing extension's admin URLconf %r: %s" % \
-                    (name, e)
+                raise ImproperlyConfigured(
+                    "Error while importing extension's admin URLconf %r: %s" %
+                    (name, e))
 
         return self._admin_urlconf_module
     admin_urlconf = property(_get_admin_urlconf)

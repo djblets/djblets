@@ -133,20 +133,20 @@ def basictag(takes_context=False):
                 if params[0] == 'context':
                     max_args -= 1 # Ignore context
                 else:
-                    raise TemplateSyntaxError, \
-                        "Any tag function decorated with takes_context=True " \
-                        "must have a first argument of 'context'"
+                    raise TemplateSyntaxError(
+                        "Any tag function decorated with takes_context=True "
+                        "must have a first argument of 'context'")
 
             min_args = max_args - len(defaults or [])
 
             if not min_args <= len(bits) <= max_args:
                 if min_args == max_args:
-                    raise TemplateSyntaxError, \
-                        "%r tag takes %d arguments." % (tag_name, min_args)
+                    raise TemplateSyntaxError(
+                        "%r tag takes %d arguments." % (tag_name, min_args))
                 else:
-                    raise TemplateSyntaxError, \
-                        "%r tag takes %d to %d arguments, got %d." % \
-                        (tag_name, min_args, max_args, len(bits))
+                    raise TemplateSyntaxError(
+                        "%r tag takes %d to %d arguments, got %d." %
+                        (tag_name, min_args, max_args, len(bits)))
 
             return BasicTagNode(takes_context, tag_name, tag_func, bits)
 
@@ -196,12 +196,12 @@ def blocktag(tag_func):
 
         if not min_args <= len(bits) <= max_args:
             if min_args == max_args:
-                raise TemplateSyntaxError, \
-                    "%r tag takes %d arguments." % (tag_name, min_args)
+                raise TemplateSyntaxError(
+                    "%r tag takes %d arguments." % (tag_name, min_args))
             else:
-                raise TemplateSyntaxError, \
-                    "%r tag takes %d to %d arguments, got %d." % \
-                    (tag_name, min_args, max_args, len(bits))
+                raise TemplateSyntaxError(
+                    "%r tag takes %d to %d arguments, got %d." %
+                    (tag_name, min_args, max_args, len(bits)))
 
         nodelist = parser.parse((('end%s' % tag_name),))
         parser.delete_first_token()

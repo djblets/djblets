@@ -44,6 +44,6 @@ def load_template_source(template_name, template_dirs=None):
                 except Exception:
                     pass
 
-    raise TemplateDoesNotExist, template_name
+    raise TemplateDoesNotExist(template_name)
 
 load_template_source.is_usable = manager is not None
