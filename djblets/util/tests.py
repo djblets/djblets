@@ -89,10 +89,10 @@ class CacheTest(TestCase):
 
         site = Site.objects.get_current()
         full_key = '%s:%s' % (site.domain, cacheKey)
-        self.assertTrue(cache.has_key(full_key))
-        self.assertTrue(cache.has_key('%s-0' % full_key))
-        self.assertTrue(cache.has_key('%s-1' % full_key))
-        self.assertFalse(cache.has_key('%s-2' % full_key))
+        self.assertTrue(full_key in cache)
+        self.assertTrue('%s-0' % full_key in cache)
+        self.assertTrue('%s-1' % full_key in cache)
+        self.assertFalse('%s-2' % full_key in cache)
 
         result = cache_memoize(cacheKey, cacheFunc, large_data=True,
                                compress_large_data=False)

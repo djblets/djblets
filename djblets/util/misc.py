@@ -145,7 +145,7 @@ def cache_memoize(key, lookup_callable,
     key = make_cache_key(key)
 
     if large_data:
-        if not force_overwrite and cache.has_key(key):
+        if not force_overwrite and key in cache:
             try:
                 data = _cache_fetch_large_data(cache, key, compress_large_data)
                 return data
@@ -160,7 +160,7 @@ def cache_memoize(key, lookup_callable,
         return data
 
     else:
-        if not force_overwrite and cache.has_key(key):
+        if not force_overwrite and key in cache:
             return cache.get(key)
         data = lookup_callable()
 
