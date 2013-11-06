@@ -27,11 +27,7 @@ import base64
 import json
 import logging
 from datetime import datetime
-
-try:
-    from ast import literal_eval
-except ImportError:
-    from djblets.util.compat.ast_compat import literal_eval
+from ast import literal_eval
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
