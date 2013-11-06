@@ -1,3 +1,15 @@
+version 0.7.23 final (5-November-2013):
+	* djblets.extensions:
+		* Fix URL errors when configuring extensions with a custom SITE_ROOT.
+
+	* djblets.util.fields:
+		* JSONFields can now be safely edited through the administration UI,
+		  complete with validation.
+
+	* jquery.gravy:
+		* Fixed hiding the pencil icons on an inlineEditor when disabled.
+
+
 version 0.7.22 final (1-November-2013):
 	* djblets.extensions:
 		* AJAX_SERIAL is updated when extensions are enabled/disabled or their
