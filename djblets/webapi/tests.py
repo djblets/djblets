@@ -526,61 +526,85 @@ class WebAPIResourceTests(TestCase):
 
         self.test_resource = TestResource()
 
-        self.assertEqual(len(self.test_resource.allowed_list_mimetypes), 4)
-        self.assertEqual(len(self.test_resource.allowed_item_mimetypes), 4)
+        item_mimetypes = [
+            mimetype['item']
+            for mimetype in self.test_resource.allowed_mimetypes
+            if 'item' in mimetype
+        ]
+
+        list_mimetypes = [
+            mimetype['list']
+            for mimetype in self.test_resource.allowed_mimetypes
+            if 'list' in mimetype
+        ]
+
+        self.assertEqual(len(list_mimetypes), 4)
+        self.assertEqual(len(item_mimetypes), 4)
 
         self.assertTrue('application/json' in
-                        self.test_resource.allowed_list_mimetypes)
+                        list_mimetypes)
         self.assertTrue('application/xml' in
-                        self.test_resource.allowed_list_mimetypes)
+                        list_mimetypes)
         self.assertTrue('application/vnd.djblets.testresources+json' in
-                        self.test_resource.allowed_list_mimetypes)
+                        list_mimetypes)
         self.assertTrue('application/vnd.djblets.testresources+xml' in
-                        self.test_resource.allowed_list_mimetypes)
+                        list_mimetypes)
 
         self.assertTrue('application/json' in
-                        self.test_resource.allowed_item_mimetypes)
+                        item_mimetypes)
         self.assertTrue('application/xml' in
-                        self.test_resource.allowed_item_mimetypes)
+                        item_mimetypes)
         self.assertTrue('application/vnd.djblets.testresource+json' in
-                        self.test_resource.allowed_item_mimetypes)
+                        item_mimetypes)
         self.assertTrue('application/vnd.djblets.testresource+xml' in
-                        self.test_resource.allowed_item_mimetypes)
+                        item_mimetypes)
 
     def test_vendor_mimetypes_with_custom(self):
         """Testing WebAPIResource with vendor-specific and custom mimetypes"""
         class TestResource(WebAPIResource):
             mimetype_vendor = 'djblets'
-            allowed_item_mimetypes = WebAPIResource.allowed_item_mimetypes + [
-                'text/html',
+            allowed_mimetypes = WebAPIResource.allowed_mimetypes + [
+                {'item': 'text/html'},
             ]
 
         self.test_resource = TestResource()
 
-        self.assertEqual(len(self.test_resource.allowed_list_mimetypes), 4)
-        self.assertEqual(len(self.test_resource.allowed_item_mimetypes), 5)
+        item_mimetypes = [
+            mimetype['item']
+            for mimetype in self.test_resource.allowed_mimetypes
+            if 'item' in mimetype
+        ]
+
+        list_mimetypes = [
+            mimetype['list']
+            for mimetype in self.test_resource.allowed_mimetypes
+            if 'list' in mimetype
+        ]
+
+        self.assertEqual(len(list_mimetypes), 4)
+        self.assertEqual(len(item_mimetypes), 5)
 
         self.assertTrue('application/json' in
-                        self.test_resource.allowed_list_mimetypes)
+                        list_mimetypes)
         self.assertTrue('application/xml' in
-                        self.test_resource.allowed_list_mimetypes)
+                        list_mimetypes)
         self.assertTrue('application/vnd.djblets.testresources+json' in
-                        self.test_resource.allowed_list_mimetypes)
+                        list_mimetypes)
         self.assertTrue('application/vnd.djblets.testresources+xml' in
-                        self.test_resource.allowed_list_mimetypes)
+                        list_mimetypes)
 
         self.assertTrue('application/json' in
-                        self.test_resource.allowed_item_mimetypes)
+                        item_mimetypes)
         self.assertTrue('application/xml' in
-                        self.test_resource.allowed_item_mimetypes)
+                        item_mimetypes)
         self.assertTrue('application/vnd.djblets.testresource+json' in
-                        self.test_resource.allowed_item_mimetypes)
+                        item_mimetypes)
         self.assertTrue('application/vnd.djblets.testresource+xml' in
-                        self.test_resource.allowed_item_mimetypes)
+                        item_mimetypes)
         self.assertTrue('application/vnd.djblets.testresource+xml' in
-                        self.test_resource.allowed_item_mimetypes)
+                        item_mimetypes)
         self.assertTrue('text/html' in
-                        self.test_resource.allowed_item_mimetypes)
+                        item_mimetypes)
 
     def test_get_with_vendor_mimetype(self):
         """Testing WebAPIResource with GET and vendor-specific mimetypes"""
