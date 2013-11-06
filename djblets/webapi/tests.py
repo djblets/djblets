@@ -22,6 +22,8 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from __future__ import print_function
+
 from django.contrib.auth.models import AnonymousUser, User
 from django.test.client import RequestFactory
 
@@ -703,7 +705,7 @@ class WebAPIResourceTests(TestCase):
             request = func(url)
 
         response = resource(request, **view_kwargs)
-        print response
+        print(response)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], response_mimetype)
 
@@ -732,7 +734,7 @@ class WebAPIResourceTests(TestCase):
             request = func(url)
 
         response = resource(request, **view_kwargs)
-        print response
+        print(response)
         self.assertEqual(response.status_code, 200)
 
         if response_item_mimetype:

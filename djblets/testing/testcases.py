@@ -24,6 +24,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import print_function
+
 import socket
 import threading
 
@@ -124,7 +126,7 @@ class WSGIRequestHandler(basehttp.WSGIRequestHandler):
     to only show it on failure.
     """
     def log_message(self, format, *args):
-        print format % args
+        print(format % args)
 
 
 class TestServerThread(threading.Thread):

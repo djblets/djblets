@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import mimetools
 import os
 import re
@@ -21,7 +23,7 @@ class BlessCompiler(CompilerBase):
 
     def compile_file(self, infile, outfile, *args, **kwargs):
         if self.verbose:
-            print 'Converting lesscss using %s' % BLESS_URL
+            print('Converting lesscss using %s' % BLESS_URL)
 
         boundary = mimetools.choose_boundary()
 

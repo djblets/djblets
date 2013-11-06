@@ -66,6 +66,6 @@ class Command(NoArgsCommand):
             raise CommandError("'%s' is not a valid %s" %
                                (value, value_type.__name__))
 
-        print "Setting '%s' to %s" % (key, norm_value)
+        self.stdout.write("Setting '%s' to %s" % (key, norm_value))
         node[key_basename] = norm_value
         siteconfig.save()

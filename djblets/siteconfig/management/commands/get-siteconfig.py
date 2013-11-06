@@ -39,4 +39,4 @@ class Command(NoArgsCommand):
         if not valid_key:
             raise CommandError("'%s' is not a valid settings key" % key)
 
-        print node[key_basename]
+        self.stdout.write(node[key_basename])
