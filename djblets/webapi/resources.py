@@ -940,7 +940,7 @@ class WebAPIResource(object):
                 data['links'][field] = {
                     'method': 'GET',
                     'href': resource.get_href(value, *args, **kwargs),
-                    'title': unicode(value),
+                    'title': six.text_type(value),
                 }
             elif isinstance(value, QuerySet) and not expand_field:
                 data[field] = [
@@ -948,7 +948,7 @@ class WebAPIResource(object):
                         'method': 'GET',
                         'href': get_resource_for_object(o).get_href(
                                     o, *args, **kwargs),
-                        'title': unicode(o),
+                        'title': six.text_type(o),
                     }
                     for o in value
                 ]
@@ -1136,7 +1136,7 @@ class WebAPIResource(object):
         This can be overridden for more complex behavior.
         """
         if self.etag_field:
-            return unicode(getattr(obj, self.etag_field))
+            return six.text_type(getattr(obj, self.etag_field))
         elif self.autogenerate_etags:
             return self.generate_etag(obj, self.fields, request=request)
 
@@ -1152,7 +1152,7 @@ class WebAPIResource(object):
             if serialize_func and callable(serialize_func):
                 values.append(serialize_func(obj, request=request))
             else:
-                values.append(unicode(getattr(obj, field)))
+                values.append(six.text_type(getattr(obj, field)))
 
         return sha1(':'.join(fields)).hexdigest()
 

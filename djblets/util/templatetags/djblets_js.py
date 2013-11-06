@@ -29,6 +29,7 @@ from django import template
 from django.core.serializers import serialize
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
+from django.utils import six
 from django.utils.safestring import mark_safe
 
 
@@ -58,7 +59,7 @@ def form_dialog_fields(form):
             if field.field.help_text:
                 s += "help_text: '%s', " % field.field.help_text
 
-        s += "widget: '%s' }," % unicode(field)
+        s += "widget: '%s' }," % six.text_type(field)
 
     # Chop off the last ','
     return "[ %s ]" % s[:-1]

@@ -35,6 +35,7 @@ from django.core.exceptions import ValidationError
 from django.core.urlresolvers import NoReverseMatch, reverse
 from django.http import HttpRequest
 from django.template import Token, TOKEN_TEXT, TemplateSyntaxError
+from django.utils import six
 from django.utils.html import strip_spaces_between_tags
 
 from djblets.util.http import get_http_accept_lists, \
@@ -365,19 +366,19 @@ class JSONFieldTests(unittest.TestCase):
     def test_dumps_with_json_dict(self):
         """Testing JSONField with dumping a JSON dictionary"""
         result = self.field.dumps({'a': 1})
-        self.assertTrue(isinstance(result, basestring))
+        self.assertTrue(isinstance(result, six.string_types))
         self.assertEqual(result, '{"a": 1}')
 
     def test_dumps_with_json_string(self):
         """Testing JSONField with dumping a JSON string"""
         result = self.field.dumps('{"a": 1, "b": 2}')
-        self.assertTrue(isinstance(result, basestring))
+        self.assertTrue(isinstance(result, six.string_types))
         self.assertEqual(result, '{"a": 1, "b": 2}')
 
     def test_dumps_with_json_dict(self):
         """Testing JSONField with dumping a JSON dictionary"""
         result = self.field.dumps({'a': 1})
-        self.assertTrue(isinstance(result, basestring))
+        self.assertTrue(isinstance(result, six.string_types))
         self.assertEqual(result, '{"a": 1}')
 
     def test_loading_json_dict(self):

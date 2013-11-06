@@ -134,7 +134,7 @@ class XMLEncoderAdapter(object):
             for key, value in o.iteritems():
                 attrs = {}
 
-                if isinstance(key, (int, long)):
+                if isinstance(key, six.integer_types):
                     attrs['value'] = str(key)
                     key = 'int'
 
@@ -150,9 +150,9 @@ class XMLEncoderAdapter(object):
                 self.endElement("item")
 
             self.endElement("array")
-        elif isinstance(o, basestring):
+        elif isinstance(o, six.string_types):
             self.text(o)
-        elif isinstance(o, (int, long)):
+        elif isinstance(o, six.integer_types):
             self.text("%d" % o)
         elif isinstance(o, bool):
             if o:

@@ -781,7 +781,8 @@ class DataGrid(object):
         Renders the listview to a response, preventing caching in the
         process.
         """
-        response = HttpResponse(unicode(self.render_listview(render_context)))
+        response = HttpResponse(
+            six.text_type(self.render_listview(render_context)))
         patch_cache_control(response, no_cache=True, no_store=True, max_age=0,
                             must_revalidate=True)
         return response

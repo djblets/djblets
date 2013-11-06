@@ -27,6 +27,7 @@ import calendar
 from datetime import datetime
 
 from django.db.models import DateField
+from django.utils import six
 from django.utils.timezone import utc
 
 
@@ -39,7 +40,7 @@ def http_date(timestamp):
 
     if isinstance(timestamp, (DateField, datetime)):
         return http_date(calendar.timegm(timestamp.timetuple()))
-    elif isinstance(timestamp, basestring):
+    elif isinstance(timestamp, six.string_types):
         return timestamp
     else:
         return http_date(timestamp)

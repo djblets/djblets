@@ -1,6 +1,7 @@
 from optparse import make_option
 
 from django.core.management.base import CommandError, NoArgsCommand
+from django.utils import six
 
 from djblets.siteconfig.models import SiteConfiguration
 
@@ -51,7 +52,7 @@ class Command(NoArgsCommand):
         stored_value = node[key_basename]
         value_type = type(stored_value)
 
-        if value_type not in (str, unicode, int, bool):
+        if value_type not in (six.text_type, six.binary_type, int, bool):
             raise CommandError("Cannot set %s keys" % value_type.__name__)
 
         try:

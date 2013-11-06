@@ -150,7 +150,7 @@ def validate_json(value):
     (representing a serialized JSON payload, possibly from the admin UI)
     and cannot be loaded properly.
     """
-    if isinstance(value, basestring):
+    if isinstance(value, six.string_types):
         try:
             json.loads(value)
         except ValueError as e:
@@ -201,7 +201,7 @@ class JSONField(models.TextField):
         setattr(instance, self.attname, value)
 
     def get_db_prep_save(self, value, *args, **kwargs):
-        if not isinstance(value, basestring):
+        if not isinstance(value, six.string_types):
             value = self.dumps(value)
 
         return super(JSONField, self).get_db_prep_save(value, *args, **kwargs)
@@ -210,7 +210,7 @@ class JSONField(models.TextField):
         return self.dumps(self.value_from_object(obj))
 
     def dumps(self, data):
-        if isinstance(data, basestring):
+        if isinstance(data, six.string_types):
             return data
         else:
             return self.encoder.encode(data)
@@ -221,7 +221,7 @@ class JSONField(models.TextField):
 
             # XXX We need to investigate why this is happening once we have
             #     a solid repro case.
-            if isinstance(val, basestring):
+            if isinstance(val, six.string_types):
                 logging.warning("JSONField decode error. Expected dictionary, "
                                 "got string for input '%s'" % val)
                 # For whatever reason, we may have gotten back
@@ -236,7 +236,7 @@ class JSONField(models.TextField):
                               % (val, e))
                 val = {}
 
-            if isinstance(val, basestring):
+            if isinstance(val, six.string_types):
                 logging.warning('JSONField decode error after literal_eval: '
                                 'Expected dictionary, got string: %r' % val)
                 val = {}
