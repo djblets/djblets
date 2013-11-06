@@ -66,13 +66,13 @@ class ColumnsTest(TestCase):
 
         obj = DummyObj()
         obj.time = now
-        self.assertEqual(column.render_data(obj), "0 minutes ago")
+        self.assertEqual(column.render_data(obj), "0\xa0minutes ago")
 
         obj.time = now - timedelta(days=5)
-        self.assertEqual(column.render_data(obj), "5 days ago")
+        self.assertEqual(column.render_data(obj), "5\xa0days ago")
 
         obj.time = now - timedelta(days=7)
-        self.assertEqual(column.render_data(obj), "1 week ago")
+        self.assertEqual(column.render_data(obj), "1\xa0week ago")
 
 
 class DataGridTest(TestCase):
