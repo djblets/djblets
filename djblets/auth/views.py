@@ -32,10 +32,10 @@ from django.template.context import RequestContext
 from django.http import HttpResponseRedirect
 from django.utils import six
 
-from djblets.auth.forms import RegistrationForm, ChangePasswordForm, \
-                               ChangeProfileForm
-from djblets.auth.util import internal_login, validate_test_cookie, \
-                              validate_old_password
+from djblets.auth.forms import (RegistrationForm, ChangePasswordForm,
+                                ChangeProfileForm)
+from djblets.auth.util import (internal_login, validate_test_cookie,
+                               validate_old_password)
 
 
 ###########################

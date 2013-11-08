@@ -26,9 +26,9 @@ from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core.cache import cache
 
-from djblets.siteconfig.django_settings import apply_django_settings, \
-                                               cache_settings_map, \
-                                               mail_settings_map
+from djblets.siteconfig.django_settings import (apply_django_settings,
+                                                cache_settings_map,
+                                                mail_settings_map)
 from djblets.siteconfig.models import SiteConfiguration
 from djblets.util.testing import TestCase
 

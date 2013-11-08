@@ -38,14 +38,13 @@ from django.template import Token, TOKEN_TEXT, TemplateSyntaxError
 from django.utils import six
 from django.utils.html import strip_spaces_between_tags
 
-from djblets.util.http import get_http_accept_lists, \
-                              get_http_requested_mimetype, \
-                              is_mimetype_a
+from djblets.util.http import (get_http_accept_lists,
+                               get_http_requested_mimetype,
+                               is_mimetype_a)
 from djblets.util.misc import cache_memoize, CACHE_CHUNK_SIZE
 from djblets.util.testing import TestCase, TagTest
-from djblets.util.templatetags import djblets_deco
-from djblets.util.templatetags import djblets_email
-from djblets.util.templatetags import djblets_utils
+from djblets.util.templatetags import (djblets_deco, djblets_email,
+                                       djblets_utils)
 from djblets.util.urlresolvers import DynamicURLResolver
 
 

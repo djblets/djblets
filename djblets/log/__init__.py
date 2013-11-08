@@ -30,11 +30,6 @@ import logging
 import os
 import sys
 
-try:
-    from logging import WatchedFileHandler
-except ImportError:
-    from djblets.log.handlers import WatchedFileHandler
-
 from django.conf import settings
 
 
@@ -163,9 +158,9 @@ def init_logging():
 
     try:
         if sys.platform == 'win32':
-            handler = logging.FileHandler(log_path)
+            handler = logging.handlers.FileHandler(log_path)
         else:
-            handler = WatchedFileHandler(log_path)
+            handler = logging.handlers.WatchedFileHandler(log_path)
 
         handler.setLevel(log_level)
         handler.setFormatter(formatter)
@@ -209,9 +204,9 @@ def init_profile_logger():
         filename = os.path.join(log_directory, log_name + ".prof")
 
         if sys.platform == 'win32':
-            handler = logging.FileHandler(filename)
+            handler = logging.handlers.FileHandler(filename)
         else:
-            handler = WatchedFileHandler(filename)
+            handler = logging.handlers.WatchedFileHandler(filename)
 
         handler.setLevel(logging.INFO)
         handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))

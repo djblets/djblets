@@ -9,28 +9,28 @@ from django.db.models.fields.related import (
     ManyRelatedObjectsDescriptor,
     ReverseManyRelatedObjectsDescriptor)
 from django.db.models.query import QuerySet
-from django.http import HttpResponseNotAllowed, HttpResponse, \
-                        HttpResponseNotModified
+from django.http import (HttpResponseNotAllowed, HttpResponse,
+                         HttpResponseNotModified)
 from django.utils import six
 from django.views.decorators.vary import vary_on_headers
 
 from djblets.util.decorators import augment_method_from
-from djblets.util.http import get_modified_since, etag_if_none_match, \
-                              set_last_modified, set_etag, \
-                              get_http_requested_mimetype
+from djblets.util.http import (get_modified_since, etag_if_none_match,
+                               set_last_modified, set_etag,
+                               get_http_requested_mimetype)
 from djblets.util.misc import never_cache_patterns
 from djblets.webapi.auth import check_login
-from djblets.webapi.core import WebAPIResponse, \
-                                WebAPIResponseError, \
-                                WebAPIResponsePaginated, \
-                                SPECIAL_PARAMS
-from djblets.webapi.decorators import webapi_login_required, \
-                                      webapi_request_fields, \
-                                      webapi_response_errors
-from djblets.webapi.errors import DOES_NOT_EXIST, \
-                                  NOT_LOGGED_IN, \
-                                  PERMISSION_DENIED, \
-                                  WebAPIError
+from djblets.webapi.core import (WebAPIResponse,
+                                 WebAPIResponseError,
+                                 WebAPIResponsePaginated,
+                                 SPECIAL_PARAMS)
+from djblets.webapi.decorators import (webapi_login_required,
+                                       webapi_request_fields,
+                                       webapi_response_errors)
+from djblets.webapi.errors import (DOES_NOT_EXIST,
+                                   NOT_LOGGED_IN,
+                                   PERMISSION_DENIED,
+                                   WebAPIError)
 
 
 _model_to_resources = {}

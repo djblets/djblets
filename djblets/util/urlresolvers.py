@@ -1,5 +1,5 @@
-from django.core.urlresolvers import RegexURLResolver, clear_url_caches, \
-                                     get_resolver
+from django.core.urlresolvers import (RegexURLResolver, clear_url_caches,
+                                      get_resolver)
 
 
 class DynamicURLResolver(RegexURLResolver):

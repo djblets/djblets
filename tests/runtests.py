@@ -8,8 +8,8 @@ def run_tests(verbosity=1, interactive=False):
     from django.conf import settings
     from django.core import management
     from django.db import connection
-    from django.test.utils import setup_test_environment, \
-                                  teardown_test_environment
+    from django.test.utils import (setup_test_environment,
+                                   teardown_test_environment)
 
     setup_test_environment()
     settings.DEBUG = False

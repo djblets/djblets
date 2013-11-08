@@ -24,7 +24,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-from djblets.testing.testcases import StubNodeList, StubParser, \
-                                      TagTest, TestCase
+from djblets.testing.testcases import (StubNodeList, StubParser,
+                                       TagTest, TestCase)
 
 __all__ = ['StubNodeList', 'StubParser', 'TagTest', 'TestCase']

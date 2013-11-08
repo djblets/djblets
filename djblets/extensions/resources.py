@@ -1,17 +1,17 @@
 from django.conf.urls import patterns, include
 from django.core.exceptions import ObjectDoesNotExist
 
-from djblets.extensions.errors import DisablingExtensionError, \
-                                      EnablingExtensionError, \
-                                      InvalidExtensionError
+from djblets.extensions.errors import (DisablingExtensionError,
+                                       EnablingExtensionError,
+                                       InvalidExtensionError)
 from djblets.extensions.models import RegisteredExtension
 from djblets.util.urlresolvers import DynamicURLResolver
-from djblets.webapi.decorators import webapi_login_required, \
-                                      webapi_permission_required, \
-                                      webapi_request_fields
-from djblets.webapi.errors import DOES_NOT_EXIST, \
-                                  ENABLE_EXTENSION_FAILED, \
-                                  DISABLE_EXTENSION_FAILED
+from djblets.webapi.decorators import (webapi_login_required,
+                                       webapi_permission_required,
+                                       webapi_request_fields)
+from djblets.webapi.errors import (DOES_NOT_EXIST,
+                                   ENABLE_EXTENSION_FAILED,
+                                   DISABLE_EXTENSION_FAILED)
 from djblets.webapi.resources import WebAPIResource
 
 

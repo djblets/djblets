@@ -24,8 +24,8 @@
 
 from django import template
 
-from djblets.gravatars import get_gravatar_url, \
-                              get_gravatar_url_for_email
+from djblets.gravatars import (get_gravatar_url,
+                               get_gravatar_url_for_email)
 from djblets.util.decorators import basictag
 
 
