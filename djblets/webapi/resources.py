@@ -1,7 +1,4 @@
-try:
-    from hashlib import sha1
-except ImportError:
-    from sha import sha as sha1
+from hashlib import sha1
 
 from django.conf.urls import include, patterns, url
 from django.contrib.auth.models import User, Group

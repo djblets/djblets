@@ -28,13 +28,7 @@
 import logging
 import os
 import zlib
-
-try:
-    import hashlib
-    new_md5 = hashlib.md5
-except ImportError:
-    import md5
-    new_md5 = md5.new
+from hashlib import md5
 
 try:
     import cPickle as pickle
@@ -208,7 +202,7 @@ def make_cache_key(key):
 
     # Adhere to memcached key size limit
     if len(key) > MAX_KEY_SIZE:
-        digest = new_md5(key).hexdigest();
+        digest = md5(key).hexdigest();
 
         # Replace the excess part of the key with a digest of the key
         key = key[:MAX_KEY_SIZE - len(digest)] + digest

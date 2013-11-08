@@ -23,10 +23,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-try:
-    from hashlib import md5
-except ImportError:
-    from md5 import md5
+from hashlib import md5
 
 from django.conf import settings
 
