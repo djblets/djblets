@@ -28,7 +28,6 @@ import os
 from django.conf import settings
 from django.conf.urls import include, patterns
 from django.core.exceptions import ImproperlyConfigured
-from django.utils import six
 from mock import Mock
 
 from djblets.extensions.extension import Extension, ExtensionInfo
@@ -37,6 +36,7 @@ from djblets.extensions.hooks import (ExtensionHook, ExtensionHookPoint,
 from djblets.extensions.manager import _extension_managers, ExtensionManager
 from djblets.extensions.settings import Settings
 from djblets.testing.testcases import TestCase
+from djblets.util.compat import six
 
 
 class SettingsTest(TestCase):
@@ -263,9 +263,9 @@ class ExtensionInfoTest(TestCase):
         self.assertEqual(extension_info.version, test_version)
 
 
+@six.add_metaclass(ExtensionHookPoint)
 class TestExtensionHook(ExtensionHook):
     """A dummy ExtensionHook to test with"""
-    __metaclass__ = ExtensionHookPoint
 
 
 class ExtensionHookTest(TestCase):

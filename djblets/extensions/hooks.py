@@ -26,6 +26,8 @@
 from django.core.urlresolvers import NoReverseMatch, reverse
 from django.template.loader import render_to_string
 
+from djblets.util.compat import six
+
 
 class ExtensionHook(object):
     """The base class for a hook into some part of the project.
@@ -39,8 +41,10 @@ class ExtensionHook(object):
     A base ExtensionHook subclass must use :py:class:`ExtensionHookPoint`
     as a metaclass. For example::
 
+        from djblets.util.compat import six
+
+        @six.add_metaclass(ExtensionHookPoint)
         class NavigationHook(ExtensionHook):
-            __metaclass__ = ExtensionHookPoint
     """
     def __init__(self, extension):
         self.extension = extension
@@ -79,14 +83,13 @@ class ExtensionHookPoint(type):
         cls.hooks.remove(hook)
 
 
+@six.add_metaclass(ExtensionHookPoint)
 class URLHook(ExtensionHook):
     """Custom URL hook.
 
     A hook that installs custom URLs. These URLs reside in a project-specified
     parent URL.
     """
-    __metaclass__ = ExtensionHookPoint
-
     def __init__(self, extension, patterns):
         super(URLHook, self).__init__(extension)
         self.patterns = patterns
@@ -99,13 +102,12 @@ class URLHook(ExtensionHook):
         self.dynamic_urls.remove_patterns(self.patterns)
 
 
+@six.add_metaclass(ExtensionHookPoint)
 class TemplateHook(ExtensionHook):
     """Custom templates hook.
 
     A hook that renders a template at hook points defined in another template.
     """
-    __metaclass__ = ExtensionHookPoint
-
     _by_name = {}
 
     def __init__(self, extension, name, template_name=None, apply_to=[]):
