@@ -26,7 +26,6 @@
 
 import logging
 import traceback
-import urllib
 
 import pytz
 from django.conf import settings
@@ -38,11 +37,13 @@ from django.shortcuts import render_to_response
 from django.template.context import RequestContext, Context
 from django.template.defaultfilters import date, timesince
 from django.template.loader import render_to_string, get_template
-from django.utils import six
 from django.utils.cache import patch_cache_control
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
+
+from djblets.util.compat import six
+from djblets.util.compat.six.moves.urllib.parse import urlencode
 
 
 class Column(object):
@@ -212,7 +213,7 @@ class Column(object):
         Utility function to return a string containing URL parameters to
         this page with the specified parameter filtered out.
         """
-        result = urllib.urlencode([
+        result = urlencode([
             (key, value)
             for key, value in six.iteritems(self.datagrid.request.GET)
             if key not in params

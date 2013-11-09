@@ -28,18 +28,14 @@ import logging
 import os
 import tempfile
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-
+from django import template
+from django.core.files import File
 try:
     from PIL import Image
 except ImportError:
     import Image
 
-from django import template
-from django.core.files import File
+from djblets.util.compat.six.moves import cStringIO as StringIO
 
 
 register = template.Library()

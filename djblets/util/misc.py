@@ -30,16 +30,6 @@ import os
 import zlib
 from hashlib import md5
 
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-
 from django.core.cache import cache
 from django.core.urlresolvers import RegexURLPattern
 from django.conf import settings
@@ -48,6 +38,9 @@ from django.contrib.sites.models import Site
 from django.db.models.manager import Manager
 from django.utils import importlib
 from django.views.decorators.cache import never_cache
+
+from djblets.util.compat.six.moves import cStringIO as StringIO
+from djblets.util.compat.six.moves import cPickle as pickle
 
 
 DEFAULT_EXPIRATION_TIME = 60 * 60 * 24 * 30 # 1 month

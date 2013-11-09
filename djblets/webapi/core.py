@@ -26,10 +26,6 @@
 
 
 import json
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
 from xml.sax.saxutils import XMLGenerator
 
 from django.conf import settings
@@ -37,6 +33,7 @@ from django.http import HttpResponse
 from django.utils import six
 from django.utils.encoding import force_unicode
 
+from djblets.util.compat.six.moves import cStringIO as StringIO
 from djblets.util.http import get_http_requested_mimetype, is_mimetype_a
 from djblets.webapi.errors import INVALID_FORM_DATA
 

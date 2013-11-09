@@ -30,15 +30,16 @@ import logging
 import os
 import re
 import time
-from urllib import urlencode
 
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
-from django.utils import six
 from django.utils.translation import ugettext as _
+
+from djblets.util.compat import six
+from djblets.util.compat.six.moves.urllib.parse import urlencode
 
 
 LEVELS = (

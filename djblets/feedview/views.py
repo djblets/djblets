@@ -1,11 +1,11 @@
-import httplib
-import urllib2
-
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from django.template.loader import render_to_string
 
+from djblets.util.compat.six.moves import http_client
+from djblets.util.compat.six.moves.urllib.error import URLError
+from djblets.util.compat.six.moves.urllib.request import urlopen
 from djblets.util.misc import cache_memoize
 
 
@@ -21,7 +21,7 @@ def view_feed(request, url, template_name="feedview/feed-page.html",
     def fetch_feed():
         import feedparser
 
-        data = urllib2.urlopen(url).read()
+        data = urlopen(url).read()
 
         parser = feedparser.parse(data)
 
@@ -37,7 +37,7 @@ def view_feed(request, url, template_name="feedview/feed-page.html",
         return HttpResponse(cache_memoize("feed-%s" % url, fetch_feed,
                             cache_expiration,
                             force_overwrite=('reload' in request.GET)))
-    except (urllib2.URLError, httplib.HTTPException) as e:
+    except (URLError, http_client.HTTPException) as e:
         context = {
             'error': e,
         }

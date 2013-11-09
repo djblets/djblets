@@ -190,7 +190,7 @@ class LoggingMiddleware(object):
 
             init_profile_logger()
 
-            from cStringIO import StringIO
+            from djblets.util.compat.six.moves import cStringIO as StringIO
             self.profiler.create_stats()
 
             # Capture the stats
