@@ -24,11 +24,13 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from django.db import models
+from django.utils.encoding import python_2_unicode_compatible
 
 from djblets.extensions.errors import InvalidExtensionError
 from djblets.util.fields import JSONField
 
 
+@python_2_unicode_compatible
 class RegisteredExtension(models.Model):
     """Extension registration info.
 
@@ -44,7 +46,7 @@ class RegisteredExtension(models.Model):
     installed = models.BooleanField(default=False)
     settings = JSONField()
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def get_extension_class(self):

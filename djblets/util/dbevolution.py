@@ -39,7 +39,7 @@ class FakeChangeFieldType(BaseMutation):
         self.field_name = field_name
         self.new_type = new_type
 
-    def __str__(self):
+    def __repr__(self):
         return "FakeChangeFieldType('%s', '%s', '%s')" % \
             (self.model_name, self.field_name, self.new_type)
 

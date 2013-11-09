@@ -28,6 +28,7 @@ import os
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import get_mod_func
+from django.utils.encoding import python_2_unicode_compatible
 
 from djblets.extensions.settings import Settings
 
@@ -177,6 +178,7 @@ class Extension(object):
         return {}
 
 
+@python_2_unicode_compatible
 class ExtensionInfo(object):
     """Information on an extension.
 
@@ -221,5 +223,5 @@ class ExtensionInfo(object):
         self.installed_static_path = \
             os.path.join(settings.STATIC_ROOT, 'ext', ext_class.id)
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s %s (enabled = %s)" % (self.name, self.version, self.enabled)

@@ -26,6 +26,7 @@
 from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.db import models
+from django.utils.encoding import python_2_unicode_compatible
 
 from djblets.siteconfig.managers import SiteConfigurationManager
 from djblets.util.fields import JSONField
@@ -34,6 +35,7 @@ from djblets.util.fields import JSONField
 _DEFAULTS = {}
 
 
+@python_2_unicode_compatible
 class SiteConfiguration(models.Model):
     """
     Configuration data for a site. The version and all persistent settings
@@ -138,5 +140,5 @@ class SiteConfiguration(models.Model):
     def __get_sync_cache_key(self):
         return str("%s:siteconfig:%s:generation" % (self.site.domain, self.id))
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s (version %s)" % (unicode(self.site), self.version)
