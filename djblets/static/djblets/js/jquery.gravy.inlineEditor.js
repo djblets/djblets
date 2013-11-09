@@ -197,7 +197,10 @@ $.widget("ui.inlineEditor", {
             if (this.options.showRequiredFlag) {
                 this._editIcon.append(
                     $("<span/>")
-                        .attr("aria-label", "This field is required")
+                        .attr({
+                            'aria-label': 'This field is required',
+                            title: 'This field is required'
+                        })
                         .addClass("required-flag")
                         .text("*"));
             }
@@ -543,7 +546,6 @@ $.widget("ui.inlineEditor", {
              * the desired width.
              */
             this._field
-                .css("min-width", this.element.innerWidth())
                 .width(0)
                 .outerWidth(formParent.innerWidth() -
                             (this._form.offset().left -
