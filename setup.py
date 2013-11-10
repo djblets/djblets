@@ -39,6 +39,15 @@ from setuptools.command.egg_info import egg_info
 from setuptools.command.test import test
 
 
+# Make sure this is a version of Python we are compatible with. This should
+# prevent people on older versions from unintentionally trying to install
+# the source tarball, and failing.
+if sys.hexversion < 0x02060000:
+    sys.stderr.write('This version of Djblets is incompatible with your '
+                     'version of Python.\n')
+    sys.exit(1)
+
+
 class BuildEggInfo(egg_info):
     def run(self):
         if ('sdist' in sys.argv or
