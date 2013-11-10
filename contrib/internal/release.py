@@ -147,7 +147,8 @@ def tag_release():
 
 
 def register_release():
-    run_setup("register")
+    if __version_info__[3] == 'final':
+        run_setup("register")
 
 
 def main():
