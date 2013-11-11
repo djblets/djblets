@@ -25,59 +25,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-
-from datetime import datetime
-
 from django import forms
-from django.contrib import auth
-from django.conf import settings
-from django.http import HttpResponseRedirect
-from djblets.util.dates import get_tz_aware_utcnow
-from djblets.util.decorators import simple_decorator
 
-
-@simple_decorator
-def login_required(view_func):
-    """Simplified version of auth.decorators.login_required,
-       which works with our LOGIN_URL and removes the 'next'
-       parameter which we don't need yet.
-       """
-    def _checklogin(request, *args, **kwargs):
-        if request.user.is_authenticated():
-            return view_func(request, *args, **kwargs)
-        else:
-            return HttpResponseRedirect('%s?next_page=%s' % \
-                (settings.LOGIN_URL, request.path))
-    return _checklogin
-
-def get_user(username):
-    try:
-        return auth.models.User.objects.get(username=username)
-    except auth.models.User.DoesNotExist:
-        return None
-
-def internal_login(request, username, password):
-    try:
-        user = auth.authenticate(username=username, password=password)
-    except:
-        user = None
-    if not user:
-        return "Incorrect username or password."
-    elif not user.is_active:
-        return "This account is inactive."
-    elif not request.session.test_cookie_worked():
-        return "Cookies must be enabled."
-
-    auth.login(request, user)
-    if request.session.test_cookie_worked():
-        request.session.delete_test_cookie()
-
-    if settings.USE_TZ:
-        user.last_login = get_tz_aware_utcnow()
-    else:
-        user.last_login = datetime.now()
-
-    user.save()
 
 def validate_test_cookie(form, request):
     if not request.session.test_cookie_worked():

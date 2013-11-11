@@ -25,59 +25,15 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-from django.conf import settings
 from django.contrib import auth
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from django.http import HttpResponseRedirect
-from django.utils import six
 
-from djblets.auth.forms import (RegistrationForm, ChangePasswordForm,
-                                ChangeProfileForm)
-from djblets.auth.util import (internal_login, validate_test_cookie,
+from djblets.auth.forms import RegistrationForm
+from djblets.auth.util import (validate_test_cookie,
                                validate_old_password)
 
-
-###########################
-#       User Login        #
-###########################
-
-def login(request, next_page, template_name="accounts/login.html",
-          extra_context={}):
-    """Simple login form view which doesn't rely on Django's current
-       inflexible oldforms-based auth view.
-       """
-    if request.POST:
-        error = internal_login(request,
-                               request.POST.get('username'),
-                               request.POST.get('password'))
-        if not error:
-            return HttpResponseRedirect(request.REQUEST.get("next_page",
-                                                            next_page))
-    else:
-        error = None
-
-    request.session.set_test_cookie()
-    context = RequestContext(request, {
-        'error' : error,
-        'login_url' : settings.LOGIN_URL,
-        'next_page' : request.REQUEST.get("next_page", next_page)
-    })
-
-    if extra_context is not None:
-        # Copied from Django's generic views.
-        # The reason we don't simply call context.update(extra_context) is
-        # that there are times when you may want to pass a function in the
-        # URL handler that you want called at the time of render, rather than
-        # being forced to expose it as a template tag or calling it upon
-        # URL handler creation (which may be too early and only happens once).
-        for key, value in six.iteritems(extra_context):
-            if six.callable(value):
-                context[key] = value()
-            else:
-                context[key] = value
-
-    return render_to_response(template_name, context)
 
 ###########################
 #    User Registration    #
@@ -119,35 +75,3 @@ def register(request, next_page, form_class=RegistrationForm,
     context.update(extra_context)
 
     return render_to_response(template_name, RequestContext(request, context))
-
-###########################
-#     Profile Editing     #
-###########################
-
-def do_change_password(request):
-    form = ChangePasswordForm(request.POST)
-    form.full_clean()
-    validate_old_password(form, request.user, 'old_password')
-    if not form.errors:
-        # XXX Compatibility with Django 0.96 and 1.0
-        formdata = getattr(form, "cleaned_data",
-                           getattr(form, "clean_data", None))
-
-        request.user.set_password(formdata['new_password1'])
-        request.user.save()
-        request.user.message_set.create(message="Your password was changed successfully.")
-    return form
-
-def do_change_profile(request):
-    form = ChangeProfileForm(request.POST)
-    form.full_clean()
-    if not form.errors:
-        # XXX Compatibility with Django 0.96 and 1.0
-        formdata = getattr(form, "cleaned_data",
-                           getattr(form, "clean_data", None))
-
-        for key, value in six.iteritems(formdata):
-            setattr(request.user, key, value)
-        request.user.save()
-        request.user.message_set.create(message="Your profile was updated successfully.")
-    return form

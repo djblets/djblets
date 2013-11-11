@@ -29,7 +29,7 @@ from django.contrib import auth
 from django.core.exceptions import ValidationError
 from django.utils import six
 
-from djblets.auth.util import get_user
+from djblets.util.misc import get_object_or_none
 
 
 class RegistrationForm(forms.Form):
@@ -72,29 +72,8 @@ class RegistrationForm(forms.Form):
             except:
                 # We check for duplicate users here instead of clean, since it's
                 # possible that two users could race for a name.
-                if get_user(username=d['username']):
+                if get_object_or_none(User, username=d['username']):
                     self.errors['username'] = \
                         forms.util.ErrorList(["Sorry, this username is taken."])
                 else:
                     raise
-
-
-class ChangePasswordForm(forms.Form):
-    old_password = forms.CharField(widget=forms.PasswordInput)
-    new_password1 = forms.CharField(min_length=5,
-                                    max_length=30,
-                                    widget=forms.PasswordInput)
-    new_password2 = forms.CharField(widget=forms.PasswordInput)
-
-    def clean_new_password2(self):
-        formdata = self.cleaned_data
-        if 'new_password1' in formdata:
-            if formdata['new_password1'] != formdata['new_password2']:
-                raise ValidationError('Passwords must match')
-            return formdata['new_password2']
-
-
-class ChangeProfileForm(forms.Form):
-    first_name = forms.CharField(max_length=30)
-    last_name = forms.CharField(max_length=30)
-    email = forms.EmailField()
