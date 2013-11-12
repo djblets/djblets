@@ -115,7 +115,7 @@ def iter_log_lines(from_timestamp, to_timestamp, requested_levels):
         # about accurate.
         return
 
-    for line in fp.xreadlines():
+    for line in fp:
         line = line.rstrip()
 
         m = LOG_LINE_RE.match(line)
