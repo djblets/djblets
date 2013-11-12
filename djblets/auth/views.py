@@ -25,6 +25,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import unicode_literals
+
 from django.contrib import auth
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
@@ -50,11 +52,9 @@ def register(request, next_page, form_class=RegistrationForm,
         if form.is_valid():
             user = form.save()
             if user:
-                # XXX Compatibility with Django 0.96 and 1.0
-                formdata = getattr(form, "cleaned_data",
-                                   getattr(form, "clean_data", None))
-                user = auth.authenticate(username=formdata['username'],
-                                         password=formdata['password1'])
+                user = auth.authenticate(
+                    username=form.cleaned_data['username'],
+                    password=form.cleaned_data['password1'])
                 assert user
                 auth.login(request, user)
                 try:

@@ -23,13 +23,15 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from __future__ import unicode_literals
+
 from hashlib import md5
 
 from django.conf import settings
 
 
 def get_gravatar_url_for_email(request, email, size=None):
-    email_hash = md5(email).hexdigest()
+    email_hash = md5(email.encode('utf-8')).hexdigest()
 
     if request.is_secure():
         url_base = 'https://secure.gravatar.com'

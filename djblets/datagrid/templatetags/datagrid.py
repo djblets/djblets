@@ -24,6 +24,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import unicode_literals
 
 from django import template
 
@@ -35,9 +36,7 @@ register = template.Library()
 # http://www.djangosnippets.org/snippets/73/
 @register.inclusion_tag('datagrid/paginator.html', takes_context=True)
 def paginator(context, adjacent_pages=3):
-    """
-    Renders a paginator used for jumping between pages of results.
-    """
+    """Renders a paginator used for jumping between pages of results."""
     page_nums = range(max(1, context['page'] - adjacent_pages),
                       min(context['pages'], context['page'] + adjacent_pages)
                       + 1)

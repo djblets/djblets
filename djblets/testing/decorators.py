@@ -1,3 +1,6 @@
+from __future__ import unicode_literals
+
+
 def add_fixtures(fixtures, replace=False):
     """Adds or replaces the fixtures used for this test.
 

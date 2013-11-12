@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from hashlib import sha1
 
 from django.conf.urls import include, patterns, url
@@ -313,7 +315,7 @@ class WebAPIResource(object):
     # Configuration
     model = None
     fields = {}
-    uri_object_key_regex = '[0-9]+'
+    uri_object_key_regex = r'[0-9]+'
     uri_object_key = None
     model_object_key = 'pk'
     model_parent_key = None
@@ -550,9 +552,9 @@ class WebAPIResource(object):
         parts = mimetype.split('/')
 
         return '%s/vnd.%s.%s+%s' % (parts[0],
-                                    self.mimetype_vendor,
-                                    name,
-                                    parts[1])
+                                     self.mimetype_vendor,
+                                     name,
+                                     parts[1])
 
     def build_response_args(self, request):
         is_list = (request._djblets_webapi_method == 'GET' and
@@ -717,19 +719,19 @@ class WebAPIResource(object):
         optional={
             'start': {
                 'type': int,
-                'description': 'The 0-based index of the first result in the '
-                               'list. The start index is usually the previous '
-                               'start index plus the number of previous '
-                               'results. By default, this is 0.',
+                'description': 'The 0-based index of the first result in '
+                               'the list. The start index is usually the '
+                               'previous start index plus the number of '
+                               'previous results. By default, this is 0.',
             },
             'max-results': {
                 'type': int,
                 'description': 'The maximum number of results to return in '
                                'this list. By default, this is 25. There is '
                                'a hard limit of 200; if you need more than '
-                               '200 results, you will need to make more than '
-                               'one request, using the "next" pagination '
-                               'link.',
+                               '200 results, you will need to make more '
+                               'than one request, using the "next" '
+                               'pagination link.',
             }
         },
         allow_unknown=True
@@ -848,7 +850,7 @@ class WebAPIResource(object):
 
         for resource in self.list_child_resources:
             resource._parent_resource = self
-            child_regex = r'^' + resource.uri_name + '/'
+            child_regex = r'^' + resource.uri_name + r'/'
             urlpatterns += patterns('',
                 url(child_regex, include(resource.get_url_patterns())),
             )
@@ -862,13 +864,13 @@ class WebAPIResource(object):
                 base_regex = r'^'
 
             urlpatterns += never_cache_patterns('',
-                url(base_regex + '$', self,
+                url(base_regex + r'$', self,
                     name=self._build_named_url(self.name))
             )
 
             for resource in self.item_child_resources:
                 resource._parent_resource = self
-                child_regex = base_regex + resource.uri_name + '/'
+                child_regex = base_regex + resource.uri_name + r'/'
                 urlpatterns += patterns('',
                     url(child_regex, include(resource.get_url_patterns())),
                 )
@@ -909,7 +911,7 @@ class WebAPIResource(object):
         """Serializes the object into a Python dictionary."""
         data = {
             'links': self.get_links(self.item_child_resources, obj,
-                                    *args, **kwargs),
+                                     *args, **kwargs),
         }
 
         request = kwargs.get('request', None)
@@ -945,7 +947,7 @@ class WebAPIResource(object):
                     {
                         'method': 'GET',
                         'href': get_resource_for_object(o).get_href(
-                                    o, *args, **kwargs),
+                                     o, *args, **kwargs),
                         'title': six.text_type(o),
                     }
                     for o in value
@@ -1152,7 +1154,8 @@ class WebAPIResource(object):
             else:
                 values.append(six.text_type(getattr(obj, field)))
 
-        return sha1(':'.join(fields)).hexdigest()
+        data = ':'.join(fields)
+        return sha1(data.encode('utf-8')).hexdigest()
 
     def _build_named_url(self, name):
         """Builds a Django URL name from the provided name."""
@@ -1208,9 +1211,9 @@ class RootResource(WebAPIResource):
         self._include_uri_templates = include_uri_templates
 
     def get_etag(self, request, obj, *args, **kwargs):
-        return sha1('%s:%s' %
-                    (self._include_uri_templates,
-                     ':'.join(repr(self.list_child_resources)))).hexdigest()
+        data = '%s:%s' % (self._include_uri_templates,
+                          ':'.join(repr(self.list_child_resources)))
+        return sha1(data.encode('utf-8')).hexdigest()
 
     def get(self, request, *args, **kwargs):
         """
@@ -1224,12 +1227,12 @@ class RootResource(WebAPIResource):
 
         data = {
             'links': self.get_links(self.list_child_resources,
-                                    request=request, *args, **kwargs),
+                                     request=request, *args, **kwargs),
         }
 
         if self._include_uri_templates:
             data['uri_templates'] = self.get_uri_templates(request, *args,
-                                                           **kwargs)
+                                                            **kwargs)
 
         return 200, data, {
             'ETag': etag,
@@ -1341,7 +1344,7 @@ class UserResource(WebAPIResource):
     }
 
     uri_object_key = 'username'
-    uri_object_key_regex = '[A-Za-z0-9@\._-]+'
+    uri_object_key_regex = r'[A-Za-z0-9@\._-]+'
     model_object_key = 'username'
     autogenerate_etags = True
 
@@ -1369,7 +1372,7 @@ class GroupResource(WebAPIResource):
     fields = ('id', 'name')
 
     uri_object_key = 'group_name'
-    uri_object_key_regex = '[A-Za-z0-9_-]+'
+    uri_object_key_regex = r'[A-Za-z0-9_-]+'
     model_object_key = 'name'
     autogenerate_etags = True
 

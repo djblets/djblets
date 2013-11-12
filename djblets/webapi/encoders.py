@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from django.contrib.auth.models import User, Group
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet

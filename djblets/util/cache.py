@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import logging
 
 from django.core.cache import (DEFAULT_CACHE_ALIAS, parse_backend_uri,

@@ -25,14 +25,18 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import unicode_literals
+
 from django import forms
 
 
 def validate_test_cookie(form, request):
     if not request.session.test_cookie_worked():
-        form.errors['submit'] = forms.util.ErrorList(["Cookies must be enabled."])
+        form.errors['submit'] = forms.util.ErrorList(
+            ['Cookies must be enabled.'])
 
 def validate_old_password(form, user, field_name='password'):
-    if not form.errors.get(field_name) and \
-       not user.check_password(form.data.get(field_name)):
-        form.errors[field_name] = forms.util.ErrorList(["Incorrect password."])
+    if (not form.errors.get(field_name) and
+            not user.check_password(form.data.get(field_name))):
+        form.errors[field_name] = forms.util.ErrorList(
+            ['Incorrect password.'])

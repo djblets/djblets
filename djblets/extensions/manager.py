@@ -23,6 +23,8 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from __future__ import unicode_literals
+
 import datetime
 import logging
 import os
@@ -248,8 +250,8 @@ class ExtensionManager(object):
         except pkg_resources.DistributionNotFound:
             raise InstallExtensionError("Invalid package name.")
         except SystemError:
-            raise InstallExtensionError("Installation failed "
-                                        "(probably malformed URL).")
+            raise InstallExtensionError(
+                'Installation failed (probably malformed URL).')
 
         # Refresh the extension manager.
         self.load(True)
@@ -293,7 +295,7 @@ class ExtensionManager(object):
             # variable, which will be accessible both on the class and on
             # instances.
             class_name = ext_class.id = "%s.%s" % (ext_class.__module__,
-                                                   ext_class.__name__)
+                                                    ext_class.__name__)
             self._extension_classes[class_name] = ext_class
             found_extensions[class_name] = ext_class
 
@@ -443,8 +445,8 @@ class ExtensionManager(object):
         """Clears the Django templatetags_modules cache."""
         # We'll import templatetags_modules here because
         # we want the most recent copy of templatetags_modules
-        from django.template.base import get_templatetags_modules, \
-                                         templatetags_modules
+        from django.template.base import (get_templatetags_modules,
+                                          templatetags_modules)
         # Wipe out the contents
         del(templatetags_modules[:])
 

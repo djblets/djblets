@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from django.core.urlresolvers import (RegexURLResolver, clear_url_caches,
                                       get_resolver)
 
@@ -28,7 +30,7 @@ class DynamicURLResolver(RegexURLResolver):
     DynamicURLResolver will handle managing all the lookup caches to ensure
     that there won't be any stale entries affecting any dynamic URL patterns.
     """
-    def __init__(self, regex='', app_name=None, namespace=None):
+    def __init__(self, regex=r'', app_name=None, namespace=None):
         super(DynamicURLResolver, self).__init__(regex=regex,
                                                  urlconf_name=[],
                                                  app_name=app_name,

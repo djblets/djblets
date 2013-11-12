@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from django.conf.urls import patterns, include
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -39,10 +41,10 @@ class ExtensionResource(WebAPIResource):
     name = 'extension'
     plural_name = 'extensions'
     uri_object_key = 'extension_name'
-    uri_object_key_regex = '[.A-Za-z0-9_-]+'
+    uri_object_key_regex = r'[.A-Za-z0-9_-]+'
     model_object_key = 'class_name'
 
-    allowed_methods = ('GET', 'PUT',)
+    allowed_methods = ('GET', 'PUT')
 
     def __init__(self, extension_manager):
         super(ExtensionResource, self).__init__()
@@ -53,8 +55,8 @@ class ExtensionResource(WebAPIResource):
         # We want ExtensionResource to notice when extensions are
         # initialized or uninitialized, so connect some methods to
         # those signals.
-        from djblets.extensions.signals import extension_initialized, \
-                                               extension_uninitialized
+        from djblets.extensions.signals import (extension_initialized,
+                                                extension_uninitialized)
         extension_initialized.connect(self._on_extension_initialized)
         extension_uninitialized.connect(self._on_extension_uninitialized)
 
@@ -157,8 +159,7 @@ class ExtensionResource(WebAPIResource):
 
     def _attach_extension_resources(self, extension):
         """
-        Attaches an extensions resources to
-        /api/extensions/{extension.id}/.
+        Attaches an extension's resources to /api/extensions/{extension.id}/.
         """
 
         # Bail out if there are no resources to attach
@@ -185,7 +186,7 @@ class ExtensionResource(WebAPIResource):
 
     def _unattach_extension_resources(self, extension):
         """
-        Unattaches an extensions resources from
+        Unattaches an extension's resources from
         /api/extensions/{extension.id}/.
         """
 
@@ -212,8 +213,7 @@ class ExtensionResource(WebAPIResource):
 
     def _on_extension_initialized(self, sender, ext_class=None, **kwargs):
         """
-        Signal handler that notices when an extension has
-        been initialized.
+        Signal handler that notices when an extension has been initialized.
         """
         self._attach_extension_resources(ext_class)
 

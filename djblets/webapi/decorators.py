@@ -24,6 +24,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import unicode_literals
+
 from django.http import HttpRequest
 from django.utils import six
 
@@ -249,11 +251,11 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
 
                         if value not in choices:
                             invalid_fields[field_name] = [
-                                "'%s' is not a valid value. Valid values "
-                                "are: %s" % (
+                                '"%s" is not a valid value. Valid values '
+                                'are: %s' % (
                                     value,
-                                    ', '.join(["'%s'" % choice
-                                               for choice in choices])
+                                    ', '.join(['"%s"' % choice
+                                                for choice in choices])
                                 )
                             ]
                     else:
@@ -265,12 +267,12 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                                     value = int(value)
                                 except ValueError:
                                     invalid_fields[field_name] = [
-                                        "'%s' is not an integer" % value
+                                        '"%s" is not an integer' % value
                                     ]
                         except TypeError:
                             # The field isn't a class type. This is a
                             # coding error on the developer's side.
-                            raise TypeError("%s is not a valid field type" %
+                            raise TypeError('"%s" is not a valid field type' %
                                             info['type'])
 
                     new_kwargs[field_name] = value

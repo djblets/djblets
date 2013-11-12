@@ -23,6 +23,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import unicode_literals
+
 from django.conf import settings
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import DEFAULT_CACHE_ALIAS
@@ -82,9 +84,9 @@ mail_settings_map = {
     'mail_host':                   'EMAIL_HOST',
     'mail_port':                   'EMAIL_PORT',
     'mail_host_user':              { 'key': 'EMAIL_HOST_USER',
-                                     'deserialize_func': str },
+                                     'deserialize_func': bytes },
     'mail_host_password':          { 'key': 'EMAIL_HOST_PASSWORD',
-                                     'deserialize_func': str },
+                                     'deserialize_func': bytes },
     'mail_use_tls':                'EMAIL_USE_TLS',
 }
 

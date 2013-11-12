@@ -24,6 +24,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import unicode_literals
+
 import logging
 
 from django.contrib import auth
@@ -53,7 +55,7 @@ def basic_access_login(request):
         realm, encoded_auth = request.META['HTTP_AUTHORIZATION'].split(' ')
         username, password = encoded_auth.decode('base64').split(':', 1)
     except ValueError:
-        logging.warning("Failed to parse HTTP_AUTHORIZATION header %s" %
+        logging.warning('Failed to parse HTTP_AUTHORIZATION header "%s"' %
                         request.META['HTTP_AUTHORIZATION'],
                         exc_info=1,
                         extra=log_extra)
@@ -71,8 +73,8 @@ def basic_access_login(request):
     # to the server at this point anyway.
 
     if request.user.is_anonymous() or request.user.username != username:
-        logging.debug("Attempting authentication on API for "
-                      "user %s" % username,
+        logging.debug('Attempting authentication on API for user "%s"'
+                      % username,
                       extra=log_extra)
         user = auth.authenticate(username=username, password=password)
 

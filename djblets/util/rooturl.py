@@ -23,6 +23,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import unicode_literals
 
 from django.conf import settings
 from django.conf.urls import patterns, include, handler404, handler500

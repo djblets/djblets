@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import inspect
 import os
 import sys
@@ -80,8 +82,9 @@ class BuildStaticFiles(Command):
             try:
                 extension = entrypoint.load(require=False)
             except ImportError:
-                sys.stderr.write('Error loading the extension for entry '
-                                 'point %s\n' % ep_name)
+                sys.stderr.write(
+                    'Error loading the extension for entry point %s\n'
+                    % ep_name)
                 raise
 
             self._build_static_media(extension)

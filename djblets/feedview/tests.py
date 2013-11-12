@@ -22,6 +22,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from __future__ import unicode_literals
 
 from djblets.util.testing import TestCase
 
@@ -45,4 +46,4 @@ class FeedViewTests(TestCase):
         """Testing view_feed with a URL error"""
         response = self.client.get('/feed-error/')
         self.assertEqual(response.status_code, 200)
-        self.assert_('error' in response.context)
+        self.assertTrue('error' in response.context)

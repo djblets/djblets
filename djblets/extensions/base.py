@@ -23,6 +23,8 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from __future__ import unicode_literals
+
 from djblets.extensions.extension import Extension, ExtensionInfo
 from djblets.extensions.hooks import ExtensionHook, ExtensionHookPoint
 from djblets.extensions.manager import ExtensionManager, get_extension_managers

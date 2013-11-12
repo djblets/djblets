@@ -23,6 +23,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from __future__ import unicode_literals
 
 from datetime import datetime, timedelta
 
@@ -48,9 +49,7 @@ class GroupDataGrid(DataGrid):
     def __init__(self, request):
         DataGrid.__init__(self, request, Group.objects.all(), "All Groups")
         self.default_sort = []
-        self.default_columns = [
-            "objid", "name"
-        ]
+        self.default_columns = ['objid', 'name']
 
 
 class ColumnsTest(TestCase):

@@ -23,6 +23,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import unicode_literals
+
 from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.db import models
@@ -138,7 +140,7 @@ class SiteConfiguration(models.Model):
         super(SiteConfiguration, self).save(**kwargs)
 
     def __get_sync_cache_key(self):
-        return str("%s:siteconfig:%s:generation" % (self.site.domain, self.id))
+        return "%s:siteconfig:%s:generation" % (self.site.domain, self.id)
 
     def __str__(self):
         return "%s (version %s)" % (unicode(self.site), self.version)

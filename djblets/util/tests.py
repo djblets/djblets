@@ -23,6 +23,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from __future__ import unicode_literals
 
 import datetime
 import unittest
@@ -41,7 +42,7 @@ from django.utils.html import strip_spaces_between_tags
 from djblets.util.http import (get_http_accept_lists,
                                get_http_requested_mimetype,
                                is_mimetype_a)
-from djblets.util.misc import cache_memoize, CACHE_CHUNK_SIZE
+from djblets.util.misc import cache_memoize, make_cache_key, CACHE_CHUNK_SIZE
 from djblets.util.testing import TestCase, TagTest
 from djblets.util.templatetags import (djblets_deco, djblets_email,
                                        djblets_utils)
@@ -53,6 +54,9 @@ def normalize_html(s):
 
 
 class CacheTest(TestCase):
+    def tearDown(self):
+        cache.clear()
+
     def test_cache_memoize(self):
         """Testing cache_memoize"""
         cacheKey = "abc123"
@@ -87,12 +91,10 @@ class CacheTest(TestCase):
                                compress_large_data=False)
         self.assertEqual(result, data)
 
-        site = Site.objects.get_current()
-        full_key = '%s:%s' % (site.domain, cacheKey)
-        self.assertTrue(full_key in cache)
-        self.assertTrue('%s-0' % full_key in cache)
-        self.assertTrue('%s-1' % full_key in cache)
-        self.assertFalse('%s-2' % full_key in cache)
+        self.assertTrue(make_cache_key(cacheKey) in cache)
+        self.assertTrue(make_cache_key('%s-0' % cacheKey) in cache)
+        self.assertTrue(make_cache_key('%s-1' % cacheKey) in cache)
+        self.assertFalse(make_cache_key('%s-2' % cacheKey) in cache)
 
         result = cache_memoize(cacheKey, cacheFunc, large_data=True,
                                compress_large_data=False)
@@ -123,9 +125,9 @@ class BoxTest(TagTest):
     def testError(self):
         """Testing box tag (invalid usage)"""
         self.assertRaises(TemplateSyntaxError,
-                          lambda: djblets_deco.box(self.parser,
-                                                   Token(TOKEN_TEXT,
-                                                         'box "class" "foo"')))
+                          lambda: djblets_deco.box(
+                              self.parser,
+                              Token(TOKEN_TEXT, 'box "class" "foo"')))
 
 
 class ErrorBoxTest(TagTest):
@@ -153,10 +155,9 @@ class ErrorBoxTest(TagTest):
     def testError(self):
         """Testing errorbox tag (invalid usage)"""
         self.assertRaises(TemplateSyntaxError,
-                          lambda: djblets_deco.errorbox(self.parser,
-                                                        Token(TOKEN_TEXT,
-                                                              'errorbox "id" ' +
-                                                              '"foo"')))
+                          lambda: djblets_deco.errorbox(
+                              self.parser,
+                              Token(TOKEN_TEXT, 'errorbox "id" "foo"')))
 
 
 class HttpTest(TestCase):
@@ -219,11 +220,14 @@ class HttpTest(TestCase):
 
     def test_is_mimetype_a(self):
         """Testing djblets.util.http.is_mimetype_a"""
-        self.assertTrue(is_mimetype_a('application/json', 'application/json'))
+        self.assertTrue(is_mimetype_a('application/json',
+                                      'application/json'))
         self.assertTrue(is_mimetype_a('application/vnd.foo+json',
                                       'application/json'))
-        self.assertFalse(is_mimetype_a('application/xml', 'application/json'))
-        self.assertFalse(is_mimetype_a('foo/vnd.bar+json', 'application/json'))
+        self.assertFalse(is_mimetype_a('application/xml',
+                                       'application/json'))
+        self.assertFalse(is_mimetype_a('foo/vnd.bar+json',
+                                       'application/json'))
 
 
 class AgeIdTest(TagTest):
@@ -315,7 +319,8 @@ class TestIndent(unittest.TestCase):
         """Testing indent filter"""
         self.assertEqual(djblets_utils.indent('foo'), '    foo')
         self.assertEqual(djblets_utils.indent('foo', 3), '   foo')
-        self.assertEqual(djblets_utils.indent('foo\nbar'), '    foo\n    bar')
+        self.assertEqual(djblets_utils.indent('foo\nbar'),
+                         '    foo\n    bar')
 
 
 class QuotedEmailTagTest(TagTest):
@@ -346,12 +351,12 @@ class CondenseTagTest(TagTest):
 class QuoteTextFilterTest(unittest.TestCase):
     def testPlain(self):
         """Testing quote_text filter (default level)"""
-        self.assertEqual(djblets_email.quote_text("foo\nbar"),
+        self.assertEqual(djblets_email.quote_text('foo\nbar'),
                          "> foo\n> bar")
 
     def testLevel2(self):
         """Testing quote_text filter (level 2)"""
-        self.assertEqual(djblets_email.quote_text("foo\nbar", 2),
+        self.assertEqual(djblets_email.quote_text('foo\nbar', 2),
                          "> > foo\n> > bar")
 
 

@@ -24,6 +24,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import unicode_literals
 
 from datetime import datetime
 import logging
@@ -78,8 +79,8 @@ class TimedLogInfo(object):
         logging.log(self.default_level, "End: %s" % self.message,
                     request=self.request)
         logging.log(level, "%s took %s.%s seconds" % (self.message,
-                                                      delta.seconds,
-                                                      delta.microseconds),
+                                                       delta.seconds,
+                                                       delta.microseconds),
                     request=self.request)
 
 

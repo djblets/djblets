@@ -24,6 +24,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import unicode_literals
+
 import logging
 import traceback
 
@@ -93,8 +95,8 @@ class Column(object):
         self.default_sort_dir = default_sort_dir
         self.cell_clickable = False
         self.link = link
-        self.link_func = link_func or \
-            (lambda x, y: self.datagrid.link_to_object(x, y))
+        self.link_func = (link_func or
+                          (lambda x, y: self.datagrid.link_to_object(x, y)))
         self.css_class = css_class
 
         self.reset()
@@ -252,9 +254,7 @@ class Column(object):
                 self.data_cache[obj.pk] = obj
 
     def render_cell(self, obj, render_context):
-        """
-        Renders the table cell containing column data.
-        """
+        """Renders the table cell containing column data."""
         rendered_data = self.render_data(obj)
         url = ''
         css_class = ''
@@ -300,9 +300,7 @@ class Column(object):
         return self.cell_render_cache[key]
 
     def render_data(self, obj):
-        """
-        Renders the column data to a string. This may contain HTML.
-        """
+        """Renders the column data to a string. This may contain HTML."""
         id_field = '%s_id' % self.field_name
 
         # Look for this directly so that we don't end up fetching the
@@ -342,9 +340,7 @@ class Column(object):
 
 
 class DateTimeColumn(Column):
-    """
-    A column that renders a date or time.
-    """
+    """A column that renders a date or time."""
     def __init__(self, label, format=None, sortable=True,
                  timezone=pytz.utc, *args, **kwargs):
         Column.__init__(self, label, sortable=sortable, *args, **kwargs)
@@ -362,9 +358,7 @@ class DateTimeColumn(Column):
 
 
 class DateTimeSinceColumn(Column):
-    """
-    A column that renders a date or time relative to now.
-    """
+    """A column that renders a date or time relative to now."""
     def __init__(self, label, sortable=True, timezone=pytz.utc,
                  *args, **kwargs):
         Column.__init__(self, label, sortable=sortable, *args, **kwargs)
@@ -585,8 +579,8 @@ class DataGrid(object):
         # Now that we have all that, figure out if we need to save new
         # settings back to the profile.
         if profile:
-            if self.profile_columns_field and \
-               colnames_str != profile_columns_list:
+            if (self.profile_columns_field and
+                    colnames_str != profile_columns_list):
                 setattr(profile, self.profile_columns_field, colnames_str)
                 profile_dirty = True
 

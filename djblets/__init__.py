@@ -24,6 +24,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import unicode_literals
+
 
 # The version of Djblets
 #
@@ -53,13 +55,13 @@ def get_version_string():
 
 
 def get_package_version():
-    version = '%s.%s' % (VERSION[0], VERSION[1])
+    version = '%d.%d' % (VERSION[0], VERSION[1])
 
     if VERSION[2]:
-        version += ".%s" % VERSION[2]
+        version += ".%d" % VERSION[2]
 
     if VERSION[3] != 'final':
-        version += '%s%s' % (VERSION[3], VERSION[4])
+        version += '%s%d' % (VERSION[3], VERSION[4])
 
     return version
 

@@ -22,6 +22,8 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from __future__ import unicode_literals
+
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core.cache import cache
@@ -50,8 +52,11 @@ class SiteConfigTest(TestCase):
         # Python 2.6 versions. Now we deserialize as a string. This test
         # ensures that these settings never break again.
 
-        username = u'myuser'
-        password = u'mypass'
+        username = 'myuser'
+        password = 'mypass'
+
+        self.assertEqual(type(username), unicode)
+        self.assertEqual(type(password), unicode)
 
         self.siteconfig.set('mail_host_user', username)
         self.siteconfig.set('mail_host_password', password)
@@ -59,13 +64,13 @@ class SiteConfigTest(TestCase):
 
         self.assertEqual(settings.EMAIL_HOST_USER, username)
         self.assertEqual(settings.EMAIL_HOST_PASSWORD, password)
-        self.assertEqual(type(settings.EMAIL_HOST_USER), str)
-        self.assertEqual(type(settings.EMAIL_HOST_PASSWORD), str)
+        self.assertEqual(type(settings.EMAIL_HOST_USER), bytes)
+        self.assertEqual(type(settings.EMAIL_HOST_PASSWORD), bytes)
 
         # Simulate the failure point in HMAC
-        trans_5C = "".join ([chr (x ^ 0x5C) for x in xrange(256)])
-        settings.EMAIL_HOST_USER.translate(trans_5C)
-        settings.EMAIL_HOST_PASSWORD.translate(trans_5C)
+        import hmac
+        settings.EMAIL_HOST_USER.translate(hmac.trans_5C)
+        settings.EMAIL_HOST_PASSWORD.translate(hmac.trans_5C)
 
     def testSynchronization(self):
         """Testing synchronizing SiteConfigurations through cache"""

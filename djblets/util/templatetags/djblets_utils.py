@@ -23,6 +23,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from __future__ import unicode_literals
 
 import datetime
 import os
@@ -141,9 +142,7 @@ def attr(context, nodelist, attrname):
 
 @register.filter
 def escapespaces(value):
-    """
-    HTML-escapes all spaces with ``&nbsp;`` and newlines with ``<br />``.
-    """
+    """HTML-escapes all spaces with ``&nbsp;`` and newlines with ``<br />``."""
     return value.replace('  ', '&nbsp; ').replace('\n', '<br />')
 
 
@@ -209,25 +208,19 @@ register.filter('humanize_list', humanize_list)
 
 @register.filter
 def contains(container, value):
-    """
-    Returns True if the specified value is in the specified container.
-    """
+    """Returns True if the specified value is in the specified container."""
     return value in container
 
 
 @register.filter
 def getitem(container, value):
-    """
-    Returns the attribute of a specified name from a container.
-    """
+    """Returns the attribute of a specified name from a container."""
     return container[value]
 
 
 @register.filter
 def exclude_item(container, item):
-    """
-    Excludes an item from a list.
-    """
+    """Excludes an item from a list."""
     if isinstance(container, list):
         container = list(container)
 
@@ -241,18 +234,14 @@ def exclude_item(container, item):
 
 @register.filter
 def indent(value, numspaces=4):
-    """
-    Indents a string by the specified number of spaces.
-    """
-    indent_str = " " * numspaces
-    return indent_str + value.replace("\n", "\n" + indent_str)
+    """Indents a string by the specified number of spaces."""
+    indent_str = ' ' * numspaces
+    return indent_str + value.replace('\n', '\n' + indent_str)
 
 
 @register.filter
 def basename(value):
-    """
-    Returns the basename of a path.
-    """
+    """Returns the basename of a path."""
     return os.path.basename(value)
 
 
@@ -288,9 +277,7 @@ def realname(user):
 @register.filter
 @stringfilter
 def startswith(value1, value2):
-    """
-    Returns true if value1 starts with value2.
-    """
+    """Returns true if value1 starts with value2."""
     return value1.startswith(value2)
 
 

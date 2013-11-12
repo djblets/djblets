@@ -1,5 +1,7 @@
-from django import forms
+from __future__ import unicode_literals
+
 import pytz
+from django import forms
 
 
 TIMEZONE_CHOICES = tuple(zip(pytz.common_timezones, pytz.common_timezones))

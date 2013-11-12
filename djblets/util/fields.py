@@ -23,6 +23,8 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from __future__ import unicode_literals
+
 import base64
 import json
 import logging
@@ -54,7 +56,7 @@ class Base64FieldCreator(object):
 
     def __set__(self, obj, value):
         pk_val = obj._get_pk_val(obj.__class__._meta)
-        pk_set = pk_val is not None and smart_unicode(pk_val) != u''
+        pk_set = pk_val is not None and smart_unicode(pk_val) != ''
 
         if (isinstance(value, Base64DecodedValue) or not pk_set):
             obj.__dict__[self.field.name] = base64.encodestring(value)
@@ -155,7 +157,7 @@ def validate_json(value):
         try:
             json.loads(value)
         except ValueError as e:
-            raise ValidationError(str(e), code='invalid')
+            raise ValidationError(unicode(e), code='invalid')
 
 
 class JSONField(models.TextField):

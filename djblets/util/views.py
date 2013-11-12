@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from django.utils.translation import get_language
 from django.views.i18n import javascript_catalog
 

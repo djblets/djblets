@@ -24,6 +24,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import unicode_literals
+
 
 class WebAPIError(object):
     """
@@ -98,17 +100,21 @@ INVALID_FORM_DATA         = WebAPIError(105,
 MISSING_ATTRIBUTE         = WebAPIError(106,
                                         "Missing value for the attribute",
                                         http_status=400)
-ENABLE_EXTENSION_FAILED   = WebAPIError(107, "There was a problem enabling "
-                                             "the extension",
+ENABLE_EXTENSION_FAILED   = WebAPIError(107,
+                                        "There was a problem enabling "
+                                        "the extension",
                                         http_status=500) # 500 Internal Server
                                                          #     Error
-DISABLE_EXTENSION_FAILED  = WebAPIError(108, "There was a problem disabling "
-                                             "the extension",
+DISABLE_EXTENSION_FAILED  = WebAPIError(108,
+                                        "There was a problem disabling "
+                                        "the extension",
                                         http_status=500) # 500 Internal Server
                                                          #     Error
-EXTENSION_INSTALLED       = WebAPIError(109, "This extension has already been "
-                                             "installed.",
+EXTENSION_INSTALLED       = WebAPIError(109,
+                                        "This extension has already been "
+                                        "installed.",
                                         http_status=409)
-INSTALL_EXTENSION_FAILED  = WebAPIError(110, "An error occurred while "
-                                             "installing the extension",
+INSTALL_EXTENSION_FAILED  = WebAPIError(110,
+                                        "An error occurred while "
+                                        "installing the extension",
                                         http_status=409)

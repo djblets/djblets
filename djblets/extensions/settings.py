@@ -23,6 +23,9 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from __future__ import unicode_literals
+
+
 class Settings(dict):
     """
     Settings data for an extension. This is a glorified dictionary that
