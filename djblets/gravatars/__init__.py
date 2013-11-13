@@ -60,8 +60,6 @@ def get_gravatar_url_for_email(request, email, size=None):
 
 
 def get_gravatar_url(request, user, size=None):
-    from django.conf import settings
-
     if user.is_anonymous() or not user.email:
         return ""
 

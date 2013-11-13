@@ -48,6 +48,7 @@ from django.utils.module_loading import module_has_submodule
 from django_evolution.management.commands.evolve import Command as Evolution
 from setuptools.command import easy_install
 
+from djblets.cache.backend import make_cache_key
 from djblets.extensions.errors import (EnablingExtensionError,
                                        InstallExtensionError,
                                        InvalidExtensionError)
@@ -55,8 +56,7 @@ from djblets.extensions.extension import ExtensionInfo
 from djblets.extensions.models import RegisteredExtension
 from djblets.extensions.signals import (extension_initialized,
                                         extension_uninitialized)
-from djblets.util.misc import make_cache_key
-from djblets.util.urlresolvers import DynamicURLResolver
+from djblets.urls.resolvers import DynamicURLResolver
 
 
 class ExtensionManager(object):

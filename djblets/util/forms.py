@@ -1,13 +1,14 @@
 from __future__ import unicode_literals
+import warnings
 
-import pytz
-from django import forms
-
-
-TIMEZONE_CHOICES = tuple(zip(pytz.common_timezones, pytz.common_timezones))
+from djblets.forms.fields import TIMEZONE_CHOICES, TimeZoneField
 
 
-class TimeZoneField(forms.ChoiceField):
-    """A form field that only allows pytz common timezones as the choices."""
-    def __init__(self, choices=TIMEZONE_CHOICES, *args, **kwargs):
-        super(TimeZoneField, self).__init__(choices, *args, **kwargs)
+warnings.warn('djblets.util.forms is deprecated. Use '
+              'djblets.forms.fields instead.', DeprecationWarning)
+
+
+__all__ = [
+    'TIMEZONE_CHOICES',
+    'TimeZoneField',
+]

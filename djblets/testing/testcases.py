@@ -29,12 +29,10 @@ from __future__ import print_function, unicode_literals
 import socket
 import threading
 
-from django.conf import settings
 from django.core.handlers.wsgi import WSGIHandler
 from django.core.servers import basehttp
 from django.template import Node
 from django.test import testcases
-from nose import SkipTest
 
 
 class StubNodeList(Node):

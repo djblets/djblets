@@ -8,7 +8,7 @@ from djblets.extensions.errors import (DisablingExtensionError,
                                        EnablingExtensionError,
                                        InvalidExtensionError)
 from djblets.extensions.models import RegisteredExtension
-from djblets.util.urlresolvers import DynamicURLResolver
+from djblets.urls.resolvers import DynamicURLResolver
 from djblets.webapi.decorators import (webapi_login_required,
                                        webapi_permission_required,
                                        webapi_request_fields)

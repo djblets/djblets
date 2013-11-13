@@ -3,7 +3,8 @@ from __future__ import unicode_literals
 from django.utils.translation import get_language
 from django.views.i18n import javascript_catalog
 
-from djblets.util.misc import cache_memoize, generate_locale_serial
+from djblets.cache.backend import cache_memoize
+from djblets.cache.serials import generate_locale_serial
 
 
 locale_serials = {}

@@ -20,7 +20,7 @@ from djblets.util.decorators import augment_method_from
 from djblets.util.http import (get_modified_since, etag_if_none_match,
                                set_last_modified, set_etag,
                                get_http_requested_mimetype)
-from djblets.util.misc import never_cache_patterns
+from djblets.urls.patterns import never_cache_patterns
 from djblets.webapi.auth import check_login
 from djblets.webapi.core import (WebAPIResponse,
                                  WebAPIResponseError,

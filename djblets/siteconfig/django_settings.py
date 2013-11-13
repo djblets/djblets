@@ -30,7 +30,7 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import DEFAULT_CACHE_ALIAS
 from django.utils import six, timezone
 
-from djblets.util.cache import normalize_cache_backend
+from djblets.cache.backend_compat import normalize_cache_backend
 
 
 def _set_cache_backend(settings, key, value):

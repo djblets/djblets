@@ -25,6 +25,8 @@
 
 from __future__ import unicode_literals
 
+from django.conf import settings
+
 from djblets.siteconfig.models import SiteConfiguration
 
 
@@ -36,3 +38,7 @@ def siteconfig(request):
         return {'siteconfig': SiteConfiguration.objects.get_current()}
     except:
         return {'siteconfig': None}
+
+
+def settings_vars(request):
+    return {'settings': settings}

@@ -28,10 +28,11 @@ from __future__ import unicode_literals
 
 from django import forms
 from django.contrib import auth
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import six
 
-from djblets.util.misc import get_object_or_none
+from djblets.db.query import get_object_or_none
 
 
 class RegistrationForm(forms.Form):

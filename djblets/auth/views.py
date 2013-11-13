@@ -33,8 +33,7 @@ from django.template.context import RequestContext
 from django.http import HttpResponseRedirect
 
 from djblets.auth.forms import RegistrationForm
-from djblets.auth.util import (validate_test_cookie,
-                               validate_old_password)
+from djblets.auth.util import validate_test_cookie
 
 
 ###########################

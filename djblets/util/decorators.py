@@ -26,8 +26,8 @@
 #
 
 from __future__ import unicode_literals
-
 from inspect import getargspec
+import warnings
 
 from django import template
 from django.conf import settings
@@ -228,5 +228,8 @@ def root_url(url_func):
             return '%s%s' % (settings.SITE_ROOT, url[1:])
         else:
             return url
+
+    warnings.warn('djblets.util.decorators.root_url is deprecated.',
+                  DeprecationWarning)
 
     return _add_root

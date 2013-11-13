@@ -24,7 +24,7 @@
 
 from __future__ import unicode_literals
 
-from djblets.util.testing import TestCase
+from djblets.testing.testcases import TestCase
 
 
 class FeedViewTests(TestCase):

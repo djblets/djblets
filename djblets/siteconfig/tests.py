@@ -32,7 +32,7 @@ from djblets.siteconfig.django_settings import (apply_django_settings,
                                                 cache_settings_map,
                                                 mail_settings_map)
 from djblets.siteconfig.models import SiteConfiguration
-from djblets.util.testing import TestCase
+from djblets.testing.testcases import TestCase
 
 
 class SiteConfigTest(TestCase):

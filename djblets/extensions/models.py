@@ -28,8 +28,8 @@ from __future__ import unicode_literals
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
 
+from djblets.db.fields import JSONField
 from djblets.extensions.errors import InvalidExtensionError
-from djblets.util.fields import JSONField
 
 
 @python_2_unicode_compatible

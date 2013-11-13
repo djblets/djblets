@@ -27,7 +27,7 @@ from __future__ import unicode_literals
 
 from djblets.extensions.extension import Extension, ExtensionInfo
 from djblets.extensions.hooks import ExtensionHook, ExtensionHookPoint
-from djblets.extensions.manager import ExtensionManager, get_extension_managers
+from djblets.extensions.manager import ExtensionManager
 from djblets.extensions.settings import Settings
 
 

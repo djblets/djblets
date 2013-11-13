@@ -27,7 +27,7 @@ from __future__ import print_function, unicode_literals
 from django.contrib.auth.models import AnonymousUser, User
 from django.test.client import RequestFactory
 
-from djblets.util.testing import TestCase
+from djblets.testing.testcases import TestCase
 from djblets.webapi.decorators import (copy_webapi_decorator_data,
                                        webapi_login_required,
                                        webapi_permission_required,

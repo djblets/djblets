@@ -30,8 +30,8 @@ from django.core.cache import cache
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
 
+from djblets.db.fields import JSONField
 from djblets.siteconfig.managers import SiteConfigurationManager
-from djblets.util.fields import JSONField
 
 
 _DEFAULTS = {}

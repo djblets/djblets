@@ -231,7 +231,7 @@ class WebAPIResponse(HttpResponse):
             # to save the file. It's not great, but it's what we must do.
             mimetype = 'text/plain'
 
-        super(WebAPIResponse, self).__init__(mimetype=mimetype,
+        super(WebAPIResponse, self).__init__(content_type=mimetype,
                                              status=status)
         self.request = request
         self.callback = request.GET.get('callback', None)

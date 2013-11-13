@@ -39,14 +39,16 @@ from django.template import Token, TOKEN_TEXT, TemplateSyntaxError
 from django.utils import six
 from django.utils.html import strip_spaces_between_tags
 
+from djblets.cache.backend import (cache_memoize, make_cache_key,
+                                  CACHE_CHUNK_SIZE)
+from djblets.db.fields import JSONField
+from djblets.testing.testcases import TestCase, TagTest
+from djblets.urls.resolvers import DynamicURLResolver
 from djblets.util.http import (get_http_accept_lists,
                                get_http_requested_mimetype,
                                is_mimetype_a)
-from djblets.util.misc import cache_memoize, make_cache_key, CACHE_CHUNK_SIZE
-from djblets.util.testing import TestCase, TagTest
 from djblets.util.templatetags import (djblets_deco, djblets_email,
                                        djblets_utils)
-from djblets.util.urlresolvers import DynamicURLResolver
 
 
 def normalize_html(s):
@@ -364,7 +366,6 @@ class JSONFieldTests(unittest.TestCase):
     """Unit tests for JSONField."""
 
     def setUp(self):
-        from djblets.util.fields import JSONField
         self.field = JSONField()
 
     def test_dumps_with_json_dict(self):
@@ -378,12 +379,6 @@ class JSONFieldTests(unittest.TestCase):
         result = self.field.dumps('{"a": 1, "b": 2}')
         self.assertTrue(isinstance(result, six.string_types))
         self.assertEqual(result, '{"a": 1, "b": 2}')
-
-    def test_dumps_with_json_dict(self):
-        """Testing JSONField with dumping a JSON dictionary"""
-        result = self.field.dumps({'a': 1})
-        self.assertTrue(isinstance(result, six.string_types))
-        self.assertEqual(result, '{"a": 1}')
 
     def test_loading_json_dict(self):
         """Testing JSONField with loading a JSON dictionary"""

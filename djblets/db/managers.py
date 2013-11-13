@@ -1,8 +1,7 @@
 #
-# testing.py -- Some classes useful for unit testing django-based applications
+# managers.py -- Managers for Django database models.
 #
-# Copyright (c) 2007-2010  Christian Hammond
-# Copyright (c) 2007-2010  David Trowbridge
+# Copyright (c) 2007-2013  Beanbag, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -24,15 +23,31 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+
 from __future__ import unicode_literals
-import warnings
 
-from djblets.testing.testcases import (StubNodeList, StubParser,
-                                       TagTest, TestCase)
+from django.db import models, IntegrityError
 
 
-warnings.warn('djblets.util.testing is deprecated. Use '
-              'djblets.testing.testcases instead.', DeprecationWarning)
+class ConcurrencyManager(models.Manager):
+    """
+    A class designed to work around database concurrency issues.
+    """
+    def get_or_create(self, **kwargs):
+        """
+        A wrapper around get_or_create that makes a final attempt to get
+        the object if the creation fails.
 
+        This helps with race conditions in the database where, between the
+        original get() and the create(), another process created the object,
+        causing us to fail. We'll then execute a get().
 
-__all__ = ['StubNodeList', 'StubParser', 'TagTest', 'TestCase']
+        This is still prone to race conditions, but they're even more rare.
+        A delete() would have to happen before the unexpected create() but
+        before the get().
+        """
+        try:
+            return super(ConcurrencyManager, self).get_or_create(**kwargs)
+        except IntegrityError:
+            kwargs.pop('defaults', None)
+            return self.get(**kwargs)
