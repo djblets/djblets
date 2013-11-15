@@ -2,9 +2,11 @@ from __future__ import unicode_literals
 
 import os
 
-from django.contrib.staticfiles.finders import BaseFinder
+from django.contrib.staticfiles.finders import (BaseFinder, FileSystemFinder,
+                                                get_finder)
 from django.contrib.staticfiles.utils import get_files
 from django.core.files.storage import FileSystemStorage
+from pipeline.storage import PipelineFinderStorage
 from pkg_resources import resource_exists, resource_filename
 
 from djblets.extensions.manager import get_extension_managers
@@ -116,3 +118,71 @@ class ExtensionFinder(BaseFinder):
             self.storages[extension] = storage
 
         return storage
+
+
+class PackagingStorage(PipelineFinderStorage):
+    """Looks up stored files when packaging an extension.
+
+    This is a special Pipeline static file storage implementation that can
+    locate the proper Storage class when trying to find a file.
+
+    This works just like PipelineFinderStorage, but can interface with
+    PackagingFinder to trigger a lookup across all storages, since
+    PackagingFinder by default limits to the extension's static files.
+    """
+    def find_storage(self, name):
+        for finder in self.finders.get_finders():
+            if isinstance(finder, PackagingFinder):
+                files = finder.list([], all_storages=True)
+            else:
+                files = finder.list([])
+
+            for path, storage in files:
+                prefix = getattr(storage, 'prefix', None)
+                matched_path = self.match_location(name, path, prefix)
+
+                if matched_path:
+                    return matched_path, storage
+
+        raise ValueError("The file '%s' could not be found with %r."
+                         % (name, self))
+
+
+class PackagingFinder(FileSystemFinder):
+    """Finds static media files for an extension.
+
+    This is used during packaging to list only static media files provided by
+    the extension, but to allow looking up static media from all apps.
+
+    It works with PackagingStorage to do the appropriate lookup given the
+    parameters passed.
+
+    Essentially, when collecting static media (using the collectstatic
+    management command), Django will call `list()` on the finders, grabbing
+    every known static file, and packaging those. For extensions, we don't
+    want to grab media files from the main apps, and want to limit only to the
+    files bundled with the extension.
+
+    There are times when we do want to list all files, though. For example,
+    when referencing definitions files provided by the project for .less
+    files.
+
+    In the default case, PackagingFinder.list will only look up files from
+    the extension, but if given an extra parameter that PackagingStorage
+    can pass (used for finding referenced files), it will look through all
+    storages.
+    """
+    storage_class = PackagingStorage
+    extension_static_dir = None
+
+    def list(self, ignore_patterns, all_storages=False):
+        if all_storages:
+            locations = self.locations
+        else:
+            locations = [('', self.extension_static_dir)]
+
+        for prefix, root in locations:
+            storage = self.storages[root]
+
+            for path in get_files(storage, ignore_patterns):
+                yield path, storage

@@ -7,7 +7,6 @@ import sys
 import pkg_resources
 from distutils.command.build_py import build_py
 from distutils.core import Command
-from django.conf import settings
 from django.core.management import call_command
 from django.utils import six
 
@@ -40,7 +39,51 @@ class BuildStaticFiles(Command):
     def finalize_options(self):
         self.set_undefined_options('build', ('build_lib', 'build_lib'))
 
+    def get_lessc_global_vars(self):
+        """Returns a dictionary of LessCSS global variables and their values.
+
+        This can be implemented by subclasses to provide global variables for
+        .less files for processing.
+
+        By default, this defines two variables: `STATIC_ROOT` and `DEBUG`.
+
+        `STATIC_ROOT` is set to an empty string. This will effectively cause
+        any imports using `@{STATIC_ROOT}` to look up in the include path.
+        Projects using less.js for the runtime can then define `STATIC_ROOT` to
+        their standard static URL, ensuring lookups work for development and
+        packaged extensions.
+
+        `DEBUG` is set to false. Runtimes using less.js can set this to
+        settings.DEBUG for templates. This can be useful for LessCSS guards.
+
+        This requires LessCSS 1.5.1 or higher.
+        """
+        return {
+            'DEBUG': False,
+            'STATIC_ROOT': '',
+        }
+
+    def get_lessc_include_path(self):
+        """Returns the include path for LessCSS imports.
+
+        By default, this will include the parent directory of every path in
+        STATICFILES_DIRS, plus the static directory of the extension.
+        """
+        from django.conf import settings
+
+        less_include = set()
+
+        for staticfile_dir in settings.STATICFILES_DIRS:
+            if isinstance(staticfile_dir, tuple):
+                staticfile_dir = staticfile_dir[1]
+
+            less_include.add(os.path.dirname(staticfile_dir))
+
+        return less_include
+
     def run(self):
+        from django.conf import settings
+
         # Prepare to import the project's settings file, and the extension
         # modules that are being shipped, so we can scan for the bundled
         # media.
@@ -54,7 +97,7 @@ class BuildStaticFiles(Command):
 
         # Set up the common Django settings for the builds.
         settings.STATICFILES_FINDERS = (
-            'django.contrib.staticfiles.finders.FileSystemFinder',
+            'djblets.extensions.staticfiles.PackagingFinder',
         )
         settings.STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
         settings.INSTALLED_APPS = [
@@ -97,6 +140,8 @@ class BuildStaticFiles(Command):
         sys.path = sys.path[len(self.distribution.packages):]
 
     def _build_static_media(self, extension):
+        from django.conf import settings
+
         pipeline_js = {}
         pipeline_css = {}
 
@@ -108,13 +153,32 @@ class BuildStaticFiles(Command):
         # input, and as a relative path within the module for the output.
         module_dir = os.path.dirname(inspect.getmodule(extension).__file__)
 
-        # Set the appropriate settings in order to build these static files.
+        from djblets.extensions.staticfiles import PackagingFinder
+        PackagingFinder.extension_static_dir = \
+            os.path.join(module_dir, 'static')
+
+        settings.STATICFILES_DIRS = list(settings.STATICFILES_DIRS) + [
+            PackagingFinder.extension_static_dir
+        ]
+
+        # Register the include path and any global variables used for
+        # building .less files.
+        settings.PIPELINE_LESS_ARGUMENTS = ' '.join(
+            [
+                '--include-path=%s'
+                    % os.path.pathsep.join(self.get_lessc_include_path())
+            ] + [
+                '--global-var="%s=%s"'
+                    % (key, self._serialize_lessc_value(value))
+                for key, value in self.get_lessc_global_vars().iteritems()
+            ]
+        )
+
         settings.PIPELINE_JS = pipeline_js
         settings.PIPELINE_CSS = pipeline_css
         settings.PIPELINE_ENABLED = True
-        settings.STATICFILES_DIRS = [
-            os.path.join(module_dir, 'static')
-        ]
+        settings.PIPELINE_STORAGE = \
+            'djblets.extensions.staticfiles.PackagingStorage'
         settings.STATIC_ROOT = \
             os.path.join(self.build_lib,
                          os.path.relpath(os.path.join(module_dir, 'static')))
@@ -124,10 +188,9 @@ class BuildStaticFiles(Command):
         # loaded settings.
         from pipeline.conf import settings as pipeline_settings
 
-        pipeline_settings.PIPELINE_JS = settings.PIPELINE_JS
-        pipeline_settings.PIPELINE_CSS = settings.PIPELINE_CSS
-        pipeline_settings.PIPELINE_ENABLED = settings.PIPELINE_ENABLED
-        pipeline_settings.PIPELINE_ROOT = settings.STATIC_ROOT
+        for key in pipeline_settings.__dict__.iterkeys():
+            if hasattr(settings, key):
+                setattr(pipeline_settings, key, getattr(settings, key))
 
         # Collect and process all static media files.
         call_command('collectstatic', interactive=False, verbosity=2)
@@ -140,6 +203,20 @@ class BuildStaticFiles(Command):
                     '%s/%s.min%s' % (default_dir, name, ext)
 
             pipeline_bundles[name] = bundle
+
+    def _serialize_lessc_value(self, value):
+        if isinstance(value, six.text_type):
+            return '"%s"' % value
+        elif isinstance(value, bool):
+            if value:
+                return 'true'
+            else:
+                return 'false'
+        elif isinstance(value, int):
+            return '%d' % value
+        else:
+            raise TypeError('%r is not a valid lessc global variable value'
+                            % value)
 
 
 class BuildPy(build_py):
