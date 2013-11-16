@@ -10,6 +10,8 @@ import shutil
 import sys
 import tempfile
 
+from fabazon.s3 import S3Bucket
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from djblets import __version__, __version_info__, is_release
 
@@ -20,11 +22,10 @@ LATEST_PY_VERSION = PY_VERSIONS[-1]
 
 PACKAGE_NAME = 'Djblets'
 
-RELEASES_URL = \
-    'reviewboard.org:/var/www/downloads.reviewboard.org/' \
-    'htdocs/releases/%s/%s.%s/' % (PACKAGE_NAME,
-                                   __version_info__[0],
-                                   __version_info__[1])
+RELEASES_BUCKET_NAME = 'downloads.reviewboard.org'
+RELEASES_BUCKET_KEY = '/%s/%s.%s/' % (PACKAGE_NAME,
+                                      __version_info__[0],
+                                      __version_info__[1])
 
 
 built_files = []
@@ -52,13 +53,14 @@ def clone_git_tree(git_dir):
 
 def build_targets():
     for pyver in PY_VERSIONS:
-        run_setup("bdist_egg", pyver)
-        built_files.append("dist/%s-%s-py%s.egg" %
-                           (PACKAGE_NAME, __version__, pyver))
+        run_setup('bdist_egg', pyver)
+        built_files.append(('dist/%s-%s-py%s.egg'
+                            % (PACKAGE_NAME, __version__, pyver),
+                            'application/octet-stream'))
 
-    run_setup("sdist")
-    built_files.append("dist/%s-%s.tar.gz" %
-                       (PACKAGE_NAME, __version__))
+    run_setup('sdist')
+    built_files.append(('dist/%s-%s.tar.gz' % (PACKAGE_NAME, __version__),
+                        'application/x-tar'))
 
 
 def build_news():
@@ -127,7 +129,7 @@ def build_news():
     content = content.rstrip()
 
     filename = "dist/%s-%s.NEWS" % (PACKAGE_NAME, __version__)
-    built_files.append(filename)
+    built_files.append((filename, 'text/plain'))
     fp = open(filename, "w")
     fp.write(content)
     fp.close()
@@ -139,7 +141,20 @@ def build_news():
 
 
 def upload_files():
-    execute("scp %s %s" % (" ".join(built_files), RELEASES_URL))
+    bucket = S3Bucket(RELEASES_BUCKET_NAME)
+
+    for filename, mimetype in built_files:
+        bucket.upload(filename,
+                      '%s/%s' % (RELEASES_BUCKET_KEY,
+                                 filename.split('/')[-1]),
+                      mimetype=mimetype,
+                      public=True)
+
+    bucket.upload_directory_index(RELEASES_BUCKET_KEY)
+
+    # This may be a new directory, so rebuild the parent as well.
+    parent_key = '/'.join(RELEASES_BUCKET_KEY.split('/')[:-2])
+    bucket.upload_directory_index(parent_key)
 
 
 def tag_release():
