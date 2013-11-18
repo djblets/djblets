@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from django.conf.urls import patterns, include
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.urlresolvers import reverse
 
 from djblets.extensions.errors import (DisablingExtensionError,
                                        EnablingExtensionError,
@@ -21,13 +22,17 @@ class ExtensionResource(WebAPIResource):
     """Provides information on installed extensions."""
     model = RegisteredExtension
     fields = {
+        'author': {
+            'type': str,
+            'description': 'The author of the extension.',
+        },
+        'author_url': {
+            'type': str,
+            'description': "The author's website.",
+        },
         'class_name': {
             'type': str,
             'description': 'The class name for the extension.',
-        },
-        'name': {
-            'type': str,
-            'description': 'The name of the extension.',
         },
         'enabled': {
             'type': bool,
@@ -36,6 +41,18 @@ class ExtensionResource(WebAPIResource):
         'installed': {
             'type': bool,
             'description': 'Whether or not the extension is installed.',
+        },
+        'name': {
+            'type': str,
+            'description': 'The name of the extension.',
+        },
+        'summary': {
+            'type': str,
+            'description': "A summary of the extension's functionality.",
+        },
+        'version': {
+            'type': str,
+            'description': 'The installed version of the extension.',
         },
     }
     name = 'extension'
@@ -60,6 +77,21 @@ class ExtensionResource(WebAPIResource):
         extension_initialized.connect(self._on_extension_initialized)
         extension_uninitialized.connect(self._on_extension_uninitialized)
 
+    def serialize_author_field(self, extension, *args, **kwargs):
+        return extension.extension_class.info.author
+
+    def serialize_author_url_field(self, extension, *args, **kwargs):
+        return extension.extension_class.info.author_url
+
+    def serialize_name_field(self, extension, *args, **kwargs):
+        return extension.extension_class.info.name
+
+    def serialize_summary_field(self, extension, *args, **kwargs):
+        return extension.extension_class.info.summary
+
+    def serialize_version_field(self, extension, *args, **kwargs):
+        return extension.extension_class.info.version
+
     @webapi_login_required
     def get_list(self, request, *args, **kwargs):
         """Returns the list of known extensions.
@@ -68,6 +100,31 @@ class ExtensionResource(WebAPIResource):
         enabled.
         """
         return WebAPIResource.get_list(self, request, *args, **kwargs)
+
+    def get_links(self, resources=[], obj=None, request=None, *args, **kwargs):
+        links = super(ExtensionResource, self).get_links(
+            resources, obj, request=request, *args, **kwargs)
+
+        if request and obj:
+            admin_base_href = '%s%s' % (
+                request.build_absolute_uri(reverse('extension-list')),
+                obj.class_name)
+
+            extension_info = obj.extension_class.info
+
+            if extension_info.is_configurable:
+                links['admin-configure'] = {
+                    'method': 'GET',
+                    'href': '%s/config/' % admin_base_href,
+                }
+
+            if extension_info.has_admin_site:
+                links['admin-database'] = {
+                    'method': 'GET',
+                    'href': '%s/db/' % admin_base_href,
+                }
+
+        return links
 
     @webapi_login_required
     @webapi_permission_required('extensions.change_registeredextension')

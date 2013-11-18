@@ -53,19 +53,25 @@ class RegisteredExtension(models.Model):
 
     def get_extension_class(self):
         """Retrieves the python object for the extensions class."""
-        try:
-            # Import the function here to avoid a mutual
-            # dependency.
-            from djblets.extensions.manager import get_extension_managers
-        except:
-            return None
+        if not hasattr(self, '_extension_class'):
+            cls = None
 
-        managers = get_extension_managers()
-        for manager in managers:
             try:
-                extension = manager.get_installed_extension(self.class_name)
-                return extension
-            except InvalidExtensionError:
-                continue
+                # Import the function here to avoid a mutual
+                # dependency.
+                from djblets.extensions.manager import get_extension_managers
 
-        return None
+                for manager in get_extension_managers():
+                    try:
+                        cls = manager.get_installed_extension(self.class_name)
+                        break
+                    except InvalidExtensionError:
+                        continue
+            except:
+                return None
+
+            self._extension_class = cls
+
+        return self._extension_class
+
+    extension_class = property(get_extension_class)
