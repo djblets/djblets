@@ -1,14 +1,18 @@
 {% extends "admin/base_site.html" %}
-{% load admin_list compressed djblets_extensions i18n staticfiles %}
+{% load admin_list compressed djblets_extensions djblets_js i18n staticfiles %}
 
 {% block title %}{% trans "Manage Extensions" %} {{block.super}}{% endblock %}
 
 {% block extrahead %}
 <link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />
-{% compressed_css "djblets-admin" %}
-{% include "js/jquery.html" %}
-{% include "js/jquery-ui.html" %}
-{% compressed_js "djblets-extensions-admin" %}
+{%  compressed_css "djblets-admin" %}
+{%  include "js/jquery.html" %}
+{%  include "js/jquery-ui.html" %}
+{%  include "js/underscore.html" %}
+{%  include "js/backbone.html" %}
+{%  compressed_js "djblets-gravy" %}
+{%  compressed_js "djblets-extensions" %}
+{%  compressed_js "djblets-extensions-admin" %}
 
 {{block.super}}
 {% endblock %}
@@ -17,60 +21,24 @@
 
 {% block content %}
 
-{% include "extensions/extension_dlgs.html" %}
-
 <h1 class="title">{% trans "Manage Extensions" %}</h1>
 
 <div id="content-main">
-{% if extensions %}
- <ul class="extensions">
-{%  for extension in extensions %}
-  <li class="extension {% cycle row1,row2 %}">
-   <div class="extension-header">
-    <h1>{{extension.info.name}} <span class="version">{{extension.info.version}}</span></h1>
-    <p class="author">
-{%   if extension.info.author_url %}
-     <a href="{{extension.info.author_url}}">
-{%   endif %}
-     {{extension.info.author}}
-{%   if extension.info.author_url %}
-     </a>
-{%   endif %}
-    </p>
-   </div>
-   <div class="description">
-    {{extension.info.summary}}
-   </div>
-   <ul class="object-tools">
-{%   if extension.info.enabled %}
-    <li><a id="{{extension.id}}-disable" href="#" class="disablelink">Disable</a></li>
-{%    if extension.info.is_configurable %}
-    <li><a href="{{extension.id}}/config/" class="changelink">Configure</a></li>
-{%    endif %}
-{%    if extension.info.has_admin_site %}
-    <li><a href="{{extension.id}}/db/" class="changelink">Database</a></li>
-{%    endif %}
-{%   else %}
-    <li><a id="{{extension.id}}-enable" href="#" class="enablelink">Enable</a></li>
-{%   endif %}
-   </ul>
-{%   if not extension.info.enabled %}
-{%     if extension.has_disabled_requirements %}
-   <h4>{% trans "Enabling this will also enable the following extension(s):" %}</h4>
-   <ul>
-{%       for requirement in extension.info.requirements %}
-{%         if not requirement.info.enabled %}
-     <li>{{requirement.info.name}}</li>
-{%         endif %}
-{%       endfor %}
-   </ul>
-{%     endif %}
-{%   endif %}
-  </li>
-{%  endfor %}
- </ul>
-{% else %}
- <p>{% trans "There are no extensions installed." %}</p>
-{% endif %}
+ <div id="extension-manager">
+  <ul class="extensions">
+   <li class="loading">{% trans "Loading..." %}</li>
+  </ul>
+ </div>
 </div>
+
+<script>
+    $(document).ready(function() {
+        var view = new Djblets.ExtensionManagerView({
+            el: $('#extension-manager'),
+            model: new Djblets.ExtensionManager()
+        });
+
+        view.render();
+    });
+</script>
 {% endblock %}

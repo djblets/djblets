@@ -31,32 +31,13 @@ from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 
 
-def _has_disabled_requirements(extension):
-    """Returns whether an extension has one or more disabled requirements."""
-    for requirement in extension.info.requirements:
-        if not requirement.info.enabled:
-            return True
-
-    return False
-
-
 @staff_member_required
 def extension_list(request, extension_manager,
                    template_name='extensions/extension_list.html'):
     # Refresh the extension list.
     extension_manager.load()
 
-    return render_to_response(template_name, RequestContext(request, {
-        'extensions': [
-            {
-                'id': extension.id,
-                'info': extension.info,
-                'has_disabled_requirements':
-                    _has_disabled_requirements(extension),
-            }
-            for extension in extension_manager.get_installed_extensions()
-        ]
-    }))
+    return render_to_response(template_name, RequestContext(request))
 
 
 @staff_member_required

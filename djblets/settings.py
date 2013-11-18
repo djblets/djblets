@@ -34,7 +34,10 @@ PIPELINE_JS = {
         'output_filename': 'djblets/js/datagrid.min.js',
     },
     'djblets-extensions-admin': {
-        'source_filenames': ('djblets/js/extensions/admin.js',),
+        'source_filenames': (
+            'djblets/js/extensions/models/extensionManagerModel.js',
+            'djblets/js/extensions/views/extensionManagerView.js',
+        ),
         'output_filename': 'djblets/js/extensions-admin.min.js',
     },
     'djblets-extensions': {
