@@ -5,8 +5,14 @@
 
 {% block extrahead %}
 <link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />
-{% compressed_css "djblets-admin" %}
+{%  compressed_css "djblets-admin" %}
+{{form.media.render_css|join:''}}
 {{block.super}}
+{% endblock %}
+
+{% block scripts-post %}
+{{block.super}}
+{{form.media.render_js|join:''}}
 {% endblock %}
 
 {% block bodyclass %}{{block.super}} change-form{% endblock %}
