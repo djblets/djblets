@@ -141,7 +141,7 @@ class Extension(object):
         self.hooks = set()
         self.settings = Settings(self)
         self.admin_site = None
-        self.middleware_instances = [m() for m in self.middleware]
+        self.middleware_instances = [m(self) for m in self.middleware]
 
     def shutdown(self):
         """Shuts down the extension.
