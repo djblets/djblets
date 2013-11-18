@@ -74,7 +74,7 @@ def etag_if_none_match(request, etag):
     This can be used to bail early if no updates have been performed since
     the last access to the page.
     """
-    return etag == request.META.get('If-None-Match', None)
+    return etag == request.META.get('HTTP_IF_NONE_MATCH', None)
 
 
 def etag_if_match(request, etag):
@@ -83,7 +83,7 @@ def etag_if_match(request, etag):
     is used by PUT requests to to indicate that the update should only happen
     if the specified ETag matches the header.
     """
-    return etag == request.META.get('If-Match', None)
+    return etag == request.META.get('HTTP_IF_MATCH', None)
 
 
 def get_http_accept_lists(request):
