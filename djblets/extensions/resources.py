@@ -110,19 +110,22 @@ class ExtensionResource(WebAPIResource):
                 request.build_absolute_uri(reverse('extension-list')),
                 obj.class_name)
 
-            extension_info = obj.extension_class.info
+            extension_cls = obj.extension_class
 
-            if extension_info.is_configurable:
-                links['admin-configure'] = {
-                    'method': 'GET',
-                    'href': '%s/config/' % admin_base_href,
-                }
+            if extension_cls:
+                extension_info = extension_cls.info
 
-            if extension_info.has_admin_site:
-                links['admin-database'] = {
-                    'method': 'GET',
-                    'href': '%s/db/' % admin_base_href,
-                }
+                if extension_info.is_configurable:
+                    links['admin-configure'] = {
+                        'method': 'GET',
+                        'href': '%s/config/' % admin_base_href,
+                    }
+
+                if extension_info.has_admin_site:
+                    links['admin-database'] = {
+                        'method': 'GET',
+                        'href': '%s/db/' % admin_base_href,
+                    }
 
         return links
 
