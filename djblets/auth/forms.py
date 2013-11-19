@@ -27,6 +27,7 @@
 from django import forms
 from django.contrib import auth
 from django.core.exceptions import ValidationError
+from django.utils.translation import ugettext as _
 
 from djblets.auth.util import get_user
 
@@ -37,11 +38,13 @@ class RegistrationForm(forms.Form):
     username = forms.RegexField(r"^[a-zA-Z0-9_\-\.]*$",
                                 max_length=30,
                                 error_message='Only A-Z, 0-9, "_", "-", and "." allowed.')
-    password1 = forms.CharField(min_length=5,
+    password1 = forms.CharField(label=_('Password'),
+                                min_length=5,
                                 max_length=30,
                                 widget=forms.PasswordInput)
-    password2 = forms.CharField(widget=forms.PasswordInput)
-    email = forms.EmailField()
+    password2 = forms.CharField(label=_('Password (confirm)'),
+                                widget=forms.PasswordInput)
+    email = forms.EmailField(label=_('E-mail address'))
     first_name = forms.CharField(max_length=30, required=False)
     last_name = forms.CharField(max_length=30, required=False)
 
