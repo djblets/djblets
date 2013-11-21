@@ -1,3 +1,11 @@
+version 0.7.24 final (21-November-2013):
+	* djblets.util.http:
+		* Fixed ETag matching.
+
+		  ETag request headers weren't being looked up properly, preventing pages
+		  from being able to make intelligent caching decisions.
+
+
 version 0.7.23 final (5-November-2013):
 	* djblets.extensions:
 		* Fix URL errors when configuring extensions with a custom SITE_ROOT.
