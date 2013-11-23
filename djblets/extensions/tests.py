@@ -37,6 +37,7 @@ from djblets.extensions.hooks import (ExtensionHook, ExtensionHookPoint,
                                       TemplateHook, URLHook)
 from djblets.extensions.manager import _extension_managers, ExtensionManager
 from djblets.extensions.settings import Settings
+from djblets.extensions.signals import settings_saved
 from djblets.testing.testcases import TestCase
 from djblets.util.compat import six
 
@@ -100,6 +101,21 @@ class SettingsTest(TestCase):
 
         self.assertTrue(registration.save.called)
         self.assertEqual(generated_dict, registration.settings)
+
+    def test_save_emits_settings_saved_signal(self):
+        """Testing that Settings.save emits the settings_saved signal"""
+        saw = {}
+
+        def on_settings_saved(*args, **kwargs):
+            saw['signal'] = True
+
+        settings_saved.connect(on_settings_saved, sender=self.extension)
+
+        registration = self.extension.registration
+        self.settings['test_new_key'] = 'Test new value'
+        self.settings.save()
+
+        self.assertIn('signal', saw)
 
 
 class TestExtensionWithRegistration(Extension):

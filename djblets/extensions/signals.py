@@ -25,8 +25,9 @@
 
 from __future__ import unicode_literals
 
-import django.dispatch
+from django.dispatch import Signal
 
 
-extension_initialized = django.dispatch.Signal(providing_args=["ext_class"])
-extension_uninitialized = django.dispatch.Signal(providing_args=["ext_class"])
+extension_initialized = Signal(providing_args=["ext_class"])
+extension_uninitialized = Signal(providing_args=["ext_class"])
+settings_saved = Signal()

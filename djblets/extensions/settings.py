@@ -25,6 +25,8 @@
 
 from __future__ import unicode_literals
 
+from djblets.extensions.signals import settings_saved
+
 
 class Settings(dict):
     """
@@ -89,6 +91,8 @@ class Settings(dict):
         registration = self.extension.registration
         registration.settings = dict(self)
         registration.save()
+
+        settings_saved.send(sender=self.extension)
 
         # Make sure others are aware that the configuration changed.
         self.extension.extension_manager._bump_sync_gen()
