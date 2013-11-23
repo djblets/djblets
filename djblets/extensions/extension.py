@@ -25,6 +25,7 @@
 
 from __future__ import unicode_literals
 
+import inspect
 import os
 
 from django.conf import settings
@@ -141,7 +142,28 @@ class Extension(object):
         self.hooks = set()
         self.settings = Settings(self)
         self.admin_site = None
-        self.middleware_instances = [m(self) for m in self.middleware]
+        self.middleware_instances = []
+
+        for middleware_cls in self.middleware:
+            # We may be loading in traditional middleware (which doesn't take
+            # any parameters in the constructor), or special Extension-aware
+            # middleware (which takes an extension parameter). We need to
+            # try to introspect and figure out what it is.
+            try:
+                arg_spec = inspect.getargspec(middleware_cls.__init__)
+            except (AttributeError, TypeError):
+                # There's no custom __init__ here. It may not exist
+                # in the case of an old-style object, in which case we'll
+                # get an AttributeError. Or, it may be a new-style object
+                # with no custom __init__, in which case we'll get a TypeError.
+                arg_spec = None
+
+            if arg_spec and len(arg_spec) >= 2 and arg_spec[1] == 'extension':
+                middleware_instance = middleware_cls(self)
+            else:
+                middleware_instance = middleware_cls()
+
+            self.middleware_instances.append(middleware_instance)
 
     def shutdown(self):
         """Shuts down the extension.
