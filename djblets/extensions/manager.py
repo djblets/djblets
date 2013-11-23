@@ -322,7 +322,16 @@ class ExtensionManager(object):
 
             if (ext_class.registration.enabled and
                 ext_class.id not in self._extension_instances):
-                self._init_extension(ext_class)
+
+                try:
+                    self._init_extension(ext_class)
+                except EnablingExtensionError:
+                    # When in debug mode, we want this error to be noticed.
+                    # However, in production, it shouldn't break the whole
+                    # server, so continue on.
+                    if not settings.DEBUG:
+                        continue
+
                 extensions_changed = True
 
         # At this point, if we're reloading, it's possible that the user
