@@ -122,6 +122,19 @@ class Extension(object):
     to a list of class names. This extension's middleware will be loaded after
     any middleware belonging to any extensions in the :py:attr:`requirements`
     list.
+
+
+    Template Context Processors
+    ---------------------------
+
+    Extensions may need to provide additional context variables to templates.
+    This can usually be accomplished through a TemplateHook, but sometimes
+    it's necessary to provide context variables for other pages (such as
+    those controlled by a third-party module).
+
+    To add additional context processors, set :py:attr:`context_processors`
+    to a list of class names. They will be added to
+    ``settings.TEMPLATE_CONTEXT_PROCESSORS`` automatically.
     """
     metadata = None
     is_configurable = False
@@ -130,6 +143,7 @@ class Extension(object):
     requirements = []
     resources = []
     apps = []
+    context_processors = []
     middleware = []
 
     css_bundles = {}

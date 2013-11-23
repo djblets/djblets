@@ -60,6 +60,84 @@ from djblets.extensions.signals import (extension_initialized,
 from djblets.urls.resolvers import DynamicURLResolver
 
 
+class SettingListWrapper(object):
+    """Wraps list-based settings to provide management and ref counting.
+
+    This can be used instead of direct access to a list in Django
+    settings to ensure items are never added more than once, and only
+    removed when nothing needs it anymore.
+
+    Each item in the list is ref-counted. The initial items from the
+    setting are populated and start with a ref count of 1. Adding items
+    will increment a ref count for the item, adding it to the list
+    if it doesn't already exist. Removing items reduces the ref count,
+    removing when it hits 0.
+    """
+    def __init__(self, setting_name, display_name):
+        self.setting_name = setting_name
+        self.display_name = display_name
+        self.ref_counts = {}
+
+        self.setting = getattr(settings, setting_name)
+
+        if isinstance(self.setting, tuple):
+            self.setting = list(self.setting)
+            setattr(settings, setting_name, self.setting)
+
+        for item in self.setting:
+            self.ref_counts[item] = 1
+
+    def add(self, item):
+        """Adds an item to the setting.
+
+        If the item is already in the list, it won't be added again.
+        The ref count will just be incremented.
+
+        If it's a new item, it will be added to the list with a ref count
+        of 1.
+        """
+        if item in self.ref_counts:
+            self.ref_counts[item] += 1
+        else:
+            assert item not in self.setting, \
+                   ("%s extension's %s %s is already in settings.%s, with "
+                    "ref count of 0."
+                    % (extension.id, self.display_name, item,
+                       self.setting_name))
+
+            self.ref_counts[item] = 1
+            self.setting.append(item)
+
+    def add_list(self, items):
+        """Adds a list of items to the setting."""
+        for item in items:
+            self.add(item)
+
+    def remove(self, item):
+        """Removes an item from the setting.
+
+        The item's ref count will be decremented. If it hits 0, it will
+        be removed from the list.
+        """
+        assert item in self.ref_counts, \
+               ("%s extension's %s %s is missing a ref count."
+                % (extension.id, self.display_name, item))
+        assert item in self.setting, \
+               ("%s extension's %s %s is not in settings.%s"
+                % (extension.id, self.display_name, item, self.setting_name))
+
+        if self.ref_counts[item] == 1:
+            del self.ref_counts[item]
+            self.setting.remove(item)
+        else:
+            self.ref_counts[item] -= 1
+
+    def remove_list(self, items):
+        """Removes a list of items from the setting."""
+        for item in items:
+            self.remove(item)
+
+
 class ExtensionManager(object):
     """A manager for all extensions.
 
@@ -96,6 +174,15 @@ class ExtensionManager(object):
 
         # Extension middleware instances, ordered by dependencies.
         self.middleware = []
+
+        # Wrap the INSTALLED_APPS and TEMPLATE_CONTEXT_PROCESSORS settings
+        # to allow for ref-counted add/remove operations.
+        self._installed_apps_setting = SettingListWrapper(
+            'INSTALLED_APPS',
+            'installed app')
+        self._context_processors_setting = SettingListWrapper(
+            'TEMPLATE_CONTEXT_PROCESSORS',
+            'context processor')
 
         _extension_managers.append(self)
 
@@ -419,6 +506,7 @@ class ExtensionManager(object):
         extension.info.installed = extension.registration.installed
         extension.info.enabled = True
         self._add_to_installed_apps(extension)
+        self._context_processors_setting.add_list(extension.context_processors)
         self._reset_templatetags_cache()
         extension_initialized.send(self, ext_class=extension)
 
@@ -444,6 +532,8 @@ class ExtensionManager(object):
         if extension.has_admin_site:
             del extension.admin_site
 
+        self._context_processors_setting.remove_list(
+            extension.context_processors)
         self._remove_from_installed_apps(extension)
         self._reset_templatetags_cache()
         extension.info.enabled = False
@@ -681,14 +771,12 @@ class ExtensionManager(object):
                     % extension.info.app_name)
 
     def _add_to_installed_apps(self, extension):
-        for app in extension.apps or [extension.info.app_name]:
-            if app not in settings.INSTALLED_APPS:
-                settings.INSTALLED_APPS.append(app)
+        self._installed_apps_setting.add_list(
+            extension.apps or [extension.info.app_name])
 
     def _remove_from_installed_apps(self, extension):
-        for app in extension.apps or [extension.info.app_name]:
-            if app in settings.INSTALLED_APPS:
-                settings.INSTALLED_APPS.remove(app)
+        self._installed_apps_setting.remove_list(
+            extension.apps or [extension.info.app_name])
 
     def _entrypoint_iterator(self):
         return pkg_resources.iter_entry_points(self.key)
