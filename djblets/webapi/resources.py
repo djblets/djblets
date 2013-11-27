@@ -312,7 +312,7 @@ class WebAPIResource(object):
     # Configuration
     model = None
     fields = {}
-    uri_object_key_regex = '[0-9]+'
+    uri_object_key_regex = r'[0-9]+'
     uri_object_key = None
     model_object_key = 'pk'
     model_parent_key = None
@@ -1340,7 +1340,7 @@ class UserResource(WebAPIResource):
     }
 
     uri_object_key = 'username'
-    uri_object_key_regex = '[A-Za-z0-9@\._-]+'
+    uri_object_key_regex = r'[A-Za-z0-9@\._\-\'\+]+'
     model_object_key = 'username'
     autogenerate_etags = True
 
@@ -1368,7 +1368,7 @@ class GroupResource(WebAPIResource):
     fields = ('id', 'name')
 
     uri_object_key = 'group_name'
-    uri_object_key_regex = '[A-Za-z0-9_-]+'
+    uri_object_key_regex = r'[A-Za-z0-9_\-]+'
     model_object_key = 'name'
     autogenerate_etags = True
 
