@@ -58,22 +58,22 @@ class RegistrationForm(forms.Form):
 
     def save(self):
         if not self.errors:
-            formdata = self.cleaned_data
-            d = dict((k, v.encode("utf8")) for k, v in formdata.iteritems())
             try:
-                user = auth.models.User.objects.create_user(d['username'],
-                                                            d['email'],
-                                                            d['password1'])
-                user.first_name = d['first_name']
-                user.last_name = d['last_name']
+                user = auth.models.User.objects.create_user(
+                    self.cleaned_data['username'],
+                    self.cleaned_data['email'],
+                    self.cleaned_data['password1'])
+                user.first_name = self.cleaned_data['first_name']
+                user.last_name = self.cleaned_data['last_name']
                 user.save()
                 return user
             except:
                 # We check for duplicate users here instead of clean, since it's
                 # possible that two users could race for a name.
-                if get_user(username=d['username']):
-                    self.errors['username'] = \
-                        forms.util.ErrorList(["Sorry, this username is taken."])
+                if get_object_or_none(User,
+                                      username=self.cleaned_data['username']):
+                    self.errors['username'] = forms.util.ErrorList(
+                        ['Sorry, this username is taken.'])
                 else:
                     raise
 
