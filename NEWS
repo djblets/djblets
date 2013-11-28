@@ -143,6 +143,20 @@ version 0.8.0 alpha 1 (9-November-2013):
 		  resources no longer triggers an HTTP 500. It's now interpreted as 0.
 
 
+version 0.7.25 final (28-November-2013):
+	* djblets.auth:
+		* Added some human-readable labels for RegistrationForm.
+
+		* RegistrationForm subclasses that make use of fields that normalize
+		  to non-strings no longer fail to save.
+
+	* djblets.webapi:
+		* Usernames with plus signs in them are now matched in the API.
+		  This is useful for e-mail addresses as usernames.
+
+		  Patch by Mark Côté.
+
+
 version 0.7.24 final (21-November-2013):
 	* djblets.util.http:
 		* Fixed ETag matching.
