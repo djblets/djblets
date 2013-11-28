@@ -77,7 +77,8 @@ class RegistrationForm(forms.Form):
             except:
                 # We check for duplicate users here instead of clean, since it's
                 # possible that two users could race for a name.
-                if get_object_or_none(User, username=self.cleaned_data['username']):
+                if get_object_or_none(User,
+                                      username=self.cleaned_data['username']):
                     self.errors['username'] = forms.util.ErrorList(
                         ['Sorry, this username is taken.'])
                 else:
