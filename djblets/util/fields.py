@@ -147,6 +147,36 @@ class ModificationTimestampField(models.DateTimeField):
         return "DateTimeField"
 
 
+def decode_janky_json(value):
+    try:
+        decoded = simplejson.loads(value, encoding=settings.DEFAULT_CHARSET)
+
+        # XXX Sometimes things get double-encoded. We don't have a solid repro
+        #     case.
+        if isinstance(decoded, basestring):
+            logging.warning("JSONField decode error. Expected dictionary, got "
+                            "string for input '%s'",
+                            value)
+            decoded = simplejson.loads(decoded, encoding=settings.DEFAULT_CHARSET)
+    except ValueError:
+        # There's probably embedded unicode markers (like u'foo') in the
+        # string. This will evaluate it as python types instead of json.
+        try:
+            decoded = literal_eval(value)
+        except Exception as e:
+            logging.error("Failed to eval and decode JSONField data '%r': %s",
+                          value, e)
+            decoded = {}
+
+        if isinstance(decoded, basestring):
+            logging.error("JSONField decode error after literal_eval. "
+                          "Expected dictionary, got string for input '%s'",
+                          value)
+            decoded = {}
+
+    return decoded
+
+
 def validate_json(value):
     """Validates content going into a JSONField.
 
@@ -156,8 +186,8 @@ def validate_json(value):
     """
     if isinstance(value, basestring):
         try:
-            simplejson.loads(value)
-        except ValueError, e:
+            decode_janky_json(value)
+        except ValueError as e:
             raise ValidationError(str(e), code='invalid')
 
 
@@ -220,32 +250,7 @@ class JSONField(models.TextField):
             return self.encoder.encode(data)
 
     def loads(self, val):
-        try:
-            val = simplejson.loads(val, encoding=settings.DEFAULT_CHARSET)
-
-            # XXX We need to investigate why this is happening once we have
-            #     a solid repro case.
-            if isinstance(val, basestring):
-                logging.warning("JSONField decode error. Expected dictionary, "
-                                "got string for input '%s'" % val)
-                # For whatever reason, we may have gotten back
-                val = simplejson.loads(val, encoding=settings.DEFAULT_CHARSET)
-        except ValueError:
-            # There's probably embedded unicode markers (like u'foo') in the
-            # string. We have to eval it.
-            try:
-                val = literal_eval(val)
-            except Exception, e:
-                logging.error('Failed to eval JSONField data "%r": %s'
-                              % (val, e))
-                val = {}
-
-            if isinstance(val, basestring):
-                logging.warning('JSONField decode error after literal_eval: '
-                                'Expected dictionary, got string: %r' % val)
-                val = {}
-
-        return val
+        return decode_janky_json(val)
 
 
 class CounterField(models.IntegerField):
