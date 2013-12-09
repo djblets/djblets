@@ -38,7 +38,7 @@ from django.db.models import F
 from django.utils import six
 from django.utils.encoding import smart_unicode
 
-from djblets.db.validators import validate_json
+from djblets.db.validators import decode_janky_json, validate_json
 from djblets.util.dates import get_tz_aware_utcnow
 
 
@@ -205,32 +205,7 @@ class JSONField(models.TextField):
             return self.encoder.encode(data)
 
     def loads(self, val):
-        try:
-            val = json.loads(val, encoding=settings.DEFAULT_CHARSET)
-
-            # XXX We need to investigate why this is happening once we have
-            #     a solid repro case.
-            if isinstance(val, six.string_types):
-                logging.warning("JSONField decode error. Expected dictionary, "
-                                "got string for input '%s'" % val)
-                # For whatever reason, we may have gotten back
-                val = json.loads(val, encoding=settings.DEFAULT_CHARSET)
-        except ValueError:
-            # There's probably embedded unicode markers (like u'foo') in the
-            # string. We have to eval it.
-            try:
-                val = literal_eval(val)
-            except Exception as e:
-                logging.error('Failed to eval JSONField data "%r": %s'
-                              % (val, e))
-                val = {}
-
-            if isinstance(val, six.string_types):
-                logging.warning('JSONField decode error after literal_eval: '
-                                'Expected dictionary, got string: %r' % val)
-                val = {}
-
-        return val
+        return decode_janky_json(val)
 
 
 class CounterField(models.IntegerField):
