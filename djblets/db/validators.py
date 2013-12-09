@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from ast import literal_eval
 import json
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import six
 
