@@ -30,6 +30,7 @@ from djblets.webapi.decorators import (webapi_login_required,
                                        webapi_request_fields,
                                        webapi_response_errors)
 from djblets.webapi.errors import (DOES_NOT_EXIST,
+                                   LOGIN_FAILED,
                                    NOT_LOGGED_IN,
                                    PERMISSION_DENIED,
                                    WebAPIError)
@@ -381,7 +382,23 @@ class WebAPIResource(object):
     @vary_on_headers('Accept', 'Cookie')
     def __call__(self, request, api_format=None, *args, **kwargs):
         """Invokes the correct HTTP handler based on the type of request."""
-        check_login(request)
+        auth_result = check_login(request)
+
+        if isinstance(auth_result, tuple):
+            auth_success, auth_message, auth_headers = auth_result
+
+            if not auth_success:
+                err = LOGIN_FAILED
+
+                if auth_message:
+                    err = err.with_message(auth_message)
+
+                return WebAPIResponseError(
+                    request,
+                    err=err,
+                    headers=auth_headers or {},
+                    api_format=api_format,
+                    mimetype=self._build_error_mimetype(request))
 
         method = request.method
 

@@ -60,9 +60,24 @@ class WebAPIError(object):
         return self.with_overrides(msg)
 
 
-WWW_AUTHENTICATE_HEADERS = {
-    'WWW-Authenticate': 'Basic realm="Web API"',
-}
+def _get_auth_headers(request):
+    from djblets.webapi.auth import get_auth_backends
+
+    headers = {}
+    www_auth_schemes = []
+
+    for auth_backend_cls in get_auth_backends():
+        auth_backend = auth_backend_cls()
+
+        if auth_backend.www_auth_scheme:
+            www_auth_schemes.append(auth_backend.www_auth_scheme)
+
+        headers.update(auth_backend.get_auth_headers(request))
+
+    if www_auth_schemes:
+        headers['WWW-Authenticate'] = ', '.join(www_auth_schemes)
+
+    return headers
 
 
 #
@@ -88,12 +103,12 @@ INVALID_ATTRIBUTE         = WebAPIError(102,
 NOT_LOGGED_IN             = WebAPIError(103,
                                         "You are not logged in",
                                         http_status=401,
-                                        headers=WWW_AUTHENTICATE_HEADERS)
+                                        headers=_get_auth_headers)
 LOGIN_FAILED              = WebAPIError(104,
                                         "The username or password was "
                                         "not correct",
                                         http_status=401,
-                                        headers=WWW_AUTHENTICATE_HEADERS)
+                                        headers=_get_auth_headers)
 INVALID_FORM_DATA         = WebAPIError(105,
                                         "One or more fields had errors",
                                         http_status=400)
