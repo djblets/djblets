@@ -32,6 +32,7 @@ try:
 except ImportError:
     from djblets.util.compat.ast_compat import literal_eval
 
+from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
@@ -161,6 +162,24 @@ def validate_json(value):
             raise ValidationError(str(e), code='invalid')
 
 
+class JSONFormField(forms.CharField):
+    """Provides a form field for JSON input.
+
+    This is meant to be used by JSONField, and handles the work of
+    normalizing a Python data structure back into a serialized JSON
+    string for editing.
+    """
+    def __init__(self, encoder=None, *args, **kwargs):
+        super(JSONFormField, self).__init__(*args, **kwargs)
+        self.encoder = encoder or DjangoJSONEncoder()
+
+    def prepare_value(self, value):
+        if isinstance(value, basestring):
+            return value
+        else:
+            return self.encoder.encode(value)
+
+
 class JSONField(models.TextField):
     """
     A field for storing JSON-encoded data. The data is accessible as standard
@@ -246,6 +265,12 @@ class JSONField(models.TextField):
                 val = {}
 
         return val
+
+    def formfield(self, **kwargs):
+        return super(JSONField, self).formfield(
+            form_class=JSONFormField,
+            encoder=self.encoder,
+            **kwargs)
 
 
 class CounterField(models.IntegerField):
