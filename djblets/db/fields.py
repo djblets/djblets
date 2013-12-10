@@ -31,6 +31,7 @@ import base64
 import json
 import logging
 
+from django import forms
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
@@ -38,7 +39,7 @@ from django.db.models import F
 from django.utils import six
 from django.utils.encoding import smart_unicode
 
-from djblets.db.validators import decode_janky_json, validate_json
+from djblets.db.validators import validate_json
 from djblets.util.dates import get_tz_aware_utcnow
 
 
@@ -146,6 +147,24 @@ class ModificationTimestampField(models.DateTimeField):
         return "DateTimeField"
 
 
+class JSONFormField(forms.CharField):
+    """Provides a form field for JSON input.
+
+    This is meant to be used by JSONField, and handles the work of
+    normalizing a Python data structure back into a serialized JSON
+    string for editing.
+    """
+    def __init__(self, encoder=None, *args, **kwargs):
+        super(JSONFormField, self).__init__(*args, **kwargs)
+        self.encoder = encoder or DjangoJSONEncoder()
+
+    def prepare_value(self, value):
+        if isinstance(value, basestring):
+            return value
+        else:
+            return self.encoder.encode(value)
+
+
 class JSONField(models.TextField):
     """
     A field for storing JSON-encoded data. The data is accessible as standard
@@ -205,7 +224,38 @@ class JSONField(models.TextField):
             return self.encoder.encode(data)
 
     def loads(self, val):
-        return decode_janky_json(val)
+        try:
+            val = json.loads(val, encoding=settings.DEFAULT_CHARSET)
+
+            # XXX We need to investigate why this is happening once we have
+            #     a solid repro case.
+            if isinstance(val, basestring):
+                logging.warning("JSONField decode error. Expected dictionary, "
+                                "got string for input '%s'" % val)
+                # For whatever reason, we may have gotten back
+                val = json.loads(val, encoding=settings.DEFAULT_CHARSET)
+        except ValueError:
+            # There's probably embedded unicode markers (like u'foo') in the
+            # string. We have to eval it.
+            try:
+                val = literal_eval(val)
+            except Exception, e:
+                logging.error('Failed to eval JSONField data "%r": %s'
+                              % (val, e))
+                val = {}
+
+            if isinstance(val, basestring):
+                logging.warning('JSONField decode error after literal_eval: '
+                                'Expected dictionary, got string: %r' % val)
+                val = {}
+
+        return val
+
+    def formfield(self, **kwargs):
+        return super(JSONField, self).formfield(
+            form_class=JSONFormField,
+            encoder=self.encoder,
+            **kwargs)
 
 
 class CounterField(models.IntegerField):
