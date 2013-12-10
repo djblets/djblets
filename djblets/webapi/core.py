@@ -378,7 +378,11 @@ class WebAPIResponseError(WebAPIResponse):
         errdata.update(extra_params)
 
         headers = headers.copy()
-        headers.update(err.headers)
+
+        if callable(err.headers):
+            headers.update(err.headers(request))
+        else:
+            headers.update(err.headers)
 
         WebAPIResponse.__init__(self, request, obj=errdata, stat="fail",
                                 status=err.http_status, headers=headers,
