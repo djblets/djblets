@@ -37,7 +37,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 
 from djblets.util.compat import six
 from djblets.util.compat.six.moves.urllib.parse import urlencode

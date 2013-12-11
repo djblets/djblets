@@ -25,6 +25,8 @@
 
 from __future__ import unicode_literals
 
+from django.utils.translation import ugettext as _
+
 
 class EnablingExtensionError(Exception):
     """An extension could not be enabled."""
@@ -45,4 +47,4 @@ class InvalidExtensionError(Exception):
     """An extension does not exist."""
     def __init__(self, extension_id):
         super(InvalidExtensionError, self).__init__()
-        self.message = "Cannot find extension with id %s" % extension_id
+        self.message = _("Cannot find extension with id %s") % extension_id

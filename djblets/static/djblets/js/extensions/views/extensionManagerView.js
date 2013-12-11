@@ -32,11 +32,11 @@ InstalledExtensionView = Backbone.View.extend({
         ' <li><a href="#" class="enable-toggle"></a></li>',
         ' <% if (configURL) { %>',
         '  <li><a href="<%- configURL %>" class="enabled-only changelink">',
-        '      Configure</a></li>',
+        '      <%- configureText %></a></li>',
         ' <% } %>',
         ' <% if (dbURL) { %>',
         '  <li><a href="<%- dbURL %>" class="enabled-only changelink">',
-        '      Database</a></li>',
+        '      <%- databaseText %></a></li>',
         ' <% } %>',
         '</ul>',
     ].join('')),
@@ -45,7 +45,10 @@ InstalledExtensionView = Backbone.View.extend({
      * Renders the extension in the list.
      */
     render: function() {
-        this.$el.html(this.template(this.model.attributes));
+        this.$el.html(this.template(_.defaults({
+            configureText: gettext('Configure'),
+            databaseText: gettext('Database')
+        }, this.model.attributes)));
 
         this._$enableToggle = this.$('.enable-toggle');
         this._$enabledToolLinks = this.$('.enabled-only');
@@ -66,7 +69,7 @@ InstalledExtensionView = Backbone.View.extend({
         var enabled = this.model.get('enabled');
 
         this._$enableToggle
-            .text(enabled ? 'Disable' : 'Enable')
+            .text(enabled ? gettext('Disable') : gettext('Enable'))
             .addClass(enabled ? 'disablelink' : 'enablelink')
             .removeClass(enabled ? 'enablelink' : 'disablelink');
         this._$enabledToolLinks.setVisible(enabled);
@@ -139,7 +142,7 @@ Djblets.ExtensionManagerView = Backbone.View.extend({
 
         if (this.model.installedExtensions.length === 0) {
             this._$extensions.append(
-                $('<li/>').text('There are no extensions installed.'));
+                $('<li/>').text(gettext('There are no extensions installed.')));
         } else {
             this.model.installedExtensions.each(function(extension) {
                 var view = new InstalledExtensionView({

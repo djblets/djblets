@@ -32,7 +32,8 @@ InstalledExtension = Backbone.Model.extend({
         }, {
             wait: true,
             error: function(model, xhr) {
-                alert('Failed to enable extension. ' + xhr.errorText + '.');
+                alert(gettext('Failed to enable extension. ') +
+                      xhr.errorText + '.');
             }
         });
     },
@@ -46,7 +47,8 @@ InstalledExtension = Backbone.Model.extend({
         }, {
             wait: true,
             error: function(model, xhr) {
-                alert('Failed to disable extension. ' + xhr.errorText + '.');
+                alert(gettext('Failed to disable extension. ') +
+                      xhr.errorText + '.');
             }
         });
     },

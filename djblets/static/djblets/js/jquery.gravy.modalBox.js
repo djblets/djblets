@@ -25,7 +25,7 @@
 
 $.widget("ui.modalBox", {
     options: {
-        buttons: [$('<input type="button" value="Close"/>')],
+        buttons: [$('<input type="button" />').val(gettext('Close'))],
         container: 'body',
         discardOnClose: true,
         fadeBackground: true,

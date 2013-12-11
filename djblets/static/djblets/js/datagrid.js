@@ -16,7 +16,7 @@ $.fn.datagrid = function() {
         gridId = this.attr("id"),
         $editButton = $("#" + gridId + "-edit"),
         $menu = $("#" + gridId + "-menu"),
-        $summaryCells = $grid.find("td.summary");
+        $summaryCells = $grid.find("td.summary"),
 
         /* State */
         activeColumns = [],
@@ -121,7 +121,7 @@ $.fn.datagrid = function() {
                 $("#" + gridId).datagrid();
             }
         });
-    };
+    }
 
 
     /********************************************************************
@@ -147,7 +147,7 @@ $.fn.datagrid = function() {
         if ($menu.is(":visible")) {
             hideColumnsMenu();
         } else {
-            offset = $editButton.offset()
+            offset = $editButton.offset();
 
             $menu
                 .css({

@@ -25,6 +25,8 @@
 
 from __future__ import unicode_literals
 
+from django.utils.translation import ugettext as _
+
 from djblets.extensions.signals import settings_saved
 
 
@@ -57,7 +59,8 @@ class Settings(dict):
             return self.extension.default_settings[key]
 
         raise KeyError(
-            'The settings key "%(key)s" was not found in extension %(ext)s' % {
+            _('The settings key "%(key)s" was not found in extension %(ext)s')
+            % {
                 'key': key,
                 'ext': self.extension.id
             })

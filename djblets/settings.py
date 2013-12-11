@@ -12,6 +12,13 @@ import os
 
 SECRET_KEY = '47157c7ae957f904ab809d8c5b77e0209221d4c0'
 
+USE_I18N=True
+LANGUAGES = (
+    ('en', 'English'),
+    ('it', 'Italian'),
+    ('zh-tw', 'Traditional Chinese'),
+)
+
 DEBUG = False
 DJBLETS_ROOT = os.path.abspath(os.path.dirname(__file__))
 HTDOCS_ROOT = os.path.join(DJBLETS_ROOT, 'htdocs')

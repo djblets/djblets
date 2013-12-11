@@ -159,14 +159,14 @@ $.widget("ui.inlineEditor", {
 
             var saveButton =
                 $('<input type="button"/>')
-                .val("OK")
+                .val(gettext("OK"))
                 .addClass("save")
                 .appendTo(this._buttons)
                 .click(function() { self.submit(); });
 
             var cancelButton =
                 $('<input type="button"/>')
-                .val("Cancel")
+                .val(gettext("Cancel"))
                 .addClass("cancel")
                 .appendTo(this._buttons)
                 .click(function() { self.cancel(); });
@@ -179,7 +179,7 @@ $.widget("ui.inlineEditor", {
                 $("<a/>")
                 .attr('href', '#')
                 .attr("role", "button")
-                .attr("aria-label", "Edit this field")
+                .attr("aria-label", gettext("Edit this field"))
                 .addClass("editicon")
                 .click(function() {
                     self.startEdit();
@@ -198,8 +198,8 @@ $.widget("ui.inlineEditor", {
                 this._editIcon.append(
                     $("<span/>")
                         .attr({
-                            'aria-label': 'This field is required',
-                            title: 'This field is required'
+                            'aria-label': gettext('This field is required'),
+                            title: gettext('This field is required')
                         })
                         .addClass("required-flag")
                         .text("*"));
@@ -344,8 +344,7 @@ $.widget("ui.inlineEditor", {
 
     cancel: function(force) {
         if (!force && this.options.promptOnCancel && this._dirty) {
-            if (confirm("You have unsaved changes. Are you " +
-                        "sure you want to discard them?")) {
+            if (confirm(gettext("You have unsaved changes. Are you sure you want to discard them?"))) {
                 this.cancel(true);
             }
 

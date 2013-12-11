@@ -31,7 +31,7 @@ from django.contrib import auth
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import six
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 
 from djblets.db.query import get_object_or_none
 
@@ -60,7 +60,7 @@ class RegistrationForm(forms.Form):
         formdata = self.cleaned_data
         if 'password1' in formdata:
             if formdata['password1'] != formdata['password2']:
-                raise ValidationError('Passwords must match')
+                raise ValidationError(_('Passwords must match'))
         return formdata['password2']
 
     def save(self):
@@ -80,6 +80,6 @@ class RegistrationForm(forms.Form):
                 if get_object_or_none(User,
                                       username=self.cleaned_data['username']):
                     self.errors['username'] = forms.util.ErrorList(
-                        ['Sorry, this username is taken.'])
+                        [_('Sorry, this username is taken.')])
                 else:
                     raise

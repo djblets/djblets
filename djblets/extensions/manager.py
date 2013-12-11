@@ -45,6 +45,7 @@ from django.template.loader import template_source_loaders
 from django.utils import six
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
+from django.utils.translation import ugettext as _
 from django_evolution.management.commands.evolve import Command as Evolution
 from setuptools.command import easy_install
 
@@ -248,10 +249,10 @@ class ExtensionManager(object):
             dist.activate()
             pkg_resources.working_set.add(dist)
         except pkg_resources.DistributionNotFound:
-            raise InstallExtensionError("Invalid package name.")
+            raise InstallExtensionError(_("Invalid package name."))
         except SystemError:
             raise InstallExtensionError(
-                'Installation failed (probably malformed URL).')
+                _('Installation failed (probably malformed URL).'))
 
         # Refresh the extension manager.
         self.load(True)
@@ -401,7 +402,7 @@ class ExtensionManager(object):
         except Exception as e:
             logging.error('Unable to initialize extension %s: %s'
                           % (ext_class, e), exc_info=1)
-            raise EnablingExtensionError('Error initializing extension: %s'
+            raise EnablingExtensionError(_('Error initializing extension: %s')
                                          % e)
 
         self._extension_instances[extension.id] = extension

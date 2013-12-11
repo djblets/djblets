@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from optparse import make_option
 
 from django.core.management.base import CommandError, NoArgsCommand
+from django.utils.translation import ugettext as _
 
 from djblets.siteconfig.models import SiteConfiguration
 
@@ -20,7 +21,7 @@ class Command(NoArgsCommand):
         key = options['key']
 
         if key is None:
-            raise CommandError('--key must be provided')
+            raise CommandError(_('--key must be provided'))
 
         path = key.split('.')
         node = siteconfig.settings
@@ -39,6 +40,6 @@ class Command(NoArgsCommand):
                 valid_key = False
 
         if not valid_key:
-            raise CommandError("'%s' is not a valid settings key" % key)
+            raise CommandError(_("'%s' is not a valid settings key") % key)
 
         self.stdout.write(node[key_basename])
