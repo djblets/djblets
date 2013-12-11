@@ -54,6 +54,7 @@ class BuildEggInfo(egg_info):
             'bdist_egg' in sys.argv or
             'install' in sys.argv):
             self.run_command('build_media')
+            self.run_command('build_i18n')
 
         egg_info.run(self)
 
@@ -75,6 +76,24 @@ class BuildMedia(Command):
             raise RuntimeError('Failed to build media files')
 
 
+class BuildI18n(Command):
+    description = 'Compile message catalogs to .mo'
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        retcode = subprocess.call([
+            sys.executable, 'contrib/internal/build-i18n.py'])
+
+        if retcode != 0:
+            raise RuntimeError('Failed to build i18n files')
+
+
 def run_tests(*args):
     import os
     os.system("tests/runtests.py")
@@ -84,6 +103,7 @@ test.run_tests = run_tests
 cmdclasses = {
     'egg_info': BuildEggInfo,
     'build_media': BuildMedia,
+    'build_i18n': BuildI18n,
 }
 
 
