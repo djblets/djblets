@@ -9,4 +9,5 @@ Djblets.egg-info
 *.orig
 .*.sw*
 *.pyc
+*.mo
 .DS_Store
