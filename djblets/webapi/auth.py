@@ -113,6 +113,17 @@ class WebAPIAuthBackend(object):
         `get_credentials`) and attempts a login against the main
         authentication backends used by Django.
         """
+        # Don't authenticate if a user is already logged in and the
+        # username matches.
+        #
+        # Note that this does mean that a new password will fail. However,
+        # the user is already logged in, and querying the backend for every
+        # request is excessive, so it's a tradeoff. The user already has
+        # access to the server at this point anyway.
+        if (request.user.is_authenticated() and
+            request.user.username == username):
+            return True, None, None
+
         log_extra = {
             'request': request,
         }
@@ -165,19 +176,11 @@ def check_login(request):
     to authenticate using a supported authentication method.
     """
     if 'HTTP_AUTHORIZATION' in request.META:
-        # Don't authenticate if a user is already logged in and the
-        # username matches.
-        #
-        # Note that this does mean that a new password will fail. However,
-        # the user is already logged in, and querying the backend for every
-        # request is excessive, so it's a tradeoff. The user already has
-        # access to the server at this point anyway.
-        if request.user.is_anonymous() or request.user.username != username:
-            for auth_backend_cls in get_auth_backends():
-                result = auth_backend_cls().authenticate(request)
+        for auth_backend_cls in get_auth_backends():
+            result = auth_backend_cls().authenticate(request)
 
-                if result is not None:
-                    return result
+            if result is not None:
+                return result
 
     return None
 

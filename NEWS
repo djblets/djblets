@@ -143,6 +143,16 @@ version 0.8.0 alpha 1 (9-November-2013):
 		  resources no longer triggers an HTTP 500. It's now interpreted as 0.
 
 
+version 0.7.27 final (12-December-2013):
+	* djblets.webapi:
+		* Fixed a regression with the new webapi auth backend support.
+
+		  If an Authorization header was sent by a client that already had
+		  a valid cookie, the code would attempt to access an undefined
+		  variable. The code is now in a more appropriate place to access
+		  that variable.
+
+
 version 0.7.26 final (10-December-2013):
 	* djblets.util.fields:
 		* Fixed JSONField in the administration UI.
