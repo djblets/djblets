@@ -145,69 +145,112 @@ $.fn.getExtents = function(types, sides) {
 };
 
 
+/*
+ * Positions an element to the side of another element.
+ *
+ * This can take a number of options to customize how the element is
+ * positioned.
+ *
+ * The 'side' option is a string of sides ('t', 'b', 'l', 'r') that
+ * incidate the element should be positioned to the top, bottom, left,
+ * or right of the other element.
+ *
+ * If multiple sides are provided, then this will loop through them in
+ * order, trying to find the best top and the best left that fit on the
+ * screen.
+ *
+ * If the 'distance' option is set, the element will be that many pixels
+ * away from the side of the other element. Alternatively, the
+ * 'xDistance' and 'yDistance' options can be set to customize that distance
+ * only when positioned to the left/right of the element (for xDistance) or
+ * above/below (yDistance).
+ *
+ * The 'xOffset' and 'yOffset' options will offset the element on that
+ * axis, but only when it's not positioned relative to the other element
+ * along that axis. So, if positioned to the left of the element, 'xOffset'
+ * will not take affect, but 'yOffset' would. This helps with better
+ * aligning horizontally/vertically with content.
+ *
+ * The 'fitOnScreen' option, if set to true, will ensure that the element
+ * is not scrolled off the screen on any side. It will update the final
+ * position of the element to be fully shown on-screen (provided the element
+ * can fit on the screen).
+ */
 $.fn.positionToSide = function(el, options) {
+    var offset = $(el).offset(),
+        thisWidth = this.outerWidth(),
+        thisHeight = this.outerHeight(),
+        elWidth = el.width(),
+        elHeight = el.height(),
+        scrollLeft = $(document).scrollLeft(),
+        scrollTop = $(document).scrollTop(),
+        scrollWidth = $(window).width(),
+        scrollHeight = $(window).height();
+
     options = $.extend({
         side: 'b',
-        distance: 0,
+        xDistance: options.distance || 0,
+        yDistance: options.distance || 0,
+        xOffset: 0,
+        yOffset: 0,
         fitOnScreen: false
     }, options);
 
-    var offset = $(el).offset();
-    var thisWidth = this.width();
-    var thisHeight = this.height();
-    var elWidth = el.width();
-    var elHeight = el.height();
-
-    var scrollLeft = $(document).scrollLeft();
-    var scrollTop = $(document).scrollTop();
-    var scrollWidth = $(window).width();
-    var scrollHeight = $(window).height();
-
     return $(this).each(function() {
-        var bestLeft = null;
-        var bestTop = null;
+        var bestLeft = null,
+            bestTop = null,
+            side,
+            left,
+            top,
+            i;
 
-        for (var i = 0; i < options.side.length; i++) {
-            var side = options.side.charAt(i);
-            var left = 0;
-            var top = 0;
+        for (i = 0; i < options.side.length; i++) {
+            side = options.side.charAt(i);
+            left = null;
+            top = null;
 
             if (side == "t") {
-                left = offset.left;
-                top = offset.top - thisHeight - options.distance;
+                top = offset.top - thisHeight - options.yDistance;
             } else if (side == "b") {
-                left = offset.left;
-                top = offset.top + elHeight + options.distance;
+                top = offset.top + elHeight + options.yDistance;
             } else if (side == "l") {
-                left = offset.left - thisWidth - options.distance;
-                top = offset.top;
+                left = offset.left - thisWidth - options.xDistance;
             } else if (side == "r") {
-                left = offset.left + elWidth + options.distance;
-                top = offset.top;
+                left = offset.left + elWidth + options.xDistance;
             } else {
                 continue;
             }
 
-            if (left >= scrollLeft &&
-                left + thisWidth - scrollLeft < scrollWidth &&
-                top >= scrollTop &&
-                top + thisHeight - scrollTop < scrollHeight) {
+            if ((left !== null &&
+                 left >= scrollLeft &&
+                 left + thisWidth - scrollLeft < scrollWidth) ||
+                (top !== null &&
+                 top >= scrollTop &&
+                 top + thisHeight - scrollTop < scrollHeight)) {
                 bestLeft = left;
                 bestTop = top;
                 break;
-            } else if (bestLeft === null) {
+            } else if (bestLeft === null && bestTop === null) {
                 bestLeft = left;
                 bestTop = top;
             }
         }
 
+        if (bestLeft === null) {
+            bestLeft = offset.left + options.xOffset;
+        }
+
+        if (bestTop === null) {
+            bestTop = offset.top + options.yOffset;
+        }
+
         if (options.fitOnScreen) {
-            bestLeft = Math.min(bestLeft,
-                                scrollLeft + scrollWidth -
-                                thisWidth);
-            bestTop = Math.min(bestTop,
-                               scrollTop + scrollHeight -
-                               thisHeight);
+            bestLeft = Math.max(
+                Math.min(bestLeft, scrollLeft + scrollWidth - thisWidth),
+                scrollLeft);
+            bestTop = Math.max(
+                Math.min(bestTop, scrollTop + scrollHeight - thisHeight),
+                scrollTop);
         }
 
         $(this).move(bestLeft, bestTop, "absolute");
