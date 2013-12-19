@@ -11,14 +11,23 @@
  * Creates a datagrid. This will cause drag and drop and column
  * customization to be enabled.
  */
-$.fn.datagrid = function() {
+$.fn.datagrid = function(options) {
     var $grid = this,
         gridId = this.attr("id"),
-        $editButton = $("#" + gridId + "-edit"),
         $menu = $("#" + gridId + "-menu"),
         $summaryCells = $grid.find("td.summary"),
+        $gridContainer = $grid.find('.datagrid'),
+        $bodyContainer = $gridContainer.find('.datagrid-body-container'),
+        $headTable = $gridContainer.find('.datagrid-head'),
+        $bodyTable = $bodyContainer.find('.datagrid-body'),
+        $bodyTableHead = $bodyTable.find('thead'),
+        $paginator = $gridContainer.find('.paginator'),
+        autoFitGrid = ($grid.css('height') !== undefined),
+        $window = $(window),
+        $editButton,
 
         /* State */
+        storedColWidths = [],
         activeColumns = [],
         $activeMenu = null,
         columnMidpoints = [],
@@ -26,39 +35,14 @@ $.fn.datagrid = function() {
         dragColumnsChanged = false,
         dragColumnWidth = 0,
         dragIndex = 0,
-        dragLastX = 0;
+        dragLastX = 0,
+        lastWindowWidth;
+
+    options = options || {};
 
     $grid.data('datagrid', this);
 
-    /* Add all the non-special columns to the list. */
-    $grid.find("col").not(".datagrid-customize").each(function(i, col) {
-        activeColumns.push(col.className);
-    });
-
-    $grid.find("th")
-        /* Make the columns unselectable. */
-        .disableSelection()
-
-        /* Make the columns draggable. */
-        .not(".edit-columns").draggable({
-            appendTo: "body",
-            axis: "x",
-            containment: $grid.find("thead:first"),
-            cursor: "move",
-            helper: function() {
-                var $el = $(this);
-
-                return $("<div/>")
-                    .addClass("datagrid-header-drag datagrid-header")
-                    .width($el.width())
-                    .height($el.height())
-                    .css("top", $el.offset().top)
-                    .html($el.html());
-            },
-            start: startColumnDrag,
-            stop: endColumnDrag,
-            drag: onColumnDrag
-        });
+    setupHeader();
 
     /* Register callbacks for the columns. */
     $menu.find("tr").each(function(i, row) {
@@ -68,11 +52,6 @@ $.fn.datagrid = function() {
             .click(function() {
                 toggleColumn(className);
             });
-    });
-
-    $editButton.click(function(evt) {
-        evt.stopPropagation();
-        toggleColumnsMenu();
     });
 
     /*
@@ -93,18 +72,8 @@ $.fn.datagrid = function() {
 
     $(document.body).click(hideColumnsMenu);
 
-    $grid.find('.datagrid-header-checkbox').change(function(evt) {
-        /*
-         * Change the checked state of all matching checkboxes to reflect
-         * the state of the checkbox in the header.
-         */
-        var $checkbox = $(this),
-            colName = $checkbox.data('checkbox-name');
-
-        $grid.find('tbody input[data-checkbox-name="' + colName + '"]')
-            .prop('checked', $checkbox.prop('checked'))
-            .change();
-    });
+    $window.resize(onResize);
+    onResize();
 
 
     /********************************************************************
@@ -113,6 +82,179 @@ $.fn.datagrid = function() {
     this.reload = function() {
         loadFromServer(null, true);
     };
+
+    /*
+     * Resizes the table body to fit into the datagrid's allocated height.
+     *
+     * This requires a fixed height on the datagrid, which must be
+     * done by the caller.
+     */
+    this.resizeToFit = function() {
+        $bodyContainer.height($grid.innerHeight() -
+                              $bodyContainer.position().top -
+                              ($paginator.outerHeight() || 0));
+
+        syncColumnSizes();
+    };
+
+
+    /********************************************************************
+     * Layout
+     ********************************************************************/
+
+    /*
+     * Sets up the table header.
+     *
+     * This pulls out the table header into its own table, stores elements
+     * and state, and hooks up events.
+     *
+     * We create a separate table for the header in order to allow for the
+     * table body to scroll without scrolling the header. This requires
+     * that a caller sets a fixed height for the datagrid and calls
+     * resizeToFit on window resize.
+     */
+    function setupHeader() {
+        var $origHeader = $bodyTable.find('thead');
+
+        /* Store the original widths of the colgroup columns. */
+        $bodyTable.find('colgroup col').each(function(i, colEl) {
+            storedColWidths.push(colEl.width);
+        });
+
+        /* Create a copy of the header and place it in a separate table. */
+        $headTable
+            .find('thead')
+                .remove()
+            .end()
+            .append($origHeader.clone().show());
+        $origHeader.hide();
+
+        activeColumns = [];
+
+        /* Add all the non-special columns to the list. */
+        $headTable.find("col").not(".datagrid-customize")
+            .each(function(i, col) {
+                activeColumns.push(col.className);
+            });
+
+        $headTable.find("th")
+            /* Make the columns unselectable. */
+            .disableSelection()
+
+            /* Make the columns draggable. */
+            .not(".edit-columns").draggable({
+                appendTo: "body",
+                axis: "x",
+                containment: $headTable.find("thead:first"),
+                cursor: "move",
+                helper: function() {
+                    var $el = $(this);
+
+                    return $("<div/>")
+                        .addClass("datagrid-header-drag datagrid-header")
+                        .width($el.width())
+                        .height($el.height())
+                        .css("top", $el.offset().top)
+                        .html($el.html());
+                },
+                start: startColumnDrag,
+                stop: endColumnDrag,
+                drag: onColumnDrag
+            });
+
+        $editButton = $("#" + gridId + "-edit")
+            .click(function(evt) {
+                evt.stopPropagation();
+                toggleColumnsMenu();
+            });
+
+        $headTable.find('.datagrid-header-checkbox').change(function(evt) {
+            /*
+             * Change the checked state of all matching checkboxes to reflect
+             * the state of the checkbox in the header.
+             */
+            var $checkbox = $(this),
+                colName = $checkbox.data('checkbox-name');
+
+            $bodyTable.find('tbody input[data-checkbox-name="' + colName + '"]')
+                .prop('checked', $checkbox.prop('checked'))
+                .change();
+        });
+    }
+
+    /*
+     * Synchronizes the column sizes between the header and body tables.
+     *
+     * Since we have two tables that we're pretending are one, we need to
+     * make sure the columns line up properly. This performs that work by
+     * doing the following:
+     *
+     * 1) Reset the main table back to the defaults we had when the datagrid
+     *    was first created.
+     *
+     * 2) Temporarily show the "real" header, so we can calculate all the
+     *    widths.
+     *
+     * 3) Calculate all the new widths for the colgroups for both tables,
+     *    taking into account the scrollbar.
+     *
+     * 4) Set the widths to their new values.
+     */
+    function syncColumnSizes() {
+        var origHeaderCells = $bodyTableHead[0].rows[0].cells,
+            $fixedCols = $headTable.find('colgroup col'),
+            $origCols = $bodyTable.find('colgroup col'),
+            numCols = origHeaderCells.length,
+            bodyWidths = [],
+            headWidths = [],
+            extraWidth = 0,
+            width,
+            i;
+
+        /* First, unset all the widths and restore to defaults. */
+        for (i = 0; i < numCols; i++) {
+            $origCols[i].width = storedColWidths[i];
+        }
+
+        /* Store all the widths we'll apply. */
+        $bodyTableHead.show();
+
+        $headTable.width($bodyContainer.width() - 1);
+        extraWidth = $bodyContainer.width() - $bodyTable.width();
+
+        for (i = 0; i < numCols; i++) {
+            width = $(origHeaderCells[i]).outerWidth();
+            bodyWidths.push(width);
+            headWidths.push(width);
+        }
+
+        $bodyTableHead.hide();
+
+        /* Modify the widths to account for the scrollbar and extra spacing */
+        headWidths[numCols - 1] = bodyWidths[numCols - 1] - 1;
+        headWidths[numCols - 2] = bodyWidths[numCols - 2] - 1 + extraWidth;
+
+        /* Now set the new state. */
+        for (i = 0; i < numCols; i++) {
+            $origCols[i].width = bodyWidths[i];
+            $fixedCols[i].width = headWidths[i];
+        }
+    }
+
+    /*
+     * Handles window resizes.
+     *
+     * If resizing horizontally, the column widths will be synced up again.
+     */
+    function onResize() {
+        var windowWidth = $window.width();
+
+        if (windowWidth !== lastWindowWidth) {
+            lastWindowWidth = windowWidth;
+
+            syncColumnSizes();
+        }
+    }
 
 
     /********************************************************************
@@ -131,8 +273,12 @@ $.fn.datagrid = function() {
         $.get(url, function(html) {
             if (reloadGrid) {
                 $grid.replaceWith(html);
-                $("#" + gridId).datagrid();
+                $grid = $("#" + gridId).datagrid();
+            } else {
+                setupHeader();
             }
+
+            $grid.trigger('reloaded');
         });
     }
 
@@ -326,7 +472,7 @@ $.fn.datagrid = function() {
         /* Clear and rebuild the list of mid points. */
         columnMidpoints = [];
 
-        $grid.find("th").not(".edit-columns").each(function(i, column) {
+        $headTable.find("th").not(".edit-columns").each(function(i, column) {
             var $column = $(column),
                 offset = $column.offset();
 
@@ -358,18 +504,7 @@ $.fn.datagrid = function() {
      *                          before.
      */
     function swapColumnBefore(index, beforeIndex) {
-        /* Swap the column info. */
-        var colTags = $grid.find("col"),
-            tempName,
-            table,
-            rowsLen,
-            i,
-            row,
-            cell,
-            beforeCell,
-            tempColSpan;
-
-        $(colTags[index]).insertBefore($(colTags[beforeIndex]));
+        var tempName;
 
         /* Swap the list of active columns */
         tempName = activeColumns[index];
@@ -377,7 +512,25 @@ $.fn.datagrid = function() {
         activeColumns[beforeIndex] = tempName;
 
         /* Swap the cells. This will include the headers. */
-        table = $grid.find("table:first")[0];
+        swapColumns($bodyTable[0], beforeIndex, index);
+        swapColumns($headTable[0], beforeIndex, index);
+
+        dragColumnsChanged = true;
+
+        /* Everything has changed, so rebuild our view of things. */
+        buildColumnInfo();
+    }
+
+    function swapColumns(table, beforeIndex, index) {
+        var beforeCell,
+            tempColSpan,
+            colTags = $(table).find('colgroup col'),
+            row,
+            cell,
+            rowsLen,
+            i;
+
+        colTags.eq(index).insertBefore(colTags.eq(beforeIndex));
 
         for (i = 0, rowsLen = table.rows.length; i < rowsLen; i++) {
             row = table.rows[i];
@@ -391,11 +544,6 @@ $.fn.datagrid = function() {
             cell.colSpan = beforeCell.colSpan;
             beforeCell.colSpan = tempColSpan;
         }
-
-        dragColumnsChanged = true;
-
-        /* Everything has changed, so rebuild our view of things. */
-        buildColumnInfo();
     }
 
     return $grid;

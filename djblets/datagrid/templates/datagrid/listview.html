@@ -8,32 +8,45 @@
 {% endblock %}
  </div>
  <div class="datagrid-main">
-  <table class="datagrid">
-   <colgroup>
+  <div class="datagrid">
+   <table class="datagrid-head">
+    <colgroup>
 {% for column in datagrid.columns %}
-    <col class="{{column.id}}"{% ifnotequal column.width 0 %} width="{{column.width}}%"{% endifnotequal %} />
+     <col class="{{column.id}}"{% ifnotequal column.width 0 %} width="{{column.width}}%"{% endifnotequal %} />
 {% endfor %}
-    <col class="datagrid-customize" />
-   </colgroup>
-   <thead>
-    <tr class="datagrid-headers">
+     <col class="datagrid-customize" />
+    </colgroup>
+   </table>
+
+   <div class="datagrid-body-container">
+    <table class="datagrid-body">
+     <colgroup>
 {% for column in datagrid.columns %}
-     {{column.get_header}}{% endfor %}
-     <th class="edit-columns datagrid-header" id="{{datagrid.id}}-edit"><div class="datagrid-icon datagrid-icon-edit" title="{% trans "Edit columns" %}"></div></th>
-    </tr>
-   </thead>
-   <tbody>
+      <col class="{{column.id}}"{% ifnotequal column.width 0 %} width="{{column.width}}%"{% endifnotequal %} />
+{% endfor %}
+      <col class="datagrid-customize" />
+     </colgroup>
+     <thead>
+      <tr class="datagrid-headers">
+{% for column in datagrid.columns %}
+       {{column.get_header}}{% endfor %}
+       <th class="edit-columns datagrid-header" id="{{datagrid.id}}-edit"><div class="datagrid-icon datagrid-icon-edit" title="{% trans "Edit columns" %}"></div></th>
+      </tr>
+     </thead>
+     <tbody>
 {% for row in datagrid.rows %}
-    <tr class="{% cycle odd,even %}">
+      <tr class="{% cycle odd,even %}">
 {%  for cell in row.cells %}
-     {{cell}}{% endfor %}
-    </tr>
+       {{cell}}{% endfor %}
+      </tr>
 {% endfor %}
-   </tbody>
-  </table>
+     </tbody>
+    </table>
+   </div>
 {% if is_paginated %}
 {%  paginator %}
 {% endif %}
+  </div>
  </div>
  <table class="datagrid-menu" id="{{datagrid.id}}-menu" style="display:none;position:absolute;">
 {% for column in datagrid.all_columns %}
