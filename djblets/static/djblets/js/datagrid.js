@@ -93,6 +93,19 @@ $.fn.datagrid = function() {
 
     $(document.body).click(hideColumnsMenu);
 
+    $grid.find('.datagrid-header-checkbox').change(function(evt) {
+        /*
+         * Change the checked state of all matching checkboxes to reflect
+         * the state of the checkbox in the header.
+         */
+        var $checkbox = $(this),
+            colName = $checkbox.data('checkbox-name');
+
+        $grid.find('tbody input[data-checkbox-name="' + colName + '"]')
+            .prop('checked', $checkbox.prop('checked'))
+            .change();
+    });
+
 
     /********************************************************************
      * Public methods
@@ -147,7 +160,7 @@ $.fn.datagrid = function() {
         if ($menu.is(":visible")) {
             hideColumnsMenu();
         } else {
-            offset = $editButton.offset();
+            offset = $editButton.position();
 
             $menu
                 .css({

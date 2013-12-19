@@ -42,7 +42,7 @@ from django.template.loader import render_to_string, get_template
 from django.utils.cache import patch_cache_control
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 
 from djblets.util.compat import six
 from djblets.util.compat.six.moves.urllib.parse import urlencode
@@ -337,6 +337,68 @@ class Column(object):
         queryset.
         """
         return queryset
+
+
+class CheckboxColumn(Column):
+    """A column that renders a checkbox.
+
+    The is_selectable and is_selected functions can be overridden to
+    control whether a checkbox is displayed in a row and whether that
+    checkbox is initially checked.
+
+    The checkboxes have a data-object-id attribute that contains the ID of
+    the object that row represents. This allows the JavaScript code to
+    determine which rows have been checked, and operate on that
+    accordingly.
+
+    The checkboxes also have a data-checkbox-name attribute that
+    contains the value passed in to the checkbox_name parameter of its
+    constructor.
+    """
+    def __init__(self, checkbox_name='select', shrink=True,
+                 show_checkbox_header=True,
+                 detailed_label=_('Select Rows'),
+                 *args, **kwargs):
+        super(CheckboxColumn, self).__init__(
+            shrink=shrink,
+            label=mark_safe(
+                '<input class="datagrid-header-checkbox"'
+                ' type="checkbox" data-checkbox-name="%s" />'
+                % checkbox_name),
+            detailed_label=mark_safe(
+                '<input type="checkbox" /> %s'
+                % detailed_label),
+            *args, **kwargs)
+
+        self.show_checkbox_header = show_checkbox_header
+        self.checkbox_name = checkbox_name
+
+    def render_data(self, obj):
+        if self.is_selectable(obj):
+            checked = ''
+
+            if self.is_selected(obj):
+                checked = 'checked="true"'
+
+            return ('<input type="checkbox" data-object-id="%s" '
+                    'data-checkbox-name="%s" %s />'
+                    % (obj.pk, escape(self.checkbox_name), checked))
+        else:
+            return ''
+
+    def is_selectable(self, obj):
+        """Returns whether an object can be selected.
+
+        If this returns False, no checkbox will be rendered for this item.
+        """
+        return True
+
+    def is_selected(self, obj):
+        """Returns whether an object has been selected.
+
+        If this returns True, the checkbox will be checked.
+        """
+        return False
 
 
 class DateTimeColumn(Column):
