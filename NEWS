@@ -1,3 +1,12 @@
+version 0.7.28 final (31-December-2013):
+	* djblets.auth:
+		* Fixed HTTP 500 errors when failing to save the registration form.
+
+		  If saving the registration form failed in some way (due to a username
+		  conflict, for example), Djblets would fail with an HTTP 500. It's
+		  now propagated up and reported properly.
+
+
 version 0.7.27 final (12-December-2013):
 	* djblets.webapi:
 		* Fixed a regression with the new webapi auth backend support.
