@@ -26,10 +26,11 @@
 
 from django import forms
 from django.contrib import auth
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext as _
 
-from djblets.auth.util import get_user
+from djblets.util.misc import get_object_or_none
 
 
 class RegistrationForm(forms.Form):
