@@ -81,7 +81,10 @@ $.widget("ui.inlineEditor", {
             .hide();
 
         if (this.options.multiline) {
-            this._field = this.options.createMultilineField(this);
+            this._field = this.options.createMultilineField(this)
+                .on('resize', _.bind(function() {
+                    this.element.triggerHandler('resize');
+                }, this));
         } else {
             this._field = $('<input type="text"/>');
         }
@@ -363,6 +366,23 @@ $.widget("ui.inlineEditor", {
         return this.options.getFieldValue(this);
     },
 
+    /*
+     * Return the button elements.
+     *
+     * This is useful for consumers that need to do size calculations
+     * involving the buttons inside an editor.
+     */
+    buttons: function() {
+        return this._buttons;
+    },
+
+    /*
+     * Returns whether the editor is in edit mode.
+     */
+    editing: function() {
+        return this._editing;
+    },
+
     showEditor: function(preventAnimation) {
         var self = this,
             elHeight,
@@ -427,11 +447,7 @@ $.widget("ui.inlineEditor", {
             }
 
             if (this._buttons) {
-                if (preventAnimation) {
-                    this._buttons.show();
-                } else {
-                    this._buttons.fadeIn();
-                }
+                this._buttons.show();
             }
         } else if (this._buttons) {
             this._buttons.show();
@@ -467,7 +483,7 @@ $.widget("ui.inlineEditor", {
         this._field.blur();
 
         if (this._buttons) {
-            this._buttons.fadeOut(this.options.fadeSpeedMS);
+            this._buttons.hide();
         }
 
         if (this._editIcon) {
@@ -478,7 +494,7 @@ $.widget("ui.inlineEditor", {
                         visibility: 'visible'
                     })
                     .animate({
-                        opacity: 100
+                        opacity: 1
                     }, this.options.fadeSpeedMS);
             } else {
                 this._editIcon.css('visibility', 'visible');
