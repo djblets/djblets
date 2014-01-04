@@ -46,8 +46,7 @@ $.widget("ui.modalBox", {
                 .appendTo(this.options.container)
                 .css({
                     "background-color": "#000",
-                    opacity: 0,
-                    zIndex: 99
+                    opacity: 0
                 })
                 .move(0, 0, "fixed")
                 .width("100%")
@@ -58,7 +57,6 @@ $.widget("ui.modalBox", {
         this.box = $("<div/>")
             .addClass("modalbox")
             .move(0, 0, "absolute")
-            .css('z-index', 2000)
             .keydown(function(e) { e.stopPropagation(); });
 
         if (this.options.boxID) {
