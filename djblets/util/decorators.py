@@ -26,6 +26,7 @@
 #
 
 from __future__ import unicode_literals
+from functools import update_wrapper
 from inspect import getargspec
 import warnings
 
@@ -160,20 +161,31 @@ def basictag(takes_context=False):
     return basictag_func
 
 
-def blocktag(tag_func):
-    """
-    A decorator similar to Django's @register.simple_tag that does all the
-    redundant work of parsing arguments and creating a node class in order
-    to render content between a foo and endfoo tag block. This condenses
-    many tag implementations down to a few lines of code.
+def blocktag(*args, **kwargs):
+    """Creates a block template tag with beginning/end tags.
 
-    Example:
+    This does all the hard work of creating a template tag that can
+    parse the arguments passed in and then parse all nodes between a
+    beginning and end tag (such as myblock/endmyblock).
+
+    By default, the end tag is prefixed with "end", but that can be
+    changed by passing `end_prefix="end_"` or similar to @blocktag.
+
+    blocktag will call the wrapped function with `context`  and `nodelist`
+    parameters, as well as any parameters passed to the tag. It will
+    also ensure that a proper error is raised if too many or too few
+    parameters are passed.
+
+    For example:
+
         @register.tag
         @blocktag
         def divify(context, nodelist, div_id=None):
             s = "<div"
+
             if div_id:
                 s += " id='%s'" % div_id
+
             return s + ">" + nodelist.render(context) + "</div>"
     """
     class BlockTagNode(template.Node):
@@ -187,32 +199,41 @@ def blocktag(tag_func):
             args = [Variable(var).resolve(context) for var in self.args]
             return self.tag_func(context, self.nodelist, *args)
 
-    def _setup_tag(parser, token):
-        bits = token.split_contents()
-        tag_name = bits[0]
-        del(bits[0])
+    def _blocktag_func(tag_func):
+        def _setup_tag(parser, token):
+            bits = token.split_contents()
+            tag_name = bits[0]
+            del(bits[0])
 
-        params, xx, xxx, defaults = getargspec(tag_func)
-        max_args = len(params) - 2 # Ignore context and nodelist
-        min_args = max_args - len(defaults or [])
+            params, xx, xxx, defaults = getargspec(tag_func)
+            max_args = len(params) - 2 # Ignore context and nodelist
+            min_args = max_args - len(defaults or [])
 
-        if not min_args <= len(bits) <= max_args:
-            if min_args == max_args:
-                raise TemplateSyntaxError(
-                    "%r tag takes %d arguments." % (tag_name, min_args))
-            else:
-                raise TemplateSyntaxError(
-                    "%r tag takes %d to %d arguments, got %d." %
-                    (tag_name, min_args, max_args, len(bits)))
+            if not min_args <= len(bits) <= max_args:
+                if min_args == max_args:
+                    raise TemplateSyntaxError(
+                        "%r tag takes %d arguments." % (tag_name, min_args))
+                else:
+                    raise TemplateSyntaxError(
+                        "%r tag takes %d to %d arguments, got %d." %
+                        (tag_name, min_args, max_args, len(bits)))
 
-        nodelist = parser.parse((('end%s' % tag_name),))
-        parser.delete_first_token()
-        return BlockTagNode(tag_name, tag_func, nodelist, bits)
+            nodelist = parser.parse((('%s%s' % (end_prefix, tag_name)),))
+            parser.delete_first_token()
+            return BlockTagNode(tag_name, tag_func, nodelist, bits)
 
-    _setup_tag.__name__ = tag_func.__name__
-    _setup_tag.__doc__ = tag_func.__doc__
-    _setup_tag.__dict__.update(tag_func.__dict__)
-    return _setup_tag
+        update_wrapper(_setup_tag, tag_func)
+
+        return _setup_tag
+
+    end_prefix = kwargs.get('end_prefix', 'end')
+
+    if len(args) == 1 and callable(args[0]):
+        # This is being called in the @blocktag form.
+        return _blocktag_func(args[0])
+    else:
+        # This is being called in the @blocktag(...) form.
+        return _blocktag_func
 
 
 @simple_decorator
