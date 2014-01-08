@@ -30,7 +30,10 @@ from django.utils.translation import ugettext as _
 
 class EnablingExtensionError(Exception):
     """An extension could not be enabled."""
-    pass
+    def __init__(self, message, load_error=None, needs_reload=False):
+        self.message = message
+        self.load_error = load_error
+        self.needs_reload = needs_reload
 
 
 class DisablingExtensionError(Exception):
@@ -40,7 +43,9 @@ class DisablingExtensionError(Exception):
 
 class InstallExtensionError(Exception):
     """An extension could not be installed."""
-    pass
+    def __init__(self, message, load_error=None):
+        self.message = message
+        self.load_error = load_error
 
 
 class InvalidExtensionError(Exception):

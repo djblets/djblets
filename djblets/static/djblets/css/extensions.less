@@ -80,6 +80,33 @@
  * Extension manager
  ****************************************************************************/
 
+#extension-manager {
+  .actions {
+    background: #FDFDFD;
+    border: 1px #AAAAAA solid;
+    border-top: 0;
+    border-bottom: 1px #999999 solid;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    li {
+      list-style: none;
+      display: inline-block;
+      margin: 0;
+      padding: 0.8em 1em;
+
+      a {
+        color: #0000FF;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}
+
 .extensions-list-page {
   #content-main {
     float: left;
@@ -107,9 +134,25 @@
   }
 
   .extension {
+    &.enabled {
+      border-left: 8px #AACCAA solid;
+    }
+
+    &.disabled {
+      border-left: 8px #DDDDDD solid;
+    }
+
+    &.error {
+      border-left: 8px #CCAAAA solid;
+    }
+
     &.row1 {
       border-top: 1px #E0E0E0 solid;
       border-bottom: 1px #E0E0E0 solid;
+
+      &:first-child {
+        border-top: 0;
+      }
     }
 
     h1 {
@@ -138,6 +181,19 @@
     .extension-header {
       .clearfix;
       display: block;
+    }
+
+    .extension-load-error {
+      p {
+        margin: 1.5em 10em 1.5em 1em;
+        padding: 0;
+      }
+
+      pre {
+        margin-left: 3em;
+        margin-bottom: 2em;
+        overflow-x: auto;
+      }
     }
   }
 

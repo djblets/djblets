@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from django.conf.urls import patterns, include
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
+from django.utils import six
 
 from djblets.extensions.errors import (DisablingExtensionError,
                                        EnablingExtensionError,
@@ -30,6 +31,14 @@ class ExtensionResource(WebAPIResource):
             'type': str,
             'description': "The author's website.",
         },
+        'can_disable': {
+            'type': bool,
+            'description': 'Whether or not the extension can be disabled.',
+        },
+        'can_enable': {
+            'type': bool,
+            'description': 'Whether or not the extension can be enabled.',
+        },
         'class_name': {
             'type': str,
             'description': 'The class name for the extension.',
@@ -41,6 +50,17 @@ class ExtensionResource(WebAPIResource):
         'installed': {
             'type': bool,
             'description': 'Whether or not the extension is installed.',
+        },
+        'loadable': {
+            'type': bool,
+            'description': 'Whether or not the extension is currently '
+                           'loadable. An extension may be installed but '
+                           'missing or may be broken due to a bug.',
+        },
+        'load_error': {
+            'type': str,
+            'description': 'If the extension could not be loaded, this will '
+                           'contain any errors captured while trying to load.',
         },
         'name': {
             'type': str,
@@ -78,18 +98,46 @@ class ExtensionResource(WebAPIResource):
         extension_uninitialized.connect(self._on_extension_uninitialized)
 
     def serialize_author_field(self, extension, *args, **kwargs):
+        if extension.extension_class is None:
+            return None
+
         return extension.extension_class.info.author
 
     def serialize_author_url_field(self, extension, *args, **kwargs):
+        if extension.extension_class is None:
+            return None
+
         return extension.extension_class.info.author_url
 
+    def serialize_can_disable_field(self, extension, *args, **kwargs):
+        return self._extension_manager.get_can_disable_extension(extension)
+
+    def serialize_can_enable_field(self, extension, *args, **kwargs):
+        return self._extension_manager.get_can_enable_extension(extension)
+
+    def serialize_loadable_field(self, extension, *args, **kwargs):
+        return (extension.extension_class is not None and
+                extension.class_name not in self._extension_manager._load_errors)
+
+    def serialize_load_error_field(self, extension, *args, **kwargs):
+        return self._extension_manager._load_errors.get(extension.class_name)
+
     def serialize_name_field(self, extension, *args, **kwargs):
-        return extension.extension_class.info.name
+        if extension.extension_class is None:
+            return extension.name
+        else:
+            return extension.extension_class.info.name
 
     def serialize_summary_field(self, extension, *args, **kwargs):
+        if extension.extension_class is None:
+            return None
+
         return extension.extension_class.info.summary
 
     def serialize_version_field(self, extension, *args, **kwargs):
+        if extension.extension_class is None:
+            return None
+
         return extension.extension_class.info.version
 
     @webapi_login_required
@@ -151,22 +199,26 @@ class ExtensionResource(WebAPIResource):
         except ObjectDoesNotExist:
             return DOES_NOT_EXIST
 
-        try:
-            ext_class = self._extension_manager.get_installed_extension(
-                registered_extension.class_name)
-        except InvalidExtensionError:
-            return DOES_NOT_EXIST
+        extension_id = registered_extension.class_name
 
         if kwargs.get('enabled'):
             try:
-                self._extension_manager.enable_extension(ext_class.id)
-            except (EnablingExtensionError, InvalidExtensionError) as e:
-                return ENABLE_EXTENSION_FAILED.with_message(e.message)
+                self._extension_manager.enable_extension(extension_id)
+            except EnablingExtensionError as e:
+                err = ENABLE_EXTENSION_FAILED.with_message(six.text_type(e))
+
+                return err, {
+                    'load_error': e.load_error,
+                    'needs_reload': e.needs_reload,
+                }
+            except InvalidExtensionError as e:
+                raise
+                return ENABLE_EXTENSION_FAILED.with_message(six.text_type(e))
         else:
             try:
-                self._extension_manager.disable_extension(ext_class.id)
+                self._extension_manager.disable_extension(extension_id)
             except (DisablingExtensionError, InvalidExtensionError) as e:
-                return DISABLE_EXTENSION_FAILED.with_message(e.message)
+                return DISABLE_EXTENSION_FAILED.with_message(six.text_type(e))
 
         # Refetch extension, since the ExtensionManager may have changed
         # the model.

@@ -32,6 +32,7 @@ import pkg_resources
 import shutil
 import sys
 import time
+import traceback
 
 from django.conf import settings
 from django.conf.urls import patterns, include
@@ -165,6 +166,7 @@ class ExtensionManager(object):
 
         self._extension_classes = {}
         self._extension_instances = {}
+        self._load_errors = {}
 
         # State synchronization
         self._sync_key = make_cache_key('extensionmgr:%s:gen' % key)
@@ -212,6 +214,18 @@ class ExtensionManager(object):
 
     def get_absolute_url(self):
         return reverse("djblets.extensions.views.extension_list")
+
+    def get_can_disable_extension(self, registered_extension):
+        extension_id = registered_extension.class_name
+
+        return (registered_extension.extension_class is not None and
+                (self.get_enabled_extension(extension_id) is not None or
+                 extension_id in self._load_errors))
+
+    def get_can_enable_extension(self, registered_extension):
+        return (registered_extension.extension_class is not None and
+                self.get_enabled_extension(
+                    registered_extension.class_name) is None)
 
     def get_enabled_extension(self, extension_id):
         """Returns an enabled extension with the given ID."""
@@ -265,6 +279,12 @@ class ExtensionManager(object):
             return
 
         if extension_id not in self._extension_classes:
+            if extension_id in self._load_errors:
+                raise EnablingExtensionError(
+                    _('There was an error loading this extension'),
+                    self._load_errors[extension_id],
+                    needs_reload=True)
+
             raise InvalidExtensionError(extension_id)
 
         ext_class = self._extension_classes[extension_id]
@@ -276,11 +296,12 @@ class ExtensionManager(object):
         try:
             self._install_extension(ext_class)
         except InstallExtensionError as e:
-            raise EnablingExtensionError(e.message)
+            raise EnablingExtensionError(e.message, e.load_error)
+
+        extension = self._init_extension(ext_class)
 
         ext_class.registration.enabled = True
         ext_class.registration.save()
-        extension = self._init_extension(ext_class)
 
         self._clear_template_cache()
         self._bump_sync_gen()
@@ -296,23 +317,40 @@ class ExtensionManager(object):
 
         It will not delete any data from the database.
         """
-        if extension_id not in self._extension_instances:
-            # It's not enabled.
-            return
+        has_load_error = extension_id in self._load_errors
 
-        if extension_id not in self._extension_classes:
-            raise InvalidExtensionError(extension_id)
+        if not has_load_error:
+            if extension_id not in self._extension_instances:
+                # It's not enabled.
+                return
 
-        extension = self._extension_instances[extension_id]
+            if extension_id not in self._extension_classes:
+                raise InvalidExtensionError(extension_id)
 
-        for dependent_id in self.get_dependent_extensions(extension_id):
-            self.disable_extension(dependent_id)
+            extension = self._extension_instances[extension_id]
 
-        self._uninstall_extension(extension)
-        self._uninit_extension(extension)
-        self._unregister_static_bundles(extension)
-        extension.registration.enabled = False
-        extension.registration.save()
+            for dependent_id in self.get_dependent_extensions(extension_id):
+                self.disable_extension(dependent_id)
+
+            self._uninstall_extension(extension)
+            self._uninit_extension(extension)
+            self._unregister_static_bundles(extension)
+
+            registration = extension.registration
+        else:
+            del self._load_errors[extension_id]
+
+            if extension_id in self._extension_classes:
+                # The class was loadable, so it just couldn't be instantiated.
+                # Update the registration on the class.
+                ext_class = self._extension_classes[extension_id]
+                registration = ext_class.registration
+            else:
+                registration = RegisteredExtension.objects.get(
+                    class_name=extension_id)
+
+        registration.enabled = False
+        registration.save(update_fields=['enabled'])
 
         self._clear_template_cache()
         self._bump_sync_gen()
@@ -359,6 +397,7 @@ class ExtensionManager(object):
             # We're reloading everything, so nuke all the cached copies.
             self._clear_extensions()
             self._clear_template_cache()
+            self._load_errors = {}
 
         # Preload all the RegisteredExtension objects
         registered_extensions = {}
@@ -376,6 +415,9 @@ class ExtensionManager(object):
             except Exception as e:
                 logging.error("Error loading extension %s: %s" %
                               (entrypoint.name, e))
+                extension_id = '%s.%s' % (entrypoint.module_name,
+                                          '.'.join(entrypoint.attrs))
+                self._store_load_error(extension_id, e)
                 continue
 
             # A class's extension ID is its class name. We want to
@@ -383,7 +425,7 @@ class ExtensionManager(object):
             # variable, which will be accessible both on the class and on
             # instances.
             class_name = ext_class.id = "%s.%s" % (ext_class.__module__,
-                                                    ext_class.__name__)
+                                                   ext_class.__name__)
             self._extension_classes[class_name] = ext_class
             found_extensions[class_name] = ext_class
 
@@ -482,17 +524,24 @@ class ExtensionManager(object):
         and make it available in Django's list of apps. It will then notify
         that the extension has been initialized.
         """
-        assert ext_class.id not in self._extension_instances
+        extension_id = ext_class.id
+
+        assert extension_id not in self._extension_instances
 
         try:
             extension = ext_class(extension_manager=self)
         except Exception as e:
             logging.error('Unable to initialize extension %s: %s'
                           % (ext_class, e), exc_info=1)
-            raise EnablingExtensionError(_('Error initializing extension: %s')
-                                         % e)
+            error_details = self._store_load_error(extension_id, e)
+            raise EnablingExtensionError(
+                _('Error initializing extension: %s') % e,
+                error_details)
 
-        self._extension_instances[extension.id] = extension
+        if extension_id in self._load_errors:
+            del self._load_errors[extension_id]
+
+        self._extension_instances[extension_id] = extension
 
         if extension.has_admin_site:
             self._init_admin_site(extension)
@@ -540,6 +589,13 @@ class ExtensionManager(object):
         extension_uninitialized.send(self, ext_class=extension)
 
         del self._extension_instances[extension.id]
+
+    def _store_load_error(self, extension_id, e):
+        """Stores and returns a load error for the extension ID."""
+        error_details = '%s\n\n%s' % (e, traceback.format_exc())
+        self._load_errors[extension_id] = error_details
+
+        return error_details
 
     def _reset_templatetags_cache(self):
         """Clears the Django templatetags_modules cache."""
@@ -622,8 +678,11 @@ class ExtensionManager(object):
             # Something went wrong while running django-evolution, so
             # grab the output.  We can't raise right away because we
             # still need to put stdout back the way it was
-            logging.error(e.message)
-            raise InstallExtensionError(e.message)
+            logging.error('Error evolving extension models: %s',
+                          e, exc_info=1)
+
+            load_error = self._store_load_error(extension_id, e)
+            raise InstallExtensionError(six.text_type(e), load_error)
 
         # Remove this again, since we only needed it for syncdb and
         # evolve.  _init_extension will add it again later in

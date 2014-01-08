@@ -1,4 +1,8 @@
-var InstalledExtension;
+(function() {
+
+
+var InstalledExtension,
+    InstalledExtensionCollection;
 
 
 /*
@@ -14,6 +18,8 @@ InstalledExtension = Backbone.Model.extend({
         configURL: null,
         dbURL: null,
         enabled: false,
+        loadable: true,
+        loadError: null,
         name: null,
         summary: null,
         version: null
@@ -31,10 +37,13 @@ InstalledExtension = Backbone.Model.extend({
             enabled: true
         }, {
             wait: true,
-            error: function(model, xhr) {
-                alert(gettext('Failed to enable extension. ') +
-                      xhr.errorText + '.');
-            }
+            error: _.bind(function(model, xhr) {
+                this.set({
+                    loadable: false,
+                    loadError: xhr.errorRsp.load_error,
+                    canEnable: !xhr.errorRsp.needs_reload
+                });
+            }, this)
         });
     },
 
@@ -79,9 +88,13 @@ InstalledExtension = Backbone.Model.extend({
         return {
             author: rsp.author,
             authorURL: rsp.author_url,
+            canDisable: rsp.can_disable,
+            canEnable: rsp.can_enable,
             configURL: configLink ? configLink.href : null,
             dbURL: dbLink ? dbLink.href : null,
             enabled: rsp.enabled,
+            loadable: rsp.loadable,
+            loadError: rsp.load_error,
             id: rsp.class_name,
             name: rsp.name,
             summary: rsp.summary,
@@ -99,22 +112,43 @@ InstalledExtension = Backbone.Model.extend({
             processData: true,
             error: _.bind(function(xhr) {
                 var rsp = null,
+                    loadError,
                     text;
 
                 try {
                     rsp = $.parseJSON(xhr.responseText);
                     text = rsp.err.msg;
+                    loadError = rsp.load_error;
                 } catch (e) {
                     text = 'HTTP ' + xhr.status + ' ' + xhr.statusText;
                 }
 
-                console.log(xhr.responseText);
                 if (_.isFunction(options.error)) {
                     xhr.errorText = text;
+                    xhr.errorRsp = rsp;
                     options.error(xhr, options);
                 }
             }, this)
         }, options));
+    }
+});
+
+
+/*
+ * A collection of installed extensions.
+ *
+ * This stores the list of installed extensions, and allows fetching from
+ * the API.
+ */
+InstalledExtensionCollection = Backbone.Collection.extend({
+    model: InstalledExtension,
+
+    url: function() {
+        return SITE_ROOT + 'api/extensions/';
+    },
+
+    parse: function(rsp) {
+        return rsp.extensions;
     }
 });
 
@@ -138,3 +172,6 @@ Djblets.ExtensionManager = Backbone.Model.extend({
         });
     }
 });
+
+
+})();
