@@ -504,16 +504,21 @@ $.fn.datagrid = function(options) {
      *                          before.
      */
     function swapColumnBefore(index, beforeIndex) {
-        var tempName;
+        var temp;
 
         /* Swap the list of active columns */
-        tempName = activeColumns[index];
+        temp = activeColumns[index];
         activeColumns[index] = activeColumns[beforeIndex];
-        activeColumns[beforeIndex] = tempName;
+        activeColumns[beforeIndex] = temp;
 
         /* Swap the cells. This will include the headers. */
         swapColumns($bodyTable[0], beforeIndex, index);
         swapColumns($headTable[0], beforeIndex, index);
+
+        /* Swap the stored widths. */
+        temp = storedColWidths[index];
+        storedColWidths[index] = storedColWidths[beforeIndex];
+        storedColWidths[beforeIndex] = temp;
 
         dragColumnsChanged = true;
 
