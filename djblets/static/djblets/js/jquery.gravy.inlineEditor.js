@@ -224,6 +224,11 @@ $.widget("ui.inlineEditor", {
             var isDragging = true;
 
             this.element
+                .click(function() {
+                    self.startEdit();
+
+                    return false;
+                })
                 .mousedown(function() {
                     isDragging = false;
                     $(this).one("mousemove", function() {
@@ -553,7 +558,13 @@ $.widget("ui.inlineEditor", {
                     'width': '100%'
                 });
         } else {
-            var formParent = this._form.parent();
+            var formParent = this._form.parent(),
+                parentTextAlign = formParent.css('text-align'),
+                isLeftAligned = (parentTextAlign === 'left');
+
+            if (!isLeftAligned) {
+                formParent.css('text-align', 'left');
+            }
 
             /*
              * First make the field really small so it will fit on the
@@ -568,6 +579,10 @@ $.widget("ui.inlineEditor", {
                             this._field.getExtents("bmp", "lr") -
                             this._editIcon.width() -
                             (this._buttons ? this._buttons.outerWidth() : 0));
+
+            if (!isLeftAligned) {
+                formParent.css('text-align', parentTextAlign);
+            }
         }
     },
 
