@@ -273,7 +273,8 @@ class CounterField(models.IntegerField):
     be used to auto-populate the field the first time the model instance is
     loaded, perhaps based on querying a number of related objects. The value
     passed to ``initializer`` must be a function taking the model instance
-    as a parameter, and must return an integer.
+    as a parameter, and must return an integer or None. If it returns None,
+    the counter will not be updated or saved.
 
     The model instance will gain four new functions:
 
@@ -292,6 +293,55 @@ class CounterField(models.IntegerField):
         * ``decrement`` - Takes a queryset and decrements this field for
                           each object.
     """
+    @classmethod
+    def increment_many(cls, model_instance, values, reload_object=True):
+        """Increments several fields on a model instance at once.
+
+        This takes a model instance and dictionary of fields to values,
+        and will increment each of those fields by that value.
+
+        If reload_object is True, then the fields on the instance will
+        be reloaded to reflect the current values.
+        """
+        cls._update_values(model_instance, values, reload_object, 1)
+
+    @classmethod
+    def decrement_many(cls, model_instance, values, reload_object=True):
+        """Decrements several fields on a model instance at once.
+
+        This takes a model instance and dictionary of fields to values,
+        and will decrement each of those fields by that value.
+
+        If reload_object is True, then the fields on the instance will
+        be reloaded to reflect the current values.
+        """
+        cls._update_values(model_instance, values, reload_object, -1)
+
+    @classmethod
+    def _update_values(cls, model_instance, values, reload_object, multiplier):
+        update_values = {}
+
+        for attname, value in values.iteritems():
+            if value != 0:
+                update_values[attname] = F(attname) + value * multiplier
+
+        if update_values:
+            queryset = model_instance.__class__.objects.filter(
+                pk=model_instance.pk)
+            queryset.update(**update_values)
+
+            if reload_object:
+                cls._reload_model_instance(model_instance,
+                                           update_values.keys())
+
+    @classmethod
+    def _reload_model_instance(cls, model_instance, attnames):
+        """Reloads the value in this instance from the database."""
+        q = model_instance.__class__.objects.filter(pk=model_instance.pk)
+        values = q.values(*attnames)[0]
+
+        for attname, value in values.iteritems():
+            setattr(model_instance, attname, value)
 
     def __init__(self, verbose_name=None, name=None,
                  initializer=None, default=None, **kwargs):
@@ -317,25 +367,25 @@ class CounterField(models.IntegerField):
     def contribute_to_class(self, cls, name):
         def _increment(model_instance, reload_object=True, increment_by=1):
             """Increments this field by one."""
-            self.increment(cls.objects.filter(pk=model_instance.pk),
-                           increment_by)
+            if increment_by != 0:
+                self.increment(cls.objects.filter(pk=model_instance.pk),
+                               increment_by)
 
-            if reload_object:
-                _reload(model_instance)
+                if reload_object:
+                    _reload(model_instance)
 
         def _decrement(model_instance, reload_object=True, decrement_by=1):
             """Decrements this field by one."""
-            self.decrement(cls.objects.filter(pk=model_instance.pk),
-                           decrement_by)
+            if decrement_by != 0:
+                self.decrement(cls.objects.filter(pk=model_instance.pk),
+                               decrement_by)
 
-            if reload_object:
-                _reload(model_instance)
+                if reload_object:
+                    _reload(model_instance)
 
         def _reload(model_instance):
             """Reloads the value in this instance from the database."""
-            q = cls.objects.filter(pk=model_instance.pk)
-            setattr(model_instance, self.attname,
-                    q.values(self.attname)[0][self.attname])
+            self._reload_model_instance(model_instance, [self.attname])
 
         def _reinit(model_instance):
             """Re-initializes the value in the database from the initializer."""
@@ -354,10 +404,11 @@ class CounterField(models.IntegerField):
             else:
                 value = 0
 
-            setattr(model_instance, self.attname, value)
+            if value is not None:
+                setattr(model_instance, self.attname, value)
 
-            if model_instance.pk:
-                model_instance.save()
+                if model_instance.pk:
+                    model_instance.save(update_fields=[self.attname])
 
         super(CounterField, self).contribute_to_class(cls, name)
 
