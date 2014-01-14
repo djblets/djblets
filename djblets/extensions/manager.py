@@ -40,6 +40,7 @@ from django.contrib.admin.sites import AdminSite
 from django.core.cache import cache
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.core.management.color import no_style
 from django.core.urlresolvers import reverse
 from django.db.models import loading
 from django.template.loader import template_source_loaders
@@ -48,6 +49,7 @@ from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
 from django.utils.translation import ugettext as _
 from django_evolution.management.commands.evolve import Command as Evolution
+from djblets.util.compat.six.moves import cStringIO as StringIO
 from setuptools.command import easy_install
 
 from djblets.cache.backend import make_cache_key
@@ -590,9 +592,9 @@ class ExtensionManager(object):
 
         del self._extension_instances[extension.id]
 
-    def _store_load_error(self, extension_id, e):
+    def _store_load_error(self, extension_id, err):
         """Stores and returns a load error for the extension ID."""
-        error_details = '%s\n\n%s' % (e, traceback.format_exc())
+        error_details = '%s\n\n%s' % (err, traceback.format_exc())
         self._load_errors[extension_id] = error_details
 
         return error_details
@@ -669,19 +671,33 @@ class ExtensionManager(object):
 
         # Run evolve to do any table modification
         try:
+            stream = StringIO()
             evolution = Evolution()
-            evolution.evolve(verbosity=0, interactive=False,
-                             execute=True, hint=False,
-                             compile_sql=False, purge=False,
-                             database=False)
+            evolution.style = no_style()
+            evolution.execute(verbosity=0, interactive=False,
+                              execute=True, hint=False,
+                              compile_sql=False, purge=False,
+                              database=False,
+                              stdout=stream, stderr=stream)
+
+            output = stream.getvalue()
+
+            if output:
+                logging.info('Evolved extension models for %s: %s',
+                             ext_class.id, stream.read())
+
+            stream.close()
         except CommandError as e:
             # Something went wrong while running django-evolution, so
             # grab the output.  We can't raise right away because we
             # still need to put stdout back the way it was
-            logging.error('Error evolving extension models: %s',
-                          e, exc_info=1)
+            output = stream.getvalue()
+            stream.close()
 
-            load_error = self._store_load_error(extension_id, e)
+            logging.error('Error evolving extension models: %s: %s',
+                          e, output, exc_info=1)
+
+            load_error = self._store_load_error(ext_class.id, output)
             raise InstallExtensionError(six.text_type(e), load_error)
 
         # Remove this again, since we only needed it for syncdb and
