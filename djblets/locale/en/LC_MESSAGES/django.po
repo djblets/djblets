@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-12-10 17:14-0800\n"
+"POT-Creation-Date: 2014-01-16 18:48-0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -45,7 +45,11 @@ msgstr ""
 msgid "Incorrect password."
 msgstr ""
 
-#: datagrid/grids.py:367
+#: datagrid/grids.py:360
+msgid "Select Rows"
+msgstr ""
+
+#: datagrid/grids.py:429
 #, python-format
 msgid "%s ago"
 msgstr ""
@@ -62,7 +66,7 @@ msgstr ""
 msgid "Unsort"
 msgstr ""
 
-#: datagrid/templates/datagrid/listview.html:22
+#: datagrid/templates/datagrid/listview.html:33
 msgid "Edit columns"
 msgstr ""
 
@@ -87,20 +91,24 @@ msgstr ""
 msgid "Last Page"
 msgstr ""
 
-#: extensions/errors.py:50
+#: extensions/errors.py:55
 #, python-format
 msgid "Cannot find extension with id %s"
 msgstr ""
 
-#: extensions/manager.py:252
+#: extensions/manager.py:284
+msgid "There was an error loading this extension"
+msgstr ""
+
+#: extensions/manager.py:377
 msgid "Invalid package name."
 msgstr ""
 
-#: extensions/manager.py:255
+#: extensions/manager.py:380
 msgid "Installation failed (probably malformed URL)."
 msgstr ""
 
-#: extensions/manager.py:405
+#: extensions/manager.py:538
 #, python-format
 msgid "Error initializing extension: %s"
 msgstr ""
@@ -121,7 +129,11 @@ msgstr ""
 msgid "Manage Extensions"
 msgstr ""
 
-#: extensions/templates/extensions/extension_list.html:29
+#: extensions/templates/extensions/extension_list.html:31
+msgid "Scan for new extensions"
+msgstr ""
+
+#: extensions/templates/extensions/extension_list.html:34
 msgid "Loading..."
 msgstr ""
 
