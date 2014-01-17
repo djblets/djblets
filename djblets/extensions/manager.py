@@ -103,10 +103,9 @@ class SettingListWrapper(object):
             self.ref_counts[item] += 1
         else:
             assert item not in self.setting, \
-                   ("%s extension's %s %s is already in settings.%s, with "
+                   ("Extension's %s %s is already in settings.%s, with "
                     "ref count of 0."
-                    % (extension.id, self.display_name, item,
-                       self.setting_name))
+                    % (self.display_name, item, self.setting_name))
 
             self.ref_counts[item] = 1
             self.setting.append(item)
@@ -123,11 +122,11 @@ class SettingListWrapper(object):
         be removed from the list.
         """
         assert item in self.ref_counts, \
-               ("%s extension's %s %s is missing a ref count."
-                % (extension.id, self.display_name, item))
+               ("Extension's %s %s is missing a ref count."
+                % (self.display_name, item))
         assert item in self.setting, \
-               ("%s extension's %s %s is not in settings.%s"
-                % (extension.id, self.display_name, item, self.setting_name))
+               ("Extension's %s %s is not in settings.%s"
+                % (self.display_name, item, self.setting_name))
 
         if self.ref_counts[item] == 1:
             del self.ref_counts[item]

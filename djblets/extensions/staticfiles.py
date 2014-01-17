@@ -2,12 +2,11 @@ from __future__ import unicode_literals
 
 import os
 
-from django.contrib.staticfiles.finders import (BaseFinder, FileSystemFinder,
-                                                get_finder)
+from django.contrib.staticfiles.finders import BaseFinder, FileSystemFinder
 from django.contrib.staticfiles.utils import get_files
 from django.core.files.storage import FileSystemStorage
 from pipeline.storage import PipelineFinderStorage
-from pkg_resources import resource_exists, resource_filename
+from pkg_resources import resource_filename
 
 from djblets.extensions.manager import get_extension_managers
 

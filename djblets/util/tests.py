@@ -30,7 +30,6 @@ import unittest
 
 from django.conf import settings
 from django.conf.urls import include, patterns, url
-from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import NoReverseMatch, reverse

@@ -112,7 +112,6 @@ class SettingsTest(TestCase):
 
         settings_saved.connect(on_settings_saved, sender=self.extension)
 
-        registration = self.extension.registration
         self.settings['test_new_key'] = 'Test new value'
         self.settings.save()
 

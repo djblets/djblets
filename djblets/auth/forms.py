@@ -30,7 +30,6 @@ from django import forms
 from django.contrib import auth
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.utils import six
 from django.utils.translation import ugettext_lazy as _
 
 from djblets.db.query import get_object_or_none
