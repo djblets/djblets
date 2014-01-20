@@ -26,6 +26,7 @@
 $.widget("ui.inlineEditor", {
     options: {
         cls: "",
+        deferEventSetup: false,
         editIconPath: null,
         editIconClass: null,
         enabled: true,
@@ -95,53 +96,9 @@ $.widget("ui.inlineEditor", {
          */
         this._isTextArea = (this._field[0].tagName === 'TEXTAREA');
 
-        this._field
-            .appendTo(this._form)
-            .keydown(function(e) {
-                e.stopPropagation();
-
-                var keyCode = e.keyCode ? e.keyCode :
-                                e.charCode ? e.charCode : e.which;
-
-                switch (keyCode) {
-                    case $.ui.keyCode.ENTER:
-                        /* Enter */
-                        if (!self.options.forceOpen &&
-                            (!self.options.multiline || e.ctrlKey)) {
-                            self.submit();
-                        }
-
-                        if (!self.options.multiline) {
-                            e.preventDefault();
-                        }
-                        break;
-
-                    case $.ui.keyCode.ESCAPE:
-                        /* Escape */
-                        if (!self.options.forceOpen) {
-                            self.cancel();
-                        }
-                        break;
-
-                    case 83:
-                    case 115:
-                        /* s or S */
-                        if (e.ctrlKey) {
-                            self.save();
-                            return false;
-                        }
-                        break;
-
-                    default:
-                        break;
-                }
-            })
-            .keypress(function(e) {
-                e.stopPropagation();
-            })
-            .keyup(function(e) {
-                self._updateDirtyState();
-            });
+        if (!this.options.deferEventSetup) {
+            this.setupEvents();
+        }
 
         this._buttons = null;
 
@@ -260,6 +217,66 @@ $.widget("ui.inlineEditor", {
         } else {
             self.disable();
         }
+    },
+
+    /*
+     * Connect keyboard events.
+     *
+     * This is a separate method which can be deferred by using
+     * options.deferEventSetup. Deferring is useful if other signal handlers
+     * need to be connected before these, such as handling the 'enter' key for
+     * autocomplete.
+     */
+    setupEvents: function() {
+        var self = this;
+
+        this._field
+            .appendTo(this._form)
+            .keydown(function(e) {
+                e.stopPropagation();
+
+                var keyCode = e.keyCode ? e.keyCode :
+                                e.charCode ? e.charCode : e.which;
+
+                switch (keyCode) {
+                    case $.ui.keyCode.ENTER:
+                        /* Enter */
+                        if (!self.options.forceOpen &&
+                            (!self.options.multiline || e.ctrlKey)) {
+                            self.submit();
+                        }
+
+                        if (!self.options.multiline) {
+                            e.preventDefault();
+                        }
+                        break;
+
+                    case $.ui.keyCode.ESCAPE:
+                        /* Escape */
+                        if (!self.options.forceOpen) {
+                            self.cancel();
+                        }
+                        break;
+
+                    case 83:
+                    case 115:
+                        /* s or S */
+                        if (e.ctrlKey) {
+                            self.save();
+                            return false;
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
+            })
+            .keypress(function(e) {
+                e.stopPropagation();
+            })
+            .keyup(function(e) {
+                self._updateDirtyState();
+            });
     },
 
     /*
