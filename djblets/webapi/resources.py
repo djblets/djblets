@@ -1228,20 +1228,30 @@ class RootResource(WebAPIResource):
         self._include_uri_templates = include_uri_templates
 
     def get_etag(self, request, obj, *args, **kwargs):
-        data = '%s:%s' % (self._include_uri_templates,
-                          ':'.join(repr(self.list_child_resources)))
-        return sha1(data.encode('utf-8')).hexdigest()
+        return sha1(repr(obj).encode('utf-8')).hexdigest()
 
     def get(self, request, *args, **kwargs):
         """
         Retrieves the list of top-level resources, and a list of
         :term:`URI templates` for accessing any resource in the tree.
         """
-        etag = self.get_etag(request, None)
+        data = self.serialize_root(request, *args, **kwargs)
+        etag = self.get_etag(request, data)
 
         if etag_if_none_match(request, etag):
             return HttpResponseNotModified()
 
+        return 200, data, {
+            'ETag': etag,
+        }
+
+    def serialize_root(self, request, *args, **kwargs):
+        """Serializes the contents of the root resource.
+
+        By default, this just provides links and URI templates. Subclasses
+        can override this to provide additional data, or to otherwise
+        change the structure of the root resource.
+        """
         data = {
             'links': self.get_links(self.list_child_resources,
                                      request=request, *args, **kwargs),
@@ -1251,9 +1261,7 @@ class RootResource(WebAPIResource):
             data['uri_templates'] = self.get_uri_templates(request, *args,
                                                             **kwargs)
 
-        return 200, data, {
-            'ETag': etag,
-        }
+        return data
 
     def get_uri_templates(self, request, *args, **kwargs):
         """Returns all URI templates in the resource tree.
