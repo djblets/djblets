@@ -388,6 +388,11 @@ $.widget("ui.inlineEditor", {
         return this.options.getFieldValue(this);
     },
 
+    setValue: function(value) {
+        this.options.setFieldValue(this, value);
+        this._updateDirtyState();
+    },
+
     /*
      * Return the button elements.
      *
