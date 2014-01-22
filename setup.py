@@ -26,6 +26,7 @@
 
 import subprocess
 import sys
+import os
 
 try:
     from setuptools import setup, find_packages
@@ -87,6 +88,12 @@ class BuildI18n(Command):
         pass
 
     def run(self):
+        # If we are attempting to build on a system without an
+        # existing copy of Djblets installed in a reachable
+        # location (such as distribution packaging), we need to
+        # ensure that the source directory is in the PYTHONPATH
+        # or the import of djblets.util.filesystem will fail.
+        os.putenv("PYTHONPATH", "%s" % os.getcwd())
         retcode = subprocess.call([
             sys.executable, 'contrib/internal/build-i18n.py'])
 
