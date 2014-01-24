@@ -32,6 +32,7 @@ from django.utils.encoding import python_2_unicode_compatible
 
 from djblets.db.fields import JSONField
 from djblets.siteconfig.managers import SiteConfigurationManager
+from djblets.util.compat import six
 
 
 _DEFAULTS = {}
@@ -143,4 +144,4 @@ class SiteConfiguration(models.Model):
         return "%s:siteconfig:%s:generation" % (self.site.domain, self.id)
 
     def __str__(self):
-        return "%s (version %s)" % (unicode(self.site), self.version)
+        return "%s (version %s)" % (six.text_type(self.site), self.version)

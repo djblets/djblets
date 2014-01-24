@@ -33,6 +33,7 @@ from djblets.siteconfig.django_settings import (apply_django_settings,
                                                 mail_settings_map)
 from djblets.siteconfig.models import SiteConfiguration
 from djblets.testing.testcases import TestCase
+from djblets.util.compat import six
 
 
 class SiteConfigTest(TestCase):
@@ -55,8 +56,8 @@ class SiteConfigTest(TestCase):
         username = 'myuser'
         password = 'mypass'
 
-        self.assertEqual(type(username), unicode)
-        self.assertEqual(type(password), unicode)
+        self.assertEqual(type(username), six.text_type)
+        self.assertEqual(type(password), six.text_type)
 
         self.siteconfig.set('mail_host_user', username)
         self.siteconfig.set('mail_host_password', password)

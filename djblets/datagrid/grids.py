@@ -317,11 +317,12 @@ class Column(object):
         else:
             # Follow . separators like in the django template library
             value = obj
-            for field_name in filter(None, self.field_name.split('.')):
-                value = getattr(value, field_name)
+            for field_name in self.field_name.split('.'):
+                if field_name:
+                    value = getattr(value, field_name)
 
-                if six.callable(value):
-                    value = value()
+                    if six.callable(value):
+                        value = value()
 
             return escape(value)
 

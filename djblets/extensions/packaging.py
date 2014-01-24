@@ -170,7 +170,7 @@ class BuildStaticFiles(Command):
             ] + [
                 '--global-var="%s=%s"'
                     % (key, self._serialize_lessc_value(value))
-                for key, value in self.get_lessc_global_vars().iteritems()
+                for key, value in six.iteritems(self.get_lessc_global_vars())
             ]
         )
 
@@ -188,7 +188,7 @@ class BuildStaticFiles(Command):
         # loaded settings.
         from pipeline.conf import settings as pipeline_settings
 
-        for key in pipeline_settings.__dict__.iterkeys():
+        for key in six.iterkeys(pipeline_settings.__dict__):
             if hasattr(settings, key):
                 setattr(pipeline_settings, key, getattr(settings, key))
 

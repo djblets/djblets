@@ -25,6 +25,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from __future__ import unicode_literals
+
 from ast import literal_eval
 from datetime import datetime
 import base64
@@ -40,6 +41,7 @@ from django.utils import six
 from django.utils.encoding import smart_unicode
 
 from djblets.db.validators import validate_json
+from djblets.util.compat import six
 from djblets.util.dates import get_tz_aware_utcnow
 
 
@@ -159,7 +161,7 @@ class JSONFormField(forms.CharField):
         self.encoder = encoder or DjangoJSONEncoder()
 
     def prepare_value(self, value):
-        if isinstance(value, basestring):
+        if isinstance(value, six.string_types):
             return value
         else:
             return self.encoder.encode(value)
@@ -229,7 +231,7 @@ class JSONField(models.TextField):
 
             # XXX We need to investigate why this is happening once we have
             #     a solid repro case.
-            if isinstance(val, basestring):
+            if isinstance(val, six.string_types):
                 logging.warning("JSONField decode error. Expected dictionary, "
                                 "got string for input '%s'" % val)
                 # For whatever reason, we may have gotten back
@@ -239,12 +241,12 @@ class JSONField(models.TextField):
             # string. We have to eval it.
             try:
                 val = literal_eval(val)
-            except Exception, e:
+            except Exception as e:
                 logging.error('Failed to eval JSONField data "%r": %s'
                               % (val, e))
                 val = {}
 
-            if isinstance(val, basestring):
+            if isinstance(val, six.string_types):
                 logging.warning('JSONField decode error after literal_eval: '
                                 'Expected dictionary, got string: %r' % val)
                 val = {}
@@ -321,7 +323,7 @@ class CounterField(models.IntegerField):
     def _update_values(cls, model_instance, values, reload_object, multiplier):
         update_values = {}
 
-        for attname, value in values.iteritems():
+        for attname, value in six.iteritems(values):
             if value != 0:
                 update_values[attname] = F(attname) + value * multiplier
 
@@ -332,7 +334,7 @@ class CounterField(models.IntegerField):
 
             if reload_object:
                 cls._reload_model_instance(model_instance,
-                                           update_values.keys())
+                                           six.iterkeys(update_values))
 
     @classmethod
     def _reload_model_instance(cls, model_instance, attnames):
@@ -340,7 +342,7 @@ class CounterField(models.IntegerField):
         q = model_instance.__class__.objects.filter(pk=model_instance.pk)
         values = q.values(*attnames)[0]
 
-        for attname, value in values.iteritems():
+        for attname, value in six.iteritems(values):
             setattr(model_instance, attname, value)
 
     def __init__(self, verbose_name=None, name=None,

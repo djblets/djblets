@@ -208,7 +208,7 @@ def get_auth_backends():
 
             try:
                 mod = __import__(module, {}, {}, [attr])
-            except ImportError, e:
+            except ImportError as e:
                 raise ImproperlyConfigured(
                     'Error importing web API auth backend %s: %s'
                     % (module, e))

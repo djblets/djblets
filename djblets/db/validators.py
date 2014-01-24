@@ -16,4 +16,4 @@ def validate_json(value):
         try:
             json.loads(value)
         except ValueError as e:
-            raise ValidationError(unicode(e), code='invalid')
+            raise ValidationError(six.text_type(e), code='invalid')
