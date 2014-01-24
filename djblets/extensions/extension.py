@@ -192,12 +192,17 @@ class Extension(object):
     def shutdown(self):
         """Shuts down the extension.
 
-        This will shut down every registered hook.
+        By default, this calls shutdown_hooks.
 
         Subclasses should override this if they need custom shutdown behavior.
         """
+        self.shutdown_hooks()
+
+    def shutdown_hooks(self):
+        """Shuts down all hooks for the extension."""
         for hook in self.hooks:
-            hook.shutdown()
+            if hook.initialized:
+                hook.shutdown()
 
     def _get_admin_urlconf(self):
         if not hasattr(self, "_admin_urlconf_module"):

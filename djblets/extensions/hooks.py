@@ -54,9 +54,13 @@ class ExtensionHook(object):
         self.extension = extension
         self.extension.hooks.add(self)
         self.__class__.add_hook(self)
+        self.initialized = True
 
     def shutdown(self):
+        assert self.initialized
+
         self.__class__.remove_hook(self)
+        self.initialized = False
 
 
 class ExtensionHookPoint(type):

@@ -126,14 +126,27 @@ class TestExtensionWithRegistration(Extension):
     registration.settings = dict()
 
 
-class ExtensionTest(TestCase):
+@six.add_metaclass(ExtensionHookPoint)
+class DummyHook(ExtensionHook):
+    def __init__(self, extension):
+        super(DummyHook, self).__init__(extension)
+        self.foo = [1]
+
+    def shutdown(self):
+        super(DummyHook, self).shutdown()
+        self.foo.pop()
+
+
+class ExtensionTest(SpyAgency, TestCase):
     def setUp(self):
         manager = ExtensionManager('')
         self.extension = \
             TestExtensionWithRegistration(extension_manager=manager)
 
         for index in range(0, 5):
-            self.extension.hooks.add(Mock())
+            hook = DummyHook(self.extension)
+            self.spy_on(hook.shutdown)
+            self.extension.hooks.add(hook)
 
     def test_extension_constructor(self):
         """Testing Extension construction"""
@@ -146,6 +159,19 @@ class ExtensionTest(TestCase):
 
         for hook in self.extension.hooks:
             self.assertTrue(hook.shutdown.called)
+
+    def test_shutdown_twice(self):
+        """Testing Extension.shutdown when called twice"""
+        self.extension.shutdown()
+
+        for hook in self.extension.hooks:
+            self.assertTrue(hook.shutdown.called)
+            hook.shutdown.reset_calls()
+
+        self.extension.shutdown()
+
+        for hook in self.extension.hooks:
+            self.assertFalse(hook.shutdown.called)
 
     def test_get_admin_urlconf(self):
         """Testing Extension with admin URLConfs"""
