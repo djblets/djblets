@@ -179,6 +179,16 @@ class Extension(object):
 
             self.middleware_instances.append(middleware_instance)
 
+        self.initialize()
+
+    def initialize(self):
+        """Initializes the extension.
+
+        Subclasses can override this to provide any custom initialization.
+        They do not need to call the parent function, as it does nothing.
+        """
+        pass
+
     def shutdown(self):
         """Shuts down the extension.
 
