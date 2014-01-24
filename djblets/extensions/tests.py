@@ -30,11 +30,13 @@ import os
 from django.conf import settings
 from django.conf.urls import include, patterns
 from django.core.exceptions import ImproperlyConfigured
+from django.dispatch import Signal
+from kgb import SpyAgency
 from mock import Mock
 
 from djblets.extensions.extension import Extension, ExtensionInfo
 from djblets.extensions.hooks import (ExtensionHook, ExtensionHookPoint,
-                                      TemplateHook, URLHook)
+                                      SignalHook, TemplateHook, URLHook)
 from djblets.extensions.manager import (_extension_managers, ExtensionManager,
                                         SettingListWrapper)
 from djblets.extensions.settings import Settings
@@ -610,6 +612,40 @@ class SettingListWrapperTests(TestCase):
 
         self.assertEqual(settings.TEST_SETTING_LIST, ['item1'])
         self.assertEqual(wrapper.ref_counts.get('item1'), 1)
+
+
+class SignalHookTest(SpyAgency, TestCase):
+    """Unit tests for djblets.extensions.hooks.SignalHook."""
+    def setUp(self):
+        manager = ExtensionManager('')
+        self.test_extension = \
+            TestExtensionWithRegistration(extension_manager=manager)
+        self.patterns = patterns('',
+            (r'^url_hook_test/', include('djblets.extensions.test.urls')))
+
+        self.signal = Signal()
+        self.spy_on(self._on_signal_fired)
+
+    def test_initialize(self):
+        """Testing SignalHook initialization connects to signal"""
+        SignalHook(self.test_extension, self.signal, self._on_signal_fired)
+
+        self.assertEqual(len(self._on_signal_fired.calls), 0)
+        self.signal.send(self)
+        self.assertEqual(len(self._on_signal_fired.calls), 1)
+
+    def test_shutdown(self):
+        """Testing SignalHook.shutdown disconnects from signal"""
+        hook = SignalHook(self.test_extension, self.signal,
+                          self._on_signal_fired)
+        hook.shutdown()
+
+        self.assertEqual(len(self._on_signal_fired.calls), 0)
+        self.signal.send(self)
+        self.assertEqual(len(self._on_signal_fired.calls), 0)
+
+    def _on_signal_fired(self, *args, **kwargs):
+        pass
 
 
 class URLHookTest(TestCase):

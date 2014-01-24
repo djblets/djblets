@@ -25,6 +25,8 @@
 
 from __future__ import unicode_literals
 
+import uuid
+
 from django.core.urlresolvers import NoReverseMatch, reverse
 from django.template.loader import render_to_string
 
@@ -102,6 +104,30 @@ class URLHook(ExtensionHook):
         super(URLHook, self).shutdown()
 
         self.dynamic_urls.remove_patterns(self.patterns)
+
+
+@six.add_metaclass(ExtensionHookPoint)
+class SignalHook(ExtensionHook):
+    """Connects to a Django signal.
+
+    This will handle connecting to a signal, calling the specified callback
+    when fired. It will disconnect from the signal when the extension is
+    disabled.
+    """
+    def __init__(self, extension, signal, callback, sender=None):
+        super(SignalHook, self).__init__(extension)
+
+        self.signal = signal
+        self.callback = callback
+        self.dispatch_uid = uuid.uuid1()
+
+        signal.connect(callback, sender=sender, weak=False,
+                       dispatch_uid=self.dispatch_uid)
+
+    def shutdown(self):
+        super(SignalHook, self).shutdown()
+
+        self.signal.disconnect(dispatch_uid=self.dispatch_uid)
 
 
 @six.add_metaclass(ExtensionHookPoint)
