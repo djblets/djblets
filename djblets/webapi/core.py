@@ -32,6 +32,7 @@ from xml.sax.saxutils import XMLGenerator
 from django.conf import settings
 from django.http import HttpResponse
 from django.utils import six
+from djblets.util.compat.six.moves.urllib.parse import quote
 from django.utils.encoding import force_unicode
 
 from djblets.util.compat.six.moves import cStringIO as StringIO
@@ -347,18 +348,28 @@ class WebAPIResponsePaginated(WebAPIResponse):
 
         full_path = request.build_absolute_uri(request.path)
 
+        query_parameters = '&'.join([
+            '%s=%s' % (quote(k), quote(v))
+            for k, v in request.GET.iteritems()
+            if k not in ('start', 'max-results')
+        ])
+        if query_parameters:
+            query_parameters = '&' + query_parameters
+
         if start > 0:
             data['links'][prev_key] = {
                 'method': 'GET',
-                'href': '%s?start=%s&max-results=%s' %
-                        (full_path, max(start - max_results, 0), max_results),
+                'href': '%s?start=%s&max-results=%s%s' %
+                        (full_path, max(start - max_results, 0), max_results,
+                         query_parameters),
             }
 
         if start + len(results) < total_results:
             data['links'][next_key] = {
                 'method': 'GET',
-                'href': '%s?start=%s&max-results=%s' %
-                        (full_path, start + max_results, max_results),
+                'href': '%s?start=%s&max-results=%s%s' %
+                        (full_path, start + max_results, max_results,
+                         query_parameters),
             }
 
         WebAPIResponse.__init__(self, request, obj=data, *args, **kwargs)
