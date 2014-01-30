@@ -92,6 +92,31 @@ class ExtensionHookPoint(type):
 
 
 @six.add_metaclass(ExtensionHookPoint)
+class DataGridColumnsHook(ExtensionHook):
+    """Adds columns to a datagrid.
+
+    This hook allows an extension to register new columns to any datagrid.
+    These columns can be added by the user, rearranged, and sorted, like
+    any other column.
+
+    Each column must have an id already set, and it must be unique.
+    """
+    def __init__(self, extension, datagrid_cls, columns):
+        super(DataGridColumnsHook, self).__init__(extension)
+        self.datagrid_cls = datagrid_cls
+        self.columns = columns
+
+        for column in columns:
+            self.datagrid_cls.add_column(column)
+
+    def shutdown(self):
+        super(DataGridColumnsHook, self).shutdown()
+
+        for column in self.columns:
+            self.datagrid_cls.remove_column(column)
+
+
+@six.add_metaclass(ExtensionHookPoint)
 class URLHook(ExtensionHook):
     """Custom URL hook.
 

@@ -69,7 +69,7 @@ class Column(object):
     SORT_DESCENDING = 0
     SORT_ASCENDING = 1
 
-    def __init__(self, label=None, detailed_label=None,
+    def __init__(self, label=None, id=None, detailed_label=None,
                  field_name=None, db_field=None,
                  image_url=None, image_class=None, image_width=None,
                  image_height=None, image_alt="", shrink=False, expand=False,
@@ -78,7 +78,7 @@ class Column(object):
                  link_func=None, cell_clickable=False, css_class=""):
         assert not (image_class and image_url)
 
-        self.id = None
+        self.id = id
         self.datagrid = None
         self.field_name = field_name
         self.db_field = db_field or field_name
@@ -458,14 +458,90 @@ class DataGrid(object):
                                     (such as when using extra()).
                                     The default is True.
     """
+    _columns = None
+
+    @classmethod
+    def add_column(cls, column):
+        """Adds a new column for this datagrid.
+
+        This can be used to add columns to a DataGrid subclass after
+        the subclass has already been defined.
+
+        The column added must have a unique ID already set.
+        """
+        cls._populate_columns()
+
+        if not column.id:
+            raise KeyError(
+                'Custom datagrid columns must have a unique id attribute.')
+
+        if column.id in cls._columns:
+            raise KeyError('"%s" is already a registered column for %s'
+                           % (column.id, cls.__name__))
+
+        cls._columns[column.id] = column
+
+    @classmethod
+    def remove_column(cls, column):
+        """Removes a column from this datagrid.
+
+        This can be used to remove columns previously added through
+        add_column().
+        """
+        cls._populate_columns()
+
+        try:
+            del cls._columns[column.id]
+        except KeyError:
+            raise KeyError('"%s" is not a registered column for %s'
+                           % (column.id, cls.__name__))
+
+    @classmethod
+    def get_column(cls, column_id):
+        """Returns the column with the given ID.
+
+        If not found, this will return None.
+        """
+        cls._populate_columns()
+
+        return cls._columns.get(column_id)
+
+    @classmethod
+    def get_columns(cls):
+        """Returns the list of registered columns for this datagrid."""
+        cls._populate_columns()
+
+        return six.itervalues(cls._columns)
+
+    @classmethod
+    def _populate_columns(cls):
+        """Populates the default list of columns for the datagrid.
+
+        The default list contains all columns added in the class definition.
+        """
+        if cls._columns is None:
+            cls._columns = {}
+
+            for key in dir(cls):
+                column = getattr(cls, key)
+
+                if isinstance(column, Column):
+                    column.id = key
+
+                    if not column.field_name:
+                        column.field_name = column.id
+
+                    if not column.db_field:
+                        column.db_field = column.field_name
+
+                    cls.add_column(column)
+
     def __init__(self, request, queryset=None, title="", extra_context={},
                  optimize_sorts=True):
         self.request = request
         self.queryset = queryset
         self.rows = []
         self.columns = []
-        self.all_columns = []
-        self.db_field_map = {}
         self.id_list = []
         self.paginator = None
         self.page = None
@@ -494,25 +570,15 @@ class DataGrid(object):
         self.column_header_template = 'datagrid/column_header.html'
         self.cell_template = 'datagrid/cell.html'
 
-        for attr in dir(self):
-            column = getattr(self, attr)
-            if isinstance(column, Column):
-                self.all_columns.append(column)
-                column.datagrid = self
-                column.id = attr
+        for column in self.get_columns():
+            # Reset the column.
+            column.reset()
+            column.datagrid = self
 
-                # Reset the column.
-                column.reset()
-
-                if not column.field_name:
-                    column.field_name = column.id
-
-                if not column.db_field:
-                    column.db_field = column.field_name
-
-                self.db_field_map[column.id] = column.db_field
-
-        self.all_columns.sort(key=lambda x: x.label)
+    @property
+    def all_columns(self):
+        """Returns all columns in the datagrid, sorted by label."""
+        return sorted(self.get_columns(), key=lambda x: x.label)
 
     def load_state(self, render_context=None):
         """
@@ -565,9 +631,9 @@ class DataGrid(object):
         normal_columns = []
 
         for colname in colnames:
-            try:
-                column = getattr(self, colname)
-            except AttributeError:
+            column = self.get_column(colname)
+
+            if not column:
                 # The user specified a column that doesn't exist. Skip it.
                 continue
 
@@ -675,17 +741,19 @@ class DataGrid(object):
                 base_sort_item = sort_item
                 prefix = ""
 
-            if sort_item and base_sort_item in self.db_field_map:
-                db_field = self.db_field_map[base_sort_item]
-                sort_list.append(prefix + db_field)
+            if sort_item:
+                column = self.get_column(base_sort_item)
 
-                # Lookups spanning tables require that we query from those
-                # tables. In order to keep things simple, we'll just use
-                # select_related so that we don't have to figure out the
-                # table relationships. We only do this if we have a lookup
-                # spanning tables.
-                if '.' in db_field:
-                    use_select_related = True
+                if column:
+                    sort_list.append(prefix + column.db_field)
+
+                    # Lookups spanning tables require that we query from those
+                    # tables. In order to keep things simple, we'll just use
+                    # select_related so that we don't have to figure out the
+                    # table relationships. We only do this if we have a lookup
+                    # spanning tables.
+                    if '.' in column.db_field:
+                        use_select_related = True
 
         if sort_list:
             query = query.order_by(*sort_list)
