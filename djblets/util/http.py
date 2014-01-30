@@ -28,6 +28,7 @@ from __future__ import unicode_literals
 from django.http import HttpResponse
 from django.utils import six
 
+from djblets.util.compat.six.moves.urllib.parse import urlencode
 from djblets.util.dates import http_date
 
 
@@ -196,3 +197,16 @@ def is_mimetype_a(mimetype, parent_mimetype):
     return (parts[0] == parent_parts[0] and
             (parts[1] == parent_parts[1] or
              parts[1].endswith('+' + parent_parts[1])))
+
+
+def get_url_params_except(query, *params):
+    """Return a URL query string that filters out some params.
+
+    This is used often when one wants to preserve some GET parameters and not
+    others.
+    """
+    result = urlencode([
+        (key, value)
+        for key, value in six.iteritems(query)
+        if key not in params
+    ])

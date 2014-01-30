@@ -36,7 +36,9 @@ from djblets.util.compat.six.moves.urllib.parse import quote
 from django.utils.encoding import force_unicode
 
 from djblets.util.compat.six.moves import cStringIO as StringIO
-from djblets.util.http import get_http_requested_mimetype, is_mimetype_a
+from djblets.util.http import (get_http_requested_mimetype,
+                               get_url_params_except,
+                               is_mimetype_a)
 from djblets.webapi.errors import INVALID_FORM_DATA
 
 
@@ -348,11 +350,8 @@ class WebAPIResponsePaginated(WebAPIResponse):
 
         full_path = request.build_absolute_uri(request.path)
 
-        query_parameters = '&'.join([
-            '%s=%s' % (quote(k), quote(v))
-            for k, v in request.GET.iteritems()
-            if k not in ('start', 'max-results')
-        ])
+        query_parameters = get_url_params_except(request.GET,
+                                                 'start', 'max-results')
         if query_parameters:
             query_parameters = '&' + query_parameters
 

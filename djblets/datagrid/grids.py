@@ -45,7 +45,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from djblets.util.compat import six
-from djblets.util.compat.six.moves.urllib.parse import urlencode
+from djblets.util.http import get_url_params_except
 
 
 class Column(object):
@@ -124,8 +124,9 @@ class Column(object):
         else:
             columns.append(self.id)
 
-        return "?%scolumns=%s" % (self.get_url_params_except("columns"),
-                                  ",".join(columns))
+        return "?%s&columns=%s" % (
+            get_url_params_except(self.datagrid.request.GET, "columns"),
+            ",".join(columns))
     toggle_url = property(get_toggle_url)
 
     def get_header(self):
@@ -187,10 +188,9 @@ class Column(object):
             # this.
             del(sort_list[2:])
 
-            url_prefix = "?%ssort=" % self.get_url_params_except("sort",
-                                                                 "datagrid-id",
-                                                                 "gridonly",
-                                                                 "columns")
+            url_prefix = "?%s&sort=" % get_url_params_except(
+                self.datagrid.request.GET,
+                "sort", "datagrid-id", "gridonly", "columns")
             unsort_url = url_prefix + ','.join(sort_list[1:])
             sort_url   = url_prefix + ','.join(sort_list)
 
@@ -209,18 +209,6 @@ class Column(object):
 
         return mark_safe(self.datagrid.column_header_template_obj.render(ctx))
     header = property(get_header)
-
-    def get_url_params_except(self, *params):
-        """
-        Utility function to return a string containing URL parameters to
-        this page with the specified parameter filtered out.
-        """
-        result = urlencode([
-            (key, value)
-            for key, value in six.iteritems(self.datagrid.request.GET)
-            if key not in params
-        ])
-        return result + '&'
 
     def collect_objects(self, object_list):
         """Iterates through the objects and builds a cache of data to display.
@@ -798,6 +786,8 @@ class DataGrid(object):
 
             self.load_state(render_context)
 
+            extra_query = get_url_params_except(self.request.GET, 'page')
+
             context = Context({
                 'datagrid': self,
                 'is_paginated': self.page.has_other_pages(),
@@ -810,6 +800,7 @@ class DataGrid(object):
                 'pages': self.paginator.num_pages,
                 'hits': self.paginator.count,
                 'page_range': self.paginator.page_range,
+                'extra_query': extra_query,
             })
 
             if self.page.has_next():
