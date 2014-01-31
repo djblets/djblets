@@ -7,6 +7,7 @@ from pipeline.templatetags.compressed import (CompressedCSSNode,
 
 from djblets.extensions.hooks import TemplateHook
 from djblets.extensions.manager import get_extension_managers
+from djblets.util.compat import six
 from djblets.util.decorators import basictag
 
 
@@ -66,34 +67,56 @@ def ext_js_bundle(context, extension, name):
     return _render_js_bundle(context, extension, name)
 
 
+def _get_extension_bundles(extension_manager_key, context, bundle_attr,
+                           renderer):
+    """Returns media bundles that can be rendered on the current page.
+
+    This will look through all enabled extensions and find any with static
+    media bundles that should be included on the current page, as indicated
+    by the context.
+
+    All bundles marked "default" will be included, as will any with an
+    ``apply_to`` field containing a URL name matching the current page.
+    """
+    request = context['request']
+
+    for manager in get_extension_managers():
+        if manager.key != extension_manager_key:
+            continue
+
+        for extension in manager.get_enabled_extensions():
+            bundles = getattr(extension, bundle_attr, {})
+
+            for bundle_name, bundle in six.iteritems(bundles):
+                if (bundle_name == 'default' or
+                    requested_url_name in bundles.get('apply_to', [])):
+                    yield renderer(context, extension, bundle_name)
+
+        break
+
+
 @register.tag
 @basictag(takes_context=True)
 def load_extensions_css(context, extension_manager_key):
-    """Loads all default CSS bundles from all enabled extensions."""
-    for manager in get_extension_managers():
-        if manager.key == extension_manager_key:
-            return ''.join([
-                _render_css_bundle(context, extension, 'default')
-                for extension in manager.get_enabled_extensions()
-                if 'default' in extension.css_bundles
-            ])
+    """Loads all CSS bundles that can be rendered on the current page.
 
-    return ''
+    This will include all "default" bundles and any with an ``apply_to``
+    containing a URL name matching the current page.
+    """
+    return ''.join(_get_extension_bundles(
+        extension_manager_key, context, 'css_bundles', _render_css_bundle))
 
 
 @register.tag
 @basictag(takes_context=True)
 def load_extensions_js(context, extension_manager_key):
-    """Loads all default JavaScript bundles from all enabled extensions."""
-    for manager in get_extension_managers():
-        if manager.key == extension_manager_key:
-            return ''.join([
-                _render_js_bundle(context, extension, 'default')
-                for extension in manager.get_enabled_extensions()
-                if 'default' in extension.js_bundles
-            ])
+    """Loads all JavaScript bundles that can be rendered on the current page.
 
-    return ''
+    This will include all "default" bundles and any with an ``apply_to``
+    containing a URL name matching the current page.
+    """
+    return ''.join(_get_extension_bundles(
+        extension_manager_key, context, 'js_bundles', _render_js_bundle))
 
 
 @register.inclusion_tag('extensions/init_js_extensions.html',
