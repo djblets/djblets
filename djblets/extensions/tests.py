@@ -720,12 +720,11 @@ class TemplateHookTest(TestCase):
             ]
         )
 
-        self.fake_request = Mock()
-        self.fake_request._djblets_extensions_kwargs = {}
-        self.fake_request.path_info = '/'
-        self.context = {
-            'request': self.fake_request,
-        }
+        self.request = Mock()
+        self.request._djblets_extensions_kwargs = {}
+        self.request.path_info = '/'
+        self.request.resolver_match = Mock()
+        self.request.resolver_match.url_name = 'root'
 
     def test_hook_added_to_class_by_name(self):
         """Testing TemplateHook registration"""
@@ -752,14 +751,17 @@ class TemplateHookTest(TestCase):
 
     def test_applies_to_default(self):
         """Testing TemplateHook.applies_to defaults to everything"""
-        self.assertTrue(self.template_hook_no_applies.applies_to(self.context))
+        self.assertTrue(self.template_hook_no_applies.applies_to(self.request))
         self.assertTrue(self.template_hook_no_applies.applies_to(None))
 
     def test_applies_to(self):
         """Testing TemplateHook.applies_to customization"""
-        self.fake_request.path_info = '/some_other/url'
         self.assertFalse(
-            self.template_hook_with_applies.applies_to(self.context))
+            self.template_hook_with_applies.applies_to(self.request))
+
+        self.request.resolver_match.url_name = 'test-url-name'
+        self.assertTrue(
+            self.template_hook_with_applies.applies_to(self.request))
 
 # A dummy function that acts as a View method
 test_view_method = Mock()

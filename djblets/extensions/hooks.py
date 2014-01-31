@@ -27,7 +27,6 @@ from __future__ import unicode_literals
 
 import uuid
 
-from django.core.urlresolvers import NoReverseMatch, reverse
 from django.template.loader import render_to_string
 
 from djblets.util.compat import six
@@ -89,6 +88,26 @@ class ExtensionHookPoint(type):
         This is called automatically by :py:class:`ExtensionHook`.
         """
         cls.hooks.remove(hook)
+
+
+class AppliesToURLMixin(object):
+    """A mixin for hooks to allow restricting to certain URLs.
+
+    This provides an applies_to() function for the hook that can be used
+    by consumers to determine if the hook should apply to the current page.
+    """
+    def __init__(self, extension, apply_to=[], *args, **kwargs):
+        super(AppliesToURLMixin, self).__init__(extension)
+        self.apply_to = apply_to
+
+    def applies_to(self, request):
+        """Returns whether or not this hook applies to the page.
+
+        This will determine whether any of the URL names provided in
+        ``apply_to`` matches the current requested page.
+        """
+        return (not self.apply_to or
+                request.resolver_match.url_name in self.apply_to)
 
 
 @six.add_metaclass(ExtensionHookPoint)
@@ -160,7 +179,7 @@ class SignalHook(ExtensionHook):
 
 
 @six.add_metaclass(ExtensionHookPoint)
-class TemplateHook(ExtensionHook):
+class TemplateHook(AppliesToURLMixin, ExtensionHook):
     """Custom templates hook.
 
     A hook that renders a template at hook points defined in another template.
@@ -168,10 +187,9 @@ class TemplateHook(ExtensionHook):
     _by_name = {}
 
     def __init__(self, extension, name, template_name=None, apply_to=[]):
-        super(TemplateHook, self).__init__(extension)
+        super(TemplateHook, self).__init__(extension, apply_to=apply_to)
         self.name = name
         self.template_name = template_name
-        self.apply_to = apply_to
 
         if not name in self.__class__._by_name:
             self.__class__._by_name[name] = [self]
@@ -196,41 +214,6 @@ class TemplateHook(ExtensionHook):
             return render_to_string(self.template_name, context)
         finally:
             context.pop()
-
-    def applies_to(self, context):
-        """Returns whether or not this TemplateHook should be applied given the
-        current context.
-        """
-
-        # If apply_to is empty, this means we apply to all - so
-        # return true
-        if not self.apply_to:
-            return True
-
-        # Extensions Middleware stashes the kwargs into the context
-        kwargs = context['request']._djblets_extensions_kwargs
-        current_url = context['request'].path_info
-
-        # For each URL name in apply_to, check to see if the reverse
-        # URL matches the current URL.
-        for applicable in self.apply_to:
-            try:
-                reverse_url = reverse(applicable, args=(), kwargs=kwargs)
-            except NoReverseMatch:
-                # It's possible that the URL we're reversing doesn't take
-                # any arguments.
-                try:
-                    reverse_url = reverse(applicable)
-                except NoReverseMatch:
-                    # No matches here, move along.
-                    continue
-
-            # If we got here, we found a reversal.  Let's compare to the
-            # current URL
-            if reverse_url == current_url:
-                return True
-
-        return False
 
     @classmethod
     def by_name(cls, name):
