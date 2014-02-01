@@ -124,9 +124,12 @@ class Column(object):
         else:
             columns.append(self.id)
 
-        return "?%s&columns=%s" % (
-            get_url_params_except(self.datagrid.request.GET, "columns"),
-            ",".join(columns))
+        url_params = get_url_params_except(self.datagrid.request.GET,
+                                           'columns')
+        if url_params:
+            url_params = url_params + '&'
+
+        return "?%scolumns=%s" % (url_params, ",".join(columns))
     toggle_url = property(get_toggle_url)
 
     def get_header(self):
@@ -188,9 +191,13 @@ class Column(object):
             # this.
             del(sort_list[2:])
 
-            url_prefix = "?%s&sort=" % get_url_params_except(
+            url_params = get_url_params_except(
                 self.datagrid.request.GET,
                 "sort", "datagrid-id", "gridonly", "columns")
+            if url_params:
+                url_params = url_params + '&'
+
+            url_prefix = "?%ssort=" % url_params
             unsort_url = url_prefix + ','.join(sort_list[1:])
             sort_url   = url_prefix + ','.join(sort_list)
 
@@ -758,6 +765,8 @@ class DataGrid(object):
         if sort_list:
             query = query.order_by(*sort_list)
 
+        query = self.post_process_queryset(query)
+
         self.paginator = QuerySetPaginator(query.distinct(), self.paginate_by,
                                            self.paginate_orphans)
 
@@ -825,17 +834,10 @@ class DataGrid(object):
         ]
 
     def post_process_queryset(self, queryset):
-        """
-        Processes a QuerySet after the initial query has been built and
-        pagination applied. This is only used when optimizing a sort.
+        """Add column-specific data to the queryset.
 
-        By default, this just returns the existing queryset. Custom datagrid
-        subclasses can override this to add additional queries (such as
-        subqueries in an extra() call) for use in the cell renderers.
-
-        When optimize_sorts is True, subqueries (using extra()) on the initial
-        QuerySet passed to the datagrid will be stripped from the final
-        result. This function can be used to re-add those subqueries.
+        Individual columns can define additional joins and extra info to add on
+        to the queryset. This handles adding all of those.
         """
         for column in self.columns:
             queryset = column.augment_queryset(queryset)

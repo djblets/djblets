@@ -205,7 +205,7 @@ def get_url_params_except(query, *params):
     This is used often when one wants to preserve some GET parameters and not
     others.
     """
-    result = urlencode([
+    return urlencode([
         (key, value)
         for key, value in six.iteritems(query)
         if key not in params
