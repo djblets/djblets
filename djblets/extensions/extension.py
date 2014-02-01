@@ -41,6 +41,44 @@ if not hasattr(settings, "EXTENSIONS_STATIC_ROOT"):
         "settings.EXTENSIONS_STATIC_ROOT must be defined")
 
 
+class JSExtension(object):
+    """Base class for a JavaScript extension.
+
+    This can be subclassed to provide the information needed to initialize
+    a JavaScript extension.
+
+    The JSExtension subclass is expected to define a :py:attr:`model_class`
+    attribute naming its JavaScript counterpart. This would be the variable
+    name for the (uninitialized) model for the extension, defined in a
+    JavaScript bundle.
+
+    It may also define :py:attr:`apply_to`, which is a list of URL names that
+    the extension will be initialized on. If not provided, the extension will
+    be initialized on all pages.
+
+    To provide additional data to the model instance, the JSExtension subclass
+    can implement :py:meth:`get_model_data` and return a dictionary of data
+    to pass.
+    """
+    model_class = None
+    apply_to = None
+
+    def __init__(self, extension):
+        self.extension = extension
+
+    def applies_to(self, url_name):
+        """Returns whether this extension applies to the given URL name."""
+        return self.apply_to is None or url_name in self.apply_to
+
+    def get_model_data(self):
+        """Returns model data for the Extension model instance in JavaScript.
+
+        Subclasses can override this to return custom data to pass to
+        the extension.
+        """
+        return {}
+
+
 class Extension(object):
     """Base class for an extension.
 
@@ -111,13 +149,16 @@ class Extension(object):
     JavaScript extensions
     ---------------------
 
-    An Extension subclass can define a :py:attr:`js_model_class` attribute
-    naming its JavaScript counterpart. This would be the variable name for the
-    (uninitialized) model for the extension, usually defined in the "default"
-    JavaScript bundle.
+    An Extension subclass can define one or more JavaScript extension classes,
+    which may apply across all pages or only a subset of them.
+
+    Each is defined as a :py:class:`JSExtension` subclass, and listed in
+    Extension's :py:attr:`js_extensions` list. See the documentation on
+    JSExtension for more information.
 
     Any page using the ``init_js_extensions`` template tag will automatically
-    initialize these JavaScript extensions, passing the server-stored settings.
+    initialize any JavaScript extensions appropriate for that page, passing the
+    server-stored settings.
 
 
     Middleware
@@ -154,7 +195,7 @@ class Extension(object):
     css_bundles = {}
     js_bundles = {}
 
-    js_model_class = None
+    js_extensions = []
 
     def __init__(self, extension_manager):
         self.extension_manager = extension_manager
@@ -226,14 +267,6 @@ class Extension(object):
     def get_bundle_id(self, name):
         """Returns the ID for a CSS or JavaScript bundle."""
         return '%s-%s' % (self.id, name)
-
-    def get_js_model_data(self):
-        """Returns model data for the Extension instance in JavaScript.
-
-        Subclasses can override this to return custom data to pass to
-        the extension.
-        """
-        return {}
 
 
 @python_2_unicode_compatible

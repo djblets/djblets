@@ -133,14 +133,22 @@ def init_js_extensions(context, extension_manager_key):
     Each extension's required JavaScript files will be loaded in the page,
     and their JavaScript-side Extension subclasses will be instantiated.
     """
+    url_name = context['request'].resolver_match.url_name
+
     for manager in get_extension_managers():
         if manager.key == extension_manager_key:
+            js_extensions = []
+
+            for extension in manager.get_enabled_extensions():
+                for js_extension_cls in extension.js_extensions:
+                    js_extension = js_extension_cls(extension)
+
+                    if js_extension.applies_to(url_name):
+                        js_extensions.append(js_extension)
+
             return {
-                'extensions': [
-                    extension
-                    for extension in manager.get_enabled_extensions()
-                    if extension.js_model_class
-                ],
+                'url_name': url_name,
+                'js_extensions': js_extensions,
             }
 
     return {}
