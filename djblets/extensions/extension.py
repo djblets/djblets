@@ -72,7 +72,8 @@ class Extension(object):
     files, which will automatically be compiled, minified, combined, and
     packaged. An Extension class can define a :py:attr:`css_bundles` and
     a :py:attr:`js_bundles`. Each is a dictionary mapping bundle names
-    to bundle dictionary. These follow the Django Pipeline bundle format.
+    to bundle dictionary. These mostly follow the Django Pipeline bundle
+    format.
 
     For example:
 
@@ -98,8 +99,12 @@ class Extension(object):
     on any page supporting extensions (provided the ``load_extensions_js`` and
     ``load_extensions_css`` template tags are used).
 
-    Other bundle names can be loaded within a TemplateHook template using
-    ``{% ext_css_bundle extension "bundle-name" %}`` or
+    Bundles can also specify an optional ``apply_to`` field, which is a list
+    of URL names for pages that the bundle should be automatically loaded on.
+    This works like the ``default`` bundle, but for those specific pages.
+
+    Bundles can also be loaded manually within a TemplateHook template
+    by using ``{% ext_css_bundle extension "bundle-name" %}`` or
     ``{% ext_js_bundle extension "bundle-name" %}``.
 
 
