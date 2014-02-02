@@ -79,7 +79,12 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
     All bundles marked "default" will be included, as will any with an
     ``apply_to`` field containing a URL name matching the current page.
     """
-    requested_url_name = context['request'].resolver_match.url_name
+    request = context['request']
+
+    if not hasattr(request, 'resolver_match'):
+        return
+
+    requested_url_name = request.resolver_match.url_name
 
     for manager in get_extension_managers():
         if manager.key != extension_manager_key:
