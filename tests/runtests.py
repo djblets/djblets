@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import nose
 import os
+import stat
 import sys
 
 
@@ -36,6 +37,15 @@ def run_tests(verbosity=1, interactive=False):
 
     if len(sys.argv) > 2:
         nose_argv += sys.argv[2:]
+
+    # If the test files are executable on the file system, nose will need the
+    #  --exe argument to run them
+    known_file = os.path.join(os.path.dirname(__file__), '..', 'djblets',
+                              'settings.py')
+
+    if (os.path.exists(known_file) and
+        os.stat(known_file).st_mode & stat.S_IXUSR):
+        nose_argv.append('--exe')
 
     nose.main(argv=nose_argv)
 
