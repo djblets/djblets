@@ -81,7 +81,7 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
     """
     request = context['request']
 
-    if not hasattr(request, 'resolver_match'):
+    if not getattr(request, 'resolver_match', None):
         return
 
     requested_url_name = request.resolver_match.url_name
