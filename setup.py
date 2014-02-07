@@ -155,7 +155,7 @@ setup(name=PACKAGE_NAME,
       packages=find_packages(exclude=["tests"]),
       cmdclass=cmdclasses,
       install_requires=[
-          'Django>=1.6.1,<1.7',
+          'Django>=1.6.2,<1.7',
           'django-pipeline>=1.3.15',
           'feedparser>=5.1.2',
           'pytz',
