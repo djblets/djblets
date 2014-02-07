@@ -48,6 +48,10 @@ from djblets.util.compat import six
 from djblets.util.http import get_url_params_except
 
 
+# Registration of all datagrid classes to columns.
+_column_registry = {}
+
+
 class Column(object):
     """
     A column in a data grid.
@@ -482,11 +486,11 @@ class DataGrid(object):
             raise KeyError(
                 'Custom datagrid columns must have a unique id attribute.')
 
-        if column.id in cls._columns:
+        if column.id in _column_registry[cls]:
             raise KeyError('"%s" is already a registered column for %s'
                            % (column.id, cls.__name__))
 
-        cls._columns[column.id] = column
+        _column_registry[cls][column.id] = column
 
     @classmethod
     def remove_column(cls, column):
@@ -498,7 +502,7 @@ class DataGrid(object):
         cls._populate_columns()
 
         try:
-            del cls._columns[column.id]
+            del _column_registry[cls][column.id]
         except KeyError:
             raise KeyError('"%s" is not a registered column for %s'
                            % (column.id, cls.__name__))
@@ -511,14 +515,14 @@ class DataGrid(object):
         """
         cls._populate_columns()
 
-        return cls._columns.get(column_id)
+        return _column_registry[cls].get(column_id)
 
     @classmethod
     def get_columns(cls):
         """Returns the list of registered columns for this datagrid."""
         cls._populate_columns()
 
-        return six.itervalues(cls._columns)
+        return six.itervalues(_column_registry[cls])
 
     @classmethod
     def _populate_columns(cls):
@@ -526,8 +530,8 @@ class DataGrid(object):
 
         The default list contains all columns added in the class definition.
         """
-        if cls._columns is None:
-            cls._columns = {}
+        if cls not in _column_registry:
+            _column_registry[cls] = {}
 
             for key in dir(cls):
                 column = getattr(cls, key)
