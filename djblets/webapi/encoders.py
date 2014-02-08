@@ -1,10 +1,26 @@
 from __future__ import unicode_literals
 
+import datetime
+
 from django.contrib.auth.models import User, Group
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
 
 from djblets.webapi.core import WebAPIEncoder
+
+
+def encode_datetime(o):
+    """Encode datetime objects.
+
+    Like DjangoJSONEncoder's datetime encoding implementation, but filters out
+    milliseconds in addition to microseconds.
+    """
+    r = o.isoformat()
+    if o.microsecond:
+        r = r[:19] + r[26:]
+    if r.endswith('+00:00'):
+        r = r[:-6] + 'Z'
+    return r
 
 
 class BasicAPIEncoder(WebAPIEncoder):
@@ -29,6 +45,8 @@ class BasicAPIEncoder(WebAPIEncoder):
                 'id': o.id,
                 'name': o.name,
             }
+        elif isinstance(o, datetime.datetime):
+            return encode_datetime(o)
         else:
             try:
                 return DjangoJSONEncoder().default(o)
@@ -41,15 +59,16 @@ class ResourceAPIEncoder(WebAPIEncoder):
     def encode(self, o, *args, **kwargs):
         from djblets.webapi.resources import get_resource_for_object
 
-        if isinstance(o, QuerySet):
-            return list(o)
-
         resource = get_resource_for_object(o)
 
-        if resource:
+        if isinstance(o, QuerySet):
+            return list(o)
+        elif resource:
             return resource.serialize_object(o, *args, **kwargs)
-
-        try:
-            return DjangoJSONEncoder().default(o)
-        except TypeError:
-            return None
+        elif isinstance(o, datetime.datetime):
+            return encode_datetime(o)
+        else:
+            try:
+                return DjangoJSONEncoder().default(o)
+            except TypeError:
+                return None
