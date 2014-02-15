@@ -29,30 +29,14 @@ import json
 
 from django import template
 from django.core.serializers import serialize
-from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
 from django.utils import six
-from django.utils.encoding import force_text
-from django.utils.functional import Promise
 from django.utils.safestring import mark_safe
+
+from djblets.util.serializers import DjbletsJSONEncoder
 
 
 register = template.Library()
-
-
-class LazyEncoder(DjangoJSONEncoder):
-    """
-    Encoder to take care of initializing lazily created ugettext messages.
-
-    In the case of lazy translation objects, they need to be converted to
-    strings before passed as a JSON object. If the passed object is a
-    Promise, do a force_text on it to resolve the Promise.
-    """
-    def default(self, obj):
-        if isinstance(obj, Promise):
-            return force_text(obj)
-
-        return super(LazyEncoder, self).default(obj)
 
 
 @register.simple_tag
@@ -89,6 +73,6 @@ def json_dumps(value, indent=None):
     if isinstance(value, QuerySet):
         result = serialize('json', value, indent=indent)
     else:
-        result = json.dumps(value, indent=indent, cls=LazyEncoder)
+        result = json.dumps(value, indent=indent, cls=DjbletsJSONEncoder)
 
     return mark_safe(result)
