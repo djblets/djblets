@@ -27,13 +27,13 @@ from __future__ import unicode_literals
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core.cache import cache
+from django.utils import six
 
 from djblets.siteconfig.django_settings import (apply_django_settings,
                                                 cache_settings_map,
                                                 mail_settings_map)
 from djblets.siteconfig.models import SiteConfiguration
 from djblets.testing.testcases import TestCase
-from djblets.util.compat import six
 
 
 class SiteConfigTest(TestCase):

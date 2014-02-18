@@ -41,7 +41,6 @@ from django.utils import six
 from django.utils.encoding import smart_unicode
 
 from djblets.db.validators import validate_json
-from djblets.util.compat import six
 from djblets.util.dates import get_tz_aware_utcnow
 
 

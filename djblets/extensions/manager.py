@@ -47,9 +47,9 @@ from django.template.loader import template_source_loaders
 from django.utils import six
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
+from django.utils.six.moves import cStringIO as StringIO
 from django.utils.translation import ugettext as _
 from django_evolution.management.commands.evolve import Command as Evolution
-from djblets.util.compat.six.moves import cStringIO as StringIO
 from setuptools.command import easy_install
 
 from djblets.cache.backend import make_cache_key

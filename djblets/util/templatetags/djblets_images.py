@@ -31,12 +31,11 @@ import tempfile
 
 from django import template
 from django.core.files import File
+from django.utils.six.moves import cStringIO as StringIO
 try:
     from PIL import Image
 except ImportError:
     import Image
-
-from djblets.util.compat.six.moves import cStringIO as StringIO
 
 
 register = template.Library()

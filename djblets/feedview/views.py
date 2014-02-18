@@ -4,11 +4,11 @@ from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from django.template.loader import render_to_string
+from django.utils.six.moves import http_client
+from django.utils.six.moves.urllib.error import URLError
+from django.utils.six.moves.urllib.request import urlopen
 
 from djblets.cache.backend import cache_memoize
-from djblets.util.compat.six.moves import http_client
-from djblets.util.compat.six.moves.urllib.error import URLError
-from djblets.util.compat.six.moves.urllib.request import urlopen
 
 
 DEFAULT_EXPIRATION = 2 * 24 * 60 * 60 # 2 days

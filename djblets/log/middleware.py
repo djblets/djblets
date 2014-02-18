@@ -35,6 +35,7 @@ from django.conf import settings
 from django.db import connection
 from django.db.backends import util
 from django.utils import six
+from django.utils.six.moves import cStringIO as StringIO
 
 from djblets.log import init_logging, init_profile_logger, log_timed
 
@@ -191,7 +192,6 @@ class LoggingMiddleware(object):
 
             init_profile_logger()
 
-            from djblets.util.compat.six.moves import cStringIO as StringIO
             self.profiler.create_stats()
 
             # Capture the stats

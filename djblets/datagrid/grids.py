@@ -39,12 +39,12 @@ from django.shortcuts import render_to_response
 from django.template.context import RequestContext, Context
 from django.template.defaultfilters import date, timesince
 from django.template.loader import render_to_string, get_template
+from django.utils import six
 from django.utils.cache import patch_cache_control
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
-from djblets.util.compat import six
 from djblets.util.http import get_url_params_except
 
 

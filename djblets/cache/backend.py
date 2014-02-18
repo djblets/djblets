@@ -6,10 +6,10 @@ import zlib
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib.sites.models import Site
+from django.utils.six.moves import (cPickle as pickle,
+                                    cStringIO as StringIO)
 
 from djblets.cache.errors import MissingChunkError
-from djblets.util.compat.six.moves import (cPickle as pickle,
-                                           cStringIO as StringIO)
 
 
 DEFAULT_EXPIRATION_TIME = 60 * 60 * 24 * 30 # 1 month

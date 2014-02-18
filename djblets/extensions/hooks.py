@@ -28,8 +28,7 @@ from __future__ import unicode_literals
 import uuid
 
 from django.template.loader import render_to_string
-
-from djblets.util.compat import six
+from django.utils import six
 
 
 class ExtensionHook(object):
@@ -44,7 +43,7 @@ class ExtensionHook(object):
     A base ExtensionHook subclass must use :py:class:`ExtensionHookPoint`
     as a metaclass. For example::
 
-        from djblets.util.compat import six
+        from django.utils import six
 
         @six.add_metaclass(ExtensionHookPoint)
         class NavigationHook(ExtensionHook):

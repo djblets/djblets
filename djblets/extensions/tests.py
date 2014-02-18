@@ -31,6 +31,7 @@ from django.conf import settings
 from django.conf.urls import include, patterns
 from django.core.exceptions import ImproperlyConfigured
 from django.dispatch import Signal
+from django.utils import six
 from kgb import SpyAgency
 from mock import Mock
 
@@ -42,7 +43,6 @@ from djblets.extensions.manager import (_extension_managers, ExtensionManager,
 from djblets.extensions.settings import Settings
 from djblets.extensions.signals import settings_saved
 from djblets.testing.testcases import TestCase
-from djblets.util.compat import six
 
 
 class SettingsTest(TestCase):

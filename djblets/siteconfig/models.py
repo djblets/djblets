@@ -28,11 +28,11 @@ from __future__ import unicode_literals
 from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.db import models
+from django.utils import six
 from django.utils.encoding import python_2_unicode_compatible
 
 from djblets.db.fields import JSONField
 from djblets.siteconfig.managers import SiteConfigurationManager
-from djblets.util.compat import six
 
 
 _DEFAULTS = {}

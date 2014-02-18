@@ -2,12 +2,12 @@ from __future__ import unicode_literals
 
 from django import template
 from django.contrib.staticfiles.templatetags.staticfiles import static
+from django.utils import six
 from pipeline.templatetags.compressed import (CompressedCSSNode,
                                               CompressedJSNode)
 
 from djblets.extensions.hooks import TemplateHook
 from djblets.extensions.manager import get_extension_managers
-from djblets.util.compat import six
 from djblets.util.decorators import basictag
 
 

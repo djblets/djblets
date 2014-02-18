@@ -32,10 +32,10 @@ from xml.sax.saxutils import XMLGenerator
 from django.conf import settings
 from django.http import HttpResponse
 from django.utils import six
-from djblets.util.compat.six.moves.urllib.parse import quote
 from django.utils.encoding import force_unicode
+from django.utils.six.moves import cStringIO as StringIO
+from django.utils.six.moves.urllib.parse import quote
 
-from djblets.util.compat.six.moves import cStringIO as StringIO
 from djblets.util.http import (get_http_requested_mimetype,
                                get_url_params_except,
                                is_mimetype_a)
