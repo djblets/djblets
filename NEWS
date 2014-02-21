@@ -1,3 +1,109 @@
+version 0.8.0 beta 1 (20-February-2014):
+	* Compatibility:
+		* This release of Djblets should be compatible with Python 3.
+
+		* This release requires Django 1.6.2 or higher.
+
+		* Pillow is now supported as an alternative to PIL. We recommend
+		  uninstalling PIL and switching entirely to Pillow, as it's better
+		  maintained and easier to install.
+
+		* Unit tests can now be run when the source code is checked out on
+		  a Windows host but run within a Linux VM.
+
+		  Patch by Tomi Äijö.
+
+	* Internationalization:
+		* Translations can now be built on a system without an installed
+		  copy of Djblets.
+
+		  Patch by Stephen Gallagher.
+
+	* djblets.datagrid:
+		* Pagination links now include any query parameters used to generate
+		  the view of the datagrid. (Bug #1155)
+
+	* djblets.db.fields:
+		* Support updating many fields at once using CounterField.
+
+		  CounterField has two new class methods: increment_many(), and
+		  decrement_many(). Theses can take a list of fields on a model
+		  instance and update them in the same query.
+
+		* CounterField initializers can now handle their own instance updating.
+
+		  Previously, CounterField initializer functions had to return a
+		  result, which would be used in a query to update the instance.
+		  Now, they can do the update themselves (potentially using the
+		  new increment_many()) and return None to tell CounterField not
+		  to do its own update.
+
+		* CounterField now only updates the affected fields when saving
+		  the model instance.
+
+	* djblets.extensions:
+		* Extensions can now implement 'initialize' instead of '__init__'.
+
+		  Previously, Extension subclasses had to override '__init__' and call
+		  the parent function before doing any initialization work. Now, they
+		  can simply override 'initialize'. They don't need to call the parent.
+
+		* Static media bundles can now apply to specific pages.
+
+		  An 'apply_to' attribute in a static bundle definition can be set
+		  to a list of URL names that the bundle should render on. Those pages
+		  will automatically load any bundles listing that page's URL name.
+
+		* Improved JavaScript extension support.
+
+		  In previous alphas of 0.8, JavaScript extensions could be defined
+		  by filling in the `Extension.js_model_class` attribute.
+
+		  That's now been replaced by a new JSExtension class. Extensions
+		  can define a `js_extensions` attribute and set it to a list of
+		  JSExtension subclasses.
+
+		  Each subclass can define a JavaScript extension that can appear on
+		  one or more pages, by defining the `js_model_class` and `apply_to`
+		  attributes.
+
+		* Added SignalHook.
+
+		  SignalHook connects to Django signals and keeps that connection
+		  bound to the lifecycle of the extension. When the extension is
+		  disabled, the signal is automatically disconnected.
+
+		* Added DataGridColumnsHook.
+
+		  DataGridColumnsHook allows extensions to register custom columns on
+		  any datagrid.
+
+		* Simplified TemplateHook.
+
+		  TemplateHook is now simpler and faster, and potentially less buggy.
+
+		* Extension hooks can no longer be shut down twice when disabling down
+		  an extension.
+
+	* djblets.webapi:
+		* Subclasses of RootResource can now provide custom payload data.
+
+		* Fixed timestamp inconsistencies in the payloads.
+
+		  The serialized timestamps in a payload are now consistent whether
+		  they were populated from a database or from code. Previously, they
+		  would contain extra precision if populated from code that they
+		  otherwise wouldn't have if populated form the database.
+
+	* jquery.gravy.inlineEditor:
+		* Hitting Enter on an auto-completed inlineEditor now properly
+		  populates the field. (Bug #2779)
+
+		* Added a setValue() function to inlineEditor.
+
+		  Patch by Natasha Dalal.
+
+
 version 0.8.0 alpha 2 (16-January-2014):
 	* Compatibility:
 		* Made more progress toward Python 3 support.
