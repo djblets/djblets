@@ -24,7 +24,6 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import pkg_resources
 import subprocess
 import sys
 import os
@@ -48,26 +47,6 @@ if sys.hexversion < 0x02060000:
     sys.stderr.write('This version of Djblets is incompatible with your '
                      'version of Python.\n')
     sys.exit(1)
-
-
-def is_pil_installed():
-    pil_req = pkg_resources.Requirement.parse('PIL')
-    try:
-        pkg_resources.get_provider(pil_req)
-    except pkg_resources.DistributionNotFound:
-        return False
-    return True
-
-
-# If PIL is installed, use that. Otherwise prefer the newer Pillow library.
-if is_pil_installed():
-    sys.stderr.write('The "PIL" library is deprecated and support will be '
-                     'removed in a future release.\n'
-                     'To switch to "Pillow", you must first uninstall '
-                     '"PIL".\n\n')
-    image_lib = 'PIL'
-else:
-    image_lib = 'Pillow'
 
 
 class BuildEggInfo(egg_info):
@@ -158,8 +137,8 @@ setup(name=PACKAGE_NAME,
           'Django>=1.6.2,<1.7',
           'django-pipeline>=1.3.15',
           'feedparser>=5.1.2',
+          'pillowfight',
           'pytz',
-          image_lib,
       ],
       dependency_links = [
           "http://downloads.reviewboard.org/mirror/",
