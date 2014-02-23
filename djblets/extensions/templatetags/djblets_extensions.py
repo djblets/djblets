@@ -95,7 +95,7 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
 
             for bundle_name, bundle in six.iteritems(bundles):
                 if (bundle_name == 'default' or
-                    requested_url_name in bundles.get('apply_to', [])):
+                    requested_url_name in bundle.get('apply_to', [])):
                     yield renderer(context, extension, bundle_name)
 
         break
