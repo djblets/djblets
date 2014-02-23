@@ -59,7 +59,7 @@
 {%   elif column.image_class %}
     <div class="{{column.image_class}}"></div>
 {%   endif %}
-    {{column.detailed_label|default_if_none:""}}</a>
+    {{column.detailed_label_html|default_if_none:""}}</a>
    </td>
   </tr>
 {%  endwith %}

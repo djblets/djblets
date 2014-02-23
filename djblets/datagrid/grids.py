@@ -74,7 +74,7 @@ class Column(object):
     SORT_ASCENDING = 1
 
     def __init__(self, label=None, id=None, detailed_label=None,
-                 field_name=None, db_field=None,
+                 detailed_label_html=None, field_name=None, db_field=None,
                  image_url=None, image_class=None, image_width=None,
                  image_height=None, image_alt="", shrink=False, expand=False,
                  sortable=False,
@@ -88,6 +88,7 @@ class Column(object):
         self.db_field = db_field or field_name
         self.label = label
         self.detailed_label = detailed_label or self.label
+        self.detailed_label_html = detailed_label_html or self.detailed_label
         self.image_url = image_url
         self.image_class = image_class
         self.image_width = image_width
@@ -365,7 +366,8 @@ class CheckboxColumn(Column):
                 '<input class="datagrid-header-checkbox"'
                 ' type="checkbox" data-checkbox-name="%s" />'
                 % checkbox_name),
-            detailed_label=mark_safe(
+            detailed_label=detailed_label,
+            detailed_label_html=mark_safe(
                 '<input type="checkbox" /> %s'
                 % detailed_label),
             *args, **kwargs)
@@ -589,7 +591,7 @@ class DataGrid(object):
     @property
     def all_columns(self):
         """Returns all columns in the datagrid, sorted by label."""
-        return sorted(self.get_columns(), key=lambda x: x.label)
+        return sorted(self.get_columns(), key=lambda x: x.detailed_label)
 
     def load_state(self, render_context=None):
         """
