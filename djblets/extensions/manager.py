@@ -406,6 +406,9 @@ class ExtensionManager(object):
             registered_extensions[registered_ext.class_name] = registered_ext
 
         found_extensions = {}
+        found_registrations = {}
+        registrations_to_fetch = []
+        find_registrations = False
         extensions_changed = False
 
         for entrypoint in self._entrypoint_iterator():
@@ -432,16 +435,37 @@ class ExtensionManager(object):
 
             # Don't override the info if we've previously loaded this
             # class.
-            if not getattr(ext_class, "info", None):
+            if not getattr(ext_class, 'info', None):
                 ext_class.info = ExtensionInfo(entrypoint, ext_class)
 
-            # If the ext_class has a registration variable that's set, then
-            # it's already been loaded. We don't want to bother creating a
-            # new one.
-            if not hasattr(ext_class, "registration"):
-                if class_name in registered_extensions:
-                    registered_ext = registered_extensions[class_name]
-                else:
+            registered_ext = registered_extensions.get(class_name)
+
+            if registered_ext:
+                found_registrations[class_name] = registered_ext
+
+                if not hasattr(ext_class, 'registration'):
+                    find_registrations = True
+            else:
+                registrations_to_fetch.append(class_name)
+                find_registrations = True
+
+        if find_registrations:
+            if registrations_to_fetch:
+                stored_registrations = list(
+                    RegisteredExtension.objects.filter(
+                        class_name__in=registrations_to_fetch))
+
+                # Go through the list of registrations found in the database
+                # and mark them as found for later processing.
+                for registered_ext in stored_registrations:
+                    class_name = registered_ext.class_name
+                    found_registrations[class_name] = registered_ext
+
+            # Go through each registration we still need and couldn't find,
+            # and create an entry in the database. These are going to be
+            # newly discovered extensions.
+            for class_name in registrations_to_fetch:
+                if class_name not in found_registrations:
                     registered_ext, is_new = \
                         RegisteredExtension.objects.get_or_create(
                             class_name=class_name,
@@ -449,7 +473,13 @@ class ExtensionManager(object):
                                 'name': entrypoint.dist.project_name
                             })
 
-                ext_class.registration = registered_ext
+                    found_registrations[class_name] = registered_ext
+
+        # Now we have all the RegisteredExtension instances. Go through
+        # and initialize each of them.
+        for class_name, registered_ext in six.iteritems(found_registrations):
+            ext_class = found_extensions[class_name]
+            ext_class.registration = registered_ext
 
             if (ext_class.registration.enabled and
                 ext_class.id not in self._extension_instances):
