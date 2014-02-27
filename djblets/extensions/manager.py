@@ -558,6 +558,7 @@ class ExtensionManager(object):
         self._add_to_installed_apps(extension)
         self._context_processors_setting.add_list(extension.context_processors)
         self._reset_templatetags_cache()
+        ext_class.instance = extension
         extension_initialized.send(self, ext_class=extension)
 
         return extension
@@ -590,6 +591,7 @@ class ExtensionManager(object):
         extension_uninitialized.send(self, ext_class=extension)
 
         del self._extension_instances[extension.id]
+        extension.__class__.instance = None
 
     def _store_load_error(self, extension_id, err):
         """Stores and returns a load error for the extension ID."""
