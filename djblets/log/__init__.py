@@ -78,9 +78,9 @@ class TimedLogInfo(object):
 
         logging.log(self.default_level, "End: %s" % self.message,
                     request=self.request)
-        logging.log(level, "%s took %s.%s seconds" % (self.message,
-                                                       delta.seconds,
-                                                       delta.microseconds),
+        logging.log(level, '%s took %d.%06d seconds' % (self.message,
+                                                        delta.seconds,
+                                                        delta.microseconds),
                     request=self.request)
 
 
