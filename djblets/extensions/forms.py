@@ -37,5 +37,6 @@ class SettingsForm(SiteSettingsForm):
     """
     def __init__(self, extension, *args, **kwargs):
         self.extension = extension
+        self.settings = extension.settings
 
         super(SettingsForm, self).__init__(extension.settings, *args, **kwargs)
