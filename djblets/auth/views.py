@@ -28,9 +28,10 @@
 from __future__ import unicode_literals
 
 from django.contrib import auth
+from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
-from django.http import HttpResponseRedirect
+from django.views.decorators.csrf import csrf_protect
 
 from djblets.auth.forms import RegistrationForm
 from djblets.auth.util import validate_test_cookie
@@ -40,10 +41,11 @@ from djblets.auth.util import validate_test_cookie
 #    User Registration    #
 ###########################
 
+@csrf_protect
 def register(request, next_page, form_class=RegistrationForm,
              extra_context={},
              template_name="accounts/register.html"):
-    if request.POST:
+    if request.method == 'POST':
         form = form_class(data=request.POST, request=request)
         form.full_clean()
         validate_test_cookie(form, request)

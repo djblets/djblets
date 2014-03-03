@@ -29,8 +29,10 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
+from django.views.decorators.csrf import csrf_protect
 
 
+@csrf_protect
 @staff_member_required
 def extension_list(request, extension_manager,
                    template_name='extensions/extension_list.html'):
@@ -46,6 +48,7 @@ def extension_list(request, extension_manager,
         return render_to_response(template_name, RequestContext(request))
 
 
+@csrf_protect
 @staff_member_required
 def configure_extension(request, ext_class, form_class, extension_manager,
                         template_name='extensions/configure_extension.html'):

@@ -29,10 +29,12 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
+from django.views.decorators.csrf import csrf_protect
 
 from djblets.siteconfig.models import SiteConfiguration
 
 
+@csrf_protect
 @staff_member_required
 def site_settings(request, form_class,
                   template_name="siteconfig/settings.html",

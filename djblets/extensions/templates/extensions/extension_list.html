@@ -25,6 +25,7 @@
 
 <div id="content-main">
  <form id="extension-manager" method="POST" action=".">
+  {% csrf_token %}
   <input type="hidden" name="full-reload" value="1" />
 
   <ul class="actions">
