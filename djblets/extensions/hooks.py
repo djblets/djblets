@@ -185,10 +185,12 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook):
     """
     _by_name = {}
 
-    def __init__(self, extension, name, template_name=None, apply_to=[]):
+    def __init__(self, extension, name, template_name=None, apply_to=[],
+                 extra_context={}):
         super(TemplateHook, self).__init__(extension, apply_to=apply_to)
         self.name = name
         self.template_name = template_name
+        self.extra_context = extra_context
 
         if not name in self.__class__._by_name:
             self.__class__._by_name[name] = [self]
@@ -208,11 +210,23 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook):
         """
         context.push()
         context['extension'] = self.extension
+        context.update(self.get_extra_context(request, context))
+        context.update(self.extra_context)
 
         try:
             return render_to_string(self.template_name, context)
         finally:
             context.pop()
+
+    def get_extra_context(self, request, context):
+        """Returns extra context for the hook.
+
+        Subclasses can override this to provide additional context
+        dynamically beyond what's passed in to the constructor.
+
+        By default, an empty dictionary is returned.
+        """
+        return {}
 
     @classmethod
     def by_name(cls, name):
