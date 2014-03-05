@@ -36,6 +36,17 @@ STATICFILES_FINDERS = (
 STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
 
 PIPELINE_JS = {
+    'djblets-config-forms': {
+        'source_filenames': (
+            'djblets/js/configForms/base.js',
+            'djblets/js/configForms/models/listItemModel.js',
+            'djblets/js/configForms/models/listModel.js',
+            'djblets/js/configForms/views/listItemView.js',
+            'djblets/js/configForms/views/listView.js',
+            'djblets/js/configForms/views/pagesView.js',
+        ),
+        'output_filename': 'djblets/js/config-forms.min.js',
+    },
     'djblets-datagrid': {
         'source_filenames': ('djblets/js/datagrid.js',),
         'output_filename': 'djblets/js/datagrid.min.js',
@@ -79,6 +90,12 @@ PIPELINE_CSS = {
             'djblets/css/extensions.less',
         ),
         'output_filename': 'djblets/css/admin.min.css',
+    },
+    'djblets-config-forms': {
+        'source_filenames': (
+            'djblets/css/config-forms.less',
+        ),
+        'output_filename': 'rb/css/config-forms.min.css',
     },
     'djblets-datagrid': {
         'source_filenames': (
