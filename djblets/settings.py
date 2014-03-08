@@ -39,6 +39,7 @@ PIPELINE_JS = {
     'djblets-config-forms': {
         'source_filenames': (
             'djblets/js/configForms/base.js',
+            'djblets/js/configForms/collections/listItemsCollection.js',
             'djblets/js/configForms/models/listItemModel.js',
             'djblets/js/configForms/models/listModel.js',
             'djblets/js/configForms/views/listItemView.js',
