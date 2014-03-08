@@ -32,7 +32,7 @@ class ConfigPagesView(TemplateView):
     @method_decorator(csrf_protect)
     def dispatch(self, request, *args, **kwargs):
         self.pages = [
-            page_cls(request, request.user)
+            page_cls(self, request, request.user)
             for page_cls in self.page_classes
         ]
 

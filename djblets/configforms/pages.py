@@ -16,7 +16,8 @@ class ConfigPage(object):
     form_classes = None
     template_name = 'configforms/config_page.html'
 
-    def __init__(self, request, user):
+    def __init__(self, config_view, request, user):
+        self.config_view = config_view
         self.request = request
         self.forms = [
             form_cls(self, request, user)
