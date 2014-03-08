@@ -27,6 +27,9 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      */
     initialize: function() {
         this.model.on('actionsChanged', this.render, this);
+
+        this.$spinnerParent = null;
+        this.$spinner = null;
     },
 
     /* Renders the view.
@@ -54,6 +57,50 @@ Djblets.Config.ListItemView = Backbone.View.extend({
     },
 
     /*
+     * Displays a spinner on the item.
+     *
+     * This can be used to show that the item is being loaded from the
+     * server.
+     */
+    showSpinner: function() {
+        if (this.$spinner) {
+            return;
+        }
+
+        this.$spinner = $('<span/>')
+            .addClass('config-forms-list-item-spinner')
+            .appendTo(this.$spinnerParent)
+            .hide()
+            .css('visibility', 'visible')
+            .fadeIn();
+    },
+
+    /*
+     * Hides the currently visible spinner.
+     */
+    hideSpinner: function() {
+        if (!this.$spinner) {
+            return;
+        }
+
+        /*
+         * The slow fadeout does two things:
+         *
+         * 1) It prevents the spinner from disappearing too quickly
+         *    (in combination with the fadeIn above), in case the operation
+         *    is really fast, giving some feedback that something actually
+         *    happened.
+         *
+         * 2) By fading out, it doesn't look like it just simply stops.
+         *    Helps provide a sense of completion.
+         */
+        this.$spinner.fadeOut('slow', _.bind(function() {
+            this.$spinner.remove();
+            this.$spinner = null;
+        }, this));
+    },
+
+    /*
      * Adds all registered actions to the view.
      */
     addActions: function($parentEl) {
@@ -75,6 +122,8 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                 }, this));
             }
         }, this);
+
+        this.$spinnerParent = $parentEl;
     },
 
     /*
