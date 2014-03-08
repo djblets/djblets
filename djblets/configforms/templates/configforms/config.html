@@ -63,33 +63,40 @@
 
 <script>
     $(document).ready(function() {
-        var pageView = new {{js_view_class}}({
-                el: $('#{{pages_id}}')
-            }),
+        var config,
+            configView,
             formView;
+
+{%  if js_model_class %}
+        config = new {{js_model_class}}({{js_model_data|json_dumps}});
+{%  endif %}
+
+        configView = new {{js_view_class}}({
+            {{js_view_data|json_dumps_items:','}}
+            model: config,
+            el: $('#{{pages_id}}')
+        });
 
 {%  spaceless %}
 {%   for form in forms %}
 {%    if form.js_view_class %}
         formView = new {{form.js_view_class}}({
-{%     for key, value in form.get_js_view_data.items %}
-            {{key|json_dumps}}: {{value|json_dumps}},
-{%     endfor %}
+            {{form.get_js_view_data|json_dumps_items:','}}
 {%     if form.js_model_class %}
             model: new {{form.js_model_class}}({
-{%      for key, value in form.get_js_model_data.items %}
-            {{key|json_dumps}}: {{value|json_dumps}}{% if not forloop.last %},{% endif %}
-{%      endfor %}
+                {{form.get_js_model_data|json_dumps_items:','}}
+                config: config
             },
 {%     endif %}
-            el: $('#form_{{form.form_id}}')
+            el: $('#form_{{form.form_id}}'),
+            configView: configView
         });
         formView.render()
 {%    endif %}
 {%   endfor %}
 {%  endspaceless %}
 
-        pageView.render();
+        configView.render();
     });
 </script>
 {% endblock scripts-post %}

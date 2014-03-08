@@ -24,6 +24,7 @@ class ConfigPagesView(TemplateView):
     css_bundle_names = []
     js_bundle_names = []
 
+    js_model_class = None
     js_view_class = 'Djblets.Config.PagesView'
 
     http_method_names = ['get', 'post']
@@ -74,7 +75,7 @@ class ConfigPagesView(TemplateView):
 
         return super(ConfigPagesView, self).dispatch(request, *args, **kwargs)
 
-    def get_context_data(self):
+    def get_context_data(self, **kwargs):
         return {
             'page_title': self.title,
             'nav_title': self.nav_title or self.title,
@@ -82,6 +83,25 @@ class ConfigPagesView(TemplateView):
             'pages': self.pages,
             'css_bundle_names': self.css_bundle_names,
             'js_bundle_names': self.js_bundle_names,
+            'js_model_class': self.js_model_class,
             'js_view_class': self.js_view_class,
+            'js_model_data': self.get_js_model_data(),
+            'js_view_data': self.get_js_view_data(),
             'forms': self.forms,
         }
+
+    def get_js_view_data(self):
+        """Returns custom options to pass to the JavaScript view.
+
+        By default, this will return an empty dictionary. Subclasses can
+        override to provide custom data.
+        """
+        return {}
+
+    def get_js_model_data(self):
+        """Returns custom attributes to pass to the JavaScript model.
+
+        By default, this will return an empty dictionary. Subclasses can
+        override to provide custom data.
+        """
+        return {}

@@ -76,3 +76,22 @@ def json_dumps(value, indent=None):
         result = json.dumps(value, indent=indent, cls=DjbletsJSONEncoder)
 
     return mark_safe(result)
+
+
+@register.filter
+def json_dumps_items(d, append=''):
+    """Dumps a list of keys/values from a dictionary, without braces.
+
+    This works very much like ``json_dumps``, but doesn't output the
+    surrounding braces. This allows it to be used within a JavaScript
+    object definition alongside other custom keys.
+
+    If the dictionary is not empty, and ``append`` is passed, it will be
+    appended onto the results. This is most useful when you want to append
+    a comma after all the dictionary items, in order to provide further
+    keys in the template.
+    """
+    if not d:
+        return ''
+
+    return mark_safe(json_dumps(d)[1:-1] + append)
