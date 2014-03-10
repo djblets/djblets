@@ -133,6 +133,12 @@ class WebAPIResource(object):
     ``serialize_<fieldname>_field``. These functions take the object being
     serialized and must return a value that can be fed to the encoder.
 
+    By default, resources will not necessarily serialize the objects in their
+    own payloads. Instead, they will look up the registered resource instance
+    for the model using ``get_resource_for_object``, and serialize with that.
+    A resource can override that logic for its own payloads by providing
+    a custom ``get_serializer_for_object`` method.
+
 
     Handling Requests
     -----------------
@@ -781,9 +787,10 @@ class WebAPIResource(object):
                 request,
                 queryset=queryset,
                 results_key=self.list_result_key,
-                serialize_object_func =
-                    lambda obj: get_resource_for_object(obj).serialize_object(
-                        obj, request=request, *args, **kwargs),
+                serialize_object_func=
+                    lambda obj:
+                        self.get_serializer_for_object(obj).serialize_object(
+                            obj, request=request, *args, **kwargs),
                 extra_data=data,
                 **self.build_response_args(request))
         else:
@@ -951,7 +958,7 @@ class WebAPIResource(object):
             expand_field = field in expanded_resources
 
             if isinstance(value, models.Model) and not expand_field:
-                resource = get_resource_for_object(value)
+                resource = self.get_serializer_for_object(value)
                 assert resource
 
                 data['links'][field] = {
@@ -963,7 +970,7 @@ class WebAPIResource(object):
                 data[field] = [
                     {
                         'method': 'GET',
-                        'href': get_resource_for_object(o).get_href(
+                        'href': self.get_serializer_for_object(o).get_href(
                                      o, *args, **kwargs),
                         'title': six.text_type(o),
                     }
@@ -995,12 +1002,25 @@ class WebAPIResource(object):
                 self.uri_object_key: getattr(obj, self.model_object_key),
             }
             extra_kwargs.update(**kwargs)
-            extra_kwargs.update(self.get_href_parent_ids(obj))
+            extra_kwargs.update(self.get_href_parent_ids(obj, **kwargs))
 
             data[resource_name] = resource._get_queryset(
                 is_list=True, *args, **extra_kwargs)
 
         return data
+
+    def get_serializer_for_object(self, obj):
+        """Returns the serializer used to serialize an object.
+
+        This is called when serializing objects for payloads returned
+        by this resource instance. It must return the resource instance
+        that will be responsible for serializing the given object for the
+        payload.
+
+        By default, this calls ``get_resource_for_object`` to find the
+        appropriate resource.
+        """
+        return get_resource_for_object(obj)
 
     def get_links(self, resources=[], obj=None, request=None,
                   *args, **kwargs):
@@ -1096,12 +1116,12 @@ class WebAPIResource(object):
         href_kwargs = {
             self.uri_object_key: getattr(obj, self.model_object_key),
         }
-        href_kwargs.update(self.get_href_parent_ids(obj))
+        href_kwargs.update(self.get_href_parent_ids(obj, **kwargs))
 
         return request.build_absolute_uri(
             reverse(self._build_named_url(self.name), kwargs=href_kwargs))
 
-    def get_href_parent_ids(self, obj):
+    def get_href_parent_ids(self, obj, **kwargs):
         """Returns a dictionary mapping parent object keys to their values for
         an object.
         """
