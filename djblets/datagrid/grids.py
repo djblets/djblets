@@ -114,6 +114,13 @@ class Column(object):
         """
         pass
 
+    def get_sort_field(self, state):
+        """Returns the field used for sorting this column.
+
+        By default, this uses the provided db_field.
+        """
+        return self.db_field
+
     def get_toggle_url(self, state):
         """
         Returns the URL of the current page with this column's visibility
@@ -851,14 +858,15 @@ class DataGrid(object):
                     self.get_column(base_sort_item))
 
                 if column:
-                    sort_list.append(prefix + column.db_field)
+                    sort_field = column.get_sort_field()
+                    sort_list.append(prefix + sort_field)
 
                     # Lookups spanning tables require that we query from those
                     # tables. In order to keep things simple, we'll just use
                     # select_related so that we don't have to figure out the
                     # table relationships. We only do this if we have a lookup
                     # spanning tables.
-                    if '.' in column.db_field:
+                    if '.' in sort_field:
                         use_select_related = True
 
         if sort_list:
