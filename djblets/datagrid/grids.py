@@ -41,6 +41,7 @@ from django.template.defaultfilters import date, timesince
 from django.template.loader import render_to_string, get_template
 from django.utils import six
 from django.utils.cache import patch_cache_control
+from django.utils.functional import cached_property
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
@@ -53,8 +54,7 @@ _column_registry = {}
 
 
 class Column(object):
-    """
-    A column in a data grid.
+    """A column in a data grid.
 
     The column is the primary component of the data grid. It is used to
     display not only the column header but the HTML for the cell as well.
@@ -83,7 +83,6 @@ class Column(object):
         assert not (image_class and image_url)
 
         self.id = id
-        self.datagrid = None
         self.field_name = field_name
         self.db_field = db_field or field_name
         self.label = label
@@ -100,28 +99,29 @@ class Column(object):
         self.default_sort_dir = default_sort_dir
         self.cell_clickable = False
         self.link = link
-        self.link_func = (link_func or
-                          (lambda x, y: self.datagrid.link_to_object(x, y)))
+        self.link_func = (
+            link_func or
+            (lambda state, x, y: state.datagrid.link_to_object(state, x, y)))
         self.css_class = css_class
 
-        self.reset()
+    def setup_state(self, state):
+        """Sets up any state that may be needed for the column.
 
-    def reset(self):
-        # State
-        self.active = False
-        self.last = False
-        self.width = 0
-        self.data_cache = {}
-        self.cell_render_cache = {}
+        This is called once per column per datagrid instance.
 
-    def get_toggle_url(self):
+        By default, no additional state is set up. Subclasses can override
+        this to set any variables they may need.
+        """
+        pass
+
+    def get_toggle_url(self, state):
         """
         Returns the URL of the current page with this column's visibility
         toggled.
         """
-        columns = [column.id for column in self.datagrid.columns]
+        columns = [column.id for column in state.datagrid.columns]
 
-        if self.active:
+        if state.active:
             try:
                 columns.remove(self.id)
             except ValueError:
@@ -129,15 +129,14 @@ class Column(object):
         else:
             columns.append(self.id)
 
-        url_params = get_url_params_except(self.datagrid.request.GET,
+        url_params = get_url_params_except(state.datagrid.request.GET,
                                            'columns')
         if url_params:
             url_params = url_params + '&'
 
         return "?%scolumns=%s" % (url_params, ",".join(columns))
-    toggle_url = property(get_toggle_url)
 
-    def get_header(self):
+    def get_header(self, state):
         """
         Displays a sortable column header.
 
@@ -145,6 +144,7 @@ class Column(object):
         belongs in the sort list. It will also be made clickable in order
         to modify the sort order appropriately, if sortable.
         """
+        datagrid = state.datagrid
         in_sort = False
         sort_direction = self.SORT_DESCENDING
         sort_primary = False
@@ -152,7 +152,7 @@ class Column(object):
         unsort_url = ""
 
         if self.sortable:
-            sort_list = list(self.datagrid.sort_list)
+            sort_list = list(datagrid.sort_list)
 
             if sort_list:
                 rev_column_id = "-%s" % self.id
@@ -197,7 +197,7 @@ class Column(object):
             del(sort_list[2:])
 
             url_params = get_url_params_except(
-                self.datagrid.request.GET,
+                datagrid.request.GET,
                 "sort", "datagrid-id", "gridonly", "columns")
             if url_params:
                 url_params = url_params + '&'
@@ -206,12 +206,9 @@ class Column(object):
             unsort_url = url_prefix + ','.join(sort_list[1:])
             sort_url   = url_prefix + ','.join(sort_list)
 
-        if not self.datagrid.column_header_template_obj:
-            self.datagrid.column_header_template_obj = \
-                get_template(self.datagrid.column_header_template)
-
         ctx = Context({
             'column': self,
+            'column_state': state,
             'in_sort': in_sort,
             'sort_ascending': sort_direction == self.SORT_ASCENDING,
             'sort_primary': sort_primary,
@@ -219,10 +216,9 @@ class Column(object):
             'unsort_url': unsort_url,
         })
 
-        return mark_safe(self.datagrid.column_header_template_obj.render(ctx))
-    header = property(get_header)
+        return mark_safe(datagrid.column_header_template_obj.render(ctx))
 
-    def collect_objects(self, object_list):
+    def collect_objects(self, state, object_list):
         """Iterates through the objects and builds a cache of data to display.
 
         This optimizes the fetching of data in the grid by grabbing all the
@@ -251,17 +247,18 @@ class Column(object):
 
         if model:
             for obj in model.objects.filter(pk__in=ids):
-                self.data_cache[obj.pk] = obj
+                state.data_cache[obj.pk] = obj
 
-    def render_cell(self, obj, render_context):
+    def render_cell(self, state, obj, render_context):
         """Renders the table cell containing column data."""
-        rendered_data = self.render_data(obj)
+        datagrid = state.datagrid
+        rendered_data = self.render_data(state, obj)
         url = ''
         css_class = ''
 
         if self.link:
             try:
-                url = self.link_func(obj, rendered_data)
+                url = self.link_func(state, obj, rendered_data)
             except AttributeError:
                 pass
 
@@ -271,35 +268,24 @@ class Column(object):
             else:
                 css_class = self.css_class
 
-        key = "%s:%s:%s:%s" % (self.last, rendered_data, url, css_class)
+        key = "%s:%s:%s:%s" % (state.last, rendered_data, url, css_class)
 
-        if key not in self.cell_render_cache:
-            if not self.datagrid.cell_template_obj:
-                self.datagrid.cell_template_obj = \
-                    get_template(self.datagrid.cell_template)
-
-                if not self.datagrid.cell_template_obj:
-                    logging.error("Unable to load template '%s' for datagrid "
-                                  "cell. This may be an installation issue." %
-                                  self.datagrid.cell_template,
-                                  extra={
-                                      'request': self.datagrid.request,
-                                  })
-
+        if key not in state.cell_render_cache:
             ctx = Context(render_context)
             ctx.update({
                 'column': self,
+                'column_state': state,
                 'css_class': css_class,
                 'url': url,
                 'data': mark_safe(rendered_data)
             })
 
-            self.cell_render_cache[key] = \
-                mark_safe(self.datagrid.cell_template_obj.render(ctx))
+            state.cell_render_cache[key] = \
+                mark_safe(datagrid.cell_template_obj.render(ctx))
 
-        return self.cell_render_cache[key]
+        return state.cell_render_cache[key]
 
-    def render_data(self, obj):
+    def render_data(self, state, obj):
         """Renders the column data to a string. This may contain HTML."""
         id_field = '%s_id' % self.field_name
 
@@ -308,11 +294,11 @@ class Column(object):
         if id_field in obj.__dict__:
             pk = obj.__dict__[id_field]
 
-            if pk in self.data_cache:
-                return self.data_cache[pk]
+            if pk in state.data_cache:
+                return state.data_cache[pk]
             else:
                 value = getattr(obj, self.field_name)
-                self.data_cache[pk] = escape(value)
+                state.data_cache[pk] = escape(value)
                 return value
         else:
             # Follow . separators like in the django template library
@@ -326,7 +312,7 @@ class Column(object):
 
             return escape(value)
 
-    def augment_queryset(self, queryset):
+    def augment_queryset(self, state, queryset):
         """Augments a queryset with new queries.
 
         Subclasses can override this to extend the queryset to provide
@@ -338,6 +324,72 @@ class Column(object):
         queryset.
         """
         return queryset
+
+
+class StatefulColumn(object):
+    """A stateful wrapper for a Column instance.
+
+    Columns must be stateless, as they are shared across all instances of
+    a particular DataGrid. However, some state is needed for columns, such
+    as their widths or active status.
+
+    StatefulColumn wraps a Column instance and provides state storage,
+    and also provides a convenient way to call methods on a Column and pass
+    the state.
+
+    Attributes owned by the Column can be accessed directly through the
+    StatefulColumn.
+
+    Likewise, any functions owned by the Column can be accessed as well.
+    The function will be invoked with this StatefulColumn as the first
+    parameter passed.
+    """
+    def __init__(self, datagrid, column):
+        self.datagrid = datagrid
+        self.column = column
+        self.active = False
+        self.last = False
+        self.width = 0
+        self.data_cache = {}
+        self.cell_render_cache = {}
+
+        column.setup_state(self)
+
+    @property
+    def toggle_url(self):
+        """Returns the visibility toggle URL of the column.
+
+        This is a convenience used by templates to call Column.get_toggle_url
+        with the current state.
+        """
+        return self.column.get_toggle_url(self)
+
+    @property
+    def header(self):
+        """Returns the header of the column.
+
+        This is a convenience used by templates to call Column.get_header
+        with the current state.
+        """
+        return self.column.get_header(self)
+
+    def __getattr__(self, name):
+        """Returns an attribute from the parent Column.
+
+        This is called when accessing an attribute not found directly on
+        StatefulColumn. The attribute will be fetched from the Column
+        (if it exists there).
+
+        In the case of accessing a function, a wrapper will be returned
+        that will automatically pass this StatefulColumn instance as the
+        first parameter.
+        """
+        result = getattr(self.column, name)
+
+        if callable(result):
+            return lambda *args, **kwargs: result(self, *args, **kwargs)
+
+        return result
 
 
 class CheckboxColumn(Column):
@@ -375,11 +427,11 @@ class CheckboxColumn(Column):
         self.show_checkbox_header = show_checkbox_header
         self.checkbox_name = checkbox_name
 
-    def render_data(self, obj):
-        if self.is_selectable(obj):
+    def render_data(self, state, obj):
+        if self.is_selectable(state, obj):
             checked = ''
 
-            if self.is_selected(obj):
+            if self.is_selected(state, obj):
                 checked = 'checked="true"'
 
             return ('<input type="checkbox" data-object-id="%s" '
@@ -388,14 +440,14 @@ class CheckboxColumn(Column):
         else:
             return ''
 
-    def is_selectable(self, obj):
+    def is_selectable(self, state, obj):
         """Returns whether an object can be selected.
 
         If this returns False, no checkbox will be rendered for this item.
         """
         return True
 
-    def is_selected(self, obj):
+    def is_selected(self, state, obj):
         """Returns whether an object has been selected.
 
         If this returns True, the checkbox will be checked.
@@ -407,11 +459,12 @@ class DateTimeColumn(Column):
     """A column that renders a date or time."""
     def __init__(self, label, format=None, sortable=True,
                  timezone=pytz.utc, *args, **kwargs):
-        Column.__init__(self, label, sortable=sortable, *args, **kwargs)
+        super(DateTimeColumn, self).__init__(label, sortable=sortable,
+                                             *args, **kwargs)
         self.format = format
         self.timezone = timezone
 
-    def render_data(self, obj):
+    def render_data(self, state, obj):
         # If the datetime object is tz aware, conver it to local time
         datetime = getattr(obj, self.field_name)
         if settings.USE_TZ:
@@ -425,9 +478,10 @@ class DateTimeSinceColumn(Column):
     """A column that renders a date or time relative to now."""
     def __init__(self, label, sortable=True, timezone=pytz.utc,
                  *args, **kwargs):
-        Column.__init__(self, label, sortable=sortable, *args, **kwargs)
+        super(DateTimeSinceColumn, self).__init__(label, sortable=sortable,
+                                                  *args, **kwargs)
 
-    def render_data(self, obj):
+    def render_data(self, state, obj):
         return _("%s ago") % timesince(getattr(obj, self.field_name))
 
 
@@ -555,6 +609,7 @@ class DataGrid(object):
         self.queryset = queryset
         self.rows = []
         self.columns = []
+        self.column_map = {}
         self.id_list = []
         self.paginator = None
         self.page = None
@@ -564,8 +619,6 @@ class DataGrid(object):
         self.id = None
         self.extra_context = dict(extra_context)
         self.optimize_sorts = optimize_sorts
-        self.cell_template_obj = None
-        self.column_header_template_obj = None
 
         if not hasattr(request, "datagrid_count"):
             request.datagrid_count = 0
@@ -583,15 +636,53 @@ class DataGrid(object):
         self.column_header_template = 'datagrid/column_header.html'
         self.cell_template = 'datagrid/cell.html'
 
-        for column in self.get_columns():
-            # Reset the column.
-            column.reset()
-            column.datagrid = self
+    @cached_property
+    def cell_template_obj(self):
+        obj = get_template(self.cell_template)
+
+        if not obj:
+            logging.error("Unable to load template '%s' for datagrid "
+                          "cell. This may be an installation issue.",
+                          self.cell_template,
+                          extra={
+                              'request': self.request,
+                          })
+
+        return obj
+
+    @cached_property
+    def column_header_template_obj(self):
+        obj = get_template(self.column_header_template)
+
+        if not obj:
+            logging.error("Unable to load template '%s' for datagrid "
+                          "column headers. This may be an installation "
+                          "issue.",
+                          self.column_header_template,
+                          extra={
+                              'request': self.request,
+                          })
+
+        return obj
 
     @property
     def all_columns(self):
         """Returns all columns in the datagrid, sorted by label."""
-        return sorted(self.get_columns(), key=lambda x: x.detailed_label)
+        return [
+            self.get_stateful_column(column)
+            for column in sorted(self.get_columns(),
+                                 key=lambda x: x.detailed_label)
+        ]
+
+    def get_stateful_column(self, column):
+        """Returns a StatefulColumn for the given Column instance.
+
+        If one has already been created, it will be returned.
+        """
+        if column not in self.column_map:
+            self.column_map[column] = StatefulColumn(self, column)
+
+        return self.column_map[column]
 
     def load_state(self, render_context=None):
         """
@@ -644,12 +735,13 @@ class DataGrid(object):
         normal_columns = []
 
         for colname in colnames:
-            column = self.get_column(colname)
+            column_def = self.get_column(colname)
 
-            if not column:
+            if not column_def:
                 # The user specified a column that doesn't exist. Skip it.
                 continue
 
+            column = self.get_stateful_column(column_def)
             self.columns.append(column)
             column.active = True
 
@@ -755,7 +847,8 @@ class DataGrid(object):
                 prefix = ""
 
             if sort_item:
-                column = self.get_column(base_sort_item)
+                column = self.get_stateful_column(
+                    self.get_column(base_sort_item))
 
                 if column:
                     sort_list.append(prefix + column.db_field)
@@ -951,9 +1044,9 @@ class DataGrid(object):
         return render_context
 
     @staticmethod
-    def link_to_object(obj, value):
+    def link_to_object(state, obj, value):
         return obj.get_absolute_url()
 
     @staticmethod
-    def link_to_value(obj, value):
+    def link_to_value(state, obj, value):
         return value.get_absolute_url()

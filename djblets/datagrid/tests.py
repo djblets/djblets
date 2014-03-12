@@ -31,7 +31,8 @@ from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.http import HttpRequest
 
-from djblets.datagrid.grids import Column, DataGrid, DateTimeSinceColumn
+from djblets.datagrid.grids import (Column, DataGrid, DateTimeSinceColumn,
+                                    StatefulColumn)
 from djblets.testing.testcases import TestCase
 from djblets.util.dates import get_tz_aware_utcnow
 
@@ -59,6 +60,8 @@ class ColumnsTest(TestCase):
             time = None
 
         column = DateTimeSinceColumn("Test", field_name='time')
+        state = StatefulColumn(None, column)
+
         if settings.USE_TZ:
             now = get_tz_aware_utcnow()
         else:
@@ -66,13 +69,13 @@ class ColumnsTest(TestCase):
 
         obj = DummyObj()
         obj.time = now
-        self.assertEqual(column.render_data(obj), "0\xa0minutes ago")
+        self.assertEqual(column.render_data(state, obj), "0\xa0minutes ago")
 
         obj.time = now - timedelta(days=5)
-        self.assertEqual(column.render_data(obj), "5\xa0days ago")
+        self.assertEqual(column.render_data(state, obj), "5\xa0days ago")
 
         obj.time = now - timedelta(days=7)
-        self.assertEqual(column.render_data(obj), "1\xa0week ago")
+        self.assertEqual(column.render_data(state, obj), "1\xa0week ago")
 
 
 class DataGridTest(TestCase):
