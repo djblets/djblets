@@ -96,7 +96,7 @@ PIPELINE_CSS = {
         'source_filenames': (
             'djblets/css/config-forms.less',
         ),
-        'output_filename': 'rb/css/config-forms.min.css',
+        'output_filename': 'djblets/css/config-forms.min.css',
     },
     'djblets-datagrid': {
         'source_filenames': (
