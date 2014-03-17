@@ -137,14 +137,33 @@ class PackagingStorage(PipelineFinderStorage):
                 files = finder.list([])
 
             for path, storage in files:
-                prefix = getattr(storage, 'prefix', None)
-                matched_path = self.match_location(name, path, prefix)
+                matched_path = self._match_location(
+                    name,
+                    path,
+                    getattr(storage, 'prefix', None))
 
                 if matched_path:
                     return matched_path, storage
 
         raise ValueError("The file '%s' could not be found with %r."
                          % (name, self))
+
+    def _match_location(self, name, path, prefix=None):
+        if prefix:
+            if prefix != name[:len(prefix)]:
+                return None
+
+            prefix = '%s%s' % (prefix, os.sep)
+            name = name[len(prefix):]
+
+        norm_path = os.path.normpath(path)
+        norm_name = os.path.normpath(name)
+
+        if (norm_path == norm_name or
+            os.path.splitext(norm_path)[0] == os.path.splitext(norm_name)[0]):
+            return name
+
+        return None
 
 
 class PackagingFinder(FileSystemFinder):
