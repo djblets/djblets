@@ -152,10 +152,14 @@ class BuildStaticFiles(Command):
         # source tree. We're going to use it to look up static files for
         # input, and as a relative path within the module for the output.
         module_dir = os.path.dirname(inspect.getmodule(extension).__file__)
+        static_dir = os.path.join(module_dir, 'static')
+
+        if not os.path.exists(static_dir):
+            # This extension doesn't define any static files.
+            return
 
         from djblets.extensions.staticfiles import PackagingFinder
-        PackagingFinder.extension_static_dir = \
-            os.path.join(module_dir, 'static')
+        PackagingFinder.extension_static_dir = static_dir
 
         settings.STATICFILES_DIRS = list(settings.STATICFILES_DIRS) + [
             PackagingFinder.extension_static_dir
