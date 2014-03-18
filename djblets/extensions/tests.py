@@ -202,13 +202,16 @@ class ExtensionInfoTest(TestCase):
         test_home_page = 'http://www.example.com'
         test_license = 'Test License MIT GPL Apache Drivers'
         test_module_name = 'testextension.dummy.dummy'
+        test_extension_id = '%s:DummyExtension' % test_module_name
         test_module_to_app = 'testextension.dummy'
         test_project_name = 'TestProjectName'
         test_summary = 'Test summary lorem ipsum'
         test_version = '1.0'
 
-        test_htdocs_path = os.path.join(settings.EXTENSIONS_STATIC_ROOT,
+        test_htdocs_path = os.path.join(settings.MEDIA_ROOT, 'ext',
                                         test_project_name)
+        test_static_path = os.path.join(settings.STATIC_ROOT, 'ext',
+                                        test_extension_id)
 
         test_metadata = {
             'Name': test_project_name,
@@ -232,6 +235,7 @@ class ExtensionInfoTest(TestCase):
 
         ext_class = Mock()
         ext_class.__module__ = test_module_name
+        ext_class.id = test_extension_id
         ext_class.metadata = None
         extension_info = ExtensionInfo(entrypoint, ext_class)
 
@@ -240,7 +244,10 @@ class ExtensionInfoTest(TestCase):
         self.assertEqual(extension_info.author_email, test_email)
         self.assertEqual(extension_info.description, test_description)
         self.assertFalse(extension_info.enabled)
-        self.assertEqual(extension_info.installed_htdocs_path, test_htdocs_path)
+        self.assertEqual(extension_info.installed_htdocs_path,
+                         test_htdocs_path)
+        self.assertEqual(extension_info.installed_static_path,
+                         test_static_path)
         self.assertFalse(extension_info.installed)
         self.assertEqual(extension_info.license, test_license)
         self.assertEqual(extension_info.metadata, test_metadata)
@@ -265,7 +272,7 @@ class ExtensionInfoTest(TestCase):
         test_summary = 'Test summary lorem ipsum'
         test_version = '1.0'
 
-        test_htdocs_path = os.path.join(settings.EXTENSIONS_STATIC_ROOT,
+        test_htdocs_path = os.path.join(settings.MEDIA_ROOT, 'ext',
                                         'Dummy')
 
         test_metadata = {
@@ -392,9 +399,6 @@ class ExtensionManagerTest(TestCase):
         self.test_summary = 'Test summary lorem ipsum'
         self.test_version = '1.0'
 
-        self.test_htdocs_path = os.path.join(settings.EXTENSIONS_STATIC_ROOT,
-                                             self.test_project_name)
-
         self.test_metadata = {
             'Name': self.test_project_name,
             'Version': self.test_version,
@@ -482,7 +486,7 @@ class ExtensionManagerTest(TestCase):
 
         self.assertIn('output_filename', css_bundle)
         self.assertEqual(css_bundle['output_filename'],
-                         '%s/css/default.min.css' % extension.id)
+                         'ext/%s/css/default.min.css' % extension.id)
 
         self.assertIn('source_filenames', js_bundle)
         self.assertEqual(js_bundle['source_filenames'],
@@ -490,7 +494,7 @@ class ExtensionManagerTest(TestCase):
 
         self.assertIn('output_filename', js_bundle)
         self.assertEqual(js_bundle['output_filename'],
-                         '%s/js/default.min.js' % extension.id)
+                         'ext/%s/js/default.min.js' % extension.id)
 
     def test_disable_unregisters_static_bundles(self):
         """Testing ExtensionManager unregisters static bundles when disabling extension"""

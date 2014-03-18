@@ -646,8 +646,13 @@ class ExtensionManager(object):
         """Installs extension data.
 
         Performs any installation necessary for an extension.
-        This will install the contents of htdocs into the
-        EXTENSIONS_STATIC_ROOT directory.
+
+        If the extension has a legacy htdocs/ directory for static media
+        files, they will be installed into MEDIA_ROOT/ext/, and a warning
+        will be logged.
+
+        If the extension has a modern static/ directory, they will be
+        installed into STATIC_ROOT/ext/.
         """
         ext_htdocs_path = ext_class.info.installed_htdocs_path
         ext_htdocs_path_exists = os.path.exists(ext_htdocs_path)
@@ -744,8 +749,9 @@ class ExtensionManager(object):
         """Uninstalls extension data.
 
         Performs any uninstallation necessary for an extension.
-        This will uninstall the contents of
-        EXTENSIONS_STATIC_ROOT/extension-name/.
+
+        This will uninstall the contents of MEDIA_ROOT/ext/ and
+        STATIC_ROOT/ext/.
         """
         for path in (extension.info.installed_htdocs_path,
                      extension.info.installed_static_path):
@@ -796,7 +802,7 @@ class ExtensionManager(object):
         ID for the static file lookups.
         """
         def _add_prefix(filename):
-            return '%s/%s' % (extension.id, filename)
+            return 'ext/%s/%s' % (extension.id, filename)
 
         def _add_bundles(pipeline_bundles, extension_bundles, default_dir,
                          ext):
@@ -804,7 +810,7 @@ class ExtensionManager(object):
                 new_bundle = bundle.copy()
 
                 new_bundle['source_filenames'] = [
-                    'ext/%s' % _add_prefix(filename)
+                    _add_prefix(filename)
                     for filename in bundle.get('source_filenames', [])
                 ]
 

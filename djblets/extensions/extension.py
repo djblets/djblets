@@ -36,11 +36,6 @@ from django.utils.encoding import python_2_unicode_compatible
 from djblets.extensions.settings import Settings
 
 
-if not hasattr(settings, "EXTENSIONS_STATIC_ROOT"):
-    raise ImproperlyConfigured(
-        "settings.EXTENSIONS_STATIC_ROOT must be defined")
-
-
 class JSExtension(object):
     """Base class for a JavaScript extension.
 
@@ -310,7 +305,7 @@ class ExtensionInfo(object):
         self.is_configurable = ext_class.is_configurable
         self.has_admin_site = ext_class.has_admin_site
         self.installed_htdocs_path = \
-            os.path.join(settings.EXTENSIONS_STATIC_ROOT, self.package_name)
+            os.path.join(settings.MEDIA_ROOT, 'ext', self.package_name)
         self.installed_static_path = \
             os.path.join(settings.STATIC_ROOT, 'ext', ext_class.id)
 

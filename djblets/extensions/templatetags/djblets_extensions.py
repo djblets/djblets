@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import logging
+
 from django import template
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.utils import six
@@ -44,14 +46,24 @@ def ext_static(context, extension, path):
     return static('ext/%s/%s' % (extension.id, path))
 
 
+def _render_bundle(context, node_cls, extension, name, bundle_type):
+    try:
+        return node_cls('"%s"' % extension.get_bundle_id(name)).render(context)
+    except Exception as e:
+        logging.critical("Unable to load %s bundle '%s' for "
+                         "extension '%s' (%s): %s",
+                         bundle_type, name, extension.info.name,
+                         extension.id, e, exc_info=1)
+        return ''
+
+
 def _render_css_bundle(context, extension, name):
-    return CompressedCSSNode(
-        '"%s"' % extension.get_bundle_id(name)).render(context)
+    return _render_bundle(context, CompressedCSSNode, extension, name, 'CSS')
 
 
 def _render_js_bundle(context, extension, name):
-    return CompressedJSNode(
-        '"%s"' % extension.get_bundle_id(name)).render(context)
+    return _render_bundle(context, CompressedJSNode, extension, name,
+                          'JavaScript')
 
 
 @register.tag
