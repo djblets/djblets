@@ -12,10 +12,12 @@ from djblets.extensions.models import RegisteredExtension
 from djblets.urls.resolvers import DynamicURLResolver
 from djblets.webapi.decorators import (webapi_login_required,
                                        webapi_permission_required,
-                                       webapi_request_fields)
+                                       webapi_request_fields,
+                                       webapi_response_errors)
 from djblets.webapi.errors import (DOES_NOT_EXIST,
                                    ENABLE_EXTENSION_FAILED,
-                                   DISABLE_EXTENSION_FAILED)
+                                   DISABLE_EXTENSION_FAILED,
+                                   PERMISSION_DENIED)
 from djblets.webapi.resources import WebAPIResource
 
 
@@ -140,6 +142,7 @@ class ExtensionResource(WebAPIResource):
 
         return extension.extension_class.info.version
 
+    @webapi_response_errors(DOES_NOT_EXIST, PERMISSION_DENIED)
     @webapi_login_required
     def get_list(self, request, *args, **kwargs):
         """Returns the list of known extensions.
@@ -179,6 +182,8 @@ class ExtensionResource(WebAPIResource):
 
     @webapi_login_required
     @webapi_permission_required('extensions.change_registeredextension')
+    @webapi_response_errors(PERMISSION_DENIED, DOES_NOT_EXIST,
+                            ENABLE_EXTENSION_FAILED, DISABLE_EXTENSION_FAILED)
     @webapi_request_fields(
         required={
             'enabled': {
