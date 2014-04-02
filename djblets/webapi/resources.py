@@ -702,10 +702,7 @@ class WebAPIResource(object):
             return DOES_NOT_EXIST
 
         if not self.has_access_permissions(request, obj, *args, **kwargs):
-            if request.user.is_authenticated():
-                return PERMISSION_DENIED
-            else:
-                return NOT_LOGGED_IN
+            return self.get_no_access_error(request, obj=obj, *args, **kwargs)
 
         last_modified_timestamp = self.get_last_modified(request, obj)
         etag = self.get_etag(request, obj)
@@ -771,10 +768,7 @@ class WebAPIResource(object):
         }
 
         if not self.has_list_access_permissions(request, *args, **kwargs):
-            if request.user.is_authenticated():
-                return PERMISSION_DENIED
-            else:
-                return NOT_LOGGED_IN
+            return self.get_no_access_error(request, *args, **kwargs)
 
         if self.model:
             try:
@@ -838,10 +832,7 @@ class WebAPIResource(object):
             return DOES_NOT_EXIST
 
         if not self.has_delete_permissions(request, obj, *args, **kwargs):
-            if request.user.is_authenticated():
-                return PERMISSION_DENIED
-            else:
-                return NOT_LOGGED_IN
+            return self.get_no_access_error(request, obj=obj, *args, **kwargs)
 
         obj.delete()
 
@@ -1193,6 +1184,20 @@ class WebAPIResource(object):
 
         data = ':'.join(fields)
         return sha1(data.encode('utf-8')).hexdigest()
+
+    def get_no_access_error(self, request, *args, **kwargs):
+        """Returns an appropriate error when access is denied.
+
+        By default, this will return PERMISSION_DENIED if the user is logged
+        in, and NOT_LOGGED_IN if the user is anonymous.
+
+        Subclasses can override this to return different or more detailed
+        errors.
+        """
+        if request.user.is_authenticated():
+            return PERMISSION_DENIED
+        else:
+            return NOT_LOGGED_IN
 
     def _build_named_url(self, name):
         """Builds a Django URL name from the provided name."""
