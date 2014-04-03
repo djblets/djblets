@@ -26,11 +26,14 @@
 from __future__ import unicode_literals
 
 import datetime
+import errno
+import fcntl
 import logging
 import os
 import pkg_resources
 import shutil
 import sys
+import tempfile
 import time
 import traceback
 
@@ -160,6 +163,8 @@ class ExtensionManager(object):
 
     Each project should have one ExtensionManager.
     """
+    VERSION_SETTINGS_KEY = '_extension_installed_version'
+
     def __init__(self, key):
         self.key = key
 
@@ -293,11 +298,6 @@ class ExtensionManager(object):
         # Enable extension dependencies
         for requirement_id in ext_class.requirements:
             self.enable_extension(requirement_id)
-
-        try:
-            self._install_extension(ext_class)
-        except InstallExtensionError as e:
-            raise EnablingExtensionError(e.message, e.load_error)
 
         extension = self._init_extension(ext_class)
 
@@ -589,6 +589,12 @@ class ExtensionManager(object):
         self._context_processors_setting.add_list(extension.context_processors)
         self._reset_templatetags_cache()
         ext_class.instance = extension
+
+        try:
+            self._install_extension_media(ext_class)
+        except InstallExtensionError as e:
+            raise EnablingExtensionError(e.message, e.load_error)
+
         extension_initialized.send(self, ext_class=extension)
 
         return extension
@@ -642,7 +648,60 @@ class ExtensionManager(object):
         # And reload the cache
         get_templatetags_modules()
 
-    def _install_extension(self, ext_class):
+    def _install_extension_media(self, ext_class):
+        """Installs extension static media.
+
+        This method is a wrapper around _install_extension_media_internal to
+        check whether we actually need to install extension media, and avoid
+        contention among multiple threads/processes when doing so.
+
+        We need to install extension media if it hasn't been installed yet,
+        or if the version of the extension media that we installed is different
+        from the current version of the extension.
+        """
+        lockfile = os.path.join(tempfile.gettempdir(), ext_class.id + '.lock')
+        extension = ext_class.instance
+
+        old_version = extension.settings.get(self.VERSION_SETTINGS_KEY)
+        cur_version = ext_class.info.version
+        if ext_class.registration.installed and old_version == cur_version:
+            # Nothing to do
+            return
+
+        if not old_version:
+            logging.debug('Installing extension media for %s', ext_class.info)
+        else:
+            logging.debug('Reinstalling extension media for %s because '
+                          'version changed from %s',
+                          ext_class.info, old_version)
+
+        while old_version != cur_version:
+            with open(lockfile, 'w') as f:
+                fd = f.fileno()
+
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_EX)
+                except IOError as e:
+                    if e.errno == errno.EINTR:
+                        # Sleep for one second, then try again
+                        time.sleep(1)
+                        extension.settings.load()
+                        old_version = extension.settings.get(
+                            self.VERSION_SETTINGS_KEY)
+                        continue
+                    else:
+                        raise e
+
+                self._install_extension_media_internal(ext_class)
+                extension.settings.set(self.VERSION_SETTINGS_KEY, cur_version)
+                extension.settings.save()
+                old_version = cur_version
+
+                fcntl.flock(fd, fcntl.LOCK_UN)
+
+        os.unlink(lockfile)
+
+    def _install_extension_media_internal(self, ext_class):
         """Installs extension data.
 
         Performs any installation necessary for an extension.
@@ -753,6 +812,12 @@ class ExtensionManager(object):
         This will uninstall the contents of MEDIA_ROOT/ext/ and
         STATIC_ROOT/ext/.
         """
+        extension.settings.set(self.VERSION_SETTINGS_KEY, None)
+        extension.settings.save()
+
+        extension.registration.installed = False
+        extension.registration.save()
+
         for path in (extension.info.installed_htdocs_path,
                      extension.info.installed_static_path):
             if os.path.exists(path):
