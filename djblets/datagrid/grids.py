@@ -854,11 +854,17 @@ class DataGrid(object):
                 prefix = ""
 
             if sort_item:
-                column = self.get_stateful_column(
-                    self.get_column(base_sort_item))
+                column = self.get_column(base_sort_item)
+                if not column:
+                    logging.warning('Skipping non-existing sort column "%s" '
+                                    'for user "%s".',
+                                    base_sort_item, self.request.user.username)
+                    continue
 
-                if column:
-                    sort_field = column.get_sort_field()
+                stateful_column = self.get_stateful_column(column)
+
+                if stateful_column:
+                    sort_field = stateful_column.get_sort_field()
                     sort_list.append(prefix + sort_field)
 
                     # Lookups spanning tables require that we query from those
