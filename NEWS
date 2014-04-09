@@ -1,3 +1,8 @@
+version 0.7.29 final (9-April-2014):
+	* djblets.webapi:
+		* Add requested query parameters in pagination links. (Bug #3199)
+
+
 version 0.7.28 final (31-December-2013):
 	* djblets.auth:
 		* Fixed HTTP 500 errors when failing to save the registration form.
