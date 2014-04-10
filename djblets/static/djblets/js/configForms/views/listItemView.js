@@ -26,7 +26,10 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      * Initializes the view.
      */
     initialize: function() {
-        this.model.on('actionsChanged', this.render, this);
+        this.listenTo(this.model, 'actionsChanged', this.render);
+        this.listenTo(this.model, 'request', this.showSpinner);
+        this.listenTo(this.model, 'sync', this.hideSpinner);
+        this.listenTo(this.model, 'destroy', this.remove);
 
         this.$spinnerParent = null;
         this.$spinner = null;
