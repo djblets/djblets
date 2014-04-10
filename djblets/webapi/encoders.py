@@ -39,16 +39,22 @@ class BasicAPIEncoder(WebAPIEncoder):
 class ResourceAPIEncoder(WebAPIEncoder):
     """An encoder that encodes objects based on registered resources."""
     def encode(self, o, *args, **kwargs):
-        from djblets.webapi.resources import get_resource_for_object
-
-        resource = get_resource_for_object(o)
-
         if isinstance(o, QuerySet):
             return list(o)
-        elif resource:
-            return resource.serialize_object(o, *args, **kwargs)
         else:
-            try:
-                return DjbletsJSONEncoder().default(o)
-            except TypeError:
-                return None
+            calling_resource = kwargs.pop('calling_resource', None)
+
+            if calling_resource:
+                serializer = calling_resource.get_serializer_for_object(o)
+            else:
+                from djblets.webapi.resources import get_resource_for_object
+
+                serializer = get_resource_for_object(o)
+
+            if serializer:
+                return serializer.serialize_object(o, *args, **kwargs)
+            else:
+                try:
+                    return DjbletsJSONEncoder().default(o)
+                except TypeError:
+                    return None

@@ -499,6 +499,9 @@ class WebAPIResource(object):
                         obj=result[1],
                         headers=headers,
                         api_format=api_format,
+                        encoder_kwargs=dict({
+                            'calling_resource': self,
+                        }, **kwargs),
                         **response_args)
             elif isinstance(result, HttpResponse):
                 return result
@@ -1120,7 +1123,8 @@ class WebAPIResource(object):
 
         if self._parent_resource and self.model_parent_key:
             parent_obj = self.get_parent_object(obj)
-            parent_ids = self._parent_resource.get_href_parent_ids(parent_obj)
+            parent_ids = self._parent_resource.get_href_parent_ids(
+                parent_obj, **kwargs)
 
             if self._parent_resource.uri_object_key:
                 parent_ids[self._parent_resource.uri_object_key] = \

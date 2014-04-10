@@ -203,7 +203,7 @@ class WebAPIResponse(HttpResponse):
 
     def __init__(self, request, obj={}, stat='ok', api_format=None,
                  status=200, headers={}, encoders=[],
-                 mimetype=None, supported_mimetypes=None):
+                 encoder_kwargs={}, mimetype=None, supported_mimetypes=None):
         if not api_format:
             if request.method == 'GET':
                 api_format = request.GET.get('api_format', None)
@@ -243,6 +243,7 @@ class WebAPIResponse(HttpResponse):
         self.content_set = False
         self.mimetype = mimetype
         self.encoders = encoders or get_registered_encoders()
+        self.encoder_kwargs = encoder_kwargs
 
         for header, value in six.iteritems(headers):
             self[header] = value
@@ -287,7 +288,8 @@ class WebAPIResponse(HttpResponse):
             else:
                 assert False
 
-            content = adapter.encode(self.api_data, request=self.request)
+            content = adapter.encode(self.api_data, request=self.request,
+                                     **self.encoder_kwargs)
 
             if self.callback != None:
                 content = "%s(%s);" % (self.callback, content)
