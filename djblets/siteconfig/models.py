@@ -38,6 +38,19 @@ from djblets.siteconfig.managers import SiteConfigurationManager
 _DEFAULTS = {}
 
 
+class SiteConfigSettingsWrapper(object):
+    """Wraps the settings for a SiteConfiguration.
+
+    This is used by the context processor for templates to wrap accessing
+    settings data, properly returning defaults.
+    """
+    def __init__(self, siteconfig):
+        self.siteconfig = siteconfig
+
+    def __getattr__(self, key):
+        return self.siteconfig.get(key)
+
+
 @python_2_unicode_compatible
 class SiteConfiguration(models.Model):
     """
@@ -68,6 +81,8 @@ class SiteConfiguration(models.Model):
         cache_key = self.__get_sync_cache_key()
         cache.add(cache_key, 1)
         self._last_sync_gen = cache.get(cache_key)
+
+        self.settings_wrapper = SiteConfigSettingsWrapper(self)
 
     def get(self, key, default=None):
         """

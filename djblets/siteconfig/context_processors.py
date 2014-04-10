@@ -25,19 +25,36 @@
 
 from __future__ import unicode_literals
 
+import logging
+
 from django.conf import settings
 
 from djblets.siteconfig.models import SiteConfiguration
 
 
 def siteconfig(request):
-    """
-    Exposes the site configuration as a siteconfig variable in templates.
+    """Provides variables for accessing site configuration data.
+
+    This will provide templates with a 'siteconfig' variable, representing
+    the SiteConfiguration for the installation, and a 'siteconfig_settings',
+    representing all settings on the SiteConfiguration.
+
+    siteconfig_settings is preferred over accessing siteconfig.settings, as
+    it will properly handle returning default values.
     """
     try:
-        return {'siteconfig': SiteConfiguration.objects.get_current()}
-    except:
-        return {'siteconfig': None}
+        siteconfig = SiteConfiguration.objects.get_current()
+        siteconfig_settings = siteconfig.settings_wrapper
+    except Exception, e:
+        logging.error('Unable to load SiteConfiguration: %s', e, exc_info=1)
+
+        siteconfig = None
+        siteconfig_settings = None
+
+    return {
+        'siteconfig': siteconfig,
+        'siteconfig_settings': siteconfig_settings,
+    }
 
 
 def settings_vars(request):
