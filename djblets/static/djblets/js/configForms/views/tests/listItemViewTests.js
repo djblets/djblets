@@ -98,7 +98,8 @@ describe('configForms/views/ListItemView', function() {
                         itemView = new Djblets.Config.ListItemView({
                             model: item
                         }),
-                        $button;
+                        $button,
+                        $span;
 
                     itemView.render();
 
@@ -107,9 +108,12 @@ describe('configForms/views/ListItemView', function() {
                     expect($button.text()).toBe('Button');
                     expect($button.hasClass(
                         'config-forms-list-action-mybutton')).toBe(true);
-                    expect($button.hasClass('rb-icon')).toBe(true);
-                    expect($button.hasClass('rb-icon-foo')).toBe(true);
                     expect($button.hasClass('danger')).toBe(false);
+
+                    $span = $button.find('span');
+                    expect($span.length).toBe(1);
+                    expect($span.hasClass('djblets-icon')).toBe(true);
+                    expect($span.hasClass('djblets-icon-foo')).toBe(true);
                 });
             });
 

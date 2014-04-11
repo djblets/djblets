@@ -82,6 +82,14 @@ PIPELINE_JS = {
         ),
         'output_filename': 'djblets/js/jquery.gravy.min.js',
     },
+    'djblets-js-tests': {
+        'source_filenames': (
+            'djblets/js/configForms/models/tests/listItemModelTests.js',
+            'djblets/js/configForms/views/tests/listItemViewTests.js',
+            'djblets/js/configForms/views/tests/listViewTests.js',
+        ),
+        'output_filename': 'djblets/js/tests.min.js',
+    },
 }
 
 PIPELINE_CSS = {

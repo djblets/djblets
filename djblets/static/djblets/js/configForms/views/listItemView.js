@@ -11,6 +11,7 @@
 Djblets.Config.ListItemView = Backbone.View.extend({
     tagName: 'li',
     className: 'config-forms-list-item',
+    iconBaseClassName: 'djblets-icon',
 
     actionHandlers: {},
 
@@ -198,7 +199,8 @@ Djblets.Config.ListItemView = Backbone.View.extend({
 
             if (action.iconName) {
                 $action.append($('<span/>')
-                    .addClass('rb-icon rb-icon-' + action.iconName));
+                    .addClass(this.iconBaseClassName)
+                    .addClass(this.iconBaseClassName + '-' + action.iconName));
             }
 
             if (actionHandlerName) {
