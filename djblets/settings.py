@@ -45,6 +45,8 @@ PIPELINE_JS = {
             'djblets/js/configForms/views/listItemView.js',
             'djblets/js/configForms/views/listView.js',
             'djblets/js/configForms/views/pagesView.js',
+            'djblets/js/configForms/views/tableItemView.js',
+            'djblets/js/configForms/views/tableView.js',
         ),
         'output_filename': 'djblets/js/config-forms.min.js',
     },
