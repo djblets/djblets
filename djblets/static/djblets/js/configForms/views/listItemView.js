@@ -17,9 +17,9 @@ Djblets.Config.ListItemView = Backbone.View.extend({
 
     template: _.template([
         '<% if (editURL) { %>',
-        ' <a href="<%- editURL %>"><%- text %></a>',
+        '<a href="<%- editURL %>"><%- text %></a>',
         '<% } else { %>',
-        ' <%- text %>',
+        '<%- text %>',
         '<% } %>'
     ].join('')),
 
@@ -136,6 +136,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
     _showActionDropdown: function(action, $action) {
         var actionPos = $action.position(),
             $pane = $('<ul/>')
+                .addClass('action-menu')
                 .move(actionPos.left + $action.getExtents('m', 'l'),
                       actionPos.top + $action.outerHeight(),
                       'absolute')

@@ -21,9 +21,11 @@ Djblets.Config.ListView = Backbone.View.extend({
 
         this.ItemView = options.ItemView || Djblets.Config.ListItemView;
 
-        this.listenTo(collection, 'add', this._addItem);
-        this.listenTo(collection, 'remove', this._removeItem);
-        this.listenTo(collection, 'reset', this.render);
+        this.once('rendered', function() {
+            this.listenTo(collection, 'add', this._addItem);
+            this.listenTo(collection, 'remove', this._removeItem);
+            this.listenTo(collection, 'reset', this._renderItems);
+        }, this);
     },
 
     /*
@@ -42,8 +44,10 @@ Djblets.Config.ListView = Backbone.View.extend({
      * This will loop through all items and render each one.
      */
     render: function() {
-        this.$listBody = this.getBody().empty();
-        this.model.collection.each(this._addItem, this);
+        this.$listBody = this.getBody();
+
+        this._renderItems();
+        this.trigger('rendered');
 
         return this;
     },
@@ -66,5 +70,14 @@ Djblets.Config.ListView = Backbone.View.extend({
      */
     _removeItem: function(item, collection, options) {
         this.$listBody.children().eq(options.index).remove();
+    },
+
+    /*
+     * Renders all items from the list.
+     */
+    _renderItems: function() {
+        this.$listBody.empty();
+
+        this.model.collection.each(this._addItem, this);
     }
 });
