@@ -1,4 +1,4 @@
-describe('configForms/views/ListItemView', function() {
+suite('djblets/configForms/views/ListItemView', function() {
     describe('Rendering', function() {
         describe('Item display', function() {
             it('With editURL', function() {

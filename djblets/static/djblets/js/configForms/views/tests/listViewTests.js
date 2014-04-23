@@ -1,4 +1,4 @@
-describe('configForms/views/ListView', function() {
+suite('djblets/configForms/views/ListView', function() {
     describe('Manages items', function() {
         var collection,
             list,

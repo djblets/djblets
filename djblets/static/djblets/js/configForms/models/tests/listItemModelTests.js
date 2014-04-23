@@ -1,4 +1,4 @@
-describe('configForms/models/ListItem', function() {
+suite('djblets/configForms/models/ListItem', function() {
     describe('Default actions', function() {
         describe('showRemove', function() {
             it('true', function() {
