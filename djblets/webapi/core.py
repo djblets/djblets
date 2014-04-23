@@ -347,7 +347,7 @@ class WebAPIResponsePaginated(WebAPIResponse):
         full_path = request.build_absolute_uri(request.path)
 
         query_parameters = '&'.join([
-            '%s=%s' % (quote(k), quote(v))
+            '%s=%s' % (quote(k.encode('utf-8')), quote(v.encode('utf-8')))
             for k, v in request.GET.iteritems()
             if k not in ('start', 'max-results')
         ])
