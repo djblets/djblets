@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-01-16 18:48-0800\n"
+"POT-Creation-Date: 2014-04-25 15:54-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -100,37 +100,43 @@ msgstr ""
 
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.4391d8e6af7e.js:165
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.c4fce13a3506.js:162
+#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.caa17cc4ea44.js:122
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.e8a73fe1a146.js:165
-#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.js:165
+#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.js:122
+#: htdocs/static/djblets/js/jquery.gravy.min.1dec384a75c9.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.20c0bcd889d7.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.309ca0b18b0f.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.f06858dcec9b.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.js:1
-#: static/djblets/js/jquery.gravy.inlineEditor.js:165
+#: static/djblets/js/jquery.gravy.inlineEditor.js:122
 msgid "OK"
 msgstr ""
 
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.4391d8e6af7e.js:172
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.c4fce13a3506.js:169
+#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.caa17cc4ea44.js:129
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.e8a73fe1a146.js:172
-#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.js:172
+#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.js:129
+#: htdocs/static/djblets/js/jquery.gravy.min.1dec384a75c9.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.20c0bcd889d7.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.309ca0b18b0f.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.f06858dcec9b.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.js:1
-#: static/djblets/js/jquery.gravy.inlineEditor.js:172
+#: static/djblets/js/jquery.gravy.inlineEditor.js:129
 msgid "Cancel"
 msgstr ""
 
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.4391d8e6af7e.js:185
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.c4fce13a3506.js:182
+#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.caa17cc4ea44.js:142
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.e8a73fe1a146.js:185
-#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.js:185
+#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.js:142
+#: htdocs/static/djblets/js/jquery.gravy.min.1dec384a75c9.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.20c0bcd889d7.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.309ca0b18b0f.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.f06858dcec9b.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.js:1
-#: static/djblets/js/jquery.gravy.inlineEditor.js:185
+#: static/djblets/js/jquery.gravy.inlineEditor.js:142
 msgid "Edit this field"
 msgstr ""
 
@@ -138,31 +144,37 @@ msgstr ""
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.4391d8e6af7e.js:205
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.c4fce13a3506.js:201
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.c4fce13a3506.js:202
+#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.caa17cc4ea44.js:161
+#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.caa17cc4ea44.js:162
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.e8a73fe1a146.js:204
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.e8a73fe1a146.js:205
-#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.js:204
-#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.js:205
+#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.js:161
+#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.js:162
+#: htdocs/static/djblets/js/jquery.gravy.min.1dec384a75c9.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.20c0bcd889d7.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.309ca0b18b0f.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.f06858dcec9b.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.js:1
-#: static/djblets/js/jquery.gravy.inlineEditor.js:204
-#: static/djblets/js/jquery.gravy.inlineEditor.js:205
+#: static/djblets/js/jquery.gravy.inlineEditor.js:161
+#: static/djblets/js/jquery.gravy.inlineEditor.js:162
 msgid "This field is required"
 msgstr ""
 
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.4391d8e6af7e.js:355
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.c4fce13a3506.js:347
+#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.caa17cc4ea44.js:372
 #: htdocs/static/djblets/js/jquery.gravy.inlineEditor.e8a73fe1a146.js:350
-#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.js:355
+#: htdocs/static/djblets/js/jquery.gravy.inlineEditor.js:372
+#: htdocs/static/djblets/js/jquery.gravy.min.1dec384a75c9.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.20c0bcd889d7.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.309ca0b18b0f.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.f06858dcec9b.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.js:1
-#: static/djblets/js/jquery.gravy.inlineEditor.js:355
+#: static/djblets/js/jquery.gravy.inlineEditor.js:372
 msgid "You have unsaved changes. Are you sure you want to discard them?"
 msgstr ""
 
+#: htdocs/static/djblets/js/jquery.gravy.min.1dec384a75c9.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.20c0bcd889d7.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.309ca0b18b0f.js:1
 #: htdocs/static/djblets/js/jquery.gravy.min.f06858dcec9b.js:1
@@ -172,4 +184,8 @@ msgstr ""
 #: htdocs/static/djblets/js/jquery.gravy.modalBox.js:28
 #: static/djblets/js/jquery.gravy.modalBox.js:28
 msgid "Close"
+msgstr ""
+
+#: static/djblets/js/configForms/models/listItemModel.js:37
+msgid "Remove"
 msgstr ""

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-01-16 18:48-0800\n"
+"POT-Creation-Date: 2014-04-25 15:54-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,23 +17,23 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: auth/forms.py:45
+#: auth/forms.py:44
 msgid "Password"
 msgstr ""
 
-#: auth/forms.py:49
+#: auth/forms.py:48
 msgid "Password (confirm)"
 msgstr ""
 
-#: auth/forms.py:51
+#: auth/forms.py:50
 msgid "E-mail address"
 msgstr ""
 
-#: auth/forms.py:63
+#: auth/forms.py:62
 msgid "Passwords must match"
 msgstr ""
 
-#: auth/forms.py:83
+#: auth/forms.py:82
 msgid "Sorry, this username is taken."
 msgstr ""
 
@@ -45,11 +45,15 @@ msgstr ""
 msgid "Incorrect password."
 msgstr ""
 
-#: datagrid/grids.py:360
+#: configforms/forms.py:23 siteconfig/templates/siteconfig/settings.html:64
+msgid "Save"
+msgstr ""
+
+#: datagrid/grids.py:420
 msgid "Select Rows"
 msgstr ""
 
-#: datagrid/grids.py:429
+#: datagrid/grids.py:492
 #, python-format
 msgid "%s ago"
 msgstr ""
@@ -96,19 +100,19 @@ msgstr ""
 msgid "Cannot find extension with id %s"
 msgstr ""
 
-#: extensions/manager.py:284
+#: extensions/manager.py:290
 msgid "There was an error loading this extension"
 msgstr ""
 
-#: extensions/manager.py:377
+#: extensions/manager.py:378
 msgid "Invalid package name."
 msgstr ""
 
-#: extensions/manager.py:380
+#: extensions/manager.py:381
 msgid "Installation failed (probably malformed URL)."
 msgstr ""
 
-#: extensions/manager.py:538
+#: extensions/manager.py:569
 #, python-format
 msgid "Error initializing extension: %s"
 msgstr ""
@@ -129,11 +133,11 @@ msgstr ""
 msgid "Manage Extensions"
 msgstr ""
 
-#: extensions/templates/extensions/extension_list.html:31
+#: extensions/templates/extensions/extension_list.html:32
 msgid "Scan for new extensions"
 msgstr ""
 
-#: extensions/templates/extensions/extension_list.html:34
+#: extensions/templates/extensions/extension_list.html:35
 msgid "Loading..."
 msgstr ""
 
@@ -142,51 +146,51 @@ msgstr ""
 msgid "<p class=\"feed-error\">Unable to load feed: %(error)s</p>"
 msgstr ""
 
-#: log/views.py:47
+#: log/views.py:46
 msgid "Debug"
 msgstr ""
 
-#: log/views.py:48
+#: log/views.py:47
 msgid "Info"
 msgstr ""
 
-#: log/views.py:49
+#: log/views.py:48
 msgid "Warning"
 msgstr ""
 
-#: log/views.py:50
+#: log/views.py:49
 msgid "Error"
 msgstr ""
 
-#: log/views.py:51
+#: log/views.py:50
 msgid "Critical"
 msgstr ""
 
-#: log/views.py:163
+#: log/views.py:162
 msgid "All"
 msgstr ""
 
-#: log/views.py:189
+#: log/views.py:188
 msgid "Any date"
 msgstr ""
 
-#: log/views.py:198
+#: log/views.py:197
 msgid "Today"
 msgstr ""
 
-#: log/views.py:207
+#: log/views.py:206
 msgid "Past 7 days"
 msgstr ""
 
-#: log/views.py:216
+#: log/views.py:215
 msgid "This month"
 msgstr ""
 
-#: log/views.py:227
+#: log/views.py:226
 msgid "By date"
 msgstr ""
 
-#: log/views.py:228
+#: log/views.py:227
 msgid "By level"
 msgstr ""
 
@@ -256,10 +260,6 @@ msgstr[1] ""
 
 #: siteconfig/templates/siteconfig/settings.html:29
 msgid "The settings have been saved."
-msgstr ""
-
-#: siteconfig/templates/siteconfig/settings.html:63
-msgid "Save"
 msgstr ""
 
 #: util/contextmanagers.py:86
