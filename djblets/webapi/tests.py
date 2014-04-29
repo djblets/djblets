@@ -24,6 +24,8 @@
 
 from __future__ import print_function, unicode_literals
 
+import json
+
 from django.contrib.auth.models import AnonymousUser, User
 from django.test.client import RequestFactory
 
@@ -36,7 +38,8 @@ from djblets.webapi.decorators import (copy_webapi_decorator_data,
 from djblets.webapi.errors import (DOES_NOT_EXIST, INVALID_FORM_DATA,
                                    NOT_LOGGED_IN, PERMISSION_DENIED,
                                    WebAPIError)
-from djblets.webapi.resources import WebAPIResource, unregister_resource
+from djblets.webapi.resources import (UserResource, WebAPIResource,
+                                      unregister_resource)
 
 
 class WebAPIDecoratorTests(TestCase):
@@ -766,3 +769,26 @@ class WebAPIResourceTests(TestCase):
                              response_item_mimetype)
         else:
             self.assertTrue('Item-Content-Type' not in response)
+
+
+class WebAPICoreTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user_resource = UserResource()
+
+    def tearDown(self):
+        unregister_resource(self.user_resource)
+
+    def test_pagination_serialization_encoding(self):
+        """Testing WebAPIResponsePaginated query parameter encoding"""
+        # This test is for an issue when query parameters included unicode
+        # characters. In this case, creating the 'self' or pagination links
+        # would cause a KeyError. If this test runs fine without any uncaught
+        # exceptions, then it means we're good.
+        request = self.factory.get('/api/users/?q=%D0%B5')
+        response = self.user_resource(request)
+        print(response)
+
+        rsp = json.loads(response.content)
+        self.assertEqual(rsp['links']['self']['href'],
+                         'http://testserver/api/users/?q=%D0%B5')

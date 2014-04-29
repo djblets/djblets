@@ -34,7 +34,6 @@ from django.http import HttpResponse
 from django.utils import six
 from django.utils.encoding import force_unicode
 from django.utils.six.moves import cStringIO as StringIO
-from django.utils.six.moves.urllib.parse import quote
 
 from djblets.util.http import (get_http_requested_mimetype,
                                get_url_params_except,
