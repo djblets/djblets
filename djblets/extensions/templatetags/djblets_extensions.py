@@ -19,17 +19,23 @@ register = template.Library()
 @register.tag
 @basictag(takes_context=True)
 def template_hook_point(context, name):
-    """
-    Registers a template hook point that TemplateHook instances can
-    attach to.
-    """
-    request = context['request']
+    """Registers a place where TemplateHooks can render to."""
+    def _render_hooks():
+        request = context['request']
 
-    return ''.join([
-        hook.render_to_string(request, context)
-        for hook in TemplateHook.by_name(name)
-        if hook.applies_to(request)
-    ])
+        for hook in TemplateHook.by_name(name):
+            if hook.applies_to(request):
+                context.push()
+
+                try:
+                    yield hook.render_to_string(request, context)
+                except Exception as e:
+                    logging.error('Error rendering TemplateHook %r: %s',
+                                  hook, e, exc_info=1)
+
+                context.pop()
+
+    return ''.join(_render_hooks())
 
 
 @register.tag

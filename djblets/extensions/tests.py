@@ -31,6 +31,7 @@ from django.conf import settings
 from django.conf.urls import include, patterns
 from django.core.exceptions import ImproperlyConfigured
 from django.dispatch import Signal
+from django.template import Context, Template
 from django.utils import six
 from kgb import SpyAgency
 from mock import Mock
@@ -766,6 +767,43 @@ class TemplateHookTest(TestCase):
         self.request.resolver_match.url_name = 'test-url-name'
         self.assertTrue(
             self.template_hook_with_applies.applies_to(self.request))
+
+    def test_context_doesnt_leak(self):
+        """Testing TemplateHook's context won't leak state"""
+        class MyTemplateHook(TemplateHook):
+            def render_to_string(self, request, context):
+                context['leaky'] = True
+
+                return ''
+
+        hook = MyTemplateHook(self.extension, 'test')
+        context = Context({})
+        context['request'] = None
+
+        t = Template(
+            '{% load djblets_extensions %}'
+            '{% template_hook_point "test" %}')
+        t.render(context).strip()
+
+        self.assertNotIn('leaky', context)
+
+    def test_sandbox(self):
+        """Testing TemplateHook sandboxing"""
+        class MyTemplateHook(TemplateHook):
+            def render_to_string(self, request, context):
+                raise Exception('Oh noes')
+
+        hook = MyTemplateHook(self.extension, 'test')
+        context = Context({})
+        context['request'] = None
+
+        t = Template(
+            '{% load djblets_extensions %}'
+            '{% template_hook_point "test" %}')
+        t.render(context).strip()
+
+        # Didn't crash. We're good.
+
 
 # A dummy function that acts as a View method
 test_view_method = Mock()
