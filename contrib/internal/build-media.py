@@ -3,13 +3,21 @@
 import os
 import sys
 
+scripts_dir = os.path.abspath(os.path.dirname(__file__))
+
+# Source root directory
+sys.path.insert(0, os.path.abspath(os.path.join(scripts_dir, '..', '..')))
+
+from djblets import django_version
+
+import __main__
+__main__.__requires__ = [django_version]
+import pkg_resources
+
 from django.core.management import call_command, setup_environ
 
 
 if __name__ == '__main__':
-    scripts_dir = os.path.abspath(os.path.dirname(__file__))
-    sys.path.insert(0, os.path.abspath(os.path.join(scripts_dir, '..', '..')))
-
     os.putenv('FORCE_BUILD_MEDIA', '1')
 
     import djblets.settings

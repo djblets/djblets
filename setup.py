@@ -38,6 +38,8 @@ from distutils.core import Command
 from setuptools.command.egg_info import egg_info
 from setuptools.command.test import test
 
+from djblets import django_version, get_package_version, is_release, VERSION
+
 
 class BuildEggInfo(egg_info):
     def run(self):
@@ -78,9 +80,6 @@ cmdclasses = {
 }
 
 
-from djblets import get_package_version, is_release, VERSION
-
-
 PACKAGE_NAME = 'Djblets'
 
 if is_release():
@@ -98,7 +97,7 @@ setup(name=PACKAGE_NAME,
       packages=find_packages(exclude=["tests"]),
       cmdclass=cmdclasses,
       install_requires=[
-          'Django>=1.4.8,<1.5',
+          django_version,
           'django-pipeline==1.2.24',
           'feedparser>=5.1.2',
           'PIL',
