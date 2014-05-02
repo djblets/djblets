@@ -39,6 +39,8 @@ from distutils.core import Command
 from setuptools.command.egg_info import egg_info
 from setuptools.command.test import test
 
+from djblets import django_version, get_package_version, is_release, VERSION
+
 
 # Make sure this is a version of Python we are compatible with. This should
 # prevent people on older versions from unintentionally trying to install
@@ -114,9 +116,6 @@ cmdclasses = {
 }
 
 
-from djblets import get_package_version, is_release, VERSION
-
-
 PACKAGE_NAME = 'Djblets'
 
 if is_release():
@@ -134,7 +133,7 @@ setup(name=PACKAGE_NAME,
       packages=find_packages(exclude=["tests"]),
       cmdclass=cmdclasses,
       install_requires=[
-          'Django>=1.6.2,<1.7',
+          django_version,
           'django-pipeline>=1.3.23',
           'feedparser>=5.1.2',
           'pillowfight',
