@@ -971,7 +971,7 @@ class DataGrid(object):
 
             extra_query = get_url_params_except(self.request.GET, 'page')
 
-            context = Context({
+            context = {
                 'datagrid': self,
                 'is_paginated': self.page.has_other_pages(),
                 'results_per_page': self.paginate_by,
@@ -984,7 +984,7 @@ class DataGrid(object):
                 'hits': self.paginator.count,
                 'page_range': self.paginator.page_range,
                 'extra_query': extra_query,
-            })
+            }
 
             if self.page.has_next():
                 context['next'] = self.page.next_page_number()
@@ -1000,7 +1000,7 @@ class DataGrid(object):
             context.update(render_context)
 
             return mark_safe(render_to_string(self.listview_template,
-                                              context))
+                                              Context(context)))
         except Exception:
             trace = traceback.format_exc();
             logging.error('Failed to render datagrid:\n%s' % trace,
@@ -1033,13 +1033,13 @@ class DataGrid(object):
             return self.render_listview_to_response(
                 render_context=render_context)
 
-        context = Context({
+        context = {
             'datagrid': self
-        })
+        }
         context.update(extra_context)
         context.update(render_context)
 
-        return render_to_response(template_name, context)
+        return render_to_response(template_name, Context(context))
 
     def _build_render_context(self):
         """Builds a dictionary containing RequestContext contents.
