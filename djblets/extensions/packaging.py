@@ -33,8 +33,14 @@ class BuildStaticFiles(Command):
     extension_entrypoint_group = None
     django_settings_module = None
 
+    user_options = [
+        (b'remove-source-files', None, 'remove source files from the package'),
+    ]
+    boolean_options = [b'remove-source-files']
+
     def initialize_options(self):
         self.build_lib = None
+        self.remove_source_files = False
 
     def finalize_options(self):
         self.set_undefined_options('build', ('build_lib', 'build_lib'))
@@ -199,6 +205,12 @@ class BuildStaticFiles(Command):
         # Collect and process all static media files.
         call_command('collectstatic', interactive=False, verbosity=2)
 
+        if self.remove_source_files:
+            self._remove_source_files(
+                pipeline_css, os.path.join(settings.STATIC_ROOT, 'css'))
+            self._remove_source_files(
+                pipeline_js, os.path.join(settings.STATIC_ROOT, 'js'))
+
     def _add_bundle(self, pipeline_bundles, extension_bundles, default_dir,
                     ext):
         for name, bundle in six.iteritems(extension_bundles):
@@ -207,6 +219,36 @@ class BuildStaticFiles(Command):
                     '%s/%s.min%s' % (default_dir, name, ext)
 
             pipeline_bundles[name] = bundle
+
+    def _remove_source_files(self, pipeline_bundles, media_build_dir):
+        """Removes all source files, leaving only built bundles."""
+        for root, dirs, files in os.walk(media_build_dir, topdown=False):
+            for name in files:
+                full_path = os.path.join(root, name)
+
+                # A valid file will be represented as one of:
+                #
+                #     (bundle_name, 'min', stamp, ext)
+                #     (bundle_name, 'min', ext)
+                #
+                # We keep both the pre-stamped and post-stamped versions so
+                # that Django's CachedFilesStorage can generate and cache
+                # the stamp from the contents of the non-stamped file.
+                name_parts = name.split('.')
+
+                if (len(name_parts) < 3 or
+                    name_parts[0] not in pipeline_bundles or
+                    name_parts[1] != 'min'):
+                    # This doesn't appear to be a file representing a bundle,
+                    # so we should get rid of it.
+                    os.unlink(os.path.join(root, name))
+
+            for name in dirs:
+                try:
+                    os.rmdir(os.path.join(root, name))
+                except:
+                    # The directory is probably not empty yet.
+                    pass
 
     def _serialize_lessc_value(self, value):
         if isinstance(value, six.text_type):
