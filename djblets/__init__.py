@@ -33,7 +33,7 @@ from __future__ import unicode_literals
 #
 #   (Major, Minor, Micro, alpha/beta/rc/final, Release Number, Released)
 #
-VERSION = (0, 8, 0, 'rc', 2, True)
+VERSION = (0, 8, 0, 'rc', 3, False)
 
 
 # Required version of Django
