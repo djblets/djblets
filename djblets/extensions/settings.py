@@ -76,7 +76,29 @@ class Settings(dict):
 
         return key in self.extension.default_settings
 
+    def get(self, key, default=None):
+        """Returns a setting.
+
+        This will return the setting's stored value, or its default value if
+        unset.
+
+        If the key isn't a valid setting, the provided default will be
+        returned instead.
+        """
+        # dict.get doesn't call __getitem__ internally, and instead looks up
+        # straight from the internal dictionary data. So, we need to handle it
+        # ourselves in order to support defaults through __getitem__.
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
     def set(self, key, value):
+        """Sets a setting's value.
+
+        This is equivalent to setting the value through standard dictionary
+        attribute storage.
+        """
         self[key] = value
 
     def load(self):
