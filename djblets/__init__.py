@@ -34,7 +34,7 @@
 VERSION = (0, 7, 29, 'final', 0, True)
 
 # Required version of Django
-django_version = 'Django>=1.4.11,<1.5'
+django_version = 'Django>=1.4.13,<1.5'
 
 def get_version_string():
     version = '%s.%s' % (VERSION[0], VERSION[1])
