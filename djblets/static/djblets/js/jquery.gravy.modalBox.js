@@ -91,7 +91,7 @@ $.widget("ui.modalBox", {
             .addClass(this.options.modalBoxButtonsClass)
             .click(function(e) {
                 /* Check here so that buttons can call stopPropagation(). */
-                if (e.target.tagName == "INPUT") {
+                if (e.target.tagName == "INPUT" && !e.target.disabled) {
                     self.element.modalBox("destroy");
                 }
             });
