@@ -1,3 +1,13 @@
+version 0.8 (19-May-2014):
+	See the release notes for the 0.8.0 betas and RCs for the complete
+	list of changes.
+
+	The following are the changes since 0.8 RC 2.
+
+	* djblets.extensions:
+		* Added a get() function to Settings for handling defaults.
+
+
 version 0.8.0 RC 2 (8-May-2014):
 	* Internationalization:
 		* Updated locale files for all new strings.
