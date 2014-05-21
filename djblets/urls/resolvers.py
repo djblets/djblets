@@ -68,7 +68,11 @@ class DynamicURLResolver(RegexURLResolver):
         These patterns will no longer be able to be looked up or reversed.
         """
         for pattern in patterns:
-            self.url_patterns.remove(pattern)
+            try:
+                self.url_patterns.remove(pattern)
+            except ValueError:
+                # This may have already been removed. Ignore the error.
+                pass
 
         self._clear_cache()
 

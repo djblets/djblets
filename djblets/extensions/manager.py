@@ -140,7 +140,11 @@ class SettingListWrapper(object):
     def remove_list(self, items):
         """Removes a list of items from the setting."""
         for item in items:
-            self.remove(item)
+            try:
+                self.remove(item)
+            except ValueError:
+                # This may have already been removed. Ignore the error.
+                pass
 
 
 class ExtensionManager(object):
@@ -616,7 +620,7 @@ class ExtensionManager(object):
             self.dynamic_urls.remove_patterns(
                 extension.admin_site_urlpatterns)
 
-        if extension.has_admin_site:
+        if hasattr(extension, 'admin_site'):
             del extension.admin_site
 
         self._context_processors_setting.remove_list(
@@ -851,7 +855,7 @@ class ExtensionManager(object):
                 self.dynamic_urls.add_patterns(
                     extension.admin_urlpatterns)
 
-        if extension.has_admin_site:
+        if getattr(extension, 'admin_site', None):
             extension.admin_site_urlpatterns = patterns('',
                 (r'^%s%s/db/' % (prefix, extension.id),
                 include(extension.admin_site.urls)))
