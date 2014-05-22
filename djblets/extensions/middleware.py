@@ -25,11 +25,18 @@
 
 from __future__ import unicode_literals
 
+import threading
+
 from djblets.extensions.manager import get_extension_managers
 
 
 class ExtensionsMiddleware(object):
     """Middleware to manage extension lifecycles and data."""
+    def __init__(self, *args, **kwargs):
+        super(ExtensionsMiddleware, self).__init__(*args, **kwargs)
+
+        self._lock = threading.Lock()
+
     def process_request(self, request):
         self._check_expired()
 
@@ -48,8 +55,21 @@ class ExtensionsMiddleware(object):
         This is meant to be called before every HTTP request.
         """
         for extension_manager in get_extension_managers():
+            # We're going to check the expiration, and then only lock if it's
+            # expired. Following that, we'll check again.
+            #
+            # We do this in order to prevent locking unnecessarily, which could
+            # impact performance or cause a problem if a thread is stuck.
+            #
+            # We're checking the expiration twice to prevent every blocked
+            # thread from making its own attempt to reload the extensions once
+            # the first thread holding the lock finishes the reload.
             if extension_manager.is_expired():
-                extension_manager.load(full_reload=True)
+                with self._lock:
+                    # Check again, since another thread may have already
+                    # reloaded.
+                    if extension_manager.is_expired():
+                        extension_manager.load(full_reload=True)
 
 
 class ExtensionsMiddlewareRunner(object):

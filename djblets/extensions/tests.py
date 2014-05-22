@@ -25,7 +25,10 @@
 
 from __future__ import unicode_literals
 
+import logging
 import os
+import threading
+import time
 
 from django.conf import settings
 from django.conf.urls import include, patterns
@@ -366,7 +369,7 @@ class ExtensionHookPointTest(TestCase):
         self.assertTrue(self.dummy_hook not in self.extension_hook_class.hooks)
 
 
-class ExtensionManagerTest(TestCase):
+class ExtensionManagerTest(SpyAgency, TestCase):
     def setUp(self):
         class TestExtension(Extension):
             """An empty, dummy extension for testing"""
@@ -462,6 +465,89 @@ class ExtensionManagerTest(TestCase):
         self.manager.load(full_reload=True)
 
         self.assertEqual(len(URLHook.hooks), 0)
+
+    def test_load_concurrent_threads(self):
+        """Testing ExtensionManager.load with concurrent threads"""
+        # There are a number of things that could go wrong both during
+        # uninitialization and during initialization of extensions, if
+        # two threads attempt to reload at the same time and locking isn't
+        # properly implemented.
+        #
+        # Extension uninit could be called twice, resulting in one thread
+        # attempting to access state that's already been destroyed. We
+        # could end up hitting:
+        #
+        #     "Extension's installed app <app> is missing a ref count."
+        #     "'<Extension>' object has no attribute 'info'."
+        #
+        # (Without locking, we end up hitting the latter in this test.)
+        #
+        # If an extension is being initialized twice simultaneously, then
+        # it can hit other errors. An easy one to hit is this assertion:
+        #
+        #     assert extension_id not in self._extension_instances
+        #
+        # With proper locking, these issues don't come up. That's what
+        # this test case is attempting to check for.
+        def _sleep_and_call(manager, orig_func, *args):
+            # This works well enough to throw a monkey wrench into things.
+            # One thread will be slightly ahead of the other.
+            time.sleep(0.2)
+
+            try:
+                orig_func(*args)
+            except Exception as e:
+                logging.error('%s\n', e, exc_info=1)
+                exceptions.append(e)
+
+        def _init_extension(manager, *args):
+            _sleep_and_call(manager, orig_init_extension, *args)
+
+        def _uninit_extension(manager, *args):
+            _sleep_and_call(manager, orig_uninit_extension, *args)
+
+        def _loader(main_connection):
+            # Insert the connection from the main thread, so that we can
+            # perform lookups. We never write.
+            from django.db import connections
+            connections['default'] = main_connection
+
+            self.manager.load(full_reload=True)
+
+        # Enable one extension. This extension's state will get a bit messed
+        # up if the thread locking fails. We only need one to trigger this.
+        self.assertEqual(len(self.manager.get_installed_extensions()), 1)
+        self.manager.enable_extension(self.extension_class.id)
+
+        orig_init_extension = self.manager._init_extension
+        orig_uninit_extension = self.manager._uninit_extension
+
+        self.spy_on(self.manager._load_extensions)
+        self.spy_on(self.manager._init_extension, call_fake=_init_extension)
+        self.spy_on(self.manager._uninit_extension,
+                    call_fake=_uninit_extension)
+
+        # Store the main connection. We're going to let the threads share it.
+        # This trick courtesy of the Django unit tests
+        # (django/tests/bakcends/tests.py)
+        from django.db import connections
+        main_connection = connections['default']
+        main_connection.allow_thread_sharing = True
+
+        exceptions = []
+
+        # Make the load request twice, simultaneously.
+        t1 = threading.Thread(target=_loader, args=[main_connection])
+        t2 = threading.Thread(target=_loader, args=[main_connection])
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        self.assertEqual(len(self.manager._load_extensions.calls), 2)
+        self.assertEqual(len(self.manager._uninit_extension.calls), 2)
+        self.assertEqual(len(self.manager._init_extension.calls), 2)
+        self.assertEqual(exceptions, [])
 
     def test_enable_registers_static_bundles(self):
         """Testing ExtensionManager registers static bundles when enabling extension"""
