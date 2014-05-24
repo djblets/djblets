@@ -34,6 +34,7 @@ import pkg_resources
 import shutil
 import sys
 import tempfile
+import threading
 import time
 import traceback
 
@@ -181,6 +182,7 @@ class ExtensionManager(object):
         # State synchronization
         self._sync_key = make_cache_key('extensionmgr:%s:gen' % key)
         self._last_sync_gen = None
+        self._load_lock = threading.Lock()
 
         self.dynamic_urls = DynamicURLResolver()
 
@@ -398,6 +400,10 @@ class ExtensionManager(object):
         If full_reload is passed, all state is cleared and we reload all
         extensions and state from scratch.
         """
+        with self._load_lock:
+            self._load_extensions(full_reload)
+
+    def _load_extensions(self, full_reload=False):
         if full_reload:
             # We're reloading everything, so nuke all the cached copies.
             self._clear_extensions()
