@@ -42,6 +42,7 @@ from django.conf import settings
 from django.conf.urls import patterns, include
 from django.contrib.admin.sites import AdminSite
 from django.core.cache import cache
+from django.core.files import locks
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.core.management.color import no_style
@@ -687,10 +688,8 @@ class ExtensionManager(object):
 
         while old_version != cur_version:
             with open(lockfile, 'w') as f:
-                fd = f.fileno()
-
                 try:
-                    fcntl.flock(fd, fcntl.LOCK_EX)
+                    locks.lock(f, locks.LOCK_EX)
                 except IOError as e:
                     if e.errno == errno.EINTR:
                         # Sleep for one second, then try again
@@ -707,7 +706,7 @@ class ExtensionManager(object):
                 extension.settings.save()
                 old_version = cur_version
 
-                fcntl.flock(fd, fcntl.LOCK_UN)
+                locks.unlock(f)
 
         os.unlink(lockfile)
 
