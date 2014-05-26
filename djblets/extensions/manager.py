@@ -27,7 +27,6 @@ from __future__ import unicode_literals
 
 import datetime
 import errno
-import fcntl
 import logging
 import os
 import pkg_resources
