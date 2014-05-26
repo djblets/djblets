@@ -5,10 +5,10 @@ import os
 import sys
 
 import pkg_resources
-from distutils.command.build_py import build_py
-from distutils.core import Command
 from django.core.management import call_command
 from django.utils import six
+from setuptools.command.build_py import build_py
+from setuptools import Command
 
 
 class BuildStaticFiles(Command):
