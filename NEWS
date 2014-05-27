@@ -1,3 +1,32 @@
+version 0.8.1 (26-May-2014):
+	* djblets.configforms:
+		* Fixed the layout of the config page form title.
+
+		  The title is now wrapped in a div with a 'box-head' CSS class,
+		  fixing styling issues and making it consistent with other templates.
+
+	* djblets.extensions:
+		* Added some bullet-proofing for when extension uninitialization
+		  fails.
+
+		* Fixed race conditions in a threaded environment (such as mod_worker)
+		  when reloading extensions.
+
+		* Fixed extension packaging to use setuptools instead of distutils.
+
+		  This allows the usage of more advanced features like the MANIFEST.in
+		  file.
+
+		* Fixed a compatibility issue with Windows when deploying media files.
+		  (Bug #3367)
+
+	* JavaScript:
+		* modalBox button click handlers now respect the disabled state of
+		  the buttons. (Bug #3338)
+
+		  Patch by Salam Al-yahya.
+
+
 version 0.8 (19-May-2014):
 	See the release notes for the 0.8.0 betas and RCs for the complete
 	list of changes.
