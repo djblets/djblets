@@ -58,7 +58,8 @@ class WebAPIResource(object):
     -------------------
 
     Most resources will have ``model`` set to a Model subclass, and
-    ``fields`` set to list the fields that would be shown when
+    ``fields`` set to a dictionary defining the fields to return in the
+    resource payloads.
 
     Each resource will also include a ``link`` dictionary that maps
     a key (resource name or action) to a dictionary containing the URL
@@ -86,6 +87,23 @@ class WebAPIResource(object):
     will be set to the lowercase class name of the object, and the plural
     version used for lists will be the same but with 's' appended to it. This
     can be overridden by setting ``name`` and ``name_plural``.
+
+
+    Non-Database Models
+    -------------------
+
+    Resources are not always backed by a database model. It's often useful to
+    work with lists of objects or data computed within the request.
+
+    In these cases, most resources will still want to set ``model`` to some
+    sort of class and provide a ``fields`` dictionary. It's expected that
+    the fields will all exist as attributes on an instance of the model, or
+    that a serializer function will exist for the field.
+
+    These resources will then to define a ``get_queryset`` that returns a
+    :py:class:`djblets.db.query.LocalDataQuerySet` containing the list of
+    items to return in the resource. This will allow standard resource
+    functionality like pagination to work.
 
 
     Matching Objects
@@ -701,7 +719,7 @@ class WebAPIResource(object):
 
         try:
             obj = self.get_object(request, *args, **kwargs)
-        except self.model.DoesNotExist:
+        except ObjectDoesNotExist:
             return DOES_NOT_EXIST
 
         if not self.has_access_permissions(request, obj, *args, **kwargs):
@@ -831,7 +849,7 @@ class WebAPIResource(object):
 
         try:
             obj = self.get_object(request, *args, **kwargs)
-        except self.model.DoesNotExist:
+        except ObjectDoesNotExist:
             return DOES_NOT_EXIST
 
         if not self.has_delete_permissions(request, obj, *args, **kwargs):
