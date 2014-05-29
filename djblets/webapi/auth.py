@@ -33,9 +33,9 @@ from django.contrib import auth
 from django.core.exceptions import ImproperlyConfigured
 from django.views.decorators.http import require_POST
 
-from djblets.webapi.core import WebAPIResponse, WebAPIResponseError
 from djblets.webapi.decorators import webapi
 from djblets.webapi.errors import LOGIN_FAILED
+from djblets.webapi.responses import WebAPIResponse, WebAPIResponseError
 
 
 _auth_backends = []

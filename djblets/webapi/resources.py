@@ -22,11 +22,11 @@ from djblets.util.http import (get_modified_since, etag_if_none_match,
                                get_http_requested_mimetype)
 from djblets.urls.patterns import never_cache_patterns
 from djblets.webapi.auth import check_login
-from djblets.webapi.core import (WebAPIResponse,
-                                 WebAPIResponseError,
-                                 WebAPIResponsePaginated,
-                                 SPECIAL_PARAMS)
-from djblets.webapi.decorators import (webapi_login_required,
+from djblets.webapi.responses import (WebAPIResponse,
+                                      WebAPIResponseError,
+                                      WebAPIResponsePaginated)
+from djblets.webapi.decorators import (SPECIAL_PARAMS,
+                                       webapi_login_required,
                                        webapi_request_fields,
                                        webapi_response_errors)
 from djblets.webapi.errors import (DOES_NOT_EXIST,

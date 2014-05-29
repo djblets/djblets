@@ -29,9 +29,11 @@ from __future__ import unicode_literals
 from django.http import HttpRequest
 from django.utils import six
 
-from djblets.webapi.core import SPECIAL_PARAMS
 from djblets.webapi.errors import (NOT_LOGGED_IN, PERMISSION_DENIED,
                                    INVALID_FORM_DATA)
+
+
+SPECIAL_PARAMS = ('api_format', 'callback', '_method', 'expand')
 
 
 def _find_httprequest(args):
