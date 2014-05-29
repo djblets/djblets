@@ -210,6 +210,24 @@ class WebAPIResource(object):
               return DOES_NOT_EXIST
 
 
+    Pagination
+    ----------
+
+    List resources automatically handle pagination of data, when using
+    models and querysets. Each request will return a fixed number of
+    results, and clients can fetch the previous or next batches through
+    the generated ``prev`` and ``next`` links.
+
+    By default, pagination is handled by WebAPIResponsePaginated. This
+    is responsible for fetching data from the resource's queryset. It's also
+    responsible for interpreting the ``start`` and ``max-results`` query
+    parameters, which are assumed to be 0-based indexes into the queryset.
+
+    Resources can override how pagination works by setting ``paginated_cls``
+    to a subclass of WebAPIResponsePaginated. Through that, they can customize
+    all aspects of pagination for the resource.
+
+
     Expanding Resources
     -------------------
 
@@ -358,6 +376,9 @@ class WebAPIResource(object):
         {'list': mime, 'item': mime}
         for mime in WebAPIResponse.supported_mimetypes
     ]
+
+    #: The class to use for paginated results in get_list.
+    paginated_cls = WebAPIResponsePaginated
 
     # State
     method_mapping = {
@@ -798,7 +819,7 @@ class WebAPIResource(object):
             except ObjectDoesNotExist:
                 return DOES_NOT_EXIST
 
-            return WebAPIResponsePaginated(
+            return self.paginated_cls(
                 request,
                 queryset=queryset,
                 results_key=self.list_result_key,

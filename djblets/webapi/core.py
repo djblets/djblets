@@ -305,74 +305,150 @@ class WebAPIResponse(HttpResponse):
 
 
 class WebAPIResponsePaginated(WebAPIResponse):
-    """
-    A response containing a list of results with pagination.
+    """A response containing a list of results with pagination.
 
     This accepts the following parameters to the URL:
 
     * start - The index of the first item (0-based index).
     * max-results - The maximum number of results to return in the request.
+
+    Subclasses can override much of the pagination behavior of this function.
+    While the default behavior operates on a queryset and works on indexes
+    within that queryset, subclasses can override this to work on any data
+    and paginate in any way they see fit.
     """
-    def __init__(self, request, queryset, results_key="results",
-                 prev_key="prev", next_key="next",
-                 total_results_key="total_results",
-                 default_max_results=25, max_results_cap=200,
+    def __init__(self, request, queryset=None, results_key='results',
+                 prev_key='prev', next_key='next',
+                 total_results_key='total_results',
+                 start_param='start', max_results_param='max-results',
+                 default_start=0, default_max_results=25, max_results_cap=200,
                  serialize_object_func=None,
                  extra_data={}, *args, **kwargs):
-        try:
-            start = max(int(request.GET.get('start', 0)), 0)
-        except ValueError:
-            start = 0
+        self.request = request
+        self.queryset = queryset
+        self.prev_key = prev_key
+        self.next_key = next_key
+        self.start_param = start_param
+        self.max_results_param = max_results_param
+
+        self.start = self.normalize_start(
+            request.GET.get(start_param, default_start))
 
         try:
-            max_results = \
-                min(int(request.GET.get('max-results', default_max_results)),
+            self.max_results = \
+                min(int(request.GET.get(max_results_param,
+                                        default_max_results)),
                     max_results_cap)
         except ValueError:
-            max_results = default_max_results
+            self.max_results = default_max_results
 
-        results = queryset[start:start + max_results]
+        self.results = self.get_results()
+        self.total_results = self.get_total_results()
 
-        total_results = queryset.count()
-
-        if total_results == 0:
-            results = []
+        if self.total_results == 0:
+            self.results = []
         elif serialize_object_func:
-            results = [serialize_object_func(obj)
-                       for obj in results]
+            self.results = [
+                serialize_object_func(obj)
+                for obj in self.results
+            ]
         else:
-            results = list(results)
+            self.results = list(self.results)
 
         data = {
-            results_key: results,
-            total_results_key: total_results,
+            results_key: self.results,
+            'links': {},
         }
         data.update(extra_data)
 
-        full_path = request.build_absolute_uri(request.path)
+        data['links'].update(self.get_links())
 
-        query_parameters = get_url_params_except(request.GET,
-                                                 'start', 'max-results')
+        if total_results_key and self.total_results is not None:
+            data[total_results_key] = self.total_results
+
+        super(WebAPIResponsePaginated, self).__init__(
+            request, obj=data, *args, **kwargs)
+
+    def normalize_start(self, start):
+        """Normalizes the start value.
+
+        By default, this ensures it's an integer no less than 0.
+        Subclasses can override this behavior.
+        """
+        try:
+            return max(int(start), 0)
+        except ValueError:
+            return 0
+
+    def has_prev(self):
+        """Returns whether there's a previous set of results."""
+        return self.start > 0
+
+    def has_next(self):
+        """Returns whether there's a next set of results."""
+        return self.start + len(self.results) < self.total_results
+
+    def get_prev_index(self):
+        """Returns the previous index to use for ?start="""
+        return max(self.start - self.max_results)
+
+    def get_next_index(self):
+        """Returns the next index to use for ?start="""
+        return self.start + self.max_results
+
+    def get_results(self):
+        """Returns the results for this page."""
+        return self.queryset[self.start:self.start + self.max_results]
+
+    def get_total_results(self):
+        """Returns the total number of results across all pages.
+
+        Subclasses can return None to prevent this field from showing up
+        in the payload.
+        """
+        return self.queryset.count()
+
+    def get_links(self):
+        """Returns all links used in the payload.
+
+        By default, this only includes pagination links. Subclasses can
+        provide additional links.
+        """
+        links = {}
+
+        full_path = self.request.build_absolute_uri(self.request.path)
+
+        query_parameters = get_url_params_except(
+            self.request.GET, self.start_param, self.max_results_param)
+
         if query_parameters:
             query_parameters = '&' + query_parameters
 
-        if start > 0:
-            data['links'][prev_key] = {
+        if self.has_prev():
+            links[self.prev_key] = {
                 'method': 'GET',
-                'href': '%s?start=%s&max-results=%s%s' %
-                        (full_path, max(start - max_results, 0), max_results,
-                         query_parameters),
+                'href': self.build_pagination_url(
+                    full_path, self.get_prev_index(),
+                    self.max_results, query_parameters),
             }
 
-        if start + len(results) < total_results:
-            data['links'][next_key] = {
+        if self.has_next():
+            links[self.next_key] = {
                 'method': 'GET',
-                'href': '%s?start=%s&max-results=%s%s' %
-                        (full_path, start + max_results, max_results,
-                         query_parameters),
+                'href': self.build_pagination_url(
+                    full_path, self.get_next_index(),
+                    self.max_results, query_parameters),
             }
 
-        WebAPIResponse.__init__(self, request, obj=data, *args, **kwargs)
+        return links
+
+    def build_pagination_url(self, full_path, start, max_results,
+                             query_parameters):
+        """Builds a URL to go to the previous or next set of results."""
+        return ('%s?%s=%s&%s=%s%s'
+                % (full_path, self.start_param, start,
+                   self.max_results_param, max_results,
+                   query_parameters))
 
 
 class WebAPIResponseError(WebAPIResponse):
