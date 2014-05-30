@@ -427,6 +427,9 @@ class WebAPIResource(object):
     @vary_on_headers('Accept', 'Cookie')
     def __call__(self, request, api_format=None, *args, **kwargs):
         """Invokes the correct HTTP handler based on the type of request."""
+        if not hasattr(request, '_djblets_webapi_object_cache'):
+            request._djblets_webapi_object_cache = {}
+
         auth_result = check_login(request)
 
         if isinstance(auth_result, tuple):
@@ -675,6 +678,16 @@ class WebAPIResource(object):
         assert self.model
         assert self.singleton or self.uri_object_key
 
+        if self.singleton:
+            cache_key = '%d' % id(self)
+        else:
+            id_field = id_field or self.model_object_key
+            object_id = kwargs[self.uri_object_key]
+            cache_key = '%d:%s:%s' % (id(self), id_field, object_id)
+
+        if cache_key in request._djblets_webapi_object_cache:
+            return request._djblets_webapi_object_cache[cache_key]
+
         if 'is_list' in kwargs:
             # Don't pass this in to _get_queryset, since we're not fetching
             # a list, and don't want the extra optimizations for lists to
@@ -684,13 +697,15 @@ class WebAPIResource(object):
         queryset = self._get_queryset(request, *args, **kwargs)
 
         if self.singleton:
-            return queryset.get()
+            obj = queryset.get()
         else:
-            id_field = id_field or self.model_object_key
-
-            return queryset.get(**{
-                id_field: kwargs[self.uri_object_key]
+            obj = queryset.get(**{
+                id_field: object_id,
             })
+
+        request._djblets_webapi_object_cache[cache_key] = obj
+
+        return obj
 
     def post(self, *args, **kwargs):
         """Handles HTTP POSTs.
