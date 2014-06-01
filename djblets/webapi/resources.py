@@ -22,11 +22,11 @@ from djblets.util.http import (get_modified_since, etag_if_none_match,
                                get_http_requested_mimetype)
 from djblets.urls.patterns import never_cache_patterns
 from djblets.webapi.auth import check_login
-from djblets.webapi.core import (WebAPIResponse,
-                                 WebAPIResponseError,
-                                 WebAPIResponsePaginated,
-                                 SPECIAL_PARAMS)
-from djblets.webapi.decorators import (webapi_login_required,
+from djblets.webapi.responses import (WebAPIResponse,
+                                      WebAPIResponseError,
+                                      WebAPIResponsePaginated)
+from djblets.webapi.decorators import (SPECIAL_PARAMS,
+                                       webapi_login_required,
                                        webapi_request_fields,
                                        webapi_response_errors)
 from djblets.webapi.errors import (DOES_NOT_EXIST,
@@ -58,7 +58,8 @@ class WebAPIResource(object):
     -------------------
 
     Most resources will have ``model`` set to a Model subclass, and
-    ``fields`` set to list the fields that would be shown when
+    ``fields`` set to a dictionary defining the fields to return in the
+    resource payloads.
 
     Each resource will also include a ``link`` dictionary that maps
     a key (resource name or action) to a dictionary containing the URL
@@ -86,6 +87,23 @@ class WebAPIResource(object):
     will be set to the lowercase class name of the object, and the plural
     version used for lists will be the same but with 's' appended to it. This
     can be overridden by setting ``name`` and ``name_plural``.
+
+
+    Non-Database Models
+    -------------------
+
+    Resources are not always backed by a database model. It's often useful to
+    work with lists of objects or data computed within the request.
+
+    In these cases, most resources will still want to set ``model`` to some
+    sort of class and provide a ``fields`` dictionary. It's expected that
+    the fields will all exist as attributes on an instance of the model, or
+    that a serializer function will exist for the field.
+
+    These resources will then to define a ``get_queryset`` that returns a
+    :py:class:`djblets.db.query.LocalDataQuerySet` containing the list of
+    items to return in the resource. This will allow standard resource
+    functionality like pagination to work.
 
 
     Matching Objects
@@ -190,6 +208,24 @@ class WebAPIResource(object):
               my_parent = myParentResource.get_object(request, *args, **kwargs)
           except ObjectDoesNotExist:
               return DOES_NOT_EXIST
+
+
+    Pagination
+    ----------
+
+    List resources automatically handle pagination of data, when using
+    models and querysets. Each request will return a fixed number of
+    results, and clients can fetch the previous or next batches through
+    the generated ``prev`` and ``next`` links.
+
+    By default, pagination is handled by WebAPIResponsePaginated. This
+    is responsible for fetching data from the resource's queryset. It's also
+    responsible for interpreting the ``start`` and ``max-results`` query
+    parameters, which are assumed to be 0-based indexes into the queryset.
+
+    Resources can override how pagination works by setting ``paginated_cls``
+    to a subclass of WebAPIResponsePaginated. Through that, they can customize
+    all aspects of pagination for the resource.
 
 
     Expanding Resources
@@ -341,6 +377,9 @@ class WebAPIResource(object):
         for mime in WebAPIResponse.supported_mimetypes
     ]
 
+    #: The class to use for paginated results in get_list.
+    paginated_cls = WebAPIResponsePaginated
+
     # State
     method_mapping = {
         'GET': 'get',
@@ -388,6 +427,9 @@ class WebAPIResource(object):
     @vary_on_headers('Accept', 'Cookie')
     def __call__(self, request, api_format=None, *args, **kwargs):
         """Invokes the correct HTTP handler based on the type of request."""
+        if not hasattr(request, '_djblets_webapi_object_cache'):
+            request._djblets_webapi_object_cache = {}
+
         auth_result = check_login(request)
 
         if isinstance(auth_result, tuple):
@@ -636,6 +678,16 @@ class WebAPIResource(object):
         assert self.model
         assert self.singleton or self.uri_object_key
 
+        if self.singleton:
+            cache_key = '%d' % id(self)
+        else:
+            id_field = id_field or self.model_object_key
+            object_id = kwargs[self.uri_object_key]
+            cache_key = '%d:%s:%s' % (id(self), id_field, object_id)
+
+        if cache_key in request._djblets_webapi_object_cache:
+            return request._djblets_webapi_object_cache[cache_key]
+
         if 'is_list' in kwargs:
             # Don't pass this in to _get_queryset, since we're not fetching
             # a list, and don't want the extra optimizations for lists to
@@ -645,13 +697,15 @@ class WebAPIResource(object):
         queryset = self._get_queryset(request, *args, **kwargs)
 
         if self.singleton:
-            return queryset.get()
+            obj = queryset.get()
         else:
-            id_field = id_field or self.model_object_key
-
-            return queryset.get(**{
-                id_field: kwargs[self.uri_object_key]
+            obj = queryset.get(**{
+                id_field: object_id,
             })
+
+        request._djblets_webapi_object_cache[cache_key] = obj
+
+        return obj
 
     def post(self, *args, **kwargs):
         """Handles HTTP POSTs.
@@ -701,7 +755,7 @@ class WebAPIResource(object):
 
         try:
             obj = self.get_object(request, *args, **kwargs)
-        except self.model.DoesNotExist:
+        except ObjectDoesNotExist:
             return DOES_NOT_EXIST
 
         if not self.has_access_permissions(request, obj, *args, **kwargs):
@@ -780,7 +834,7 @@ class WebAPIResource(object):
             except ObjectDoesNotExist:
                 return DOES_NOT_EXIST
 
-            return WebAPIResponsePaginated(
+            return self.paginated_cls(
                 request,
                 queryset=queryset,
                 results_key=self.list_result_key,
@@ -831,7 +885,7 @@ class WebAPIResource(object):
 
         try:
             obj = self.get_object(request, *args, **kwargs)
-        except self.model.DoesNotExist:
+        except ObjectDoesNotExist:
             return DOES_NOT_EXIST
 
         if not self.has_delete_permissions(request, obj, *args, **kwargs):

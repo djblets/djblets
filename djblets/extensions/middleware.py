@@ -27,6 +27,7 @@ from __future__ import unicode_literals
 
 import threading
 
+from django.conf import settings
 from djblets.extensions.manager import get_extension_managers
 
 
@@ -35,10 +36,13 @@ class ExtensionsMiddleware(object):
     def __init__(self, *args, **kwargs):
         super(ExtensionsMiddleware, self).__init__(*args, **kwargs)
 
+        self.do_expiration_checks = not getattr(settings, 'RUNNING_TEST',
+                                                False)
         self._lock = threading.Lock()
 
     def process_request(self, request):
-        self._check_expired()
+        if self.do_expiration_checks:
+            self._check_expired()
 
     def process_view(self, request, view, args, kwargs):
         request._djblets_extensions_kwargs = kwargs

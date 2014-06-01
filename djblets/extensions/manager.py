@@ -46,6 +46,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.core.management.color import no_style
 from django.core.urlresolvers import reverse
+from django.db import IntegrityError
 from django.db.models import loading
 from django.template.loader import template_source_loaders
 from django.utils import six
@@ -456,7 +457,8 @@ class ExtensionManager(object):
                 if not hasattr(ext_class, 'registration'):
                     find_registrations = True
             else:
-                registrations_to_fetch.append(class_name)
+                registrations_to_fetch.append(
+                    (class_name, entrypoint.dist.project_name))
                 find_registrations = True
 
         if find_registrations:
@@ -474,14 +476,17 @@ class ExtensionManager(object):
             # Go through each registration we still need and couldn't find,
             # and create an entry in the database. These are going to be
             # newly discovered extensions.
-            for class_name in registrations_to_fetch:
+            for class_name, ext_name in registrations_to_fetch:
                 if class_name not in found_registrations:
-                    registered_ext, is_new = \
-                        RegisteredExtension.objects.get_or_create(
+                    try:
+                        registered_ext = RegisteredExtension.objects.create(
                             class_name=class_name,
-                            defaults={
-                                'name': entrypoint.dist.project_name
-                            })
+                            name=ext_name)
+                    except IntegrityError:
+                        # An entry was created since we last looked up
+                        # anything. Fetch it from the database.
+                        registered_ext = RegisteredExtension.objects.get(
+                            class_name=class_name)
 
                     found_registrations[class_name] = registered_ext
 
