@@ -1,3 +1,9 @@
+version 0.8.2 (2-June-2014):
+	* Packaging:
+		* Added missing .less files to the build, which impacted packaging
+		  of the source tarball.
+
+
 version 0.8.1 (26-May-2014):
 	* djblets.configforms:
 		* Fixed the layout of the config page form title.
