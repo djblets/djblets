@@ -1,3 +1,18 @@
+version 0.8.3 (6-June-2014):
+	* Security:
+		* Fixed a XSS issue in the gravatars code.
+
+		  Users could construct a name that would allow for injecting
+		  JavaScript in the page. That name is now properly escaped.
+
+		* Fixed a XSS issue in json_dumps.
+
+		  JSON payloads constructed based on user input and then injected into
+		  a page could result in custom JavaScript being injected into the
+		  page. Additional escaping is now performed to ensure this does not
+		  happen.
+
+
 version 0.8.2 (2-June-2014):
 	* Packaging:
 		* Added missing .less files to the build, which impacted packaging
@@ -693,6 +708,21 @@ version 0.8.0 alpha 1 (9-November-2013):
 
 		* Specifying a negative index for the `start` query parameter on list
 		  resources no longer triggers an HTTP 500. It's now interpreted as 0.
+
+
+version 0.7.30 final (6-June-2014):
+	* Security:
+		* Fixed a XSS issue in the gravatars code.
+
+		  Users could construct a name that would allow for injecting
+		  JavaScript in the page. That name is now properly escaped.
+
+		* Fixed a XSS issue in json_dumps.
+
+		  JSON payloads constructed based on user input and then injected into
+		  a page could result in custom JavaScript being injected into the
+		  page. Additional escaping is now performed to ensure this does not
+		  happen.
 
 
 version 0.7.29 final (9-April-2014):
