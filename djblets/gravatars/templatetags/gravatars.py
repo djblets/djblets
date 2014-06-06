@@ -25,6 +25,7 @@
 from __future__ import unicode_literals
 
 from django import template
+from django.utils.html import format_html
 
 from djblets.gravatars import (get_gravatar_url,
                                get_gravatar_url_for_email)
@@ -55,9 +56,10 @@ def gravatar(context, user, size=None):
     url = get_gravatar_url(context['request'], user, size)
 
     if url:
-        return ('<img src="%s" width="%s" height="%s" alt="%s" '
-                '     class="gravatar"/>' %
-                (url, size, size, user.get_full_name() or user.username))
+        return format_html(
+            '<img src="{0}" width="{1}" height="{1}" alt="{2}" '
+            'class="gravatar"/>',
+            url, size, user.get_full_name() or user.username)
     else:
         return ''
 
