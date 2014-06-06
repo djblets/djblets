@@ -22,7 +22,10 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import json
+try:
+    import json
+except ImportError:
+    from django.utils import simplejson as json
 
 from django.contrib.auth.models import AnonymousUser, User
 from django.test.client import RequestFactory
