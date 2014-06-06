@@ -23,6 +23,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from django import template
+from django.utils.html import escape
 
 from djblets.gravatars import get_gravatar_url, \
                               get_gravatar_url_for_email
@@ -53,8 +54,10 @@ def gravatar(context, user, size=None):
     url = get_gravatar_url(context['request'], user, size)
 
     if url:
-        return '<img src="%s" width="%s" height="%s" alt="%s" class="gravatar"/>' % \
-               (url, size, size, user.get_full_name() or user.username)
+        return ('<img src="%s" width="%s" height="%s" alt="%s" '
+                'class="gravatar"/>'
+                % (escape(url), escape(size), escape(size),
+                   escape(user.get_full_name() or user.username)))
     else:
         return ''
 
