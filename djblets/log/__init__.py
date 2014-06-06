@@ -35,7 +35,6 @@ from django.conf import settings
 
 
 _logging_setup = False
-_console_log = None
 _profile_log = None
 
 DEFAULT_LOG_LEVEL = "DEBUG"
@@ -222,21 +221,18 @@ def restart_logging():
     based on any new settings.
     """
     global _logging_setup
-    global _console_log
-    global _profile_log
 
     logging.log(logging.INFO, "Reloading logging settings")
 
-    if _profile_log:
-        logging.getLogger("profile").removeHandler(_profile_log)
+    for logger_id in ('profile', ''):
+        logger = logging.getLogger(logger_id)
 
-    if _console_log:
-        _console_log.flush()
-        logging.getLogger("").removeHandler(_console_log)
+        while logger.handlers:
+            handler = logger.handlers[0]
+            handler.flush()
+            logger.removeHandler(handler)
 
     _logging_setup = False
-    _console_log = None
-    _profile_log = None
 
     init_logging()
 

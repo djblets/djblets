@@ -31,12 +31,19 @@ from django import template
 from django.core.serializers import serialize
 from django.db.models.query import QuerySet
 from django.utils import six
+from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
 from djblets.util.serializers import DjbletsJSONEncoder
 
 
 register = template.Library()
+
+_safe_js_escapes = {
+    ord('&'): '\\u0026',
+    ord('<'): '\\u003C',
+    ord('>'): '\\u003E',
+}
 
 
 @register.simple_tag
@@ -75,7 +82,7 @@ def json_dumps(value, indent=None):
     else:
         result = json.dumps(value, indent=indent, cls=DjbletsJSONEncoder)
 
-    return mark_safe(result)
+    return mark_safe(force_text(result).translate(_safe_js_escapes))
 
 
 @register.filter
