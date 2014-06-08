@@ -717,12 +717,16 @@ version 0.7.30 final (6-June-2014):
 		  Users could construct a name that would allow for injecting
 		  JavaScript in the page. That name is now properly escaped.
 
+		  This is CVE-2014-3995.
+
 		* Fixed a XSS issue in json_dumps.
 
 		  JSON payloads constructed based on user input and then injected into
 		  a page could result in custom JavaScript being injected into the
 		  page. Additional escaping is now performed to ensure this does not
 		  happen.
+
+		  This is CVE-2014-3994 (discovered by "uchida", bug #3406).
 
 
 version 0.7.29 final (9-April-2014):
