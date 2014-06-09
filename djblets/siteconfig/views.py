@@ -45,13 +45,14 @@ def site_settings(request, form_class,
     siteconfig = SiteConfiguration.objects.get_current()
 
     if request.method == "POST":
-        form = form_class(siteconfig, request.POST, request.FILES)
+        form = form_class(siteconfig, data=request.POST, files=request.FILES,
+                          request=request)
 
         if form.is_valid():
             form.save()
             return HttpResponseRedirect(".?saved=1")
     else:
-        form = form_class(siteconfig)
+        form = form_class(siteconfig, request=request)
 
     context = {
         'form': form,
