@@ -227,7 +227,8 @@ class ExtensionResource(WebAPIResource):
 
         # Refetch extension, since the ExtensionManager may have changed
         # the model.
-        registered_extension = self.get_object(request, *args, **kwargs)
+        registered_extension = \
+            RegisteredExtension.objects.get(pk=registered_extension.pk)
 
         return 200, {
             self.item_result_key: registered_extension
