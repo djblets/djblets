@@ -30,6 +30,7 @@ import os
 import threading
 import time
 
+from django import forms
 from django.conf import settings
 from django.conf.urls import include, patterns
 from django.core.exceptions import ImproperlyConfigured
@@ -40,12 +41,14 @@ from kgb import SpyAgency
 from mock import Mock
 
 from djblets.extensions.extension import Extension, ExtensionInfo
+from djblets.extensions.forms import SettingsForm
 from djblets.extensions.hooks import (ExtensionHook, ExtensionHookPoint,
                                       SignalHook, TemplateHook, URLHook)
 from djblets.extensions.manager import (_extension_managers, ExtensionManager,
                                         SettingListWrapper)
 from djblets.extensions.settings import Settings
 from djblets.extensions.signals import settings_saved
+from djblets.extensions.views import configure_extension
 from djblets.testing.testcases import TestCase
 
 
@@ -126,6 +129,7 @@ class SettingsTest(TestCase):
 
 class TestExtensionWithRegistration(Extension):
     """Dummy extension for testing."""
+    id = 'TestExtensionWithRegistration'
     registration = Mock()
     registration.settings = dict()
 
@@ -737,8 +741,6 @@ class SignalHookTest(SpyAgency, TestCase):
         manager = ExtensionManager('')
         self.test_extension = \
             TestExtensionWithRegistration(extension_manager=manager)
-        self.patterns = patterns('',
-            (r'^url_hook_test/', include('djblets.extensions.test.urls')))
 
         self.signal = Signal()
         self.spy_on(self._on_signal_fired)
@@ -889,6 +891,39 @@ class TemplateHookTest(TestCase):
         t.render(context).strip()
 
         # Didn't crash. We're good.
+
+
+class ViewTests(SpyAgency, TestCase):
+    """Unit tests for djblets.extensions.views."""
+    def setUp(self):
+        self.manager = ExtensionManager('')
+        self.extension = \
+            TestExtensionWithRegistration(extension_manager=self.manager)
+
+    def test_configure_extension_saving(self):
+        """Testing configure_extension with saving settings"""
+        class TestSettingsForm(SettingsForm):
+            mykey = forms.CharField(max_length=100)
+
+        self.extension.is_configurable = True
+        self.spy_on(self.manager.get_enabled_extension,
+                    call_fake=lambda *args: self.extension)
+
+        request = Mock()
+        request.path = '/config'
+        request.method = 'POST'
+        request.META = {
+            'CSRF_COOKIE': 'abc123',
+        }
+        request.POST = {
+            'mykey': 'myvalue',
+        }
+        request.FILES = {}
+
+        configure_extension(request, TestExtensionWithRegistration,
+                            TestSettingsForm, self.manager)
+
+        self.assertEqual(self.extension.settings.get('mykey'), 'myvalue')
 
 
 # A dummy function that acts as a View method

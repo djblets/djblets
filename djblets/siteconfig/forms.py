@@ -35,10 +35,10 @@ class SiteSettingsForm(forms.Form):
     meant to be subclassed for different settings pages. Any fields defined
     by the form will be loaded/saved automatically.
     """
-    def __init__(self, siteconfig, request=None, *args, **kwargs):
-        forms.Form.__init__(self, *args, **kwargs)
+    def __init__(self, siteconfig, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super(SiteSettingsForm, self).__init__(*args, **kwargs)
         self.siteconfig = siteconfig
-        self.request = request
         self.disabled_fields = {}
         self.disabled_reasons = {}
 
