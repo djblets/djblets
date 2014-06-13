@@ -1,3 +1,13 @@
+version 0.8.5 (June 13, 2014):
+	* djblets.webapi:
+		* Fixed calculation of the previous index in WebAPIResponsePaginated.
+
+		  The previous index was being calculated incorrectly, resulting in
+		  a TypeError.
+
+		  Patch by Keith Moyer.
+
+
 version 0.8.4 (June 12, 2014):
 	* djblets.db:
 		* Added LocalDataQuerySet, which emulates a QuerySet but for a
