@@ -208,7 +208,7 @@ class WebAPIResponsePaginated(WebAPIResponse):
 
     def get_prev_index(self):
         """Returns the previous index to use for ?start="""
-        return max(self.start - self.max_results)
+        return max(0, self.start - self.max_results)
 
     def get_next_index(self):
         """Returns the next index to use for ?start="""
