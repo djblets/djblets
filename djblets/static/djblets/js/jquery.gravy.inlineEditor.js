@@ -181,8 +181,14 @@ $.widget("ui.inlineEditor", {
             var isDragging = true;
 
             this.element
+                .on('click', 'a', function(e) {
+                    e.stopPropagation();
+                })
                 .click(function() {
-                    self.startEdit();
+                    if (!isDragging) {
+                        self.startEdit();
+                    }
+                    isDragging = true;
 
                     return false;
                 })
@@ -194,13 +200,6 @@ $.widget("ui.inlineEditor", {
                 })
                 .mouseup(function() {
                     $(this).unbind("mousemove");
-                    var wasDragging = isDragging;
-                    isDragging = true;
-                    if (!wasDragging) {
-                        self.startEdit();
-                    }
-
-                    return false;
                 });
         }
 
