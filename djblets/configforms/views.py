@@ -19,6 +19,7 @@ class ConfigPagesView(TemplateView):
     nav_title = None
     pages_id = 'config_pages'
     template_name = 'configforms/config.html'
+    base_template_name = 'base.html'
     page_classes = []
 
     css_bundle_names = []
@@ -77,6 +78,7 @@ class ConfigPagesView(TemplateView):
 
     def get_context_data(self, **kwargs):
         return {
+            'base_template_name': self.base_template_name,
             'page_title': self.title,
             'nav_title': self.nav_title or self.title,
             'pages_id': self.pages_id,

@@ -24,8 +24,7 @@
 
 from __future__ import unicode_literals
 
-from django import template
-from django.forms import BooleanField
+from django import forms, template
 from django.utils.encoding import force_unicode
 from django.utils.html import escape
 
@@ -86,7 +85,19 @@ def is_field_checkbox(field):
     """
     Returns whether or not this field is a checkbox (a ```BooleanField''').
     """
-    return isinstance(field.field, BooleanField)
+    return isinstance(field.field, forms.BooleanField)
+
+
+@register.filter
+def is_checkbox_row(field):
+    """Returns whether the field's row is a checkbox-ish row.
+
+    This will return True if rendering a checkbox, radio button, or
+    multi-select checkbox.
+    """
+    return isinstance(field.field.widget, (forms.CheckboxInput,
+                                           forms.RadioSelect,
+                                           forms.CheckboxSelectMultiple))
 
 
 @register.filter
