@@ -73,10 +73,11 @@ Djblets.Config.ListItemView = Backbone.View.extend({
 
         this.$spinner = $('<span/>')
             .addClass('config-forms-list-item-spinner')
-            .appendTo(this.$spinnerParent)
+            .prependTo(this.$spinnerParent)
             .hide()
             .css('visibility', 'visible')
-            .fadeIn();
+            .fadeIn()
+            .css('display', 'inline-block');
     },
 
     /*
@@ -108,9 +109,12 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      * Adds all registered actions to the view.
      */
     addActions: function($parentEl) {
+        var $actions = $('<span/>')
+                .addClass('config-forms-list-item-actions');
+
         _.each(this.model.actions, function(action) {
             var $action = this._buildActionEl(action)
-                    .appendTo($parentEl);
+                    .appendTo($actions);
 
             if (action.children) {
                 if (action.label) {
@@ -127,7 +131,9 @@ Djblets.Config.ListItemView = Backbone.View.extend({
             }
         }, this);
 
-        this.$spinnerParent = $parentEl;
+        this.$spinnerParent = $actions;
+
+        $actions.prependTo($parentEl);
     },
 
     /*

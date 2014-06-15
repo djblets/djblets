@@ -12,6 +12,7 @@ suite('djblets/configForms/views/ListItemView', function() {
 
                 itemView.render();
                 expect(itemView.$el.html().strip()).toBe(
+                    '<span class="config-forms-list-item-actions"></span>' +
                     '<a href="http://example.com/">Label</a>');
             });
 
@@ -24,7 +25,9 @@ suite('djblets/configForms/views/ListItemView', function() {
                     });
 
                 itemView.render();
-                expect(itemView.$el.html().strip()).toBe('Label');
+                expect(itemView.$el.html().strip()).toBe(
+                    '<span class="config-forms-list-item-actions"></span>' +
+                    'Label');
             });
         });
 
