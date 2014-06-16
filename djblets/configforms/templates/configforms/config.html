@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends base_template_name %}
 {% load compressed djblets_deco djblets_js i18n %}
 
 {% block title %}{{page_title}}{% endblock %}
@@ -9,7 +9,7 @@
  <div class="box-head">
   <h1 class="box-title">{{nav_title}}</h1>
  </div>
- <div class="box-main">
+ <div class="box-main box-foot">
   <ul>
 {%   for page in pages %}
 {%    if page.is_visible %}
