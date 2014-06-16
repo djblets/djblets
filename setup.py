@@ -95,7 +95,7 @@ class BuildI18n(Command):
         # location (such as distribution packaging), we need to
         # ensure that the source directory is in the PYTHONPATH
         # or the import of djblets.util.filesystem will fail.
-        os.putenv("PYTHONPATH", "%s" % os.getcwd())
+        sys.path.append ("%s" % os.getcwd())
         retcode = subprocess.call([
             sys.executable, 'contrib/internal/build-i18n.py'])
 
