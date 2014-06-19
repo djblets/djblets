@@ -15,14 +15,12 @@ $.fn.datagrid = function(options) {
     var $grid = this,
         gridId = this.attr("id"),
         $menu = $("#" + gridId + "-menu"),
-        $summaryCells = $grid.find("td.summary"),
         $gridContainer = $grid.find('.datagrid'),
         $bodyContainer = $gridContainer.find('.datagrid-body-container'),
         $headTable = $gridContainer.find('.datagrid-head'),
         $bodyTable = $bodyContainer.find('.datagrid-body'),
         $bodyTableHead = $bodyTable.find('thead'),
         $paginator = $gridContainer.find('.paginator'),
-        autoFitGrid = ($grid.css('height') !== undefined),
         $window = $(window),
         $editButton,
 
@@ -52,22 +50,6 @@ $.fn.datagrid = function(options) {
             .click(function() {
                 toggleColumn(className);
             });
-    });
-
-    /*
-     * Attaches click event listener to all summary td elements,
-     * following href of child anchors if present.  This is being
-     * done to complement the "cursor:pointer" style that is
-     * already applied to the same elements. (Bug #1022)
-     */
-    $summaryCells.click(function(evt) {
-        var cellHref = $(evt.target).find("a").attr("href");
-
-        evt.stopPropagation();
-
-        if (cellHref){
-            window.location.href = cellHref;
-        }
     });
 
     $(document.body).click(hideColumnsMenu);
@@ -168,7 +150,7 @@ $.fn.datagrid = function(options) {
                 toggleColumnsMenu();
             });
 
-        $headTable.find('.datagrid-header-checkbox').change(function(evt) {
+        $headTable.find('.datagrid-header-checkbox').change(function() {
             /*
              * Change the checked state of all matching checkboxes to reflect
              * the state of the checkbox in the header.
