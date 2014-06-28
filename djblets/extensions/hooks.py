@@ -107,7 +107,8 @@ class AppliesToURLMixin(object):
         ``apply_to`` matches the current requested page.
         """
         return (not self.apply_to or
-                request.resolver_match.url_name in self.apply_to)
+                (request.resolver_match and
+                 request.resolver_match.url_name in self.apply_to))
 
 
 @six.add_metaclass(ExtensionHookPoint)
