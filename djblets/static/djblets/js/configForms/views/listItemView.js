@@ -45,7 +45,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
         this.$el
             .empty()
             .append(this.template(this.model.attributes));
-        this.addActions(this.$el);
+        this.addActions(this.getActionsParent());
 
         return this;
     },
@@ -58,6 +58,16 @@ Djblets.Config.ListItemView = Backbone.View.extend({
     remove: function() {
         this.$el.fadeOut('normal',
                          _.bind(Backbone.View.prototype.remove, this));
+    },
+
+    /*
+     * Returns the container for the actions.
+     *
+     * This defaults to being this element, but it can be overridden to
+     * return a more specific element.
+     */
+    getActionsParent: function() {
+        return this.$el;
     },
 
     /*
