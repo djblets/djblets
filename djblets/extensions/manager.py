@@ -677,9 +677,19 @@ class ExtensionManager(object):
         lockfile = os.path.join(tempfile.gettempdir(), ext_class.id + '.lock')
         extension = ext_class.instance
 
-        old_version = extension.settings.get(self.VERSION_SETTINGS_KEY)
         cur_version = ext_class.info.version
-        if ext_class.registration.installed and old_version == cur_version:
+
+        # We only want to fetch the existing version information if the
+        # extension is already installed. We remove this key when
+        # disabling an extension, so if it were there, it was either
+        # copy/pasted, or something went wrong. Either way, we wouldn't
+        # be able to trust it.
+        if ext_class.registration.installed:
+            old_version = extension.settings.get(self.VERSION_SETTINGS_KEY)
+        else:
+            old_version = None
+
+        if old_version == cur_version:
             # Nothing to do
             return
 
