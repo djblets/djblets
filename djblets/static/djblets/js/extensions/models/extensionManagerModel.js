@@ -160,7 +160,7 @@ InstalledExtensionCollection = Backbone.Collection.extend({
  * functionality for loading the current list from the server.
  */
 Djblets.ExtensionManager = Backbone.Model.extend({
-    initialize: function(attrs, options) {
+    initialize: function() {
         this.installedExtensions = new InstalledExtensionCollection();
     },
 

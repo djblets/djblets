@@ -32,7 +32,9 @@
  */
 $.fn.old_html = $.fn.html;
 $.fn.html = function(value) {
-    var removePre = false;
+    var removePre = false,
+        ret,
+        preTag;
 
     if ($.browser.msie && value !== undefined && this[0] &&
         /^(pre|textarea)$/i.test(this[0].tagName)) {
@@ -40,10 +42,10 @@ $.fn.html = function(value) {
         removePre = true;
     }
 
-    var ret = this.old_html.apply(this, value === undefined ? [] : [value]);
+    ret = this.old_html.apply(this, value === undefined ? [] : [value]);
 
     if (removePre) {
-        var preTag = this.children();
+        preTag = this.children();
         preTag.replaceWith(preTag.contents());
     }
 

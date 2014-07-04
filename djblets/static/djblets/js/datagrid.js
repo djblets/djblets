@@ -38,25 +38,6 @@ $.fn.datagrid = function(options) {
 
     options = options || {};
 
-    $grid.data('datagrid', this);
-
-    setupHeader();
-
-    /* Register callbacks for the columns. */
-    $menu.find("tr").each(function(i, row) {
-        var className = row.className;
-
-        $(row).find(".datagrid-menu-checkbox, .datagrid-menu-label a")
-            .click(function() {
-                toggleColumn(className);
-            });
-    });
-
-    $(document.body).click(hideColumnsMenu);
-
-    $window.resize(onResize);
-    onResize();
-
 
     /********************************************************************
      * Public methods
@@ -532,6 +513,30 @@ $.fn.datagrid = function(options) {
             beforeCell.colSpan = tempColSpan;
         }
     }
+
+
+    /********************************************************************
+     * Datagrid initialization
+     ********************************************************************/
+
+    $grid.data('datagrid', this);
+
+    setupHeader();
+
+    /* Register callbacks for the columns. */
+    $menu.find("tr").each(function(i, row) {
+        var className = row.className;
+
+        $(row).find(".datagrid-menu-checkbox, .datagrid-menu-label a")
+            .click(function() {
+                toggleColumn(className);
+            });
+    });
+
+    $(document.body).click(hideColumnsMenu);
+
+    $window.resize(onResize);
+    onResize();
 
     return $grid;
 };

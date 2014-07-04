@@ -23,8 +23,8 @@
 (function($) {
 
 
-var queues = {};
-var queuesInProgress = {};
+var queues = {},
+    queuesInProgress = {};
 
 /*
  * A set of utility functions for implementing a queue of functions.

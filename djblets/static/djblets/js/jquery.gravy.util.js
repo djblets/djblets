@@ -74,22 +74,25 @@ $.fn.extend({
      * @return {jQuery} This jQuery.
      */
     scrollIntoView: function() {
+        var $document = $(document),
+            $window = $(window);
+
         return $(this).each(function() {
-            var offset = $(this).offset();
-            var scrollLeft = $(document).scrollLeft();
-            var elLeft = (scrollLeft + $(window).width()) -
-                         (offset.left + $(this).outerWidth(true));
+            var $this = $(this),
+                offset = $this.offset(),
+                scrollLeft = $document.scrollLeft(),
+                scrollTop = $document.scrollTop(),
+                elLeft = (scrollLeft + $window.width()) -
+                         (offset.left + $this.outerWidth(true)),
+                elTop = (scrollTop + $window.height()) -
+                         (offset.top + $this.outerHeight(true));
 
             if (elLeft < 0) {
-                $(window).scrollLeft(scrollLeft - elLeft);
+                $window.scrollLeft(scrollLeft - elLeft);
             }
 
-            var scrollTop = $(document).scrollTop();
-            var elTop = (scrollTop + $(window).height()) -
-                        (offset.top + $(this).outerHeight(true));
-
             if (elTop < 0) {
-                $(window).scrollTop(scrollTop - elTop);
+                $window.scrollTop(scrollTop - elTop);
             }
         });
     }
@@ -99,40 +102,45 @@ $.fn.getExtents = function(types, sides) {
     var val = 0;
 
     this.each(function() {
-        var self = $(this);
+        var self = $(this),
+            type,
+            side,
+            prop,
+            t,
+            s,
+            i;
 
-        for (var t = 0; t < types.length; t++) {
-            var type = types.charAt(t);
+        for (t = 0; t < types.length; t++) {
+            type = types.charAt(t);
 
-            for (var s = 0; s < sides.length; s++) {
-                var side = sides.charAt(s);
-                var prop;
+            for (s = 0; s < sides.length; s++) {
+                side = sides.charAt(s);
 
-                if (type == "b") {
+                if (type === "b") {
                     type = "border";
-                } else if (type == "m") {
+                } else if (type === "m") {
                     type = "margin";
-                } else if (type == "p") {
+                } else if (type === "p") {
                     type = "padding";
                 }
 
-                if (side == "l" || side == "left") {
+                if (side === "l" || side === "left") {
                     side = "Left";
-                } else if (side == "r" || side == "right") {
+                } else if (side === "r" || side === "right") {
                     side = "Right";
-                } else if (side == "t" || side == "top") {
+                } else if (side === "t" || side === "top") {
                     side = "Top";
-                } else if (side == "b" || side == "bottom") {
+                } else if (side === "b" || side === "bottom") {
                     side = "Bottom";
                 }
 
                 prop = type + side;
 
-                if (type == "border") {
+                if (type === "border") {
                     prop += "Width";
                 }
 
-                var i = parseInt(self.css(prop), 10);
+                i = parseInt(self.css(prop), 10);
 
                 if (!isNaN(i)) {
                     val += i;
@@ -209,13 +217,13 @@ $.fn.positionToSide = function(el, options) {
             left = null;
             top = null;
 
-            if (side == "t") {
+            if (side === "t") {
                 top = offset.top - thisHeight - options.yDistance;
-            } else if (side == "b") {
+            } else if (side === "b") {
                 top = offset.top + elHeight + options.yDistance;
-            } else if (side == "l") {
+            } else if (side === "l") {
                 left = offset.left - thisWidth - options.xDistance;
-            } else if (side == "r") {
+            } else if (side === "r") {
                 left = offset.left + elWidth + options.xDistance;
             } else {
                 continue;
@@ -272,9 +280,10 @@ $.fn.proxyTouchEvents = function(events) {
     events = events || "touchstart touchmove touchend";
 
     return $(this).bind(events, function(event) {
-        var touches = event.originalEvent.changedTouches;
-        var first = touches[0];
-        var type = "";
+        var touches = event.originalEvent.changedTouches,
+            first = touches[0],
+            type = "",
+            mouseEvent;
 
         switch (event.type) {
         case "touchstart":
@@ -290,7 +299,7 @@ $.fn.proxyTouchEvents = function(events) {
             break;
         }
 
-        var mouseEvent = document.createEvent("MouseEvent");
+        mouseEvent = document.createEvent("MouseEvent");
         mouseEvent.initMouseEvent(type, true, true, window, 1,
                                   first.screenX, first.screenY,
                                   first.clientX, first.clientY,
@@ -345,7 +354,7 @@ $.extend(String.prototype, {
             str = this.substring(0, numChars - 3); // minus length of "..."
             i = str.lastIndexOf(".");
 
-            if (i != -1) {
+            if (i !== -1) {
                 str = str.substring(0, i + 1);
             }
 
