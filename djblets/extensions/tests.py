@@ -883,7 +883,7 @@ class TemplateHookTest(TestCase):
 
                 return ''
 
-        hook = MyTemplateHook(self.extension, 'test')
+        MyTemplateHook(self.extension, 'test')
         context = Context({})
         context['request'] = None
 
@@ -900,7 +900,7 @@ class TemplateHookTest(TestCase):
             def render_to_string(self, request, context):
                 raise Exception('Oh noes')
 
-        hook = MyTemplateHook(self.extension, 'test')
+        MyTemplateHook(self.extension, 'test')
         context = Context({})
         context['request'] = None
 

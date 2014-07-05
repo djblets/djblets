@@ -224,8 +224,6 @@ class BuildStaticFiles(Command):
         """Removes all source files, leaving only built bundles."""
         for root, dirs, files in os.walk(media_build_dir, topdown=False):
             for name in files:
-                full_path = os.path.join(root, name)
-
                 # A valid file will be represented as one of:
                 #
                 #     (bundle_name, 'min', stamp, ext)
