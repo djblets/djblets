@@ -1,0 +1,23 @@
+============================
+Djblets 0.7.27 Release Notes
+============================
+
+**Release date**: December 12, 2013
+
+
+djblets.webapi
+==============
+
+* Fixed a regression with the new webapi auth backend support.
+
+  If an ``Authorization`` header was sent by a client that already had
+  a valid cookie, the code would attempt to access an undefined
+  variable. The code is now in a more appropriate place to access
+  that variable.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

@@ -1,0 +1,38 @@
+===========================
+Djblets 0.5.9 Release Notes
+===========================
+
+**Release date**: March 28, 2010
+
+
+djblets.util
+============
+
+* :py:func:`cache_memoize` now converts all keys to plain strings, instead of
+  allowing unicode to be passed to the backend. Not all cache
+  backends allow for unicode keys.
+
+
+djblets.siteconfig
+==================
+
+* The same change for cache keys was made here as well.
+
+
+djblets
+=======
+
+* Added :file:`ez_setup.py` to the source distribution.
+
+* Added :py:data:`djblets.__version__` and
+  :py:data:`djblets.__version_info__`.
+  :py:data:`__version__` is a variable containing the results of
+  :py:func:`djblets.get_package_version()`, and :py:data:`__version_info__`
+  contains the version parts in a tuple.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

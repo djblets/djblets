@@ -1,0 +1,82 @@
+==============================
+Djblets 0.8 RC 1 Release Notes
+==============================
+
+**Release date**: April 2, 2014
+
+
+djblets.configforms
+===================
+
+* Added the configforms module for managing multi-"page" config forms.
+
+  This makes it easy for a view to provide collections of configuration
+  pages with a sidebar used for navigation. Each page can have one or
+  more forms, each of which can be submitted individually.
+
+  There's also JavaScript objects that make it easy to provide
+  additional customization.
+
+
+djblets.datagrid
+================
+
+* Separated state handling from datagrid columns.
+
+  DataGrid column instances are shared across multiple instances of a
+  DataGrid. This would be fine, except we were storing important state
+  on the column instances, which preventing DataGrids from being
+  reliable in a multi-threaded configuration (such as Apache's
+  mod_worker or mod_wsgi daemon mode).
+
+  The state handling has been moved out into a separate object. Column
+  functions now all take a ``state`` parameter, which
+  :py:class:`StatefulColumn` will automatically pass when wrapping a function.
+  This parameter is used for any state-related access.
+
+
+djblets.extensions
+==================
+
+* Fixed building extensions without a :file:`static/` directory.
+
+* Fixed compatibility with modern versions of djagno-pipeline.
+
+* Fixed locating installed static media from extensions in production
+  environments.
+
+* Added sandboxing of static media lookups, preventing breakages when
+  failing to find static media.
+
+* Removed the requirement for (and use of) ``EXTENSIONS_STATIC_ROOT``.
+  ``MEDIA_ROOT/ext`` is now used directly instead.
+
+* Added the list of possible error codes to :py:class:`ExtensionResource`.
+
+  This is useful for generating documentation and performing other
+  types of introspection.
+
+
+djblets.webapi
+==============
+
+* :py:class:`WebAPIResource` subclasses can now override which resource will
+  render any object in its payload.
+
+  This is done by overriding :py:meth:`get_serializer_for_object`, which
+  will take an object instance and return a WebAPIResource instance. That
+  instance will be used to serialize the object within the resource's payload.
+
+* Added :py:meth:`WebAPIResource.get_no_access_error`, which returns the
+  proper error code when access is denied on a resource. Subclasses
+  can override this to return something more specific.
+
+* :py:meth:`WebAPIResource.get_href_parent_ids` now takes all the same
+  keyword arguments required by other functions.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

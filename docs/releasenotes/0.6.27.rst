@@ -1,0 +1,27 @@
+============================
+Djblets 0.6.27 Release Notes
+============================
+
+**Release date**: November 24, 2012
+
+
+djblets.gravatars
+=================
+
+* The gravatar URL used for HTTPS connections now uses
+  https://secure.gravatar.com and not https://www.gravatar.com.
+
+
+djblets.webapi
+==============
+
+* The :py:attr:`allowed_mimetypes` list in :py:class:`WebAPIResource` is no
+  longer getting polluted with every :py:class:`WebAPIResource`'s allowed item
+  and list mimetypes.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

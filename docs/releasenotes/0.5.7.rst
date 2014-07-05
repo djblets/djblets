@@ -1,0 +1,52 @@
+===========================
+Djblets 0.5.7 Release Notes
+===========================
+
+**Release date**: February 14, 2010
+
+
+djblets.datagrid
+================
+
+* Columns in datagrids can now augment the queryset before actually
+  querying the database. This allows them to prefetch information
+  instead of having to do a query per-row.
+
+  This also now by default globally caches the resulting data in
+  :py:meth:`Column.render_data` if displaying a foreign key. This means that
+  if several rows are all referencing the same User object, for instance,
+  there will be only one query for that object instead of one per row.
+
+djblets.log
+===========
+
+* Add a title to the Server Log page.
+
+
+djblets.util
+============
+
+* Fixed image cropping with the new Django storage support.
+
+  Python Image Library was confused about the format to save the
+  resulting image in when cropping. We now pass in the appropriate
+  format in order to allow it to save. We also log any failures that
+  may come up. (:bug:`1396`)
+
+JavaScript
+==========
+
+* Allow the classes in modalBox to be customized on a per-instance
+  basis, allowing for more custom types of modalBoxes (such as a
+  specially stylized help box). Patch by Hussain Bohra.
+
+* Added a new ``$.fn.scrollIntoView`` function. This will ensure that the
+  target element is visible on-screen.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Hussain Bohra

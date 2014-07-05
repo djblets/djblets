@@ -1,0 +1,92 @@
+===========================
+Djblets 0.8.4 Release Notes
+===========================
+
+**Release date**: June 12, 2014
+
+
+djblets.db
+==========
+
+* Added :py:class:`LocalDataQuerySet`, which emulates a QuerySet but for a
+  local list of values.
+
+  This is very useful when writing a :py:class:`WebAPIResource` that isn't
+  backed by a Django model. The :py:meth:`get_queryset` method can return an
+  instance of :py:class:`LocalDataQuerySet` with the data to provide in the
+  payload.
+
+
+djblets.extensions
+==================
+
+* Sped up unit tests for projects that make use of extensions.
+
+  To gain some of these speed benefits, projects should set
+  :py:data:`settings.RUNNING_TEST` to ``True`` when the unit tests are
+  running.
+
+
+djblets.log
+===========
+
+* Fixed reloading of logging settings.
+
+  The :py:func:`restart_logging()` function didn't actually remove the old
+  loggers properly. It now unregisters every registered logger before
+  re-adding them.
+
+
+djblets.webapi
+==============
+
+* Rewrote :py:class:`WebAPIResponsePaginated` to be extensible.
+
+  :py:class:`WebAPIResponsePaginated`'s behavior can now be customized by
+  subclasses. This allows URL building, previous/next calculation,
+  results fetching, link building, and more to be overridden.
+
+* Added support for custom pagination in API resources.
+
+  :py:class:`WebAPIResource` subclasses can now specify a custom
+  :py:class:`WebAPIResponsePaginated` subclass to use for API results by
+  setting the :py:attr:`paginated_cls` attribute on the WebAPIResource
+  subclass.
+
+* Repeated calls to :py:meth:`get_object()` no longer re-fetch the object.
+
+  :py:meth:`get_object()` now caches the fetched object for the given query
+  attributes, meaning that it can be called multiple times within the same
+  request without hitting the database more than once or performing other
+  expensive operations.
+
+* :py:mod:`djblets.webapi.core` is now deprecated.
+
+  This module has been split up. All response-related classes now
+  exist in :py:mod:`djblets.webapi.responses`, and the encoders now exist in
+  :py:mod:`djblets.webapi.encoders`.
+
+  The existing module will continue to work, but will emit a
+  :py:exc:`DeprecationWarning`. Code should be updated to use the new
+  modules.
+
+
+jquery.gravy.inlineEditor
+=========================
+
+* Fixed clicking on links on an ``inlineEditor``'s text area when
+  not in edit mode. (:bug:`3377`)
+
+  Patch by Thom Gerdes.
+
+* Fixed selecting text without opening the editor.
+
+  Patch by Thom Gerdes.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Thom Gerdes

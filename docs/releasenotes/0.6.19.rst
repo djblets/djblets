@@ -1,0 +1,19 @@
+============================
+Djblets 0.6.19 Release Notes
+============================
+
+**Release date**: June 11, 2012
+
+
+JavaScript
+==========
+
+* ``inlineEditor`` no longer bubbles ``keypress`` events up. This helps
+  prevent problems with global key handlers being greedy.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

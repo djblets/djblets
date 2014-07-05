@@ -1,0 +1,63 @@
+============================
+Djblets 0.7.17 Release Notes
+============================
+
+**Release date**: August 15, 2013
+
+
+Packaging
+=========
+
+* We now require Django 1.4.6, which is the latest security release
+  in the 1.4.x series.
+
+* The build-media script is no longer assumed to be executable
+  when building the package.
+
+  Patch by Andrew Grigorev.
+
+* The ``tests`` module is no longer included in the egg.
+
+  Patch by Alex Morega.
+
+
+djblets.extensions
+==================
+
+* The extensions media directory is once again based on the package
+  name, and not the display name of the extension.
+
+
+djblets.util
+============
+
+* Added a :py:func:`cached_javascript_catalog` view in
+  :py:mod:`djblets.util.views`, which caches and returns the JavaScript
+  localization catalog provided by Django. This prevents having to regenerate
+  it all the time.
+
+* Fixed a compatibility issue with Python 2.5 in ``@controlled_subprocess``
+  when trying to kill the process. (:bug:`2935`)
+
+* Improved the localizability of a string in ``@controlled_subprocess``.
+
+
+djblets.webapi
+==============
+
+* The documentation for ``?max-results=`` now explains the existence
+  of a hard limit of 200 results, so callers aren't surprised
+  when they try to use larger numbers.
+
+* The ``X-Content-Type-Options: nosniff`` header is passed in
+  API response headers, to prevent IE8 from trying to download
+  payloads. (:bug:`2889`)
+
+
+Contributors
+============
+
+* Alex Morega
+* Andrew Grigorev
+* Christian Hammond
+* David Trowbridge

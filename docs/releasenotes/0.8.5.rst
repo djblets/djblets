@@ -1,0 +1,25 @@
+===========================
+Djblets 0.8.5 Release Notes
+===========================
+
+**Release date**: June 13, 2014
+
+
+djblets.webapi
+==============
+
+* Fixed calculation of the previous index in
+  :py:class:`WebAPIResponsePaginated`.
+
+  The previous index was being calculated incorrectly, resulting in
+  a :py:exc:`TypeError`.
+
+  Patch by Keith Moyer.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Keith Moyer

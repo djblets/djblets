@@ -1,0 +1,39 @@
+============================
+Djblets 0.6.26 Release Notes
+============================
+
+**Release date**: November 5, 2012
+
+
+djblets.gravatars
+=================
+
+* Added a :py:func:`get_gravatar_url` function, which can be used to get
+  the URL for a user's gravatar without generating HTML.
+
+* Made gravatar support smart enough to choose an HTTP vs. HTTPS
+  URL, depending on what was used to access the page. (:bug:`2768`)
+
+
+djblets.webapi
+==============
+
+* :py:func:`generate_etag` and :py:func:`serialize_*_field` functions now
+  take a ``request`` parameter.
+
+  This requires that all callers update their :py:func:`serialize_*_field`
+  functions to take a ``**kwargs`` parameter.
+
+  This breaks backwards-compatibility, but is a necessary change.
+
+* Resource handler functions that provide default values for
+  parameters can now expect those to be used. Previously, when
+  a parameter to the API wasn't provided, the value passed would
+  be ``None``.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

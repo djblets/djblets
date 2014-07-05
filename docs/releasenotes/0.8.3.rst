@@ -1,0 +1,33 @@
+===========================
+Djblets 0.8.3 Release Notes
+===========================
+
+**Release date**: June 6, 2014
+
+
+Security
+==========
+
+* Fixed a XSS issue in the gravatars code.
+
+  Users could construct a name that would allow for injecting
+  JavaScript in the page. That name is now properly escaped.
+
+  This is :cve:`2014-3995`.
+
+* Fixed a XSS issue in :py:func:`json_dumps`.
+
+  JSON payloads constructed based on user input and then injected into
+  a page could result in custom JavaScript being injected into the
+  page. Additional escaping is now performed to ensure this does not
+  happen.
+
+  This is :cve:`2014-3994` (discovered by "uchida", :bug:`3406`).
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Uchida

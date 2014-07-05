@@ -1,0 +1,64 @@
+============================
+Djblets 0.6.16 Release Notes
+============================
+
+**Release date**: February 26, 2012
+
+
+djblets.datagrid
+================
+
+* Removed an extraneous ``</span>`` in the paginator.
+
+* Fixed a compatibility issue with Django 1.4 in the queries.
+
+
+djblets.util
+============
+
+* Fix parsing of tokens in a blocktag in Django 1.4.
+
+  We were failing to pass a tuple to parser.parse() when specifying the
+  end tags for a block tag. Somehow this never bit us before, but a
+  seemingly unrelated change in Django 1.4 triggered this broken
+  behavior, making all custom blocktags break.
+
+  This led to some false-positives in other fixes, where it seemed that
+  removing custom tags starting with "if" solved things. In reality, it
+  didn't solve anything. It just masked the problem.
+
+  This change should be compatible with all versions of Django.
+
+
+djblets.webapi
+==============
+
+* Add support for resource-specific mimetypes.
+
+  A common method for REST services is to have payloads returned with
+  resource-specific mimetypes. These can help to identify the format of
+  a payload (useful for automatic bindings) without having to inspect
+  the URI.
+
+  This adds support for easily telling a resource to return such
+  mimetypes. If :py:attr:`mimetype_vendor` is specified,
+  :py:class:`WebAPIResource` can populate the accepted mimetypes list with
+  some vendor/resource-specific mimetypes that will be used by default for any
+  responses.
+
+  When there's a vendor mimetype, the resources will use the resource
+  names for the mimetypes, but these can be overridden using
+  :py:attr:`mimetype_list_resource_name` and
+  :py:attr:`mimetype_item_resource_name`.
+
+* Accept ``true`` as a valid boolean value in the web API.
+
+  Patch by Jim Chen.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Jim Chen

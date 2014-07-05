@@ -1,0 +1,22 @@
+============================
+Djblets 0.7.28 Release Notes
+============================
+
+**Release date**: December 13, 2013
+
+
+djblets.auth
+============
+
+* Fixed HTTP 500 errors when failing to save the registration form.
+
+  If saving the registration form failed in some way (due to a username
+  conflict, for example), Djblets would fail with an HTTP 500. It's
+  now propagated up and reported properly.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

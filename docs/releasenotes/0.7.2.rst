@@ -1,0 +1,43 @@
+===========================
+Djblets 0.7.2 Release Notes
+===========================
+
+**Release date**: September 26, 2012
+
+
+This release contains all the fixes and functionality of
+:doc:`0.6.24 <0.6.24>`.
+
+
+General
+=======
+
+* Styled all admin UI templates to add a "title" class to ``<h1>`` page
+  titles. This affects extensions, log viewer, and siteconfig.
+
+
+djblets.log
+===========
+
+* Fixed the columns to match the style of other admin UI columns.
+
+
+djblets.pipeline
+================
+
+* Our 'bless' compiler is now compatible with the latest versions of
+  pipeline.
+
+
+JavaScript
+==========
+
+* modalBox's positioning is now properly centered. It was previously
+  just off-center a bit.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

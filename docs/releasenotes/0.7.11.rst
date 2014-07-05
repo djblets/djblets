@@ -1,0 +1,49 @@
+============================
+Djblets 0.7.11 Release Notes
+============================
+
+**Release date**: February 21, 2013
+
+
+General
+=======
+
+* Require Django 1.4.5 as a minimum.
+
+  This is the latest security release of Django. For more information,
+  see https://www.djangoproject.com/weblog/2013/feb/19/security/
+
+
+djblets.extensions
+==================
+
+* ``config/`` and ``db/`` links for extensions are now generated
+  properly when specifying a custom ``SITE_ROOT``. (:bug:`2843`)
+
+  Patch by Raja Venkataraman.
+
+
+djblets.log
+===========
+
+* Added an Admin UI setting for changing log levels. This is the
+  ``logging_level`` setting in siteconfig, which controls
+  :py:data:`settings.LOGGING_LEVEL`.
+
+  Patch by Raja Venkataraman.
+
+
+djblets.siteconfig
+==================
+
+* Added new ``list-siteconfig``, ``get-siteconfig``, and ``set-siteconfig``
+  management commands for manipulating siteconfig configuration
+  from the shell.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Raja Venkataraman

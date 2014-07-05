@@ -1,0 +1,184 @@
+=================================
+Djblets 0.8 Alpha 1 Release Notes
+=================================
+
+**Release date**: November 9, 2013
+
+
+Compatibility
+=============
+
+* Djblets now requires Django 1.5. At this time, it is not tested
+  with Django 1.6, but will soon require that as the minimum.
+
+* Made some progress toward Python 3 support. It is not yet complete.
+
+
+Static files
+============
+
+* All static media bundled with Djblets has been moved into a
+  :file:`static/` directory.
+
+* Static files are now compatible out-of-the-box with django-pipeline.
+  :py:mod:`djblets.settings` exposes :py:data:`PIPELINE_CSS` and
+  :py:data:`PIPELINE_JS` variables that can be pulled into a project and used
+  directly or merged with their own pipeline settings.
+
+  There are four JavaScript bundles:
+
+  * ``djblets-datagrid`` - Datagrid support
+  * ``djblets-extensions-admin`` - Admin UI for extensions
+  * ``djblets-extensions`` - General JavaScript extension support
+  * ``djblets-gravy`` - jquery.gravy's set of widgets and utilities
+
+  There are also two CSS bundles:
+
+  * ``djblets-admin`` - Admin UI styles for siteconfig and extensions.
+  * ``djblets-datagrid`` - Styles for datagrids
+
+* CSS files are now LesSCSS files. This requires the less.js runtime, or
+  compilation.
+
+* jQuery and jQuery-UI are no longer shipped with Djblets. The
+  :file:`jquery.html` and :file:`jquery-ui.html` templates now use the
+  versions on the Google CDN by default.
+
+
+jquery.gravy
+============
+
+* ``jquery.gravy`` has been split into multiple files. These can be used
+  individually, but will be combined together if using the provided
+  :py:data:`PIPELINE_JS`.
+
+* Removed legacy workarounds for older versions of Internet Explorer,
+  Mobile Safari, and Opera.
+
+* Removed ``$.browser`` additions.
+
+
+jquery.gravy.inlineEditor
+=========================
+
+* Added support for custom textarea-type widgets in an ``inlineEditor``.
+
+  Callers can now pass new options to ``inlineEditor`` that define methods
+  for operating on a textarea, or equivalent. These allow other widgets,
+  such as CodeMirror, to be placed in an ``inlineEditor``.
+
+  The new optional methods are: ``createMultilineField``, ``setFieldValue``,
+  ``getFieldValue``, and ``isFieldDirty``.
+
+* On required fields, the asterisk now has a tooltip.
+
+* Fixed auto-sizing ``inlineEditor`` when forcing an auto-size. It didn't
+  always size itself correctly.
+
+* Fixed dirty detection when using ``hasRawValue``.
+
+* Fixed setting the width of an editor when the content wraps.
+
+
+djblets.datagrid
+================
+
+* Datagrids now use spritesheets for the icons, reducing the number of
+  downloads.
+
+* Added Retina icons for the datagrids.
+
+
+djblets.extensions
+==================
+
+* Added support for looking up static media for extensions.
+
+  Extensions can now provide a :file:`static/` directory containing all their
+  static media. They can then look them up in a template by doing::
+
+      {% ext_static extension "path/to/file.png" %}
+
+  This requires that the project list
+  ``djblets.extensions.staticfiles.ExtensionFinder`` in
+  :py:data:`settings.STATICFILES_FINDERS`.
+
+* Added support for defining static media bundles.
+
+  Extensions can list all the CSS and JavaScript bundles they use by
+  defining :py:attr:`Extension.css_bundles` and
+  :py:attr:`Extension.js_bundles` variables. These are Pipeline bundle
+  definitions, and follow the same format, with the exception that
+  ``output_filename`` is optional.
+
+  If the bundle name is "default", it will be included on any page
+  that uses the ``{% load_extensions_js %}`` and
+  ``{% load_extensions_css %}`` template tags.
+
+* Added support for packaging static media bundles.
+
+  Bundles will be automatically packaged along with an extension, if
+  the project providing extension support provides the proper support,
+  and the extension makes use of it. See djblets.extensions.packaging.
+
+* Added support for JavaScript extensions.
+
+  These function as a counterpart to the Python extensions. They
+  are subclasses of :js:class:`Djblets.Extension`, and are very similar to
+  the Python extensions.
+
+  Python Extension subclasses can specify the name of their JavaScript
+  counterpart by setting the :py:attr:`Extension.js_model_class` variable.
+  These will be instantiated on all pages that use the
+  ``{% init_js_extensions %}`` template tag.
+
+  JavaScript hooks can also be written by subclassing
+  :js:class:`Djblets.ExtensionHook`. See the documentation included in
+  :file:`static/djblets/js/extensions/models/extensionHookModel.js` for more
+  information.
+
+  This requires Backbone.js.
+
+
+djblets.testing
+===============
+
+* Removed the old Selenium support.
+
+
+djblets.util.templatetags.djblets_email
+=======================================
+
+* The ``{% condense %}`` template tag can now be passed the max number of
+  sequential blank lines to allow.
+
+
+djblets.util.templatetags.djblets_js
+====================================
+
+* The :py:func:`json_dumps` filter now uses :py:class:`DjangoJSONEncoder`,
+  which properly handles timestamps and some other types.
+
+
+djblets.webapi
+==============
+
+* Drastically improved performance of queries made through the API.
+
+* :py:meth:`WebAPIResource.get_object` now takes an optional ``id_field``
+  parameter, which specifies which field to look up as the ID. If not specified,
+  the default for the resource is used.
+
+* Removed backwards-compatibility support for the old
+  :py:attr:`allowed_item_mimetypes` and :py:attr:`allowed_list_mimetypes`
+  fields.
+
+* Specifying a negative index for the ``start`` query parameter on list
+  resources no longer triggers an HTTP 500. It's now interpreted as 0.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

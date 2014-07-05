@@ -1,0 +1,21 @@
+============================
+Djblets 0.6.22 Release Notes
+============================
+
+**Release date**: July 31, 2012
+
+
+djblets.util
+============
+
+* ``User`` and ``AnonymousUser`` are no longer imported globally in the
+  ``djblets_utils`` templatetags. This fixes some breakages in apps that
+  imported this file to get access to filters, but weren't running in a Django
+  settings environment.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

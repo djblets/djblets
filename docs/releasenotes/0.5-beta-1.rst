@@ -1,0 +1,52 @@
+================================
+Djblets 0.5 Beta 1 Release Notes
+================================
+
+**Release date**: March 28, 2009
+
+
+JavaScript
+==========
+
+* Moved to using jQuery 1.3.2.
+
+* Small performance improvements in tooltip and modalBox.
+
+* The edit icons in an inlineEditor are now accessible, so they can
+  be activated by pressing the Enter key in Firefox. Patch by
+  Brad Taylor. (:bug:`965`)
+
+
+djblets.datagrids
+=================
+
+* Fixed some XHTML validation errors. Patch by Onkar Shinde.
+  (:bug:`932`)
+
+
+djblets.gravatars
+=================
+
+* Added an "alt" attribute for the generated gravatar image, in order
+  to fix XHTML compliance.
+
+
+djblets.util.fields
+===================
+
+* JSONField and Base64Field now properly serialize to a JSON file,
+  so long as the patch at http://code.djangoproject.com/ticket/9522
+  is applied.
+
+* Objects saved in the admin UI that have a Base64Field no longer
+  causes garbage in the field. The fields are now saved properly.
+  (:bug:`918`)
+
+
+Contributors
+============
+
+* Brad Taylor
+* Christian Hammond
+* David Trowbridge
+* Onkar Shinde

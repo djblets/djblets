@@ -1,0 +1,22 @@
+============================
+Djblets 0.6.25 Release Notes
+============================
+
+**Release date**: October 27, 2012
+
+
+General
+=======
+
+* Require Django 1.3.4.
+
+  This is a simple release that just bumps our Django requirement,
+  in order to not have issues with consumers depending on the
+  latest security release in the 1.3.x branch.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

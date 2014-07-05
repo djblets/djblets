@@ -1,0 +1,19 @@
+===========================
+Djblets 0.8.2 Release Notes
+===========================
+
+**Release date**: June 2, 2014
+
+
+Packaging
+=========
+
+* Added missing :file:`.less` files to the build, which impacted packaging
+  of the source tarball.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

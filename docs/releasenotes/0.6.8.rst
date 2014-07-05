@@ -1,0 +1,54 @@
+===========================
+Djblets 0.6.8 Release Notes
+===========================
+
+**Release date**: June 23, 2011
+
+
+djblets.datagrid
+================
+
+* Fixed an occasional :py:exc:`ValueError` with the datagrid.
+
+  On occasion, the ``active`` state of a column can sometimes be ``True`` when
+  the column isn't in ``self.datagrid.columns``, which meant it would throw a
+  :py:exc:`ValueError` when trying to remove itself from the list. We're more
+  bullet-proof now.
+
+
+djblets.gravatars
+=================
+
+* The gravatar templatetag no longer errors out if the provided user is
+  anonymous.
+
+
+djblets.log
+===========
+
+* The "Logging to..." lines are now only logged when ``settings.DEBUG`` is on.
+
+
+djblets.util
+============
+
+* JSONField no longer errors out if ``blank=False`` is used. (:bug:`2015`)
+
+* Fixed escaping of label names in ``label_tag()`` on newer versions of
+  Django.
+
+
+djblets.webapi
+==============
+
+* Fixed a problem when ``settings.WEB_API_ENCODERS`` isn't set.
+
+  Our fallback for when this setting wasn't set was broken, causing new
+  errors.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

@@ -1,0 +1,18 @@
+============================
+Djblets 0.7.20 Release Notes
+============================
+
+**Release date**: October 11, 2013
+
+
+djblets.datagrid
+================
+
+* Fixed pagination on the datagrid.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

@@ -1,0 +1,234 @@
+=================================
+Djblets 0.8 Alpha 2 Release Notes
+=================================
+
+**Release date**: January 16, 2014
+
+
+Compatibility
+=============
+
+* Made more progress toward Python 3 support.
+
+
+Internationalization
+====================
+
+* Marked all human-readable strings for translation.
+
+* Switched code to use ugettext_lazy where appropriate.
+
+* Djblets will now compile and ship localization files as part
+  of the package.
+
+
+djblets.auth
+============
+
+* Improved the default labels for :py:class:`RegistrationForm`.
+
+  :py:class:`RegistrationForm` basically had to have a custom template to be
+  usable before, as the default labels were terrible. We now provide sane
+  defaults, allowing it to be rendered with the default templates.
+
+* Removed many old functions and classes.
+
+  Much of :py:mod:`djblets.auth` was from the Django pre-1.0 days, and are no
+  longer necessary. This removes:
+
+  * :py:class:`djblets.auth.forms.ChangePasswordForm`
+  * :py:func:`djblets.auth.views.do_change_password`
+  * :py:func:`djblets.auth.views.do_change_profile`
+  * :py:func:`djblets.auth.views.login`
+  * :py:func:`djblets.auth.util.get_user`
+  * :py:func:`djblets.auth.util.internal_login`
+  * :py:func:`djblets.auth.util.login_required`
+
+
+djblets.datagrid
+================
+
+* Added support for checkbox columns.
+
+  Checkbox columns allow for selecting one or more rows of items
+  in the datagrid. The consumer can then act on those lines to
+  perform batch operations.
+
+  This is based on work by Graeme Coupar.
+
+* Allow the datagrid header to be anchored while scrolling.
+
+  The datagrid contents can now scroll without scrolling the
+  header. This makes it easier to see and manipulate columns
+  without scrolling back to the top.
+
+  To make it independently scrollable, a height must be assigned
+  to the datagrid element, and ``datagrid.resizeToFit`` must be
+  called on resize.
+
+
+djblets.extensions
+==================
+
+* Rewrote the Manage Extensions view.
+
+  This is a full rewrite that provides:
+
+  * Fixes for several interaction issues with the page that broke in
+    0.8 alpha 1.
+  * Dynamic updating when enabling or disabling an extension.
+  * A button to rescan for extensions.
+  * Better visual hints for enabled, disabled, and broken extensions.
+  * Helpful error reporting when an extension fails to load,
+    complete with a traceback.
+  * Better shipped CSS for the page.
+
+* Added support for custom context processors.
+
+  Context processors provide new variables for all templates.
+  This allows extensions to provide new ones that will work so
+  long as the extension is enabled.
+
+* Added support for Django admin widgets in extension configuration
+  pages.
+
+  Extension configuration pages can now make use of the same widgets
+  a Django admin form can use. These include such useful widgets
+  as :py:class:`SplitDateTimeWidget`.
+
+* Added a signal to notify when an extension's settings are saved.
+
+  The ``djblets.extensions.signals.settings_saved`` signal is now
+  emitted whenever an extension's settings are saved. This allows
+  the extension to act immediately on any new settings.
+
+* Provided include paths for :file:`.less` files.
+
+  Djblets will now provide a list of include paths based on all
+  registered Django apps' static directories. These can be used
+  at runtime or package time to include :file:`.less` files inside an
+  extension's :file:`.less` file, in order to reuse any definitions or
+  macros the app may provide.
+
+* Provided global variables for :file:`.less` files.
+
+  :file:`.less` files will now have access to some built-in global
+  variables. By default, this includes ``@DEBUG`` and ``@STATIC_ROOT``.
+  These are available both at runtime and at package time.
+
+  These can be used to provide different styling based on,
+  for instance, whether it's running in debug mode or not.
+
+  Consumers of Djblets can provide additional global variables as
+  well.
+
+  This requires LessCSS 1.5.1 or higher.
+
+* Added an optional ``extension`` parameter to custom middleware.
+
+  Custom middleware provided by an extension can now take an
+  optional ``extension`` parameter, in order to be able to reference
+  configuration or methods on the extension.
+
+* Added ref-counting to apps.
+
+  Apps provided or required by extensions are now reference-counted.
+  This ensures that if two extensions list the same third-party
+  app, disabling one extension won't break the other.
+
+* Fixed breakages during initialization if an extension failed
+  to load.
+
+* Fixed breakages with the extension list API when extensions
+  failed to load.
+
+* Fixed evolving models provided by the extension.
+
+
+djblets.util
+============
+
+* Restructured much of :py:mod:`djblets.util`.
+
+  Much of the code in :py:mod:`djblets.util` has been moved out into
+  new modules. This introduces :py:mod:`djblets.cache`, :py:mod:`djblets.db`,
+  :py:mod:`djblets.forms` and :py:mod:`djblets.urls`.
+
+  Importing from the old locations will still work, but will log
+  a deprecation warning. They will be removed in a future release.
+
+* Added support for custom "end" prefixes for ``@blocktag``.
+
+  ``@blocktag`` no longer hard-codes "end" as the prefix for the end
+  tag. Consumers can change it to a custom prefix, such as ``end_``,
+  by calling::
+
+      @blocktag(end_prefix='end_')
+
+* :py:func:`json_dumps` now serializes lazy-localizable strings.
+
+  Strings using :py:func:`ugettext_lazy` can now be properly serialized
+  using json_dumps, instead of throwing an error.
+
+
+jquery.gravy.inlineEditor
+=========================
+
+* Added accessors for the buttons of an ``inlineEditor``.
+
+* Removed the fade in/out of the buttons, making the editor feel
+  more snappy.
+
+* ``inlineEditor`` now provides ``resize`` events when the field changes
+  size.
+
+* Fixed clicking on an ``inlineEditor`` on an ``<a/>`` element.
+
+  When ``inlineEditor`` was created on a ``<a/>`` element, clicking the
+  element would cause the link to be followed instead of opening
+  the editor.
+
+* Fixed sizing when using ``inlineEditor`` on an element with a custom
+  text-align CSS property.
+
+* Fixed fading the edit icon in after editing was completed.
+
+
+jquery.gravy.modalBox
+=====================
+
+* Removed the default z-indexes for ``modalBox``.
+
+  It is now up to the consumer to decide what the appropriate z-indexes should
+  be.
+
+
+jquery.gravy.util
+=================
+
+* Added new arguments and better heuristics to ``$.fn.positionToSide``.
+
+  ``positionToSide`` had trouble matching an element when positioned, say, to
+  either above/below another element, when the left or right would be scrolled
+  off-screen. It now does a better job of deciding the optimal place to
+  position the element so it fits on-screen.
+
+  There are also new options for setting the distance and offset for the
+  element in relation to the other element.
+
+  ``xDistance`` and ``yDistance`` controls the distance in pixels between the
+  elements.
+
+  ``xOffset`` and ``yOffset`` control the offsets of the element in the
+  direction not matched to a side, in order to shift the element
+  by a few pixels for alignment.
+
+  ``fitOnScreen`` controls whether the element must fit onto the screen.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Graeme Coupar

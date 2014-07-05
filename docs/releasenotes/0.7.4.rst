@@ -1,0 +1,20 @@
+===========================
+Djblets 0.7.4 Release Notes
+===========================
+
+**Release date**: November 28, 2012
+
+
+djblets.siteconfig
+==================
+
+* The stored cache_backend setting is now deserialized into
+  ``settings.CACHES['backend']``. This leaves other caches
+  unaffected and stops accessing ``settings.CACHE_BACKEND``.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

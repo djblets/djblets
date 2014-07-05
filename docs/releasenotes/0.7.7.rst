@@ -1,0 +1,38 @@
+===========================
+Djblets 0.7.7 Release Notes
+===========================
+
+**Release date**: December 16, 2012
+
+
+djblets.datagrid
+================
+
+* Fixed a possible XSS exploit in datagrids.
+
+  Patch by Alexander Artemenko.
+
+* Failures during rendering the datagrid now results in a traceback.
+
+
+djblets.extensions
+==================
+
+* Database evolutions are no longer applying using
+  ``evolve --hint --execute``. This fixes unintentional database
+  changes elsewhere.
+
+
+JavaScript
+==========
+
+* The second display of an ``inlineEditor`` no longer breaks the size
+  of the editor.
+
+
+Contributors
+============
+
+* Alexander Artemenko
+* Christian Hammond
+* David Trowbridge

@@ -1,0 +1,19 @@
+===========================
+Djblets 0.7.8 Release Notes
+===========================
+
+**Release date**: December 19, 2012
+
+
+JavaScript
+==========
+
+* Fixed a crash when enabling/disabling an ``inlineEditor`` without an
+  edit icon.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

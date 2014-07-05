@@ -1,0 +1,22 @@
+============================
+Djblets 0.7.10 Release Notes
+============================
+
+**Release date**: January 27, 2013
+
+
+djblets.util.fields
+===================
+
+* :py:class:`CounterField` was failing to use the initializers for brand new
+  instances of a model, defaulting to ``None`` instead.
+
+  Patch by Raja Venkataraman.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Raja Venkataraman

@@ -1,0 +1,78 @@
+=========================
+Djblets 0.7 Release Notes
+=========================
+
+**Release date**: August 2, 2012
+
+
+General
+=======
+
+* Djblets now requires Django 1.4.1+.
+
+* Added localized timezone awareness. Datagrids, log generation,
+  and various utility functions now operate in the user's
+  pre-configured local timezone.
+
+* Djblets now uses Django's standard static media support.
+  It looks for bundled media files using the static support.
+  Applications must have :py:data:`STATIC_URL`, :py:data:`STATIC_ROOT`, etc.
+  configured correctly.
+
+
+djblets.datagrid
+================
+
+* :py:class:`DateTimeColumn` and :py:class:`DateTimeSinceColumn` are now
+  timezone-aware.
+
+
+djblets.extensions
+==================
+
+* Added a framework for supporting loadable, configurable extensions
+  in Django-based sites.
+
+  Extensions can be used to augment the functionality of a webapp.
+  Webapps can provide hooks in their codebase at any point they want
+  to extend. These can come in the form of template hooks, URLs hooks,
+  admin UI hooks, and other in-process hooks.
+
+  A webapp will provide a single :py:class:`ExtensionManager`, specifying the
+  name of a Python setuptools entrypoint. This entrypoint will be scanned for
+  any installed packages on the system that provide Extension subclasses.
+  Integration in the Administration UI is provided by linking to the provided
+  admin URLs.
+
+  WebApps will typically only have a single :py:class:`ExtensionManager`, but
+  it is possible for it to have multiple ExtensionManagers, allowing different
+  modules to provide their own extension mechanisms.
+
+  Extensions themselves can depend on other extensions. Dependency
+  resolution happens automatically when enabling extensions.
+
+  Extensions also have easy support for configuration forms in the
+  admin UI. All data is automatically loaded and stored in the
+  database.
+
+  This is an experimental feature, and at this point we are not
+  guaranteeing compatibility between 0.7.x releases. 0.8 will have
+  a stable API.
+
+
+djblets.util
+============
+
+* :py:class:`ModificationTimestampField`, :py:func:`http_date`, and the the
+  :py:func:`ageid` filter have been made timezone-aware.
+
+* Added a :py:class:`TimeZoneField`, which displays all known timezones for
+  selection. The timezones come from the :py:mod:`pytz` module, which is now
+  a dependency of djblets.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

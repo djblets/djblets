@@ -1,0 +1,26 @@
+=========================
+Djblets 0.5 Release Notes
+=========================
+
+**Release date**: June 20, 2009
+
+
+General
+=======
+
+* Final release of Djblets 0.5.
+
+  This release was made to go alongside Review Board 1.0. While Djblets
+  works its way to its own 1.0, we will attempt to not break any existing
+  API. However, it is important to note that Djblets is not API frozen
+  at all yet.
+
+  We advise developers to continue to work against Djblets SVN/nightlies,
+  but to base production applications on 0.5.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

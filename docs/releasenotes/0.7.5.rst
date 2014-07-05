@@ -1,0 +1,18 @@
+===========================
+Djblets 0.7.5 Release Notes
+===========================
+
+**Release date**: November 30, 2012
+
+
+djblets.siteconfig
+==================
+
+* Fixed a couple missing imports.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
