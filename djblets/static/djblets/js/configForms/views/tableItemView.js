@@ -9,11 +9,21 @@ Djblets.Config.TableItemView = Djblets.Config.ListItemView.extend({
 
     template: _.template([
         '<td>',
-        ' <% if (editURL) { %>',
-        '  <a href="<%- editURL %>"><%- text %></a>',
-        ' <% } else { %>',
-        '  <%- text %>',
-        ' <% } %>',
+        '<% if (editURL) { %>',
+        '<a href="<%- editURL %>"><%- text %></a>',
+        '<% } else { %>',
+        '<%- text %>',
+        '<% } %>',
         '</td>'
-    ].join(''))
+    ].join('')),
+
+    /*
+     * Returns the container for the actions.
+     *
+     * This defaults to being the last cell in the row, but this can be
+     * overridden to provide a specific cell or an element within.
+     */
+    getActionsParent: function() {
+        return this.$('td:last');
+    }
 });

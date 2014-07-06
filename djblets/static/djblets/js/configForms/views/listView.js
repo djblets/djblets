@@ -12,6 +12,7 @@
 Djblets.Config.ListView = Backbone.View.extend({
     tagName: 'ul',
     className: 'config-forms-list',
+    defaultItemView: Djblets.Config.ListItemView,
 
     /*
      * Initializes the view.
@@ -19,7 +20,7 @@ Djblets.Config.ListView = Backbone.View.extend({
     initialize: function(options) {
         var collection = this.model.collection;
 
-        this.ItemView = options.ItemView || Djblets.Config.ListItemView;
+        this.ItemView = options.ItemView || this.defaultItemView;
 
         this.once('rendered', function() {
             this.listenTo(collection, 'add', this._addItem);

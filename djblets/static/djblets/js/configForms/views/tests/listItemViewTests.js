@@ -189,7 +189,9 @@ suite('djblets/configForms/views/ListItemView', function() {
                 }),
                 $button;
 
-            itemView.actionHandlers.mybutton = '_onMyButtonClick';
+            itemView.actionHandlers = {
+                mybutton: '_onMyButtonClick'
+            };
             itemView._onMyButtonClick = function() {};
             spyOn(itemView, '_onMyButtonClick');
 
@@ -220,7 +222,9 @@ suite('djblets/configForms/views/ListItemView', function() {
                 }),
                 $checkbox;
 
-            itemView.actionHandlers.mybutton = '_onMyButtonClick';
+            itemView.actionHandlers = {
+                mybutton: '_onMyButtonClick'
+            };
             itemView._onMyButtonClick = function() {};
             spyOn(itemView, '_onMyButtonClick');
 

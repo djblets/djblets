@@ -587,6 +587,25 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         self.assertEqual(js_bundle['output_filename'],
                          'ext/%s/js/default.min.js' % extension.id)
 
+    def test_install_extension_media_with_stale_version_key(self):
+        """Testing ExtensionManager installing media for newly installed
+        extension with existing stale version key
+        """
+        extension = self.extension_class(extension_manager=self.manager)
+        version_key = ExtensionManager.VERSION_SETTINGS_KEY
+
+        self.assertFalse(extension.registration.installed)
+
+        # Add a bad version key, perhaps copy/pasted by hand from an admin.
+        # We'll set it to the current version.
+        extension.settings.set(version_key, extension.info.version)
+        extension.settings.save()
+
+        # Enable the extension. It shouldn't blow up.
+        extension = self.manager.enable_extension(self.extension_class.id)
+        self.assertTrue(extension.registration.installed)
+        self.assertIsNotNone(extension.settings.get(version_key))
+
     def test_disable_unregisters_static_bundles(self):
         """Testing ExtensionManager unregisters static bundles when disabling extension"""
         settings.PIPELINE_CSS = {}
