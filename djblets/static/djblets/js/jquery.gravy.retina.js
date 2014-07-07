@@ -35,7 +35,7 @@ $.fn.retinaGravatar = function() {
                 baseurl,
                 size;
 
-            if (parts.length == 2) {
+            if (parts.length === 2) {
                 baseurl = parts[0];
                 size = parseInt(parts[1], 10);
 

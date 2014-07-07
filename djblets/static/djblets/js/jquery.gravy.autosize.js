@@ -81,7 +81,7 @@ $.widget("ui.autoSizeTextArea", {
                           this.element[0].clientHeight),
             targetHeight;
 
-        if (normHeight != this.element.height()) {
+        if (normHeight !== this.element.height()) {
             /* We know the height grew, so queue a resize. */
             needsResize = true;
             newHeight = normHeight;

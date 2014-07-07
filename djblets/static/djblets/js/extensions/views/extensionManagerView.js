@@ -52,7 +52,7 @@ InstalledExtensionView = Backbone.View.extend({
         '       <%- databaseText %></a></li>',
         '  <% } %>',
         ' <% } %>',
-        '</ul>',
+        '</ul>'
     ].join('')),
 
     /*
@@ -108,7 +108,7 @@ InstalledExtensionView = Backbone.View.extend({
 
         this.$el
             .removeClass(enabled ? 'disabled' : 'enabled')
-            .addClass(enabled ? 'enabled' : 'disabled')
+            .addClass(enabled ? 'enabled' : 'disabled');
 
         this._$enableToggle
             .text(enabled ? gettext('Disable') : gettext('Enable'))

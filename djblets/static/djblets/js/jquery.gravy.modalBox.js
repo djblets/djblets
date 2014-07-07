@@ -91,7 +91,7 @@ $.widget("ui.modalBox", {
             .addClass(this.options.modalBoxButtonsClass)
             .click(function(e) {
                 /* Check here so that buttons can call stopPropagation(). */
-                if (e.target.tagName == "INPUT" && !e.target.disabled) {
+                if (e.target.tagName === "INPUT" && !e.target.disabled) {
                     self.element.modalBox("destroy");
                 }
             });
@@ -116,8 +116,9 @@ $.widget("ui.modalBox", {
     destroy: function() {
         var self = this;
 
-        if (!this.element.data("modalBox"))
+        if (!this.element.data("modalBox")) {
             return;
+        }
 
         this.element
             .removeData("modalBox")
@@ -142,10 +143,10 @@ $.widget("ui.modalBox", {
     },
 
     resize: function() {
-        var marginHoriz = $("body").getExtents("m", "lr");
-        var marginVert  = $("body").getExtents("m", "tb");
-        var winWidth    = $(window).width()  - marginHoriz;
-        var winHeight = $(window).height() - marginVert;
+        var marginHoriz = $("body").getExtents("m", "lr"),
+            marginVert = $("body").getExtents("m", "tb"),
+            winWidth = $(window).width()  - marginHoriz,
+            winHeight = $(window).height() - marginVert;
 
         if (this.options.stretchX) {
             this.box.width(winWidth -

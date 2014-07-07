@@ -46,7 +46,7 @@ $.widget("ui.inlineEditor", {
         startOpen: false,
         stripTags: false,
         useEditIconOnly: false,
-        createMultilineField: function(editor) {
+        createMultilineField: function(/* editor */) {
             return $("<textarea/>").autoSizeTextArea();
         },
         setFieldValue: function(editor, value) {
@@ -67,7 +67,10 @@ $.widget("ui.inlineEditor", {
 
     _create: function() {
         /* Constants */
-        var self = this;
+        var self = this,
+            saveButton,
+            cancelButton,
+            isDragging;
 
         /* State */
         this._initialValue = null;
@@ -117,15 +120,13 @@ $.widget("ui.inlineEditor", {
              */
             this._buttons.hide();
 
-            var saveButton =
-                $('<input type="button"/>')
+            saveButton = $('<input type="button"/>')
                 .val(gettext("OK"))
                 .addClass("save")
                 .appendTo(this._buttons)
                 .click(function() { self.submit(); });
 
-            var cancelButton =
-                $('<input type="button"/>')
+            cancelButton = $('<input type="button"/>')
                 .val(gettext("Cancel"))
                 .addClass("cancel")
                 .appendTo(this._buttons)
@@ -178,7 +179,7 @@ $.widget("ui.inlineEditor", {
              * Check if the mouse was dragged, so the editor isn't opened when
              * text is selected.
              */
-            var isDragging = true;
+            isDragging = true;
 
             this.element
                 .on('click', 'a', function(e) {
@@ -273,7 +274,7 @@ $.widget("ui.inlineEditor", {
             .keypress(function(e) {
                 e.stopPropagation();
             })
-            .keyup(function(e) {
+            .keyup(function() {
                 self._updateDirtyState();
             });
     },
