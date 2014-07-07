@@ -37,44 +37,53 @@ class ConfigPagesView(TemplateView):
             for page_cls in self.page_classes
         ]
 
-        forms = {}
+        self.forms = {}
 
         # Store a mapping of form IDs to form instances, and check for
         # duplicates.
         for page in self.pages:
             for form in page.forms:
                 # This should already be handled during form registration.
-                assert form.form_id not in forms, \
+                assert form.form_id not in self.forms, \
                     'Duplicate form ID %s (on page %s)' % (
                         form.form_id, page.page_id)
 
-                forms[form.form_id] = form
-
-        if request.method == 'POST':
-            form_id = request.POST.get('form_target')
-
-            if form_id is None:
-                return HttpResponseBadRequest()
-
-            if form_id not in forms:
-                return Http404
-
-            # Replace the form in the list with a new instantiation containing
-            # the form data. If we fail to save, this will ensure the error is
-            # shown on the page.
-            old_form = forms[form_id]
-            form_cls = old_form.__class__
-            form = form_cls(old_form.page, request, request.user, request.POST)
-            forms[form_id] = form
-
-            if form.is_valid():
-                form.save()
-
-                return HttpResponseRedirect(request.path)
-
-        self.forms = forms.values()
+                self.forms[form.form_id] = form
 
         return super(ConfigPagesView, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        form_id = request.POST.get('form_target')
+
+        if form_id is None:
+            return HttpResponseBadRequest()
+
+        if form_id not in self.forms:
+            return Http404
+
+        # Replace the form in the list with a new instantiation containing
+        # the form data. If we fail to save, this will ensure the error is
+        # shown on the page.
+        old_form = self.forms[form_id]
+        page = old_form.page
+        form_cls = old_form.__class__
+        form = form_cls(page, request, request.user, request.POST)
+        self.forms[form_id] = form
+
+        # Replace the form in the pgae.
+        for i, page_form in enumerate(page.forms):
+            if page_form.form_id == form_id:
+                page.forms[i] = form
+                break
+
+        if form.is_valid():
+            form.save()
+
+            return HttpResponseRedirect(request.path)
+
+        # For our purposes, there's no difference between the handling of a
+        # GET request and a POST request at this stage.
+        return self.get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         return {
@@ -89,7 +98,7 @@ class ConfigPagesView(TemplateView):
             'js_view_class': self.js_view_class,
             'js_model_data': self.get_js_model_data(),
             'js_view_data': self.get_js_view_data(),
-            'forms': self.forms,
+            'forms': self.forms.values(),
         }
 
     def get_js_view_data(self):
