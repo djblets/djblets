@@ -29,7 +29,9 @@
   <input type="hidden" name="full-reload" value="1" />
 
   <ul class="actions">
+{%  block extension_list_actions %}
    <li><a href="#" id="reload-extensions">{% trans "Scan for new extensions" %}</a></li>
+{%  endblock %}
   </ul>
   <ul class="extensions">
    <li class="loading">{% trans "Loading..." %}</li>
