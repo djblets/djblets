@@ -27,10 +27,12 @@
 from __future__ import unicode_literals
 
 import logging
+import re
 
 from django.conf import settings
 from django.contrib import auth
 from django.core.exceptions import ImproperlyConfigured
+from django.utils import six
 from django.views.decorators.http import require_POST
 
 from djblets.webapi.decorators import webapi
@@ -57,6 +59,9 @@ class WebAPIAuthBackend(object):
     scheme value.
     """
     www_auth_scheme = None
+
+    SENSITIVE_CREDENTIALS_RE = \
+        re.compile('api|token|key|secret|password|signature', re.I)
 
     def get_auth_headers(self, request):
         """Returns extra authentication headers for the response."""
@@ -106,32 +111,32 @@ class WebAPIAuthBackend(object):
         """
         raise NotImplementedError
 
-    def login_with_credentials(self, request, username, password, **kwargs):
+    def login_with_credentials(self, request, **credentials):
         """Logs in against the main authentication backends.
 
         This takes the provided credentials from the request (as returned by
         `get_credentials`) and attempts a login against the main
         authentication backends used by Django.
         """
-        # Don't authenticate if a user is already logged in and the
-        # username matches.
-        #
-        # Note that this does mean that a new password will fail. However,
-        # the user is already logged in, and querying the backend for every
-        # request is excessive, so it's a tradeoff. The user already has
-        # access to the server at this point anyway.
-        if (request.user.is_authenticated() and
-            request.user.username == username):
-            return True, None, None
+        result = self.validate_credentials(request, **credentials)
+
+        if result is not None:
+            return result
 
         log_extra = {
             'request': request,
         }
 
-        logging.debug("Attempting authentication on API for "
-                      "user %s" % username,
-                      extra=log_extra)
-        user = auth.authenticate(username=username, password=password)
+        cleaned_credentials = self.clean_credentials_for_display(credentials)
+        logging.debug(
+            'Attempting authentication on API: %s',
+            ', '.join([
+                '%s=%s' % pair
+                for pair in six.iteritems(cleaned_credentials)
+            ]),
+            extra=log_extra)
+
+        user = auth.authenticate(**credentials)
 
         if user and user.is_active:
             auth.login(request, user)
@@ -144,23 +149,70 @@ class WebAPIAuthBackend(object):
 
         return False, None, None
 
+    def validate_credentials(self, request, **credentials):
+        """Validates that credentials are valid.
+
+        This is called before we attempt to authenticate with the credentials,
+        and can short-circuit the rest of the authentication process,
+        returning a result tuple if desired. If None is returned,
+        authentication proceeds as normal.
+
+        By default, this will attempt to bypass authentication if the
+        current user is already logged in and matches the authenticated
+        user (if and only if 'username' appears in the credentials).
+
+        Subclasses can override this to provide more specific behavior for
+        their sets of credentials, or to disable this entirely.
+        """
+        # Don't authenticate if a user is already logged in and the
+        # username matches.
+        #
+        # Note that this does mean that a new password will fail. However,
+        # the user is already logged in, and querying the backend for every
+        # request is excessive, so it's a tradeoff. The user already has
+        # access to the server at this point anyway.
+        if (request.user.is_authenticated() and
+            request.user.username == credentials.get('username')):
+            return True, None, None
+
+        return None
+
+    def clean_credentials_for_display(self, credentials):
+        """Cleans up a credentials dictionary, removing sensitive information.
+
+        This will take a credentials dictionary and mask anything sensitive,
+        preparing it for output to a log file.
+        """
+        clean_credentials = {}
+
+        for key, value in six.iteritems(credentials):
+            if self.SENSITIVE_CREDENTIALS_RE.search(key):
+                clean_credentials[key] = '************'
+            else:
+                clean_credentials[key] = value
+
+        return clean_credentials
+
 
 class WebAPIBasicAuthBackend(WebAPIAuthBackend):
     """Handles HTTP Basic Authentication for the web API."""
     www_auth_scheme = 'Basic realm="Web API"'
 
     def get_credentials(self, request):
+        parts = request.META['HTTP_AUTHORIZATION'].split(' ')
+        realm = parts[0]
+
+        if realm != 'Basic':
+            return None
+
         try:
-            realm, encoded_auth = request.META['HTTP_AUTHORIZATION'].split(' ')
+            encoded_auth = parts[1]
             username, password = encoded_auth.decode('base64').split(':', 1)
         except ValueError:
             logging.warning("Failed to parse HTTP_AUTHORIZATION header %s" %
                             request.META['HTTP_AUTHORIZATION'],
                             exc_info=1,
                             extra={'request': request})
-            return
-
-        if realm != 'Basic':
             return None
 
         return {
