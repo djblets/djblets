@@ -158,7 +158,7 @@ def init_logging():
 
     try:
         if sys.platform == 'win32':
-            handler = logging.handlers.FileHandler(log_path)
+            handler = logging.FileHandler(log_path)
         else:
             handler = logging.handlers.WatchedFileHandler(log_path)
 
