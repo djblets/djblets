@@ -490,7 +490,8 @@ class WebAPIResource(object):
             view = None
 
         if view and six.callable(view):
-            result = view(request, api_format=api_format, *args, **kwargs)
+            result = self.call_method_view(
+                request, method, view, api_format=api_format, *args, **kwargs)
 
             if isinstance(result, WebAPIResponse):
                 return result
@@ -551,6 +552,17 @@ class WebAPIResource(object):
                 raise AssertionError(result)
         else:
             return HttpResponseNotAllowed(self.allowed_methods)
+
+    def call_method_view(self, request, method, view, *args, **kwargs):
+        """Calls the given method view.
+
+        This will just call the given view by default, passing in all
+        args and kwargs.
+
+        This can be overridden by subclasses to perform additional
+        checks or pass additional data to the view.
+        """
+        return view(request, *args, **kwargs)
 
     @property
     def __name__(self):
