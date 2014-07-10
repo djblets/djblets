@@ -782,8 +782,6 @@ class WebAPIResource(object):
              etag_if_none_match(request, etag))):
             return HttpResponseNotModified()
 
-
-
         data = {
             self.item_result_key: self.serialize_object(obj, request=request,
                                                         *args, **kwargs),
@@ -999,8 +997,13 @@ class WebAPIResource(object):
         }
 
         request = kwargs.get('request', None)
-        expand = request.GET.get('expand', request.POST.get('expand', ''))
-        expanded_resources = expand.split(',')
+
+        if hasattr(request, '_djblets_webapi_expanded_resources'):
+            expanded_resources = request._djblets_webapi_expanded_resources
+        else:
+            expand = request.GET.get('expand', request.POST.get('expand', ''))
+            expanded_resources = expand.split(',')
+            request._djblets_webapi_expanded_resources = expanded_resources
 
         for field in six.iterkeys(self.fields):
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
@@ -1016,6 +1019,12 @@ class WebAPIResource(object):
                     value = value.get()
 
             expand_field = field in expanded_resources
+
+            # Make sure that any given field expansion only applies once. This
+            # prevents infinite recursion in the case where there's a loop in
+            # the object graph.
+            if expand_field:
+                request._djblets_webapi_expanded_resources.remove(field)
 
             if isinstance(value, models.Model) and not expand_field:
                 resource = self.get_serializer_for_object(value)
