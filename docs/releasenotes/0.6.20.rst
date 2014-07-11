@@ -1,0 +1,30 @@
+============================
+Djblets 0.6.20 Release Notes
+============================
+
+**Release date**: July 21, 2012
+
+
+djblets.datagrid
+================
+
+* Improved performance of the datagrids.
+
+  Datagrids now fetch all needed ForeignKey-related objects in one
+  go, instead of having one query per unique object. This can reduce
+  the query count substantially.
+
+
+djblets.util
+============
+
+* The ``ifuserorperm`` template tag now accepts both IDs and User
+  objects, allowing comparisons to be made without fetching the
+  User.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

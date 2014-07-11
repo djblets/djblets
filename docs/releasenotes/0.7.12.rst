@@ -1,0 +1,66 @@
+============================
+Djblets 0.7.12 Release Notes
+============================
+
+**Release date**: April 19, 2013
+
+
+djblets.datagrid
+================
+
+* Massively speed up datagrid rendering.
+
+  The rendering code for datagrids had a flaw where it would
+  re-populate some state for every cell, and this could be very
+  expensive. It's now reused on all cells.
+
+  We saw this with one application where a datagrid would take
+  6 seconds to render. Now it takes 0.5 seconds.
+
+
+djblets.extensions
+==================
+
+* Added an :py:meth:`install_extension` function to
+  :py:class:`ExtensionManager`.
+
+  This can be used to install extensions dynamically from a file
+  or URL.
+
+  Patch by Surya Nallu.
+
+
+djblets.util.fields
+===================
+
+* :py:class:`CounterField` now allows incrementing/decrementing by values
+  other than 1.
+
+  Patch by Raja Venkataraman.
+
+
+djblets.util.templatetags
+=========================
+
+* The :py:func:`thumbnail` and :py:func:`crop_image` template tags now
+  work with Django Storage backends.
+
+* Added a :py:func:`save_image_to_storage` function in ``djblets_images`` that
+  makes it easy to save image data to Storage backends.
+
+
+djblets.webapi
+==============
+
+* Resources now consider both ``Last Modified`` and ``ETag`` headers
+  simultaneously when determining if a cached payload is still
+  valid. Previously, if the ``Last Modified`` timestamps were the same,
+  the ``ETag`` check would fail.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Raja Venkataraman

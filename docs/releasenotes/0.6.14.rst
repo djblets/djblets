@@ -1,0 +1,58 @@
+============================
+Djblets 0.6.14 Release Notes
+============================
+
+**Release date**: November 9, 2011
+
+
+djblets.compress
+================
+
+* Added a new filters for django-compress that handles lesscss_ files and
+  automatically converts/deploys as CSS.
+
+.. _lesscss: http://lesscss.org
+
+* Added new templates for django-compress that handles the
+  ``MEDIA_SERIAL`` suffix.
+
+
+djblets.siteconfig
+==================
+
+* The settings template now allows fields to not have a label by
+  setting ``fields_no_label`` to ``True`` in the form class.
+
+  Patch by Hongbin Lu.
+
+
+djblets.webapi
+==============
+
+* Fixed authentication failures when ``:`` was in the password.
+  (:bug:`2334`)
+
+  Patch by Dave Druska.
+
+
+djblets.util
+============
+
+* The jQuery and jQuery-UI versions are now referenced in only one
+  place, in :file:`js/jquery.html` and :file:`js/jquery-ui.html`. Other
+  templates can include these and keep up-to-date with the versions Djblets
+  provides.
+
+  Projects can override these templates to provide their own
+  hard-coded versions.
+
+  In the next release, these will switch to the Google CDN by default.
+
+
+Contributors
+============
+
+* Christian Hammond
+* Dave Druska
+* David Trowbridge
+* Hongbin Lu

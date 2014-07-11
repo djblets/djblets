@@ -1,0 +1,30 @@
+============================
+Djblets 0.6.11 Release Notes
+============================
+
+**Release date**: September 10, 2011
+
+
+djblets.testing
+===============
+
+* Added a new TestCase class and ``@add_fixtures`` decorator for
+  having fixtures specific to text functions.
+
+
+djblets.util
+============
+
+* Fixed defaults on counter fields on new model instances.
+
+  Counter fields on new model instances were being set to 0, preventing
+  them from recomputing the next time they're accessed. This would
+  cause any new models to be incorrect. They're now initialized to
+  NULL instead. (:bug:`2268`)
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

@@ -1,0 +1,42 @@
+============================
+Djblets 0.6.17 Release Notes
+============================
+
+**Release date**: April 2, 2012
+
+
+djblets.gravatars
+=================
+
+* Gravatars are no longer hard-coded to be JPEGs. This was
+  breaking some gravatars.
+
+
+JavaScript
+==========
+
+* ``inlineEditor`` now has a ``showRequiredFlag`` option for indicating if
+  a field is required.
+
+  No validation is done on this, but an asterisk is displayed in
+  order to indicate that it's required.
+
+  Patch by Yazan Medanat.
+
+* ``inlineEditor`` now indicates when its dirty state changes.
+
+  A new ``dirtyStateChanged`` signal is emitted whenever the dirty
+  state changes, which happens as the result of a number of
+  different events. Looking up the dirty state is now cheaper, as
+  it's calculated when needed instead of on lookup.
+
+  Patch by Jim Chen.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Jim Chen
+* Yazan Medanat

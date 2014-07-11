@@ -1,0 +1,113 @@
+==============================
+Djblets 0.8 RC 2 Release Notes
+==============================
+
+**Release date**: May 8, 2014
+
+
+Internationalization
+====================
+
+* Updated locale files for all new strings.
+
+
+Packaging
+=========
+
+* Media files for Djblets egg packages can now be built on systems
+  containing multiple versions of Django.
+
+  Patch by Stephen Gallagher.
+
+
+djblets.configforms
+===================
+
+* Added styling for a ``description`` class, for use at the top of
+  a config form.
+
+* Added support for custom action icon prefixes.
+
+  This can be set by overriding ``iconBaseClassName`` on the
+  :js:class:`ListItemView` subclass. This defaults to ``djblets-icon-``.
+
+* Added :js:class:`TableView` and :js:class:`TableItemView`, for rendering
+  data in table form.
+
+* Spinners are now shown on an item when communicating with the server.
+
+* Action menus on items now have an ``action-menu`` CSS class set.
+
+* Fixed breakages when updating an item's collection before the
+  item's ``render()`` was called.
+
+* Removed leading whitespace in the default item template.
+
+* Boxes now use have more explicit CSS classes.
+
+  Instead of ``title`` and ``main``, config forms now use ``box-title``
+  and ``box-main`` as the CSS classes. The title is also wrapped in
+  a div with a ``box-head`` class, in order to help with styling.
+
+
+djblets.datagrids
+=================
+
+* Sorting on a non-existing column no longer breaks datagrids.
+
+
+djblets.extensions
+==================
+
+* Extension media files are now re-installed when upgrading an extension.
+
+* :py:class:`TemplateHook` subclasses can no longer leak context variables
+  into other templates.
+
+* Extension packages can now specify to remove source JavaScript,
+  CSS and LessCSS files by setting the following in :file:`setup.cfg`::
+
+   [build_static_files]
+   remove_source_files = 1
+
+
+djblets.siteconfig
+==================
+
+* Templates can now use ``{{siteconfig_settings}}`` to support defaults.
+
+  By using ``siteconfig_settings`` instead of ``siteconfig.settings``,
+  any defaults set for the siteconfig will be used, if not explicitly
+  set in the database.
+
+* The settings field in the administration UI is now editable.
+
+
+djblets.util
+============
+
+* :py:func:`get_url_params_except` now works with non-ASCII strings.
+
+  Patch by Georgy Dyuldin.
+
+
+djblets.webapi
+==============
+
+* :py:meth:`get_serializer_for_object` is now reliable.
+
+  Previously, this wasn't always called for objects in payloads coming from
+  the resource. It was only usable in simple cases.  Now it's called for all
+  objects coming from that resource.
+
+* Fixed issues with handling Unicode characters in GET query strings
+  when building pagination links.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Georgy Dyuldin
+* Stephen Gallagher

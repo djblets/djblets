@@ -1,0 +1,18 @@
+===========================
+Djblets 0.5.3 Release Notes
+===========================
+
+**Release date**: September 17, 2009
+
+
+djblets.siteconfig
+==================
+
+* Updated to work with Django 1.1's admin UI stylesheets.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

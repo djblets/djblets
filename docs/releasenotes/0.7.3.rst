@@ -1,0 +1,83 @@
+===========================
+Djblets 0.7.3 Release Notes
+===========================
+
+**Release date**: November 29, 2012
+
+
+This release contains all the fixes and functionality of
+:doc:`0.6.27 <0.6.27>`.
+
+
+General
+=======
+
+* Django 1.4.2 is now required.
+
+* All admin-related templates have been changed to better fit
+  the admin template structure and styles. This includes siteconfig
+  and logs.
+
+
+djblets.extensions
+==================
+
+* Extension lists and state are now synchronized across
+  threads/processes/servers.
+
+* Extension subclasses now must capture all variable arguments
+  (``*args``, ``**kwargs``) and pass them to the parent constructor.
+
+* URLHook, admin URLs, and API resource URLs are all now added and
+  removed properly when an extension is enabled or disabled.
+
+
+djblets.util
+============
+
+* Cache keys are now bound to the :py:data:`SITE_ROOT`, if one is set, to
+  prevent leakage across instances. (:bug:`2538`)
+
+* Added :py:class:`DynamicURLResolver` in
+  :py:mod:`djblets.util.urlresolvers`.
+
+  This can be added to a urlpatterns list to provide an entry point
+  for dynamically adding or removing URLs on a site. This is used
+  primarily for extensions.
+
+
+djblets.webapi
+==============
+
+* API handler functions that specify ``allow_unknown=True`` in
+  ``@webapi_request_fields`` can now retrieve all extra fields as
+  an ``extra_fields`` argument.
+
+
+JavaScript
+==========
+
+* The jQuery dependency has been updated to 1.8.2, and
+  jQuery-UI to 1.8.24.
+
+* ``inlineEditor``'s animation speed has increased, and is now
+  customizable through ``options.fadeSpeedMS``.
+
+* ``inlineEditor`` now does a better job of matching the parent
+  container's bounds.
+
+* ``inlineEditor`` no longer activates when simply selecting text.
+
+  Patch by Dave Druska.
+
+* Added a ``$.fn.retinaGravatar`` function that, on Retina-capable
+  displays, requests a larger gravatar for the given URL
+  specified in an ``<img/>``.
+
+
+Contributors
+============
+
+* Christian Hammond
+* Dave Druska
+* David Trowbridge

@@ -1,0 +1,25 @@
+=========================
+Djblets 0.8 Release Notes
+=========================
+
+**Release date**: May 19, 2014
+
+
+See the release notes for the 0.8.0 betas and RCs for the complete
+list of changes.
+
+The following are the changes since 0.8 RC 2.
+
+
+djblets.extensions
+==================
+
+* Added a :py:meth:`get()` function to :py:class:`Settings` for handling
+  defaults.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

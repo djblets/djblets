@@ -1,0 +1,52 @@
+===========================
+Djblets 0.7.6 Release Notes
+===========================
+
+**Release date**: December 8, 2012
+
+
+JavaScript
+==========
+
+* ``inlineEditor`` now supports changing an ``enabled`` option, allowing
+  editors to start out enabled or disabled, or dynamically change
+  that state.
+
+  Patch by Jesus Zambrano.
+
+
+djblets.siteconfig
+==================
+
+* Siteconfig now handles old-style ``CACHE_BACKEND`` values and
+  new-style ``CACHES[cachename]`` dictionaries in the ``cache_backend``
+  setting.
+
+
+djblets.util.cache
+==================
+
+* Added :py:func:`normalize_cache_backend`.
+
+  This can take either an old-style ``CACHE_BACKEND`` or new-style
+  ``CACHES[cachename]`` and return a valid entry for ``CACHES['default']``.
+
+
+djblets.webapi
+==============
+
+* Added :py:func:`unregister_resource_for_model`.
+
+  This is useful for extensions that called
+  :py:func:`register_resource_for_model`.
+
+  Patch by Steven MacLeod.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Steven MacLeod
+* Jesus Zambrano

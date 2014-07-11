@@ -1,0 +1,19 @@
+===========================
+Djblets 0.5.5 Release Notes
+===========================
+
+**Release date**: October 22, 2009
+
+
+JavaScript
+==========
+
+* Fix a bug on Internet Explorer when setting the white-space
+  property on an auto-size text area. (:bug:`1349`)
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

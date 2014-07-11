@@ -1,0 +1,56 @@
+===========================
+Djblets 0.5.2 Release Notes
+===========================
+
+**Release date**: September 15, 2009
+
+
+General
+=======
+
+* Added copyright and MIT license headers to all files.
+
+
+JavaScript
+==========
+
+* inlineEditors now prevent the event from bubbling up when
+  clicking their target element. This means that a target element
+  inside of an ``<a href="...">`` will no longer cause the page to
+  change when clicking the element. (:bug:`1221`)
+
+
+djblets.auth
+============
+
+* Deleted the password recovery code. It was intended for use in
+  an old version of Django and has since been supplanted by
+  Django. We don't believe anyone is using it or should be
+  encouraged to use it.
+
+
+djblets.log
+===========
+
+* Added a Server Log view for administration UIs. This is used
+  to display the server log (using the Python logging defaults from
+  :py:mod:`djblets.log`). The log is filterable and sortable.
+
+* Exceptions are now logged when using :py:class:`LoggingMiddleware`. When an
+  exception occurs, the stack, username and URL are logged.
+
+
+djblets.util.misc
+=================
+
+* :py:func:`cache_memoize` will now always ensure that cache keys will never
+  exceed the maximum key length. If the key is larger, an md5sum
+  of the key is used instead. Patch by Thilo-Alexander Ginkel.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Thilo-Alexander Ginkel

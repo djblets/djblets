@@ -1,0 +1,20 @@
+============================
+Djblets 0.6.24 Release Notes
+============================
+
+**Release date**: September 25, 2012
+
+
+djblets.feedview
+================
+
+* We now use the latest upstream of feedparser instead of an older
+  bundled version. This keeps us updated and prevents a security
+  issue with the version we shipped.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

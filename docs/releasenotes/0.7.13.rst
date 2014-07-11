@@ -1,0 +1,31 @@
+============================
+Djblets 0.7.13 Release Notes
+============================
+
+**Release date**: April 26, 2013
+
+
+djblets.log
+===========
+
+* Added enhanced request logging.
+
+  This supplements Python's logging functions (:py:func:`logging.info`, etc.)
+  to take an optional ``request=`` parameter. When passed, the logging
+  information will show some additional details (by default, the
+  username and path) related to the log entry, helping with
+  debugging.
+
+
+djblets.siteconfig
+==================
+
+* Changing and loading the ``site_static_url`` setting will now actually
+  cause static media files to be loaded from that URL.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

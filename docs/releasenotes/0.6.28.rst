@@ -1,0 +1,42 @@
+============================
+Djblets 0.6.28 Release Notes
+============================
+
+**Release date**: February 20, 2013
+
+
+General
+=======
+
+* Require Django 1.3.7 as a minimum.
+
+  This is the latest security release of Django. For more information,
+  see https://www.djangoproject.com/weblog/2013/feb/19/security/
+
+
+djblets.datagrid
+================
+
+* Fixed a possible XSS exploit in datagrids.
+
+  Patch by Alexander Artemenko.
+
+* Failures during rendering the datagrid now results in a traceback.
+
+
+djblets.util.fields
+===================
+
+* :py:class:`CounterField` was failing to use the initializers for brand new
+  instances of a model, defaulting to ``None`` instead.
+
+  Patch by Raja Venkataraman.
+
+
+Contributors
+============
+
+* Alexander Artemenko
+* Christian Hammond
+* David Trowbridge
+* Raja Venkataraman

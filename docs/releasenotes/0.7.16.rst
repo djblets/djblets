@@ -1,0 +1,96 @@
+============================
+Djblets 0.7.16 Release Notes
+============================
+
+**Release date**: July 27, 2013
+
+
+This release contains security fixes in the datagrid. If you are using
+the datagrid, it is recommended that you upgrade to this release.
+
+
+
+JavaScript
+==========
+
+* ``autoSizeTextArea`` now cleans up its hidden proxy elements when
+  destroyed.
+
+* ``inlineEditor`` can be told not to focus a textarea by default by
+  setting ``focusOnOpen`` to false.
+
+* ``modalBox`` can place itself in an element other than ``<body>`` by
+  setting the ``container`` option to the element.
+
+* ``modalBox`` takes a ``boxID`` option that, if specified, will set the
+  ID of the ``modalBox`` element.
+
+* ``funcQueue`` now takes an optional context parameter for callback
+  functions. The callbacks will be invoked with 'this' set to that
+  context.
+
+
+djblets.datagrid
+================
+
+* Data pulled from the database and rendered into cells are always
+  escaped now. Custom columns can still override this by providing
+  their own rendering. This led to an XSS vulnerability.
+
+  This is :cve:`2013-4795`.
+
+* Columns can now specify an ``image_class`` instead of an ``image_url``.
+  This will render the icon as a ``<div>`` with the given CSS class name,
+  instead of rendering an ``<img>``. It's useful when using spritesheets.
+
+* Added a JavaScript ``reload()`` function that can be called on a
+  datagrid element to trigger a dynamic reload from the server.
+
+
+djblets.extensions
+==================
+
+* Extensions can now specify their list of app directories.
+
+  An :py:class:`Extension` subclass can define an :py:attr:`apps` member
+  variable that, like ``INSTALLED_APPS``, lists the app module paths the
+  extension uses. These will each be added to ``INSTALLED_APPS`` when enabled,
+  and removed when disabled.
+
+  If an extension does not provide :py:attr:`apps`, then this falls back on
+  the default behavior of only adding the extension's parent app.
+
+* Extensions can now specify the author's URL.
+
+  :py:attr:`Extension.metadata`` can now specify an ``Author-home-page``
+  field, which points to the URL for the author's site. This is meant to
+  distinguish between the extension's URL, and the URL for the
+  person/company/organization that created the extension.
+
+* Improved the look and feel for extension configuration.
+
+  The extension configuration pages now fit in with the admin UI a lot better.
+  They share much of the look of other admin UI pages.
+
+  Furthermore, when extensions are saved, there's now feedback given to the
+  user, instead of just simply re-rendering the page.
+
+* Improved the functionality for extension configuration.
+
+  Extension configuration forms now contain all the functionality
+  of :py:class:`SiteSettingsForm`. This include fieldsets and save blacklists
+  (which prevent a field from automatically being saved in the extension
+  settings).
+
+* Improved the list of available extensions.
+
+  The list no longer causes part of the extension description to be
+  overlapped. It also shows the author of the extension, and links back to the
+  author's site.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

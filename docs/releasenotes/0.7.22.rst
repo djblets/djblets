@@ -1,0 +1,35 @@
+============================
+Djblets 0.7.22 Release Notes
+============================
+
+**Release date**: November 1, 2013
+
+
+djblets.extensions
+==================
+
+* ``AJAX_SERIAL`` is updated when extensions are enabled/disabled or their
+  configuration changes, allowing templates using ``AJAX_SERIAL`` as part
+  of their cache to invalidate.
+
+
+djblets.siteconfig
+==================
+
+* Reduced query counts for installs using siteconfig.
+
+
+djblets.webapi
+==============
+
+* Reduced query counts when returning payloads for list resources
+  with no entries.
+
+* Common attribute lookups on :py:class:`WebAPIResource` are now cached.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

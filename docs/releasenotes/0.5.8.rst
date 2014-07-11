@@ -1,0 +1,102 @@
+===========================
+Djblets 0.5.8 Release Notes
+===========================
+
+**Release date**: March 27, 2010
+
+
+djblets.datagrid
+================
+
+* Made many more speed improvements in the datagrids.
+
+  This builds upon the previous set of improvements.
+
+  We now parse and cache the cell and header templates before any
+  rendering is done, instead of doing it once per cell.
+
+  We also cache cells by their displayed content, so that two cells
+  that would show the same rendered data will only render once.
+  This is especially useful for cells showing such things as
+  usernames.
+
+  This can easily take seconds off the load of a heavy datagrid.
+
+* Objects in the datagrid with custom primary keys that aren't named
+  'id' now work.
+
+* The Edit Columns icon is now a pencil instead of just "...', making
+  it easier to see it and figure out its purpose. (:bug:`910`)
+
+
+djblets.feedview
+================
+
+* The feedparser library is now only imported when needed. This
+  reduces startup time for requests by as much as a quarter of a
+  second, as feedparser is a very large library and takes time to
+  import.
+
+  This should improve performance for any site that at all lists
+  :py:mod:`djblets.feedview` in ``INSTALLED_APPS``, even for pages not making
+  use of feedview.
+
+
+djblets.siteconfig
+==================
+
+* The stale settings issue appears to be fixed in this release. It
+  needs more testing in large deployments, but we've identified a
+  couple cases that would cause this problem and have fixed them.
+
+* The mail authentication information is now saved as plain strings
+  instead of unicode strings in order to fix a compatibility issue
+  with Python 2.6's HMAC library.
+
+* The SiteConfiguration's settings field is now read-only in the
+  Django administration UI in Django 1.2.
+
+
+djblets.webapi
+==============
+
+* WebAPIErrors can now take HTTP status codes that will be sent to
+  the browser. These default to 400, though the built-in errors may
+  define different codes.
+
+  This change does break backwards-compatibility if a client calling
+  the API makes the assumption that every result with a payload will
+  be an HTTP 200 OK. Clients shouldn't make these assumptions, but
+  it's possible that they do.
+
+* Added support for Basic HTTP Authentication.
+
+  Clients making a call when not logged in to a restricted URL will
+  now get an HTTP 401 Unauthorized, along with a WWW-Authentication
+  header specifying that Basic Auth is to be used.
+
+  Clients can use standard Basic Auth to pass credentials to any
+  URL requiring such authorization in order to log in. This removes
+  the need for special login URLs.
+
+  This makes APIs more accessible to applications like wget or
+  curl.
+
+* Added an easy way to do pagination with the web API.
+
+  API calls returning lists of data can now paginate the results,
+  returning only a certain amount of data. The results and the
+  total number of items across all pages will be returned.
+
+  URLs are provided in the resulting JSON payload that point to the
+  previous or next queries. Callers can pass a 'start' parameter to
+  the URL to specify the first item's index (0-based), and
+  'max-results' to specify the maximum number of items it wants in
+  that request (which may be capped server-side).
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

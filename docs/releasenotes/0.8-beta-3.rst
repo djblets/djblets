@@ -1,0 +1,76 @@
+================================
+Djblets 0.8 Beta 3 Release Notes
+================================
+
+**Release date**: March 5, 2014
+
+
+Security Improvements
+=====================
+
+* Added CSRF protection to all remaining forms. It's expected now that
+  all templates will make use of ``{% csrf_token %}`` when interfacing
+  with a Djblets-provided form view.
+
+
+djblets.datagrid
+================
+
+* Improved sorting of available dashboard columns. (:bug:`3260`)
+
+  Columns can now take both ``detailed_label`` and ``detailed_label_html``
+  parameters. The ``detailed_label`` is intended to now be a
+  human-readable label without any HTML that can be used for sorting
+  purposes.  If columns take advantage of this, they will be better
+  sorted in the drop-down list of columns.
+
+
+djblets.extensions
+==================
+
+* Added an easier way of getting an extension's instance.
+
+  Extensions often needed to jump through hoops to get the current
+  instance of the extension in code where the instance couldn't
+  directly be provided.
+
+  There's now an ``instance`` parameter on the Extension subclass that
+  will be set when the extension is enabled. Extension code can access
+  this to get the current running instance of the extension without
+  ever needing to use the ExtensionManager.
+
+* Added a :py:attr:`settings` attribute on :py:class:`SettingsForm`.
+
+  :py:class:`SettingsForm` subclasses can now access a :py:attr:`settings`
+  attribute that points to the extension settings that will be used. This is
+  meant to be used instead of the previously undocumented
+  :py:attr:`siteconfig` attribute.
+
+* Added support for extra context to :py:class:`TemplateHook`.
+
+  :py:class:`TemplateHook` can now take an ``extra_context`` parameter
+  containing data that will be passed to the template.
+
+  Subclasses can also override :py:meth:`get_extra_context` to return any
+  additional dynamically-computed data that should be passed to the
+  template.
+
+* Fixed bugs using static bundles with ``apply_to``.
+
+* Reduced the number of queries used when loading extensions.
+
+
+djblets.log
+===========
+
+* :py:func:`log_timed` now properly represents microseconds.
+
+  The microseconds were missing the zero padding, causing operations
+  to appear to take longer than they really did.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

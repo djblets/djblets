@@ -1,0 +1,20 @@
+===========================
+Djblets 0.7.1 Release Notes
+===========================
+
+**Release date**: August 3, 2012
+
+
+Packaging
+=========
+
+* Added the contrib directory to the source distribution.
+
+  This solves a packaging problem when not using eggs.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

@@ -1,0 +1,23 @@
+============================
+Djblets 0.6.30 Release Notes
+============================
+
+**Release date**: October 10, 2013
+
+
+Security updates
+================
+
+* :py:class:`JSONField` now corrects incorrectly stored contents in a
+  safer way, to remove the risk of any exploits in a JSON payload.
+
+  This is :cve:`2013-4409`, and was reported and patched by
+  Frederik Braun.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Frederik Braun

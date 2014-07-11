@@ -1,0 +1,36 @@
+============================
+Djblets 0.6.15 Release Notes
+============================
+
+**Release date**: December 13, 2011
+
+
+djblets.pipeline
+================
+
+* Replaced the :py:mod:`djblets.compress` module with
+  :py:mod:`djblets.pipeline`.
+
+  django-compress was deprecated shortly after our 0.6.14 release, with
+  django-pipeline being the successor. As such, we've decided to get rid of
+  the :py:mod:`djblets.compress` support and just replace it with equivalent
+  pipeline support.
+
+  We're not aware of any projects this will break.
+
+
+djblets.util
+============
+
+* Fixed Django 1.4 compatibility.
+
+  :py:mod:`djblets.util.misc` was importing :py:class:`RegexURLPattern` from a
+  location that no longer worked. This has been updated to use the proper
+  import path.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

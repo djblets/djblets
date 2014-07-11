@@ -1,0 +1,65 @@
+=========================
+Djblets 0.6 Release Notes
+=========================
+
+**Release date**: May 11, 2010
+
+
+djblets.datagrid
+================
+
+* Fixed rendering issues with columns in the datagrids.
+
+  Adding columns to a datagrid would cause odd rendering issues. This
+  was due to not including the 'last' flag (indicating the last
+  column, in order to position the Edit Columns column properly) in
+  the cache key. We now add the key, which allows the datagrid to
+  render properly when adding or removing columns.
+
+* Fixed over-caching of columns.
+
+  There were a couple bugs where Djblets cached the rendered columns
+  too aggressively, causing links on cells to point to the wrong
+  addresses and columns to render incorrectly based on previous loads.
+  (:bug:`1582`)
+
+
+djblets.log
+===========
+
+* Switched the logging setup code to use a :py:class:`WatchedFileHandler`,
+  which automatically reopens the log files for writing when they're
+  deleting (such as after log rotation).
+
+
+djblets.testing
+===============
+
+* Added the new :py:mod:`djblets.testing` module, which houses our old unit
+  testing helpers from :py:mod:`djblets.util.testing`.
+
+* Added new Selenium test suite support for automated browser
+  testing.
+
+
+djblets.webapi
+==============
+
+* Added a new resource-based model for doing more RESTful APIs.
+
+  This introduces a new class for easily creating RESTful URL resources
+  that can handle standard HTTP methods and return meaningful data in a
+  nicely constructed hierarchy.
+
+  By using :py:class:`WebAPIResource`, a site can offer a very clean set of
+  URLs to work with any object.
+
+  There's a lot to this object, but it's all covered in the extensive
+  documentation in :file:`webapi/resources.py`.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

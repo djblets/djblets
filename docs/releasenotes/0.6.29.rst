@@ -1,0 +1,22 @@
+============================
+Djblets 0.6.29 Release Notes
+============================
+
+**Release date**: July 27, 2013
+
+
+djblets.datagrid
+================
+
+* Data pulled from the database and rendered into cells are always
+  escaped now. Custom columns can still override this by providing
+  their own rendering. This led to an XSS vulnerability.
+
+  This is :cve:`2013-4795`.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

@@ -1,0 +1,21 @@
+============================
+Djblets 0.7.24 Release Notes
+============================
+
+**Release date**: November 21, 2013
+
+
+djblets.util.http
+=================
+
+* Fixed ``ETag`` matching.
+
+  ``ETag`` request headers weren't being looked up properly, preventing pages
+  from being able to make intelligent caching decisions.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

@@ -1,0 +1,22 @@
+================================
+Djblets 0.8 Beta 2 Release Notes
+================================
+
+**Release date**: February 20, 2014
+
+
+Compatibility
+=============
+
+* Fixed the PIL/Pillow support.
+
+  The smart PIL/Pillow selection only worked if installing from
+  source. We're now using our new "pillowfight" package to help
+  with this.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

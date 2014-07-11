@@ -1,0 +1,40 @@
+============================
+Djblets 0.7.15 Release Notes
+============================
+
+**Release date**: May 26, 2013
+
+
+djblets.extensions
+==================
+
+* Extension classes can now define a :py:attr:`metadata` variable to
+  override the package's metadata. This uses standard PyPI metadata fields.
+  Using this, single Python package can provide several extensions.
+
+* :py:class:`TemplateHook` subclasses can now override a new
+  :py:meth:`render_to_string` function to do their own processing and
+  rendering, instead of simply rendering the provided template_name.
+
+* The ``template_name`` parameter to :py:class:`TemplateHook` is now optional.
+
+* The Django template loader cache is now reset when syncing
+  extension settings or enabling/disabling an extension.
+
+
+djblets.webapi
+==============
+
+* Added a :py:attr:`is_webapi_handler` attribute to
+  :py:class:`WebAPIResource`.
+
+  This allows for introspection from any middleware that's going
+  to call a view. It can test if this is set on the view to know
+  whether it's calling into an API handler.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
