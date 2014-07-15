@@ -2,7 +2,7 @@
 Djblets 0.8.6 Release Notes
 ===========================
 
-**Release date**: TBD
+**Release date**: July 14, 2014
 
 
 Packaging
