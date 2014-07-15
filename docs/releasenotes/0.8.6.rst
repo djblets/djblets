@@ -1,0 +1,155 @@
+===========================
+Djblets 0.8.6 Release Notes
+===========================
+
+**Release date**: TBD
+
+
+Packaging
+=========
+
+* The :envvar:`PYTHONPATH` is no longer overridden when building the
+  localization files
+
+  Patch by Carlos Corrales.
+
+
+djblets.configforms
+===================
+
+Styles Changes
+--------------
+
+* Config form boxes now have a ``box-foot`` CSS class, for additional styling.
+  This goes along with the ``box-head`` and ``box-main`` classes.
+
+* The box titles now have a ``box-title`` CSS class.
+
+* The base template of a config page can now be specified by overriding
+  :py:attr:`ConfigPagesView.base_template_name`.
+
+* Field rows that contain checkboxes, radio buttons, or a multi-select
+  of checkboxes now have a ``checkbox-row`` CSS class.
+
+* The save buttons now have a ``btn`` CSS class.
+
+* Changed the styling for config form sub-sections to better align and
+  separate from the rest of the box.
+
+
+New Features
+------------
+
+* :js:class:`ListItemView` and :js:class:`TableItemView` subclasses can now
+  define a :js:func:`getActionsParent` method for returning the element
+  where actions should be placed.
+
+* :js:class:`ListView` and :js:class:`TableView` subclasses can now
+  define a :js:attr:`defaultItemView` attribute for setting the view used
+  by default for items.
+
+
+Bug Fixes
+---------
+
+* Fixed display of form validation errors.
+
+* Fixed display of actions on Firefox.
+
+* Fixed vertical alignment of the spinner.
+
+* :js:class:`TableView` no longer assumes that a ``<tbody>`` is present on
+  its element.
+
+* :js:class:`TableView` no longer uses :js:class:`TableItemView` by default.
+  its element.
+
+* :js:class:`TableItemView` no longer places elements directly on the
+  ``<tr>``.
+
+* :js:class:`TableItemView` no longer has excess leading and trailing
+  whitspace.
+
+
+djblets.datagrid
+================
+
+* Middle-click or control-click to open links in new tabs now works on
+  datagrid rows. (:bug:`2521`)
+
+
+djblets.extensions
+==================
+
+* Extension media will now always be installed for the first time on new
+  servers, even if the settings data incorrectly claims it's been installed.
+
+  This can happen if an administrator moves to a new server with an existing
+  database, without copying over the old media.
+
+* Templates that replace the :file:`extensions/extension_list.html` template
+  can now override the ``extension_list_actions`` block to provide custom
+  actions.
+
+* "Scan for new extensions" has been renamed to "Scan for installed
+  extensions."
+
+
+djblets.log
+===========
+
+* Fixed log initialization on Windows.
+
+  Patch by Carlos Corrales.
+
+
+djblets.template
+================
+
+* Added a template loader for conditional caching.
+
+  The new ``conditional_cached`` template loader functions like Django's
+  ``cached`` loader, but does not cache if ``DEBUG`` is ``True``. This helps a
+  lot with development, since it's no longer necessary to reload the server
+  after modifying a template.
+
+* Added a new template loader for namespaced apps.
+
+  The new ``namespaced_app_dirs`` template loader is like Django's
+  ``app_directories`` loader, but accepts an optional namespace prefix in
+  the form of ``app.path:``. If specified, the list of template directories
+  will be limited to those owned by the given app path.
+
+
+djblets.webapi
+==============
+
+* :py:class:`WebAPIBasicAuthBackend` now plays nicely with other backends.
+
+  This backend used to log failures if the ``Authorization`` header didn't
+  match the format it expected, instead of falling back on any other backend
+  in the list.
+
+* :py:class:`WebAPIAuthBackend` no longer assumes that the auth backend
+  will require a username and password.
+
+  It can now be used with any other type of data, such as tokens. This
+  makes it more flexible and easier to extend in projects.
+
+* Authentication credentials are now logged, and sensitive information is
+  masked.
+
+* Subclasses of :py:class:`WebAPIResource` can now override
+  :py:meth:`call_method_view` to perform custom logic before calling the
+  view for the HTTP method.
+
+* Fixed infinite recursions when expanding resources when the expanded
+  resource references the primary resource. (:bug:`3442`)
+
+
+Contributors
+============
+
+* Carlos Corrales
+* Christian Hammond
+* David Trowbridge
