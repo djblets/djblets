@@ -609,6 +609,15 @@ class WebAPIResource(object):
         """
         return self.name_plural.replace('_', '-')
 
+    @property
+    def link_name(self):
+        """Returns the name of the resource for use in a link.
+
+        This can be overridden when the name in the link needs to differ
+        from the name used for the resource.
+        """
+        return self.name_plural
+
     def _build_resource_mimetype(self, mimetype, is_list):
         if is_list:
             resource_name = self.mimetype_list_resource_name or \
@@ -1146,7 +1155,7 @@ class WebAPIResource(object):
             }
 
         for resource in resources:
-            links[resource.name_plural] = {
+            links[resource.link_name] = {
                 'method': 'GET',
                 'href': '%s%s/' % (clean_base_href, resource.uri_name),
             }
