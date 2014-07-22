@@ -262,7 +262,7 @@ $.widget("ui.inlineEditor", {
                     case 115:
                         /* s or S */
                         if (e.ctrlKey) {
-                            self.save();
+                            self.submit();
                             return false;
                         }
                         break;
