@@ -1,0 +1,29 @@
+===========================
+Djblets 0.8.7 Release Notes
+===========================
+
+**Release date**: July 22, 2014
+
+
+Localizations
+=============
+
+* Updated the Italian translation.
+
+
+djblets.webapi
+==============
+
+* Added a :py:attr:`WebAPIResource.link_name` attribute for specifying the
+  name for links to the resource.
+
+  This defaults to the original value, which was that of
+  :py:attr:`WebAPIResource.name_plural`. It can be overridden to specify
+  any custom name.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
