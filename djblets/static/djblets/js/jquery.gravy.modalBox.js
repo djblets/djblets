@@ -103,7 +103,7 @@ $.widget("ui.modalBox", {
         });
 
         if (this.options.fadeBackground) {
-            this.bgbox.fadeTo(800, 0.7);
+            this.bgbox.fadeTo(350, 0.85);
         }
 
         $(window).bind("resize.modalbox", function() {
