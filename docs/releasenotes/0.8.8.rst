@@ -1,0 +1,29 @@
+===========================
+Djblets 0.8.8 Release Notes
+===========================
+
+**Release date**: July 25, 2014
+
+
+djblets.util.fields
+===================
+
+* Removed a deprecation warning when importing this module.
+
+  Since this module is referenced in Django Evolution signatures, we need to
+  keep this file around. The deprecation warning would end up being shown
+  despite this. It's now gone.
+
+
+jquery.gravy.inlineEditor
+=========================
+
+* :kbd:`Control-S` now properly saves the field instead of just hiding it
+  when using custom multi-line editors. (:bug:`3489`)
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
