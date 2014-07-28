@@ -185,23 +185,30 @@ Djblets.Config.ListItemView = Backbone.View.extend({
         var actionHandlerName = (action.enabled !== false
                                  ? this.actionHandlers[action.id]
                                  : null),
-            checkboxID,
+            inputID,
             $action,
+            $label,
             $result;
 
-        if (action.type === 'checkbox') {
-            checkboxID = _.uniqueId('action_check');
+        if (action.type === 'checkbox' || action.type === 'radio') {
+            inputID = _.uniqueId('action_' + action.type);
             $action = $('<input/>')
                 .attr({
-                    type: "checkbox",
-                    id: checkboxID
+                    name: action.name,
+                    type: action.type,
+                    id: inputID
                 });
+            $label = $('<label/>')
+                .attr('for', inputID)
+                .text(action.label);
+
+            if (action.id) {
+                $label.addClass('config-forms-list-action-label-' + action.id);
+            }
 
             $result = $('<span/>')
                 .append($action)
-                .append($('<label/>')
-                    .attr('for', checkboxID)
-                    .text(action.label));
+                .append($label);
 
             if (action.propName) {
                 $action.bindProperty('checked', this.model, action.propName);

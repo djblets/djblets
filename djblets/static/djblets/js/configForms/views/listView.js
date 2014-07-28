@@ -8,6 +8,9 @@
  *
  * If loading the list through the API, this will display a loading indicator
  * until the items have been loaded.
+ *
+ * If 'options.animateItems' is true, then newly added or removed items will
+ * be faded in/out.
  */
 Djblets.Config.ListView = Backbone.View.extend({
     tagName: 'ul',
@@ -20,7 +23,10 @@ Djblets.Config.ListView = Backbone.View.extend({
     initialize: function(options) {
         var collection = this.model.collection;
 
+        options = options || {};
+
         this.ItemView = options.ItemView || this.defaultItemView;
+        this.animateItems = !!options.animateItems;
 
         this.once('rendered', function() {
             this.listenTo(collection, 'add', this._addItem);
@@ -56,12 +62,24 @@ Djblets.Config.ListView = Backbone.View.extend({
     /*
      * Creates a view for an item and adds it.
      */
-    _addItem: function(item) {
+    _addItem: function(item, collection, options) {
         var view = new this.ItemView({
-            model: item
-        });
+                model: item
+            }),
+            animateItem = (options && options.animate !== false);
 
-        this.$listBody.append(view.render().$el);
+        view.render();
+
+        /*
+         * If this ListView has animation enabled, and this specific
+         * item is being animated (the default unless options.animate
+         * is false), we'll fade in the item.
+         */
+        if (this.animateItems && animateItem) {
+            view.$el.fadeIn();
+        }
+
+        this.$listBody.append(view.$el);
     },
 
     /*
@@ -70,7 +88,21 @@ Djblets.Config.ListView = Backbone.View.extend({
      * Removes the element from the list.
      */
     _removeItem: function(item, collection, options) {
-        this.$listBody.children().eq(options.index).remove();
+        var $item = this.$listBody.children().eq(options.index),
+            animateItem = (options && options.animate !== false);
+
+        /*
+         * If this ListView has animation enabled, and this specific
+         * item is being animated (the default unless options.animate
+         * is false), we'll fade out the item.
+         */
+        if (this.animateItems && animateItem) {
+            $item.fadeOut(function() {
+                $item.remove();
+            });
+        } else {
+            $item.remove();
+        }
     },
 
     /*
@@ -79,6 +111,10 @@ Djblets.Config.ListView = Backbone.View.extend({
     _renderItems: function() {
         this.$listBody.empty();
 
-        this.model.collection.each(this._addItem, this);
+        this.model.collection.each(function(item) {
+            this._addItem(item, item.collection, {
+                animate: false
+            });
+        }, this);
     }
 });
