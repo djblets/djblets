@@ -76,11 +76,13 @@ PIPELINE_JS = {
             'djblets/js/jquery.gravy.modalBox.js',
             'djblets/js/jquery.gravy.tooltip.js',
             'djblets/js/jquery.gravy.funcQueue.js',
+            'djblets/js/jquery.gravy.backboneUtils.js',
         ),
         'output_filename': 'djblets/js/jquery.gravy.min.js',
     },
     'djblets-js-tests': {
         'source_filenames': (
+            'djblets/js/tests/backboneUtilsTests.js',
             'djblets/js/configForms/models/tests/listItemModelTests.js',
             'djblets/js/configForms/views/tests/listItemViewTests.js',
             'djblets/js/configForms/views/tests/listViewTests.js',

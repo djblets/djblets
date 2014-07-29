@@ -215,7 +215,15 @@ Djblets.Config.ListItemView = Backbone.View.extend({
             }
 
             if (actionHandlerName) {
-                $action.change(_.bind(this[actionHandlerName], this));
+                actionHandler = _.debounce(
+                    _.bind(this[actionHandlerName], this),
+                    50, true);
+
+                $action.change(actionHandler);
+
+                if (isRadio && action.dispatchOnClick) {
+                    $action.click(actionHandler);
+                }
             }
         } else {
             $action = $result = $('<a class="btn"/>')
