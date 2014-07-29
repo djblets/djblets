@@ -168,8 +168,8 @@ $.widget("ui.modalBox", {
                             this._buttons.outerHeight(true));
         }
 
-        this.box.move((winWidth  - this.box.outerWidth(true))  / 2,
-                      (winHeight - this.box.outerHeight(true)) / 2,
+        this.box.move(Math.ceil((winWidth  - this.box.outerWidth(true))  / 2),
+                      Math.ceil((winHeight - this.box.outerHeight(true)) / 2),
                       "fixed");
 
         this.element.triggerHandler("resize");
