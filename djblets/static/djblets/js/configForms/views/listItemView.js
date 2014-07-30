@@ -185,12 +185,15 @@ Djblets.Config.ListItemView = Backbone.View.extend({
         var actionHandlerName = (action.enabled !== false
                                  ? this.actionHandlers[action.id]
                                  : null),
+            isCheckbox = (action.type === 'checkbox'),
+            isRadio = (action.type === 'radio'),
+            actionHandler,
             inputID,
             $action,
             $label,
             $result;
 
-        if (action.type === 'checkbox' || action.type === 'radio') {
+        if (isCheckbox || isRadio) {
             inputID = _.uniqueId('action_' + action.type);
             $action = $('<input/>')
                 .attr({
@@ -211,7 +214,15 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                 .append($label);
 
             if (action.propName) {
-                $action.bindProperty('checked', this.model, action.propName);
+                if (isCheckbox) {
+                    $action.bindProperty('checked', this.model,
+                                         action.propName);
+                } else if (isRadio) {
+                    $action.bindProperty(
+                        'checked', this.model, action.propName, {
+                            radioValue: action.radioValue
+                        });
+                }
             }
 
             if (actionHandlerName) {

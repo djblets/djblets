@@ -82,14 +82,22 @@ suite('djblets/gravy/backboneUtils', function() {
     });
 
     describe('$.fn.bindProperty', function() {
-        var $el;
+        var $el,
+            $radio1,
+            $radio2;
 
         beforeEach(function() {
             $el = $("<input type='checkbox'/>").appendTo(document.body);
+            $radio1 = $('<input type="radio" name="my-radio" value="one" />')
+                .appendTo(document.body);
+            $radio2 = $('<input type="radio" name="my-radio" value="two" />')
+                .appendTo(document.body);
         });
 
         afterEach(function() {
             $el.remove();
+            $radio1.remove();
+            $radio2.remove();
         });
 
         describe("Initial property values", function() {
@@ -99,7 +107,7 @@ suite('djblets/gravy/backboneUtils', function() {
                 expect($el.prop('checked')).toBe(true);
             });
 
-            it("Setting element's property form model property's with " +
+            it("Setting element's property from model property's with " +
                "inverse=true",
                function() {
                 model.set('mybool', false);
@@ -108,6 +116,22 @@ suite('djblets/gravy/backboneUtils', function() {
                 });
                 expect($el.prop('checked')).toBe(true);
                 expect(model.get('mybool')).toBe(false);
+            });
+
+            it("Setting element's property from model property with radioValue",
+               function() {
+                model.set('myvalue', 'one');
+
+                $radio1.bindProperty('checked', model, 'myvalue', {
+                    radioValue: 'one'
+                });
+                $radio2.bindProperty('checked', model, 'myvalue', {
+                    radioValue: 'two'
+                });
+
+                expect($radio1.prop('checked')).toBe(true);
+                expect($radio2.prop('checked')).toBe(false);
+                expect(model.get('myvalue')).toBe('one');
             });
 
             it('No element changes with modelToElement=false', function() {
@@ -142,6 +166,25 @@ suite('djblets/gravy/backboneUtils', function() {
                 expect(model.get('mybool')).toBe(true);
             });
 
+            it("Setting element's property with radioValue", function() {
+                model.set('myvalue', 'one');
+
+                $radio1.bindProperty('checked', model, 'myvalue', {
+                    radioValue: 'one'
+                });
+                $radio2.bindProperty('checked', model, 'myvalue', {
+                    radioValue: 'two'
+                });
+
+                expect($radio1.prop('checked')).toBe(true);
+                expect($radio2.prop('checked')).toBe(false);
+
+                model.set('myvalue', 'two');
+                expect($radio1.prop('checked')).toBe(false);
+                expect($radio2.prop('checked')).toBe(true);
+                expect(model.get('myvalue')).toBe('two');
+            });
+
             it('No element changes with modelToElement=false', function() {
                 model.set('mybool', false);
                 $el.bindProperty('checked', model, 'mybool', {
@@ -174,6 +217,23 @@ suite('djblets/gravy/backboneUtils', function() {
 
                 expect($el.prop('checked')).toBe(true);
                 expect(model.get('mybool')).toBe(false);
+            });
+
+            it("Setting model's property with radioValue", function() {
+                model.set('myvalue', 'one');
+
+                $radio1.bindProperty('checked', model, 'myvalue', {
+                    radioValue: 'one'
+                });
+                $radio2.bindProperty('checked', model, 'myvalue', {
+                    radioValue: 'two'
+                });
+
+                $radio2.click();
+
+                expect($radio1.prop('checked')).toBe(false);
+                expect($radio2.prop('checked')).toBe(true);
+                expect(model.get('myvalue')).toBe('two');
             });
 
             it("No model changes with elementToModel=false", function() {

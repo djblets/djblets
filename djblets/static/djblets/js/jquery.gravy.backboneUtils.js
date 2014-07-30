@@ -50,10 +50,21 @@ $.fn.bindClass = function(model, modelPropName, className, options) {
  * properties. This is useful when tying a "disabled" element property to
  * an "enabled" or "can*" model property. It only makes sense for boolean
  * properties.
+ *
+ * If options.radioValue is set, then the assumption is that a boolean
+ * property on the element (such as 'checked') maps to a non-boolean value
+ * in a model, of which many inputs will be bound. In this case, the element's
+ * property will be set to a boolean based on whether the model property's
+ * value matches option.radioValue. Likewise, the model property's value will
+ * be set to options.radioValue if the element's property value is true.
  */
 $.fn.bindProperty = function(elPropName, model, modelPropName, options) {
     function updateElementProp() {
         var value = model.get(modelPropName);
+
+        if (options.radioValue !== undefined) {
+            value = (options.radioValue === value);
+        }
 
         if (options.inverse) {
             value = !value;
@@ -75,7 +86,8 @@ $.fn.bindProperty = function(elPropName, model, modelPropName, options) {
     options = _.defaults(options || {}, {
         modelToElement: true,
         elementToModel: true,
-        inverse: false
+        inverse: false,
+        radioValue: undefined
     });
 
     if (options.modelToElement) {
@@ -91,6 +103,14 @@ $.fn.bindProperty = function(elPropName, model, modelPropName, options) {
 
             if (options.inverse) {
                 value = !value;
+            }
+
+            if (options.radioValue !== undefined) {
+                if (value) {
+                    value = options.radioValue;
+                } else {
+                    return;
+                }
             }
 
             model.set(modelPropName, value);
