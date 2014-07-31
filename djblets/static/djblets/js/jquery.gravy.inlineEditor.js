@@ -106,13 +106,15 @@ $.widget("ui.inlineEditor", {
         this._buttons = null;
 
         if (this.options.showButtons) {
-            this._buttons = $("<div/>")
+            if (this.options.multiline) {
+                this._buttons = $('<div/>');
+            } else {
+                this._buttons = $('<span/>');
+            }
+
+            this._buttons
                 .addClass("buttons")
                 .appendTo(this._form);
-
-            if (!this.options.multiline) {
-                this._buttons.css("display", "inline");
-            }
 
             /*
              * Hide it after we've set the display, so it'll know what to
@@ -231,7 +233,7 @@ $.widget("ui.inlineEditor", {
         var self = this;
 
         this._field
-            .appendTo(this._form)
+            .prependTo(this._form)
             .keydown(function(e) {
                 e.stopPropagation();
 
@@ -330,6 +332,7 @@ $.widget("ui.inlineEditor", {
 
         this.options.setFieldValue(this, value);
 
+        this.element.triggerHandler("beginEditPreShow");
         this.showEditor(preventAnimation);
         this.element.triggerHandler("beginEdit");
     },
