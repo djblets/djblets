@@ -106,13 +106,15 @@ $.widget("ui.inlineEditor", {
         this._buttons = null;
 
         if (this.options.showButtons) {
-            this._buttons = $("<div/>")
+            if (this.options.multiline) {
+                this._buttons = $('<div/>');
+            } else {
+                this._buttons = $('<span/>');
+            }
+
+            this._buttons
                 .addClass("buttons")
                 .appendTo(this._form);
-
-            if (!this.options.multiline) {
-                this._buttons.css("display", "inline");
-            }
 
             /*
              * Hide it after we've set the display, so it'll know what to
@@ -231,7 +233,7 @@ $.widget("ui.inlineEditor", {
         var self = this;
 
         this._field
-            .appendTo(this._form)
+            .prependTo(this._form)
             .keydown(function(e) {
                 e.stopPropagation();
 
@@ -288,7 +290,7 @@ $.widget("ui.inlineEditor", {
         }
 
         if (this._editIcon) {
-            this._editIcon.css('visibility', 'visible');
+            this._editIcon.show();
         }
 
         this.options.enabled = true;
@@ -303,7 +305,7 @@ $.widget("ui.inlineEditor", {
         }
 
         if (this._editIcon) {
-            this._editIcon.css('visibility', 'hidden');
+            this._editIcon.hide();
         }
 
         this.options.enabled = false;
@@ -330,6 +332,7 @@ $.widget("ui.inlineEditor", {
 
         this.options.setFieldValue(this, value);
 
+        this.element.triggerHandler("beginEditPreShow");
         this.showEditor(preventAnimation);
         this.element.triggerHandler("beginEdit");
     },
@@ -417,20 +420,9 @@ $.widget("ui.inlineEditor", {
 
         if (this._editIcon) {
             if (this.options.multiline && !preventAnimation) {
-                this._editIcon
-                    .animate({
-                        opacity: 0
-                    },
-                    this.options.fadeSpeedMS,
-                    'swing',
-                    function() {
-                        self._editIcon.css({
-                            opacity: 100,
-                            visibility: 'hidden'
-                        });
-                    });
+                this._editIcon.fadeOut(this.options.fadeSpeedMS);
             } else {
-                this._editIcon.css('visibility', 'hidden');
+                this._editIcon.hide();
             }
         }
 
@@ -515,16 +507,9 @@ $.widget("ui.inlineEditor", {
 
         if (this._editIcon) {
             if (this.options.multiline) {
-                this._editIcon
-                    .css({
-                        opacity: 0,
-                        visibility: 'visible'
-                    })
-                    .animate({
-                        opacity: 1
-                    }, this.options.fadeSpeedMS);
+                this._editIcon.fadeIn(this.options.fadeSpeedMS);
             } else {
-                this._editIcon.css('visibility', 'visible');
+                this._editIcon.show();
             }
         }
 
@@ -567,6 +552,13 @@ $.widget("ui.inlineEditor", {
     },
 
     _fitWidthToParent: function() {
+        var formParent,
+            parentTextAlign,
+            isLeftAligned,
+            buttonsWidth,
+            boxSizing,
+            extentTypes;
+
         if (!this._editing) {
             return;
         }
@@ -580,12 +572,30 @@ $.widget("ui.inlineEditor", {
                     'width': '100%'
                 });
         } else {
-            var formParent = this._form.parent(),
-                parentTextAlign = formParent.css('text-align'),
-                isLeftAligned = (parentTextAlign === 'left');
+            formParent = this._form.parent();
+            parentTextAlign = formParent.css('text-align');
+            isLeftAligned = (parentTextAlign === 'left');
 
             if (!isLeftAligned) {
                 formParent.css('text-align', 'left');
+            }
+
+            boxSizing = this._field.css('box-sizing');
+
+            if (boxSizing === 'border-box') {
+                extentTypes = 'm';
+            } else if (boxSizing === 'padding-box') {
+                extentTypes = 'p';
+            } else {
+                extentTypes = 'bmp';
+            }
+
+            if (this._buttons &&
+                this._buttons.offset().top <
+                    this._field.offset().top + this._field.outerHeight()) {
+                buttonsWidth = this._buttons.outerWidth();
+            } else {
+                buttonsWidth = 0;
             }
 
             /*
@@ -598,9 +608,8 @@ $.widget("ui.inlineEditor", {
                 .outerWidth(formParent.innerWidth() -
                             (this._form.offset().left -
                              formParent.offset().left) -
-                            this._field.getExtents("bmp", "lr") -
-                            this._editIcon.width() -
-                            (this._buttons ? this._buttons.outerWidth() : 0));
+                            this._field.getExtents(extentTypes, 'lr') -
+                            buttonsWidth);
 
             if (!isLeftAligned) {
                 formParent.css('text-align', parentTextAlign);
