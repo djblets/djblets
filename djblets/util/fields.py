@@ -90,7 +90,10 @@ class Base64Field(models.TextField):
 
     def contribute_to_class(self, cls, name):
         super(Base64Field, self).contribute_to_class(cls, name)
+
         setattr(cls, self.name, Base64FieldCreator(self))
+        setattr(cls, 'get_%s_base64' % self.name,
+                lambda model_instance: model_instance.__dict__[self.name])
 
     def get_db_prep_value(self, value, connection=None, prepared=False):
         if isinstance(value, Base64DecodedValue):
