@@ -493,65 +493,22 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         #
         # With proper locking, these issues don't come up. That's what
         # this test case is attempting to check for.
-        def _sleep_and_call(manager, orig_func, *args):
-            # This works well enough to throw a monkey wrench into things.
-            # One thread will be slightly ahead of the other.
-            time.sleep(0.2)
-
-            try:
-                orig_func(*args)
-            except Exception as e:
-                logging.error('%s\n', e, exc_info=1)
-                exceptions.append(e)
-
-        def _init_extension(manager, *args):
-            _sleep_and_call(manager, orig_init_extension, *args)
-
-        def _uninit_extension(manager, *args):
-            _sleep_and_call(manager, orig_uninit_extension, *args)
-
-        def _loader(main_connection):
-            # Insert the connection from the main thread, so that we can
-            # perform lookups. We never write.
-            from django.db import connections
-            connections['default'] = main_connection
-
-            self.manager.load(full_reload=True)
 
         # Enable one extension. This extension's state will get a bit messed
         # up if the thread locking fails. We only need one to trigger this.
         self.assertEqual(len(self.manager.get_installed_extensions()), 1)
         self.manager.enable_extension(self.extension_class.id)
 
-        orig_init_extension = self.manager._init_extension
-        orig_uninit_extension = self.manager._uninit_extension
-
         self.spy_on(self.manager._load_extensions)
-        self.spy_on(self.manager._init_extension, call_fake=_init_extension)
-        self.spy_on(self.manager._uninit_extension,
-                    call_fake=_uninit_extension)
+        self._spy_sleep_and_call(self.manager._init_extension)
+        self._spy_sleep_and_call(self.manager._uninit_extension)
 
-        # Store the main connection. We're going to let the threads share it.
-        # This trick courtesy of the Django unit tests
-        # (django/tests/bakcends/tests.py)
-        from django.db import connections
-        main_connection = connections['default']
-        main_connection.allow_thread_sharing = True
-
-        exceptions = []
-
-        # Make the load request twice, simultaneously.
-        t1 = threading.Thread(target=_loader, args=[main_connection])
-        t2 = threading.Thread(target=_loader, args=[main_connection])
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
+        self._run_thread_test(lambda: self.manager.load(full_reload=True))
 
         self.assertEqual(len(self.manager._load_extensions.calls), 2)
         self.assertEqual(len(self.manager._uninit_extension.calls), 2)
         self.assertEqual(len(self.manager._init_extension.calls), 2)
-        self.assertEqual(exceptions, [])
+        self.assertEqual(self.exceptions, [])
 
     def test_enable_registers_static_bundles(self):
         """Testing ExtensionManager registers static bundles when enabling extension"""
@@ -605,6 +562,36 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         extension = self.manager.enable_extension(self.extension_class.id)
         self.assertTrue(extension.registration.installed)
         self.assertIsNotNone(extension.settings.get(version_key))
+
+    def test_install_media_concurrent_threads(self):
+        """Testing ExtensionManager updating media for existing
+        extension with concurrent threads
+        """
+        version_key = ExtensionManager.VERSION_SETTINGS_KEY
+
+        extension = self.extension_class(extension_manager=self.manager)
+        extension.registration.installed = True
+        extension.registration.enabled = True
+        extension.registration.save()
+        extension.__class__.instance = extension
+
+        extension.settings.set(version_key, '0.5')
+        extension.settings.save()
+
+        self.assertEqual(len(self.manager.get_installed_extensions()), 1)
+
+        self.spy_on(self.manager._install_extension_media)
+        self.spy_on(self.manager._install_extension_media_internal,
+                    call_original=False)
+
+        self._run_thread_test(
+            lambda: self.manager._install_extension_media(extension.__class__))
+
+        self.assertEqual(
+            len(self.manager._install_extension_media.calls), 2)
+        self.assertEqual(
+            len(self.manager._install_extension_media_internal.calls), 1)
+        self.assertEqual(self.exceptions, [])
 
     def test_disable_unregisters_static_bundles(self):
         """Testing ExtensionManager unregisters static bundles when disabling extension"""
@@ -700,6 +687,54 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         self.assertTrue(setting_key in extension2.settings)
         self.assertEqual(extension1.settings[setting_key], setting_val)
         self.assertEqual(extension2.settings[setting_key], setting_val)
+
+    def _run_thread_test(self, main_func):
+        def _thread_main(main_connection, main_func):
+            # Insert the connection from the main thread, so that we can
+            # perform lookups. We never write.
+            from django.db import connections
+
+            connections['default'] = main_connection
+
+            main_func()
+
+        # Store the main connection. We're going to let the threads share it.
+        # This trick courtesy of the Django unit tests
+        # (django/tests/backends/tests.py).
+        from django.db import connections
+
+        main_connection = connections['default']
+        main_connection.allow_thread_sharing = True
+
+        self.exceptions = []
+
+        t1 = threading.Thread(target=_thread_main,
+                              args=[main_connection, main_func])
+        t2 = threading.Thread(target=_thread_main,
+                              args=[main_connection, main_func])
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+    def _sleep_and_call(self, manager, orig_func, *args, **kwargs):
+        # This works well enough to throw a monkey wrench into things.
+        # One thread will be slightly ahead of the other.
+        time.sleep(0.2)
+
+        try:
+            orig_func(*args, **kwargs)
+        except Exception as e:
+            logging.error('%s\n', e, exc_info=1)
+            self.exceptions.append(e)
+
+    def _spy_sleep_and_call(self, func):
+        def _call(manager, *args, **kwargs):
+            self._sleep_and_call(manager, orig_func, *args, **kwargs)
+
+        orig_func = func
+
+        self.spy_on(func, call_fake=_call)
 
 
 class SettingListWrapperTests(TestCase):

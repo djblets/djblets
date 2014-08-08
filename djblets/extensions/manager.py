@@ -41,7 +41,6 @@ from django.conf import settings
 from django.conf.urls import patterns, include
 from django.contrib.admin.sites import AdminSite
 from django.core.cache import cache
-from django.core.files import locks
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.core.management.color import no_style
@@ -66,6 +65,7 @@ from djblets.extensions.models import RegisteredExtension
 from djblets.extensions.signals import (extension_initialized,
                                         extension_uninitialized)
 from djblets.urls.resolvers import DynamicURLResolver
+from djblets.util.compat.django.core.files import locks
 
 
 class SettingListWrapper(object):
@@ -703,9 +703,9 @@ class ExtensionManager(object):
         while old_version != cur_version:
             with open(lockfile, 'w') as f:
                 try:
-                    locks.lock(f, locks.LOCK_EX)
+                    locks.lock(f, locks.LOCK_EX | locks.LOCK_NB)
                 except IOError as e:
-                    if e.errno == errno.EINTR:
+                    if e.errno in (errno.EAGAIN, errno.EACCES, errno.EINTR):
                         # Sleep for one second, then try again
                         time.sleep(1)
                         extension.settings.load()
@@ -722,7 +722,17 @@ class ExtensionManager(object):
 
                 locks.unlock(f)
 
-        os.unlink(lockfile)
+        try:
+            os.unlink(lockfile)
+        except OSError as e:
+            # A "No such file or directory" (ENOENT) is most likely due to
+            # another thread removing the lock file before this thread could.
+            # It's safe to ignore. We want to handle all others, though.
+            if e.errno != errno.ENOENT:
+                logging.error("Failed to unlock media lock file '%s' for "
+                              "extension '%s': %s",
+                              lockfile, ext_class.info, e,
+                              exc_info=1)
 
     def _install_extension_media_internal(self, ext_class):
         """Installs extension data.
