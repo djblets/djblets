@@ -37,6 +37,7 @@ from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.db.models import F
+from django.db.models.expressions import ExpressionNode
 from django.utils import six
 from django.utils.encoding import smart_unicode
 
@@ -401,18 +402,34 @@ class CounterField(models.IntegerField):
                 # accessed.
                 return
 
-            if self._initializer and six.callable(self._initializer):
-                self._locks[model_instance] = 1
-                value = self._initializer(model_instance)
-                del self._locks[model_instance]
-            else:
-                value = 0
+            value = 0
+
+            if self._initializer:
+                if isinstance(self._initializer, ExpressionNode):
+                    value = self._initializer
+                elif six.callable(self._initializer):
+                    self._locks[model_instance] = 1
+                    value = self._initializer(model_instance)
+                    del self._locks[model_instance]
 
             if value is not None:
-                setattr(model_instance, self.attname, value)
+                is_expr = isinstance(value, ExpressionNode)
 
-                if model_instance.pk:
-                    model_instance.save(update_fields=[self.attname])
+                if is_expr and not model_instance.pk:
+                    value = 0
+                    is_expr = False
+
+                if is_expr:
+                    cls.objects.filter(pk=model_instance.pk).update(**{
+                        self.attname: value,
+                    })
+
+                    self._reload_model_instance(model_instance, [self.attname])
+                else:
+                    setattr(model_instance, self.attname, value)
+
+                    if model_instance.pk:
+                        model_instance.save(update_fields=[self.attname])
 
         super(CounterField, self).contribute_to_class(cls, name)
 
