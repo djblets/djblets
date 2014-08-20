@@ -37,7 +37,7 @@ VERSION = (0, 8, 9, 'alpha', 0, False)
 
 
 # Required version of Django
-django_version = 'Django>=1.6.5,<1.7'
+django_version = 'Django>=1.6.6,<1.7'
 
 
 def get_version_string():
