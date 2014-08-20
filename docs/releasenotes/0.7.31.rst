@@ -1,0 +1,39 @@
+============================
+Djblets 0.7.31 Release Notes
+============================
+
+**Release date**: August 20, 2014
+
+
+Security Updates
+================
+
+This release depends on Django 1.4.14 or higher, which fixes a number of
+security vulnerabilities found.
+
+
+djblets.webapi
+==============
+
+* Added a :py:attr:`WebAPIResource.link_name` attribute for specifying the
+  name for links to the resource.
+
+  This defaults to the original value, which was that of
+  :py:attr:`WebAPIResource.name_plural`. It can be overridden to specify
+  any custom name.
+
+
+djblets.util.fields
+===================
+
+* Added a function to get the raw Base64 content on Base64Fields.
+
+  Base64Field now provides a :samp:`get_{fieldname}_base64()` on the class
+  that will return the actual Base64 content, rather than the decoded content.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
