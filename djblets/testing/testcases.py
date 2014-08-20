@@ -26,13 +26,21 @@
 
 from __future__ import print_function, unicode_literals
 
+import imp
 import socket
+import sys
 import threading
 
+import django
+from django.conf import settings
 from django.core.handlers.wsgi import WSGIHandler
+from django.core.management import call_command
 from django.core.servers import basehttp
+from django.db.models.loading import cache, load_app
 from django.template import Node
 from django.test import testcases
+from django.utils.importlib import import_module
+from django.utils.module_loading import module_has_submodule
 
 
 class StubNodeList(Node):
@@ -75,6 +83,95 @@ class TestCase(testcases.TestCase):
         if old_fixtures:
             self.fixtures = old_fixtures
 
+
+class TestModelsLoaderMixin(object):
+    """Allows unit test moduls to provide models to test against.
+
+    This allows a unit test file to provide models that will be synced to the
+    database and flushed after tests. These can be tested against in any unit
+    tests.
+
+    Typically, Django requires any test directories to be pre-added to
+    INSTALLED_APPS, and a models.py made available (in Django < 1.7), in
+    order for models to be created in the test database.
+
+    This mixin works around this by dynamically adding the module to
+    INSTALLED_APPS and forcing the database to be synced. It also will
+    generate a fake 'models' module to satisfy Django's requirement, if one
+    doesn't already exist.
+
+    By default, this will assume that the test class's module is the one that
+    should be added to INSTALLED_APPS. This can be changed by overriding
+    :py:attr:`tests_app`.
+    """
+    tests_app = None
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestModelsLoaderMixin, cls).setUpClass()
+
+        cls._tests_loader_models_mod = None
+
+        if not cls.tests_app:
+            cls.tests_app = cls.__module__
+
+        if django.VERSION < (1, 7):
+            tests_module = import_module(cls.tests_app)
+
+            if not module_has_submodule(tests_module, 'models'):
+                # To satisfy Django < 1.7, we need to have a 'models' module,
+                # in order for the app to be considered.
+                models_mod_name = '%s.models' % cls.tests_app
+                models_mod = imp.new_module(models_mod_name)
+
+                # Django needs a value here. Doesn't matter what it is.
+                models_mod.__file__ = ''
+
+                cls._tests_loader_models_mod = models_mod
+
+    @classmethod
+    def tearDownClass(cls):
+        super(TestModelsLoaderMixin, cls).tearDownClass()
+
+        # Set this free so the garbage collector can eat it.
+        cls._tests_loader_models_mod = None
+
+    def setUp(self):
+        super(TestModelsLoaderMixin, self).setUp()
+
+        # If we made a fake 'models' module, add it to sys.modules.
+        models_mod = self._tests_loader_models_mod
+
+        if models_mod:
+            sys.modules[models_mod.__name__] = models_mod
+
+        self._models_loader_old_settings = settings.INSTALLED_APPS
+        settings.INSTALLED_APPS = list(settings.INSTALLED_APPS) + [
+            self.tests_app,
+        ]
+
+        load_app(self.tests_app)
+        call_command('syncdb', verbosity=0, interactive=False)
+
+    def tearDown(self):
+        super(TestModelsLoaderMixin, self).tearDown()
+
+        call_command('flush', verbosity=0, interactive=False)
+
+        settings.INSTALLED_APPS = self._models_loader_old_settings
+
+        # If we added a fake 'models' module to sys.modules, remove it.
+        models_mod = self._tests_loader_models_mod
+
+        if models_mod:
+            del cache.app_store[models_mod]
+
+            try:
+                del sys.modules[models_mod.__name__]
+            except KeyError:
+                pass
+
+        cache._get_models_cache.clear()
 
 class TagTest(TestCase):
     """Base testing setup for custom template tags"""
