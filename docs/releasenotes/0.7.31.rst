@@ -2,7 +2,7 @@
 Djblets 0.7.31 Release Notes
 ============================
 
-**Release date**: TBD
+**Release date**: August 20, 2014
 
 
 Security Updates
