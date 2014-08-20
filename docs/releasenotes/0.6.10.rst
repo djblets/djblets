@@ -1,0 +1,91 @@
+============================
+Djblets 0.6.10 Release Notes
+============================
+
+**Release date**: August 20, 2011
+
+
+djblets.datagrid
+================
+
+* Log failed attempts at finding cell templates, in order to aid
+  debugging.
+
+
+djblets.feedview
+================
+
+* Don't fail with an uncaught exception if loading an RSS feed fails.
+  (:bug:`2189`)
+
+  If loading the RSS feed fails (if it's behind a proxy, for example),
+  feedview would raise an error. Now it provides the error data for
+  the caller to render.
+
+
+djblets.log
+===========
+
+* Fixed a date range calculation bug in the log viewer. (:bug:`2218`)
+
+  The "This Month" view in the log viewer was broken due to it
+  attempting to use the beginning of the date range calculated, which
+  was 0, instead of 01. Since we can assume the start of the month
+  will continue to be 1 for the foreseeable future, we can just
+  hardcode this and be safe.
+
+  Patch by Lee Loucks.
+
+
+djblets.util
+============
+
+* Added a :py:func:`make_cache_key` function for generating usable cache keys.
+
+  The :py:func:`make_cache_key` function generates a cache key guaranteed to
+  be able to fit inside the memcached key length restrictions. It will
+  generate a MD5 hash of the key if it exceeds the length.
+
+  This is the same logic that cache_memoize uses to build the keys.
+  It can be used to perform other operations on that key.
+
+  Patch by Vlad Filippov.
+
+* Allow JSONField to store up to 4GB of data on MySQL. (:bug:`1481`)
+
+  JSONField on MySQL was hard-coding the "TEXT" column type,
+  allowing only 64KB of data. Now it uses the default for Django's
+  TextField, which is 4GB.
+
+  This won't break compatibility with existing fields, but those
+  fields won't gain the benefits. To update an existing field on
+  MySQL, you will need to perform the following::
+
+      ALTER TABLE table_name MODIFY field_name LONGTEXT;
+
+* Fixed a storage problem with large cache data. (:bug:`1660`)
+
+  Large cache data was encoded incorrectly, causing anything stored to
+  become unloadable, meaning it'd have to be recomputed. This was due
+  to a string being stored for all but the last chunk, instead of a
+  string wrapped in a list. This affects any data that, after being
+  picked and zlib-compressed, is over 1MB in size.
+
+
+djblets.webapi
+==============
+
+* Make it easier to debug invalid data types in ``@webapi_request_fields``.
+
+  If using an invalid data type in the ``@webapi_request_fields`` listing,
+  you'd see a cryptic error being raised. Now the field is ignored
+  and an error is logged.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Lee Loucks
+* Vlad Filippov

@@ -1,0 +1,36 @@
+============================
+Djblets 0.7.26 Release Notes
+============================
+
+**Release date**: December 10, 2013
+
+
+djblets.util.fields
+===================
+
+* Fixed :py:class:`JSONField` in the administration UI.
+
+  A :py:class:`JSONField` will now render proper JSON, and not a Python
+  ``repr()`` of JSON, in the administration UI. This is properly validated
+  and saved.
+
+
+djblets.webapi
+==============
+
+* Added support for web API authentication backends.
+
+  It's now possible to write custom auth backends for the web API.
+  By default, our standard HTTP Basic Auth is used, but others
+  can now be written.
+
+  Projects can set :py:data:`settings.WEB_API_AUTH_BACKENDS` to a list of
+  Python class paths to set custom auth backends. In coming
+  releases, we'll supply new ones as well.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

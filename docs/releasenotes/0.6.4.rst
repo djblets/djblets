@@ -1,0 +1,84 @@
+===========================
+Djblets 0.6.4 Release Notes
+===========================
+
+**Release date**: September 14, 2010
+
+
+djblets.testing
+===============
+
+* An undefined variable error when using the Selenium test support
+  has been fixed.
+
+
+djblets.util
+============
+
+* Added an :py:func:`augment_method_from` decorator for augmenting existing
+  functions.
+
+  This allows a subclass to augment a parent class's function's
+  documentation and decorators. The existing decorators are
+  automatically inherited. Where this becomes useful is where you have
+  several classes that share common logic, but may need further
+  restrictions or new documentation.
+
+  The defined function is meant to have an empty body (or ``pass``),
+  but it can contain code wich will be executed after the parent
+  function. No returned values will be used, however.
+
+
+djblets.webapi
+==============
+
+* When serializing a dictionary in a webapi response into XML, we
+  now properly serialize keys that are integers. They are serialized
+  as ``<int value="...">``.
+
+* Fixed a circular dependency that occured between :file:`resources.py`,
+  :file:`encoders.py`, and :file:`core.py` (depending on which was
+  first imported).
+
+* The User resource now accepts a ``.`` in the username.
+
+* List-only resources now always have their ``get_list`` function called,
+  regardless of whether it had ``list_child_resources`` defined.
+
+* Singleton resources (resources that exist as a single child item
+  with no object list) must now have the ``singleton`` parameter set
+  to ``True``.
+
+* HTTP Accept mimetypes and ``?api_format=`` are now supported properly
+  for resources.
+
+* Specifying ``api_format`` in POST requests now works.
+
+* Resource classes instances can now be queried by class, using
+  the :py:func:`get_resource_from_class` function.
+
+* Resource classes can now be introspected:
+
+  * Functions can list which error classes the client can expect
+    to receive using the ``@webapi_response_errors`` decorator. It can
+    be queried using ``function.response_errors``.
+
+  * The list of fields that can or must be specified for
+    HTTP GET/PUT/POST can now be queried. It can be queried using
+    ``function.required_fields`` and ``function.optional_fields``.
+
+  * Usage of ``@webapi_login_required`` can now be checked by accessing
+    ``function.login_required``.
+
+  * The list of fields on a resource should now be a dictionary,
+    which can include a description of the field.
+
+  * The custom links on a resource can now be explicitly listed
+    by overriding the ``get_related_links`` function.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

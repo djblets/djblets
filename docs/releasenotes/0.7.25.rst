@@ -1,0 +1,31 @@
+============================
+Djblets 0.7.25 Release Notes
+============================
+
+**Release date**: November 28, 2013
+
+
+djblets.auth
+============
+
+* Added some human-readable labels for :py:class:`RegistrationForm`.
+
+* :py:class:`RegistrationForm` subclasses that make use of fields that
+  normalize to non-strings no longer fail to save.
+
+
+djblets.webapi
+==============
+
+* Usernames with plus signs in them are now matched in the API.
+  This is useful for e-mail addresses as usernames.
+
+  Patch by Mark Côté.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Mark Côté

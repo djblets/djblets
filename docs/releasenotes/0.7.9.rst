@@ -1,0 +1,62 @@
+===========================
+Djblets 0.7.9 Release Notes
+===========================
+
+**Release date**: January 27, 2013
+
+
+JavaScript
+==========
+
+* modalBoxes now use z-indexes of 99 and 100 for the box and content,
+  instead of 11000 and 11001.
+
+
+djblets.datagrid
+================
+
+* Columns data by way of field access can now span field relationships.
+  For example, ``some.other.object.field`` can now be used.
+
+  Patch by Alexander Artemenko.
+
+
+djblets.extensions
+==================
+
+* Fixed a failure when clearing extension info.
+
+  Extensions that weren't properly set up yet were causing a crash
+  when attempting to reload the list of extensions.
+
+
+djblets.siteconfig
+==================
+
+* When loading the stored timezone, we're now longer setting
+  ``os.environ['TZ']`` to that timezone. Instead, we're just activating
+  that timezone for Django only.
+
+  This works around some problems with auto-reload threads (which will
+  still be on the default timezone instead of the loaded one) and
+  importing certain Python eggs, which would end up causing file
+  timestamps relative to different timezones. That would cause
+  autoreload to kick in prematurely and break any spawned processes.
+
+
+djblets.webapi
+==============
+
+* Fixed a bug where list resources that had an unknown ID in the URL
+  could end up throwing an exception instead of returning a 404.
+
+  Patch by Niklas Hambuechen.
+
+
+Contributors
+============
+
+* Alexander Artemenko
+* Christian Hammond
+* David Trowbridge
+* Niklas Hambuechen

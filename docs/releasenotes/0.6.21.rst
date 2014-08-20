@@ -1,0 +1,18 @@
+============================
+Djblets 0.6.21 Release Notes
+============================
+
+**Release date**: July 24, 2012
+
+
+djblets.util
+============
+
+* Fixed a bug with ``ifuserorperm`` and non-int IDs.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

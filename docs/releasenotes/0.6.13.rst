@@ -1,0 +1,30 @@
+============================
+Djblets 0.6.13 Release Notes
+============================
+
+**Release date**: October 7, 2011
+
+
+djblets.log
+===========
+
+* Include the HTTP method in the new page request logs.
+
+
+djblets.util
+============
+
+* Moved :py:func:`controlled_subprocess` into
+  :py:mod:`djblets.util.contextmanagers`.
+
+  This makes it easier to selectively import on Python 2.4.
+
+* Fixed a syntax error in :py:func:`controlled_subprocess` on Python 2.4 and
+  2.5.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

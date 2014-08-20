@@ -1,0 +1,94 @@
+===========================
+Djblets 0.6.7 Release Notes
+===========================
+
+**Release date**: January 9, 2011
+
+
+djblets.datagrid
+================
+
+* The datagrids now use a RequestContext when rendering cells, allowing
+  the columns or templates to access data from context processors.
+
+
+djblets.siteconfig
+==================
+
+* The form body of a siteconfig settings page can now be replaced.
+  It's now stored in the "form_content" block.
+
+* SiteConfigurationManager no longer crashes if trying to clear
+  the cache for a SiteConfiguration that no longer exists.
+
+
+djblets.testing
+===============
+
+* The Selenium test suite has been updated to support Django 1.2's
+  multi-database support. Previously, fixtures would fail to load
+  if using the new ``settings.DATABASES`` variable.
+
+
+djblets.util
+============
+
+* The ``@augment_method_from`` decorator wasn't properly calling up the
+  decorator chain, preventing some decorators from being invoked. This
+  has been fixed to ensure all decorators are called.
+
+
+djblets.webapi
+==============
+
+* Due to the ``@augment_method_from`` breakage listed above, webapi
+  decorators could fail to add their own checks, causing various
+  problems in field checking and authentication. This is now fixed.
+
+* The Permission Denied (HTTP 403) errors being returned weren't
+  sufficient for clients that weren't authenticated. Now, an
+  unauthenticated client will instead see Not Logged In (HTTP 401)
+  errors.
+
+* The ``HTTP_AUTHORIZATION`` header is now checked on all requests. When
+  provided by the client, it will be used for authentication. This
+  means that clients can now force a login from their very first
+  request on, instead of requiring a HTTP 401 Unauthorized being
+  sent out first.
+
+  This will also prevent multiple logins across different requests
+  from the same client, when the ``HTTP_AUTHORIZATION`` header is passed
+  on each request. This makes requests less heavy-weight and prevents
+  the last_login timestamp on the User from being updated on each
+  request.
+
+  As part of this change, any webapps manually using the
+  ``@webapi_login_required`` decorator without the new resource code
+  will no longer support HTTP Basic auth. However, this was never
+  a supported feature anyway, and was more there by accident.
+
+* The ``api_format`` parameter in requests is now treated specially
+  and doesn't trigger any invalid attribute errors during field
+  validation.
+
+* :py:meth:`WebAPIResource.delete` now uses get_object instead of fetching
+  the object directly, which simplifies the function and guarantees
+  that the correct object is used (especially when a resource
+  overrides ``get_object``).
+
+* Redirects now preserve any special parameters (``callback``,
+  ``_method``, ``expand``, and ``api_format``) passed to the request.
+  This works around problems in HTTP implementations that don't
+  allow the caller to know that redirects occurred (such as major
+  browsers), which would lead to this information being stripped and
+  the wrong results being returned.
+
+* The ``expand`` parameter for expanding links in payloads is now
+  supported for POST and PUT requests.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

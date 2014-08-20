@@ -1,0 +1,55 @@
+===========================
+Djblets 0.6.5 Release Notes
+===========================
+
+**Release date**: November 20, 2010
+
+
+djblets.datagrid
+================
+
+* ``MEDIA_SERIAL`` is now used for all the images in the datagrid
+  template.
+
+  Patch by Ben Hollis.
+
+
+djblets.util
+============
+
+* Added a ``@root_url`` decorator for use with ``get_absolute_url``
+  implementations, which appends ``SITE-ROOT`` to any returned URLs.
+
+* Added a CounterField for atomically updating counters.
+
+  CounterField can be used to atomically increment or decrement
+  an integer stored in the database, on individual models or
+  on many models at a time. It's intended to substitute for
+  potentially expensive or numerous SQL queries that retrieve
+  counts of objects.
+
+* Updated the custom fields for Django 1.2 multi-database
+  compatibility.
+
+
+djblets.webapi
+==============
+
+* Fixed a bug in serializing 'long' values in XML.
+
+* Resources now Vary on HTTP Accept, meaning that the browser won't
+  cache the wrong response type when accessing the same resource
+  with two different requested mimetypes.
+
+* Reduced the SQL query count for resources.
+
+* Fixed problems that could occur with URLs when serializing objects in
+  a list and when returning links.
+
+
+Contributors
+============
+
+* Ben Hollis
+* Christian Hammond
+* David Trowbridge

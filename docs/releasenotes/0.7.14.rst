@@ -1,0 +1,47 @@
+============================
+Djblets 0.7.14 Release Notes
+============================
+
+**Release date**: May 6, 2013
+
+
+JavaScript
+==========
+
+* ``inlineEditor`` now emits a ``cancel`` event when pressing OK without any
+  modifications. Previously, there was no indication that it had
+  finished.
+
+* ``inlineEditor``'s ``complete`` event now has the ``initialValue`` parameter
+  (which comes after the new value) set correctly. Previously, it was
+  always the same as the value, making it hard to determine if
+  anything had changed.
+
+* ``$.fn.html()`` now works with setting empty strings.
+
+
+djblets.gravatars
+=================
+
+* Added :py:func:`get_gravatar_url_for_email`.
+
+  This returns the gravatar URL for a given e-mail address, rather
+  than needing a User object.
+
+
+djblets.webapi
+==============
+
+* The cache of known URI templates for a :py:class:`RootResource` now works
+  properly when the path leading to the :py:class:`RootResource` can change.
+
+* When serializing an object while using ``?expand``, any QuerySet
+  will be converted to a list. This prevents any changes from
+  happening between serializing and rendering.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

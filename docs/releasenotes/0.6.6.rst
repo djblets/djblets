@@ -1,0 +1,22 @@
+===========================
+Djblets 0.6.6 Release Notes
+===========================
+
+**Release date**: November 22, 2010
+
+
+djblets.util
+============
+
+* Fixed a compatibility problem with JSONField and Django 1.1. It
+  was assuming support for Django 1.2's multi-database support.
+
+* Fixed multi-database support in Django 1.2 with JSONField, where
+  the default connection was always being used in one case.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

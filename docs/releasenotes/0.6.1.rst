@@ -1,0 +1,19 @@
+===========================
+Djblets 0.6.1 Release Notes
+===========================
+
+**Release date**: May 12, 2010
+
+
+djblets.webapi
+==============
+
+* Fixed a regression with the webapi auth handlers. They weren't
+  accepting the right arguments.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

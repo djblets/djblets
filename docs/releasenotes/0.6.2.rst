@@ -1,0 +1,18 @@
+===========================
+Djblets 0.6.2 Release Notes
+===========================
+
+**Release date**: May 13, 2010
+
+
+djblets.log
+===========
+
+* Fix a compatibility error with Python 2.4 and 2.5.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

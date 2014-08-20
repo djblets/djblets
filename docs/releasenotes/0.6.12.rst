@@ -1,0 +1,44 @@
+============================
+Djblets 0.6.12 Release Notes
+============================
+
+**Release date**: October 6, 2011
+
+
+djblets.log
+===========
+
+* Allow logging page access times.
+
+  If ``settings.LOGGING_PAGE_TIMES`` is set to ``True``, page access times
+  (along with HTTP method, URL, and user) are logged. This can be
+  handy in tracking performance problems and blocked page loads.
+
+
+djblets.util
+============
+
+* Added a ``controlled_subprocess`` context manager for Python 2.5+.
+
+  This is useful for using :py:func:`subprocess.Popen` on a process that may
+  end up blocking. It ensures that a blocked process will terminate.
+
+  This is experimental and may change in behavior, or move to a new
+  file.
+
+  Patch by Mike Conley.
+
+
+djblets.webapi
+==============
+
+* API authorization failures, misparsed headers, and authorization
+  attempts are now logged.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Mike Conley

@@ -1,0 +1,66 @@
+============================
+Djblets 0.7.18 Release Notes
+============================
+
+**Release date**: September 15, 2013
+
+
+Security updates
+================
+
+* We now require Django 1.4.8, which has some important security
+  updates to prevent a DoS against the auth module.
+
+* Web API resource lists are now more careful about access
+  permissions. See the section on djblets.webapi below.
+
+
+JavaScript
+==========
+
+* ``inlineEditor`` now has a "raw value" option.
+
+  There are now a couple new options to the ``inlineEditor`` widget
+  for dealing with custom text: ``hasRawValue`` and ``rawValue``. If
+  ``hasRawValue`` is ``true``, then the contents of ``rawValue`` is used as
+  the source text for the editor, instead of the text contents of the
+  associated element. This allows the caller to do some specialized
+  pre-formatting on the text contents.
+
+* Added a ``matchHeight`` option to ``inlineEditor`` to prevent the
+  height-matching behavior.
+
+  A ``matchHeight`` is ``false`` (defaults to ``true``), the editor won't
+  attempt to match the height of the rendered element. This is
+  important when pre-formatting the text going into the widget
+  using the new raw value options.
+
+* Preserve the height of the label for ``inlineEditor`` when toggling
+  pencil visibility.
+
+  The label should no longer change height when the pencil icon
+  is shown or hidden.
+
+
+djblets.webapi
+==============
+
+* Fixed access permissions on resource lists.
+
+  The list resources, by default, didn't do any permissions checking
+  other than the basic logged-in checks. This meant that if you had
+  a protected resource with children, you could get lists of the
+  children even without access to the parents.
+
+  This is an important security update, and we recommend all users
+  of the API update immediately.
+
+* Requests to invalid API resources now return a standard API 404,
+  instead of a default Django 404. (:bug:`3052`)
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

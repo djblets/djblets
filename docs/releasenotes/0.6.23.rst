@@ -1,0 +1,45 @@
+============================
+Djblets 0.6.23 Release Notes
+============================
+
+**Release date**: September 24, 2012
+
+
+General
+=======
+
+* We now require Django 1.3.3.
+
+  Previous versions claimed to work with Django 1.1.1 or higher,
+  but for the remainder of the 0.6.x line, we plan to stay only on
+  Django 1.3.x.
+
+  For Django 1.4+ support, use the latest 0.7.x releases.
+
+
+djblets.util
+============
+
+* Added :py:mod:`djblets.util.humanize`.
+
+  This currently contains a :py:func:`humanize_list` function. It's the same
+  as the template filter we provide, but is a bit nicer to include
+  and work with than a filter.
+
+
+djblets.webapi
+==============
+
+* Added an ``Item-Content-Type`` header to web API responses for
+  list resources.
+
+  This header contains the mimetype for the items in the list, making
+  it possible to determine what to use when fetching the items. The
+  documentation has been updated on how to use this.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

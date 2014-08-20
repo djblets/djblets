@@ -1,0 +1,19 @@
+============================
+Djblets 0.6.31 Release Notes
+============================
+
+**Release date**: October 11, 2013
+
+
+djblets.webapi
+==============
+
+* Added a :py:meth:`has_list_access_permissions` function, which is used to
+  determine access to a list resource.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

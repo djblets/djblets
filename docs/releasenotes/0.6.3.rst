@@ -1,0 +1,65 @@
+===========================
+Djblets 0.6.3 Release Notes
+===========================
+
+**Release date**: July 4, 2010
+
+
+djblets.testing
+===============
+
+* Fixed Selenium unit testing to properly skip the tests when
+  the Selenium server was down.
+
+
+djblets.util
+============
+
+* Added utility functions for HTTP Accept-based content negotation.
+
+  This adds new :py:func:`get_http_requested_mimetype` and
+  :py:func:`get_http_accept_lists` functions for doing content negotiation
+  using the HTTP Accept request header. This header allows clients to tell the
+  server which mimetypes it accepts or explicitly forbids, based on
+  priorities, so that the server can send the right data. This can allow a
+  single URL to return various forms of data based on the client (HTML, PDF,
+  JSON, etc.).
+
+  The :py:func:`get_http_accept_lists` function parses the HTTP Accept request
+  header and returns sorted lists of acceptable mimetypes and unacceptable
+  mimetypes. These are sorted based on the priorities in the header.
+
+  The :py:func:`get_http_requested_mimetype` function takes a HttpRequest and
+  a list of supported mimetypes for that URL and then, based on the results of
+  :py:func:`get_http_accept_lists` and the supported mimetypes, determines
+  what mimetype the server should be using. If nothing is supported, it will
+  return None, and the server is expected to return a
+  :py:class:`HttpResponseNotAcceptable`.
+
+
+JavaScript
+==========
+
+* This adds some stuff to gravy to make sites work better on the
+  iPhone/iPad versions of Safari. A new ``$.proxyTouchEvents`` function
+  has been added, which causes touch screen events to be forwarded to
+  existing mouse event handlers. It's intended for basic use cases
+  where multi-touch events really don't need to be handled.
+
+* ``$.browser`` has been updated with a ``mobileSafari`` check, making it
+  easier to determine whether we're running on the iPhone/iPad.
+
+* A workaround for jQuery bug #6446 has been implemented, which
+  basically fixes an issue with the result from ``$.offset()`` being
+  incorrect.
+
+* Tooltips are disabled on iPhone/Pad, as they're really not at all
+  useful and their hover events manage to get in the way of other
+  events.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

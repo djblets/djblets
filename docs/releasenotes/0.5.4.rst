@@ -1,0 +1,30 @@
+===========================
+Djblets 0.5.4 Release Notes
+===========================
+
+**Release date**: October 4, 2009
+
+
+djblets.datagrid
+================
+
+* Compatibility updates for the Django 1.2 development branch.
+
+
+JavaScript
+==========
+
+* On Google Chrome, the text areas would grow by a line with every key
+  pressed. Patch by Cory McWilliams. (:bug:`1145`)
+
+* On Safari 4, the text areas wouldn't auto-resize based on text.
+
+* On Firefox, the text areas would shrink too much when deleting text.
+
+
+Contributors
+============
+
+* Christian Hammond
+* Cory McWilliams
+* David Trowbridge

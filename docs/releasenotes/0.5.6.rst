@@ -1,0 +1,20 @@
+===========================
+Djblets 0.5.6 Release Notes
+===========================
+
+**Release date**: November 15, 2009
+
+
+djblets.auth
+============
+
+* :py:class:`RegistrationForm` now takes in a request.
+
+* Extra context can be passed to the template for the registration form.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

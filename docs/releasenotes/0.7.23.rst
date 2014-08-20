@@ -1,0 +1,31 @@
+============================
+Djblets 0.7.23 Release Notes
+============================
+
+**Release date**: November 5, 2013
+
+
+djblets.extensions
+==================
+
+* Fix URL errors when configuring extensions with a custom ``SITE_ROOT``.
+
+
+djblets.util.fields
+===================
+
+* :py:class:`JSONField` can now be safely edited through the
+  administration UI, complete with validation.
+
+
+jquery.gravy
+============
+
+* Fixed hiding the pencil icons on an ``inlineEditor`` when disabled.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

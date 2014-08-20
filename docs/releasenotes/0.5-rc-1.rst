@@ -1,0 +1,49 @@
+==============================
+Djblets 0.5 RC 1 Release Notes
+==============================
+
+**Release date**: May 3, 2009
+
+
+JavaScript
+==========
+
+* Clicking the edit icons for inlineEditors no longer causes the
+  page to scroll in some browsers. (:bug:`1057`)
+
+
+djblets.datagrids
+=================
+
+* Sped up the datagrids in some cases by always including related
+  objects (up to one depth level) in the query for the datagrid.
+
+
+djblets.siteconfig
+==================
+
+* Prepended the site's domain to the siteconfig cache key, making it
+  possible to use multiple siteconfig-based apps on the same server.
+  (:bug:`986`)
+
+* Saving a SiteConfig didn't always cause other instances of that
+  SiteConfig on the server to reload, meaning that people would
+  sometimes have to restart the server to get settings to apply.
+  This is now fixed.
+  (:bug:`734`)
+
+* Removed a redundant key for the timezone.
+
+
+djblets.util.templatetags.djblets_utils
+=======================================
+
+* The ageid filter now returns an empty string if passed ``None`` as
+  the timestamp.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
