@@ -1,0 +1,138 @@
+===========================
+Djblets 0.8.9 Release Notes
+===========================
+
+**Release date**: August 20, 2014
+
+
+Security Updates
+================
+
+This release depends on Django 1.6.6 or higher, which fixes a number of
+`security vulnerabilities
+<https://www.djangoproject.com/weblog/2014/aug/20/security/>`_.
+
+
+Packaging
+=========
+
+* Fixed building of i18n files on pristine systems.
+
+  This had regressed in 0.8.8, and has been restored to working condition
+  in 0.8.9.
+
+  Patch by Stephen Gallagher.
+
+
+djblets.configforms
+===================
+
+* Added support for radio actions on list items.
+
+  Radio actions work just like checkbox actions, except that they take a
+  group name (the ``name`` attribute) for grouping purposes.
+
+  Radio actions can also invoke action handlers when clicked, even if they're
+  already selected, by specifying ``dispatchOnClick: true`` in the action
+  settings.
+
+* Labels for actions on list items now have class names, so that they can be
+  styled or referenced. These are in the form of
+  :samp:`config-forms-list-action-label-{action_id}`.
+
+* Items in lists can now be faded in/out when added/removed.
+
+  By specifying ``options.animateItems: true`` when constructing the ListView,
+  items will be faded in/out when added/removed. This defaults to being off,
+  for compatibility reasons.
+
+  For individual items, animation can be turned off by specifying
+  ``options.animate: false`` when adding the item.
+
+* Fixed the display of spinners on list items.
+
+
+djblets.db
+==========
+
+* Added a function to get the raw Base64 content on Base64Fields.
+
+  Base64field now provides a :samp:`get_{fieldname}_base64()` on the class
+  that will return the actual Base64 content, rather than the decoded content.
+
+
+djblets.extensions
+==================
+
+* Fixed thread-related issues with extensions data and media installation.
+
+  The locking code we had didn't work reliably, due to the method in which
+  we were locking (actually the method in which Django's locking code was
+  locking). Newer versions of Django fix this locking call, so we've ended
+  up backporting those fixes into Djblets.
+
+  On top of this, there were locking conditions we needed to set and results
+  we needed to listen to in order to establish a sufficient lock.
+
+  There was also an issue where, after the lock was cleared, all threads would
+  try to delete the same file, which resulted in an error. We now ignore this
+  error, and only report on it if it wasn't due to the file already being
+  deleted.
+
+* 404 Not Found pages no longer break when there are registered TemplateHooks.
+
+  Patch by Mike Conley.
+
+
+jquery.gravy.backboneUtils
+==========================
+
+* Added backboneUtils, which provides functionality to bind Backbone.js
+  model attributes and events to class names, visibility, or DOM properties.
+
+
+jquery.gravy.inlineEditor
+=========================
+
+* Fixed several size-related issues with inlineEditor.
+
+  inlineEditor now does a better job of determining the bounds for display,
+  and aligning to the text. It also no longer reserves space for the edit
+  icon to the side of the field, and instead takes up that space.
+
+  Due to the change in the edit icon's visibility mode, it's up to consumers
+  to be sure they have a proper line-height set to encompass the icon and the
+  text.
+
+* inlineEditor now uses a ``<span/>`` wrapper for buttons in single-line
+  mode, instead of a ``<div/>`` with ``display: inline`` forced. This
+  gives consumers the ability to style and position the buttons however it
+  likes.
+
+  inlineEditor's size will be set correctly based on where the buttons end up.
+  If the buttons are meant to be on the same line, then the field will leave
+  room for them. If they're set to be on the next line, then the field will
+  take up its full width.
+
+* Added a ``beginEditPreShow`` event that consumers can listen to in order to
+  set classes or perform other operations after going into edit mode but
+  before showing the editor.
+
+
+jquery.gravy.modalBox
+=====================
+
+* Modal box backgrounds now fade in much faster, and are much darker. This
+  helps to make the boxes stand out and to feel faster.
+
+* Modal boxes no longer jump around by a pixel as their content changes.
+  This was due to a rounding error.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Mike Conley
+* Stephen Gallagher
