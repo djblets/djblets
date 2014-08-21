@@ -27,6 +27,7 @@
 from __future__ import print_function, unicode_literals
 
 import imp
+import re
 import socket
 import sys
 import threading
@@ -68,6 +69,8 @@ class TestCase(testcases.TestCase):
     Individual tests on this TestCase can use the :py:func:`add_fixtures`
     decorator to add or replace the fixtures used for the test.
     """
+    ws_re = re.compile(r'\s+')
+
     def __call__(self, *args, **kwargs):
         method = getattr(self, self._testMethodName)
         old_fixtures = getattr(self, 'fixtures', [])
@@ -82,6 +85,21 @@ class TestCase(testcases.TestCase):
 
         if old_fixtures:
             self.fixtures = old_fixtures
+
+    def shortDescription(self):
+        """Returns the description of the current test.
+
+        This changes the default behavior to replace all newlines with spaces,
+        allowing a test description to span lines. It should still be kept
+        short, though.
+        """
+        doc = self._testMethodDoc
+
+        if doc is not None:
+            doc = doc.split('\n\n', 1)[0]
+            doc = self.ws_re.sub(' ', doc).strip()
+
+        return doc
 
 
 class TestModelsLoaderMixin(object):
@@ -172,6 +190,7 @@ class TestModelsLoaderMixin(object):
                 pass
 
         cache._get_models_cache.clear()
+
 
 class TagTest(TestCase):
     """Base testing setup for custom template tags"""
