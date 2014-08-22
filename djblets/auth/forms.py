@@ -43,7 +43,6 @@ class RegistrationForm(forms.Form):
                                 error_message='Only A-Z, 0-9, "_", "-", and "." allowed.')
     password1 = forms.CharField(label=_('Password'),
                                 min_length=5,
-                                max_length=30,
                                 widget=forms.PasswordInput)
     password2 = forms.CharField(label=_('Password (confirm)'),
                                 widget=forms.PasswordInput)
