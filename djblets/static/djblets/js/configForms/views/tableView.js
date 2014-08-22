@@ -21,7 +21,7 @@ Djblets.Config.TableView = Djblets.Config.ListView.extend({
             this.$el.append('<tbody/>');
         }
 
-        return _super(this).render.call(this);
+        return Djblets.Config.ListView.prototype.render.call(this);
     },
 
     /*
