@@ -552,10 +552,11 @@ $.widget("ui.inlineEditor", {
     },
 
     _fitWidthToParent: function() {
-        var formParent,
+        var buttonsWidth = 0,
+            formParent,
             parentTextAlign,
             isLeftAligned,
-            buttonsWidth,
+            buttonsDisplay,
             boxSizing,
             extentTypes;
 
@@ -590,12 +591,18 @@ $.widget("ui.inlineEditor", {
                 extentTypes = 'bmp';
             }
 
-            if (this._buttons &&
-                this._buttons.offset().top <
-                    this._field.offset().top + this._field.outerHeight()) {
-                buttonsWidth = this._buttons.outerWidth();
-            } else {
-                buttonsWidth = 0;
+            if (this._buttons) {
+                buttonsDisplay = this._buttons.css('display');
+
+                if (buttonsDisplay === 'inline' ||
+                    buttonsDisplay === 'inline-block') {
+                    /*
+                     * The buttons are set for the same line as the field,
+                     * so factor the buttons width into the field width
+                     * calculation below.
+                     */
+                    buttonsWidth = this._buttons.outerWidth();
+                }
             }
 
             /*
