@@ -208,7 +208,7 @@ class WebAPIBasicAuthBackend(WebAPIAuthBackend):
         try:
             encoded_auth = parts[1]
             username, password = encoded_auth.decode('base64').split(':', 1)
-        except ValueError:
+        except Exception:
             logging.warning("Failed to parse HTTP_AUTHORIZATION header %s" %
                             request.META['HTTP_AUTHORIZATION'],
                             exc_info=1,
