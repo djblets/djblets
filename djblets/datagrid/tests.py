@@ -128,7 +128,6 @@ class DataGridTest(TestCase):
         # Exercise the code paths when rendering
         self.datagrid.render_listview()
 
-
     def testCustomColumns(self):
         """Testing datagrids with custom column orders"""
         self.request.GET['columns'] = "objid"

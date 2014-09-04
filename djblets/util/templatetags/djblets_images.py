@@ -69,7 +69,6 @@ def crop_image(file, x, y, width, height):
         basename = filename.rsplit('.', 1)[0]
     new_name = '%s_%d_%d_%d_%d.png' % (basename, x, y, width, height)
 
-
     if not storage.exists(new_name):
         try:
             file = storage.open(filename)

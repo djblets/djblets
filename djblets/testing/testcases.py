@@ -209,7 +209,8 @@ class TagTest(TestCase):
 #
 # A lot of this can go away when/if this patch is committed to Django.
 
-# Code from django_live_server_r8458.diff @  http://code.djangoproject.com/ticket/2879#comment:41
+# Code from django_live_server_r8458.diff
+#     @ http://code.djangoproject.com/ticket/2879#comment:41
 # Editing to monkey patch django rather than be in trunk
 
 class StoppableWSGIServer(basehttp.WSGIServer):

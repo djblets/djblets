@@ -50,7 +50,7 @@ def run_tests(verbosity=1, interactive=False):
 
     nose.main(argv=nose_argv)
 
-    connection.creation.destroy_test_db(old_name, verbosity)
+    connection.creation.destroy_test_db(old_db_name, verbosity)
     teardown_test_environment()
 
 

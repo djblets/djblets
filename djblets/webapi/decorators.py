@@ -257,7 +257,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                                 'are: %s' % (
                                     value,
                                     ', '.join(['"%s"' % choice
-                                                for choice in choices])
+                                               for choice in choices])
                                 )
                             ]
                     else:

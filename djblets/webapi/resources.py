@@ -333,8 +333,9 @@ class WebAPIResource(object):
 
     In order to better identify resources, resources can provide their
     own custom mimetypes. These are known as vendor-specific mimetypes, and
-    are subsets of :mimetype:`application/json` and :mimetype:`application/xml`.
-    An example would be :mimetype:`application/vnd.example.com.myresource+json`.
+    are subsets of :mimetype:`application/json` and
+    :mimetype:`application/xml`. An example would be
+    :mimetype:`application/vnd.example.com.myresource+json`.
 
     To enable this on a resource, set :py:attr:`mimetype_vendor` to the
     vendor name. This is often a domain name. For example::
@@ -459,9 +460,9 @@ class WebAPIResource(object):
             # Normalize the PUT data so we can get to it.
             # This is due to Django's treatment of PUT vs. POST. They claim
             # that PUT, unlike POST, is not necessarily represented as form
-            # data, so they do not parse it. However, that gives us no clean way
-            # of accessing the data. So we pretend it's POST for a second in
-            # order to parse.
+            # data, so they do not parse it. However, that gives us no clean
+            # way of accessing the data. So we pretend it's POST for a second
+            # in order to parse.
             #
             # This must be done only for legitimate PUT requests, not faked
             # ones using ?method=PUT.
@@ -620,11 +621,11 @@ class WebAPIResource(object):
 
     def _build_resource_mimetype(self, mimetype, is_list):
         if is_list:
-            resource_name = self.mimetype_list_resource_name or \
-                            self.name_plural.replace('_', '-')
+            resource_name = (self.mimetype_list_resource_name or
+                             self.name_plural.replace('_', '-'))
         else:
-            resource_name = self.mimetype_item_resource_name or \
-                            self.name.replace('_', '-')
+            resource_name = (self.mimetype_item_resource_name or
+                             self.name.replace('_', '-'))
 
         return self._build_vendor_mimetype(mimetype, resource_name)
 
@@ -641,9 +642,9 @@ class WebAPIResource(object):
         parts = mimetype.split('/')
 
         return '%s/vnd.%s.%s+%s' % (parts[0],
-                                     self.mimetype_vendor,
-                                     name,
-                                     parts[1])
+                                    self.mimetype_vendor,
+                                    name,
+                                    parts[1])
 
     def build_response_args(self, request):
         is_list = (request._djblets_webapi_method == 'GET' and
@@ -857,10 +858,9 @@ class WebAPIResource(object):
                 request,
                 queryset=queryset,
                 results_key=self.list_result_key,
-                serialize_object_func=
-                    lambda obj:
-                        self.get_serializer_for_object(obj).serialize_object(
-                            obj, request=request, *args, **kwargs),
+                serialize_object_func=lambda obj:
+                    self.get_serializer_for_object(obj).serialize_object(
+                        obj, request=request, *args, **kwargs),
                 extra_data=data,
                 **self.build_response_args(request))
         else:
@@ -935,14 +935,16 @@ class WebAPIResource(object):
         objects. Projects should call this for top-level resources and
         return them in the ``urls.py`` files.
         """
-        urlpatterns = never_cache_patterns('',
+        urlpatterns = never_cache_patterns(
+            '',
             url(r'^$', self, name=self._build_named_url(self.name_plural)),
         )
 
         for resource in self.list_child_resources:
             resource._parent_resource = self
             child_regex = r'^' + resource.uri_name + r'/'
-            urlpatterns += patterns('',
+            urlpatterns += patterns(
+                '',
                 url(child_regex, include(resource.get_url_patterns())),
             )
 
@@ -954,7 +956,8 @@ class WebAPIResource(object):
             elif self.singleton:
                 base_regex = r'^'
 
-            urlpatterns += never_cache_patterns('',
+            urlpatterns += never_cache_patterns(
+                '',
                 url(base_regex + r'$', self,
                     name=self._build_named_url(self.name))
             )
@@ -962,7 +965,8 @@ class WebAPIResource(object):
             for resource in self.item_child_resources:
                 resource._parent_resource = self
                 child_regex = base_regex + resource.uri_name + r'/'
-                urlpatterns += patterns('',
+                urlpatterns += patterns(
+                    '',
                     url(child_regex, include(resource.get_url_patterns())),
                 )
 
@@ -1002,7 +1006,7 @@ class WebAPIResource(object):
         """Serializes the object into a Python dictionary."""
         data = {
             'links': self.get_links(self.item_child_resources, obj,
-                                     *args, **kwargs),
+                                    *args, **kwargs),
         }
 
         request = kwargs.get('request', None)
@@ -1049,7 +1053,7 @@ class WebAPIResource(object):
                     {
                         'method': 'GET',
                         'href': self.get_serializer_for_object(o).get_href(
-                                     o, *args, **kwargs),
+                            o, *args, **kwargs),
                         'title': six.text_type(o),
                     }
                     for o in value
@@ -1367,12 +1371,12 @@ class RootResource(WebAPIResource):
         """
         data = {
             'links': self.get_links(self.list_child_resources,
-                                     request=request, *args, **kwargs),
+                                    request=request, *args, **kwargs),
         }
 
         if self._include_uri_templates:
             data['uri_templates'] = self.get_uri_templates(request, *args,
-                                                            **kwargs)
+                                                           **kwargs)
 
         return data
 
@@ -1545,9 +1549,11 @@ def get_resource_from_name(name):
     """Returns the resource of the specified name."""
     return _name_to_resources.get(name, None)
 
+
 def get_resource_from_class(klass):
     """Returns the resource with the specified resource class."""
     return _class_to_resources.get(klass, None)
+
 
 def unregister_resource(resource):
     """Unregisters a resource from the caches."""

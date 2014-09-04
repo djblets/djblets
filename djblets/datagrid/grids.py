@@ -211,7 +211,7 @@ class Column(object):
 
             url_prefix = "?%ssort=" % url_params
             unsort_url = url_prefix + ','.join(sort_list[1:])
-            sort_url   = url_prefix + ','.join(sort_list)
+            sort_url = url_prefix + ','.join(sort_list)
 
         ctx = Context({
             'column': self,
@@ -726,7 +726,6 @@ class DataGrid(object):
             except ObjectDoesNotExist:
                 pass
 
-
         # Figure out the columns we're going to display
         # We're also going to calculate the column widths based on the
         # shrink and expand values.
@@ -788,7 +787,6 @@ class DataGrid(object):
         for column in expand_columns:
             column.width = expanded_column_width
 
-
         # Now get the sorting order for the columns.
         sort_str = self.request.GET.get('sort', profile_sort_list)
 
@@ -798,12 +796,10 @@ class DataGrid(object):
             self.sort_list = self.default_sort
             sort_str = ",".join(self.sort_list)
 
-
         # A subclass might have some work to do for loading and saving
         # as well.
         if self.load_extra_state(profile):
             profile_dirty = True
-
 
         # Now that we have all that, figure out if we need to save new
         # settings back to the profile.
@@ -1002,7 +998,7 @@ class DataGrid(object):
             return mark_safe(render_to_string(self.listview_template,
                                               Context(context)))
         except Exception:
-            trace = traceback.format_exc();
+            trace = traceback.format_exc()
             logging.error('Failed to render datagrid:\n%s' % trace,
                           extra={
                               'request': self.request,

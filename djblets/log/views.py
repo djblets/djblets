@@ -190,8 +190,8 @@ def get_log_filtersets(request, requested_levels,
                 'from': None,
                 'to': None,
             }),
-            'selected': from_timestamp_str is None and
-                        to_timestamp_str is None,
+            'selected': (from_timestamp_str is None and
+                         to_timestamp_str is None),
         },
         {
             'name': _('Today'),
@@ -199,8 +199,8 @@ def get_log_filtersets(request, requested_levels,
                 'from': today_str,
                 'to': today_str,
             }),
-            'selected': from_timestamp_str == today_str and
-                        to_timestamp_str == today_str,
+            'selected': (from_timestamp_str == today_str and
+                         to_timestamp_str == today_str),
         },
         {
             'name': _('Past 7 days'),
@@ -208,8 +208,8 @@ def get_log_filtersets(request, requested_levels,
                 'from': one_week_ago_str,
                 'to': today_str,
             }),
-            'selected': from_timestamp_str == one_week_ago_str and
-                        to_timestamp_str == today_str,
+            'selected': (from_timestamp_str == one_week_ago_str and
+                         to_timestamp_str == today_str),
         },
         {
             'name': _('This month'),
@@ -217,8 +217,8 @@ def get_log_filtersets(request, requested_levels,
                 'from': this_month_begin_str,
                 'to': this_month_end_str,
             }),
-            'selected': from_timestamp_str == this_month_begin_str and
-                        to_timestamp_str == this_month_end_str,
+            'selected': (from_timestamp_str == this_month_begin_str and
+                         to_timestamp_str == this_month_end_str),
         },
     ]
 

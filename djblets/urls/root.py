@@ -37,7 +37,9 @@ if hasattr(settings, 'SITE_ROOT'):
         raise ImproperlyConfigured('SITE_ROOT_URLCONF must be set when '
                                    'using SITE_ROOT')
 
-    urlpatterns = patterns('',
+    urlpatterns = patterns(
+        '',
+
         (r'^%s' % settings.SITE_ROOT[1:], include(settings.SITE_ROOT_URLCONF)),
     )
 else:

@@ -300,7 +300,7 @@ def paragraphs(text):
 
     for line in text.splitlines():
         if line:
-            s += "<p>%s</p>\n" %  line
+            s += "<p>%s</p>\n" % line
 
     return mark_safe(s)
 paragraphs.is_safe = True
