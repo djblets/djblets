@@ -176,10 +176,10 @@ class BuildStaticFiles(Command):
         settings.PIPELINE_LESS_ARGUMENTS = ' '.join(
             [
                 '--include-path=%s'
-                    % os.path.pathsep.join(self.get_lessc_include_path())
+                % os.path.pathsep.join(self.get_lessc_include_path())
             ] + [
                 '--global-var="%s=%s"'
-                    % (key, self._serialize_lessc_value(value))
+                % (key, self._serialize_lessc_value(value))
                 for key, value in six.iteritems(self.get_lessc_global_vars())
             ]
         )

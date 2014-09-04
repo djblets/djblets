@@ -43,8 +43,8 @@ from djblets.log import init_logging, init_profile_logger, log_timed
 class CursorDebugWrapper(util.CursorDebugWrapper):
     """
     Replacement for CursorDebugWrapper which stores a traceback in
-    `connection.queries`. This will dramatically increase the overhead of having
-    DEBUG=True, so use with caution.
+    `connection.queries`. This will dramatically increase the overhead of
+    having DEBUG=True, so use with caution.
     """
     def execute(self, sql, params=()):
         start = time.time()

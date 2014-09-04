@@ -8,7 +8,9 @@ from django.conf.urls import patterns
 FEED_URL = "file://%s/testdata/sample.rss" % os.path.dirname(__file__)
 
 
-urlpatterns = patterns('djblets.feedview.views',
+urlpatterns = patterns(
+    'djblets.feedview.views',
+
     (r'^feed/$',
      'view_feed',
      {

@@ -314,7 +314,8 @@ class ExtensionInfoTest(TestCase):
         self.assertEqual(extension_info.author_email, test_email)
         self.assertEqual(extension_info.description, test_description)
         self.assertFalse(extension_info.enabled)
-        self.assertEqual(extension_info.installed_htdocs_path, test_htdocs_path)
+        self.assertEqual(extension_info.installed_htdocs_path,
+                         test_htdocs_path)
         self.assertFalse(extension_info.installed)
         self.assertEqual(extension_info.license, test_license)
         self.assertEqual(extension_info.metadata, test_metadata)
@@ -440,11 +441,15 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         self.assertTrue(self.manager in _extension_managers)
 
     def test_get_enabled_extensions_returns_empty(self):
-        """Testing ExtensionManager.get_enabled_extensions with no extensions"""
+        """Testing ExtensionManager.get_enabled_extensions with no
+        extensions
+        """
         self.assertEqual(len(self.manager.get_enabled_extensions()), 0)
 
     def test_load(self):
-        """Testing ExtensionManager.get_installed_extensions with loaded extensions"""
+        """Testing ExtensionManager.get_installed_extensions with loaded
+        extensions
+        """
         self.assertEqual(len(self.manager.get_installed_extensions()), 1)
         self.assertTrue(self.extension_class in
                         self.manager.get_installed_extensions())
@@ -511,7 +516,9 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         self.assertEqual(self.exceptions, [])
 
     def test_enable_registers_static_bundles(self):
-        """Testing ExtensionManager registers static bundles when enabling extension"""
+        """Testing ExtensionManager registers static bundles when enabling
+        extension
+        """
         settings.PIPELINE_CSS = {}
         settings.PIPELINE_JS = {}
 
@@ -594,7 +601,9 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         self.assertEqual(self.exceptions, [])
 
     def test_disable_unregisters_static_bundles(self):
-        """Testing ExtensionManager unregisters static bundles when disabling extension"""
+        """Testing ExtensionManager unregisters static bundles when disabling
+        extension
+        """
         settings.PIPELINE_CSS = {}
         settings.PIPELINE_JS = {}
 
@@ -610,7 +619,9 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         self.assertEqual(len(settings.PIPELINE_JS), 0)
 
     def test_extension_list_sync(self):
-        """Testing ExtensionManager extension list synchronization cross-process."""
+        """Testing ExtensionManager extension list synchronization
+        cross-process
+        """
         key = 'extension-list-sync'
 
         manager1 = ExtensionManager(key)
@@ -643,7 +654,9 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         self.assertFalse(manager2.is_expired())
 
     def test_extension_settings_sync(self):
-        """Testing ExtensionManager extension settings synchronization cross-process."""
+        """Testing ExtensionManager extension settings synchronization
+        cross-process
+        """
         key = 'extension-settings-sync'
         setting_key = 'foo'
         setting_val = 'abc123'
@@ -826,13 +839,15 @@ class URLHookTest(TestCase):
         manager = ExtensionManager('')
         self.test_extension = \
             TestExtensionWithRegistration(extension_manager=manager)
-        self.patterns = patterns('',
+        self.patterns = patterns(
+            '',
             (r'^url_hook_test/', include('djblets.extensions.test.urls')))
         self.url_hook = URLHook(self.test_extension, self.patterns)
 
     def test_url_registration(self):
         """Testing URLHook URL registration"""
-        self.assertTrue(set(self.patterns)
+        self.assertTrue(
+            set(self.patterns)
             .issubset(set(self.url_hook.dynamic_urls.url_patterns)))
         # And the URLHook should be added to the extension's list of hooks
         self.assertTrue(self.url_hook in self.test_extension.hooks)
@@ -855,12 +870,20 @@ class TemplateHookTest(TestCase):
         manager = ExtensionManager('')
         self.extension = \
             TestExtensionWithRegistration(extension_manager=manager)
-        self.hook_with_applies_name = "template-hook-with-applies-name"
+
         self.hook_no_applies_name = "template-hook-no-applies-name"
-        self.template_hook_no_applies = TemplateHook(self.extension,
-            self.hook_no_applies_name, "test_module/some_template.html", [])
-        self.template_hook_with_applies = TemplateHook(self.extension,
-            self.hook_with_applies_name, "test_module/some_template.html", [
+        self.template_hook_no_applies = TemplateHook(
+            self.extension,
+            self.hook_no_applies_name,
+            "test_module/some_template.html",
+            [])
+
+        self.hook_with_applies_name = "template-hook-with-applies-name"
+        self.template_hook_with_applies = TemplateHook(
+            self.extension,
+            self.hook_with_applies_name,
+            "test_module/some_template.html",
+            [
                 'test-url-name',
                 'url_2',
                 'url_3',

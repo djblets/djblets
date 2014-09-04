@@ -36,6 +36,7 @@ def validate_test_cookie(form, request):
         form.errors['submit'] = forms.util.ErrorList(
             [_('Cookies must be enabled.')])
 
+
 def validate_old_password(form, user, field_name='password'):
     if (not form.errors.get(field_name) and
             not user.check_password(form.data.get(field_name))):

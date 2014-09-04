@@ -5,7 +5,7 @@ from djblets.util.decorators import simple_decorator
 
 @simple_decorator
 def add_root_url(url_func):
-    """Decorates a function that returns a URL in order to add the SITE_ROOT."""
+    """Decorates a function that returns a URL to add the SITE_ROOT."""
     def _add_root(*args, **kwargs):
         url = url_func(*args, **kwargs)
 

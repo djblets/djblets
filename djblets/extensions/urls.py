@@ -28,6 +28,8 @@ from __future__ import unicode_literals
 from django.conf.urls import patterns, url
 
 
-urlpatterns = patterns('djblets.extensions.views',
+urlpatterns = patterns(
+    'djblets.extensions.views',
+
     url(r'^$', 'extension_list', name='extension-list'),
 )

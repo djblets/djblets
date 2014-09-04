@@ -71,4 +71,3 @@ def quote_text(text, level=1):
         quoted += "%s%s\n" % ("> " * level, line)
 
     return quoted.rstrip()
-

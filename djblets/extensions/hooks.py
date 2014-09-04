@@ -194,7 +194,7 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook):
         self.template_name = template_name
         self.extra_context = extra_context
 
-        if not name in self.__class__._by_name:
+        if name not in self.__class__._by_name:
             self.__class__._by_name[name] = [self]
         else:
             self.__class__._by_name[name].append(self)

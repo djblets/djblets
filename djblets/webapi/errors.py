@@ -83,53 +83,68 @@ def _get_auth_headers(request):
 #
 # Standard error messages
 #
-NO_ERROR                  = WebAPIError(0,
-                                        "If you see this, yell at the "
-                                        "developers")
-SERVICE_NOT_CONFIGURED    = WebAPIError(1,
-                                        "The web service has not yet "
-                                        "been configured",
-                                        http_status=503)
+NO_ERROR = WebAPIError(
+    0,
+    "If you see this, yell at the developers")
 
-DOES_NOT_EXIST            = WebAPIError(100,
-                                        "Object does not exist",
-                                        http_status=404)
-PERMISSION_DENIED         = WebAPIError(101,
-                                        "You don't have permission for this",
-                                        http_status=403)
-INVALID_ATTRIBUTE         = WebAPIError(102,
-                                        "Invalid attribute",
-                                        http_status=400)
-NOT_LOGGED_IN             = WebAPIError(103,
-                                        "You are not logged in",
-                                        http_status=401,
-                                        headers=_get_auth_headers)
-LOGIN_FAILED              = WebAPIError(104,
-                                        "The username or password was "
-                                        "not correct",
-                                        http_status=401,
-                                        headers=_get_auth_headers)
-INVALID_FORM_DATA         = WebAPIError(105,
-                                        "One or more fields had errors",
-                                        http_status=400)
-MISSING_ATTRIBUTE         = WebAPIError(106,
-                                        "Missing value for the attribute",
-                                        http_status=400)
-ENABLE_EXTENSION_FAILED   = WebAPIError(107,
-                                        "There was a problem enabling "
-                                        "the extension",
-                                        http_status=500) # 500 Internal Server
-                                                         #     Error
-DISABLE_EXTENSION_FAILED  = WebAPIError(108,
-                                        "There was a problem disabling "
-                                        "the extension",
-                                        http_status=500) # 500 Internal Server
-                                                         #     Error
-EXTENSION_INSTALLED       = WebAPIError(109,
-                                        "This extension has already been "
-                                        "installed.",
-                                        http_status=409)
-INSTALL_EXTENSION_FAILED  = WebAPIError(110,
-                                        "An error occurred while "
-                                        "installing the extension",
-                                        http_status=409)
+SERVICE_NOT_CONFIGURED = WebAPIError(
+    1,
+    "The web service has not yet been configured",
+    http_status=503)
+
+DOES_NOT_EXIST = WebAPIError(
+    100,
+    "Object does not exist",
+    http_status=404)
+
+PERMISSION_DENIED = WebAPIError(
+    101,
+    "You don't have permission for this",
+    http_status=403)
+
+INVALID_ATTRIBUTE = WebAPIError(
+    102,
+    "Invalid attribute",
+    http_status=400)
+
+NOT_LOGGED_IN = WebAPIError(
+    103,
+    "You are not logged in",
+    http_status=401,
+    headers=_get_auth_headers)
+
+LOGIN_FAILED = WebAPIError(
+    104,
+    "The username or password was not correct",
+    http_status=401,
+    headers=_get_auth_headers)
+
+INVALID_FORM_DATA = WebAPIError(
+    105,
+    "One or more fields had errors",
+    http_status=400)
+
+MISSING_ATTRIBUTE = WebAPIError(
+    106,
+    "Missing value for the attribute",
+    http_status=400)
+
+ENABLE_EXTENSION_FAILED = WebAPIError(
+    107,
+    "There was a problem enabling the extension",
+    http_status=500)  # 500 Internal Server Error
+
+DISABLE_EXTENSION_FAILED = WebAPIError(
+    108,
+    "There was a problem disabling the extension",
+    http_status=500)  # 500 Internal Server Error
+
+EXTENSION_INSTALLED = WebAPIError(
+    109,
+    "This extension has already been installed.",
+    http_status=409)
+
+INSTALL_EXTENSION_FAILED = WebAPIError(
+    110,
+    "An error occurred while installing the extension",
+    http_status=409)

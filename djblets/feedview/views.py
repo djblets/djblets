@@ -11,7 +11,7 @@ from django.utils.six.moves.urllib.request import urlopen
 from djblets.cache.backend import cache_memoize
 
 
-DEFAULT_EXPIRATION = 2 * 24 * 60 * 60 # 2 days
+DEFAULT_EXPIRATION = 2 * 24 * 60 * 60  # 2 days
 
 
 def view_feed(request, url, template_name="feedview/feed-page.html",

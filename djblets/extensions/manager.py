@@ -108,9 +108,9 @@ class SettingListWrapper(object):
             self.ref_counts[item] += 1
         else:
             assert item not in self.setting, \
-                   ("Extension's %s %s is already in settings.%s, with "
-                    "ref count of 0."
-                    % (self.display_name, item, self.setting_name))
+                ("Extension's %s %s is already in settings.%s, with "
+                 "ref count of 0."
+                 % (self.display_name, item, self.setting_name))
 
             self.ref_counts[item] = 1
             self.setting.append(item)
@@ -127,11 +127,11 @@ class SettingListWrapper(object):
         be removed from the list.
         """
         assert item in self.ref_counts, \
-               ("Extension's %s %s is missing a ref count."
-                % (self.display_name, item))
+            ("Extension's %s %s is missing a ref count."
+             % (self.display_name, item))
         assert item in self.setting, \
-               ("Extension's %s %s is not in settings.%s"
-                % (self.display_name, item, self.setting_name))
+            ("Extension's %s %s is not in settings.%s"
+             % (self.display_name, item, self.setting_name))
 
         if self.ref_counts[item] == 1:
             del self.ref_counts[item]
@@ -877,7 +877,8 @@ class ExtensionManager(object):
         if extension.is_configurable:
             urlconf = extension.admin_urlconf
             if hasattr(urlconf, "urlpatterns"):
-                extension.admin_urlpatterns = patterns('',
+                extension.admin_urlpatterns = patterns(
+                    '',
                     (r'^%s%s/config/' % (prefix, extension.id),
                      include(urlconf.__name__)))
 
@@ -885,9 +886,10 @@ class ExtensionManager(object):
                     extension.admin_urlpatterns)
 
         if getattr(extension, 'admin_site', None):
-            extension.admin_site_urlpatterns = patterns('',
+            extension.admin_site_urlpatterns = patterns(
+                '',
                 (r'^%s%s/db/' % (prefix, extension.id),
-                include(extension.admin_site.urls)))
+                 include(extension.admin_site.urls)))
 
             self.dynamic_urls.add_patterns(
                 extension.admin_site_urlpatterns)

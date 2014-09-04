@@ -64,14 +64,14 @@ def _set_timezone(settings, key, value):
 
 
 locale_settings_map = {
-    'locale_timezone':             { 'key': 'TIME_ZONE',
-                                     'deserialize_func': str,
-                                     'setter': _set_timezone },
+    'locale_timezone':             {'key': 'TIME_ZONE',
+                                    'deserialize_func': str,
+                                    'setter': _set_timezone},
     'locale_language_code':        'LANGUAGE_CODE',
     'locale_date_format':          'DATE_FORMAT',
     'locale_datetime_format':      'DATETIME_FORMAT',
-    'locale_default_charset':      { 'key': 'DEFAULT_CHARSET',
-                                     'deserialize_func': str },
+    'locale_default_charset':      {'key': 'DEFAULT_CHARSET',
+                                    'deserialize_func': str},
     'locale_language_code':        'LANGUAGE_CODE',
     'locale_month_day_format':     'MONTH_DAY_FORMAT',
     'locale_time_format':          'TIME_FORMAT',
@@ -83,10 +83,10 @@ mail_settings_map = {
     'mail_default_from':           'DEFAULT_FROM_EMAIL',
     'mail_host':                   'EMAIL_HOST',
     'mail_port':                   'EMAIL_PORT',
-    'mail_host_user':              { 'key': 'EMAIL_HOST_USER',
-                                     'deserialize_func': bytes },
-    'mail_host_password':          { 'key': 'EMAIL_HOST_PASSWORD',
-                                     'deserialize_func': bytes },
+    'mail_host_user':              {'key': 'EMAIL_HOST_USER',
+                                    'deserialize_func': bytes},
+    'mail_host_password':          {'key': 'EMAIL_HOST_PASSWORD',
+                                    'deserialize_func': bytes},
     'mail_use_tls':                'EMAIL_USE_TLS',
 }
 
@@ -94,16 +94,16 @@ site_settings_map = {
     'site_media_root':             'MEDIA_ROOT',
     'site_media_url':              'MEDIA_URL',
     'site_static_root':            'STATIC_ROOT',
-    'site_static_url':             { 'key': 'STATIC_URL',
-                                     'setter': _set_static_url },
+    'site_static_url':             {'key': 'STATIC_URL',
+                                    'setter': _set_static_url},
     'site_prepend_www':            'PREPEND_WWW',
     'site_upload_temp_dir':        'FILE_UPLOAD_TEMP_DIR',
     'site_upload_max_memory_size': 'FILE_UPLOAD_MAX_MEMORY_SIZE',
 }
 
 cache_settings_map = {
-    'cache_backend':               { 'key': 'CACHES',
-                                     'setter': _set_cache_backend },
+    'cache_backend':               {'key': 'CACHES',
+                                    'setter': _set_cache_backend},
     'cache_expiration_time':       'CACHE_EXPIRATION_TIME',
 }
 

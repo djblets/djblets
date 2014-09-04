@@ -38,9 +38,10 @@ from djblets.db.query import get_object_or_none
 class RegistrationForm(forms.Form):
     """Registration form that should be appropriate for most cases."""
 
-    username = forms.RegexField(r"^[a-zA-Z0-9_\-\.]*$",
-                                max_length=30,
-                                error_message='Only A-Z, 0-9, "_", "-", and "." allowed.')
+    username = forms.RegexField(
+        r"^[a-zA-Z0-9_\-\.]*$",
+        max_length=30,
+        error_message='Only A-Z, 0-9, "_", "-", and "." allowed.')
     password1 = forms.CharField(label=_('Password'),
                                 min_length=5,
                                 widget=forms.PasswordInput)
@@ -73,8 +74,8 @@ class RegistrationForm(forms.Form):
                 user.save()
                 return user
             except:
-                # We check for duplicate users here instead of clean, since it's
-                # possible that two users could race for a name.
+                # We check for duplicate users here instead of clean, since
+                # it's possible that two users could race for a name.
                 if get_object_or_none(User,
                                       username=self.cleaned_data['username']):
                     self.errors['username'] = forms.util.ErrorList(

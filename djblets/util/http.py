@@ -99,8 +99,8 @@ def get_http_accept_lists(request):
     # Check cached copies for this in the request so we only ever do it once.
     if (hasattr(request, 'djblets_acceptable_mimetypes') and
         hasattr(request, 'djblets_unacceptable_mimetypes')):
-        return request.djblets_acceptable_mimetypes, \
-               request.djblets_unacceptable_mimetypes
+        return (request.djblets_acceptable_mimetypes,
+                request.djblets_unacceptable_mimetypes)
 
     acceptable_mimetypes = []
     unacceptable_mimetypes = []
@@ -130,7 +130,7 @@ def get_http_accept_lists(request):
             acceptable_mimetypes.append((mimetype, priority))
 
     acceptable_mimetypes.sort(key=lambda x: x[1], reverse=True)
-    acceptable_mimetypes = [mimetype[0] for mimetype in acceptable_mimetypes]
+    acceptable_mimetypes = [m[0] for m in acceptable_mimetypes]
 
     setattr(request, 'djblets_acceptable_mimetypes', acceptable_mimetypes)
     setattr(request, 'djblets_unacceptable_mimetypes', unacceptable_mimetypes)

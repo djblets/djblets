@@ -117,9 +117,9 @@ class ExtensionResource(WebAPIResource):
     def serialize_can_enable_field(self, extension, *args, **kwargs):
         return self._extension_manager.get_can_enable_extension(extension)
 
-    def serialize_loadable_field(self, extension, *args, **kwargs):
-        return (extension.extension_class is not None and
-                extension.class_name not in self._extension_manager._load_errors)
+    def serialize_loadable_field(self, ext, *args, **kwargs):
+        return (ext.extension_class is not None and
+                ext.class_name not in self._extension_manager._load_errors)
 
     def serialize_load_error_field(self, extension, *args, **kwargs):
         return self._extension_manager._load_errors.get(extension.class_name)
@@ -295,7 +295,8 @@ class ExtensionResource(WebAPIResource):
 
         # For each resource, generate the URLs
         for resource in extension.resources:
-            self._resource_url_patterns_map[extension].extend(patterns('',
+            self._resource_url_patterns_map[extension].extend(patterns(
+                '',
                 (r'^%s/%s/' % (extension.id, resource.uri_name),
                  include(resource.get_url_patterns()))))
 
@@ -315,7 +316,7 @@ class ExtensionResource(WebAPIResource):
         # If this extension has never had its resource URLs
         # generated, then we don't have anything to worry
         # about.
-        if not extension in self._resource_url_patterns_map:
+        if extension not in self._resource_url_patterns_map:
             return
 
         # Remove the URL patterns

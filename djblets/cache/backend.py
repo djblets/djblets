@@ -12,8 +12,8 @@ from django.utils.six.moves import (cPickle as pickle,
 from djblets.cache.errors import MissingChunkError
 
 
-DEFAULT_EXPIRATION_TIME = 60 * 60 * 24 * 30 # 1 month
-CACHE_CHUNK_SIZE = 2**20 - 1024 # almost 1M (memcached's slab limit)
+DEFAULT_EXPIRATION_TIME = 60 * 60 * 24 * 30  # 1 month
+CACHE_CHUNK_SIZE = 2 ** 20 - 1024  # almost 1M (memcached's slab limit)
 
 # memcached key size constraint (typically 250, but leave a few bytes for the
 # large data handling)
@@ -85,13 +85,15 @@ def cache_memoize(key, lookup_callable,
 
     Keyword arguments:
     expiration          -- The expiration time for the key.
-    force_overwrite     -- If True, the value will always be computed and stored
-                           regardless of whether it exists in the cache already.
-    large_data          -- If True, the resulting data will be pickled, gzipped,
-                           and (potentially) split up into megabyte-sized chunks.
-                           This is useful for very large, computationally
-                           intensive hunks of data which we don't want to store
-                           in a database due to the way things are accessed.
+    force_overwrite     -- If True, the value will always be computed and
+                           stored regardless of whether it exists in the cache
+                           already.
+    large_data          -- If True, the resulting data will be pickled,
+                           gzipped, and (potentially) split up into
+                           megabyte-sized chunks. This is useful for very
+                           large, computationally intensive hunks of data which
+                           we don't want to store in a database due to the way
+                           things are accessed.
     compress_large_data -- Compresses the data with zlib compression when
                            large_data is True.
     """
@@ -117,15 +119,17 @@ def cache_memoize(key, lookup_callable,
             return cache.get(key)
         data = lookup_callable()
 
-        # Most people will be using memcached, and memcached has a limit of 1MB.
-        # Data this big should be broken up somehow, so let's warn about this.
-        # Users should hopefully be using large_data=True in this case.
+        # Most people will be using memcached, and memcached has a limit of
+        # 1MB. Data this big should be broken up somehow, so let's warn
+        # about this. Users should hopefully be using large_data=True in this
+        # case.
+        #
         # XXX - since 'data' may be a sequence that's not a string/unicode,
         #       this can fail. len(data) might be something like '6' but the
         #       data could exceed a megabyte. The best way to catch this would
-        #       be an exception, but while python-memcached defines an exception
-        #       type for this, it never uses it, choosing instead to fail
-        #       silently. WTF.
+        #       be an exception, but while python-memcached defines an
+        #       exception type for this, it never uses it, choosing instead to
+        #       fail silently. WTF.
         if len(data) >= CACHE_CHUNK_SIZE:
             logging.warning('Cache data for key "%s" (length %s) may be too '
                             'big for the cache.' % (key, len(data)))
@@ -161,7 +165,7 @@ def make_cache_key(key):
 
     # Adhere to memcached key size limit
     if len(key) > MAX_KEY_SIZE:
-        digest = md5(key.encode('utf-8')).hexdigest();
+        digest = md5(key.encode('utf-8')).hexdigest()
 
         # Replace the excess part of the key with a digest of the key
         key = key[:MAX_KEY_SIZE - len(digest)] + digest

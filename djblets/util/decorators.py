@@ -134,7 +134,7 @@ def basictag(takes_context=False):
 
             if takes_context:
                 if params[0] == 'context':
-                    max_args -= 1 # Ignore context
+                    max_args -= 1  # Ignore context
                 else:
                     raise TemplateSyntaxError(
                         "Any tag function decorated with takes_context=True "
@@ -206,7 +206,7 @@ def blocktag(*args, **kwargs):
             del(bits[0])
 
             params, xx, xxx, defaults = getargspec(tag_func)
-            max_args = len(params) - 2 # Ignore context and nodelist
+            max_args = len(params) - 2  # Ignore context and nodelist
             min_args = max_args - len(defaults or [])
 
             if not min_args <= len(bits) <= max_args:
@@ -238,7 +238,7 @@ def blocktag(*args, **kwargs):
 
 @simple_decorator
 def root_url(url_func):
-    """Decorates a function that returns a URL in order to add the SITE_ROOT."""
+    """Decorates a function that returns a URL to add the SITE_ROOT."""
     def _add_root(*args, **kwargs):
         url = url_func(*args, **kwargs)
 

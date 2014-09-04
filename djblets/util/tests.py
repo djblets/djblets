@@ -94,7 +94,6 @@ class ErrorBoxTest(TagTest):
         self.assertEqual(normalize_html(node.render(context)),
                          '<div class="errorbox" id="id">\ncontent\n</div>')
 
-
     def testError(self):
         """Testing errorbox tag (invalid usage)"""
         self.assertRaises(TemplateSyntaxError,
@@ -120,7 +119,9 @@ class HttpTest(TestCase):
         self.assertEqual(unacceptable_mimetypes, ['text/plain', '*/*'])
 
     def test_get_requested_mimetype_with_supported_mimetype(self):
-        """Testing djblets.http.get_requested_mimetype with supported mimetype"""
+        """Testing djblets.http.get_requested_mimetype with supported
+        mimetype
+        """
         self.assertEqual(
             get_http_requested_mimetype(self.request, ['foo/bar',
                                                        'application/json']),
@@ -134,9 +135,12 @@ class HttpTest(TestCase):
             'application/xml')
 
     def test_get_requested_mimetype_with_no_consensus(self):
-        """Testing djblets.http.get_requested_mimetype with no consensus between client and server"""
+        """Testing djblets.http.get_requested_mimetype with no consensus
+        between client and server
+        """
         self.request = HttpRequest()
-        self.request.META['HTTP_ACCEPT'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        self.request.META['HTTP_ACCEPT'] = ('text/html,application/xhtml+xml,'
+                                            'application/xml;q=0.9,*/*;q=0.8')
 
         self.assertEqual(
             get_http_requested_mimetype(self.request, ['application/json',
@@ -144,7 +148,9 @@ class HttpTest(TestCase):
             'application/json')
 
     def test_get_requested_mimetype_with_wildcard_supported_mimetype(self):
-        """Testing djblets.http.get_requested_mimetype with supported */* mimetype"""
+        """Testing djblets.http.get_requested_mimetype with supported */*
+        mimetype
+        """
         self.request = HttpRequest()
         self.request.META['HTTP_ACCEPT'] = '*/*'
         self.assertEqual(
@@ -153,7 +159,9 @@ class HttpTest(TestCase):
             'application/json')
 
     def test_get_requested_mimetype_with_unsupported_mimetype(self):
-        """Testing djblets.http.get_requested_mimetype with unsupported mimetype"""
+        """Testing djblets.http.get_requested_mimetype with unsupported
+        mimetype
+        """
         self.assertEqual(
             get_http_requested_mimetype(self.request, ['text/plain']),
             None)
@@ -180,7 +188,7 @@ class AgeIdTest(TagTest):
         self.now = datetime.datetime.utcnow()
 
         self.context = {
-            'now':    self.now,
+            'now': self.now,
             'minus1': self.now - datetime.timedelta(1),
             'minus2': self.now - datetime.timedelta(2),
             'minus3': self.now - datetime.timedelta(3),
@@ -215,9 +223,9 @@ class AgeIdTest(TagTest):
         """Testing ageid tag (non-datetime object)"""
         class Foo:
             def __init__(self, now):
-                self.day   = now.day
+                self.day = now.day
                 self.month = now.month
-                self.year  = now.year
+                self.year = now.year
 
         self.assertEqual(djblets_utils.ageid(Foo(self.now)), 'age1')
 
@@ -270,7 +278,8 @@ class QuotedEmailTagTest(TagTest):
     def testInvalid(self):
         """Testing quoted_email tag (invalid usage)"""
         self.assertRaises(TemplateSyntaxError,
-                          lambda: djblets_email.quoted_email(self.parser,
+                          lambda: djblets_email.quoted_email(
+                              self.parser,
                               Token(TOKEN_TEXT, 'quoted_email')))
 
 
