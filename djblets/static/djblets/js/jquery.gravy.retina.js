@@ -31,16 +31,28 @@ $.fn.retinaGravatar = function() {
     if (window.devicePixelRatio > 1) {
         $(this).each(function() {
             var src = $(this).attr('src'),
-                parts = src.split('=', 2),
+                parts = src.split('?', 2),
+                params,
+                param,
                 baseurl,
-                size;
+                size,
+                i;
 
             if (parts.length === 2) {
                 baseurl = parts[0];
-                size = parseInt(parts[1], 10);
+                params = parts[1].split('&');
+
+                for (i = 0; i < params.length; i++) {
+                    param = params[i].split('=', 2);
+
+                    if (param.length === 2 && param[0] === 's') {
+                        size = parseInt(param[1], 10);
+                        params[i] = 's=' + Math.floor(size * window.devicePixelRatio);
+                    }
+                }
 
                 $(this)
-                    .attr('src', baseurl + '=' + Math.floor(size * window.devicePixelRatio))
+                    .attr('src', baseurl + '?' + params.join('&'))
                     .removeClass('gravatar')
                     .addClass('gravatar-retina');
             } else {
