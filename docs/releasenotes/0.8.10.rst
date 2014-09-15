@@ -1,0 +1,101 @@
+Djblets 0.8.10 Release Notes
+============================
+
+**Release date**: September 15, 2014
+
+
+djblets.auth
+============
+
+* Removed the maximum password length restriction in
+  :py:class:`RegistrationForm`.
+
+  This limit was here due to issues in very early versions of Django, and
+  no longer applies. Long password can now be set without hitting a
+  restriction.
+
+
+djblets.configforms
+===================
+
+* Fixed calling the parent :js:func:`render` method in
+  :js:class:`Djblets.TableView`.
+
+
+djblets.db
+==========
+
+* :py:class:`djblets.db.fields.CounterField` now supports ``F()`` expressions
+  during initialization.
+
+  Using ``F()`` expressions allows for doing more advanced, atomic computation
+  of default values based on other fields in the model, without having to
+  write a custom function.
+
+* Added :py:class:`djblets.db.fields.RelationCounterField` for counting
+  objects on the other side of a relation.
+
+  RelationCounterField tracks the counts on one end of a ForeignKey or
+  ManyToManyField relation, providing a convenient and efficient way of
+  operating based on how many objects are related to the model.
+
+  It works just like CounterField, but handles all the hard working of
+  getting the total counts when first initializing and keeping them up to
+  date as objects are added or removed.
+
+
+djblets.testing
+===============
+
+* Added a mixin for test cases that need to create custom models.
+
+  Django doesn't make it easy to write unit tests that have their own
+  custom models. The test runner has to add an app with a models.py file
+  to ``INSTALLED_APPS``, and the models have to live somewhere within that
+  directory. This is a lot of work, and it's hard to keep things clean
+  this way.
+
+  This release introduces a new mixin,
+  :py:class:`djblets.testing.testcases.TestModelsLoaderMixin`, that can be
+  used to allow a file containing unit tests to define custom models. The
+  classes that need to use the models simply define the models within the
+  file, use the mixin, and then operate on them.
+
+  The mixin handles the hard work of sticking the module in
+  ``INSTALLED_APPS``, loading the module, and also creating a fake 'models'
+  module to satisfy Django's requirements.
+
+* Docstrings for test cases using
+  :py:class:`djblets.testing.testcases.TestCase` can now wrap without being
+  cut off.
+
+
+djblets.webapi
+==============
+
+* Failing to parse the HTTP ``Authorization`` header for any reason now logs a
+  warning instead of returning a HTTP 500.
+
+
+jquery.gravy.inlineEditor
+=========================
+
+* Fixed the sizing of inline editor fields on Firefox.
+
+  Due to a bad calculation, the fields could end up being very short, making
+  room for buttons that were actually on the next line. They now take up the
+  full available width.
+
+
+jquery.gravy.retina
+===================
+
+* :py:func:`$.fn.retinaGravatar` no longer overwrites parameters set in the
+  provided Gravatar URL.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
