@@ -34,6 +34,7 @@ from django.template.context import RequestContext
 from django.views.decorators.csrf import csrf_protect
 
 from djblets.auth.forms import RegistrationForm
+from djblets.auth.signals import user_registered
 from djblets.auth.util import validate_test_cookie
 
 
@@ -63,6 +64,10 @@ def register(request, next_page, form_class=RegistrationForm,
                 except KeyError:
                     # Do nothing
                     pass
+
+                # Other components can listen to this signal to
+                # perform additional tasks when a new user registers
+                user_registered.send(sender=None, user=request.user)
 
                 return HttpResponseRedirect(next_page)
     else:
