@@ -1,0 +1,20 @@
+============================
+Djblets 0.8.11 Release Notes
+============================
+
+**Release date**: September 24, 2014
+
+
+djblets.auth
+============
+
+* Added a ``user_registered`` signal in :py:mod:`djblets.auth.signals` that
+  is emitted when a new user is registered. (:bug:`3438`)
+
+  Patch by Azad Salahli.
+
+
+Contributors
+============
+
+* Azad Salahli
