@@ -9,7 +9,8 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models.fields.related import (
     ManyRelatedObjectsDescriptor,
-    ReverseManyRelatedObjectsDescriptor)
+    ReverseManyRelatedObjectsDescriptor,
+    ReverseSingleRelatedObjectDescriptor)
 from django.db.models.query import QuerySet
 from django.http import (HttpResponseNotAllowed, HttpResponse,
                          HttpResponseNotModified)
@@ -1303,7 +1304,24 @@ class WebAPIResource(object):
         lookups in this request.
         """
         queryset = self.get_queryset(request, is_list=is_list, *args, **kwargs)
-        queryset = queryset.select_related()
+
+        if not hasattr(self, '_select_related_fields'):
+            self._select_related_fields = []
+
+            for field in six.iterkeys(self.fields):
+                if hasattr(self, 'serialize_%s_field' % field):
+                    continue
+
+                field_type = getattr(self.model, field, None)
+
+                if (field_type and
+                    isinstance(field_type,
+                               ReverseSingleRelatedObjectDescriptor)):
+                    self._select_related_fields.append(field)
+
+        if self._select_related_fields:
+            queryset = \
+                queryset.select_related(*self._select_related_fields)
 
         if is_list:
             if not hasattr(self, '_prefetch_related_fields'):
