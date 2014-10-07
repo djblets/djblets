@@ -169,14 +169,16 @@ class SignalHook(ExtensionHook):
         self.signal = signal
         self.callback = callback
         self.dispatch_uid = uuid.uuid1()
+        self.sender = sender
 
-        signal.connect(callback, sender=sender, weak=False,
+        signal.connect(callback, sender=self.sender, weak=False,
                        dispatch_uid=self.dispatch_uid)
 
     def shutdown(self):
         super(SignalHook, self).shutdown()
 
-        self.signal.disconnect(dispatch_uid=self.dispatch_uid)
+        self.signal.disconnect(dispatch_uid=self.dispatch_uid,
+                               sender=self.sender)
 
 
 @six.add_metaclass(ExtensionHookPoint)
