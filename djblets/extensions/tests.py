@@ -830,6 +830,16 @@ class SignalHookTest(SpyAgency, TestCase):
         self.signal.send(self)
         self.assertEqual(len(self._on_signal_fired.calls), 0)
 
+    def test_shutdown_with_sender(self):
+        """Testing SignalHook.shutdown disconnects when a sender was set"""
+        hook = SignalHook(self.test_extension, self.signal,
+                          self._on_signal_fired, sender=self)
+        hook.shutdown()
+
+        self.assertEqual(len(self._on_signal_fired.calls), 0)
+        self.signal.send(self)
+        self.assertEqual(len(self._on_signal_fired.calls), 0)
+
     def _on_signal_fired(self, *args, **kwargs):
         pass
 
