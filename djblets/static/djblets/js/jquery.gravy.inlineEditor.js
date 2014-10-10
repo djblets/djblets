@@ -56,12 +56,13 @@ $.widget("ui.inlineEditor", {
             return editor._field.val();
         },
         isFieldDirty: function(editor, initialValue) {
-            var value = editor.options.getFieldValue(editor),
+            var value = editor.options.getFieldValue(editor) || '',
                 normValue = (editor.options.hasRawValue
                              ? value
-                             : value.htmlEncode());
+                             : value.htmlEncode()) || '';
 
-            return normValue !== initialValue;
+            return normValue.length !== initialValue.length ||
+                   normValue !== initialValue;
         }
     },
 
@@ -278,6 +279,7 @@ $.widget("ui.inlineEditor", {
             })
             .keyup(function() {
                 self._updateDirtyState();
+                return false;
             });
     },
 
@@ -539,7 +541,11 @@ $.widget("ui.inlineEditor", {
         return this._dirty;
     },
 
-    _updateDirtyState: function() {
+    _updateDirtyState: _.throttle(function() {
+        _.defer(this._updateDirtyStateInternal);
+    }, 200),
+
+    _updateDirtyStateInternal: function() {
         var curDirtyState = (this._editing &&
                              this.options.isFieldDirty(
                                 this,
