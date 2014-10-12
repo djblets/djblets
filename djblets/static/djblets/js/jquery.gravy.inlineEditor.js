@@ -77,6 +77,7 @@ $.widget("ui.inlineEditor", {
         this._initialValue = null;
         this._editing = false;
         this._dirty = false;
+        this._dirtyCalcScheduled = false;
 
         /* Elements */
         this._form = $("<form/>")
@@ -278,7 +279,7 @@ $.widget("ui.inlineEditor", {
                 e.stopPropagation();
             })
             .keyup(function() {
-                self._updateDirtyState();
+                self._scheduleUpdateDirtyState();
                 return false;
             });
     },
@@ -347,6 +348,8 @@ $.widget("ui.inlineEditor", {
             encodedValue = value.htmlEncode(),
             initialValue = this._initialValue;
 
+        this._updateDirtyState();
+
         if (this._dirty) {
             this.element.html($.isFunction(this.options.formatResult)
                               ? this.options.formatResult(encodedValue)
@@ -373,6 +376,8 @@ $.widget("ui.inlineEditor", {
     },
 
     cancel: function(force) {
+        this._updateDirtyState();
+
         if (!force && this.options.promptOnCancel && this._dirty) {
             if (confirm(gettext("You have unsaved changes. Are you sure you want to discard them?"))) {
                 this.cancel(true);
@@ -538,14 +543,19 @@ $.widget("ui.inlineEditor", {
     },
 
     dirty: function() {
+        if (this._dirtyCalcScheduled) {
+            this._updateDirtyState();
+        }
+
         return this._dirty;
     },
 
-    _updateDirtyState: _.throttle(function() {
-        _.defer(this._updateDirtyStateInternal);
+    _scheduleUpdateDirtyState: _.throttle(function() {
+        this._dirtyCalcScheduled = true;
+        _.defer(this._updateDirtyState);
     }, 200),
 
-    _updateDirtyStateInternal: function() {
+    _updateDirtyState: function() {
         var curDirtyState = (this._editing &&
                              this.options.isFieldDirty(
                                 this,
@@ -555,6 +565,8 @@ $.widget("ui.inlineEditor", {
             this._dirty = curDirtyState;
             this.element.triggerHandler("dirtyStateChanged", [this._dirty]);
         }
+
+        this._dirtyCalcScheduled = false;
     },
 
     _fitWidthToParent: function() {
