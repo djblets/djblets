@@ -41,11 +41,17 @@ $.widget("ui.autoSizeTextArea", {
             .move(-10000, -10000, "absolute");
 
         /*
-         * Set white-space to pre-wrap on browsers that support it.
+         * Set white-space to pre-wrap on browsers that support it,
+         * make sure the font is consistent, and turn off anything that
+         * may add additional spacing.
          */
         this._proxyEl.css({
-            "white-space": "pre-wrap",
-            "word-wrap": "break-word"
+            'white-space': 'pre-wrap',
+            'word-wrap': 'break-word',
+            'font': this.element.css('font'),
+            'border': 0,
+            'margin': 0,
+            'padding': 0
         });
 
         this.element.css("overflow", "hidden");
@@ -74,14 +80,15 @@ $.widget("ui.autoSizeTextArea", {
      */
     autoSize: function(force, animate, animateFrom) {
         var needsResize = false,
-            newLength = this.element.val().length,
+            $el = this.element,
+            el = $el[0],
+            newLength = $el.val().length,
             newHeight = 0,
-            normHeight = this.element[0].scrollHeight +
-                         (this.element.height() -
-                          this.element[0].clientHeight),
+            curHeight = $el.height(),
+            normHeight = el.scrollHeight + (curHeight - el.clientHeight),
             targetHeight;
 
-        if (normHeight !== this.element.height()) {
+        if (normHeight !== curHeight) {
             /* We know the height grew, so queue a resize. */
             needsResize = true;
             newHeight = normHeight;
@@ -90,24 +97,27 @@ $.widget("ui.autoSizeTextArea", {
             needsResize = true;
 
             this._proxyEl
-                .width(this.element.width())
+                .width($el.width())
                 .move(-10000, -10000)
                 .text(this.element.val() + "\n");
-            newHeight = this._proxyEl.outerHeight();
+
+            newHeight = this._proxyEl.innerHeight();
         }
 
         if (needsResize) {
-            targetHeight = Math.max(this.options.minHeight, newHeight);
+            targetHeight = Math.max(  this.options.minHeight
+                                    - $el.getExtents('p', 'tb'),
+                                    newHeight);
 
             if (animate) {
-                this.element
+                $el
                     .height(animateFrom)
                     .animate({
                         height: targetHeight
                     }, this.options.fadeSpeedMS)
                     .triggerHandler("resize");
             } else {
-                this.element
+                $el
                     .height(targetHeight)
                     .triggerHandler("resize");
             }
@@ -118,6 +128,7 @@ $.widget("ui.autoSizeTextArea", {
 
     setMinHeight: function(minHeight) {
         this.options.minHeight = minHeight;
+        this.autoSize(true);
     }
 });
 
