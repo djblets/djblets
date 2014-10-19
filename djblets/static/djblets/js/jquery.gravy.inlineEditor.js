@@ -376,9 +376,7 @@ $.widget("ui.inlineEditor", {
     },
 
     cancel: function(force) {
-        this._updateDirtyState();
-
-        if (!force && this.options.promptOnCancel && this._dirty) {
+        if (!force && this.options.promptOnCancel && this.dirty()) {
             if (confirm(gettext("You have unsaved changes. Are you sure you want to discard them?"))) {
                 this.cancel(true);
             }

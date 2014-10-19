@@ -191,6 +191,7 @@ class TestModelsLoaderMixin(object):
 
         cache._get_models_cache.clear()
 
+
 class TagTest(TestCase):
     """Base testing setup for custom template tags"""
 
