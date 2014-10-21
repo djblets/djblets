@@ -13,6 +13,11 @@ BACKEND_CLASSES = {
     'memcached': 'memcached.MemcachedCache',
 }
 
+RENAMED_BACKENDS = {
+    'django.core.cache.backends.memcached.CacheClass':
+        'django.core.cache.backends.memcached.MemcachedCache',
+}
+
 
 def normalize_cache_backend(cache_backend, cache_name=DEFAULT_CACHE_ALIAS):
     """Returns a new-style CACHES dictionary from any given cache_backend.
@@ -30,7 +35,13 @@ def normalize_cache_backend(cache_backend, cache_name=DEFAULT_CACHE_ALIAS):
         return {}
 
     if isinstance(cache_backend, dict):
-        return cache_backend.get(cache_name, {})
+        backend_info = cache_backend.get(cache_name, {})
+        backend_name = backend_info.get('BACKEND')
+
+        if backend_name in RENAMED_BACKENDS:
+            backend_info['BACKEND'] = RENAMED_BACKENDS[backend_name]
+
+        return backend_info
 
     try:
         engine, host, params = parse_backend_uri(cache_backend)
