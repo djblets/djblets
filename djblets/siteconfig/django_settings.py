@@ -31,10 +31,26 @@ from django.core.cache import DEFAULT_CACHE_ALIAS
 from django.utils import six, timezone
 
 from djblets.cache.backend_compat import normalize_cache_backend
+from djblets.cache.forwarding_backend import (DEFAULT_FORWARD_CACHE_ALIAS,
+                                              ForwardingCacheBackend)
 
 
 def _set_cache_backend(settings, key, value):
-    settings.CACHES[DEFAULT_CACHE_ALIAS] = normalize_cache_backend(value)
+    settings.CACHES.update({
+        DEFAULT_FORWARD_CACHE_ALIAS: (
+            normalize_cache_backend(value, DEFAULT_FORWARD_CACHE_ALIAS) or
+            normalize_cache_backend(value)),
+        DEFAULT_CACHE_ALIAS: {
+            'BACKEND': '%s.%s' % (ForwardingCacheBackend.__module__,
+                                  ForwardingCacheBackend.__name__),
+            'LOCATION': DEFAULT_FORWARD_CACHE_ALIAS,
+        },
+    })
+
+    from django.core.cache import cache
+
+    if isinstance(cache, ForwardingCacheBackend):
+        cache.reset_backend()
 
 
 def _set_static_url(settings, key, value):
