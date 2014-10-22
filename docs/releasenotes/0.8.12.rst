@@ -2,7 +2,7 @@
 Djblets 0.8.12 Release Notes
 ============================
 
-**Release date**: TBD
+**Release date**: October 22, 2014
 
 
 djblets.cache
