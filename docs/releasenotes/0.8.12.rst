@@ -1,0 +1,56 @@
+============================
+Djblets 0.8.12 Release Notes
+============================
+
+**Release date**: TBD
+
+
+djblets.cache
+=============
+
+* Added a cache backend that can forward to other cache backends.
+
+  Applications that use :py:mod:`djblets.siteconfig` to configure the
+  ``CACHES`` setting were foiled by a recent update in Django that ended up
+  loading the cache framework before siteconfig had a chance to manipulate the
+  settings. This new backend can be used to redirect cache backends at runtime.
+
+* Migrate away from deprecated names.
+
+  The class for the Memcache cache backend changed, and the old one has been
+  deprecated. The :py:func:`normalize_cache_backend` method will now migrate
+  older settings to the new name.
+
+
+djblets.extensions
+==================
+
+* Fixed :py:class:`SignalHook` disconnection when unloading extensions.
+
+  If an extension passed a sender into the :py:class:`SignalHook` when
+  connecting to a signal, it would fail to disconnect when the extension was
+  unloaded.
+
+  Patch by John Talling.
+
+
+djblets.webapi
+==============
+
+* Improved the database query performance when querying list resources.
+
+
+jquery.gravy
+============
+
+* Improved the performance of dirty state calculations for the inlineEditor.
+
+* Improve :js:func:`$.autoSizeTextArea` with padded textareas and different
+  fonts.
+
+
+Contributors
+============
+
+* Christian Hammond
+* John Talling
