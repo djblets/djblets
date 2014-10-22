@@ -10,11 +10,16 @@ BACKEND_CLASSES = {
     'dummy': 'dummy.DummyCache',
     'file': 'filebased.FileBasedCache',
     'locmem': 'locmem.LocMemCache',
-    'memcached': 'memcached.CacheClass',
+    'memcached': 'memcached.MemcachedCache',
+}
+
+RENAMED_BACKENDS = {
+    'django.core.cache.backends.memcached.CacheClass':
+        'django.core.cache.backends.memcached.MemcachedCache',
 }
 
 
-def normalize_cache_backend(cache_backend):
+def normalize_cache_backend(cache_backend, cache_name=DEFAULT_CACHE_ALIAS):
     """Returns a new-style CACHES dictionary from any given cache_backend.
 
     Django has supported two formats for a cache backend. The old-style
@@ -30,10 +35,13 @@ def normalize_cache_backend(cache_backend):
         return {}
 
     if isinstance(cache_backend, dict):
-        if DEFAULT_CACHE_ALIAS in cache_backend:
-            return cache_backend[DEFAULT_CACHE_ALIAS]
+        backend_info = cache_backend.get(cache_name, {})
+        backend_name = backend_info.get('BACKEND')
 
-        return {}
+        if backend_name in RENAMED_BACKENDS:
+            backend_info['BACKEND'] = RENAMED_BACKENDS[backend_name]
+
+        return backend_info
 
     try:
         engine, host, params = parse_backend_uri(cache_backend)
