@@ -43,8 +43,10 @@
      </tbody>
     </table>
    </div>
-{% if is_paginated %}
-{%  paginator %}
+{% if is_alphabetic %}
+{%  alphabetic_paginator %}
+{% elif is_paginated %}
+{%  numeric_paginator %}
 {% endif %}
   </div>
  </div>

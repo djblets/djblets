@@ -611,7 +611,7 @@ class DataGrid(object):
                     cls.add_column(column)
 
     def __init__(self, request, queryset=None, title="", extra_context={},
-                 optimize_sorts=True):
+                 optimize_sorts=True, current_letter=None):
         self.request = request
         self.queryset = queryset
         self.rows = []
@@ -624,6 +624,7 @@ class DataGrid(object):
         self.state_loaded = False
         self.page_num = 0
         self.id = None
+        self.current_letter = current_letter
         self.extra_context = dict(extra_context)
         self.optimize_sorts = optimize_sorts
 
@@ -965,7 +966,8 @@ class DataGrid(object):
 
             self.load_state(render_context)
 
-            extra_query = get_url_params_except(self.request.GET, 'page')
+            extra_query = get_url_params_except(self.request.GET,
+                                                'page', 'letter')
 
             context = {
                 'datagrid': self,
@@ -980,6 +982,8 @@ class DataGrid(object):
                 'hits': self.paginator.count,
                 'page_range': self.paginator.page_range,
                 'extra_query': extra_query,
+                'current_letter': self.current_letter,
+                'is_alphabetic': self.current_letter is not None,
             }
 
             if self.page.has_next():
