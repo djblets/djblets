@@ -29,7 +29,10 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import Group, User
+from django.core.exceptions import FieldError
 from django.http import HttpRequest
+from django.test.client import RequestFactory
+from kgb import SpyAgency
 
 from djblets.datagrid.grids import (Column, DataGrid, DateTimeSinceColumn,
                                     StatefulColumn)
@@ -138,3 +141,79 @@ class DataGridTest(TestCase):
 
         # Exercise the code paths when rendering
         self.datagrid.render_listview()
+
+
+class SandboxColumn(Column):
+    def setup_state(self, state):
+        raise Exception
+
+    def get_sort_field(self, state):
+        raise Exception
+
+    def render_data(self, state, obj):
+        raise Exception
+
+    def augment_queryset(self, state, queryset):
+        raise Exception
+
+
+class SandboxTests(SpyAgency, TestCase):
+    """Testing extension sandboxing."""
+    def setUp(self):
+        super(SandboxTests, self).setUp()
+
+        self.column = SandboxColumn(id='test')
+        DataGrid.add_column(self.column)
+
+        self.factory = RequestFactory()
+        self.request = self.factory.get('test', {'columns': 'objid'})
+        self.request.user = User(username='reviewboard', email='',
+                                 password='password')
+        self.datagrid = DataGrid(request=self.request,
+                                 queryset=Group.objects.all())
+
+    def tearDown(self):
+        super(SandboxTests, self).tearDown()
+
+        DataGrid.remove_column(self.column)
+
+    def test_setup_state_columns(self):
+        """Testing DataGrid column sandboxing for setup_state"""
+        self.spy_on(SandboxColumn.setup_state)
+
+        self.datagrid.get_stateful_column(column=self.column)
+        self.assertTrue(SandboxColumn.setup_state.called)
+
+    def test_get_sort_field_columns(self):
+        """Testing DataGrid column sandboxing for get_sort_field"""
+        self.datagrid.sort_list = ['test']
+        self.datagrid.default_columns = ['objid', 'test']
+
+        self.spy_on(SandboxColumn.get_sort_field)
+
+        self.assertRaisesMessage(
+            FieldError,
+            "Invalid order_by arguments: [u'']",
+            lambda: self.datagrid.precompute_objects())
+        self.assertTrue(SandboxColumn.get_sort_field.called)
+
+    def test_render_data_columns(self):
+        """Testing DataGrid column sandboxing for render_data"""
+        stateful_column = self.datagrid.get_stateful_column(column=self.column)
+
+        self.spy_on(SandboxColumn.render_data)
+
+        super(SandboxColumn, self.column).render_cell(state=stateful_column,
+                                                      obj=None,
+                                                      render_context=None)
+        self.assertTrue(SandboxColumn.render_data.called)
+
+    def test_augment_queryset_columns(self):
+        """Testing DataGrid column sandboxing for augment_queryset"""
+        stateful_column = self.datagrid.get_stateful_column(column=self.column)
+        self.datagrid.columns.append(stateful_column)
+
+        self.spy_on(SandboxColumn.augment_queryset)
+
+        self.datagrid.post_process_queryset(queryset=[])
+        self.assertTrue(SandboxColumn.augment_queryset.called)

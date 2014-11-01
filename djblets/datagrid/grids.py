@@ -259,7 +259,15 @@ class Column(object):
     def render_cell(self, state, obj, render_context):
         """Renders the table cell containing column data."""
         datagrid = state.datagrid
-        rendered_data = self.render_data(state, obj)
+
+        try:
+            rendered_data = self.render_data(state, obj)
+        except Exception as e:
+            logging.error('Error when calling render_data for DataGrid Column'
+                          ' %r: %s',
+                          self, e, exc_info=1)
+            rendered_data = None
+
         url = ''
         css_class = ''
 
@@ -360,7 +368,12 @@ class StatefulColumn(object):
         self.data_cache = {}
         self.cell_render_cache = {}
 
-        column.setup_state(self)
+        try:
+            column.setup_state(self)
+        except Exception as e:
+            logging.error('Error when calling setup_state in DataGrid Column '
+                          '%r: %s',
+                          self.column, e, exc_info=1)
 
     @property
     def toggle_url(self):
@@ -860,7 +873,14 @@ class DataGrid(object):
                 stateful_column = self.get_stateful_column(column)
 
                 if stateful_column:
-                    sort_field = stateful_column.get_sort_field()
+                    try:
+                        sort_field = stateful_column.get_sort_field()
+                    except Exception as e:
+                        logging.error('Error when calling get_sort_field for '
+                                      'DataGrid Column %r: %s',
+                                      column, e, exc_info=1)
+                        sort_field = ''
+
                     sort_list.append(prefix + sort_field)
 
                     # Lookups spanning tables require that we query from those
@@ -933,14 +953,19 @@ class DataGrid(object):
         if render_context is None:
             render_context = self._build_render_context()
 
-        self.rows = [
-            {
-                'object': obj,
-                'cells': [column.render_cell(obj, render_context)
-                          for column in self.columns]
-            }
-            for obj in object_list if obj is not None
-        ]
+        try:
+            self.rows = [
+                {
+                    'object': obj,
+                    'cells': [column.render_cell(obj, render_context)
+                              for column in self.columns]
+                }
+                for obj in object_list if obj is not None
+            ]
+        except Exception as e:
+            logging.error('Error when calling render_cell for DataGrid '
+                          'Column %r: %s',
+                          column, e, exc_info=1)
 
     def post_process_queryset(self, queryset):
         """Add column-specific data to the queryset.
@@ -949,7 +974,12 @@ class DataGrid(object):
         to the queryset. This handles adding all of those.
         """
         for column in self.columns:
-            queryset = column.augment_queryset(queryset)
+            try:
+                queryset = column.augment_queryset(queryset)
+            except Exception as e:
+                logging.error('Error when calling augment_queryset for '
+                              'DataGrid Column %r: %s',
+                              column, e, exc_info=1)
 
         return queryset
 
