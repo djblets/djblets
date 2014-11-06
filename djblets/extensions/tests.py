@@ -40,10 +40,12 @@ from django.utils import six
 from kgb import SpyAgency
 from mock import Mock
 
+from djblets.datagrid.grids import Column, DataGrid
 from djblets.extensions.extension import Extension, ExtensionInfo
 from djblets.extensions.forms import SettingsForm
-from djblets.extensions.hooks import (ExtensionHook, ExtensionHookPoint,
-                                      SignalHook, TemplateHook, URLHook)
+from djblets.extensions.hooks import (DataGridColumnsHook, ExtensionHook,
+                                      ExtensionHookPoint, SignalHook,
+                                      TemplateHook, URLHook)
 from djblets.extensions.manager import (_extension_managers, ExtensionManager,
                                         SettingListWrapper)
 from djblets.extensions.settings import Settings
@@ -811,6 +813,7 @@ class SignalHookTest(SpyAgency, TestCase):
 
         self.signal = Signal()
         self.spy_on(self._on_signal_fired)
+        self.spy_on(self._on_signal_exception)
 
     def test_initialize(self):
         """Testing SignalHook initialization connects to signal"""
@@ -840,8 +843,29 @@ class SignalHookTest(SpyAgency, TestCase):
         self.signal.send(self)
         self.assertEqual(len(self._on_signal_fired.calls), 0)
 
+    def test_sandbox_errors_true(self):
+        """Testing SignalHook with sandbox_errors set to True logs errors"""
+        SignalHook(self.test_extension, self.signal, self._on_signal_exception,
+                   sandbox_errors=True)
+
+        self.assertEqual(len(self._on_signal_exception.calls), 0)
+        self.signal.send(self)
+        self.assertEqual(len(self._on_signal_exception.calls), 1)
+
+    def test_sandbox_errors_false(self):
+        """Testing SignalHook with sandbox_errors set to False"""
+        SignalHook(self.test_extension, self.signal, self._on_signal_exception,
+                   sandbox_errors=False)
+
+        self.assertEqual(len(self._on_signal_exception.calls), 0)
+        self.assertRaises(Exception, self.signal.send, self)
+        self.assertEqual(len(self._on_signal_exception.calls), 1)
+
     def _on_signal_fired(self, *args, **kwargs):
         pass
+
+    def _on_signal_exception(self, *args, **kwargs):
+        raise Exception
 
 
 class URLHookTest(TestCase):
@@ -978,6 +1002,35 @@ class TemplateHookTest(TestCase):
         t.render(context).strip()
 
         # Didn't crash. We're good.
+
+
+class DataGridColumnsHookTest(SpyAgency, TestCase):
+    def setUp(self):
+        self.manager = ExtensionManager('')
+        self.extension = \
+            TestExtensionWithRegistration(extension_manager=self.manager)
+
+    def test_add_column(self):
+        """Testing DataGridColumnsHook registers column"""
+        self.spy_on(DataGrid.add_column)
+
+        DataGridColumnsHook(extension=self.extension,
+                            datagrid_cls=DataGrid,
+                            columns=[Column(id='sandbox')])
+
+        self.assertTrue(DataGrid.add_column.called)
+
+    def test_remove_column(self):
+        """Testing DataGridColumnsHook unregisters column"""
+        self.spy_on(DataGrid.remove_column)
+
+        hook = DataGridColumnsHook(extension=self.extension,
+                                   datagrid_cls=DataGrid,
+                                   columns=[Column(id='sandbox2')])
+
+        hook.shutdown()
+
+        self.assertTrue(DataGrid.remove_column.called)
 
 
 class ViewTests(SpyAgency, TestCase):

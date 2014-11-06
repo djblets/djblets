@@ -25,6 +25,7 @@
 
 from __future__ import unicode_literals
 
+import logging
 import uuid
 
 from django.template import RequestContext
@@ -163,13 +164,17 @@ class SignalHook(ExtensionHook):
     when fired. It will disconnect from the signal when the extension is
     disabled.
     """
-    def __init__(self, extension, signal, callback, sender=None):
+    def __init__(self, extension, signal, callback, sender=None,
+                 sandbox_errors=True):
         super(SignalHook, self).__init__(extension)
 
         self.signal = signal
         self.callback = callback
         self.dispatch_uid = uuid.uuid1()
         self.sender = sender
+
+        if sandbox_errors:
+            callback = self._sandbox_errors
 
         signal.connect(callback, sender=self.sender, weak=False,
                        dispatch_uid=self.dispatch_uid)
@@ -179,6 +184,14 @@ class SignalHook(ExtensionHook):
 
         self.signal.disconnect(dispatch_uid=self.dispatch_uid,
                                sender=self.sender)
+
+    def _sandbox_errors(self, **kwargs):
+        """Wraps a callback function to log any exceptions thrown."""
+        try:
+            self.callback()
+        except Exception as e:
+            logging.error('Error when calling %r from SignalHook: %s',
+                          self.callback, e, exc_info=1)
 
 
 @six.add_metaclass(ExtensionHookPoint)
