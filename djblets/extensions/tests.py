@@ -813,6 +813,7 @@ class SignalHookTest(SpyAgency, TestCase):
 
         self.signal = Signal()
         self.spy_on(self._on_signal_fired)
+        self.spy_on(self._on_signal_exception)
 
     def test_initialize(self):
         """Testing SignalHook initialization connects to signal"""
@@ -842,8 +843,29 @@ class SignalHookTest(SpyAgency, TestCase):
         self.signal.send(self)
         self.assertEqual(len(self._on_signal_fired.calls), 0)
 
+    def test_sandbox_errors_true(self):
+        """Testing SignalHook with sandbox_errors set to True logs errors"""
+        SignalHook(self.test_extension, self.signal, self._on_signal_exception,
+                   sandbox_errors=True)
+
+        self.assertEqual(len(self._on_signal_exception.calls), 0)
+        self.signal.send(self)
+        self.assertEqual(len(self._on_signal_exception.calls), 1)
+
+    def test_sandbox_errors_false(self):
+        """Testing SignalHook with sandbox_errors set to False"""
+        SignalHook(self.test_extension, self.signal, self._on_signal_exception,
+                   sandbox_errors=False)
+
+        self.assertEqual(len(self._on_signal_exception.calls), 0)
+        self.assertRaises(Exception, self.signal.send, self)
+        self.assertEqual(len(self._on_signal_exception.calls), 1)
+
     def _on_signal_fired(self, *args, **kwargs):
         pass
+
+    def _on_signal_exception(self, *args, **kwargs):
+        raise Exception
 
 
 class URLHookTest(TestCase):
