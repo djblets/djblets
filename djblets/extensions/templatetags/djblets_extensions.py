@@ -24,16 +24,22 @@ def template_hook_point(context, name):
         request = context['request']
 
         for hook in TemplateHook.by_name(name):
-            if hook.applies_to(request):
-                context.push()
+            try:
+                if hook.applies_to(request):
+                    context.push()
 
-                try:
-                    yield hook.render_to_string(request, context)
-                except Exception as e:
-                    logging.error('Error rendering TemplateHook %r: %s',
-                                  hook, e, exc_info=1)
+                    try:
+                        yield hook.render_to_string(request, context)
+                    except Exception as e:
+                        logging.error('Error rendering TemplateHook %r: %s',
+                                      hook, e, exc_info=1)
 
-                context.pop()
+                    context.pop()
+
+            except Exception as e:
+                logging.error('Error when calling applies_to for '
+                              'TemplateHook %r: %s',
+                              hook, e, exc_info=1)
 
     return ''.join(_render_hooks())
 

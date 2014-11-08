@@ -899,7 +899,7 @@ class URLHookTest(TestCase):
         self.assertTrue(self.url_hook in self.test_extension.hooks)
 
 
-class TemplateHookTest(TestCase):
+class TemplateHookTest(SpyAgency, TestCase):
     def setUp(self):
         manager = ExtensionManager('')
         self.extension = \
@@ -986,7 +986,7 @@ class TemplateHookTest(TestCase):
 
         self.assertNotIn('leaky', context)
 
-    def test_sandbox(self):
+    def test_render_to_string_sandbox(self):
         """Testing TemplateHook sandboxing"""
         class MyTemplateHook(TemplateHook):
             def render_to_string(self, request, context):
@@ -1002,6 +1002,27 @@ class TemplateHookTest(TestCase):
         t.render(context).strip()
 
         # Didn't crash. We're good.
+
+    def test_applies_to_sandbox(self):
+        """Testing TemplateHook for applies_to"""
+        class MyTemplateHook(TemplateHook):
+            def applies_to(self, request):
+                raise Exception
+
+        hook = MyTemplateHook(extension=self.extension, name='test')
+        context = Context({})
+        context['request'] = self.request
+
+        self.spy_on(hook.applies_to)
+
+        t = Template(
+            '{% load djblets_extensions %}'
+            '{% template_hook_point "test" %}')
+        string = t.render(context).strip()
+
+        self.assertEqual(string, '')
+
+        self.assertTrue(hook.applies_to.called)
 
 
 class DataGridColumnsHookTest(SpyAgency, TestCase):
