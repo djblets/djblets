@@ -1,9 +1,8 @@
 {% extends "siteconfig/settings.html" %}
 {% load djblets_utils i18n %}
 
-{% block title %}
+{% block page_title %}
 {%  blocktrans with extension.info.name as name %}Configure {{name}}{% endblocktrans %}
-{{block.super}}
 {% endblock %}
 
 {% block form_title %}

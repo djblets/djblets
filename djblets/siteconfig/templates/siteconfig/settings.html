@@ -1,7 +1,9 @@
 {% extends "admin/base_site.html" %}
 {% load adminmedia admin_list djblets_utils i18n staticfiles %}
 
-{% block title %}{{form.Meta.title}} {{block.super}}{% endblock %}
+{% block title %}
+{% block page_title %}{{form.Meta.title}}{% endblock %} {{block.super}}
+{% endblock %}
 
 {% block extrahead %}
 <link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/forms.css" />
@@ -53,10 +55,16 @@
   </fieldset>
 {% endif %}
 {% endblock %}
+
+{% block submit_row %}
   <div class="submit-row">
+{%  block submit_row_buttons %}
    <input type="submit" value="{% trans "Save" %}" class="default" />
+{%  endblock submit_row_buttons %}
    <div style="clear: both"></div>
   </div>
+{% endblock submit_row %}
+
  </form>
 </div>
 {% endblock %}
