@@ -804,7 +804,7 @@ class SettingListWrapperTests(TestCase):
         self.assertEqual(wrapper.ref_counts.get('item1'), 1)
 
 
-class SignalHookTest(SpyAgency, TestCase):
+class SignalHookTests(SpyAgency, TestCase):
     """Unit tests for djblets.extensions.hooks.SignalHook."""
     def setUp(self):
         manager = ExtensionManager('')
@@ -842,6 +842,21 @@ class SignalHookTest(SpyAgency, TestCase):
         self.assertEqual(len(self._on_signal_fired.calls), 0)
         self.signal.send(self)
         self.assertEqual(len(self._on_signal_fired.calls), 0)
+
+    def test_forwards_args(self):
+        """Testing SignalHook forwards arguments to callback"""
+        seen_kwargs = {}
+
+        def callback(**kwargs):
+            seen_kwargs.update(kwargs)
+
+        SignalHook(self.test_extension, self.signal, callback)
+        self.signal.send(sender=self, foo=1, bar=2)
+
+        self.assertTrue('foo', seen_kwargs)
+        self.assertEqual(seen_kwargs['foo'], 1)
+        self.assertTrue('bar', seen_kwargs)
+        self.assertEqual(seen_kwargs['bar'], 2)
 
     def test_sandbox_errors_true(self):
         """Testing SignalHook with sandbox_errors set to True logs errors"""

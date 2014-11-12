@@ -188,7 +188,7 @@ class SignalHook(ExtensionHook):
     def _sandbox_errors(self, **kwargs):
         """Wraps a callback function to log any exceptions thrown."""
         try:
-            self.callback()
+            self.callback(**kwargs)
         except Exception as e:
             logging.error('Error when calling %r from SignalHook: %s',
                           self.callback, e, exc_info=1)
