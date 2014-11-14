@@ -27,6 +27,8 @@
 from __future__ import unicode_literals
 
 import logging
+import re
+import string
 import traceback
 
 import pytz
@@ -624,7 +626,7 @@ class DataGrid(object):
                     cls.add_column(column)
 
     def __init__(self, request, queryset=None, title="", extra_context={},
-                 optimize_sorts=True, current_letter=None):
+                 optimize_sorts=True):
         self.request = request
         self.queryset = queryset
         self.rows = []
@@ -637,9 +639,9 @@ class DataGrid(object):
         self.state_loaded = False
         self.page_num = 0
         self.id = None
-        self.current_letter = current_letter
         self.extra_context = dict(extra_context)
         self.optimize_sorts = optimize_sorts
+        self.special_query_args = []
 
         if not hasattr(request, "datagrid_count"):
             request.datagrid_count = 0
@@ -656,6 +658,7 @@ class DataGrid(object):
         self.listview_template = 'datagrid/listview.html'
         self.column_header_template = 'datagrid/column_header.html'
         self.cell_template = 'datagrid/cell.html'
+        self.paginator_template = 'datagrid/paginator.html'
 
     @cached_property
     def cell_template_obj(self):
@@ -996,35 +999,9 @@ class DataGrid(object):
 
             self.load_state(render_context)
 
-            extra_query = get_url_params_except(self.request.GET,
-                                                'page', 'letter')
-
             context = {
                 'datagrid': self,
-                'is_paginated': self.page.has_other_pages(),
-                'results_per_page': self.paginate_by,
-                'has_next': self.page.has_next(),
-                'has_previous': self.page.has_previous(),
-                'page': self.page.number,
-                'last_on_page': self.page.end_index(),
-                'first_on_page': self.page.start_index(),
-                'pages': self.paginator.num_pages,
-                'hits': self.paginator.count,
-                'page_range': self.paginator.page_range,
-                'extra_query': extra_query,
-                'current_letter': self.current_letter,
-                'is_alphabetic': self.current_letter is not None,
             }
-
-            if self.page.has_next():
-                context['next'] = self.page.next_page_number()
-            else:
-                context['next'] = None
-
-            if self.page.has_previous():
-                context['previous'] = self.page.previous_page_number()
-            else:
-                context['previous'] = None
 
             context.update(self.extra_context)
             context.update(render_context)
@@ -1071,6 +1048,52 @@ class DataGrid(object):
 
         return render_to_response(template_name, Context(context))
 
+    def render_paginator(self, adjacent_pages=3):
+        """Renders the paginator for the datagrid.
+
+        This can be called from templates.
+        """
+        extra_query = get_url_params_except(self.request.GET,
+                                            'page',
+                                            *self.special_query_args)
+
+        page_nums = range(max(1, self.page.number - adjacent_pages),
+                          min(self.paginator.num_pages,
+                              self.page.number + adjacent_pages)
+                          + 1)
+
+        if extra_query:
+            extra_query += '&'
+
+        context = {
+            'is_paginated': self.page.has_other_pages(),
+            'hits': self.paginator.count,
+            'results_per_page': self.paginate_by,
+            'page': self.page.number,
+            'pages': self.paginator.num_pages,
+            'page_numbers': page_nums,
+            'has_next': self.page.has_next(),
+            'has_previous': self.page.has_previous(),
+            'show_first': 1 not in page_nums,
+            'show_last': self.paginator.num_pages not in page_nums,
+            'extra_query': extra_query,
+        }
+
+        if self.page.has_next():
+            context['next'] = self.page.next_page_number()
+        else:
+            context['next'] = None
+
+        if self.page.has_previous():
+            context['previous'] = self.page.previous_page_number()
+        else:
+            context['previous'] = None
+
+        context.update(self.extra_context)
+
+        return mark_safe(render_to_string(self.paginator_template,
+                                          Context(context)))
+
     def _build_render_context(self):
         """Builds a dictionary containing RequestContext contents.
 
@@ -1094,3 +1117,37 @@ class DataGrid(object):
     @staticmethod
     def link_to_value(state, obj, value):
         return value.get_absolute_url()
+
+
+class AlphanumericDataGrid(DataGrid):
+    """Datagrid subclass that creates an alphanumerically paginated datagrid.
+
+    This is useful for datasets that need to be queried alphanumerically,
+    according to the starting character of their 'sortable' column.
+    """
+    def __init__(self, request, queryset, sortable_column,
+                 extra_regex='^[0-9].*', *args, **kwargs):
+        self.current_letter = request.GET.get('letter', 'A')
+
+        regex_match = re.compile(extra_regex)
+
+        if self.current_letter.isalpha():
+            queryset = queryset.filter(**{
+                sortable_column + '__istartswith': self.current_letter
+            })
+        elif regex_match.match(self.current_letter):
+            queryset = queryset.filter(**{
+                sortable_column + '__regex': extra_regex
+            })
+        else:
+            raise Http404
+
+        super(AlphanumericDataGrid, self).__init__(request, queryset,
+                                                   *args, **kwargs)
+
+        self.extra_context['current_letter'] = self.current_letter
+        self.extra_context['alphanumeric_string'] = \
+            '0' + string.ascii_uppercase
+
+        self.special_query_args.append('letter')
+        self.paginator_template = 'datagrid/alphanumeric_paginator.html'

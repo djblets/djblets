@@ -43,11 +43,7 @@
      </tbody>
     </table>
    </div>
-{% if is_alphabetic %}
-{%  alphabetic_paginator %}
-{% elif is_paginated %}
-{%  numeric_paginator %}
-{% endif %}
+{{datagrid.render_paginator}}
   </div>
  </div>
  <table class="datagrid-menu" id="{{datagrid.id}}-menu" style="display:none;position:absolute;">

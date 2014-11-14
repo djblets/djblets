@@ -26,7 +26,7 @@
 
 from __future__ import unicode_literals
 
-import string
+import warnings
 
 from django import template
 
@@ -36,12 +36,20 @@ register = template.Library()
 
 # Heavily based on paginator by insin
 # http://www.djangosnippets.org/snippets/73/
-@register.inclusion_tag('datagrid/numeric_paginator.html', takes_context=True)
-def numeric_paginator(context, adjacent_pages=3):
+@register.inclusion_tag('datagrid/paginator.html', takes_context=True)
+def paginator(context, adjacent_pages=3):
     """Renders a paginator used for jumping between pages of results."""
+
+    warnings.warn('djblets.datagrid.templatetags datagrid is deprecated,'
+                  ' Use DataGrid.render_paginator', DeprecationWarning)
+
     page_nums = range(max(1, context['page'] - adjacent_pages),
                       min(context['pages'], context['page'] + adjacent_pages)
                       + 1)
+
+    extra_query = context.get('extra_query', None)
+    if extra_query:
+        extra_query += '&'
 
     return {
         'hits': context['hits'],
@@ -55,18 +63,5 @@ def numeric_paginator(context, adjacent_pages=3):
         'has_previous': context['has_previous'],
         'show_first': 1 not in page_nums,
         'show_last': context['pages'] not in page_nums,
-        'extra_query': context.get('extra_query', None),
+        'extra_query': extra_query,
     }
-
-
-@register.inclusion_tag('datagrid/alphabetic_paginator.html',
-                        takes_context=True)
-def alphabetic_paginator(context, adjacent_pages=3):
-    """Renders a paginator used for jumping between pages of results."""
-
-    alphabetic_context = numeric_paginator(context, adjacent_pages)
-
-    alphabetic_context['alphabet_string'] = string.ascii_uppercase + '0'
-    alphabetic_context['current_letter'] = context['current_letter']
-
-    return alphabetic_context
