@@ -163,6 +163,9 @@ class SignalHook(ExtensionHook):
     This will handle connecting to a signal, calling the specified callback
     when fired. It will disconnect from the signal when the extension is
     disabled.
+
+    The callback will also be passed an extension= keyword argument pointing
+    to the extension instance.
     """
     def __init__(self, extension, signal, callback, sender=None,
                  sandbox_errors=True):
@@ -172,11 +175,9 @@ class SignalHook(ExtensionHook):
         self.callback = callback
         self.dispatch_uid = uuid.uuid1()
         self.sender = sender
+        self.sandbox_errors = sandbox_errors
 
-        if sandbox_errors:
-            callback = self._sandbox_errors
-
-        signal.connect(callback, sender=self.sender, weak=False,
+        signal.connect(self._wrap_callback, sender=self.sender, weak=False,
                        dispatch_uid=self.dispatch_uid)
 
     def shutdown(self):
@@ -185,13 +186,20 @@ class SignalHook(ExtensionHook):
         self.signal.disconnect(dispatch_uid=self.dispatch_uid,
                                sender=self.sender)
 
-    def _sandbox_errors(self, **kwargs):
-        """Wraps a callback function to log any exceptions thrown."""
+    def _wrap_callback(self, **kwargs):
+        """Wraps a callback function, passing extra parameters and sandboxing.
+
+        This will call the callback with an extension= keyword argument,
+        and sandbox any errors (if sandbox_errors is True).
+        """
         try:
-            self.callback(**kwargs)
+            self.callback(extension=self.extension, **kwargs)
         except Exception as e:
             logging.error('Error when calling %r from SignalHook: %s',
                           self.callback, e, exc_info=1)
+
+            if not self.sandbox_errors:
+                raise
 
 
 @six.add_metaclass(ExtensionHookPoint)
