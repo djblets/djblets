@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import threading
+
 from django.core.urlresolvers import (RegexURLResolver, clear_url_caches,
                                       get_resolver)
 
@@ -36,6 +38,7 @@ class DynamicURLResolver(RegexURLResolver):
                                                  app_name=app_name,
                                                  namespace=namespace)
         self._resolver_chain = None
+        self._lock = threading.Lock()
 
     @property
     def url_patterns(self):
@@ -60,7 +63,7 @@ class DynamicURLResolver(RegexURLResolver):
         lookups or reversing.
         """
         self.url_patterns.extend(patterns)
-        self._clear_cache()
+        self._repopulate_caches()
 
     def remove_patterns(self, patterns):
         """Removes a list of URL patterns.
@@ -74,25 +77,27 @@ class DynamicURLResolver(RegexURLResolver):
                 # This may have already been removed. Ignore the error.
                 pass
 
-        self._clear_cache()
+        self._repopulate_caches()
 
-    def _clear_cache(self):
-        """Clears the internal resolver caches.
+    def _repopulate_caches(self):
+        """Repopulates the internal resolver caches.
 
-        This will clear all caches for this resolver and every parent
-        of this resolver, in order to ensure that the next lookup or reverse
-        will result in a lookup in this resolver. By default, every
+        This will force all the resolvers in the chain to repopulate,
+        replacing the caches, in order to ensure that the next lookup or
+        reverse will result in a lookup in this resolver. By default, every
         RegexURLResolver in Django will cache all results from its children.
 
-        We take special care to only clear the caches of the resolvers in
+        We take special care to only repopulate the caches of the resolvers in
         our parent chain.
         """
-        for resolver in self.resolver_chain:
-            resolver._reverse_dict.clear()
-            resolver._namespace_dict.clear()
-            resolver._app_dict.clear()
+        with self._lock:
+            for resolver in self.resolver_chain:
+                # Re-populate the lists of patterns. This will keep the
+                # existing caches intact until they're ready to be replaced
+                # with whole new values.
+                resolver._populate()
 
-        clear_url_caches()
+            clear_url_caches()
 
     @property
     def resolver_chain(self):
