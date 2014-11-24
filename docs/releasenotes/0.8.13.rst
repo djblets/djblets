@@ -1,0 +1,20 @@
+============================
+Djblets 0.8.13 Release Notes
+============================
+
+**Release date**: November 24, 2014
+
+
+Packaging
+=========
+
+* Djblets no longer attempts to install Django Pipeline 1.4 or higher.
+
+  Django Pipeline 1.4 breaks compatibility, breaking our installs. Djblets
+  now requires 1.3.23 or higher, as long as it's under 1.4.
+
+
+Contributors
+============
+
+* Christian Hammond
