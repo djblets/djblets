@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import threading
+
 from django.core.signals import request_finished
 
 
@@ -27,18 +29,14 @@ class ForwardingCacheBackend(object):
                  *args, **kwargs):
         self._cache_name = cache_name
         self._backend = None
+        self._load_lock = threading.Lock()
+        self._load_gen = 0
 
     @property
     def backend(self):
         """Returns the forwarded cache backend."""
         if not self._backend:
-            from django.core.cache import get_cache
-
-            self._backend = get_cache(self._cache_name)
-
-            # get_cache will attempt to connect to 'close', which we don't
-            # want. Instead, go and disconnect this.
-            request_finished.disconnect(self._backend.close)
+            self._load_backend()
 
         return self._backend
 
@@ -51,12 +49,37 @@ class ForwardingCacheBackend(object):
         """
         if self._backend:
             self._backend.close()
-            self._backend = None
+            self._load_backend()
 
     def close(self, *args, **kwargs):
         """Closes the cache backend."""
         if self._backend:
             self._backend.close(*args, **kwargs)
+
+    def _load_backend(self):
+        """Loads the caching backend.
+
+        This will replace the current caching backend with a newly loaded
+        one, based on the stored cache name.
+
+        Only one thread at a time can load the cache backend. A counter
+        is kept that keeps the load generation number. If several threads
+        try to reload the backend at once, only one will succeed in doing
+        so for that generation.
+        """
+        cur_load_gen = self._load_gen
+
+        with self._load_lock:
+            if self._load_gen == cur_load_gen:
+                from django.core.cache import get_cache
+
+                self._backend = get_cache(self._cache_name)
+
+                # get_cache will attempt to connect to 'close', which we don't
+                # want. Instead, go and disconnect this.
+                request_finished.disconnect(self._backend.close)
+
+                self._load_gen = cur_load_gen + 1
 
     def __contains__(self, key):
         return key in self.backend
