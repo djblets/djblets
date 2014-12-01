@@ -848,7 +848,7 @@ class RelationCounterField(CounterField):
         return cls._instance_states.get(
             (model_cls, instance_id, rel_field_name))
 
-    def __init__(self, rel_field_name, *args, **kwargs):
+    def __init__(self, rel_field_name=None, *args, **kwargs):
         def _initializer(model_instance):
             if model_instance.pk:
                 return getattr(model_instance, rel_field_name).count()
