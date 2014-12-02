@@ -795,8 +795,8 @@ class RelationCounterField(CounterField):
                 (field.attname, F(field.attname) + update_by)
                 for field in model_cls._meta.local_fields
                 if (isinstance(field, RelationCounterField) and
-                    getattr(field._relation_tracker, rel_attname) ==
-                        self._rel_field_name)
+                    (getattr(field._relation_tracker, rel_attname) ==
+                        self._rel_field_name))
             ])
 
             if values:
