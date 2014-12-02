@@ -65,7 +65,7 @@ JavaScript
   change his mind instead of just losing everything he wrote. This can
   be turned off per-inlineEditor.
 
-* Support :kd:`Control-S` for saving on inlineEditors. (:bug:`1958`)
+* Support :kbd:`Control-S` for saving on inlineEditors. (:bug:`1958`)
 
   When editing a long block of text on an edit field, it's handy to be
   able to save periodically. Now, pressing :kbd:`Control-S` will trigger a
