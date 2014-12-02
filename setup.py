@@ -144,7 +144,7 @@ setup(name=PACKAGE_NAME,
           'pillowfight',
           'pytz',
       ],
-      dependency_links = [
+      dependency_links=[
           "http://downloads.reviewboard.org/mirror/",
           download_url,
       ],
@@ -164,5 +164,4 @@ setup(name=PACKAGE_NAME,
           "Programming Language :: Python",
           "Topic :: Software Development",
           "Topic :: Software Development :: Libraries :: Python Modules",
-      ]
-)
+      ])

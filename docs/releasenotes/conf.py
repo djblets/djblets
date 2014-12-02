@@ -181,7 +181,8 @@ htmlhelp_basename = 'ReleaseNotes'
 #latex_font_size = '10pt'
 
 # Grouping the document tree into LaTeX files. List of tuples
-# (source start file, target name, title, author, document class [howto/manual]).
+# (source start file, target name, title, author, document class
+# [howto/manual]).
 latex_documents = [
   ('index', 'ReleaseNotes.tex', ur'Release Notes',
    ur'Christian Hammond', 'manual'),
