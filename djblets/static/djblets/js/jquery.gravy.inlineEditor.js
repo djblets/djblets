@@ -141,11 +141,13 @@ $.widget("ui.inlineEditor", {
 
         if (this.options.showEditIcon) {
             this._editIcon =
-                $("<a/>")
-                .attr('href', '#')
-                .attr("role", "button")
-                .attr("aria-label", gettext("Edit this field"))
-                .addClass("editicon")
+                $('<a/>')
+                .attr({
+                    'href': '#',
+                    'role': 'button',
+                    'aria-label': gettext('Edit this field')
+                })
+                .addClass('editicon')
                 .click(function() {
                     self.startEdit();
                     return false;
@@ -161,18 +163,20 @@ $.widget("ui.inlineEditor", {
 
             if (this.options.showRequiredFlag) {
                 this._editIcon.append(
-                    $("<span/>")
+                    $('<span/>')
                         .attr({
                             'aria-label': gettext('This field is required'),
-                            title: gettext('This field is required')
+                            'title': gettext('This field is required')
                         })
                         .addClass("required-flag")
                         .text("*"));
             }
 
             if (this.options.multiline) {
-                this._editIcon.appendTo(
-                    $("label[for=" + this.element[0].id + "]"));
+                if (this.element[0].id) {
+                    this._editIcon.appendTo(
+                        $("label[for=" + this.element[0].id + "]"));
+                }
             } else {
                 this._editIcon.insertAfter(this.element);
             }

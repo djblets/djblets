@@ -68,7 +68,6 @@ PIPELINE_JS = {
     'djblets-gravy': {
         'source_filenames': (
             # These are in dependency order
-            'djblets/js/jquery.gravy.hacks.js',
             'djblets/js/jquery.gravy.util.js',
             'djblets/js/jquery.gravy.retina.js',
             'djblets/js/jquery.gravy.autosize.js',

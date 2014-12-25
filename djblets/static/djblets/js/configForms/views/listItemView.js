@@ -260,7 +260,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
         }
 
         if (action.enabled === false) {
-            $action.attr('disabled', 'disabled');
+            $action.prop('disabled', true);
             $result.addClass('disabled');
         }
 
