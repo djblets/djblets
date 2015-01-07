@@ -33,11 +33,11 @@ from __future__ import unicode_literals
 #
 #   (Major, Minor, Micro, alpha/beta/rc/final, Release Number, Released)
 #
-VERSION = (0, 8, 14, 'alpha', 0, False)
+VERSION = (0, 8, 14, 'final', 0, True)
 
 
 # Required version of Django
-django_version = 'Django>=1.6.7,<1.7'
+django_version = 'Django>=1.6.9,<1.7'
 
 
 def get_version_string():

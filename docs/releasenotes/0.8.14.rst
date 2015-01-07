@@ -1,0 +1,109 @@
+============================
+Djblets 0.8.14 Release Notes
+============================
+
+**Release date**: January 6, 2015
+
+
+djblets.cache
+=============
+
+.. py:currentmodule:: djblets.cache.forwarding_backend
+
+* Fixed threading issues with :py:class:`ForwardingCacheBackend`.
+
+  In a multi-threaded environment, a thread could end up resetting the
+  forwarded cache backend while another was attempting to access it, causing
+  a conflict. This could result in incorrect data being returned, or a crash
+  to occur, when load is heavy.
+
+  We now have several safeguards to prevent problems in this situation.
+
+
+djblets.datagrid
+================
+
+.. py:currentmodule:: djblets.datagrid.grids
+
+* Added support for datagrids with alphanumeric pagination.
+
+  A new :py:class:`AlphanumericDatagrid` class has been added that uses
+  an alphanumeric paginator. This allows for paginating by letters and
+  numbers, instead of simply page numbers. That's useful when paginating
+  lists of users, for example.
+
+  Patch by Ryan Done.
+
+* Added sandboxing for the :py:class:`Column` subclasses.
+
+  :py:meth:`Column.render_data`, :py:meth:`Column.render_cell`,
+  :py:meth:`Column.setup_state`, :py:meth:`Column.get_sort_field`, and
+  :py:meth:`Column.augment_queryset` are now sandboxed, preventing any
+  exceptions thrown within the methods from breaking the page. The
+  exceptions will be captured and logged.
+
+  Patch by Justin Maillet.
+
+
+djblets.db
+==========
+
+.. py:currentmodule:: djblets.extensions.hooks.fields
+
+* :py:class:`RelationCounterField` now has a default value for
+  ``rel_field_name``, allowing it to be used in a database evolution.
+
+  Patch by Barret Rennie.
+
+
+djblets.extensions
+==================
+
+.. py:currentmodule:: djblets.extensions.hooks
+
+* The extension instance is now passed to signal callback handlers when
+  using :py:class:`SignalHook`.
+
+  This instance is passed as an ``extension`` keyword argument to the
+  handler function.
+
+* Added sandboxing for :py:class:`SignalHook`.
+
+  Signal callback functions attached via a :py:class:`SignalHook` can now
+  optionally be sandboxed, preventing any exceptions thrown within the
+  callback from breaking the code emitting the signal. The exceptions will
+  be captured and logged.
+
+  This is the default behavior, but that behavior can be overridden by passing
+  ``sandbox_errors=False``.
+
+  Patch by Justin Maillet.
+
+* Added sandboxing for :py:class:`TemplateHook`.
+
+  :py:meth:`TemplateHook.applies_to` is now sandboxed, preventing any
+  exceptions from breaking the page. They will instead be captured and logged.
+
+  Patch by Justin Maillet.
+
+
+djblets.urls.resolvers
+======================
+
+.. py:currentmodule:: djblets.urls.resolvers
+
+* Fixed threading issues with :py:class:`DynamicURLResolver`.
+
+  There were some occasional breakages that could happen in a
+  multi-threaded environment that would break URL lookups on the root
+  URL resolver, or in any child resolver.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
+* David Trowbridge
+* Justin Maillet
+* Ryan Done
