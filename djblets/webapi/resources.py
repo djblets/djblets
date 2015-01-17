@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import warnings
 from hashlib import sha1
 
 from django.conf.urls import include, patterns, url
@@ -787,10 +788,8 @@ class WebAPIResource(object):
         last_modified_timestamp = self.get_last_modified(request, obj)
         etag = self.get_etag(request, obj)
 
-        if ((last_modified_timestamp and
-             get_modified_since(request, last_modified_timestamp)) or
-            (('If-None-Match' in request.META or etag) and
-             etag_if_none_match(request, etag))):
+        if self.are_cache_headers_current(request, last_modified_timestamp,
+                                          etag):
             return HttpResponseNotModified()
 
         data = {
@@ -1248,23 +1247,50 @@ class WebAPIResource(object):
 
         return None
 
-    def get_etag(self, request, obj):
+    def get_etag(self, request, obj, *args, **kwargs):
         """Returns the ETag representing the state of the object.
 
         By default, this uses ``etag_field`` to determine what field in
         the model is unique enough to represent the state of the object.
 
-        This can be overridden for more complex behavior.
+        This can be overridden for more complex behavior. Any overridden
+        functions should make sure to pass the result through
+        ``encode_etag`` before returning a value.
         """
         if self.etag_field:
-            return six.text_type(getattr(obj, self.etag_field))
+            etag = six.text_type(getattr(obj, self.etag_field))
         elif self.autogenerate_etags:
-            return self.generate_etag(obj, self.fields, request=request)
+            etag = self.generate_etag(obj, self.fields, request=request,
+                                      encode_etag=False)
+        else:
+            etag = None
 
-        return None
+        if etag:
+            etag = self.encode_etag(request, etag)
 
-    def generate_etag(self, obj, fields, request):
-        """Generates an ETag from the serialized values of all given fields."""
+        return etag
+
+    def encode_etag(self, request, etag, *args, **kwargs):
+        """Encodes an ETag for usage in a header.
+
+        This will take a precomputed ETag, augment it with additional
+        information, encode it as a SHA1, and return it.
+        """
+        etag = '%s:%s' % (request.user.username, etag)
+
+        return sha1(etag.encode('utf-8')).hexdigest()
+
+    def generate_etag(self, obj, fields, request, encode_etag=True, **kwargs):
+        """Generates an ETag from the serialized values of all given fields.
+
+        When called by legacy code, the resulting ETag will be encoded.
+        All consumers are expected to update their get_etag() methods to
+        call encode_etag() directly, and to pass encode_etag=False to this
+        function.
+
+        In a future version, the encode_etag parameter will go away, and
+        this function's behavior will change to not return encoded ETags.
+        """
         values = []
 
         for field in fields:
@@ -1275,8 +1301,36 @@ class WebAPIResource(object):
             else:
                 values.append(six.text_type(getattr(obj, field)))
 
-        data = ':'.join(fields)
-        return sha1(data.encode('utf-8')).hexdigest()
+        etag = ':'.join(fields)
+
+        # In Djblets 0.8.15, the responsibility for encoding moved to
+        # get_etag(). However, legacy callers may end up calling
+        # generate_etag, expecting the result to be encoded. In this case,
+        # we want to perform the encoding and warn about deprecation.
+        #
+        # Future versions of Djblets will remove the encode_etag argument.
+        if encode_etag:
+            warnings.warn('WebAPIResource.generate_etag will stop generating '
+                          'encoded ETags in 0.9.x. Update your get_etag() '
+                          'method to pass encode_etag=False to this function '
+                          'and to call encode_etag() on the result instead.',
+                          DeprecationWarning)
+            etag = self.encode_etag(request, etag)
+
+        return etag
+
+    def are_cache_headers_current(self, request, last_modified=None,
+                                  etag=None):
+        """Determines if cache headers from the client are current.
+
+        This will compare the optionally-provided timestamp and ETag against
+        any conditional cache headers sent by the client to determine if
+        the headers are current. If they are, the caller can return
+        HttpResponseNotModified instead of a payload.
+        """
+        return ((last_modified and
+                 get_modified_since(request, last_modified)) or
+                (etag and etag_if_none_match(request, etag)))
 
     def get_no_access_error(self, request, *args, **kwargs):
         """Returns an appropriate error when access is denied.
@@ -1363,7 +1417,7 @@ class RootResource(WebAPIResource):
         self._include_uri_templates = include_uri_templates
 
     def get_etag(self, request, obj, *args, **kwargs):
-        return sha1(repr(obj).encode('utf-8')).hexdigest()
+        return self.encode_etag(request, repr(obj))
 
     def get(self, request, *args, **kwargs):
         """
@@ -1373,7 +1427,7 @@ class RootResource(WebAPIResource):
         data = self.serialize_root(request, *args, **kwargs)
         etag = self.get_etag(request, data)
 
-        if etag_if_none_match(request, etag):
+        if self.are_cache_headers_current(request, etag=etag):
             return HttpResponseNotModified()
 
         return 200, data, {
