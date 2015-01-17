@@ -25,9 +25,11 @@
 from __future__ import print_function, unicode_literals
 
 import json
+import warnings
 
 from django.contrib.auth.models import AnonymousUser, User
 from django.test.client import RequestFactory
+from django.utils import six
 
 from djblets.testing.testcases import TestCase
 from djblets.webapi.decorators import (copy_webapi_decorator_data,
@@ -707,6 +709,86 @@ class WebAPIResourceTests(TestCase):
             None,
             view_kwargs={'id': 1},
             method='delete')
+
+    def test_generate_etag_with_encode_etag_true(self):
+        """Testing WebAPIResource.generate_etag with encode_etag=True"""
+        class TestObject(object):
+            my_field = 'abc'
+
+        request = RequestFactory().request()
+        request.user = User()
+
+        resource = WebAPIResource()
+
+        with warnings.catch_warnings(record=True) as w:
+            etag = resource.generate_etag(TestObject(), ['my_field'], request,
+                                          encode_etag=True)
+            self.assertEqual(len(w), 1)
+            self.assertIn('generate_etag will stop generating',
+                          six.text_type(w[0].message))
+
+        self.assertEqual(etag, '30cbd1a99388f8007efabd23f79bbc72d7ba744d')
+
+    def test_generate_etag_with_encode_etag_false(self):
+        """Testing WebAPIResource.generate_etag with encode_etag=False"""
+        class TestObject(object):
+            my_field = 'abc'
+
+        request = RequestFactory().request()
+        request.user = User()
+
+        resource = WebAPIResource()
+
+        with warnings.catch_warnings(record=True) as w:
+            etag = resource.generate_etag(TestObject(), ['my_field'], request,
+                                          encode_etag=False)
+            self.assertEqual(len(w), 0)
+
+        self.assertEqual(etag, 'my_field')
+
+    def test_are_cache_headers_current_with_old_last_modified(self):
+        """Testing WebAPIResource.are_cache_headers_current with old last
+        modified timestamp
+        """
+        request = RequestFactory().request()
+        request.META['HTTP_IF_MODIFIED_SINCE'] = \
+            'Wed, 14 Jan 2015 13:49:10 GMT'
+
+        resource = WebAPIResource()
+        self.assertFalse(resource.are_cache_headers_current(
+            request, last_modified='Wed, 14 Jan 2015 12:10:13 GMT'))
+
+    def test_are_cache_headers_current_with_current_last_modified(self):
+        """Testing WebAPIResource.are_cache_headers_current with current last
+        modified timestamp
+        """
+        timestamp = 'Wed, 14 Jan 2015 13:49:10 GMT'
+        request = RequestFactory().request()
+        request.META['HTTP_IF_MODIFIED_SINCE'] = timestamp
+
+        resource = WebAPIResource()
+        self.assertTrue(resource.are_cache_headers_current(
+            request, last_modified=timestamp))
+
+    def test_are_cache_headers_current_with_old_etag(self):
+        """Testing WebAPIResource.are_cache_headers_current with old ETag"""
+        request = RequestFactory().request()
+        request.META['HTTP_IF_NONE_MATCH'] = 'abc123'
+
+        resource = WebAPIResource()
+        self.assertFalse(resource.are_cache_headers_current(request,
+                                                            etag='def456'))
+
+    def test_are_cache_headers_current_with_current_etag(self):
+        """Testing WebAPIResource.are_cache_headers_current with current
+        ETag
+        """
+        etag = 'abc123'
+        request = RequestFactory().request()
+        request.META['HTTP_IF_NONE_MATCH'] = etag
+
+        resource = WebAPIResource()
+        self.assertTrue(resource.are_cache_headers_current(request, etag=etag))
 
     def _test_mimetype_responses(self, resource, url, json_mimetype,
                                  xml_mimetype, **kwargs):
