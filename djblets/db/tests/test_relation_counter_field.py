@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from django.db import models
+from django.db import models, transaction
 
 from djblets.db.fields import RelationCounterField
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
@@ -76,6 +76,34 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
         # Make sure the state is clear due to dropped references before
         # each run.
         self.assertFalse(RelationCounterField._instance_states)
+
+    #
+    # Instance tracking tests
+    #
+
+    @transaction.atomic
+    def test_reused_ids(self):
+        """Testing RelationCounterField with reused instance IDs"""
+        sid = transaction.savepoint()
+
+        model = M2MRefModel.objects.create()
+        added_model = ReffedModel.objects.create()
+        model.m2m.add(added_model)
+        self.assertEqual(model.pk, 1)
+        self.assertEqual(added_model.pk, 1)
+        self.assertEqual(model.counter, 1)
+        self.assertEqual(model.counter_2, 1)
+
+        # Roll back, and set up the test again.
+        transaction.savepoint_rollback(sid)
+
+        model = M2MRefModel.objects.create()
+        added_model = ReffedModel.objects.create()
+        model.m2m.add(added_model)
+        self.assertEqual(model.pk, 1)
+        self.assertEqual(added_model.pk, 1)
+        self.assertEqual(model.counter, 1)
+        self.assertEqual(model.counter_2, 1)
 
     #
     # Forward-relation ManyToManyField tests
