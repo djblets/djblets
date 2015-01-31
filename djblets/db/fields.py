@@ -820,6 +820,19 @@ class RelationCounterField(CounterField):
                 self._rel_field_name)
 
     @classmethod
+    def _reset_state(cls, instance):
+        """Resets state for an instance.
+
+        This will clear away any state tied to a particular instance ID. It's
+        used to ensure that any old, removed entries (say, from a previous
+        unit test) are cleared away before storing new state.
+        """
+        for key, state in list(six.iteritems(cls._instance_states)):
+            if (state.model_instance.__class__ is instance.__class__ and
+                state.model_instance.pk == instance.pk):
+                del cls._instance_states[key]
+
+    @classmethod
     def _store_state(cls, instance, field):
         """Stores state for a model instance and field.
 
@@ -877,7 +890,10 @@ class RelationCounterField(CounterField):
         # newly-created instance not yet saved to the database). In this case,
         # we need to listen for the first save before storing the state.
         if instance.pk is None:
-            dispatch_uid = '%s-%s-first-save' % (id(instance), self.attname)
+            dispatch_uid = '%s-%s.%s-first-save' % (
+                id(instance),
+                self.__class__.__module__,
+                self.__class__.__name__)
 
             post_save.connect(
                 lambda **kwargs: self._on_first_save(
@@ -899,13 +915,34 @@ class RelationCounterField(CounterField):
                 RelationCounterField._relation_trackers[key] = \
                     self._relation_tracker
 
-    def _on_first_save(self, model_instance, instance, dispatch_uid, **kwargs):
+    def _on_first_save(self, model_instance, instance, dispatch_uid,
+                       created=False, **kwargs):
         """Handler for the first save on a newly created instance.
 
         This will disconnect the signal and store the state on the instance.
         """
-        if model_instance == instance:
-            RelationCounterField._store_state(instance, self)
+        assert created
 
+        if model_instance == instance:
+            # Stop listening immediately for any new signals here.
+            # The Signal stuff deals with thread locks, so we shouldn't
+            # have to worry about reaching any of this twice.
             post_save.disconnect(sender=instance.__class__,
                                  dispatch_uid=dispatch_uid)
+
+            cls = self.__class__
+
+            # This is a new row in the database (that is, the model instance
+            # has been saved for the very first time), we need to flush any
+            # existing state.
+            #
+            # The reason is that we may be running in a unit test situation, or
+            # are dealing with code that deleted an entry and then saved a new
+            # one with the old entry's PK explicitly assigned. Using the old
+            # state will just cause problems.
+            cls._reset_state(instance)
+
+            # Now we can register each RelationCounterField on here.
+            for field in model_instance.__class__._meta.local_fields:
+                if isinstance(field, cls):
+                    cls._store_state(instance, field)
