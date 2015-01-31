@@ -30,6 +30,7 @@ import json
 from django import template
 from django.core.serializers import serialize
 from django.db.models.query import QuerySet
+from django.template.defaultfilters import escapejs
 from django.utils import six
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
@@ -56,20 +57,20 @@ def form_dialog_fields(form):
     s = ''
 
     for field in form:
-        s += "{ name: '%s', " % field.name
+        s += "{ name: '%s', " % escapejs(field.name)
 
         if field.is_hidden:
             s += "hidden: true, "
         else:
-            s += "label: '%s', " % field.label_tag(field.label + ":")
+            s += "label: '%s', " % escapejs(field.label_tag(field.label + ":"))
 
             if field.field.required:
                 s += "required: true, "
 
             if field.field.help_text:
-                s += "help_text: '%s', " % field.field.help_text
+                s += "help_text: '%s', " % escapejs(field.field.help_text)
 
-        s += "widget: '%s' }," % six.text_type(field)
+        s += "widget: '%s' }," % escapejs(six.text_type(field))
 
     # Chop off the last ','
     return "[ %s ]" % s[:-1]
