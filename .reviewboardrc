@@ -3,3 +3,8 @@ REPOSITORY = "Djblets"
 BRANCH = "release-0.8.x"
 TRACKING_BRANCH = "origin/release-0.8.x"
 LAND_DEST_BRANCH = "release-0.8.x"
+
+ALIASES = {
+    'clear-pycs': '!find . -name "*.pyc" -delete',
+}
+
