@@ -33,7 +33,10 @@ from djblets.webapi.errors import (NOT_LOGGED_IN, PERMISSION_DENIED,
                                    INVALID_FORM_DATA)
 
 
-SPECIAL_PARAMS = ('api_format', 'callback', '_method', 'expand')
+SPECIAL_PARAMS = (
+    'api_format', 'callback', '_method', 'expand', 'only-fields',
+    'only-links',
+)
 
 
 def _find_httprequest(args):

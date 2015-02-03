@@ -356,6 +356,27 @@ class WebAPIResource(object):
     with the resource-specific mimetype. This makes it easier to identify
     the schema of resource data without hard-coding any knowledge of the
     URI.
+
+    Limiting Payload Contents
+    -------------------------
+
+    .. versionadded:: 0.9
+
+    Often times, the client won't actually need the full contents of an
+    API payload. Returning a full payload would not only increase the amount
+    of data that needs to be transferred, but would also incur extra
+    processing time on both the server and client, possibly also additional
+    database queries.
+
+    Clients can specify a list of fields and/or links that should be returned
+    in the payload by including ``?only-fields=` or ``?only-links=`` in the URL
+    in any GET requst. These should contain a comma-separated list of fields or
+    link names to include. To prevent any fields/links from being returned,
+    simply leave the list blank.
+
+    To limit fields/links in PUT or POST requests, you should instead send
+    a field in the request called ``only_fields`` or ``only_links``. The
+    behavior is exactly the same as for GET requests.
     """
 
     # Configuration
@@ -1004,12 +1025,16 @@ class WebAPIResource(object):
 
     def serialize_object(self, obj, *args, **kwargs):
         """Serializes the object into a Python dictionary."""
-        data = {
-            'links': self.get_links(self.item_child_resources, obj,
-                                    *args, **kwargs),
-        }
-
         request = kwargs.get('request', None)
+        only_fields = self.get_only_fields(request)
+        only_links = self.get_only_links(request)
+
+        data = {}
+        links = {}
+
+        if only_links != []:
+            links = self.get_links(self.item_child_resources, obj,
+                                   *args, **kwargs)
 
         if hasattr(request, '_djblets_webapi_expanded_resources'):
             expanded_resources = request._djblets_webapi_expanded_resources
@@ -1019,6 +1044,15 @@ class WebAPIResource(object):
             request._djblets_webapi_expanded_resources = expanded_resources
 
         for field in six.iterkeys(self.fields):
+            can_include_field = only_fields is None or field in only_fields
+            expand_field = field in expanded_resources
+
+            # If we're limiting fields and this one isn't explicitly included,
+            # then we're only going to want to process it if there's a chance
+            # it'll be linked (as opposed to being expanded).
+            if not can_include_field and expand_field:
+                continue
+
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
 
             if serialize_func and six.callable(serialize_func):
@@ -1027,11 +1061,15 @@ class WebAPIResource(object):
                 value = getattr(obj, field)
 
                 if isinstance(value, models.Manager):
+                    if not can_include_field:
+                        # This field isn't a single Model, so it can't be
+                        # linked below. We can safely bail now before talking
+                        # to the database.
+                        continue
+
                     value = value.all()
                 elif isinstance(value, models.ForeignKey):
                     value = value.get()
-
-            expand_field = field in expanded_resources
 
             # Make sure that any given field expansion only applies once. This
             # prevents infinite recursion in the case where there's a loop in
@@ -1043,28 +1081,31 @@ class WebAPIResource(object):
                 resource = self.get_serializer_for_object(value)
                 assert resource
 
-                data['links'][field] = {
+                links[field] = {
                     'method': 'GET',
                     'href': resource.get_href(value, *args, **kwargs),
                     'title': six.text_type(value),
                 }
-            elif isinstance(value, QuerySet) and not expand_field:
-                data[field] = [
-                    {
-                        'method': 'GET',
-                        'href': self.get_serializer_for_object(o).get_href(
-                            o, *args, **kwargs),
-                        'title': six.text_type(o),
-                    }
-                    for o in value
-                ]
-            elif isinstance(value, QuerySet):
-                data[field] = list(value)
-            else:
-                data[field] = value
+            elif can_include_field:
+                if isinstance(value, QuerySet) and not expand_field:
+                    data[field] = [
+                        {
+                            'method': 'GET',
+                            'href': self.get_serializer_for_object(o).get_href(
+                                o, *args, **kwargs),
+                            'title': six.text_type(o),
+                        }
+                        for o in value
+                    ]
+                elif isinstance(value, QuerySet):
+                    data[field] = list(value)
+                else:
+                    data[field] = value
 
         for resource_name in expanded_resources:
-            if resource_name not in data['links']:
+            if (resource_name not in links or
+                (only_fields is not None and
+                 resource_name not in only_fields)):
                 continue
 
             # Try to find the resource from the child list.
@@ -1078,7 +1119,7 @@ class WebAPIResource(object):
             if not found or not resource.model:
                 continue
 
-            del data['links'][resource_name]
+            del links[resource_name]
 
             extra_kwargs = {
                 self.uri_object_key: getattr(obj, self.model_object_key),
@@ -1089,7 +1130,49 @@ class WebAPIResource(object):
             data[resource_name] = resource._get_queryset(
                 is_list=True, *args, **extra_kwargs)
 
+        if only_links is None:
+            data['links'] = links
+        elif only_links != []:
+            data['links'] = dict([
+                (link_name, link_info)
+                for link_name, link_info in six.iteritems(links)
+                if link_name in only_links
+            ])
+
         return data
+
+    def get_only_fields(self, request):
+        """Returns the list of the only fields that the payload should include.
+
+        If the user has requested that no fields should be provided, this
+        will return an empty list.
+
+        If all fields will be included in the payload, this will return None.
+        """
+        return self._get_only_items(request, 'only-fields', 'only_fields')
+
+    def get_only_links(self, request):
+        """Returns the list of the only links that the payload should include.
+
+        If the user has requested that no links should be provided, this
+        will return an empty list.
+
+        If all links will be included in the payload, this will return None.
+        """
+        return self._get_only_items(request, 'only-links', 'only_links')
+
+    def _get_only_items(self, request, query_param_name, post_field_name):
+        if request:
+            only = request.GET.get(query_param_name,
+                                   request.POST.get(post_field_name, None))
+
+            if only is not None:
+                if only:
+                    return only.split(',')
+                else:
+                    return []
+
+        return None
 
     def get_serializer_for_object(self, obj):
         """Returns the serializer used to serialize an object.

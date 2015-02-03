@@ -28,6 +28,7 @@ import json
 import warnings
 
 from django.contrib.auth.models import AnonymousUser, User
+from django.db.models import Model
 from django.test.client import RequestFactory
 from django.utils import six
 
@@ -789,6 +790,218 @@ class WebAPIResourceTests(TestCase):
 
         resource = WebAPIResource()
         self.assertTrue(resource.are_cache_headers_current(request, etag=etag))
+
+    def test_serialize_object_with_only_fields(self):
+        """Testing WebAPIResource.serialize_object with
+        ?only-fields=<fields>
+        """
+        class TestObject(object):
+            field1 = 'abc'
+            field2 = 'def'
+            field3 = 'ghi'
+
+        class TestResource(WebAPIResource):
+            fields = {
+                'field1': {
+                    'type': six.text_type,
+                },
+                'field2': {
+                    'type': six.text_type,
+                },
+                'field3': {
+                    'type': six.text_type,
+                },
+            }
+
+        request = RequestFactory().get('/api/test/?only-fields=field1,field3')
+        resource = TestResource()
+        data = resource.serialize_object(TestObject(), request=request)
+
+        self.assertEqual(data, {
+            'field1': 'abc',
+            'field3': 'ghi',
+            'links': {
+                'self': {
+                    'href': 'http://testserver/api/test/'
+                            '?only-fields=field1,field3',
+                    'method': 'GET',
+                },
+            }
+        })
+
+    def test_serialize_object_with_only_fields_blank(self):
+        """Testing WebAPIResource.serialize_object with ?only-fields="""
+        class TestObject(object):
+            field1 = 'abc'
+            field2 = 'def'
+            field3 = 'ghi'
+
+        class TestResource(WebAPIResource):
+            fields = {
+                'field1': {
+                    'type': six.text_type,
+                },
+                'field2': {
+                    'type': six.text_type,
+                },
+                'field3': {
+                    'type': six.text_type,
+                },
+            }
+
+        request = RequestFactory().get('/api/test/?only-fields=')
+        resource = TestResource()
+        data = resource.serialize_object(TestObject(), request=request)
+
+        self.assertEqual(data, {
+            'links': {
+                'self': {
+                    'href': 'http://testserver/api/test/?only-fields=',
+                    'method': 'GET',
+                },
+            }
+        })
+
+    def test_serialize_object_with_only_fields_and_expand(self):
+        """Testing WebAPIResource.serialize_object with
+        ?only-fields=<field>&expand=<field>
+        """
+        class TestModel(Model):
+            field = 'test'
+
+            def __str__(self):
+                return 'Test'
+
+        class TestObject(object):
+            field1 = 'abc'
+            field2 = TestModel()
+            field3 = TestModel()
+
+        class TestResource1(WebAPIResource):
+            fields = {
+                'field': {
+                    'type': six.text_type,
+                },
+            }
+
+            def get_href(self, *args, **kwargs):
+                return 'http://testserver/api/test1/'
+
+        class TestResource2(WebAPIResource):
+            fields = {
+                'field1': {
+                    'type': six.text_type,
+                },
+                'field2': {
+                    'type': TestModel,
+                },
+                'field3': {
+                    'type': TestModel,
+                },
+            }
+
+            def get_serializer_for_object(self, o):
+                if isinstance(o, TestModel):
+                    return TestResource1()
+                else:
+                    return self
+
+        request = RequestFactory().get(
+            '/api/test2/?only-fields=field2&expand=field2')
+        resource = TestResource2()
+        obj = TestObject()
+        data = resource.serialize_object(obj, request=request)
+
+        # Note that field2 below isn't a serialized version of a TestModel.
+        # That's because serialization of model instances happens when
+        # dumping to a JSON string. We're not testing that part.
+        self.assertEqual(data, {
+            'field2': obj.field2,
+            'links': {
+                'self': {
+                    'href': 'http://testserver/api/test2/?only-fields=field2'
+                            '&expand=field2',
+                    'method': 'GET',
+                },
+                'field3': {
+                    'href': 'http://testserver/api/test1/',
+                    'method': 'GET',
+                    'title': 'Test',
+                },
+            }
+        })
+
+    def test_serialize_object_with_only_links(self):
+        """Testing WebAPIResource.serialize_object with ?only-links=<links>"""
+        class TestObject(object):
+            field1 = 'abc'
+            field2 = 'def'
+            field3 = 'ghi'
+
+        class TestResource(WebAPIResource):
+            allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
+            fields = {
+                'field1': {
+                    'type': six.text_type,
+                },
+                'field2': {
+                    'type': six.text_type,
+                },
+                'field3': {
+                    'type': six.text_type,
+                },
+            }
+
+        request = RequestFactory().get('/api/test/?only-links=delete,update')
+        resource = TestResource()
+        data = resource.serialize_object(TestObject(), request=request)
+
+        self.assertEqual(data, {
+            'field1': 'abc',
+            'field2': 'def',
+            'field3': 'ghi',
+            'links': {
+                'delete': {
+                    'href': 'http://testserver/api/test/',
+                    'method': 'DELETE',
+                },
+                'update': {
+                    'href': 'http://testserver/api/test/',
+                    'method': 'PUT',
+                },
+            }
+        })
+
+    def test_serialize_object_with_only_links_blank(self):
+        """Testing WebAPIResource.serialize_object with ?only-links="""
+        class TestObject(object):
+            field1 = 'abc'
+            field2 = 'def'
+            field3 = 'ghi'
+
+        class TestResource(WebAPIResource):
+            allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
+            fields = {
+                'field1': {
+                    'type': six.text_type,
+                },
+                'field2': {
+                    'type': six.text_type,
+                },
+                'field3': {
+                    'type': six.text_type,
+                },
+            }
+
+        request = RequestFactory().get('/api/test/?only-links=')
+        resource = TestResource()
+        data = resource.serialize_object(TestObject(), request=request)
+
+        self.assertEqual(data, {
+            'field1': 'abc',
+            'field2': 'def',
+            'field3': 'ghi',
+        })
 
     def _test_mimetype_responses(self, resource, url, json_mimetype,
                                  xml_mimetype, **kwargs):
