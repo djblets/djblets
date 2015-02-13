@@ -1,0 +1,57 @@
+============================
+Djblets 0.8.15 Release Notes
+============================
+
+**Release date**: February 12, 2015
+
+
+djblets.db
+==========
+
+.. py:currentmodule:: djblets.db.fields
+
+* Fixed :py:class:`RelationCounterField` when IDs are re-used.
+
+  Cached information would be re-used if re-using the same model instance IDs.
+  This would cause incorrect counts. This didn't really occur during
+  production, and was primarily an issue in unit tests.
+
+
+djblets.webapi
+==============
+
+.. py:currentmodule:: djblets.webapi.resources
+
+* Added :py:meth:`WebAPIResource.are_cache_headers_current`.
+
+  This method checks if the client-provided cache headers match a set of
+  values, in order to provide consistency with our caching support.
+
+* Added :py:meth:`WebAPIResource.encode_etag`.
+
+  This method encodes an ETag for a given string in a consistent way.
+
+  Any subclasses calling :py:meth:`WebAPIResource.generate_etag` must pass
+  ``encode_etag=False`` and pass the result through
+  :py:meth:`WebAPIResource.encode_etag` before sending to the client, or a
+  deprecation warning will be displayed.
+
+
+djblets.util
+============
+
+* Fixed escaping issues in the :py:func:`form_field_dialogs` template tag.
+  (:bug:`3678`)
+
+  If using a localization that used JavaScript-unsafe characters, the
+  resulting JSON blob would cause parsing errors. We now escape all
+  localized text.
+
+  Patch by Teresa Fan.
+
+
+Contributors
+============
+
+* Christian Hammond
+* Teresa Fan
