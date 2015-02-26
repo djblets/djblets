@@ -26,6 +26,7 @@
 from __future__ import unicode_literals
 
 import calendar
+import codecs
 import datetime
 import logging
 import os
@@ -106,7 +107,7 @@ def iter_log_lines(from_timestamp, to_timestamp, requested_levels):
     line_info = None
 
     try:
-        fp = open(log_filename, 'r')
+        fp = codecs.open(log_filename, encoding='utf-8')
     except IOError:
         # We'd log this, but it'd do very little good in practice.
         # It would only appear on the console when using the development
