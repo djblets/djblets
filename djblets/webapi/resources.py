@@ -1297,11 +1297,13 @@ class WebAPIResource(object):
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
 
             if serialize_func and six.callable(serialize_func):
-                values.append(serialize_func(obj, request=request))
+                value = serialize_func(obj, request=request)
             else:
-                values.append(six.text_type(getattr(obj, field)))
+                value = getattr(obj, field)
 
-        etag = ':'.join(fields)
+            values.append(six.text_type(value))
+
+        etag = ':'.join(values)
 
         # In Djblets 0.8.15, the responsibility for encoding moved to
         # get_etag(). However, legacy callers may end up calling

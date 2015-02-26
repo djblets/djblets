@@ -727,7 +727,7 @@ class WebAPIResourceTests(TestCase):
             self.assertIn('generate_etag will stop generating',
                           six.text_type(w[0].message))
 
-        self.assertEqual(etag, '30cbd1a99388f8007efabd23f79bbc72d7ba744d')
+        self.assertEqual(etag, 'afb589f0e7edb17efdfe4c76328350244a4f4110')
 
     def test_generate_etag_with_encode_etag_false(self):
         """Testing WebAPIResource.generate_etag with encode_etag=False"""
@@ -744,7 +744,7 @@ class WebAPIResourceTests(TestCase):
                                           encode_etag=False)
             self.assertEqual(len(w), 0)
 
-        self.assertEqual(etag, 'my_field')
+        self.assertEqual(etag, 'abc')
 
     def test_are_cache_headers_current_with_old_last_modified(self):
         """Testing WebAPIResource.are_cache_headers_current with old last
