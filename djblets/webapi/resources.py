@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import copy
 import warnings
 from hashlib import sha1
 
@@ -1004,12 +1005,19 @@ class WebAPIResource(object):
 
     def serialize_object(self, obj, *args, **kwargs):
         """Serializes the object into a Python dictionary."""
+        request = kwargs.get('request', None)
+
+        if request:
+            if not hasattr(request, '_djblets_webapi_serialize_cache'):
+                request._djblets_webapi_serialize_cache = {}
+
+            if obj in request._djblets_webapi_serialize_cache:
+                return request._djblets_webapi_serialize_cache[obj]
+
         data = {
             'links': self.get_links(self.item_child_resources, obj,
                                     *args, **kwargs),
         }
-
-        request = kwargs.get('request', None)
 
         if hasattr(request, '_djblets_webapi_expanded_resources'):
             expanded_resources = request._djblets_webapi_expanded_resources
@@ -1088,6 +1096,9 @@ class WebAPIResource(object):
 
             data[resource_name] = resource._get_queryset(
                 is_list=True, *args, **extra_kwargs)
+
+        if request:
+            request._djblets_webapi_serialize_cache[obj] = copy.deepcopy(data)
 
         return data
 
@@ -1291,19 +1302,7 @@ class WebAPIResource(object):
         In a future version, the encode_etag parameter will go away, and
         this function's behavior will change to not return encoded ETags.
         """
-        values = []
-
-        for field in fields:
-            serialize_func = getattr(self, "serialize_%s_field" % field, None)
-
-            if serialize_func and six.callable(serialize_func):
-                value = serialize_func(obj, request=request)
-            else:
-                value = getattr(obj, field)
-
-            values.append(six.text_type(value))
-
-        etag = ':'.join(values)
+        etag = repr(self.serialize_object(obj, request=request, *kwargs))
 
         # In Djblets 0.8.15, the responsibility for encoding moved to
         # get_etag(). However, legacy callers may end up calling
