@@ -1,0 +1,40 @@
+============================
+Djblets 0.8.16 Release Notes
+============================
+
+**Release date**: March 9, 2015
+
+
+Compatibility
+=============
+
+* This release requires Django 1.6.10 or higher.
+
+  Django 1.6.10 provides a number of critical security updates that are
+  beneficial to all servers.
+
+
+djblets.log
+===========
+
+* Fixed a :py:exc:`UnicodeDecodeError` when log files contain an umlaut.
+  (:bug:`3760`)
+
+  Patch by Stefan Seeger.
+
+
+djblets.webapi
+==============
+
+* Fixed numerous problems in generating suitable ETags for resources.
+  (:bug:`3778`)
+
+  The generated ETags should now properly represent the state of the
+  resource, preventing stale caching issues.
+
+
+Contributors
+============
+
+* Christian Hammond
+* Stefan Seeger
