@@ -6,6 +6,8 @@
 {% block extrahead %}
 <link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />
 {%  compressed_css "djblets-admin" %}
+{%  url 'admin:jsi18n' as jsi18nurl %}
+<script src="{{jsi18nurl|default:"../../../jsi18n/"}}"></script>
 {%  include "js/jquery.html" %}
 {%  include "js/jquery-ui.html" %}
 {%  include "js/underscore.html" %}
