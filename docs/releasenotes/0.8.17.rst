@@ -1,0 +1,29 @@
+============================
+Djblets 0.8.17 Release Notes
+============================
+
+**Release date**: March 18, 2015
+
+
+djblets.extensions
+==================
+
+* Fixed an issue with JavaScript localization errors in the extensions list.
+
+
+djblets.webapi
+==============
+
+* Fixed generating ETags on some resources.
+
+  If a resource required URL keyword arguments, it could fail to generate
+  the correct ETag, potentially crashing in the process.
+
+  This would typically be a problem only for certain nested resources.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
