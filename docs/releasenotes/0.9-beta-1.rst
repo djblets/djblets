@@ -1,0 +1,94 @@
+================================
+Djblets 0.9 Beta 1 Release Notes
+================================
+
+**Release date**: March 17, 2015
+
+This release contains all bug fixes and features found in Djblets version
+:doc:`0.8.16 <0.8.16>`.
+
+
+Installation
+============
+
+To install this release, run the following::
+
+    $ sudo easy_install \
+        -f http://downloads.reviewboard.org/releases/Djblets/0.9/ \
+        -U Djblets
+
+We **do not** recommend upgrading a production server with this version of
+Djblets. This version is still in-development, and is not guaranteed to have
+API stability.
+
+
+Compatibility Changes
+=====================
+
+* Upgraded to jQuery 1.11.
+
+  This release of jQuery offers performance and feature improvements we'll be
+  relying upon.
+
+
+djblets.datagrid
+================
+
+.. py:currentmodule:: djblets.datagrid
+
+* Added a :py:class:`AlphanumericDatagrid` subclass for paginating lists of
+  results alphanumerically.
+
+  This can be used like any other datagrid, but will handle pagination based
+  on the first letter, number, or symbol of the value of the given field.
+
+  This was built for use when paginating through lists of users, but can be
+  used for many other cases.
+
+  Patch by Ryan Done.
+
+
+djblets.extensions
+==================
+
+.. py:currentmodule:: djblets.extensions
+
+* Added sandboxing to :py:meth:`TemplateHook.applies_to`.
+
+  If this function ever raises an exception for any reason, the exception
+  will be caught, and the failure information logged.
+
+  Patch by Justin Maillet.
+
+
+djblets.webapi
+==============
+
+.. py:currentmodule:: djblets.webapi
+
+* Added support for returning only certain fields or links in the API.
+
+  API resources now support a couple new query arguments for limiting the
+  results in a payload, in order to reduce database queries and payload
+  sizes.
+
+  The ``?only-fields=`` query argument limits the returned fields in the
+  payload to the comma-separated list of field names. If the value is
+  blank, then no fields will be returned, leaving only links.
+
+  Likewise, the ``?only-links=`` query argument limits the returned links in
+  the payload. It behaves exactly like ``?only-fields=``.
+
+  Resources that inject custom fields into the payload outside of
+  :py:meth:`WebAPIResource.serialize_object()` can call
+  :py:meth:`get_only_fields()` and :py:meth:`get_only_links()` to
+  determine whether to include specific fields.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Ryan Done
+* Justin Maillet
