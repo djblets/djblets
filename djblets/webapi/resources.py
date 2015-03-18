@@ -787,7 +787,7 @@ class WebAPIResource(object):
             return self.get_no_access_error(request, obj=obj, *args, **kwargs)
 
         last_modified_timestamp = self.get_last_modified(request, obj)
-        etag = self.get_etag(request, obj)
+        etag = self.get_etag(request, obj, **kwargs)
 
         if self.are_cache_headers_current(request, last_modified_timestamp,
                                           etag):
@@ -1272,7 +1272,7 @@ class WebAPIResource(object):
             etag = six.text_type(getattr(obj, self.etag_field))
         elif self.autogenerate_etags:
             etag = self.generate_etag(obj, self.fields, request=request,
-                                      encode_etag=False)
+                                      encode_etag=False, **kwargs)
         else:
             etag = None
 
@@ -1302,7 +1302,7 @@ class WebAPIResource(object):
         In a future version, the encode_etag parameter will go away, and
         this function's behavior will change to not return encoded ETags.
         """
-        etag = repr(self.serialize_object(obj, request=request, *kwargs))
+        etag = repr(self.serialize_object(obj, request=request, **kwargs))
 
         # In Djblets 0.8.15, the responsibility for encoding moved to
         # get_etag(). However, legacy callers may end up calling
