@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import copy
 import warnings
 from hashlib import sha1
 
@@ -1098,7 +1097,8 @@ class WebAPIResource(object):
                 is_list=True, *args, **extra_kwargs)
 
         if request:
-            request._djblets_webapi_serialize_cache[obj] = copy.deepcopy(data)
+            request._djblets_webapi_serialize_cache[obj] = \
+                self._clone_serialized_object(data)
 
         return data
 
@@ -1399,6 +1399,33 @@ class WebAPIResource(object):
                     queryset.prefetch_related(*self._prefetch_related_fields)
 
         return queryset
+
+    def _clone_serialized_object(self, obj):
+        """Clone a serialized object, for storing in the cache.
+
+        This works similarly to deepcopy(), but is smart enough to only
+        copy primitive types (dictionaries, lists, etc.) and won't
+        interfere with model instances.
+
+        deepcopy() should be smart enough to do that, and is documented
+        as being smart enough, but Django models provide some functions
+        that cause deepcopy() to dig in further than it should, eventually
+        breaking in some cases.
+
+        If you want the job done right, do it yourself.
+        """
+        if isinstance(obj, dict):
+            return dict(
+                (key, self._clone_serialized_object(value))
+                for key, value in six.iteritems(obj)
+            )
+        elif isinstance(obj, list):
+            return [
+                self._clone_serialized_object(value)
+                for value in obj
+            ]
+        else:
+            return obj
 
 
 class RootResource(WebAPIResource):
