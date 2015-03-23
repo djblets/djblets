@@ -148,3 +148,8 @@ INSTALL_EXTENSION_FAILED = WebAPIError(
     110,
     "An error occurred while installing the extension",
     http_status=409)
+
+DUPLICATE_ITEM = WebAPIError(
+    111,
+    "An entry for this item or its unique key(s) already exists",
+    http_status=409)
