@@ -23,7 +23,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from __future__ import unicode_literals
+from __future__ import division, unicode_literals
 
 import logging
 import os
@@ -31,6 +31,7 @@ import tempfile
 
 from django import template
 from django.core.files import File
+from django.utils import six
 from django.utils.six.moves import cStringIO as StringIO
 try:
     from PIL import Image
@@ -89,22 +90,37 @@ def crop_image(file, x, y, width, height):
     return storage.url(new_name)
 
 
-# From http://www.djangosnippets.org/snippets/192
 @register.filter
 def thumbnail(file, size='400x100'):
+    """Create a thumbnail of the given image.
+
+    This will create a thumbnail of the given ``file`` (a Django FileField or
+    ImageField) with the given size. Size can either be a string of WxH (in
+    pixels), or a 2-tuple. If the size is a tuple and the second part is None,
+    it will be calculated to preserve the aspect ratio.
+
+    This will return the URL to the stored thumbnail.
     """
-    Creates a thumbnail of an image with the specified size, returning
-    the URL of the thumbnail.
-    """
-    x, y = [int(x) for x in size.split('x')]
+    if isinstance(size, six.string_types):
+        x, y = (int(x) for x in size.split('x'))
+        size_str = size
+    elif isinstance(size, tuple):
+        x, y = size
+
+        if y is None:
+            size_str = '%d' % x
+        else:
+            size_str = '%dx%d' % (x, y)
+    else:
+        raise ValueError('Thumbnail size "%r" could not be be parsed', size)
 
     filename = file.name
     if filename.find(".") != -1:
         basename, format = filename.rsplit('.', 1)
-        miniature = '%s_%s.%s' % (basename, size, format)
+        miniature = '%s_%s.%s' % (basename, size_str, format)
     else:
         basename = filename
-        miniature = '%s_%s' % (basename, size)
+        miniature = '%s_%s' % (basename, size_str)
 
     storage = file.storage
 
@@ -115,6 +131,13 @@ def thumbnail(file, size='400x100'):
             file.close()
 
             image = Image.open(data)
+
+            if y is None:
+                x = min(image.size[0], x)
+
+                # Calculate height based on width
+                y = int(x * (image.size[1] / image.size[0]))
+
             image.thumbnail([x, y], Image.ANTIALIAS)
 
             save_image_to_storage(image, storage, miniature)
