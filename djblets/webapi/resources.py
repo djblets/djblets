@@ -1025,6 +1025,13 @@ class WebAPIResource(object):
             expanded_resources = expand.split(',')
             request._djblets_webapi_expanded_resources = expanded_resources
 
+        # Make a copy of the list of expanded resources. We'll be temporarily
+        # removing items as we recurse down into any nested objects, to
+        # prevent infinite loops. We'll want to make sure we don't
+        # permanently remove these entries, or subsequent list items will
+        # be affected.
+        orig_expanded_resources = list(expanded_resources)
+
         for field in six.iterkeys(self.fields):
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
 
@@ -1043,6 +1050,9 @@ class WebAPIResource(object):
             # Make sure that any given field expansion only applies once. This
             # prevents infinite recursion in the case where there's a loop in
             # the object graph.
+            #
+            # We'll be restoring these values once we're done serializing
+            # objects.
             if expand_field:
                 request._djblets_webapi_expanded_resources.remove(field)
 
@@ -1095,6 +1105,10 @@ class WebAPIResource(object):
 
             data[resource_name] = resource._get_queryset(
                 is_list=True, *args, **extra_kwargs)
+
+        # Now that we're done serializing, restore the list of expanded
+        # resource for the next call.
+        request._djblets_webapi_expanded_resources = orig_expanded_resources
 
         if request:
             request._djblets_webapi_serialize_cache[obj] = \
