@@ -512,6 +512,16 @@ class RelationCounterField(CounterField):
     # instance ID, and a relation name.
     _instance_states = weakref.WeakValueDictionary()
 
+    # Stores instances we're tracking that haven't yet been saved.
+    #
+    # An unsaved instance may never be saved. We want to keep tabs on it
+    # so we can disconnect any signal handlers if it ever falls out of
+    # scope.
+    #
+    # Note that we're using a plain dictionary here, since we need to
+    # control the weak references ourselves.
+    _unsaved_instances = {}
+
     # Most of the hard work really lives in RelationTracker below. Here, we
     # store all registered instances of RelationTracker. There will be one
     # per model_cls/relation_name pair.
@@ -890,17 +900,23 @@ class RelationCounterField(CounterField):
         # newly-created instance not yet saved to the database). In this case,
         # we need to listen for the first save before storing the state.
         if instance.pk is None:
+            instance_id = id(instance)
             dispatch_uid = '%s-%s.%s-first-save' % (
-                id(instance),
+                instance_id,
                 self.__class__.__module__,
                 self.__class__.__name__)
 
             post_save.connect(
                 lambda **kwargs: self._on_first_save(
-                    instance, dispatch_uid=dispatch_uid, **kwargs),
+                    instance_id, dispatch_uid=dispatch_uid, **kwargs),
                 weak=False,
                 sender=cls,
                 dispatch_uid=dispatch_uid)
+
+            self._unsaved_instances[instance_id] = weakref.ref(
+                instance,
+                lambda *args, **kwargs: self._on_unsaved_instance_destroyed(
+                    cls, instance_id, dispatch_uid))
         else:
             RelationCounterField._store_state(instance, self)
 
@@ -915,15 +931,15 @@ class RelationCounterField(CounterField):
                 RelationCounterField._relation_trackers[key] = \
                     self._relation_tracker
 
-    def _on_first_save(self, model_instance, instance, dispatch_uid,
+    def _on_first_save(self, expected_instance_id, instance, dispatch_uid,
                        created=False, **kwargs):
         """Handler for the first save on a newly created instance.
 
         This will disconnect the signal and store the state on the instance.
         """
-        assert created
+        if id(instance) == expected_instance_id:
+            assert created
 
-        if model_instance == instance:
             # Stop listening immediately for any new signals here.
             # The Signal stuff deals with thread locks, so we shouldn't
             # have to worry about reaching any of this twice.
@@ -943,6 +959,17 @@ class RelationCounterField(CounterField):
             cls._reset_state(instance)
 
             # Now we can register each RelationCounterField on here.
-            for field in model_instance.__class__._meta.local_fields:
+            for field in instance.__class__._meta.local_fields:
                 if isinstance(field, cls):
                     cls._store_state(instance, field)
+
+    def _on_unsaved_instance_destroyed(self, cls, instance_id, dispatch_uid):
+        """Handler for when an unsaved instance is destroyed.
+
+        An unsaved instance would still have a signal connection set.
+        We need to disconnect it to keep that connection from staying in
+        memory indefinitely.
+        """
+        post_save.disconnect(sender=cls, dispatch_uid=dispatch_uid)
+
+        del self._unsaved_instances[instance_id]

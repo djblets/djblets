@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from django.db import models, transaction
+from django.db.models.signals import post_save
 
 from djblets.db.fields import RelationCounterField
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
@@ -104,6 +105,42 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(added_model.pk, 1)
         self.assertEqual(model.counter, 1)
         self.assertEqual(model.counter_2, 1)
+
+    def test_unsaved_and_other_double_save(self):
+        """Testing RelationCounterField with an unsaved object and a double
+        save on another object
+        """
+        # Due to a misplaced assertion, we had a bug where _on_first_save
+        # was failing an assertion check when there were two instances of
+        # a class, and the second one created was then saved twice. The
+        # signal connection from the first stuck around and saw that
+        # updated=False, which it expected would be True. However, it didn't
+        # check first if it was matching the expected instance.
+        model1 = M2MRefModel()
+        model2 = M2MRefModel()
+        self.assertEqual(model1.pk, None)
+        self.assertEqual(model2.pk, None)
+        self.assertEqual(len(post_save.receivers), 2)
+
+        # Perform the first save, which will do update=True.
+        model2.save()
+        self.assertEqual(len(post_save.receivers), 1)
+
+        # Perform the second save, which will do update=False.
+        model2.save()
+        self.assertEqual(len(post_save.receivers), 1)
+
+    def test_disconnect_signal_on_destroy(self):
+        """Testing RelationCounterField disconnects signals for an object when
+        it falls out of scope
+        """
+        model = M2MRefModel()
+        self.assertEqual(model.pk, None)
+        self.assertEqual(len(post_save.receivers), 1)
+
+        model = None
+        self.assertEqual(len(post_save.receivers), 0)
+
 
     #
     # Forward-relation ManyToManyField tests
