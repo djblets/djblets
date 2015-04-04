@@ -6,7 +6,8 @@ import zlib
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib.sites.models import Site
-from django.utils.six.moves import (cPickle as pickle,
+from django.utils.six.moves import (range,
+                                    cPickle as pickle,
                                     cStringIO as StringIO)
 
 from djblets.cache.errors import MissingChunkError
@@ -20,67 +21,220 @@ CACHE_CHUNK_SIZE = 2 ** 20 - 1024  # almost 1M (memcached's slab limit)
 MAX_KEY_SIZE = 240
 
 
+_default_expiration = getattr(settings, 'CACHE_EXPIRATION_TIME',
+                              DEFAULT_EXPIRATION_TIME)
+
+
 def _cache_fetch_large_data(cache, key, compress_large_data):
-    chunk_count = cache.get(make_cache_key(key))
-    data = []
+    """Fetch one or more large data items from the cache.
 
-    chunk_keys = [make_cache_key('%s-%d' % (key, i))
-                  for i in range(int(chunk_count))]
+    The main cache key indicating the number of chunks will be read, followed
+    by each of the chunks. If any chunks are missing, a MissingChunkError
+    will be immediately returned.
+
+    The data is then combined and optionally uncompressed. The unpickled
+    results are then yielded to the caller on-demand.
+    """
+    chunk_count = int(cache.get(make_cache_key(key)))
+
+    chunk_keys = [
+        make_cache_key('%s-%d' % (key, i))
+        for i in range(chunk_count)
+    ]
     chunks = cache.get_many(chunk_keys)
-    for chunk_key in chunk_keys:
-        try:
-            data.append(chunks[chunk_key][0])
-        except KeyError:
-            logging.debug('Cache miss for key %s.' % chunk_key)
-            raise MissingChunkError
 
-    data = b''.join(data)
+    # Check that we have all the keys we expect, before we begin generating
+    # values. We don't want to waste effort loading anything, and we want to
+    # pass an error about missing keys to the caller up-front before we
+    # generate anything.
+    if len(chunks) != chunk_count:
+        missing_keys = sorted(set(chunk_keys) - set(chunks.keys()))
+        logging.debug('Cache miss for key(s): %s.' % ', '.join(missing_keys))
+
+        raise MissingChunkError
+
+    # Process all the chunks and decompress them at once, instead of streaming
+    # the results. It's faster for any reasonably-sized data in cache. We'll
+    # stream depickles instead.
+    data = b''.join(
+        chunks[chunk_key][0]
+        for chunk_key in chunk_keys
+    )
 
     if compress_large_data:
         data = zlib.decompress(data)
 
+    fp = StringIO(data)
+
     try:
-        unpickler = pickle.Unpickler(StringIO(data))
-        data = unpickler.load()
+        # Unpickle all the items we're expecting from the cached data.
+        #
+        # There will only be one item in the case of old-style cache data.
+        while True:
+            try:
+                yield pickle.load(fp)
+            except EOFError:
+                return
     except Exception as e:
         logging.warning('Unpickle error for cache key "%s": %s.' % (key, e))
-        raise e
-
-    return data
+        raise
 
 
-def _cache_store_large_data(cache, key, data, expiration, compress_large_data):
-    # We store large data in the cache broken into chunks that are 1M in size.
-    # To do this easily, we first pickle the data and compress it with zlib.
-    # This gives us a string which can be chunked easily. These are then stored
-    # individually in the cache as single-element lists (so the cache backend
-    # doesn't try to convert binary data to utf8). The number of chunks needed
-    # is stored in the cache under the unadorned key
-    file = StringIO()
-    pickler = pickle.Pickler(file)
-    pickler.dump(data)
-    data = file.getvalue()
+def _cache_compress_pickled_data(items):
+    """Compress lists of items for storage in the cache.
 
-    if compress_large_data:
-        data = zlib.compress(data)
+    This works with generators, and will take each item in the list or
+    generator of items, zlib-compress the data, and store it in a buffer.The
+    item and a blob of compressed data will be yielded to the caller.
+    """
+    compressor = zlib.compressobj()
 
+    for data, has_item, item in items:
+        yield compressor.compress(data), has_item, item
+
+    remaining = compressor.flush()
+
+    if remaining:
+        yield remaining, False, None
+
+
+def _cache_store_chunks(items, key, expiration):
+    """Store a list of items as chunks in the cache.
+
+    The list of items will be combined into chunks and stored in the
+    cache as efficiently as possible. Each item in the list will be
+    yielded to the caller as it's fetched from the list or generator.
+    """
+    chunks_data = StringIO()
+    chunks_data_len = 0
+    read_start = 0
+    item_count = 0
     i = 0
-    while len(data) > CACHE_CHUNK_SIZE:
-        chunk = data[0:CACHE_CHUNK_SIZE]
-        data = data[CACHE_CHUNK_SIZE:]
+
+    for data, has_item, item in items:
+        if has_item:
+            yield item
+            item_count += 1
+
+        chunks_data.write(data)
+        chunks_data_len += len(data)
+
+        if chunks_data_len > CACHE_CHUNK_SIZE:
+            # We have enough data to fill a chunk now. Start processing
+            # what we've stored and create cache keys for each chunk.
+            # Anything remaining will be stored for the next round.
+            chunks_data.seek(read_start)
+            cached_data = {}
+
+            while chunks_data_len > CACHE_CHUNK_SIZE:
+                chunk = chunks_data.read(CACHE_CHUNK_SIZE)
+                chunk_len = len(chunk)
+                chunks_data_len -= chunk_len
+                read_start += chunk_len
+
+                # Note that we wrap the chunk in a list so that the cache
+                # backend won't try to perform any conversion on the string.
+                cached_data[make_cache_key('%s-%d' % (key, i))] = [chunk]
+                i += 1
+
+            # Store the keys in the cache in a single request.
+            cache.set_many(cached_data, expiration)
+
+            # Reposition back at the end of the stream.
+            chunks_data.seek(0, 2)
+
+    if chunks_data_len > 0:
+        # There's one last bit of data to store. Note that this should be
+        # less than the size of a chunk,
+        assert chunks_data_len <= CACHE_CHUNK_SIZE
+
+        chunks_data.seek(read_start)
+        chunk = chunks_data.read()
         cache.set(make_cache_key('%s-%d' % (key, i)), [chunk], expiration)
         i += 1
-    cache.set(make_cache_key('%s-%d' % (key, i)), [data], expiration)
 
-    cache.set(make_cache_key(key), '%d' % (i + 1), expiration)
+    cache.set(make_cache_key(key), '%d' % i, expiration)
+
+
+def _cache_store_items(cache, key, items, expiration, compress_large_data):
+    """Store items in the cache.
+
+    The items will be individually pickled and combined into a binary blob,
+    which can then optionally be compressed. The resulting data is then
+    cached over one or more keys, each representing a chunk about 1MB in size.
+
+    A main cache key will be set that contains information on the other keys.
+    """
+    results = (
+        (pickle.dumps(item), True, item)
+        for item in items
+    )
+
+    if compress_large_data:
+        results = _cache_compress_pickled_data(results)
+
+    for item in _cache_store_chunks(results, key, expiration):
+        yield item
+
+
+def cache_memoize_iter(key, items_or_callable,
+                       expiration=_default_expiration,
+                       force_overwrite=False,
+                       compress_large_data=True):
+    """Memoize an iterable list of items inside the configured cache.
+
+    If the provided list of items is a function, the function must return a
+    an iterable object, such as a list or a generator.
+
+    If a generator is provided, directly or through a function, then each
+    item will be immediately yielded to the caller as they're retrieved, and
+    the cached entries will be built up as the items are processed.
+
+    The data is assumed to be big enough that it must be pickled,
+    optionally compressed, and stored as chunks in the cache.
+
+    The result from this function is always a generator. Note that it's
+    important that the generator be allowed to continue until completion, or
+    the data won't be retrievable from the cache.
+
+    Keyword arguments:
+    expiration          -- The expiration time for the key.
+    force_overwrite     -- If True, the value will always be computed and
+                           stored regardless of whether it exists in the cache
+                           already.
+    compress_large_data -- Compresses the data with zlib compression.
+                           Defaults to True.
+    """
+    results = None
+
+    if not force_overwrite and make_cache_key(key) in cache:
+        try:
+            results = _cache_fetch_large_data(cache, key, compress_large_data)
+        except Exception as e:
+            logging.warning('Failed to fetch large data from cache for '
+                            'key %s: %s.' % (key, e))
+    else:
+        logging.debug('Cache miss for key %s.' % key)
+
+    if results is None:
+        if callable(items_or_callable):
+            items = items_or_callable()
+        else:
+            items = items_or_callable
+
+        results = _cache_store_items(cache, key, items, expiration,
+                                     compress_large_data)
+
+    for item in results:
+        yield item
 
 
 def cache_memoize(key, lookup_callable,
-                  expiration=getattr(settings, 'CACHE_EXPIRATION_TIME',
-                                     DEFAULT_EXPIRATION_TIME),
+                  expiration=_default_expiration,
                   force_overwrite=False,
                   large_data=False,
-                  compress_large_data=True):
+                  compress_large_data=True,
+                  use_generator=False):
     """Memoize the results of a callable inside the configured cache.
 
     Keyword arguments:
@@ -98,25 +252,21 @@ def cache_memoize(key, lookup_callable,
                            large_data is True.
     """
     if large_data:
-        if not force_overwrite and make_cache_key(key) in cache:
-            try:
-                data = _cache_fetch_large_data(cache, key, compress_large_data)
-                return data
-            except Exception as e:
-                logging.warning('Failed to fetch large data from cache for '
-                                'key %s: %s.' % (key, e))
-        else:
-            logging.debug('Cache miss for key %s.' % key)
+        results = list(cache_memoize_iter(key,
+                                          lambda: [lookup_callable()],
+                                          expiration,
+                                          force_overwrite,
+                                          compress_large_data))
 
-        data = lookup_callable()
-        _cache_store_large_data(cache, key, data, expiration,
-                                compress_large_data)
-        return data
+        assert len(results) == 1
 
+        return results[0]
     else:
         key = make_cache_key(key)
+
         if not force_overwrite and key in cache:
             return cache.get(key)
+
         data = lookup_callable()
 
         # Most people will be using memcached, and memcached has a limit of
@@ -138,6 +288,7 @@ def cache_memoize(key, lookup_callable,
             cache.set(key, data, expiration)
         except:
             pass
+
         return data
 
 
