@@ -155,27 +155,31 @@ def init_logging():
     log_path = os.path.join(log_directory, log_name + ".log")
 
     formatter = RequestLogFormatter(request_format_str, format_str)
+    logging_to_stderr = False
 
-    try:
-        if sys.platform == 'win32':
-            handler = logging.FileHandler(log_path)
-        else:
-            handler = logging.handlers.WatchedFileHandler(log_path)
+    if log_path:
+        try:
+            if sys.platform == 'win32':
+                handler = logging.FileHandler(log_path)
+            else:
+                handler = logging.handlers.WatchedFileHandler(log_path)
+
+            logging_to_stderr = False
+        except IOError:
+            handler = logging.StreamHandler()
+            logging_to_stderr = True
 
         handler.setLevel(log_level)
         handler.setFormatter(formatter)
 
         root.addHandler(handler)
         root.setLevel(log_level)
-    except IOError:
-        logging.basicConfig(
-            level=log_level,
-            format=format_str,
-        )
+
+    if logging_to_stderr:
         logging.warning("Could not open logfile %s. Logging to stderr",
                         log_path)
 
-    if settings.DEBUG:
+    if settings.DEBUG and not logging_to_stderr:
         # In DEBUG mode, log to the console as well.
         console_log = logging.StreamHandler()
         console_log.setLevel(log_level)
