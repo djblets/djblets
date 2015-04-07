@@ -116,30 +116,34 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
         # signal connection from the first stuck around and saw that
         # updated=False, which it expected would be True. However, it didn't
         # check first if it was matching the expected instance.
+        base_receiver_count = len(post_save.receivers)
+
         model1 = M2MRefModel()
         model2 = M2MRefModel()
         self.assertEqual(model1.pk, None)
         self.assertEqual(model2.pk, None)
-        self.assertEqual(len(post_save.receivers), 2)
+        self.assertEqual(len(post_save.receivers), base_receiver_count + 2)
 
         # Perform the first save, which will do update=True.
         model2.save()
-        self.assertEqual(len(post_save.receivers), 1)
+        self.assertEqual(len(post_save.receivers), base_receiver_count + 1)
 
         # Perform the second save, which will do update=False.
         model2.save()
-        self.assertEqual(len(post_save.receivers), 1)
+        self.assertEqual(len(post_save.receivers), base_receiver_count + 1)
 
     def test_disconnect_signal_on_destroy(self):
         """Testing RelationCounterField disconnects signals for an object when
         it falls out of scope
         """
+        base_receiver_count = len(post_save.receivers)
+
         model = M2MRefModel()
         self.assertEqual(model.pk, None)
-        self.assertEqual(len(post_save.receivers), 1)
+        self.assertEqual(len(post_save.receivers), base_receiver_count + 1)
 
         model = None
-        self.assertEqual(len(post_save.receivers), 0)
+        self.assertEqual(len(post_save.receivers), base_receiver_count)
 
 
     #

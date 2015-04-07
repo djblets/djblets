@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import warnings
-from hashlib import sha1
 
 from django.conf.urls import include, patterns, url
 from django.contrib.auth.models import User, Group
@@ -19,7 +18,8 @@ from django.utils import six
 from django.views.decorators.vary import vary_on_headers
 
 from djblets.util.decorators import augment_method_from
-from djblets.util.http import (get_modified_since, etag_if_none_match,
+from djblets.util.http import (get_modified_since, encode_etag,
+                               etag_if_none_match,
                                set_last_modified, set_etag,
                                get_http_requested_mimetype)
 from djblets.urls.patterns import never_cache_patterns
@@ -1385,9 +1385,7 @@ class WebAPIResource(object):
         This will take a precomputed ETag, augment it with additional
         information, encode it as a SHA1, and return it.
         """
-        etag = '%s:%s' % (request.user.username, etag)
-
-        return sha1(etag.encode('utf-8')).hexdigest()
+        return encode_etag('%s:%s' % (request.user.username, etag))
 
     def generate_etag(self, obj, fields, request, encode_etag=True, **kwargs):
         """Generates an ETag from the serialized values of all given fields.

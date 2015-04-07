@@ -25,6 +25,8 @@
 
 from __future__ import unicode_literals
 
+import hashlib
+
 from django.http import HttpResponse
 from django.utils import six
 from django.utils.six.moves.urllib.parse import urlencode
@@ -70,6 +72,11 @@ def set_etag(response, etag):
     Sets the ETag header in a response.
     """
     response['ETag'] = etag
+
+
+def encode_etag(etag):
+    """Encode a string as a SHA1 value, for use in an ETag."""
+    return hashlib.sha1(etag.encode('utf-8')).hexdigest()
 
 
 def etag_if_none_match(request, etag):
