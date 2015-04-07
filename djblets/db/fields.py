@@ -617,7 +617,10 @@ class RelationCounterField(CounterField):
                     "a ForeignKey ('%s')"
                     % rel_field_name)
 
-            dispatch_uid = id(self)
+            dispatch_uid = '%s-%s.%s-related-save' % (
+                id(self),
+                self.__class__.__module__,
+                self.__class__.__name__)
 
             if is_m2m:
                 # This is going to be one end or the other of a ManyToManyField

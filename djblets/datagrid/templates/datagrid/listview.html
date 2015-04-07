@@ -34,13 +34,23 @@
       </tr>
      </thead>
      <tbody>
-{% for row in datagrid.rows %}
+{% block datagrid_rows %}
+{%  if datagrid.rows %}
+{%   for row in datagrid.rows %}
       <tr class="{% cycle odd,even %}">
-{%  for cell in row.cells %}
+{%    for cell in row.cells %}
        {{cell}}{% endfor %}
       </tr>
-{% endfor %}
+{%   endfor %}
+{%  else %}
+      <tr class="datagrid-empty-row">
+       <td class="datagrid-empty" colspan="{{datagrid.columns|length|add:1}}">
+{%   block datagrid_empty %}{% endblock %}
+       </td>
+      </tr>
+{%  endif %}
      </tbody>
+{% endblock %}
     </table>
    </div>
 {{datagrid.render_paginator}}
