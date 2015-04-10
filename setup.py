@@ -62,7 +62,7 @@ setup(name=PACKAGE_NAME,
       install_requires=[
           'Django>=1.3.7,<1.4',
           'feedparser>=5.1.2',
-          'PIL'
+          'pillowfight'
       ],
       dependency_links = [
           "http://downloads.reviewboard.org/mirror/",
