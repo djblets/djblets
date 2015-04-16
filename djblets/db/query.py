@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import re
+
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db.models.manager import Manager
 from django.utils import six
@@ -21,6 +23,7 @@ class LocalDataQuerySet(object):
     * exclude
     * filter
     * get
+    * order_by
     * prefetch_related
     * select_related
 
@@ -29,6 +32,9 @@ class LocalDataQuerySet(object):
 
     This is particularly handy with WebAPIResource.
     """
+
+    PROPERTY_REGEX = re.compile(r'(-?)(\w+)')
+
     def __init__(self, data):
         self._data = data
 
@@ -87,6 +93,41 @@ class LocalDataQuerySet(object):
             raise MultipleObjectsReturned(
                 'get() returned more than one %s -- it returned %s!'
                 % (self._data.__class__.__name__, count))
+
+    def order_by(self, *attrs, **kwargs):
+        """Returns a queryset ordering items by the specified attributes.
+
+        The result will be a LocalDataQuerySet that contains all items from
+        this queryset ordered by the attributes specified. If multiple
+        attributes are specified, the items are sorted by the first attribute
+        and ties are broken by the other following attributes.
+
+        All items are sorted in ascending order. To specify a descending
+        order, an attribute must have a '-' prepended to the name, such as
+        `-attribute_A`.
+        """
+        def compare(element_a, element_b):
+            """Compare two elements of the queryset."""
+            for attr in attrs:
+                match = self.PROPERTY_REGEX.search(attr)
+                attr = match.group(2)
+                direction = 1
+
+                if match.group(1):
+                    direction = -1
+
+                attr_a = getattr(element_a, attr)
+                attr_b = getattr(element_b, attr)
+                direction *= cmp(attr_a, attr_b)
+
+                if direction:
+                    return direction
+
+            return 0
+
+        copy = self.clone()
+        copy._data.sort(cmp=compare)
+        return copy
 
     def prefetch_related(self, *args, **kwargs):
         """Stub for compatibility with QuerySet.prefetch_related.

@@ -7,6 +7,17 @@ from djblets.db.query import LocalDataQuerySet
 from djblets.testing.testcases import TestCase
 
 
+class TestObjectsForOrder(object):
+    """Object used for testing"""
+
+    def __init__(self, param1, param2, param3, param4):
+        """Initialize the object"""
+        self.param1 = param1
+        self.param2 = param2
+        self.param3 = param3
+        self.param4 = param4
+
+
 class LocalDataQuerySetTests(TestCase):
     """Tests for djblets.db.query.LocalDataQuerySet."""
     def test_clone(self):
@@ -178,3 +189,24 @@ class LocalDataQuerySetTests(TestCase):
         queryset = LocalDataQuerySet(values)
 
         self.assertEqual(len(queryset), 3)
+
+    def test_order_by(self):
+        """Testing LocalDataQuerySet.order_by"""
+        obj1 = TestObjectsForOrder(2, 'first', 'string', 0)
+        obj2 = TestObjectsForOrder(1, 'second', 'string', 0)
+        obj3 = TestObjectsForOrder(4, 'test', 'string', 3)
+        obj4 = TestObjectsForOrder(1, 'first', 'string', 0)
+        obj5 = TestObjectsForOrder(2, 'second', 'string', 0)
+        obj6 = TestObjectsForOrder(4, 'test', 'string', 0)
+        obj7 = TestObjectsForOrder(2, 'third', 'string', 0)
+
+        data = [obj1, obj2, obj3, obj4, obj5, obj6, obj7]
+        answer = [obj2, obj4, obj7, obj5, obj1, obj3, obj6]
+
+        queryset = LocalDataQuerySet(data).order_by('param1', '-param4',
+                                                    '-param2')
+
+        self.assertEqual(len(queryset._data), len(answer))
+
+        for i in range(len(data)):
+            self.assertEqual(queryset._data[i], answer[i])
