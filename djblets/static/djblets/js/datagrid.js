@@ -15,12 +15,13 @@ $.fn.datagrid = function(options) {
     var $grid = this,
         gridId = this.attr("id"),
         $menu = $("#" + gridId + "-menu"),
-        $gridContainer = $grid.find('.datagrid'),
-        $bodyContainer = $gridContainer.find('.datagrid-body-container'),
-        $headTable = $gridContainer.find('.datagrid-head'),
-        $bodyTable = $bodyContainer.find('.datagrid-body'),
-        $bodyTableHead = $bodyTable.find('thead'),
-        $paginator = $gridContainer.find('.paginator'),
+        $gridMain = $grid.children('.datagrid-main'),
+        $gridContainer = $gridMain.children('.datagrid'),
+        $bodyContainer = $gridContainer.children('.datagrid-body-container'),
+        $headTable = $gridContainer.children('.datagrid-head'),
+        $bodyTable = $bodyContainer.children('.datagrid-body'),
+        $bodyTableHead = $bodyTable.children('thead'),
+        $paginator = $gridContainer.children('.paginator'),
         $window = $(window),
         $editButton,
 
@@ -171,6 +172,7 @@ $.fn.datagrid = function(options) {
             bodyWidths = [],
             headWidths = [],
             extraWidth = 0,
+            bodyContainerWidth,
             width,
             i;
 
@@ -179,11 +181,18 @@ $.fn.datagrid = function(options) {
             $origCols[i].width = storedColWidths[i];
         }
 
-        /* Store all the widths we'll apply. */
+        roundGridPixels();
+
+        /*
+         * Show the table header, so we can get some width calculations
+         * from it.
+         */
         $bodyTableHead.show();
 
-        $headTable.width($bodyContainer.width() - 1);
-        extraWidth = $bodyContainer.width() - $bodyTable.width();
+        /* Store all the widths we'll apply. */
+        bodyContainerWidth = $bodyContainer.width();
+        $headTable.width(bodyContainerWidth);
+        extraWidth = bodyContainerWidth - $bodyTable.width();
 
         for (i = 0; i < numCols; i++) {
             width = $(origHeaderCells[i]).outerWidth();
@@ -194,8 +203,8 @@ $.fn.datagrid = function(options) {
         $bodyTableHead.hide();
 
         /* Modify the widths to account for the scrollbar and extra spacing */
-        headWidths[numCols - 1] = bodyWidths[numCols - 1] - 1;
-        headWidths[numCols - 2] = bodyWidths[numCols - 2] - 1 + extraWidth;
+        headWidths[numCols - 1] = bodyWidths[numCols - 1];
+        headWidths[numCols - 2] = bodyWidths[numCols - 2] + extraWidth;
 
         /* Now set the new state. */
         for (i = 0; i < numCols; i++) {
@@ -216,6 +225,25 @@ $.fn.datagrid = function(options) {
             lastWindowWidth = windowWidth;
 
             syncColumnSizes();
+        }
+    }
+
+    /*
+     * Round out the dimensions of the datagrid.
+     *
+     * On some browsers and displays, the containers will all have
+     * widths that are fractions of a pixel, causing a number of
+     * errors in our calculations. We need to force the widths to a
+     * nice round number.
+     */
+    function roundGridPixels() {
+        var width;
+
+        $gridMain.width('auto');
+        width = $gridMain.width();
+
+        if (width > 0) {
+            $gridMain.width(width);
         }
     }
 
