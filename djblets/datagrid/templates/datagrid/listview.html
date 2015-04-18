@@ -10,7 +10,7 @@
 {% endblock datagrid_titlebox %}
  <div class="datagrid-main">
   <div class="datagrid">
-   <table class="datagrid-head">
+   <table class="datagrid-head" style="display: none;">
     <colgroup>
 {% for column in datagrid.columns %}
      <col class="{{column.id}}"{% ifnotequal column.width 0 %} width="{{column.width}}%"{% endifnotequal %} />

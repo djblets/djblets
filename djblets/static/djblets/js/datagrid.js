@@ -78,28 +78,32 @@ $.fn.datagrid = function(options) {
      * resizeToFit on window resize.
      */
     function setupHeader() {
-        var $origHeader = $bodyTable.find('thead');
+        var $origHeader = $bodyTable.children('thead'),
+            $thead;
+
+        activeColumns = [];
 
         /* Store the original widths of the colgroup columns. */
         $bodyTable.find('colgroup col').each(function(i, colEl) {
             storedColWidths.push(colEl.width);
+
+            if (colEl.className !== 'datagrid-customize') {
+                /* Add the non-special columns to the list. */
+                activeColumns.push(colEl.className);
+            }
         });
+
+        $thead = $origHeader.clone().show();
 
         /* Create a copy of the header and place it in a separate table. */
         $headTable
-            .find('thead')
+            .children('thead')
                 .remove()
             .end()
-            .append($origHeader.clone().show());
+            .append($thead)
+            .show();
+
         $origHeader.hide();
-
-        activeColumns = [];
-
-        /* Add all the non-special columns to the list. */
-        $headTable.find("col").not(".datagrid-customize")
-            .each(function(i, col) {
-                activeColumns.push(col.className);
-            });
 
         $headTable.find("th")
             /* Make the columns unselectable. */
@@ -109,7 +113,7 @@ $.fn.datagrid = function(options) {
             .not(".edit-columns").draggable({
                 appendTo: "body",
                 axis: "x",
-                containment: $headTable.find("thead:first"),
+                containment: $thead,
                 cursor: "move",
                 helper: function() {
                     var $el = $(this);
@@ -203,7 +207,6 @@ $.fn.datagrid = function(options) {
         $bodyTableHead.hide();
 
         /* Modify the widths to account for the scrollbar and extra spacing */
-        headWidths[numCols - 1] = bodyWidths[numCols - 1];
         headWidths[numCols - 2] = bodyWidths[numCols - 2] + extraWidth;
 
         /* Now set the new state. */
