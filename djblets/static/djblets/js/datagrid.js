@@ -53,9 +53,9 @@ $.fn.datagrid = function(options) {
      * done by the caller.
      */
     this.resizeToFit = function() {
-        $bodyContainer.height($grid.innerHeight() -
-                              $bodyContainer.position().top -
-                              ($paginator.outerHeight() || 0));
+        $bodyContainer.height(Math.ceil($grid.innerHeight() -
+                                        $bodyContainer.position().top -
+                                        ($paginator.outerHeight() || 0)));
 
         syncColumnSizes();
     };
