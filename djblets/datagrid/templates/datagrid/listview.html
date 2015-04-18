@@ -1,12 +1,13 @@
-{% load datagrid %}
-{% load i18n %}
-{% load staticfiles %}
+{% load datagrid i18n staticfiles %}
+
 <div class="datagrid-wrapper" id="{{datagrid.id}}">
+{% block datagrid_titlebox %}
  <div class="datagrid-titlebox">
-{% block datagrid_title %}
+{%  block datagrid_title %}
    <h1 class="datagrid-title">{{datagrid.title}}</h1>
-{% endblock %}
+{%  endblock datagrid_title %}
  </div>
+{% endblock datagrid_titlebox %}
  <div class="datagrid-main">
   <div class="datagrid">
    <table class="datagrid-head">
@@ -53,7 +54,9 @@
 {% endblock %}
     </table>
    </div>
+{% block paginator %}
 {{datagrid.render_paginator}}
+{% endblock paginator %}
   </div>
  </div>
  <table class="datagrid-menu" id="{{datagrid.id}}-menu" style="display:none;position:absolute;">
