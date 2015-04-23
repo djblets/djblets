@@ -135,6 +135,7 @@ $.fn.datagrid = function(options) {
                         .width($el.width())
                         .height($el.height())
                         .css("top", $el.offset().top)
+                        .css('line-height', $el.height() + 'px')
                         .html($el.html());
                 },
                 start: startColumnDrag,
