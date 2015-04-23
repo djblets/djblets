@@ -15,12 +15,13 @@ $.fn.datagrid = function(options) {
     var $grid = this,
         gridId = this.attr("id"),
         $menu = $("#" + gridId + "-menu"),
-        $gridContainer = $grid.find('.datagrid'),
-        $bodyContainer = $gridContainer.find('.datagrid-body-container'),
-        $headTable = $gridContainer.find('.datagrid-head'),
-        $bodyTable = $bodyContainer.find('.datagrid-body'),
-        $bodyTableHead = $bodyTable.find('thead'),
-        $paginator = $gridContainer.find('.paginator'),
+        $gridMain = $grid.children('.datagrid-main'),
+        $gridContainer = $gridMain.children('.datagrid'),
+        $bodyContainer = $gridContainer.children('.datagrid-body-container'),
+        $headTable = $gridContainer.children('.datagrid-head'),
+        $bodyTable = $bodyContainer.children('.datagrid-body'),
+        $bodyTableHead = $bodyTable.children('thead'),
+        $paginator = $gridContainer.children('.paginator'),
         $window = $(window),
         $editButton,
 
@@ -53,11 +54,23 @@ $.fn.datagrid = function(options) {
      * done by the caller.
      */
     this.resizeToFit = function() {
-        $bodyContainer.height($grid.innerHeight() -
+        var newHeight;
+
+        roundGridPixels();
+
+        newHeight = Math.ceil($grid.innerHeight() -
                               $bodyContainer.position().top -
+                              $gridMain.position().top -
+                              $gridMain.getExtents('b', 'tb') -
                               ($paginator.outerHeight() || 0));
+        $bodyContainer.height(newHeight);
+        $menu.outerHeight(newHeight);
 
         syncColumnSizes();
+
+        if ($activeMenu) {
+            updateMenuPosition();
+        }
     };
 
 
@@ -77,28 +90,32 @@ $.fn.datagrid = function(options) {
      * resizeToFit on window resize.
      */
     function setupHeader() {
-        var $origHeader = $bodyTable.find('thead');
+        var $origHeader = $bodyTable.children('thead'),
+            $thead;
+
+        activeColumns = [];
 
         /* Store the original widths of the colgroup columns. */
         $bodyTable.find('colgroup col').each(function(i, colEl) {
             storedColWidths.push(colEl.width);
+
+            if (colEl.className !== 'datagrid-customize') {
+                /* Add the non-special columns to the list. */
+                activeColumns.push(colEl.className);
+            }
         });
+
+        $thead = $origHeader.clone().show();
 
         /* Create a copy of the header and place it in a separate table. */
         $headTable
-            .find('thead')
+            .children('thead')
                 .remove()
             .end()
-            .append($origHeader.clone().show());
+            .append($thead)
+            .show();
+
         $origHeader.hide();
-
-        activeColumns = [];
-
-        /* Add all the non-special columns to the list. */
-        $headTable.find("col").not(".datagrid-customize")
-            .each(function(i, col) {
-                activeColumns.push(col.className);
-            });
 
         $headTable.find("th")
             /* Make the columns unselectable. */
@@ -108,7 +125,7 @@ $.fn.datagrid = function(options) {
             .not(".edit-columns").draggable({
                 appendTo: "body",
                 axis: "x",
-                containment: $headTable.find("thead:first"),
+                containment: $thead,
                 cursor: "move",
                 helper: function() {
                     var $el = $(this);
@@ -118,6 +135,7 @@ $.fn.datagrid = function(options) {
                         .width($el.width())
                         .height($el.height())
                         .css("top", $el.offset().top)
+                        .css('line-height', $el.height() + 'px')
                         .html($el.html());
                 },
                 start: startColumnDrag,
@@ -171,6 +189,7 @@ $.fn.datagrid = function(options) {
             bodyWidths = [],
             headWidths = [],
             extraWidth = 0,
+            bodyContainerWidth,
             width,
             i;
 
@@ -179,11 +198,16 @@ $.fn.datagrid = function(options) {
             $origCols[i].width = storedColWidths[i];
         }
 
-        /* Store all the widths we'll apply. */
+        /*
+         * Show the table header, so we can get some width calculations
+         * from it.
+         */
         $bodyTableHead.show();
 
-        $headTable.width($bodyContainer.width() - 1);
-        extraWidth = $bodyContainer.width() - $bodyTable.width();
+        /* Store all the widths we'll apply. */
+        bodyContainerWidth = $bodyContainer.width();
+        $headTable.width(bodyContainerWidth);
+        extraWidth = bodyContainerWidth - $bodyTable.width();
 
         for (i = 0; i < numCols; i++) {
             width = $(origHeaderCells[i]).outerWidth();
@@ -194,8 +218,7 @@ $.fn.datagrid = function(options) {
         $bodyTableHead.hide();
 
         /* Modify the widths to account for the scrollbar and extra spacing */
-        headWidths[numCols - 1] = bodyWidths[numCols - 1] - 1;
-        headWidths[numCols - 2] = bodyWidths[numCols - 2] - 1 + extraWidth;
+        headWidths[numCols - 2] = bodyWidths[numCols - 2] + extraWidth;
 
         /* Now set the new state. */
         for (i = 0; i < numCols; i++) {
@@ -215,7 +238,31 @@ $.fn.datagrid = function(options) {
         if (windowWidth !== lastWindowWidth) {
             lastWindowWidth = windowWidth;
 
+            roundGridPixels();
             syncColumnSizes();
+
+            if ($activeMenu) {
+                updateMenuPosition();
+            }
+        }
+    }
+
+    /*
+     * Round out the dimensions of the datagrid.
+     *
+     * On some browsers and displays, the containers will all have
+     * widths that are fractions of a pixel, causing a number of
+     * errors in our calculations. We need to force the widths to a
+     * nice round number.
+     */
+    function roundGridPixels() {
+        var width;
+
+        $gridMain.css('max-width', '');
+        width = $gridMain.width();
+
+        if (width > 0) {
+            $gridMain.css('max-width', width);
         }
     }
 
@@ -264,23 +311,22 @@ $.fn.datagrid = function(options) {
      * Toggles the visibility of the specified columns menu.
      */
     function toggleColumnsMenu() {
-        var offset;
-
         if ($menu.is(":visible")) {
             hideColumnsMenu();
         } else {
-            offset = $editButton.position();
-
-            $menu
-                .css({
-                    left: offset.left - $menu.outerWidth() +
-                          $editButton.outerWidth(),
-                    top:  offset.top + $editButton.outerHeight()
-                })
-                .show();
-
             $activeMenu = $menu;
+
+            updateMenuPosition();
         }
+    }
+
+    /*
+     * Update the position of the menu.
+     */
+    function updateMenuPosition() {
+        $menu
+            .css('top', $editButton.position().top + $editButton.outerHeight())
+            .show();
     }
 
     /*

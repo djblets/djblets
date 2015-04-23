@@ -1,15 +1,16 @@
-{% load datagrid %}
-{% load i18n %}
-{% load staticfiles %}
+{% load datagrid i18n staticfiles %}
+
 <div class="datagrid-wrapper" id="{{datagrid.id}}">
+{% block datagrid_titlebox %}
  <div class="datagrid-titlebox">
-{% block datagrid_title %}
+{%  block datagrid_title %}
    <h1 class="datagrid-title">{{datagrid.title}}</h1>
-{% endblock %}
+{%  endblock datagrid_title %}
  </div>
+{% endblock datagrid_titlebox %}
  <div class="datagrid-main">
   <div class="datagrid">
-   <table class="datagrid-head">
+   <table class="datagrid-head" style="display: none;">
     <colgroup>
 {% for column in datagrid.columns %}
      <col class="{{column.id}}"{% ifnotequal column.width 0 %} width="{{column.width}}%"{% endifnotequal %} />
@@ -53,24 +54,28 @@
 {% endblock %}
     </table>
    </div>
+{% block paginator %}
 {{datagrid.render_paginator}}
+{% endblock paginator %}
   </div>
- </div>
- <table class="datagrid-menu" id="{{datagrid.id}}-menu" style="display:none;position:absolute;">
+  <div class="datagrid-menu" id="{{datagrid.id}}-menu" style="display: none; position: absolute;">
+   <table>
 {% for column in datagrid.all_columns %}
 {%  with column.toggle_url as toggle_url %}
-  <tr class="{{column.id}}">
-   <td><div class="datagrid-menu-checkbox">{% if column.active %}<div class="datagrid-icon datagrid-icon-checkmark" title="X"></div>{% endif %}</div></td>
-   <td class="datagrid-menu-label"><a href="#">
+    <tr class="{{column.id}}">
+     <td><div class="datagrid-menu-checkbox">{% if column.active %}<div class="datagrid-icon datagrid-icon-checkmark" title="X"></div>{% endif %}</div></td>
+     <td class="datagrid-menu-label"><a href="#">
 {%   if column.image_url %}
-    <img src="{{column.image_url}}" width="{{column.image_width}}" height="{{column.image_height}}" alt="{{column.image_alt}}" />
+      <img src="{{column.image_url}}" width="{{column.image_width}}" height="{{column.image_height}}" alt="{{column.image_alt}}" />
 {%   elif column.image_class %}
-    <div class="{{column.image_class}}"></div>
+      <div class="{{column.image_class}}"></div>
 {%   endif %}
-    {{column.detailed_label_html|default_if_none:""}}</a>
-   </td>
-  </tr>
+      {{column.detailed_label_html|default_if_none:""}}</a>
+     </td>
+    </tr>
 {%  endwith %}
 {% endfor %}
- </table>
+   </table>
+  </div>
+ </div>
 </div>

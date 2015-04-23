@@ -275,15 +275,41 @@
   border-collapse: collapse;
 }
 
+/*
+ * Add a single pixel between the thead and the tbody. This will prevent
+ * a border from being collapsed between the two, resulting in the same
+ * styling that we'll get when separating out the thead into its own
+ * table. This prevents a 1px jump.
+ */
+.datagrid-body thead:after {
+  content: "";
+  display: block;
+  line-height: 1px;
+}
+
+.datagrid-main {
+  position: relative;
+}
+
 .datagrid-menu {
   background-color: #F0F0F0;
   border-left: 1px #303030 solid;
   border-bottom: 1px #303030 solid;
+  box-sizing: border-box;
   margin: 0;
-  padding: 2px 4px;
+  overflow-y: auto;
+  right: 0;
+
+  /*
+   * Provide enough room on the right for the scrollbar, so that it doesn't
+   * overlap any content when it appears. That would result in a horizontal
+   * scrollbar then appearing.
+   */
+  padding: 0.3em 2.5em 0.3em 0.3em;
 
   td {
-    margin: 2px;
+    padding: 0.3em;
+    white-space: nowrap;
 
     img, div {
       vertical-align: sub;
