@@ -30,7 +30,8 @@
 $.fn.retinaGravatar = function() {
     if (window.devicePixelRatio > 1) {
         $(this).each(function() {
-            var src = $(this).attr('src'),
+            var $el = $(this),
+                src = $el.attr('src'),
                 parts = src.split('?', 2),
                 params,
                 param,
@@ -51,7 +52,7 @@ $.fn.retinaGravatar = function() {
                     }
                 }
 
-                $(this)
+                $el
                     .attr('src', baseurl + '?' + params.join('&'))
                     .removeClass('gravatar')
                     .addClass('gravatar-retina');
@@ -60,6 +61,8 @@ $.fn.retinaGravatar = function() {
             }
         });
     }
+
+    return this;
 };
 
 
