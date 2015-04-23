@@ -54,11 +54,23 @@ $.fn.datagrid = function(options) {
      * done by the caller.
      */
     this.resizeToFit = function() {
-        $bodyContainer.height(Math.ceil($grid.innerHeight() -
-                                        $bodyContainer.position().top -
-                                        ($paginator.outerHeight() || 0)));
+        var newHeight;
+
+        roundGridPixels();
+
+        newHeight = Math.ceil($grid.innerHeight() -
+                              $bodyContainer.position().top -
+                              $gridMain.position().top -
+                              $gridMain.getExtents('b', 'tb') -
+                              ($paginator.outerHeight() || 0));
+        $bodyContainer.height(newHeight);
+        $menu.outerHeight(newHeight);
 
         syncColumnSizes();
+
+        if ($activeMenu) {
+            updateMenuPosition();
+        }
     };
 
 
@@ -185,8 +197,6 @@ $.fn.datagrid = function(options) {
             $origCols[i].width = storedColWidths[i];
         }
 
-        roundGridPixels();
-
         /*
          * Show the table header, so we can get some width calculations
          * from it.
@@ -227,7 +237,12 @@ $.fn.datagrid = function(options) {
         if (windowWidth !== lastWindowWidth) {
             lastWindowWidth = windowWidth;
 
+            roundGridPixels();
             syncColumnSizes();
+
+            if ($activeMenu) {
+                updateMenuPosition();
+            }
         }
     }
 
@@ -242,11 +257,11 @@ $.fn.datagrid = function(options) {
     function roundGridPixels() {
         var width;
 
-        $gridMain.width('auto');
+        $gridMain.css('max-width', '');
         width = $gridMain.width();
 
         if (width > 0) {
-            $gridMain.width(width);
+            $gridMain.css('max-width', width);
         }
     }
 
@@ -295,23 +310,22 @@ $.fn.datagrid = function(options) {
      * Toggles the visibility of the specified columns menu.
      */
     function toggleColumnsMenu() {
-        var offset;
-
         if ($menu.is(":visible")) {
             hideColumnsMenu();
         } else {
-            offset = $editButton.position();
-
-            $menu
-                .css({
-                    left: offset.left - $menu.outerWidth() +
-                          $editButton.outerWidth(),
-                    top:  offset.top + $editButton.outerHeight()
-                })
-                .show();
-
             $activeMenu = $menu;
+
+            updateMenuPosition();
         }
+    }
+
+    /*
+     * Update the position of the menu.
+     */
+    function updateMenuPosition() {
+        $menu
+            .css('top', $editButton.position().top + $editButton.outerHeight())
+            .show();
     }
 
     /*
