@@ -1054,7 +1054,7 @@ class DataGrid(object):
         This can be called from templates.
         """
         extra_query = get_url_params_except(self.request.GET,
-                                            'page',
+                                            'page', 'gridonly',
                                             *self.special_query_args)
 
         page_nums = range(max(1, self.page.number - adjacent_pages),
