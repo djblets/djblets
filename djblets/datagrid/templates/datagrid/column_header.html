@@ -1,7 +1,7 @@
 {% load djblets_utils i18n staticfiles %}
 
 {% if column.sortable %}
-<th onclick="javascript:window.location = '{{sort_url}}';" class="datagrid-header">
+<th onclick="javascript:window.location = '{{sort_url}}';" class="datagrid-header{% if column.label and not column.show_checkbox_header %} has-label{% endif %}">
  <a href="{{sort_url}}">{% if column.label %}{{column.label}}{% endif %}{% spaceless %}
 {%  if column.image_url %}
   <img src="{{column.image_url}}" width="{{column.image_width}}"
@@ -20,7 +20,7 @@
  </a>
 </th>
 {% else %}
-<th class="datagrid-header">
+<th class="datagrid-header{% if column.label and not column.show_checkbox_header %} has-label{% endif %}">
 {%  if column.label %}{{column.label}}{% endif %}
 {%  if column.image_url %}
  <img src="{{column.image_url}}" width="{{column.image_width}}"
