@@ -1,4 +1,37 @@
-@import "retina.less";
+@import (reference) "retina.less";
+
+
+@media screen and (max-width: 720px),
+       screen and (max-device-width: 720px) and (orientation: landscape) {
+  .datagrid {
+    table {
+      display: block;
+    }
+
+    .datagrid-body {
+      tbody th {
+        padding-left: 0.5em;
+        text-align: right;
+        white-space: nowrap;
+      }
+    }
+
+    .datagrid-header {
+      visibility: hidden;
+
+      &.edit-columns {
+        visibility: visible;
+      }
+    }
+
+    .datagrid-row-continues {
+      td, th {
+        border-bottom: 0 !important;
+      }
+    }
+  }
+}
+
 
 .datagrid {
   border-collapse: collapse;
@@ -6,6 +39,7 @@
 
   tr {
     background-color: white;
+    cursor: pointer;
 
     &.even {
       background-color: #F2F2F2;

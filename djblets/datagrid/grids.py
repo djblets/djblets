@@ -960,6 +960,7 @@ class DataGrid(object):
         try:
             self.rows = [
                 {
+                    'url': obj.get_absolute_url(),
                     'object': obj,
                     'cells': [column.render_cell(obj, render_context)
                               for column in self.columns]

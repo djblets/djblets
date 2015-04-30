@@ -33,10 +33,12 @@ from django.template import TemplateSyntaxError
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
+from django.utils.six.moves.urllib.parse import urlencode
 from django.utils.timezone import is_aware
 
 from djblets.util.decorators import basictag, blocktag
 from djblets.util.dates import get_tz_aware_utcnow
+from djblets.util.http import get_url_params_except
 from djblets.util.humanize import humanize_list
 
 
@@ -304,3 +306,20 @@ def paragraphs(text):
 
     return mark_safe(s)
 paragraphs.is_safe = True
+
+
+@register.tag
+@basictag(takes_context=True)
+def querystring_with(context, attr, value):
+    """Helper for querystring manipulation.
+
+    Often, we'll want to update only a single value in a querystring without
+    changing the others. This tag helps with that.
+    """
+    existing_query = get_url_params_except(context['request'].GET, attr)
+    new_query = urlencode({attr.encode('utf-8'): value.encode('utf-8')})
+
+    if existing_query:
+        return '?%s&%s' % (existing_query, new_query)
+    else:
+        return '?%s' % new_query

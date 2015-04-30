@@ -29,12 +29,15 @@ $.fn.datagrid = function(options) {
         storedColWidths = [],
         activeColumns = [],
         $activeMenu = null,
+        inMobileMode = null,
         columnMidpoints = [],
         dragColumn = null,
         dragColumnsChanged = false,
         dragColumnWidth = 0,
         dragIndex = 0,
         dragLastX = 0,
+        $savedTBody,
+        $savedTHead,
         lastWindowWidth;
 
     options = options || {};
@@ -233,12 +236,26 @@ $.fn.datagrid = function(options) {
      * If resizing horizontally, the column widths will be synced up again.
      */
     function onResize() {
-        var windowWidth = $window.width();
+        var windowWidth = $window.width(),
+            newMobileMode;
 
         if (windowWidth !== lastWindowWidth) {
             lastWindowWidth = windowWidth;
 
             roundGridPixels();
+
+            newMobileMode = ($bodyTable.css('display') === 'block');
+
+            if (newMobileMode !== inMobileMode) {
+                if (newMobileMode) {
+                    enableMobileMode();
+                } else {
+                    disableMobileMode();
+                }
+
+                inMobileMode = newMobileMode;
+            }
+
             syncColumnSizes();
 
             if ($activeMenu) {
@@ -263,6 +280,140 @@ $.fn.datagrid = function(options) {
 
         if (width > 0) {
             $gridMain.css('max-width', width);
+        }
+    }
+
+    /*
+     * Enables mobile mode for the datagrid.
+     *
+     * In mobile mode, the headers will disappear (except for the
+     * Edit Columns icon), and the columns in each row will be broken up
+     * so that all columns with labeled headers will gain their own row,
+     * and the rest will be set on the first row.
+     *
+     * The resulting datagrid is easily viewable on a mobile device with any
+     * number of columns.
+     */
+    function enableMobileMode() {
+        var table = $bodyTable[0],
+            rows = table.tBodies[0].rows,
+            rowsLen = rows.length,
+            columnsLen = activeColumns.length,
+            standaloneColumns = {},
+            hasStandaloneColumns = false,
+            labels = [],
+            $newTBody = $('<tbody/>'),
+            $newRow,
+            $newCell,
+            $prevRow,
+            $toDelete,
+            $cell,
+            deleteCell,
+            row,
+            i,
+            j;
+
+        /*
+         * Find all the headers that have text labels, and record their
+         * indexes and their labels.
+         */
+        $bodyTableHead.find('th').each(function(i, cell) {
+            var $cell = $(cell);
+
+            if ($cell.hasClass('has-label')) {
+                standaloneColumns[i] = true;
+                labels.push($cell.text().strip());
+                hasStandaloneColumns = true;
+            } else {
+                labels.push(null);
+            }
+        });
+
+        if (!hasStandaloneColumns) {
+            return;
+        }
+
+        /*
+         * Loop through each row, pulling out the columns with header
+         * labels into their own rows, and prefixing them with the column
+         * labels.
+         */
+        for (i = 0; i < rowsLen; i++) {
+            $toDelete = $();
+            row = rows[i];
+
+            $newRow = $(row).clone();
+            $newTBody.append($newRow);
+            $prevRow = $newRow;
+
+            for (j = 0; j < columnsLen; j++) {
+                deleteCell = false;
+                $cell = $($newRow[0].cells[j]);
+
+                if (standaloneColumns[j]) {
+                    // Create a new row for the contents of this column.
+                    $newCell = $cell.clone().attr('colspan', columnsLen);
+                    deleteCell = true;
+
+                    $prevRow.addClass('datagrid-row-continues');
+                    $prevRow = $('<tr class="mobile-only-row"/>')
+                        .addClass(row.className)
+                        .data('url', $prevRow.data('url'))
+                        .append($('<th/>').text(labels[j]))
+                        .append($newCell)
+                        .appendTo($newTBody);
+                } else if (!$cell.html().strip()) {
+                    deleteCell = true;
+                } else {
+                    /*
+                     * Remove any colspans we may have, since we'll be
+                     * handling all colspans manually.
+                     */
+                    $cell.attr('colspan', '');
+                }
+
+                if (deleteCell) {
+                    /*
+                     * We don't want a gap where this cell was, but we
+                     * need to maintain the number of cells, so append
+                     * one at the end.
+                     */
+                    $toDelete = $toDelete.add($cell);
+                    $newRow.append('<td/>');
+                }
+            }
+
+            if (columnsLen - $toDelete.length === 0) {
+                /* There's nothing left in the first row, so delete it. */
+                $newRow.remove();
+            } else {
+                $toDelete.remove();
+
+                /*
+                 * Prefix a blank header before the first line, to match
+                 * the labeled headers on subsequent lines.
+                 */
+                $newRow.prepend('<th/>');
+            }
+        }
+
+        $savedTHead = $headTable.find('thead').clone();
+        $headTable.find('thead th').not('.edit-columns').text('');
+
+        $savedTBody = $(table.tBodies[0]);
+        $(table.tBodies[0]).replaceWith($newTBody);
+    }
+
+    /*
+     * Disables mobile mode for the datagrid.
+     *
+     * If a mobile tbody was previously generated, it will be replaced with
+     * the original tbody.
+     */
+    function disableMobileMode() {
+        if ($savedTBody) {
+            $($bodyTable[0].tBodies[0]).replaceWith($savedTBody);
+            $headTable.find('thead').replaceWith($savedTHead);
         }
     }
 
@@ -576,10 +727,33 @@ $.fn.datagrid = function(options) {
         $(row).find(".datagrid-menu-checkbox, .datagrid-menu-label a")
             .click(function() {
                 toggleColumn(className);
+
+                return false;
             });
     });
 
-    $(document.body).click(hideColumnsMenu);
+    $(document)
+        .on('click', hideColumnsMenu)
+        .on('click', '.datagrid-body input', function(e) {
+            /*
+             * Prevent any clicks on inputs from propagating to the URL
+             * handler below.
+             */
+            e.stopPropagation();
+        })
+        .on('click', '.datagrid-body tbody tr', function() {
+            /*
+             * If the user clicked the row, navigate to the associated URL,
+             * if any is set.
+             */
+            var url = $(this).data('url');
+
+            if (url) {
+                window.location = url;
+
+                return false;
+            }
+        });
 
     $window.resize(onResize);
     onResize();
