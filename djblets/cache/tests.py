@@ -200,6 +200,30 @@ class CacheTests(SpyAgency, TestCase):
         self.assertEqual(result, data)
         self.assertFalse(cache_func.spy.called)
 
+    def test_cache_memoize_large_files_missing_chunk(self):
+        """Testing cache_memoize with loading large files with missing chunks
+        """
+        cache_key = 'abc123'
+
+        # This takes into account the size of the pickle data, and will
+        # get us to exactly 2 chunks of data in cache.
+        data, pickled_data = self._build_test_chunk_data(num_chunks=2)
+
+        cache.set(make_cache_key(cache_key), '2')
+        cache.set(make_cache_key('%s-0' % cache_key),
+                  [pickled_data[:CACHE_CHUNK_SIZE]])
+
+        def cache_func():
+            return data
+
+        self.spy_on(cache_func, call_original=True)
+
+        result = cache_memoize(cache_key, cache_func, large_data=True,
+                               compress_large_data=False)
+        self.assertEqual(len(result), len(data))
+        self.assertEqual(result, data)
+        self.assertTrue(cache_func.spy.called)
+
     def test_cache_memoize_iter_uncompressed(self):
         """Testing cache_memoize_iter without compression"""
         cache_key = 'abc123'
