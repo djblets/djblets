@@ -26,14 +26,15 @@ _default_expiration = getattr(settings, 'CACHE_EXPIRATION_TIME',
 
 
 def _cache_fetch_large_data(cache, key, compress_large_data):
-    """Fetch one or more large data items from the cache.
+    """Fetch large data from the cache.
 
     The main cache key indicating the number of chunks will be read, followed
     by each of the chunks. If any chunks are missing, a MissingChunkError
     will be immediately returned.
 
-    The data is then combined and optionally uncompressed. The unpickled
-    results are then yielded to the caller on-demand.
+    The data is then combined and optionally uncompressed, and returned to
+    the caller. The caller should iterate through the results using
+    _cache_iter_large_data.
     """
     chunk_count = int(cache.get(make_cache_key(key)))
 
@@ -64,6 +65,15 @@ def _cache_fetch_large_data(cache, key, compress_large_data):
     if compress_large_data:
         data = zlib.decompress(data)
 
+    return data
+
+
+def _cache_iter_large_data(data, key):
+    """Iterate through large data that was fetched from the cache.
+
+    This will unpickle the large data previously fetched through
+    _cache_fetch_large_data, and yield each object to the caller.
+    """
     fp = StringIO(data)
 
     try:
@@ -209,10 +219,13 @@ def cache_memoize_iter(key, items_or_callable,
 
     if not force_overwrite and make_cache_key(key) in cache:
         try:
-            results = _cache_fetch_large_data(cache, key, compress_large_data)
+            results = _cache_iter_large_data(
+                _cache_fetch_large_data(cache, key, compress_large_data),
+                key)
         except Exception as e:
             logging.warning('Failed to fetch large data from cache for '
                             'key %s: %s.' % (key, e))
+            results = None
     else:
         logging.debug('Cache miss for key %s.' % key)
 
