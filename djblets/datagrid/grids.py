@@ -960,7 +960,7 @@ class DataGrid(object):
         try:
             self.rows = [
                 {
-                    'url': obj.get_absolute_url(),
+                    'url': self._get_object_url(obj),
                     'object': obj,
                     'cells': [column.render_cell(obj, render_context)
                               for column in self.columns]
@@ -1110,6 +1110,17 @@ class DataGrid(object):
             render_context.update(d)
 
         return render_context
+
+    def _get_object_url(self, obj):
+        """Return the URL for an object, if possible.
+
+        If the object has a get_absolute_url() method, that will be called.
+        Otherwise, None will be returned.
+        """
+        if hasattr(obj, 'get_absolute_url'):
+            return obj.get_absolute_url()
+        else:
+            return None
 
     @staticmethod
     def link_to_object(state, obj, value):
