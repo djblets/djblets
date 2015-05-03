@@ -270,7 +270,7 @@ class Column(object):
                           self, e, exc_info=1)
             rendered_data = None
 
-        url = ''
+        url = render_context.get('_datagrid_object_url')
         css_class = ''
 
         if self.link:
@@ -958,15 +958,24 @@ class DataGrid(object):
             render_context = self._build_render_context()
 
         try:
-            self.rows = [
-                {
-                    'url': self._get_object_url(obj),
+            self.rows = []
+
+            for obj in object_list:
+                if obj is None:
+                    continue
+
+                if hasattr(obj, 'get_absolute_url'):
+                    obj_url = obj.get_absolute_url()
+                else:
+                    obj_url = None
+
+                render_context['_datagrid_object_url'] = obj_url
+
+                self.rows.append({
                     'object': obj,
                     'cells': [column.render_cell(obj, render_context)
                               for column in self.columns]
-                }
-                for obj in object_list if obj is not None
-            ]
+                })
         except Exception as e:
             logging.error('Error when calling render_cell for DataGrid '
                           'Column %r: %s',
@@ -1110,17 +1119,6 @@ class DataGrid(object):
             render_context.update(d)
 
         return render_context
-
-    def _get_object_url(self, obj):
-        """Return the URL for an object, if possible.
-
-        If the object has a get_absolute_url() method, that will be called.
-        Otherwise, None will be returned.
-        """
-        if hasattr(obj, 'get_absolute_url'):
-            return obj.get_absolute_url()
-        else:
-            return None
 
     @staticmethod
     def link_to_object(state, obj, value):
