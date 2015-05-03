@@ -358,7 +358,6 @@ $.fn.datagrid = function(options) {
                     $prevRow.addClass('datagrid-row-continues');
                     $prevRow = $('<tr class="mobile-only-row"/>')
                         .addClass(row.className)
-                        .data('url', $prevRow.data('url'))
                         .append($('<th/>').text(labels[j]))
                         .append($newCell)
                         .appendTo($newTBody);
@@ -740,19 +739,6 @@ $.fn.datagrid = function(options) {
              * handler below.
              */
             e.stopPropagation();
-        })
-        .on('click', '.datagrid-body tbody tr', function() {
-            /*
-             * If the user clicked the row, navigate to the associated URL,
-             * if any is set.
-             */
-            var url = $(this).data('url');
-
-            if (url) {
-                window.location = url;
-
-                return false;
-            }
         });
 
     $window.resize(onResize);
