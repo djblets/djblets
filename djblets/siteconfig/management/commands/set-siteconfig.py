@@ -55,17 +55,30 @@ class Command(NoArgsCommand):
         stored_value = node[key_basename]
         value_type = type(stored_value)
 
-        if value_type not in (six.text_type, six.binary_type, int, bool):
+        if value_type not in (six.text_type, six.binary_type, int, bool,
+                              type(None)):
             raise CommandError(_("Cannot set %s keys") % value_type.__name__)
 
         try:
             if value_type is bool:
-                if value not in ('1', '0'):
+                if value not in ('1', '0', 'True', 'true', 'False', 'false'):
                     raise TypeError
                 else:
-                    value = (value == '1')
+                    value = (value in ('1', 'True', 'true'))
+            elif stored_value is None:
+                # Try to guess the type from any specified defaults. Otherwise
+                # just assume text.
+                defaults = siteconfig.get_defaults()
+                value_type = type(defaults.get(key_basename, ''))
 
-            norm_value = value_type(value)
+            # Special handling for 'null' -> None. If the user really wants an
+            # explicit 'null' string, allow them to pass in '\null'.
+            if value == 'null':
+                norm_value = None
+            elif value == '\\null':
+                norm_value = 'null'
+            else:
+                norm_value = value_type(value)
         except TypeError:
             raise CommandError(
                 _("'%(value)s' is not a valid %(type)s") % {
