@@ -184,6 +184,7 @@ class ExtensionManager(object):
         self._sync_key = make_cache_key('extensionmgr:%s:gen' % key)
         self._last_sync_gen = None
         self._load_lock = threading.Lock()
+        self._block_sync_gen = False
 
         self.dynamic_urls = DynamicURLResolver()
 
@@ -402,7 +403,9 @@ class ExtensionManager(object):
         extensions and state from scratch.
         """
         with self._load_lock:
+            self._block_sync_gen = True
             self._load_extensions(full_reload)
+            self._block_sync_gen = False
 
     def _load_extensions(self, full_reload=False):
         if full_reload:
@@ -1004,6 +1007,15 @@ class ExtensionManager(object):
         will be invalidated, allowing TemplateHooks and other hooks
         to be re-run.
         """
+        # If we're in the middle of loading extension state, perhaps due to
+        # the sync number being bumped by another process, this flag will be
+        # sent in order to block any further attempts at bumping the number.
+        # Failure to do this can result in a loop where the number gets
+        # bumped by every process/thread reacting to another process/thread
+        # bumping the number, resulting in massive slowdown and errors.
+        if self._block_sync_gen:
+            return
+
         try:
             self._last_sync_gen = cache.incr(self._sync_key)
         except ValueError:
