@@ -42,4 +42,17 @@ class Command(NoArgsCommand):
         if not valid_key:
             raise CommandError(_("'%s' is not a valid settings key") % key)
 
-        self.stdout.write(node[key_basename])
+        value = node[key_basename]
+
+        # None and boolean values are printed the same way that the JSON
+        # serialization in list-siteconfig prints them, rather than the way
+        # Python prints them.
+        if value is None:
+            value = 'null'
+        elif isinstance(value, bool):
+            if value:
+                value = 'true'
+            else:
+                value = 'false'
+
+        self.stdout.write('%s' % value)
