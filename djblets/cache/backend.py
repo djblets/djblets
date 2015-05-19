@@ -163,6 +163,9 @@ def make_cache_key(key):
         # The install doesn't have a Site app, so use the key as-is.
         pass
 
+    # Strip out any characters that memcached doesn't like in keys
+    key = ''.join(ch for ch in key if ch not in ' \t\n\r')
+
     # Adhere to memcached key size limit
     if len(key) > MAX_KEY_SIZE:
         digest = md5(key.encode('utf-8')).hexdigest()
