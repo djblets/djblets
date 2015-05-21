@@ -703,6 +703,38 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         self.assertEqual(extension1.settings[setting_key], setting_val)
         self.assertEqual(extension2.settings[setting_key], setting_val)
 
+    def test_load_blocks_sync_gen(self):
+        """Testing ExtensionManager.load blocks bumping sync generation
+        number
+        """
+        key = 'check-expired-test'
+        manager1 = ExtensionManager(key)
+        manager2 = ExtensionManager(key)
+
+        for manager in (manager1, manager2):
+            manager._entrypoint_iterator = Mock(
+                return_value=[self.fake_entrypoint]
+            )
+
+        manager1.load()
+        manager1.enable_extension(self.extension_class.id)
+        manager2.load()
+
+        self.assertEqual(manager1._last_sync_gen, manager2._last_sync_gen)
+
+        # Trigger a save whenever the extension initializes.
+        self.extension_class.initialize = lambda ext: ext.settings.save()
+
+        # Bump the generation number.
+        extension = manager2.get_enabled_extension(self.extension_class.id)
+        extension.settings.save()
+        self.assertNotEqual(manager1._last_sync_gen, manager2._last_sync_gen)
+
+        # Loading now should retain the new sync generation number, instead
+        # of bumping it.
+        manager1.load(full_reload=True)
+        self.assertEqual(manager1._last_sync_gen, manager2._last_sync_gen)
+
     def _run_thread_test(self, main_func):
         def _thread_main(main_connection, main_func):
             # Insert the connection from the main thread, so that we can
