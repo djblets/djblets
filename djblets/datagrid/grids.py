@@ -270,7 +270,11 @@ class Column(object):
                           self, e, exc_info=1)
             rendered_data = None
 
-        url = render_context.get('_datagrid_object_url')
+        if render_context:
+            url = render_context.get('_datagrid_object_url')
+        else:
+            url = None
+
         css_class = ''
 
         if self.link:

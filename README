@@ -44,6 +44,13 @@ all pages can take a ?profiling=1 parameter that will log both code and SQL
 profiling information to a separate log file.
 
 
+markdown
+--------
+
+Utility functions for processing Markdown trees, escaping/unescaping content,
+and providing a more WYSIWYG level of rendered output for the given input.
+
+
 siteconfig
 ----------
 
