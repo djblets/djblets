@@ -1020,6 +1020,27 @@ class WebAPIResource(object):
         """Returns whether or not the user can delete this object."""
         return False
 
+    def get_link_serializer(self, field):
+        """Return the function to use for serializing a link field."""
+        serialize_link_func = getattr(self, 'serialize_%s_link' % field,
+                                      None)
+
+        if not serialize_link_func or not six.callable(serialize_link_func):
+            serialize_link_func = self.serialize_link
+
+        return serialize_link_func
+
+    def serialize_link(self, obj, *args, **kwargs):
+        """Serialize a link to the object into a Python dictionary."""
+        resource = self.get_serializer_for_object(obj)
+        assert resource
+
+        return {
+            'method': 'GET',
+            'href': resource.get_href(obj, *args, **kwargs),
+            'title': six.text_type(obj),
+        }
+
     def serialize_object(self, obj, *args, **kwargs):
         """Serializes the object into a Python dictionary."""
         request = kwargs.get('request', None)
@@ -1094,23 +1115,15 @@ class WebAPIResource(object):
                 request._djblets_webapi_expanded_resources.remove(field)
 
             if isinstance(value, models.Model) and not expand_field:
-                resource = self.get_serializer_for_object(value)
-                assert resource
+                serialize_link_func = self.get_link_serializer(field)
 
-                links[field] = {
-                    'method': 'GET',
-                    'href': resource.get_href(value, *args, **kwargs),
-                    'title': six.text_type(value),
-                }
+                links[field] = serialize_link_func(value, *args, **kwargs)
             elif can_include_field:
                 if isinstance(value, QuerySet) and not expand_field:
+                    serialize_link_func = self.get_link_serializer(field)
+
                     data[field] = [
-                        {
-                            'method': 'GET',
-                            'href': self.get_serializer_for_object(o).get_href(
-                                o, *args, **kwargs),
-                            'title': six.text_type(o),
-                        }
+                        serialize_link_func(o, *args, **kwargs)
                         for o in value
                     ]
                 elif isinstance(value, QuerySet):
