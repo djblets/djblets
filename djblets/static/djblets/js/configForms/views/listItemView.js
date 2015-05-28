@@ -82,12 +82,11 @@ Djblets.Config.ListItemView = Backbone.View.extend({
         }
 
         this.$spinner = $('<span/>')
-            .addClass('config-forms-list-item-spinner')
+            .addClass('fa fa-spinner fa-pulse config-forms-list-item-spinner')
             .prependTo(this.$spinnerParent)
             .hide()
             .css('visibility', 'visible')
-            .fadeIn()
-            .css('display', 'inline-block');
+            .fadeIn();
     },
 
     /*

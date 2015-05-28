@@ -40,6 +40,7 @@
 
 {% block css %}
 {{block.super}}
+{%  include "css/fontawesome.html" %}
 {%  compressed_css "djblets-config-forms" %}
 {%  for bundle_name in css_bundle_names %}
 {%   compressed_css bundle_name %}
