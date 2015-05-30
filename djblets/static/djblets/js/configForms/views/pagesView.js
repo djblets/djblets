@@ -58,17 +58,31 @@ Djblets.Config.PagesView = Backbone.View.extend({
         this._$activeNav.removeClass('active');
         this._$activePage.removeClass('active');
 
-        this._$activeNav =
-            this._$pageNavs.filter(':has(a[href=#' + pageID + '])')
-                .addClass('active');
+        this._$activePage = $('#page_' + pageID);
 
-        this._$activePage = $('#page_' + pageID)
-            .addClass('active');
+        if (this._$activePage.length === 0) {
+            /*
+             * If the requested page doesn't exist (for example, it might be
+             * hidden, or just typoed), load the first page instead.
+             */
+            this.router.navigate(
+                this._$pageNavs.find('a').attr('href').substr(1),
+                {
+                    trigger: true,
+                    replace: true
+                });
+        } else {
+            this._$activeNav =
+                this._$pageNavs.filter(':has(a[href=#' + pageID + '])')
+                    .addClass('active');
 
-        if (!this._preserveMessages) {
-            $('#messages').remove();
+            this._$activePage.addClass('active');
+
+            if (!this._preserveMessages) {
+                $('#messages').remove();
+            }
+
+            this._preserveMessages = false;
         }
-
-        this._preserveMessages = false;
     }
 });
