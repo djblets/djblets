@@ -70,7 +70,7 @@ class ConfigPagesView(TemplateView):
         form = form_cls(page, request, request.user, request.POST)
         self.forms[form_id] = form
 
-        # Replace the form in the pgae.
+        # Replace the form in the page.
         for i, page_form in enumerate(page.forms):
             if page_form.form_id == form_id:
                 page.forms[i] = form
