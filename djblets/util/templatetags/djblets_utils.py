@@ -304,3 +304,10 @@ def paragraphs(text):
 
     return mark_safe(s)
 paragraphs.is_safe = True
+
+
+@register.filter
+@stringfilter
+def split(s, delim=','):
+    """Split the string into a list and return the results."""
+    return s.split(delim)
