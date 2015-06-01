@@ -308,6 +308,13 @@ def paragraphs(text):
 paragraphs.is_safe = True
 
 
+@register.filter
+@stringfilter
+def split(s, delim=','):
+    """Split the string into a list and return the results."""
+    return s.split(delim)
+
+
 @register.tag
 @basictag(takes_context=True)
 def querystring_with(context, attr, value):
