@@ -3,6 +3,7 @@ _build
 dist
 djblets/htdocs/*
 Djblets.egg-info
+docs/djblets/coderef/python
 
 .coverage
 

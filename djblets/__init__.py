@@ -36,6 +36,9 @@ from __future__ import unicode_literals
 VERSION = (0, 9, 0, 'beta', 2, False)
 
 
+#: The major version of Django we're using.
+django_major_version = '1.6'
+
 # Required version of Django
 django_version = 'Django>=1.6.10,<1.7'
 
