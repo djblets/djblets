@@ -1,3 +1,11 @@
+"""Utility functions for working with memory caching backends.
+
+These functions are designed to integrate with a cache backend using
+Django's cache framework. They handle creating caching keys unique to the
+install and caching more complex data efficiently (such as the results of
+iterators and large data normally too big for the cache).
+"""
+
 from __future__ import unicode_literals
 from hashlib import md5
 import logging
@@ -207,13 +215,20 @@ def cache_memoize_iter(key, items_or_callable,
     important that the generator be allowed to continue until completion, or
     the data won't be retrievable from the cache.
 
-    Keyword arguments:
-    expiration          -- The expiration time for the key.
-    force_overwrite     -- If True, the value will always be computed and
-                           stored regardless of whether it exists in the cache
-                           already.
-    compress_large_data -- Compresses the data with zlib compression.
-                           Defaults to True.
+    Args:
+        expiration (int):
+            The expiration time for the key, in seconds.
+
+        force_overwrite (bool):
+            If ``True``, the value will always be computed and stored
+            regardless of whether it exists in the cache already.
+
+        compress_large_data (bool):
+            If ``True``, the data will be zlib-compressed.
+
+    Yields:
+        The list of items from the cache or from ``items_or_callable`` if
+        uncached.
     """
     results = None
 
@@ -250,19 +265,27 @@ def cache_memoize(key, lookup_callable,
                   use_generator=False):
     """Memoize the results of a callable inside the configured cache.
 
-    Keyword arguments:
-    expiration          -- The expiration time for the key.
-    force_overwrite     -- If True, the value will always be computed and
-                           stored regardless of whether it exists in the cache
-                           already.
-    large_data          -- If True, the resulting data will be pickled,
-                           gzipped, and (potentially) split up into
-                           megabyte-sized chunks. This is useful for very
-                           large, computationally intensive hunks of data which
-                           we don't want to store in a database due to the way
-                           things are accessed.
-    compress_large_data -- Compresses the data with zlib compression when
-                           large_data is True.
+    Args:
+        expiration (int):
+            The expiration time for the key, in seconds.
+
+        force_overwrite (bool):
+            If ``True``, the value will always be computed and stored
+            regardless of whether it exists in the cache already.
+
+        large_data (bool):
+            If ``True``, the resulting data will be pickled, gzipped, and
+            (potentially) split up into megabyte-sized chunks. This is useful
+            for very large, computationally intensive hunks of data which we
+            don't want to store in a database due to the way things are
+            accessed.
+
+        compress_large_data (bool):
+            Compresses the data with zlib compression when ``large_data``
+            is ``True``.
+
+    Returns:
+        The cached data, or the result of ``lookup_callable`` if uncached.
     """
     if large_data:
         results = list(cache_memoize_iter(key,
@@ -306,10 +329,16 @@ def cache_memoize(key, lookup_callable,
 
 
 def make_cache_key(key):
-    """Creates a cache key guaranteed to avoid conflicts and size limits.
+    """Create a cache key guaranteed to avoid conflicts and size limits.
 
     The cache key will be prefixed by the site's domain, and will be
     changed to an MD5SUM if it's larger than the maximum key size.
+
+    Args:
+        key (str): The base key to generate a cache key from.
+
+    Returns:
+        str: A cache key suitable for use with the cache backend.
     """
     try:
         site = Site.objects.get_current()

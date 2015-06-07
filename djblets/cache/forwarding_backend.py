@@ -1,3 +1,5 @@
+"""A cache backend that forwards to other dynamically-configured backends."""
+
 from __future__ import unicode_literals
 
 import threading
@@ -14,7 +16,7 @@ class ForwardingCacheBackend(object):
     This is used to allow for dynamic configuration of caches that can be
     swapped in and out. By setting this cache backend as the default backend,
     the consumer can easily switch between other cache backends without
-    modifying settings.py and restarting the app.
+    modifying :file:`settings.py` and restarting the app.
 
     This by default looks for another cache backend in
     ``settings.CACHES['forwarded_backend']``. This can be changed with the
@@ -22,7 +24,7 @@ class ForwardingCacheBackend(object):
     lookups will be forwarded there.
 
     If a consumer switches the real cache backend, it can call
-    ``reset_backend()``, and all future cache requests will go to the
+    :py:meth:`reset_backend`, and all future cache requests will go to the
     newly computed backend.
     """
     def __init__(self, cache_name=DEFAULT_FORWARD_CACHE_ALIAS,
@@ -34,14 +36,14 @@ class ForwardingCacheBackend(object):
 
     @property
     def backend(self):
-        """Returns the forwarded cache backend."""
+        """Return the forwarded cache backend."""
         if not self._backend:
             self._load_backend()
 
         return self._backend
 
     def reset_backend(self):
-        """Resets the forwarded cache backend.
+        """Reset the forwarded cache backend.
 
         This must be called after modifying
         ``settings.CACHES['forwarded_backend']`` in order for the new
@@ -52,12 +54,12 @@ class ForwardingCacheBackend(object):
             self._load_backend()
 
     def close(self, *args, **kwargs):
-        """Closes the cache backend."""
+        """Close the cache backend."""
         if self._backend:
             self._backend.close(*args, **kwargs)
 
     def _load_backend(self):
-        """Loads the caching backend.
+        """Load the caching backend.
 
         This will replace the current caching backend with a newly loaded
         one, based on the stored cache name.

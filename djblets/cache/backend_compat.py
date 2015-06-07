@@ -1,3 +1,9 @@
+"""Compatibility functions for older Django cache backend configuration.
+
+These functions are used to maintain compatibility or transition settings from
+older versions of Django.
+"""
+
 from __future__ import unicode_literals
 import logging
 
@@ -20,16 +26,32 @@ RENAMED_BACKENDS = {
 
 
 def normalize_cache_backend(cache_backend, cache_name=DEFAULT_CACHE_ALIAS):
-    """Returns a new-style CACHES dictionary from any given cache_backend.
+    """Return a new-style ``CACHES`` dictionary from any given cache_backend.
 
-    Django has supported two formats for a cache backend. The old-style
-    CACHE_BACKEND string, and the new-style CACHES dictionary.
+    Over time, Django has had support for two formats for a cache backend. The
+    old-style :django:setting:`CACHE_BACKEND` string, and the new-style
+    :django:setting:`CACHES` dictionary.
 
-    This function will accept either as input and return a cahe backend in the
-    form of a CACHES dictionary as a result. The result won't be a full-on
-    CACHES, with named cache entries inside. Rather, it will be a cache entry.
+    This function will accept either as input and return a dictionary
+    containing a single normalized entry for the given cache backend. This can
+    be merged into the existing :django:setting:`CACHES` setting.
 
-    If a CACHES dictionary is passed, the "default" cache will be the result.
+    If a :django:setting:`CACHES` dictionary is passed, the "default" cache
+    will be the result.
+
+    Args:
+        cache_backend (dict or str):
+            The new-style or old-style cache backend dictionary or str to
+            normalize.
+
+        cache_name (str):
+            The name of the cache backend to look up in ``cache_backend``, if
+            a new-style dictionary is provided.
+
+    Returns:
+        A new-style cache backend dictionary containing the single cache
+        backend referenced. If there were any parsing issues, an empty
+        dictionary will be returned.
     """
     if not cache_backend:
         return {}

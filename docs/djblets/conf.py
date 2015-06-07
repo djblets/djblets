@@ -44,6 +44,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.todo',
     'autodoc_utils',
+    'djangorefs',
     'httprole',
     'retina_images',
 ]

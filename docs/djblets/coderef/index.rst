@@ -34,7 +34,6 @@ Caching
    djblets.cache.backend
    djblets.cache.backend_compat
    djblets.cache.context_processors
-   djblets.cache.errors
    djblets.cache.forwarding_backend
    djblets.cache.serials
 
