@@ -23,6 +23,12 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
+"""Common forms for authentication tasks.
+
+These forms can be used either directly or as a base for more specific forms.
+They're designed to take some of the complexity out of creating
+authentication-related forms not otherwise provided by Django.
+"""
 
 from __future__ import unicode_literals
 
@@ -36,7 +42,14 @@ from djblets.db.query import get_object_or_none
 
 
 class RegistrationForm(forms.Form):
-    """Registration form that should be appropriate for most cases."""
+    """A standard registration form collecting basic account information.
+
+    This form prompts the user for a username, a password (and a confirmation
+    on that password), e-mail address, first name, and last name. It then
+    validates these, attempting to create a :py:class:`User`.
+
+    This class can be extended by subclasses to provide additional fields.
+    """
 
     username = forms.RegexField(
         r"^[a-zA-Z0-9_\-\.]*$",
@@ -56,6 +69,17 @@ class RegistrationForm(forms.Form):
         self.request = request
 
     def clean_password2(self):
+        """Validate that the two supplied passwords match.
+
+        If they do not match, validation will fail, and an error will be
+        supplied to the user.
+
+        Returns:
+            str: The password supplied on the form.
+
+        Raises:
+            ValidationError: If the passwords do not match.
+        """
         formdata = self.cleaned_data
         if 'password1' in formdata:
             if formdata['password1'] != formdata['password2']:
@@ -63,6 +87,20 @@ class RegistrationForm(forms.Form):
         return formdata['password2']
 
     def save(self):
+        """Save the form, creating a user if validation passes.
+
+        The :py:class:`User` will be created with the provided username,
+        e-mail address, password, and full name. If there are failures
+        in creating this user, or there's an existing user with the given
+        name, an error will be raisd.
+
+        Subclasses that want to override this can call the parent's
+        py:meth:`save` and modify the resulting user, if ``None`` is not
+        returned.
+
+        Returns:
+            User: The newly-created user.
+        """
         if not self.errors:
             try:
                 user = auth.models.User.objects.create_user(

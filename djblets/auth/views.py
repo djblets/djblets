@@ -24,6 +24,11 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
+"""Authentication-related views.
+
+The bundled views help with common authentication-related tasks not otherwise
+provided by Django. At the moment, there is only support here for registration.
+"""
 
 from __future__ import unicode_literals
 
@@ -38,14 +43,39 @@ from djblets.auth.signals import user_registered
 from djblets.auth.util import validate_test_cookie
 
 
-###########################
-#    User Registration    #
-###########################
-
 @csrf_protect
 def register(request, next_page, form_class=RegistrationForm,
              extra_context={},
              template_name="accounts/register.html"):
+    """Handle registration of a new user.
+
+    This works along with :py:class:`djblets.auth.forms.RegistrationForm`
+    to register a new user. It will display a registration form, validate
+    the user's new information, and then log them in.
+
+    The registration form, next page, and context can all be customized by
+    the caller.
+
+    Args:
+        request (HttpRequest):
+            The HTTP request from the client.
+
+        next_page (unicode):
+            The URL to navigate to once registration is successful.
+
+        form_class (Form subclass):
+            The form that will handle registration, field validation, and
+            creation of the user.
+
+        extra_context (dict):
+            Extra context variables to pass to the template when rendering.
+
+        template_name (unicode):
+            The name of the template containing the registration form.
+
+    Returns:
+        HttpResponse: The page's rendered response or redirect.
+    """
     if request.method == 'POST':
         form = form_class(data=request.POST, request=request)
         form.full_clean()
