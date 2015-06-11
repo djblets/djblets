@@ -227,7 +227,6 @@ intersphinx_mapping = {
 todo_include_todos = True
 
 autodoc_member_order = 'bysource'
-autoclass_content = 'both'
 autodoc_default_flags = [
     'members',
     'special-members',
