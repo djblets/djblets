@@ -2,7 +2,7 @@
 Djblets 0.8.19 Release Notes
 ============================
 
-**Release date**: TBD
+**Release date**: June 11, 2015
 
 
 djblets.cache
