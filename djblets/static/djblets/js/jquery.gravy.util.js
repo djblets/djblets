@@ -103,6 +103,7 @@ $.fn.getExtents = function(types, sides) {
 
     this.each(function() {
         var self = $(this),
+            value,
             type,
             side,
             prop,
@@ -140,7 +141,13 @@ $.fn.getExtents = function(types, sides) {
                     prop += "Width";
                 }
 
-                i = parseInt(self.css(prop), 10);
+                value = self.css(prop);
+
+                if (value.indexOf('.') === -1) {
+                    i = parseInt(value, 10);
+                } else {
+                    i = parseFloat(value, 10);
+                }
 
                 if (!isNaN(i)) {
                     val += i;

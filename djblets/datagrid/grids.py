@@ -23,6 +23,29 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
+"""Components for creating customizable datagrids from database data.
+
+Datagrids are used to display to display a table-based view of data from
+a database, complete with pagination, batch selection, sorting, and
+flexible column rendering.
+
+Datagrids have one or more :py:class:`Column` subclasses associated, which will
+render the data. The datagrid may display a subset of the rendered columns,
+and users can choose which of those columns they want displayed, and in which
+order.
+
+There are two main types of datagrids:
+
+* :py:class:`DataGrid` is the base class for a datagrid, and will display
+  the data with standard numerical page-based pagination.
+
+* :py:class:`AlphanumericDataGrid` is similar, but uses a more specific
+  paginator that allows the user to paginate by the first letter/number/symbol
+  of the data in a given field. This is useful for lists of users, for
+  example.
+
+All datagrids are meant to be subclassed.
+"""
 
 from __future__ import unicode_literals
 
@@ -56,9 +79,9 @@ _column_registry = {}
 
 
 class Column(object):
-    """A column in a data grid.
+    """A column in a datagrid.
 
-    The column is the primary component of the data grid. It is used to
+    The column is the primary component of the datagrid. It is used to
     display not only the column header but the HTML for the cell as well.
 
     Columns can be tied to database fields and can be used for sorting.
@@ -68,11 +91,15 @@ class Column(object):
     contents of the cells can be instructed to link to the object on the
     row or the data in the cell.
 
-    If a Column defines an image_class, then it will be assumed that the
-    class represents an icon, perhaps as part of a spritesheet, and will
-    display it in a <div>. An image_url cannot also be defined.
+    If a Column defines an :py:attr:`image_class`, then it will be assumed that
+    the class represents an icon, perhaps as part of a spritesheet, and will
+    display it in a ``<div>``. An :py:attr:`image_url` cannot also be defined.
     """
+
+    #: Descending sort order for columns.
     SORT_DESCENDING = 0
+
+    #: Ascending sort order for columns.
     SORT_ASCENDING = 1
 
     def __init__(self, label=None, id=None, detailed_label=None,
@@ -82,6 +109,85 @@ class Column(object):
                  sortable=False,
                  default_sort_dir=SORT_DESCENDING, link=False,
                  link_func=None, cell_clickable=False, css_class=""):
+        """Initialize the column.
+
+        When initializing a column as part of a :py:class:`DataGrid` subclass,
+        a number of options can be provided.
+
+        Args:
+            id (unicode):
+                The unique ID of the column on the datagrid.
+
+            label (unicode):
+                The label to show in the column header.
+
+            detailed_label (unicode):
+                A detailed label to display in the column customization
+                menu. Defaults to ``label``.
+
+            detailed_label_html (unicode):
+                A detailed label in HTML form to display in the column
+                customization menu. This takes precedence over
+                ``detailed_label``.
+
+            field_name (unicode):
+                The name of the field on the model containing the data to
+                render.
+
+            db_field (unicode):
+                The name of the database field containing the field used
+                for sorting. Defaults to ``field_name``.
+
+            image_url (unicode):
+                The URL to the image used in the header and navigation menu.
+                This cannot be used with ``image_class``.
+
+            image_class (unicode):
+                The CSS class of a spritesheet icon to use in the header
+                and navigation menu. This cannot be used with ``image_url``.
+
+            image_width (int):
+                The width of the image.
+
+            image_height (int):
+                The height of the image.
+
+            image_alt (unicode):
+                The alt text for the image.
+
+            shrink (bool):
+                If ``True``, the column's width will be calculated to its
+                minimum size.
+
+            expand (bool):
+                If ``True``, the column's width will be calculated to its
+                maximum size. If there are other expanded columns, they'll
+                share the available width equally.
+
+            sortable (bool):
+                If ``True``, the column can be sorted. This requires a
+                ``db_field`` that allows for sorting.
+
+            default_sort_dir (int):
+                The default sorting direction when the user activates sorting.
+                Either :py:attr:`SORT_DESCENDING`
+                or :py:attr:`SORT_ASCENDING`.
+
+            link (bool):
+                If ``True``, the contents will be linked to the URL
+                returned by ``link_func`` or
+                :py:meth:`DataGrid.link_to_object`.
+
+            link_func (callable):
+                Optional function that returns a URL for the link.
+
+            cell_clickable (bool):
+                If ``True``, clicking anywhere on the cell will navigate to
+                the URL defined, if any.
+
+            css_class (unicode):
+                The CSS class or classes to define on the cell.
+        """
         assert not (image_class and image_url)
 
         self.id = id
@@ -107,26 +213,44 @@ class Column(object):
         self.css_class = css_class
 
     def setup_state(self, state):
-        """Sets up any state that may be needed for the column.
+        """Set up any state that may be needed for the column.
 
         This is called once per column per datagrid instance.
 
         By default, no additional state is set up. Subclasses can override
         this to set any variables they may need.
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
         """
         pass
 
     def get_sort_field(self, state):
-        """Returns the field used for sorting this column.
+        """Return the field used for sorting this column.
 
         By default, this uses the provided db_field.
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+        Returns:
+            unicode:
+                The field on the model used for sorting. Defaults
+                to ``db_field``.
         """
         return self.db_field
 
     def get_toggle_url(self, state):
-        """
-        Returns the URL of the current page with this column's visibility
-        toggled.
+        """Return a URL to toggle this column's visibility.
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+        Returns:
+            unicode: The URL used to toggle column visibility.
         """
         columns = [column.id for column in state.datagrid.columns]
 
@@ -146,12 +270,18 @@ class Column(object):
         return "?%scolumns=%s" % (url_params, ",".join(columns))
 
     def get_header(self, state):
-        """
-        Displays a sortable column header.
+        """Render the header for the column.
 
         The column header will include the current sort indicator, if it
         belongs in the sort list. It will also be made clickable in order
         to modify the sort order appropriately, if sortable.
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+        Returns:
+            unicode: The HTML for the header.
         """
         datagrid = state.datagrid
         in_sort = False
@@ -228,11 +358,18 @@ class Column(object):
         return mark_safe(datagrid.column_header_template_obj.render(ctx))
 
     def collect_objects(self, state, object_list):
-        """Iterates through the objects and builds a cache of data to display.
+        """Iterate through the objects and builds a cache of data to display.
 
         This optimizes the fetching of data in the grid by grabbing all the
         IDs of related objects that will be queried for rendering, loading
         them all at once, and populating the cache.
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            object_list (list):
+                The list of objects being rendered on the datagrid.
         """
         id_field = '%s_id' % self.field_name
         ids = set()
@@ -259,7 +396,21 @@ class Column(object):
                 state.data_cache[obj.pk] = obj
 
     def render_cell(self, state, obj, render_context):
-        """Renders the table cell containing column data."""
+        """Render the table cell containing column data.
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            obj (object):
+                The object being rendered for this row.
+
+            render_context (Context):
+                The shared context used for cell renders.
+
+        Returns:
+            unicode: The rendered cell as HTML.
+        """
         datagrid = state.datagrid
 
         try:
@@ -307,7 +458,18 @@ class Column(object):
         return state.cell_render_cache[key]
 
     def render_data(self, state, obj):
-        """Renders the column data to a string. This may contain HTML."""
+        """Render the column data within the cell.
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            obj (object):
+                The object being rendered for this row.
+
+        Returns:
+            unicode: The rendered data as HTML.
+        """
         id_field = '%s_id' % self.field_name
 
         # Look for this directly so that we don't end up fetching the
@@ -334,7 +496,7 @@ class Column(object):
             return escape(value)
 
     def augment_queryset(self, state, queryset):
-        """Augments a queryset with new queries.
+        """Augment a queryset with new queries.
 
         Subclasses can override this to extend the queryset to provide
         additional information, usually using queryset.extra(). This must
@@ -343,6 +505,16 @@ class Column(object):
         This should not restrict the query in any way, or the datagrid may
         not operate properly. It must only add additional data to the
         queryset.
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            queryset (QuerySet):
+                The queryset to augment.
+
+        Returns:
+            QuerySet: The resulting QuerySet.
         """
         return queryset
 
@@ -354,9 +526,9 @@ class StatefulColumn(object):
     a particular DataGrid. However, some state is needed for columns, such
     as their widths or active status.
 
-    StatefulColumn wraps a Column instance and provides state storage,
-    and also provides a convenient way to call methods on a Column and pass
-    the state.
+    StatefulColumn wraps a :py:class:`Column` instance and provides state
+    storage, and also provides a convenient way to call methods on a Column and
+    pass the state.
 
     Attributes owned by the Column can be accessed directly through the
     StatefulColumn.
@@ -365,7 +537,17 @@ class StatefulColumn(object):
     The function will be invoked with this StatefulColumn as the first
     parameter passed.
     """
+
     def __init__(self, datagrid, column):
+        """Initialize the column state.
+
+        Args:
+            datagrid (DataGrid):
+                The DataGrid instance owning this column state.
+
+            column (Column):
+                The column instance this state is associated with.
+        """
         self.datagrid = datagrid
         self.column = column
         self.active = False
@@ -383,19 +565,19 @@ class StatefulColumn(object):
 
     @property
     def toggle_url(self):
-        """Returns the visibility toggle URL of the column.
+        """The visibility toggle URL of the column.
 
-        This is a convenience used by templates to call Column.get_toggle_url
-        with the current state.
+        This is a convenience used by templates to call
+        :py:meth:`Column.get_toggle_url` with the current state.
         """
         return self.column.get_toggle_url(self)
 
     @property
     def header(self):
-        """Returns the header of the column.
+        """The header of the column.
 
-        This is a convenience used by templates to call Column.get_header
-        with the current state.
+        This is a convenience used by templates to call
+        :py:meth:`Column.get_header` with the current state.
         """
         return self.column.get_header(self)
 
@@ -409,6 +591,12 @@ class StatefulColumn(object):
         In the case of accessing a function, a wrapper will be returned
         that will automatically pass this StatefulColumn instance as the
         first parameter.
+
+        Args:
+            name (unicode): The attribute to fetch from the column.
+
+        Returns:
+            The attribute value from the column.
         """
         result = getattr(self.column, name)
 
@@ -421,23 +609,37 @@ class StatefulColumn(object):
 class CheckboxColumn(Column):
     """A column that renders a checkbox.
 
-    The is_selectable and is_selected functions can be overridden to
-    control whether a checkbox is displayed in a row and whether that
-    checkbox is initially checked.
+    The :py:meth:`is_selectable` and :py:meth:`is_selected` functions can be
+    overridden to control whether a checkbox is displayed in a row and whether
+    that checkbox is initially checked.
 
-    The checkboxes have a data-object-id attribute that contains the ID of
+    The checkboxes have a ``data-object-id`` attribute that contains the ID of
     the object that row represents. This allows the JavaScript code to
     determine which rows have been checked, and operate on that
     accordingly.
 
-    The checkboxes also have a data-checkbox-name attribute that
-    contains the value passed in to the checkbox_name parameter of its
+    The checkboxes also have a ``data-checkbox-name`` attribute that
+    contains the value passed in to the ``checkbox_name`` parameter of its
     constructor.
     """
+
     def __init__(self, checkbox_name='select', shrink=True,
                  show_checkbox_header=True,
                  detailed_label=_('Select Rows'),
                  *args, **kwargs):
+        """Initialize the column.
+
+        Args:
+            checkbox_name (unicode):
+                The name set in ``data-checkbox-name``.
+
+            shrink (bool):
+                If ``True``, the column's width will be calculated to its
+                minimum size.
+
+            show_checkbox_header (bool):
+                If ``True``, a checkbox will be used for the column header.
+        """
         super(CheckboxColumn, self).__init__(
             shrink=shrink,
             label=mark_safe(
@@ -483,6 +685,7 @@ class CheckboxColumn(Column):
 
 class DateTimeColumn(Column):
     """A column that renders a date or time."""
+
     def __init__(self, label, format=None, sortable=True,
                  timezone=pytz.utc, *args, **kwargs):
         super(DateTimeColumn, self).__init__(label, sortable=sortable,
@@ -502,6 +705,7 @@ class DateTimeColumn(Column):
 
 class DateTimeSinceColumn(Column):
     """A column that renders a date or time relative to now."""
+
     def __init__(self, label, sortable=True, timezone=pytz.utc,
                  *args, **kwargs):
         super(DateTimeSinceColumn, self).__init__(label, sortable=sortable,
@@ -512,8 +716,9 @@ class DateTimeSinceColumn(Column):
 
 
 class DataGrid(object):
-    """
-    A representation of a list of objects, sorted and organized by
+    """A paginated table of data based on queries from a database.
+
+    A datagriad represents a list of objects, sorted and organized by
     columns. The sort order and column lists can be customized. allowing
     users to view this data however they prefer.
 
@@ -521,46 +726,64 @@ class DataGrid(object):
     responsible for defining one or more column types. It can also set
     one or more of the following optional variables:
 
-        * 'title':                  The title of the grid.
-        * 'profile_sort_field':     The variable name in the user profile
-                                    where the sort order can be loaded and
-                                    saved.
-        * 'profile_columns_field":  The variable name in the user profile
-                                    where the columns list can be loaded and
-                                    saved.
-        * 'paginate_by':            The number of items to show on each page
-                                    of the grid. The default is 50.
-        * 'paginate_orphans':       If this number of objects or fewer are
-                                    on the last page, it will be rolled into
-                                    the previous page. The default is 3.
-        * 'page':                   The page to display. If this is not
-                                    specified, the 'page' variable passed
-                                    in the URL will be used, or 1 if that is
-                                    not specified.
-        * 'listview_template':      The template used to render the list view.
-                                    The default is 'datagrid/listview.html'
-        * 'column_header_template': The template used to render each column
-                                    header. The default is
-                                    'datagrid/column_header.html'
-        * 'cell_template':          The template used to render a cell of
-                                    data. The default is 'datagrid/cell.html'
-        * 'optimize_sorts':         Whether or not to optimize queries when
-                                    using multiple sorts. This can offer a
-                                    speed improvement, but may need to be
-                                    turned off for more advanced querysets
-                                    (such as when using extra()).
-                                    The default is True.
+    Attributes:
+        title (unicode):
+            The title of the grid.
+
+        profile_sort_field (unicode):
+            The variable name in the user profile where the sort order can be
+            loaded and saved.
+
+        profile_columns_field (unicode):
+            The variable name in the user profile where the columns list can be
+            loaded and saved.
+
+        paginate_by (int):
+            The number of items to show on each page of the grid. The default
+            is 50.
+
+        paginate_orphans (int):
+            If this number of objects or fewer are on the last page, it will be
+            rolled into the previous page. The default is 3.
+
+        page (int):
+            The page to display. If this is not specified, the ``?page=``
+            variable passed in the URL will be used, or 1 if that is not
+            specified.
+
+        listview_template (unicode):
+            The template used to render the list view. The default is
+            :file:`datagrid/listview.html`.
+
+        column_header_template (unicode):
+            The template used to render each column header. The default is
+            :file:`datagrid/column_header.html`.
+
+        cell_template (unicode):
+            The template used to render a cell of data. The default is
+            :file:`datagrid/cell.html`.
+
+        optimize_sorts (bool):
+            Whether or not to optimize queries when using multiple sorts. This
+            can offer a speed improvement, but may need to be turned off for
+            more advanced querysets (such as when using ``extra()``).
+            The default is ``True``.
     """
+
     _columns = None
 
     @classmethod
     def add_column(cls, column):
-        """Adds a new column for this datagrid.
+        """Add a new column for this datagrid.
 
         This can be used to add columns to a DataGrid subclass after
         the subclass has already been defined.
 
         The column added must have a unique ID already set.
+
+        Args:
+            column (Column):
+                The column to add.
         """
         cls._populate_columns()
 
@@ -576,10 +799,14 @@ class DataGrid(object):
 
     @classmethod
     def remove_column(cls, column):
-        """Removes a column from this datagrid.
+        """Remove a column from this datagrid.
 
         This can be used to remove columns previously added through
-        add_column().
+        :py:meth:`add_column`.
+
+        Args:
+            column (Column):
+                The column to remove.
         """
         cls._populate_columns()
 
@@ -591,9 +818,16 @@ class DataGrid(object):
 
     @classmethod
     def get_column(cls, column_id):
-        """Returns the column with the given ID.
+        """Return the column with the given ID.
 
         If not found, this will return None.
+
+        Args:
+            column_id (int):
+                The index of the column to return.
+
+        Returns:
+            Column: The resulting column at the given index.
         """
         cls._populate_columns()
 
@@ -601,14 +835,18 @@ class DataGrid(object):
 
     @classmethod
     def get_columns(cls):
-        """Returns the list of registered columns for this datagrid."""
+        """Return the list of registered columns for this datagrid.
+
+        Returns:
+            list of Column: The list of columns registered on this datagrid.
+        """
         cls._populate_columns()
 
         return six.itervalues(_column_registry[cls])
 
     @classmethod
     def _populate_columns(cls):
-        """Populates the default list of columns for the datagrid.
+        """Populate the default list of columns for the datagrid.
 
         The default list contains all columns added in the class definition.
         """
@@ -631,6 +869,25 @@ class DataGrid(object):
 
     def __init__(self, request, queryset=None, title="", extra_context={},
                  optimize_sorts=True):
+        """Initialize the datagrid.
+
+        Args:
+            request (HttpRequest):
+                The HTTP request from the client.
+
+            queryset (QuerySet):
+                A QuerySet returning the objects to render in the grid.
+
+            title (unicode):
+                The displayed title of the datagrid.
+
+            extra_context (dict):
+                Extra context variables to render on the datagrid template.
+
+            optimize_sorts (bool):
+                If ``True``, sorting will be optimized, reducing the
+                complexity of the queries. This is the default.
+        """
         self.request = request
         self.queryset = queryset
         self.rows = []
@@ -666,6 +923,10 @@ class DataGrid(object):
 
     @cached_property
     def cell_template_obj(self):
+        """The rendered template used for cells on this datagrid.
+
+        This will only be generated once, and reused for all cells.
+        """
         obj = get_template(self.cell_template)
 
         if not obj:
@@ -680,6 +941,10 @@ class DataGrid(object):
 
     @cached_property
     def column_header_template_obj(self):
+        """The rendered template used for column headers on this datagrid.
+
+        This will only be generated once, and reused for all headers.
+        """
         obj = get_template(self.column_header_template)
 
         if not obj:
@@ -695,7 +960,7 @@ class DataGrid(object):
 
     @property
     def all_columns(self):
-        """Returns all columns in the datagrid, sorted by label."""
+        """All columns in the datagrid, sorted by label."""
         return [
             self.get_stateful_column(column)
             for column in sorted(self.get_columns(),
@@ -703,9 +968,16 @@ class DataGrid(object):
         ]
 
     def get_stateful_column(self, column):
-        """Returns a StatefulColumn for the given Column instance.
+        """Return a StatefulColumn for the given Column instance.
 
         If one has already been created, it will be returned.
+
+        Args:
+            column (Column):
+                The column associated with the stateful column.
+
+        Returns:
+            StatefulColumn: The column state associated with the column.
         """
         if column not in self.column_map:
             self.column_map[column] = StatefulColumn(self, column)
@@ -713,12 +985,15 @@ class DataGrid(object):
         return self.column_map[column]
 
     def load_state(self, render_context=None):
-        """
-        Loads the state of the datagrid.
+        """Load the state of the datagrid.
 
         This will retrieve the user-specified or previously stored
         sorting order and columns list, as well as any state a subclass
         may need.
+
+        Args:
+            render_context (Context):
+                Common template variable context to render on the datagrid.
         """
         if self.state_loaded:
             return
@@ -843,19 +1118,33 @@ class DataGrid(object):
         self.precompute_objects(render_context)
 
     def load_extra_state(self, profile):
-        """
-        Loads any extra state needed for this grid.
+        """Load any extra state needed for this grid.
 
         This is used by subclasses that may have additional data to load
-        and save. This should return True if any profile-stored state has
-        changed, or False otherwise.
+        and save.
+
+        Args:
+            profile (Model):
+                The profile model instance to load from, if any.
+
+        Returns:
+            bool:
+                Subclasses must return ``True`` if any profile-stored
+                state has changed, or ``False`` otherwise.
         """
         return False
 
     def precompute_objects(self, render_context=None):
-        """
-        Builds the queryset and stores the list of objects for use in
-        rendering the datagrid.
+        """Pre-compute all objects used to render the datagrid.
+
+        This builds the queryset and stores the list of objects for use in
+        rendering the datagrid. It takes into consideration sorting,
+        the current page, and augmented queries from columns.
+
+        Args:
+            render_context (Context):
+                The common template variable context to render on the datagrid,
+                provided in the constructor.
         """
         query = self.queryset
         use_select_related = False
@@ -990,6 +1279,13 @@ class DataGrid(object):
 
         Individual columns can define additional joins and extra info to add on
         to the queryset. This handles adding all of those.
+
+        Args:
+            queryset (QuerySet):
+                The queryset to augment.
+
+        Returns:
+            QuerySet: The resulting augmented QuerySet.
         """
         for column in self.columns:
             try:
@@ -1002,10 +1298,17 @@ class DataGrid(object):
         return queryset
 
     def render_listview(self, render_context=None):
-        """
-        Renders the standard list view of the grid.
+        """Render the standard list view of the grid.
 
         This can be called from templates.
+
+        Args:
+            render_context (Context):
+                The common template variable context to render on the datagrid,
+                provided in the constructor.
+
+        Returns:
+            unicode: The rendered HTML for the datagrid page.
         """
         try:
             if render_context is None:
@@ -1031,9 +1334,20 @@ class DataGrid(object):
             return mark_safe('<pre>%s</pre>' % trace)
 
     def render_listview_to_response(self, request=None, render_context=None):
-        """
-        Renders the listview to a response, preventing caching in the
-        process.
+        """Render the listview to a response.
+
+        The rendered result will not be cached by the browser.
+
+        Args:
+            request (HttpRequest):
+                The HTTP request from the client.
+
+            render_context (Context):
+                The common template variable context to render on the datagrid,
+                provided in the constructor.
+
+        Returns:
+            HttpResponse: The HTTP response to send to the client.
         """
         response = HttpResponse(
             six.text_type(self.render_listview(render_context)))
@@ -1042,8 +1356,21 @@ class DataGrid(object):
         return response
 
     def render_to_response(self, template_name, extra_context={}):
-        """
-        Renders a template containing this datagrid as a context variable.
+        """Render the entire datagrid page to a response.
+
+        This will render the entire page, given the specified template, with
+        the datagrid as a part of it. This is the primary function a view
+        will be using to render the page.
+
+        Args:
+            template_name (unicode):
+                The template for the page.
+
+            extra_context (dict):
+                Extra context variables to use in the template.
+
+        Returns:
+            HttpResponse: The HTTP response to send to the client.
         """
         render_context = self._build_render_context()
         self.load_state(render_context)
@@ -1063,9 +1390,17 @@ class DataGrid(object):
         return render_to_response(template_name, Context(context))
 
     def render_paginator(self, adjacent_pages=3):
-        """Renders the paginator for the datagrid.
+        """Render the paginator for the datagrid.
 
         This can be called from templates.
+
+        Args:
+            adjacent_pages (int):
+                The number of adjacent page numbers to show in the
+                paginator.
+
+        Returns:
+            unicode: The paginator as HTML.
         """
         extra_query = get_url_params_except(self.request.GET,
                                             'page', 'gridonly',
@@ -1109,7 +1444,7 @@ class DataGrid(object):
                                           Context(context)))
 
     def _build_render_context(self):
-        """Builds a dictionary containing RequestContext contents.
+        """Build a dictionary containing RequestContext contents.
 
         A RequestContext can be expensive, so it's best to reuse the
         contents of one when possible. This is not easy with a standard
@@ -1126,21 +1461,52 @@ class DataGrid(object):
 
     @staticmethod
     def link_to_object(state, obj, value):
+        """Return a URL for the given object.
+
+        This defaults to calling ``obj.get_absolute_url``.
+
+        Returns:
+            unicode: The URL for the object.
+        """
         return obj.get_absolute_url()
 
     @staticmethod
     def link_to_value(state, obj, value):
+        """Return a URL for the given value.
+
+        This defaults to calling ``value.get_absolute_url``.
+
+        Returns:
+            unicode: The URL for the value.
+        """
         return value.get_absolute_url()
 
 
 class AlphanumericDataGrid(DataGrid):
-    """Datagrid subclass that creates an alphanumerically paginated datagrid.
+    """A DataGrid subclass for an alphanumerically-paginated datagrid.
 
     This is useful for datasets that need to be queried alphanumerically,
-    according to the starting character of their 'sortable' column.
+    according to the starting character of their ``sortable`` column.
     """
+
     def __init__(self, request, queryset, sortable_column,
                  extra_regex='^[0-9].*', *args, **kwargs):
+        """Initialize the datagrid.
+
+        Args:
+            request (HttpRequest):
+                The HTTP request from the client.
+
+            queryset (QuerySet):
+                A QuerySet returning the objects to render in the grid.
+
+            sortable_column (unicode):
+                The model field used for the alphanumeric prefixes.
+
+            extra_regex (unicode):
+                A regex used for matching the beginning of entries in
+                ``sortable_column``.
+        """
         self.current_letter = request.GET.get('letter', 'all')
 
         regex_match = re.compile(extra_regex)

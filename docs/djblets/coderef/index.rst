@@ -56,7 +56,6 @@ Datagrids
    :toctree: python
 
    djblets.datagrid.grids
-   djblets.datagrid.templatetags.datagrid
 
 
 Database Utilities
