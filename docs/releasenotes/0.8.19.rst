@@ -1,0 +1,111 @@
+============================
+Djblets 0.8.19 Release Notes
+============================
+
+**Release date**: June 11, 2015
+
+
+djblets.cache
+=============
+
+.. currentmodule:: djblets.cache.backend
+
+* :py:func:`make_cache_key` now strips out invalid characters from cache keys.
+  (:bug:`3873`)
+
+  Spaces, tabs, and newlines are all removed from the cache key, preventing
+  issues with saving to memcached or other similar cache backends.
+
+
+djblets.configforms
+===================
+
+* If accessing a page that doesn't exist or is hidden, the user will be
+  redirected to a a visible page.
+
+
+djblets.datagrid
+================
+
+* Alphanumeric datagrids now have an :guilabel:`All` button for listing all
+  entries.
+
+  This works just like the paginator for standard datagrids, and is the new
+  default. Filtering by a letter, number, or symbol is now optional, and not
+  the default.
+
+  Patch by Halvor Lund.
+
+
+djblets.extensions
+==================
+
+* Extensions that modify settings on load will no longer trigger extension
+  reload loops.
+
+  These loops were causing the extension manager to do a reload on every
+  request, slowing down responses, due to some incorrect tracking of the
+  synchronization generation number.
+
+
+djblets.db
+==========
+
+.. py:currentmodule:: djblets.db.fields
+
+* Fixed failures due to stale tracked instances in
+  :py:class:`RelationCounterField` that are never saved.
+
+* Fixed possible ID reuse for tracked instance state in
+  :py:class:`RelationCounterField`.
+
+
+djblets.log
+===========
+
+* Fixed KeyErrors mentioning ``request_info`` when attempting to log to an
+  unwritable path.
+
+
+djblets.siteconfig
+==================
+
+* Fixed several type-related issues in the ``set-siteconfig`` and
+  ``get-siteconfig`` management commands. (:bug:`3743`)
+
+  ``get-siteconfig`` no longer crashes if fetching a non-string value.
+
+  ``set-siteconfig`` now accepts ``true`` and ``false`` (as shown by
+  ``list-siteconfig``) for boolean values, and can set values to ``null``.
+
+
+djblets.util
+============
+
+.. py:currentmodule:: djblets.util.http
+
+* Added an :py:func:`encode_etag` function for encoding a string representing
+  an ETag into a SHA1.
+
+* Added a :py:func:`split <djblets.util.templatetags.djblets_utils>`
+  template tag for splitting a string, given a delimiter.
+
+
+djblets.webapi
+==============
+
+* Fixed expanding fields in list resources.
+
+
+jquery.gravy.retina
+===================
+
+* :js:func:`retinaGravatar` now supports function chaining.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Halvor Lund
