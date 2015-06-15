@@ -1011,7 +1011,8 @@ class WebAPIResource(object):
                 request._djblets_webapi_serialize_cache = {}
 
             if obj in request._djblets_webapi_serialize_cache:
-                return request._djblets_webapi_serialize_cache[obj]
+                return self._clone_serialized_object(
+                    request._djblets_webapi_serialize_cache[obj])
 
         data = {
             'links': self.get_links(self.item_child_resources, obj,
