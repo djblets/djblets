@@ -1053,7 +1053,8 @@ class WebAPIResource(object):
                 request._djblets_webapi_serialize_cache = {}
 
             if obj in request._djblets_webapi_serialize_cache:
-                return request._djblets_webapi_serialize_cache[obj]
+                return self._clone_serialized_object(
+                    request._djblets_webapi_serialize_cache[obj])
 
         only_fields = self.get_only_fields(request)
         only_links = self.get_only_links(request)

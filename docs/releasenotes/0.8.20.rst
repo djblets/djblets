@@ -1,0 +1,24 @@
+============================
+Djblets 0.8.20 Release Notes
+============================
+
+**Release date**: June 15, 2015
+
+
+djblets.webapi
+==============
+
+.. currentmodule:: djblets.webapi.resources
+
+* Fix :py:meth:`WebAPIResource.serialize_object` failing to return a copy
+  of the original serialized data.
+
+  This could break things if the caller modified the resulting data in its
+  own :py:meth:`serialize_object`, if called more than twice on the same
+  object in a given request.
+
+
+Contributors
+============
+
+* Christian Hammond
