@@ -1012,6 +1012,40 @@ class WebAPIResourceTests(TestCase):
             'field3': 'ghi',
         })
 
+    def test_serialize_object_with_cache_copy(self):
+        """Testing WebAPIResource.serialize_object always returns a copy of
+        the cached data
+        """
+        class TestObject(object):
+            my_field = 'abc'
+
+        request = RequestFactory().request()
+        request.user = User()
+
+        resource = WebAPIResource()
+        resource.fields = {
+            'my_field': {
+                'type': six.text_type,
+            }
+        }
+
+        obj = TestObject()
+
+        # We check this three times, since prior to Djblets 2.0.20, we would
+        # first return a copy of the newly-generated data, then the cached
+        # copy of the original data, and then the cached copy again (which
+        # would no longer be untouched).
+        data = resource.serialize_object(obj, request=request)
+        self.assertIn('my_field', data)
+        del data['my_field']
+
+        data = resource.serialize_object(obj, request=request)
+        self.assertIn('my_field', data)
+        del data['my_field']
+
+        data = resource.serialize_object(obj, request=request)
+        self.assertIn('my_field', data)
+
     def _test_mimetype_responses(self, resource, url, json_mimetype,
                                  xml_mimetype, **kwargs):
         self._test_mimetype_response(resource, url, '*/*', json_mimetype,
