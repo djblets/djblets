@@ -29,15 +29,14 @@ import datetime
 import unittest
 
 from django.http import HttpRequest
-from django.template import Token, TOKEN_TEXT, TemplateSyntaxError
+from django.template import Context, Template, TemplateSyntaxError
 from django.utils.html import strip_spaces_between_tags
 
 from djblets.testing.testcases import TestCase, TagTest
 from djblets.util.http import (get_http_accept_lists,
                                get_http_requested_mimetype,
                                is_mimetype_a)
-from djblets.util.templatetags import (djblets_deco, djblets_email,
-                                       djblets_utils)
+from djblets.util.templatetags import djblets_email, djblets_utils
 
 
 def normalize_html(s):
@@ -47,59 +46,53 @@ def normalize_html(s):
 class BoxTest(TagTest):
     def testPlain(self):
         """Testing box tag"""
-        node = djblets_deco.box(self.parser, Token(TOKEN_TEXT, 'box'))
-        context = {}
+        t = Template('{% load djblets_deco %}'
+                     '{% box %}content{% endbox %}')
 
-        self.assertEqual(normalize_html(node.render(context)),
+        self.assertEqual(normalize_html(t.render(Context({}))),
                          '<div class="box-container"><div class="box">' +
                          '<div class="box-inner">\ncontent\n  ' +
                          '</div></div></div>')
 
     def testClass(self):
         """Testing box tag (with extra class)"""
-        node = djblets_deco.box(self.parser, Token(TOKEN_TEXT, 'box "class"'))
-        context = {}
+        t = Template('{% load djblets_deco %}'
+                     '{% box "class" %}content{% endbox %}')
 
-        self.assertEqual(normalize_html(node.render(context)),
+        self.assertEqual(normalize_html(t.render(Context({}))),
                          '<div class="box-container"><div class="box class">' +
                          '<div class="box-inner">\ncontent\n  ' +
                          '</div></div></div>')
 
     def testError(self):
         """Testing box tag (invalid usage)"""
-        self.assertRaises(TemplateSyntaxError,
-                          lambda: djblets_deco.box(
-                              self.parser,
-                              Token(TOKEN_TEXT, 'box "class" "foo"')))
+        with self.assertRaises(TemplateSyntaxError):
+            Template('{% load djblets_deco %}'
+                     '{% box "class" "foo" %}content{% endbox %}')
 
 
 class ErrorBoxTest(TagTest):
     def testPlain(self):
         """Testing errorbox tag"""
-        node = djblets_deco.errorbox(self.parser,
-                                     Token(TOKEN_TEXT, 'errorbox'))
+        t = Template('{% load djblets_deco %}'
+                     '{% errorbox %}content{% enderrorbox %}')
 
-        context = {}
-
-        self.assertEqual(normalize_html(node.render(context)),
+        self.assertEqual(normalize_html(t.render(Context({}))),
                          '<div class="errorbox">\ncontent\n</div>')
 
     def testId(self):
         """Testing errorbox tag (with id)"""
-        node = djblets_deco.errorbox(self.parser,
-                                     Token(TOKEN_TEXT, 'errorbox "id"'))
+        t = Template('{% load djblets_deco %}'
+                     '{% errorbox "id" %}content{% enderrorbox %}')
 
-        context = {}
-
-        self.assertEqual(normalize_html(node.render(context)),
+        self.assertEqual(normalize_html(t.render(Context({}))),
                          '<div class="errorbox" id="id">\ncontent\n</div>')
 
     def testError(self):
         """Testing errorbox tag (invalid usage)"""
-        self.assertRaises(TemplateSyntaxError,
-                          lambda: djblets_deco.errorbox(
-                              self.parser,
-                              Token(TOKEN_TEXT, 'errorbox "id" "foo"')))
+        with self.assertRaises(TemplateSyntaxError):
+            Template('{% load djblets_deco %}'
+                     '{% box "class" "foo" "foo" %}content{% endbox %}')
 
 
 class HttpTest(TestCase):
@@ -277,27 +270,32 @@ class TestIndent(unittest.TestCase):
 class QuotedEmailTagTest(TagTest):
     def testInvalid(self):
         """Testing quoted_email tag (invalid usage)"""
-        self.assertRaises(TemplateSyntaxError,
-                          lambda: djblets_email.quoted_email(
-                              self.parser,
-                              Token(TOKEN_TEXT, 'quoted_email')))
+        with self.assertRaises(TemplateSyntaxError):
+            Template('{% load djblets_email %}'
+                     '{% quoted_email %}content{% end_quoted_email %}')
 
 
 class CondenseTagTest(TagTest):
-    def getContentText(self):
-        return "foo\nbar\n\n\n\n\n\n\nfoobar!"
+    tag_content = 'foo\nbar\n\n\n\n\n\n\nfoobar!'
 
     def test_plain(self):
         """Testing condense tag"""
-        node = djblets_email.condense(self.parser,
-                                      Token(TOKEN_TEXT, 'condense'))
-        self.assertEqual(node.render({}), "foo\nbar\n\n\nfoobar!")
+        t = Template('{% load djblets_email %}'
+                     '{% condense %}' +
+                     self.tag_content +
+                     '{% endcondense %}')
+
+        self.assertEqual(normalize_html(t.render(Context({}))),
+                         "foo\nbar\n\n\nfoobar!")
 
     def test_with_max_indents(self):
         """Testing condense tag with custom max_indents"""
-        node = djblets_email.condense(self.parser,
-                                      Token(TOKEN_TEXT, 'condense 1'))
-        self.assertEqual(node.render({}), "foo\nbar\nfoobar!")
+        t = Template('{% load djblets_email %}'
+                     '{% condense 1 %}' +
+                     self.tag_content +
+                     '{% endcondense %}')
+        self.assertEqual(normalize_html(t.render(Context({}))),
+                         "foo\nbar\nfoobar!")
 
 
 class QuoteTextFilterTest(unittest.TestCase):

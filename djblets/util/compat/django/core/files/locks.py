@@ -10,13 +10,6 @@ Anatoly Techtonik for Roundup [2] (license [3]).
 [1] http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/65203
 [2] http://sourceforge.net/p/roundup/code/ci/default/tree/roundup/backends/portalocker.py
 [3] http://sourceforge.net/p/roundup/code/ci/default/tree/COPYING.txt
-
-Example Usage::
-
-    >>> from django.core.files import locks
-    >>> with open('./file', 'wb') as f:
-    ...     locks.lock(f, locks.LOCK_EX)
-    ...     f.write('Django')
 """
 import os
 
