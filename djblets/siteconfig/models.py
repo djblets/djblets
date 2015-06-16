@@ -160,3 +160,9 @@ class SiteConfiguration(models.Model):
 
     def __str__(self):
         return "%s (version %s)" % (six.text_type(self.site), self.version)
+
+    class Meta:
+        # Djblets 0.9+ sets an app label of "djblets_siteconfig" on
+        # Django 1.7+, which would affect the table name. We need to retain
+        # the old name for backwards-compatibility.
+        db_table = 'siteconfig_siteconfiguration'

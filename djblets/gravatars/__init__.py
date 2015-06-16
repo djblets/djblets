@@ -30,6 +30,9 @@ from hashlib import md5
 from django.conf import settings
 
 
+default_app_config = 'djblets.gravatars.apps.GravatarsAppConfig'
+
+
 def get_gravatar_url_for_email(request, email, size=None):
     email_hash = md5(email.encode('utf-8')).hexdigest()
 

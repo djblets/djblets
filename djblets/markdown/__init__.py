@@ -9,6 +9,9 @@ from django.utils.six.moves import cStringIO as StringIO
 from markdown import Markdown, markdownFromFile
 
 
+default_app_config = 'djblets.markdown.apps.MarkdownAppConfig'
+
+
 MARKDOWN_SPECIAL_CHARS = re.escape(r''.join(Markdown.ESCAPED_CHARS))
 MARKDOWN_SPECIAL_CHARS_RE = re.compile(r'([%s])' % MARKDOWN_SPECIAL_CHARS)
 
