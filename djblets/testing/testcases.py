@@ -27,21 +27,31 @@
 from __future__ import print_function, unicode_literals
 
 import imp
+import inspect
 import re
 import socket
 import sys
 import threading
 
-import django
 from django.conf import settings
 from django.core.handlers.wsgi import WSGIHandler
 from django.core.management import call_command
 from django.core.servers import basehttp
+from django.db.models import Model
 from django.db.models.loading import cache, load_app
 from django.template import Node
 from django.test import testcases
+from django.utils import six
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
+
+try:
+    from django.apps import apps
+    from django.db import migrations
+except ImportError:
+    # Django < 1.7
+    apps = None
+    migrations = None
 
 
 class StubNodeList(Node):
@@ -133,19 +143,25 @@ class TestModelsLoaderMixin(object):
         if not cls.tests_app:
             cls.tests_app = cls.__module__
 
-        if django.VERSION < (1, 7):
-            tests_module = import_module(cls.tests_app)
+        tests_module = import_module(cls.tests_app)
 
-            if not module_has_submodule(tests_module, 'models'):
-                # To satisfy Django < 1.7, we need to have a 'models' module,
-                # in order for the app to be considered.
-                models_mod_name = '%s.models' % cls.tests_app
-                models_mod = imp.new_module(models_mod_name)
+        if not module_has_submodule(tests_module, 'models'):
+            # Set up a 'models' module, containing any models local to the
+            # module that this TestCase is in.
+            models_mod_name = '%s.models' % cls.tests_app
+            models_mod = imp.new_module(models_mod_name)
 
-                # Django needs a value here. Doesn't matter what it is.
-                models_mod.__file__ = ''
+            # Django needs a value here. Doesn't matter what it is.
+            models_mod.__file__ = ''
 
-                cls._tests_loader_models_mod = models_mod
+            # Transfer all the models over into this new module.
+            test_module = sys.modules[cls.__module__]
+
+            for key, value in six.iteritems(test_module.__dict__):
+                if inspect.isclass(value) and issubclass(value, Model):
+                    models_mod.__dict__[key] = value
+
+            cls._tests_loader_models_mod = models_mod
 
     @classmethod
     def tearDownClass(cls):
@@ -168,8 +184,20 @@ class TestModelsLoaderMixin(object):
             self.tests_app,
         ]
 
-        load_app(self.tests_app)
-        call_command('syncdb', verbosity=0, interactive=False)
+        if apps:
+            # Push the new set of installed apps, and begin registering
+            # each of the models associated with the tests.
+            apps.set_installed_apps(settings.INSTALLED_APPS)
+            app_config = apps.get_containing_app_config(self.tests_app)
+
+            for key, value in six.iteritems(models_mod.__dict__):
+                if inspect.isclass(value) and issubclass(value, Model):
+                    apps.register_model(app_config.label, value)
+
+            call_command('migrate', verbosity=0, interactive=False)
+        else:
+            load_app(self.tests_app)
+            call_command('syncdb', verbosity=0, interactive=False)
 
     def tearDown(self):
         super(TestModelsLoaderMixin, self).tearDown()
@@ -182,14 +210,19 @@ class TestModelsLoaderMixin(object):
         models_mod = self._tests_loader_models_mod
 
         if models_mod:
-            del cache.app_store[models_mod]
-
             try:
                 del sys.modules[models_mod.__name__]
             except KeyError:
                 pass
 
-        cache._get_models_cache.clear()
+        if apps:
+            apps.unset_installed_apps()
+            cache.clear_cache()
+        else:
+            if models_mod:
+                del cache.app_store[models_mod]
+
+            cache._get_models_cache.clear()
 
 
 class TagTest(TestCase):
