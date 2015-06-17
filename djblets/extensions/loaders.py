@@ -1,51 +1,72 @@
-#
-# loaders.py -- Loaders for extension data.
-#
-# Copyright (c) 2010-2011  Beanbag, Inc.
-# Copyright (c) 2008-2010  Christian Hammond
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"""Template loaders for extensions."""
 
 from __future__ import unicode_literals
 
+import warnings
+
 from django.template import TemplateDoesNotExist
 from pkg_resources import _manager as manager
+try:
+    from django.template.loaders.base import Loader as BaseLoader
+except ImportError:
+    # Django < 1.8
+    from django.template.loader import BaseLoader
 
 from djblets.extensions.manager import get_extension_managers
 
 
+class Loader(BaseLoader):
+    """Loads templates found within an extension.
+
+    This will look through all enabled extensions and attempt to fetch
+    the named template under the :file:`templates` directory within the
+    extension's package.
+
+    This should be added last to the list of template loaders.
+
+    .. versionadded:: 0.9
+    """
+
+    is_usable = manager is not None
+
+    def load_template_source(self, template_name, template_dirs=None):
+        """Load templates from enabled extensions."""
+        if manager:
+            resource = "templates/" + template_name
+
+            for extmgr in get_extension_managers():
+                for ext in extmgr.get_enabled_extensions():
+                    package = ext.info.app_name
+
+                    try:
+                        return (manager.resource_string(package, resource),
+                                'extension:%s:%s ' % (package, resource))
+                    except Exception:
+                        pass
+
+        raise TemplateDoesNotExist(template_name)
+
+
+_loader = None
+
+
 def load_template_source(template_name, template_dirs=None):
-    """Loads templates from enabled extensions."""
-    if manager:
-        resource = "templates/" + template_name
+    """Load templates from enabled extensions.
 
-        for extmgr in get_extension_managers():
-            for ext in extmgr.get_enabled_extensions():
-                package = ext.info.app_name
+    .. deprecated:: 0.9
+       This will be removed in a future version. You should instead include
+       ``djblets.extensions.loaders.Loader`` in the list of template loaders.
+    """
+    global _loader
 
-                try:
-                    return (manager.resource_string(package, resource),
-                            'extension:%s:%s ' % (package, resource))
-                except Exception:
-                    pass
+    warnings.warn(
+        "'djblets.extensions.loaders.load_template_source' is deprecated; "
+        "use 'djblets.extensions.loaders.Loader' instead.",
+        DeprecationWarning)
 
-    raise TemplateDoesNotExist(template_name)
+    if _loader is None:
+        _loader = Loader()
 
-load_template_source.is_usable = manager is not None
+    return _loader.load_template_source(template_name, template_dirs)
+
+load_template_source.is_usable = True

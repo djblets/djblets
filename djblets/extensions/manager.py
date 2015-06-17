@@ -47,7 +47,6 @@ from django.core.management.color import no_style
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError
 from django.db.models import loading
-from django.template.loader import template_source_loaders
 from django.utils import six
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
@@ -55,6 +54,13 @@ from django.utils.six.moves import cStringIO as StringIO
 from django.utils.translation import ugettext as _
 from django_evolution.management.commands.evolve import Command as Evolution
 from setuptools.command import easy_install
+
+try:
+    from django.template.loader import template_source_loaders
+    template_engines = None
+except ImportError:
+    from django.template import engines as template_engines
+    template_source_loaders = None
 
 from djblets.cache.backend import make_cache_key
 from djblets.extensions.errors import (EnablingExtensionError,
@@ -562,9 +568,20 @@ class ExtensionManager(object):
     def _clear_template_cache(self):
         """Clears the Django template caches."""
         if template_source_loaders:
-            for template_loader in template_source_loaders:
-                if hasattr(template_loader, 'reset'):
-                    template_loader.reset()
+            # We're running in Django <=1.7.
+            template_loaders = template_source_loaders
+        elif template_engines:
+            template_loaders = []
+
+            for engine in template_engines.all():
+                template_loaders += engine.engine.template_loaders
+        else:
+            # It's valid for there to not be any loaders.
+            template_loaders = []
+
+        for template_loader in template_loaders:
+            if hasattr(template_loader, 'reset'):
+                template_loader.reset()
 
     def _init_extension(self, ext_class):
         """Initializes an extension.
@@ -658,10 +675,16 @@ class ExtensionManager(object):
         """Clears the Django templatetags_modules cache."""
         # We'll import templatetags_modules here because
         # we want the most recent copy of templatetags_modules
-        from django.template.base import (get_templatetags_modules,
-                                          templatetags_modules)
-        # Wipe out the contents
-        del(templatetags_modules[:])
+        from django.template.base import get_templatetags_modules
+
+        # Wipe out the contents.
+        if hasattr(get_templatetags_modules, 'cache_clear'):
+            # Django >= 1.7
+            get_templatetags_modules.cache_clear()
+        else:
+            # Django < 1.7
+            from django.template.base import templatetags_modules
+            del(templatetags_modules[:])
 
         # And reload the cache
         get_templatetags_modules()
