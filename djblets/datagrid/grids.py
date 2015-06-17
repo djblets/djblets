@@ -56,7 +56,6 @@ import traceback
 
 import pytz
 from django.conf import settings
-from django.contrib.auth.models import SiteProfileNotAvailable
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import InvalidPage, QuerySetPaginator
 from django.http import Http404, HttpResponse
@@ -70,6 +69,13 @@ from django.utils.functional import cached_property
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
+
+try:
+    from django.contrib.auth.models import SiteProfileNotAvailable
+except ImportError:
+    # Django >= 1.7
+    class SiteProfileNotAvailable(Exception):
+        pass
 
 from djblets.util.http import get_url_params_except
 
@@ -1007,9 +1013,9 @@ class DataGrid(object):
         # work as defaults and allow us to determine if we need to save
         # the profile.
         if self.request.user.is_authenticated():
-            try:
-                profile = self.request.user.get_profile()
+            profile = self.get_user_profile()
 
+            if profile:
                 if self.profile_sort_field:
                     profile_sort_list = \
                         getattr(profile, self.profile_sort_field, None)
@@ -1017,10 +1023,6 @@ class DataGrid(object):
                 if self.profile_columns_field:
                     profile_columns_list = \
                         getattr(profile, self.profile_columns_field, None)
-            except SiteProfileNotAvailable:
-                pass
-            except ObjectDoesNotExist:
-                pass
 
         # Figure out the columns we're going to display
         # We're also going to calculate the column widths based on the
@@ -1116,6 +1118,23 @@ class DataGrid(object):
 
         # Fetch the list of objects and have it ready.
         self.precompute_objects(render_context)
+
+    def get_user_profile(self):
+        """Return the object, if any, to use for the user profile state.
+
+        Returns:
+            The object, if any, used to store and retrieve persistent
+            profile state for the datagrid.
+        """
+        if hasattr(self.request.user, 'get_profile'):
+            try:
+                return self.request.user.get_profile()
+            except ObjectDoesNotExist:
+                pass
+            except SiteProfileNotAvailable:
+                pass
+
+        return None
 
     def load_extra_state(self, profile):
         """Load any extra state needed for this grid.

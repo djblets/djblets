@@ -7,8 +7,12 @@ older versions of Django.
 from __future__ import unicode_literals
 import logging
 
-from django.core.cache import (DEFAULT_CACHE_ALIAS, parse_backend_uri,
-                               InvalidCacheBackendError)
+from django.core.cache import DEFAULT_CACHE_ALIAS, InvalidCacheBackendError
+
+try:
+    from django.core.cache import parse_backend_uri
+except ImportError:
+    from djblets.util.compat.django.core.cache import parse_backend_uri
 
 
 BACKEND_CLASSES = {
