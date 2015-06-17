@@ -56,7 +56,7 @@ import traceback
 
 import pytz
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist
 from django.core.paginator import InvalidPage, QuerySetPaginator
 from django.http import Http404, HttpResponse
 from django.shortcuts import render_to_response
@@ -76,6 +76,12 @@ except ImportError:
     # Django >= 1.7
     class SiteProfileNotAvailable(Exception):
         pass
+
+try:
+    from django.template import engines as template_engines
+except ImportError:
+    # Django < 1.8
+    template_engines = None
 
 from djblets.util.http import get_url_params_except
 
@@ -1473,8 +1479,31 @@ class DataGrid(object):
         request_context = RequestContext(self.request)
         render_context = {}
 
-        for d in request_context:
-            render_context.update(d)
+        if template_engines:
+            # Django >= 1.8
+            #
+            # RequestContext is no longer populated when created, but rather
+            # during template render. It's bound to a template during
+            # the render, at which point all the context processors will load.
+            # We need to simulate this.
+            #
+            # This depends on the 'django' template engine being loaded. Not
+            # all projects will have that, but most will. For now, it's just
+            # a hard requirement.
+            try:
+                template = template_engines['django'].from_string('')
+            except KeyError:
+                raise ImproperlyConfigured(
+                    'The "django" template engine must be defined in order '
+                    'to render datagrids.')
+
+            with request_context.bind_template(template.template):
+                for d in request_context:
+                    render_context.update(d)
+        else:
+            # Django < 1.8
+            for d in request_context:
+                render_context.update(d)
 
         return render_context
 
