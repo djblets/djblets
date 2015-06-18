@@ -7,6 +7,11 @@ env:
     - DJANGO_VERSION=1.6.11
     - DJANGO_VERSION=1.8.2
 
+matrix:
+    exclude:
+        - python: 2.6
+          env: DJANGO_VERSION=1.8.2
+
 install:
     - python setup.py develop
     - pip install --allow-all-external django-evolution
