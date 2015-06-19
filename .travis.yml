@@ -1,0 +1,27 @@
+language: python
+python:
+    - 2.6
+    - 2.7
+
+env:
+    - DJANGO_VERSION=1.6.11
+    - DJANGO_VERSION=1.8.2
+
+matrix:
+    exclude:
+        - python: 2.6
+          env: DJANGO_VERSION=1.8.2
+
+install:
+    - python setup.py develop
+    - pip install --allow-all-external django-evolution
+    - pip install kgb 'Markdown>=2.4.0,<2.4.999' Pygments
+    - pip install https://github.com/beanbaginc/django-evolution/archive/master.zip
+    - pip install -q Django==$DJANGO_VERSION
+
+script:
+    - python ./tests/runtests.py
+
+notifications:
+    slack:
+        secure: GMRCT7bxh0fhZu6HtH7MNTDULqIm1O5ap/j9TnnZeiLhnOmYhh7d/xtzM4iWvpslX8wgykH1lUbAoHOnqQwHrSVwZTe16nQu69wkjtYh9+bEolfMbNSMeT8iikU/x6D0ERuJrgR4TDZo0xo/B0wWWXNanbgpKtwSkea3r4l4AoxMS24/oyzxP8RQX7lz4iaPepyB/WWFDQ91xLFZTNNEg8PhSvHp1YNT/ziVj2eBQJysoZiYpVGDvaczlilEt9lkvXy7/X3JMYIenURG9ifQOW/KHkuKLnorwASReMjrKa4lmwWZrUNKou0IPawq07mdn5whjvvlTVdKT73yUT+/CMJ+3KL6YdeBJLoUyPV9BekN49gK6F6sf+T8pXsywyXIFv91RJStbgUykzRLlkwVMQeCcgu9Xl1Nsu7QbR/aC/SOkZnjmvpfMqgwi9X3EIQpmF2R7RN/6ArdNZmhJJN0yNHXKXOJegrX1yuJ3JDn3ixLI6dBmF5FuGC77ZuVrxBqq2x4KG3WLgF1kBPxvmDPjk4B3GqNAem/KUue1mn3Q6ZNdmqdVLX7/QP77/J2I2JQpu1ogHatyK4yqt1T7foCF5ZTBFEqdARhD/YgkTPEgaEBuEoyFEuKC6ELKQSPJKYYDGwXIViIIl+k/oeqMaHi+qbtFble4cJKIXfAJEolsFE=

@@ -33,16 +33,22 @@ import json
 import logging
 import weakref
 
+import django
 from django import forms
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.db.models import F, Q
-from django.db.models.expressions import ExpressionNode
 from django.db.models.signals import (m2m_changed, post_delete, post_init,
                                       post_save)
 from django.utils import six
 from django.utils.encoding import smart_unicode
+try:
+    from django.db.models.expressions import Combinable
+    QueryExpressionType = Combinable
+except ImportError:
+    from django.db.models.expressions import ExpressionNode
+    QueryExpressionType = ExpressionNode
 
 from djblets.db.validators import validate_json
 from djblets.util.dates import get_tz_aware_utcnow
@@ -436,15 +442,16 @@ class CounterField(models.IntegerField):
         value = 0
 
         if self._initializer:
-            if isinstance(self._initializer, ExpressionNode):
+            if isinstance(self._initializer, QueryExpressionType):
                 value = self._initializer
             elif six.callable(self._initializer):
-                self._locks[model_instance] = 1
+                model_instance_id = id(model_instance)
+                self._locks[model_instance_id] = 1
                 value = self._initializer(model_instance)
-                del self._locks[model_instance]
+                del self._locks[model_instance_id]
 
         if value is not None:
-            is_expr = isinstance(value, ExpressionNode)
+            is_expr = isinstance(value, QueryExpressionType)
 
             if is_expr and not model_instance.pk:
                 value = 0
@@ -468,8 +475,11 @@ class CounterField(models.IntegerField):
         # same CounterField on this same instance tries to initialize
         # more than once. In this case, this will have the updated
         # value shortly.
-        if instance and instance not in self._locks:
-            self._do_post_init(instance)
+        if instance:
+            instance_id = id(instance)
+
+            if instance_id not in self._locks:
+                self._do_post_init(instance)
 
     def _do_post_init(self, instance):
         value = self.value_from_object(instance)
@@ -603,8 +613,18 @@ class RelationCounterField(CounterField):
         """
         def __init__(self, model_cls, rel_field_name):
             self._rel_field_name = rel_field_name
-            self._rel_field, rel_model, is_rel_direct, is_m2m = \
-                model_cls._meta.get_field_by_name(rel_field_name)
+
+            if django.VERSION >= (1, 7):
+                # Django >= 1.7
+                self._rel_field = model_cls._meta.get_field(rel_field_name)
+                rel_model = self._rel_field.model
+                is_rel_direct = (not self._rel_field.auto_created or
+                                 self._rel_field.concrete)
+                is_m2m = self._rel_field.many_to_many
+            else:
+                # Django < 1.7
+                self._rel_field, rel_model, is_rel_direct, is_m2m = \
+                    model_cls._meta.get_field_by_name(rel_field_name)
 
             self._is_rel_reverse = not is_rel_direct
 
@@ -649,7 +669,7 @@ class RelationCounterField(CounterField):
                 # This is a ForeignKey or similar. It must be the reverse end.
                 assert not is_rel_direct
 
-                model = self._rel_field.model
+                model = self._get_rel_field_related_model(self._rel_field)
                 self._related_name = self._rel_field.field.attname
 
                 # Listen for deletions and saves on that model type. In the
@@ -794,8 +814,9 @@ class RelationCounterField(CounterField):
             rel_pk = getattr(instance, self._rel_field.field.attname)
 
             if rel_pk is not None:
-                self._update_counts(self._rel_field.parent_model,
-                                    [rel_pk], '_rel_field_name', by)
+                self._update_counts(
+                    self._get_rel_field_parent_model(self._rel_field),
+                    [rel_pk], '_rel_field_name', by)
 
         def _update_counts(self, model_cls, pks, rel_attname, update_by):
             """Updates counts on all model entries matching the given criteria.
@@ -821,16 +842,40 @@ class RelationCounterField(CounterField):
                 model_cls.objects.filter(q).update(**values)
 
         def _get_reverse_foreign_key_state(self, instance):
-            """Returns an InstanceState for the other end of a ForeignKey relation.
+            """Return an InstanceState for the other end of a ForeignKey.
 
             This is used when listening to changes on models that establish a
             ForeignKey to this counter field's parent model. Given the instance
             on that end, we can get the state for this end.
             """
             return RelationCounterField._get_state(
-                self._rel_field.parent_model,
+                self._get_rel_field_parent_model(self._rel_field),
                 getattr(instance, self._rel_field.field.attname),
                 self._rel_field_name)
+
+        def _get_rel_field_parent_model(self, rel_field):
+            """Return the model owning a relation field.
+
+            This provides compatibility across different versions of Django.
+            """
+            if hasattr(rel_field, 'parent_model'):
+                # Django < 1.7
+                return rel_field.parent_model
+            else:
+                # Django >= 1.7
+                return rel_field.model
+
+        def _get_rel_field_related_model(self, rel_field):
+            """Return the model on the other side of a relation field.
+
+            This provides compatibility across different versions of Django.
+            """
+            if hasattr(rel_field, 'related_model'):
+                # Django >= 1.7
+                return rel_field.related_model
+            else:
+                # Django < 1.7
+                return rel_field.model
 
     @classmethod
     def _reset_state(cls, instance):

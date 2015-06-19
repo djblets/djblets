@@ -75,3 +75,9 @@ class RegisteredExtension(models.Model):
         return self._extension_class
 
     extension_class = property(get_extension_class)
+
+    class Meta:
+        # Djblets 0.9+ sets an app label of "djblets_extensions" on
+        # Django 1.7+, which would affect the table name. We need to retain
+        # the old name for backwards-compatibility.
+        db_table = 'extensions_registeredextension'

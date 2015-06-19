@@ -3,6 +3,7 @@ import nose
 import os
 import stat
 import sys
+import warnings
 
 
 def run_tests(verbosity=1, interactive=False):
@@ -11,6 +12,18 @@ def run_tests(verbosity=1, interactive=False):
     from django.db import connection
     from django.test.utils import (setup_test_environment,
                                    teardown_test_environment)
+
+    try:
+        from django import setup
+
+        # Django >= 1.7
+        setup()
+    except ImportError:
+        # Django < 1.7
+        pass
+
+    # Restore warnings, if Django turns them off.
+    warnings.simplefilter('default')
 
     setup_test_environment()
     settings.DEBUG = False
@@ -29,12 +42,6 @@ def run_tests(verbosity=1, interactive=False):
                  '--with-doctest',
                  '--doctest-extension=.txt',
                  '--cover-package=djblets']
-
-    # Don't test context manager code on Python 2.4.
-    try:
-        import contextlib
-    except ImportError:
-        nose_argv.append('--ignore-files=contextmanagers.py')
 
     if len(sys.argv) > 2:
         nose_argv += sys.argv[2:]
