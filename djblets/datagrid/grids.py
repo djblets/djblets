@@ -880,7 +880,7 @@ class DataGrid(object):
                     cls.add_column(column)
 
     def __init__(self, request, queryset=None, title="", extra_context={},
-                 optimize_sorts=True):
+                 optimize_sorts=True, model=None):
         """Initialize the datagrid.
 
         Args:
@@ -899,6 +899,10 @@ class DataGrid(object):
             optimize_sorts (bool):
                 If ``True``, sorting will be optimized, reducing the
                 complexity of the queries. This is the default.
+
+            model (Model):
+                The model for the objects in the datagrid. Defaults to the
+                model associated with ``queryset``.
         """
         self.request = request
         self.queryset = queryset
@@ -915,6 +919,7 @@ class DataGrid(object):
         self.extra_context = dict(extra_context)
         self.optimize_sorts = optimize_sorts
         self.special_query_args = []
+        self._model = model
 
         if not hasattr(request, "datagrid_count"):
             request.datagrid_count = 0
@@ -978,6 +983,14 @@ class DataGrid(object):
             for column in sorted(self.get_columns(),
                                  key=lambda x: x.detailed_label)
         ]
+
+    @property
+    def model(self):
+        """The model representing the objects shown in the grid."""
+        if self._model is None:
+            return self.queryset.model
+
+        return self._model
 
     def get_stateful_column(self, column):
         """Return a StatefulColumn for the given Column instance.
@@ -1218,7 +1231,10 @@ class DataGrid(object):
 
         query = self.post_process_queryset(query)
 
-        self.paginator = QuerySetPaginator(query.distinct(), self.paginate_by,
+        if hasattr(query, 'distinct'):
+            query = query.distinct()
+
+        self.paginator = QuerySetPaginator(query, self.paginate_by,
                                            self.paginate_orphans)
 
         page_num = self.request.GET.get('page', 1)
@@ -1238,8 +1254,14 @@ class DataGrid(object):
             # This can be slow when sorting by multiple columns. If we
             # have multiple items in the sort list, we'll request just the
             # IDs and then fetch the actual details from that.
-            self.id_list = list(self.page.object_list.values_list(
-                'pk', flat=True))
+            if hasattr(self.page.object_list, 'values_list'):
+                # This is a standard QuerySet.
+                self.id_list = list(self.page.object_list.values_list(
+                    'pk', flat=True))
+            else:
+                # This is something more custom. Perhaps a Haystack
+                # SearchQuerySet. It must have a 'pk' or it won't work.
+                self.id_list = [int(obj.pk) for obj in self.page.object_list]
 
             # Make sure to unset the order. We can't meaningfully order these
             # results in the query, as what we really want is to keep it in
@@ -1247,8 +1269,7 @@ class DataGrid(object):
             # the database to do any special ordering (possibly slowing things
             # down). We'll set the order properly in a minute.
             self.page.object_list = self.post_process_queryset(
-                self.queryset.model.objects.filter(
-                    pk__in=self.id_list).order_by())
+                self.model.objects.filter(pk__in=self.id_list).order_by())
 
         if use_select_related:
             self.page.object_list = \
