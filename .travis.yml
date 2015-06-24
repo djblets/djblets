@@ -5,8 +5,7 @@ python:
 
 install:
     - python setup.py develop
-    - pip install --allow-all-external django-evolution
-    - pip install kgb
+    - pip install -r dev-requirements.txt
 
 script:
     - python ./tests/runtests.py

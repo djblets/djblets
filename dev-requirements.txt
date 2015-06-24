@@ -1,0 +1,6 @@
+--allow-all-external
+django_evolution>=0.7.5
+kgb
+nose
+mock
+Sphinx>=1.3.1
