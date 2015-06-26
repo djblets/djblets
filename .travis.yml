@@ -14,9 +14,7 @@ matrix:
 
 install:
     - python setup.py develop
-    - pip install --allow-all-external django-evolution
-    - pip install kgb 'Markdown>=2.4.0,<2.4.999' Pygments
-    - pip install https://github.com/beanbaginc/django-evolution/archive/master.zip
+    - pip install -r dev-requirements.txt
     - pip install -q Django==$DJANGO_VERSION
 
 script:

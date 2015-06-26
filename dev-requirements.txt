@@ -1,0 +1,8 @@
+--allow-all-external
+https://github.com/beanbaginc/django-evolution/archive/master.zip
+kgb
+nose
+Markdown>=2.4.0,<2.4.999
+mock
+Pygments>=2.0.2
+Sphinx>=1.3.1
