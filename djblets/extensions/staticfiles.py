@@ -5,7 +5,7 @@ import os
 from django.contrib.staticfiles.finders import BaseFinder, FileSystemFinder
 from django.contrib.staticfiles.utils import get_files
 from django.core.files.storage import FileSystemStorage
-from pipeline.storage import PipelineFinderStorage
+from pipeline.storage import PipelineCachedStorage, PipelineFinderStorage
 from pkg_resources import resource_filename
 
 from djblets.extensions.manager import get_extension_managers
@@ -117,6 +117,70 @@ class ExtensionFinder(BaseFinder):
             self.storages[extension] = storage
 
         return storage
+
+
+class PackagingCachedFilesStorage(PipelineCachedStorage):
+    """Looks up referenced static files from the current storage.
+
+    When one static file references another, Django assumes that the
+    referenced file is in the same static storage and path as that of
+    the parent. This prevents a bundled file (such as a .less file) in
+    an extension from referencing an image or other file shipped with
+    the main application.
+
+    This storage works around this by attempting to look up a storage
+    matching the referenced path. If found, the paths from that storage
+    will be used instead.
+
+    This behavior is only activated when Django performs a lookup as the
+    result of a :file:`.css` containing a ``url(...)`` or ``@import ...``.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(PackagingCachedFilesStorage, self).__init__(*args, **kwargs)
+
+        self._cached_storages = {}
+
+    def hashed_name(self, name, content=None):
+        """Look up and generate a hashed filename for the given filename.
+
+        This will attempt to find a storage that serves up the given filename.
+        If found, the hashed data from that storage will be used instead.
+
+        If not found, then this falls back to the default functionality of
+        either generating a hashed filename from the parent static file's
+        storage, or raising an exception about a missing file.
+
+        Args:
+            name (str): The name of the file to look up.
+            content (str): The content of the file, if known.
+
+        Returns:
+            str: A resulting file path for the file, with a hash in the
+                 filename.
+        """
+        finder_storage = PackagingStorage()
+
+        try:
+            # See if there's a storage matching the prefix for the name.
+            # If so, that's where we'll be looking up the file path.
+            matched_path, storage = finder_storage.find_storage(name)
+        except ValueError:
+            # There was no storage matching this, so fall back to default
+            # behavior.
+            return super(PackagingCachedFilesStorage, self).hashed_name(
+                name, content)
+
+        # Build a cached storage for the FileSystemStorage that was found.
+        # We want to keep this around in a cache, so as not to create too
+        # many copies of these.
+        if storage.location in self._cached_storages:
+            storage = self._cached_storages[storage.location]
+        else:
+            storage = PipelineCachedStorage(location=storage.location)
+            self._cached_storages[storage.location] = storage
+
+        return storage.hashed_name(matched_path, content)
 
 
 class PackagingStorage(PipelineFinderStorage):

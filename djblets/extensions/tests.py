@@ -736,13 +736,14 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         self.assertEqual(manager1._last_sync_gen, manager2._last_sync_gen)
 
     def _run_thread_test(self, main_func):
-        def _thread_main(main_connection, main_func):
+        def _thread_main(main_connection, main_func, sleep_time):
             # Insert the connection from the main thread, so that we can
             # perform lookups. We never write.
             from django.db import connections
 
             connections['default'] = main_connection
 
+            time.sleep(sleep_time)
             main_func()
 
         # Store the main connection. We're going to let the threads share it.
@@ -756,9 +757,9 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         self.exceptions = []
 
         t1 = threading.Thread(target=_thread_main,
-                              args=[main_connection, main_func])
+                              args=[main_connection, main_func, 0.2])
         t2 = threading.Thread(target=_thread_main,
-                              args=[main_connection, main_func])
+                              args=[main_connection, main_func, 0.1])
         t1.start()
         t2.start()
         t1.join()
