@@ -51,22 +51,26 @@ class BuildStaticFiles(Command):
         This can be implemented by subclasses to provide global variables for
         .less files for processing.
 
-        By default, this defines two variables: `STATIC_ROOT` and `DEBUG`.
+        By default, this defines two variables: ``STATIC_ROOT`` and ``DEBUG``.
 
-        `STATIC_ROOT` is set to an empty string. This will effectively cause
-        any imports using `@{STATIC_ROOT}` to look up in the include path.
-        Projects using less.js for the runtime can then define `STATIC_ROOT` to
-        their standard static URL, ensuring lookups work for development and
+        ``STATIC_ROOT`` is set to ``/static/``. Any imports using
+        ``@{STATIC_ROOT}`` will effectively look up the requested file in
+        ``<import_path>/@{STATIC_ROOT}``. This assumes that the project
+        serving the static files keeps them in :file:`static/{appname}/`.
+
+        Projects using less.js for the runtime can then define ``STATIC_ROOT``
+        to ``settings.STATIC_URL``, ensuring lookups work for development and
         packaged extensions.
 
-        `DEBUG` is set to false. Runtimes using less.js can set this to
-        settings.DEBUG for templates. This can be useful for LessCSS guards.
+        ``DEBUG`` is set to false. Runtimes using less.js can set this to
+        ``settings.DEBUG`` for templates. This can be useful for LessCSS
+        guards.
 
         This requires LessCSS 1.5.1 or higher.
         """
         return {
             'DEBUG': False,
-            'STATIC_ROOT': '',
+            'STATIC_ROOT': '/static/',
         }
 
     def get_lessc_include_path(self):
@@ -83,7 +87,17 @@ class BuildStaticFiles(Command):
             if isinstance(staticfile_dir, tuple):
                 staticfile_dir = staticfile_dir[1]
 
-            less_include.add(os.path.dirname(staticfile_dir))
+            dirname = os.path.dirname(staticfile_dir)
+
+            if os.path.basename(dirname) == 'static':
+                # Static files should be living within a static/ directory,
+                # generally-speaking. That's how they'll be referenced when
+                # using @{STATIC_ROOT}. If we find a static file dir living
+                # inside a static/ directory, strip away the static/ so that
+                # lookups will work.
+                dirname = os.path.dirname(dirname)
+
+            less_include.add(dirname)
 
         return less_include
 
@@ -105,7 +119,8 @@ class BuildStaticFiles(Command):
         settings.STATICFILES_FINDERS = (
             'djblets.extensions.staticfiles.PackagingFinder',
         )
-        settings.STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
+        settings.STATICFILES_STORAGE = \
+            'djblets.extensions.staticfiles.PackagingCachedFilesStorage'
         settings.INSTALLED_APPS = [
             'django.contrib.staticfiles',
         ]
@@ -250,7 +265,7 @@ class BuildStaticFiles(Command):
 
     def _serialize_lessc_value(self, value):
         if isinstance(value, six.text_type):
-            return '"%s"' % value
+            return '\\"%s\\"' % value
         elif isinstance(value, bool):
             if value:
                 return 'true'
