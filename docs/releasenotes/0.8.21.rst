@@ -2,7 +2,7 @@
 Djblets 0.8.21 Release Notes
 ============================
 
-**Release date**: June 27, 2015
+**Release date**: June 28, 2015
 
 
 djblets.extensions
