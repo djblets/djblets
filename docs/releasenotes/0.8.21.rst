@@ -1,0 +1,18 @@
+============================
+Djblets 0.8.21 Release Notes
+============================
+
+**Release date**: June 28, 2015
+
+
+djblets.extensions
+==================
+
+* Fixed packaging issues with static media files referenced by an extension's
+  CSS/LessCSS files.
+
+
+Contributors
+============
+
+* Christian Hammond
