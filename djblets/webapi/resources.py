@@ -23,7 +23,7 @@ from djblets.util.http import (get_modified_since, encode_etag,
                                set_last_modified, set_etag,
                                get_http_requested_mimetype)
 from djblets.urls.patterns import never_cache_patterns
-from djblets.webapi.auth import check_login
+from djblets.webapi.auth.backends import check_login
 from djblets.webapi.responses import (WebAPIResponse,
                                       WebAPIResponseError,
                                       WebAPIResponsePaginated)
