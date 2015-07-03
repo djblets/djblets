@@ -111,6 +111,22 @@ class TestCase(testcases.TestCase):
 
         return doc
 
+    def assertRaisesMessage(self, expected_exception, expected_message,
+                            *args, **kwargs):
+        """Assert that an exception is raised with a given message.
+
+        This is a replacement for Django's assertRaisesMessage that behaves
+        well with a design change in Python 2.7.9/10, without crashing.
+        """
+        # The difference between this version and Django's is that we're
+        # not taking the callable_obj as an argument with a default value and
+        # passing it down to assertRaisesRegex. Python 2.7.9/10's
+        # implementation defaults callable_obj to a special value, which
+        # Django overrides.
+        return six.assertRaisesRegex(
+            self, expected_exception, re.escape(expected_message),
+            *args, **kwargs)
+
 
 class TestModelsLoaderMixin(object):
     """Allows unit test moduls to provide models to test against.
