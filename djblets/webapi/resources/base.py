@@ -1,9 +1,10 @@
+"""Base class for a resource in an API."""
+
 from __future__ import unicode_literals
 
 import warnings
 
 from django.conf.urls import include, patterns, url
-from django.contrib.auth.models import User, Group
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -17,13 +18,15 @@ from django.http import (HttpResponseNotAllowed, HttpResponse,
 from django.utils import six
 from django.views.decorators.vary import vary_on_headers
 
-from djblets.util.decorators import augment_method_from
 from djblets.util.http import (get_modified_since, encode_etag,
                                etag_if_none_match,
                                set_last_modified, set_etag,
                                get_http_requested_mimetype)
 from djblets.urls.patterns import never_cache_patterns
 from djblets.webapi.auth.backends import check_login
+from djblets.webapi.resources.registry import (get_resource_for_object,
+                                               _class_to_resources,
+                                               _name_to_resources)
 from djblets.webapi.responses import (WebAPIResponse,
                                       WebAPIResponseError,
                                       WebAPIResponsePaginated)
@@ -38,14 +41,8 @@ from djblets.webapi.errors import (DOES_NOT_EXIST,
                                    WebAPIError)
 
 
-_model_to_resources = {}
-_name_to_resources = {}
-_class_to_resources = {}
-
-
 class WebAPIResource(object):
-    """A resource living at a specific URL, representing an object or list
-    of objects.
+    """A resource handling HTTP operations for part of the API.
 
     A WebAPIResource is a RESTful resource living at a specific URL. It
     can represent either an object or a list of objects, and can respond
@@ -166,16 +163,16 @@ class WebAPIResource(object):
     WebAPIResource calls the following functions based on the type of
     HTTP request:
 
-      * ``get`` - HTTP GET for individual objects.
-      * ``get_list`` - HTTP GET for resources representing lists of objects.
-      * ``create`` - HTTP POST on resources representing lists of objects.
-                     This is expected to return the object and an HTTP
-                     status of 201 CREATED, on success.
-      * ``update`` - HTTP PUT on individual objects to modify their state
-                     based on full or partial data.
-      * ``delete`` - HTTP DELETE on an individual object. This is expected
-                     to return a status of HTTP 204 No Content on success.
-                     The default implementation just deletes the object.
+    * ``get`` - HTTP GET for individual objects.
+    * ``get_list`` - HTTP GET for resources representing lists of objects.
+    * ``create`` - HTTP POST on resources representing lists of objects.
+                   This is expected to return the object and an HTTP
+                   status of 201 CREATED, on success.
+    * ``update`` - HTTP PUT on individual objects to modify their state
+                   based on full or partial data.
+    * ``delete`` - HTTP DELETE on an individual object. This is expected
+                   to return a status of HTTP 204 No Content on success.
+                   The default implementation just deletes the object.
 
     Any function that is not implemented will return an HTTP 405 Method
     Not Allowed. Functions that have handlers provided should set
@@ -187,13 +184,13 @@ class WebAPIResource(object):
     captured in the URL and are expected to return standard HTTP response
     codes, along with a payload in most cases. The functions can return any of:
 
-      * A HttpResponse
-      * A WebAPIResponse
-      * A WebAPIError
-      * A tuple of (WebAPIError, Payload)
-      * A tuple of (WebAPIError, Payload Dictionary, Headers Dictionary)
-      * A tuple of (HTTP status, Payload)
-      * A tuple of (HTTP status, Payload Dictionary, Headers Dictionary)
+    * A HttpResponse
+    * A WebAPIResponse
+    * A WebAPIError
+    * A tuple of (WebAPIError, Payload)
+    * A tuple of (WebAPIError, Payload Dictionary, Headers Dictionary)
+    * A tuple of (HTTP status, Payload)
+    * A tuple of (HTTP status, Payload Dictionary, Headers Dictionary)
 
     In general, it's best to return one of the tuples containing an HTTP
     status, and not any object, but there are cases where an object is
@@ -261,13 +258,13 @@ class WebAPIResource(object):
     if the user is not logged in and if an appropriate permission function
     does not return True. These permission functions are:
 
-    * ``has_access_permissions`` - Used for HTTP GET calls. Returns True
-                                   by default.
-    * ``has_modify_permissions`` - Used for HTTP POST or PUT calls, if
-                                   called by the subclass. Returns False
-                                   by default.
-    * ``has_delete_permissions`` - Used for HTTP DELETE permissions. Returns
-                                   False by default.
+    * ``has_access_permissions`` -
+      Used for HTTP GET calls. Returns True by default.
+    * ``has_modify_permissions`` -
+      Used for HTTP POST or PUT calls, if called by the subclass.
+      Returns False by default.
+    * ``has_delete_permissions`` -
+      Used for HTTP DELETE permissions. Returns False by default.
 
 
     Browser Caching
@@ -1523,246 +1520,3 @@ class WebAPIResource(object):
             ]
         else:
             return obj
-
-
-class RootResource(WebAPIResource):
-    """The root of a resource tree.
-
-    This is meant to be instantiated with a list of immediate child
-    resources. The result of ``get_url_patterns`` should be included in
-    a project's ``urls.py``.
-    """
-    name = 'root'
-    singleton = True
-
-    def __init__(self, child_resources=[], include_uri_templates=True):
-        super(RootResource, self).__init__()
-        self.list_child_resources = child_resources
-        self._uri_templates = {}
-        self._include_uri_templates = include_uri_templates
-
-    def get_etag(self, request, obj, *args, **kwargs):
-        return self.encode_etag(request, repr(obj))
-
-    def get(self, request, *args, **kwargs):
-        """
-        Retrieves the list of top-level resources, and a list of
-        :term:`URI templates` for accessing any resource in the tree.
-        """
-        data = self.serialize_root(request, *args, **kwargs)
-        etag = self.get_etag(request, data)
-
-        if self.are_cache_headers_current(request, etag=etag):
-            return HttpResponseNotModified()
-
-        return 200, data, {
-            'ETag': etag,
-        }
-
-    def serialize_root(self, request, *args, **kwargs):
-        """Serializes the contents of the root resource.
-
-        By default, this just provides links and URI templates. Subclasses
-        can override this to provide additional data, or to otherwise
-        change the structure of the root resource.
-        """
-        data = {
-            'links': self.get_links(self.list_child_resources,
-                                    request=request, *args, **kwargs),
-        }
-
-        if self._include_uri_templates:
-            data['uri_templates'] = self.get_uri_templates(request, *args,
-                                                           **kwargs)
-
-        return data
-
-    def get_uri_templates(self, request, *args, **kwargs):
-        """Returns all URI templates in the resource tree.
-
-        REST APIs can be very chatty if a client wants to be well-behaved
-        and crawl the resource tree asking for the links, instead of
-        hard-coding the paths. The benefit is that they can keep from
-        breaking when paths change. The downside is that it can take many
-        HTTP requests to get the right resource.
-
-        This list of all URI templates allows clients who know the resource
-        name and the data they care about to simply plug them into the
-        URI template instead of trying to crawl over the whole tree. This
-        can make things far more efficient.
-        """
-        if not self._uri_templates:
-            self._uri_templates = {}
-
-        base_href = request.build_absolute_uri()
-        if base_href not in self._uri_templates:
-            templates = {}
-            for name, href in self._walk_resources(self, base_href):
-                templates[name] = href
-
-            self._uri_templates[base_href] = templates
-
-        return self._uri_templates[base_href]
-
-    def _walk_resources(self, resource, list_href):
-        yield resource.name_plural, list_href
-
-        for child in resource.list_child_resources:
-            child_href = list_href + child.uri_name + '/'
-
-            for name, href in self._walk_resources(child, child_href):
-                yield name, href
-
-        if resource.uri_object_key:
-            object_href = '%s{%s}/' % (list_href, resource.uri_object_key)
-
-            yield resource.name, object_href
-
-            for child in resource.item_child_resources:
-                child_href = object_href + child.uri_name + '/'
-
-                for name, href in self._walk_resources(child, child_href):
-                    yield name, href
-
-    def api_404_handler(self, request, api_format=None, *args, **kwargs):
-        """Default handler at the end of the URL patterns.
-
-        This returns an API 404, instead of a normal django 404."""
-        return WebAPIResponseError(
-            request,
-            err=DOES_NOT_EXIST,
-            api_format=api_format)
-
-    def get_url_patterns(self):
-        """Returns the Django URL patterns for this object and its children.
-
-        This returns the same list as WebAPIResource.get_url_patterns, but also
-        introduces a generic catch-all 404 handler which returns API errors
-        instead of HTML.
-        """
-        urlpatterns = super(RootResource, self).get_url_patterns()
-        urlpatterns += never_cache_patterns(
-            '', url(r'.*', self.api_404_handler))
-        return urlpatterns
-
-
-class UserResource(WebAPIResource):
-    """A default resource for representing a Django User model."""
-    model = User
-    fields = {
-        'id': {
-            'type': int,
-            'description': 'The numeric ID of the user.',
-        },
-        'username': {
-            'type': str,
-            'description': "The user's username.",
-        },
-        'first_name': {
-            'type': str,
-            'description': "The user's first name.",
-        },
-        'last_name': {
-            'type': str,
-            'description': "The user's last name.",
-        },
-        'fullname': {
-            'type': str,
-            'description': "The user's full name (first and last).",
-        },
-        'email': {
-            'type': str,
-            'description': "The user's e-mail address",
-        },
-        'url': {
-            'type': str,
-            'description': "The URL to the user's page on the site. "
-                           "This is deprecated and will be removed in a "
-                           "future version.",
-        },
-    }
-
-    uri_object_key = 'username'
-    uri_object_key_regex = r'[A-Za-z0-9@\._\-\'\+]+'
-    model_object_key = 'username'
-    autogenerate_etags = True
-
-    allowed_methods = ('GET',)
-
-    def serialize_fullname_field(self, user, **kwargs):
-        return user.get_full_name()
-
-    def serialize_url_field(self, user, **kwargs):
-        return user.get_absolute_url()
-
-    def has_modify_permissions(self, request, user, *args, **kwargs):
-        """Returns whether or not the user can modify this object."""
-        return request.user.is_authenticated() and user.pk == request.user.pk
-
-    @augment_method_from(WebAPIResource)
-    def get_list(self, *args, **kwargs):
-        """Retrieves the list of users on the site."""
-        pass
-
-
-class GroupResource(WebAPIResource):
-    """A default resource for representing a Django Group model."""
-    model = Group
-    fields = ('id', 'name')
-
-    uri_object_key = 'group_name'
-    uri_object_key_regex = r'[A-Za-z0-9_\-]+'
-    model_object_key = 'name'
-    autogenerate_etags = True
-
-    allowed_methods = ('GET',)
-
-
-def register_resource_for_model(model, resource):
-    """Registers a resource as the official location for a model.
-
-    ``resource`` can be a callable function that takes an instance of
-    ``model`` and returns a ``WebAPIResource``.
-    """
-    _model_to_resources[model] = resource
-
-
-def unregister_resource_for_model(model):
-    """Removes the official location for a model."""
-    del _model_to_resources[model]
-
-
-def get_resource_for_object(obj):
-    """Returns the resource for an object."""
-    resource = _model_to_resources.get(obj.__class__, None)
-
-    if not isinstance(resource, WebAPIResource) and six.callable(resource):
-        resource = resource(obj)
-
-    return resource
-
-
-def get_resource_from_name(name):
-    """Returns the resource of the specified name."""
-    return _name_to_resources.get(name, None)
-
-
-def get_resource_from_class(klass):
-    """Returns the resource with the specified resource class."""
-    return _class_to_resources.get(klass, None)
-
-
-def unregister_resource(resource):
-    """Unregisters a resource from the caches."""
-    del _name_to_resources[resource.name]
-    del _name_to_resources[resource.name_plural]
-    del _class_to_resources[resource.__class__]
-
-
-user_resource = UserResource()
-group_resource = GroupResource()
-
-# These are good defaults, and will be overridden if another class calls
-# register_resource_for_model on these models.
-register_resource_for_model(User, user_resource)
-register_resource_for_model(Group, group_resource)

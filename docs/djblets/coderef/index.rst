@@ -222,4 +222,9 @@ Web API
    djblets.webapi.encoders
    djblets.webapi.errors
    djblets.webapi.resources
+   djblets.webapi.resources.base
+   djblets.webapi.resources.group
+   djblets.webapi.resources.registry
+   djblets.webapi.resources.root
+   djblets.webapi.resources.user
    djblets.webapi.responses
