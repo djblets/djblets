@@ -228,3 +228,5 @@ Web API
    djblets.webapi.resources.root
    djblets.webapi.resources.user
    djblets.webapi.responses
+   djblets.webapi.testing.decorators
+   djblets.webapi.testing.testcases
