@@ -146,12 +146,6 @@ $.fn.datagrid = function(options) {
                 drag: onColumnDrag
             });
 
-        $editButton = $("#" + gridId + "-edit")
-            .click(function(evt) {
-                evt.stopPropagation();
-                toggleColumnsMenu();
-            });
-
         $headTable.find('.datagrid-header-checkbox').change(function() {
             /*
              * Change the checked state of all matching checkboxes to reflect
@@ -252,6 +246,13 @@ $.fn.datagrid = function(options) {
                 } else {
                     disableMobileMode();
                 }
+
+                $editButton = $('#' + gridId + '-edit')
+                    .off('click')
+                    .click(function(evt) {
+                        evt.stopPropagation();
+                        toggleColumnsMenu();
+                    });
 
                 inMobileMode = newMobileMode;
             }

@@ -61,7 +61,7 @@ class WebAPIError(object):
 
 
 def _get_auth_headers(request):
-    from djblets.webapi.auth import get_auth_backends
+    from djblets.webapi.auth.backends import get_auth_backends
 
     headers = {}
     www_auth_schemes = []

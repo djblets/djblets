@@ -214,8 +214,19 @@ Web API
    :toctree: python
 
    djblets.webapi.auth
+   djblets.webapi.auth.backends
+   djblets.webapi.auth.backends.base
+   djblets.webapi.auth.backends.basic
+   djblets.webapi.auth.views
    djblets.webapi.decorators
    djblets.webapi.encoders
    djblets.webapi.errors
    djblets.webapi.resources
+   djblets.webapi.resources.base
+   djblets.webapi.resources.group
+   djblets.webapi.resources.registry
+   djblets.webapi.resources.root
+   djblets.webapi.resources.user
    djblets.webapi.responses
+   djblets.webapi.testing.decorators
+   djblets.webapi.testing.testcases

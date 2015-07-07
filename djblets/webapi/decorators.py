@@ -179,6 +179,11 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
     This is a helpful decorator for ensuring that the fields in the request
     match what the caller expects.
 
+    The parsed fields will be passed in as keyword arguments to the decorated
+    function. There will also be an additional keyword argument,
+    ``parsed_request_fields``, that is a dictionary of all the parsed request
+    fields.
+
     If any field is set in the request that is not in either ``required``
     or ``optional`` and ``allow_unknown`` is True, the response will be an
     INVALID_FORM_DATA error. The exceptions are the special fields
@@ -241,6 +246,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
 
             new_kwargs = kwargs.copy()
             new_kwargs['extra_fields'] = extra_fields
+            parsed_request_fields = {}
 
             for field_name, info in six.iteritems(supported_fields):
                 if isinstance(info['type'], file):
@@ -280,12 +286,15 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                             raise TypeError('"%s" is not a valid field type' %
                                             info['type'])
 
-                    new_kwargs[field_name] = value
+                    parsed_request_fields[field_name] = value
 
             if invalid_fields:
                 return INVALID_FORM_DATA, {
                     'fields': invalid_fields,
                 }
+
+            new_kwargs.update(parsed_request_fields)
+            new_kwargs['parsed_request_fields'] = parsed_request_fields
 
             return view_func(*args, **new_kwargs)
 
