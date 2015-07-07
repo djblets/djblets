@@ -2,12 +2,86 @@
 
 from __future__ import unicode_literals
 
+import logging
+
 from django.utils import six
 
 
 _model_to_resources = {}
 _name_to_resources = {}
 _class_to_resources = {}
+
+
+class ResourcesRegistry(object):
+    """Manages a registry of instances of API resources.
+
+    This handles dynamically loading API resource instances upon request, and
+    registering those resources with models.
+
+    When accessing a resource through this class for the first time, it will be
+    imported from the proper file and cached. Subsequent requests will be
+    returned from the cache.
+
+    While an optional class, consumers are encouraged to create a subclass of
+    this that they use for all resource instance references and for registering
+    model to resource mappings.
+    """
+
+    #: A list of Python module paths to search for module instances.
+    #:
+    #: When looking up a module, the class will attempt to load a
+    #: "<resource_name>_resource" module from that path, with a
+    #: "<resource_name>" instance from the module.
+    resource_search_path = None
+
+    def __init__(self):
+        self._loaded = False
+
+    def __getattr__(self, name):
+        """Return a resource instance as an attribute.
+
+        If the resource hasn't yet been loaded into cache, it will be imported,
+        fetched from the module, and cached. Subsequent attribute fetches for
+        this resource will be returned from the cache.
+
+        Args:
+            name (unicode): The name of the resource to look up.
+
+        Returns:
+            WebAPIResource:
+            The resource instance matching the name.
+        """
+        if not self._loaded:
+            self._loaded = True
+            self.register_resources()
+
+        if name not in self.__dict__:
+            instance_name = '%s_resource' % name
+            found = False
+
+            for search_path in self.resource_search_path:
+                try:
+                    mod = __import__('%s.%s' % (search_path, name),
+                                     {}, {}, [instance_name])
+                    self.__dict__[name] = getattr(mod, instance_name)
+                    found = True
+                    break
+                except (ImportError, AttributeError) as e:
+                    pass
+
+            if not found:
+                logging.exception('Unable to load webapi resource %s: %s',
+                                  name, e)
+                raise AttributeError('%s is not a valid resource name' % name)
+
+        return self.__dict__[name]
+
+    def register_resources(self):
+        """Register model to resource mappings.
+
+        Subclasses must override this to do any registration they may need.
+        """
+        raise NotImplementedError
 
 
 def register_resource_for_model(model, resource):
