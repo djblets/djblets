@@ -319,13 +319,18 @@ class WebAPIDecoratorTests(TestCase):
             },
         )
         def func(request, required_param=None, optional_param=None,
-                 extra_fields={}):
+                 parsed_request_fields=None, extra_fields={}):
             func.seen = True
             self.assertTrue(isinstance(required_param, int))
             self.assertTrue(isinstance(optional_param, bool))
             self.assertEqual(required_param, 42)
             self.assertTrue(optional_param)
             self.assertFalse(extra_fields)
+            self.assertEqual(parsed_request_fields,
+                             {
+                                 'required_param': required_param,
+                                 'optional_param': optional_param,
+                             })
 
         result = func(RequestFactory().get(
             path='/',
@@ -373,11 +378,14 @@ class WebAPIDecoratorTests(TestCase):
             },
             allow_unknown=True
         )
-        def func(request, required_param=None, extra_fields={}):
+        def func(request, required_param=None, parsed_request_fields=None,
+                 extra_fields={}):
             func.seen = True
             self.assertEqual(required_param, 42)
             self.assertTrue('optional_param' in extra_fields)
             self.assertEqual(extra_fields['optional_param'], '1')
+            self.assertEqual(parsed_request_fields,
+                             {'required_param': required_param})
 
         result = func(RequestFactory().get(
             path='/',
@@ -399,10 +407,13 @@ class WebAPIDecoratorTests(TestCase):
                 }
             },
         )
-        def func(request, required_param=None, extra_fields={}):
+        def func(request, required_param=None, parsed_request_fields=None,
+                 extra_fields={}):
             func.seen = True
             self.assertTrue(isinstance(required_param, int))
             self.assertEqual(required_param, 42)
+            self.assertEqual(parsed_request_fields,
+                             {'required_param': required_param})
             self.assertFalse(extra_fields)
 
         result = func(RequestFactory().get(
@@ -425,7 +436,8 @@ class WebAPIDecoratorTests(TestCase):
                 }
             }
         )
-        def func(request, myint=False, extra_fields={}):
+        def func(request, myint=False, parsed_request_fields=None,
+                 extra_fields={}):
             func.seen = True
 
         result = func(RequestFactory().get(
@@ -434,7 +446,6 @@ class WebAPIDecoratorTests(TestCase):
                 'myint': 'abc',
             }
         ))
-
         self.assertFalse(hasattr(func, 'seen'))
         self.assertEqual(result[0], INVALID_FORM_DATA)
         self.assertTrue('fields' in result[1])
