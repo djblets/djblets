@@ -34,6 +34,7 @@ import sys
 import threading
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.handlers.wsgi import WSGIHandler
 from django.core.management import call_command
 from django.core.servers import basehttp
@@ -110,6 +111,35 @@ class TestCase(testcases.TestCase):
             doc = self.ws_re.sub(' ', doc).strip()
 
         return doc
+
+    def assertRaisesValidationError(self, expected_messages, *args, **kwargs):
+        """Assert that a ValidationError is raised with the given message(s).
+
+        This is a wrapper around :py:meth:`assertRaisesMessage` with a
+        :py:class:`ValidationError` that handles converting the expected
+        messages into a list (if it isn't already) and then converting that
+        into a string representation, which is what
+        :py:meth:`assertRaisesMessage` will be checking against.
+
+        Args:
+            expected_messages (list or unicode):
+                The expected messages as either a list of strings or a
+                single string.
+
+            args:
+                Additional arguments to pass to :py:meth:`assertRaisesMessage`.
+
+            kwargs:
+                Additional keyword arguments to pass to
+                :py:meth:`assertRaisesMessage`.
+        """
+        if isinstance(expected_messages, six.string_types):
+            expected_messages = [expected_messages]
+
+        return self.assertRaisesMessage(ValidationError,
+                                        repr(expected_messages),
+                                        *args,
+                                        **kwargs)
 
     def assertRaisesMessage(self, expected_exception, expected_message,
                             *args, **kwargs):

@@ -60,6 +60,10 @@ class WebAPIError(object):
         return self.with_overrides(msg)
 
 
+class WebAPITokenGenerationError(Exception):
+    """An error generating a Web API token."""
+
+
 def _get_auth_headers(request):
     from djblets.webapi.auth.backends import get_auth_backends
 
