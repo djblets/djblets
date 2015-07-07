@@ -1307,8 +1307,61 @@ class WebAPIResource(object):
         }
         href_kwargs.update(self.get_href_parent_ids(obj, **kwargs))
 
-        return request.build_absolute_uri(
-            reverse(self._build_named_url(self.name), kwargs=href_kwargs))
+        return self.get_item_url(request=request, **href_kwargs)
+
+    def get_list_url(self, **kwargs):
+        """Return the URL to the list version of this resource.
+
+        This will generate a URL for the list resource, given the provided
+        arguments for the URL pattern.
+
+        Args:
+            kwargs (dict): The keyword arguments needed for URL resolution.
+
+        Returns:
+            unicode: The resulting absolute URL to the list resource.
+        """
+        return self.build_resource_url(self.name_plural, **kwargs)
+
+    def get_item_url(self, **kwargs):
+        """Return the URL to the item version of this resource.
+
+        This will generate a URL for the item resource, given the provided
+        arguments for the URL pattern.
+
+        Args:
+            kwargs (dict): The keyword arguments needed for URL resolution.
+
+        Returns:
+            unicode: The resulting absolute URL to the item resource.
+        """
+        return self.build_resource_url(self.name, **kwargs)
+
+    def build_resource_url(self, name, request=None, **kwargs):
+        """Build a resource URL for the given name and keyword arguments.
+
+        This can be overridden by subclasses that have special requirements
+        for URL resolution.
+
+        Args:
+            name (unicode):
+                The name of the resource.
+
+            request (HttpRequest):
+                The HTTP request from the client.
+
+            kwargs (dict):
+                The keyword arguments needed for URL resolution.
+
+        Returns:
+            unicode: The resulting absolute URL to the resource.
+        """
+        url = reverse(self._build_named_url(name), kwargs=kwargs)
+
+        if request:
+            url = request.build_absolute_uri(url)
+
+        return url
 
     def get_href_parent_ids(self, obj, **kwargs):
         """Returns a dictionary mapping parent object keys to their values for
