@@ -230,6 +230,7 @@ Web API
    djblets.webapi.resources.root
    djblets.webapi.resources.user
    djblets.webapi.resources.mixins.api_tokens
+   djblets.webapi.resources.mixins.queries
    djblets.webapi.responses
    djblets.webapi.testing.decorators
    djblets.webapi.testing.testcases
