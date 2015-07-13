@@ -106,6 +106,11 @@ class Column(object):
     If a Column defines an :py:attr:`image_class`, then it will be assumed that
     the class represents an icon, perhaps as part of a spritesheet, and will
     display it in a ``<div>``. An :py:attr:`image_url` cannot also be defined.
+
+    Attributes:
+        cell_template (unicode):
+            The path to a template. If this is not None, this will override
+            the default cell_template for the DataGrid the column is in.
     """
 
     #: Descending sort order for columns.
@@ -223,6 +228,16 @@ class Column(object):
             link_func or
             (lambda state, x, y: state.datagrid.link_to_object(state, x, y)))
         self.css_class = css_class
+
+        self.cell_template = None
+
+    @cached_property
+    def cell_template_obj(self):
+        """Return the cell template, if it exists."""
+        if self.cell_template:
+            return get_template(self.cell_template)
+
+        return None
 
     def setup_state(self, state):
         """Set up any state that may be needed for the column.
@@ -423,8 +438,6 @@ class Column(object):
         Returns:
             unicode: The rendered cell as HTML.
         """
-        datagrid = state.datagrid
-
         try:
             rendered_data = self.render_data(state, obj)
         except Exception as e:
@@ -464,8 +477,12 @@ class Column(object):
                 'data': mark_safe(rendered_data)
             })
 
-            state.cell_render_cache[key] = \
-                mark_safe(datagrid.cell_template_obj.render(ctx))
+            template = self.cell_template_obj
+
+            if template is None:
+                template = state.datagrid.cell_template_obj
+
+            state.cell_render_cache[key] = mark_safe(template.render(ctx))
 
         return state.cell_render_cache[key]
 
@@ -666,6 +683,7 @@ class CheckboxColumn(Column):
 
         self.show_checkbox_header = show_checkbox_header
         self.checkbox_name = checkbox_name
+        self.cell_template = 'datagrid/cell_no_link.html'
 
     def render_data(self, state, obj):
         if self.is_selectable(state, obj):
