@@ -18,7 +18,7 @@ from djblets.webapi.errors import (DOES_NOT_EXIST,
                                    ENABLE_EXTENSION_FAILED,
                                    DISABLE_EXTENSION_FAILED,
                                    PERMISSION_DENIED)
-from djblets.webapi.resources import WebAPIResource
+from djblets.webapi.resources.base import WebAPIResource
 
 
 class ExtensionResource(WebAPIResource):

@@ -20,8 +20,6 @@ See the following for the new function/class locations:
 
 from __future__ import unicode_literals
 
-import warnings
-
 from djblets.webapi.resources.base import WebAPIResource
 from djblets.webapi.resources.group import GroupResource, group_resource
 from djblets.webapi.resources.registry import (get_resource_from_class,
@@ -32,11 +30,6 @@ from djblets.webapi.resources.registry import (get_resource_from_class,
                                                unregister_resource_for_model)
 from djblets.webapi.resources.root import RootResource
 from djblets.webapi.resources.user import UserResource, user_resource
-
-
-warnings.warn('djblets.webapi.resources is deprecated. The functions and '
-              'classes have been moved to sub-modules.',
-              DeprecationWarning)
 
 
 __all__ = [
