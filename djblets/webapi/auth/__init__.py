@@ -15,18 +15,11 @@ See the following for the new function/class locations:
 
 from __future__ import unicode_literals
 
-import warnings
-
 from djblets.webapi.auth.backends import (check_login, get_auth_backends,
                                           reset_auth_backends)
 from djblets.webapi.auth.backends.base import WebAPIAuthBackend
 from djblets.webapi.auth.backends.basic import WebAPIBasicAuthBackend
 from djblets.webapi.auth.views import account_login, account_logout
-
-
-warnings.warn('djblets.webapi.auth is deprecated. The functions and classes '
-              'have been moved to sub-modules.',
-              DeprecationWarning)
 
 
 __all__ = [
