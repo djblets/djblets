@@ -453,8 +453,14 @@ $.fn.datagrid = function(options) {
      */
     function hideColumnsMenu() {
         if ($activeMenu !== null) {
-            $activeMenu.hide();
-            $activeMenu = null;
+            $activeMenu.animate({
+                right: -$menu.outerWidth()
+            }, {
+                complete: function() {
+                    $activeMenu.hide();
+                    $activeMenu = null;
+                }
+            });
         }
     }
 
@@ -476,8 +482,14 @@ $.fn.datagrid = function(options) {
      */
     function updateMenuPosition() {
         $menu
-            .css('top', $editButton.position().top + $editButton.outerHeight())
-            .show();
+            .css({
+                top: $editButton.position().top + $editButton.innerHeight(),
+                right: -$menu.outerWidth()
+            })
+            .show()
+            .animate({
+                right: 0
+            });
     }
 
     /*
