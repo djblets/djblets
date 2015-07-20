@@ -223,6 +223,7 @@ Web API
    djblets.webapi.encoders
    djblets.webapi.errors
    djblets.webapi.managers
+   djblets.webapi.models
    djblets.webapi.resources
    djblets.webapi.resources.base
    djblets.webapi.resources.group
