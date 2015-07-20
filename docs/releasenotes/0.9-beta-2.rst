@@ -2,7 +2,7 @@
 Djblets 0.9 Beta 2 Release Notes
 ================================
 
-**Release date**: TBD
+**Release date**: July 20, 2015
 
 This release contains all bug fixes and features found in Djblets version
 :doc:`0.8.21 <0.8.21>`.
@@ -26,19 +26,32 @@ Compatibility Changes
 =====================
 
 This release of Djblets is experimentally compatible with Django 1.8. For the
-time being we still recommend using Django 1.6.
+time being we still recommend using Django 1.6, but would appreciate bug
+reports if you do hit problems using newer versions.
+
+
+JavaScript
+==========
+
+* :js:func:`$.getExtents()`` now returns fractional values.
+
+  Previously, only integer values were returned, which were not always an
+  accurate representation of the extents.
 
 
 djblets.cache
 =============
 
-* Enhanced the :py:func:`cache_memoize` implementation to be usable with
-  generators.
+.. currentmodule:: djblets.cache
+
+* Enhanced the :py:func:`~djblets.cache.backend.cache_memoize` implementation
+  to be usable with generators.
 
   When trying to cache data that's being created via a generator, the new
-  :py:func:`cache_memoize_iter` method will populate the cache without
-  gathering up everything into a list first. Pulling data out of the cache will
-  also operate as an iterator rather than preprocessing everything at once.
+  :py:func:`~djblets.cache.backend.cache_memoize_iter` method will populate
+  the cache without gathering up everything into a list first. Pulling data
+  out of the cache will also operate as an iterator rather than preprocessing
+  everything at once.
 
   Caching large data has also been optimized for speed.
 
@@ -58,21 +71,28 @@ djblets.datagrid
   Rather than just having a big blank white spot, datagrids can now show some
   custom HTML by overriding the ``datagrid_empty`` block.
 
-  The new ``datagrid_titlebox`` block can be used to provide additional content
-  before, after, or in place of the titlebox.
+  The new ``datagrid_titlebox`` block can be used to provide additional
+  content before, after, or in place of the titlebox.
 
   Finally, the ``paginator`` block wraps the paginator, allowing it to be
   removed or replaced.
 
-* Enabled datagrids to use simpler QuerySet-like objects.
+* Datagrids can now work with simpler QuerySet-like objects.
 
-  Datagrids are now less tightly bound to Django's :py:class:`QuerySet`, and
-  can now use QuerySet-like objects such as Haystack's
-  :py:class:`SearchQuerySet`.
+  Datagrids are now less tightly bound to Django's
+  :py:class:`~django.db.models.query.QuerySet`, and can now use QuerySet-like
+  objects such as Haystack's :py:class:`SearchQuerySet`.
 
-* Fixed numerous display bugs and did some small visual tweaks.
+* The column customization menu now has an animated sliding effect when
+  showing or dismissing the menu.
 
-* Fixed various performance issues.
+* Fixed numerous display bugs and made some small visual tweaks.
+
+  This includes fixes for inconsistencies between the column headers and
+  the colmn data, jumps in the display of those headers when first rendering
+  the datagrid, and alignment issues when dragging columns.
+
+* Improved performance when setting up the datagrid.
 
 * Improved positioning and scrolling of datagrid menus.
 
@@ -81,32 +101,53 @@ djblets.datagrid
 
   Patch by Griffin Myers.
 
-* Fixed the CheckboxColumn to not render links around the checkbox.
+* Fixed :py:class:`~djblets.datagrid.grids.CheckboxColumn` to not render links
+  around the checkbox.
 
 
 djblets.markdown
 ================
 
 The new :py:mod:`djblets.markdown` module contains a bunch of useful utilities
-for dealing with Markdown text. This includes things like escaping and
-unescaping, a "WYSIWYG"-style renderer (where the output HTML looks
-substantially like the input Markdown), and a variation of the renderer which
-can include inline styles (for example, when rendering for use in HTML emails).
+for dealing with Markdown text, including:
+
+* Functions for escaping content for direct inclusion in a Markdown document,
+  and unescaping pre-escaped content.
+
+* A WYSIWYG-style renderer, which outputs rendered Markdown that looks as
+  close as possible to the source text.
+
+* A variation of the WISYWIG-style renderer for use in e-mails. This contains
+  works the same way, but uses inline styles instead of requiring an
+  external CSS file.
 
 These functions were previously part of the Review Board codebase, but are
 useful beyond Review Board and have been moved here.
 
 
+djblets.testing
+===============
+
+* Added a mixin for pre-compiling fixtures to reduce test times.
+
+  The new :py:class:`~djblets.testing.testcases.FixturesCompilerMixin` can be
+  mixed into a test case to compile each listed fixture up-front,
+  significantly reducing the time needed for tests to run.
+
+
 djblets.util
 ============
 
-* Added height-for-width sizing to the :py:func:`thumbnail` template tag.
+* Added height-for-width sizing to the
+  :py:func:`~djblets.util.templatetags.djblets_images.thumbnail` template tag.
 
   When being used from Python, the thumbnail tag can now be passed a 2-tuple
   instead of a string to represent the size. If the height is omitted, it will
   be calculated to preserve the image's aspect ratio.
 
-* Added a new :py:func:`querystring_with` tag to help with building links.
+* Added a new
+  :py:func:`~djblets.util.templatetags.djblets_utils.querystring_with` tag to
+  help with building links.
 
   When creating links that modify query parameters, it's often useful to
   build a new query that contains all of the previous parameters but with the
@@ -116,6 +157,68 @@ djblets.util
 djblets.webapi
 ==============
 
+* Added support for generating and using API tokens for authentication.
+
+  API tokens are a safer way of authenticating with an API, without needing
+  to supply a username or password to a service or script. These tokens
+  can be created and deleted at any time without affecting the user's account.
+
+  Tokens can also have an access policy assigned, which will limit what
+  operations can be performed on what parts of the API tree.
+
+  Consumers need to use the
+  :py:class:`~djblets.webapi.auth.backends.api_tokens.TokenAuthBackendMixin`
+  Django authentication backend, the
+  :py:class:`~djblets.webapi.auth.backends.api_tokens.WebAPITokenAuthBackend`
+  API authentication backend, and the
+  :py:class:`~djblets.webapi.resources.mixins.api_tokens.ResourceAPITokenMixin`
+  mixin for resource subclasses in order to accept API tokens. They must also
+  define a model for storing API token data, inheriting from
+  :py:class:`~djblets.webapi.models.BaseWebAPIToken`.
+
+* Added a mixin for helping with range-based database queries.
+
+  The new
+  :py:class:`~djblets.webapi.resources.mixins.queries.APIQueryUtilsMixin` can
+  be used in a resource subclass to help with range-based queries (``<``,
+  ``<=``, ``>``, ``>=``) coming from the caller, translating them into an
+  appropriate database query.
+
+* Added an :py:class:`~djblets.webapi.resources.mixins.forms.UpdateFormMixin`
+  for connecting a :py:class:`~djblets.webapi.resources.base.WebAPIResource`
+  subclass to a Django :py:class:`~django.forms.ModelForm`.
+
+  This mixin provides a
+  :py:meth:`~djblets.webapi.resources.mixins.forms.UpdateFormMixin.create_form`
+  method that resources can use to create forms for either creating or
+  updating model instances, giving all the advantages of form validation and
+  consistent instance creation.
+
+* Added resource-bound utility functions for retrieving the URL to an item
+  or list resource, given a set of URL arguments.
+
+  Each :py:class:`~djblets.webapi.resources.base.WebAPIResource` class now
+  provides
+  :py:meth:`~djblets.webapi.resources.base.WebAPIResource.get_list_url`,
+  :py:meth:`~djblets.webapi.resources.base.WebAPIResource.get_item_url`, and
+  :py:meth:`~djblets.webapi.resources.base.WebAPIResource.build_resource_url`
+  functions that can generate URLs suitable for the resource, given arguments
+  for the URL.
+
+* Added a class for handling the registration and lookup of API resources.
+
+  :py:class:`~djblets.webapi.resources.registry.ResourcesRegistry` makes
+  it easy to lazily register model-to-resource mappings and to handle lookups
+  of resources without running into import loops or other problems. It's
+  meant to be subclassed and populated.
+
+* Added utilities for writing unit tests for APIs.
+
+  The new :py:mod:`djblets.webapi.testing` module includes decorators and
+  mixins for writing complete and comprehensive test suites for an API.
+  That consists of helpers for docstrings and functions for performing API
+  requests and validating results,
+
 * Added a new ``DUPLICATE_ITEM`` error code.
 
   This is a generic error code that can be used to indicate error states when
@@ -123,11 +226,16 @@ djblets.webapi
 
   Patch by Vincent Le.
 
-* Reorganized the authentication code.
+* :py:func:`~djblets.webapi.decorators.webapi_request_fields` now passes all
+  parsed arguments from the caller to the function as a
+  ``parsed_request_fields`` dictionary.
 
-  The :py:mod:`djblets.webapi.auth` module has been split into multiple modules in
-  preparation for adding some new features. The old names still work, but will
-  show a :py:exc:`DeprecationWarning`.
+* Reorganized the authentication and resources code.
+
+  The :py:mod:`djblets.webapi.auth` and :py:mod:`djblets.webapi.resources`
+  modules have been split into multiple modules in preparation for adding some
+  new features. The old names still work, but will show a
+  :py:exc:`DeprecationWarning`.
 
 
 Miscellaneous

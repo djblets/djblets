@@ -207,3 +207,11 @@ latex_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
+intersphinx_mapping = {
+    'django': ('https://docs.djangoproject.com/en/%s/'
+               % djblets.django_major_version,
+               'https://docs.djangoproject.com/en/%s/_objects/'
+               % djblets.django_major_version),
+    'python': ('https://docs.python.org/2.7', None),
+    'djblets': ('https://www.reviewboard.org/docs/djblets/dev/', None),
+}
