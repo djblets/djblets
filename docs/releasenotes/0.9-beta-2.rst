@@ -2,7 +2,7 @@
 Djblets 0.9 Beta 2 Release Notes
 ================================
 
-**Release date**: TBD
+**Release date**: July 20, 2015
 
 This release contains all bug fixes and features found in Djblets version
 :doc:`0.8.21 <0.8.21>`.
