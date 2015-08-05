@@ -25,6 +25,7 @@
 
 from __future__ import unicode_literals
 
+import atexit
 import datetime
 import errno
 import logging
@@ -36,6 +37,7 @@ import tempfile
 import threading
 import time
 import traceback
+import weakref
 
 from django.conf import settings
 from django.conf.urls import patterns, include
@@ -190,6 +192,7 @@ class ExtensionManager(object):
         self._sync_key = make_cache_key('extensionmgr:%s:gen' % key)
         self._last_sync_gen = None
         self._load_lock = threading.Lock()
+        self._shutdown_lock = threading.Lock()
         self._block_sync_gen = False
 
         self.dynamic_urls = DynamicURLResolver()
@@ -206,7 +209,8 @@ class ExtensionManager(object):
             'TEMPLATE_CONTEXT_PROCESSORS',
             'context processor')
 
-        _extension_managers.append(self)
+        instance_id = id(self)
+        _extension_managers[instance_id] = self
 
     def get_url_patterns(self):
         """Returns the URL patterns for the Extension Manager.
@@ -413,6 +417,11 @@ class ExtensionManager(object):
             self._load_extensions(full_reload)
             self._block_sync_gen = False
 
+    def shutdown(self):
+        """Shut down the extension manager and all of its extensions."""
+        with self._shutdown_lock:
+            self._clear_extensions()
+
     def _load_extensions(self, full_reload=False):
         if full_reload:
             # We're reloading everything, so nuke all the cached copies.
@@ -553,7 +562,11 @@ class ExtensionManager(object):
         it doesn't yet know about any extensions, requiring a re-load.
         """
         for extension in self.get_enabled_extensions():
-            self._uninit_extension(extension)
+            # Make sure this is actually an enabled extension, and not one
+            # that's already been shut down by another instance of this
+            # ExtensionManager (which should only happen in tests):
+            if hasattr(extension.__class__, 'info'):
+                self._uninit_extension(extension)
 
         for extension_class in self.get_installed_extensions():
             if hasattr(extension_class, 'info'):
@@ -1083,8 +1096,32 @@ class ExtensionManager(object):
         return middleware
 
 
-_extension_managers = []
+_extension_managers = weakref.WeakValueDictionary()
 
 
 def get_extension_managers():
-    return _extension_managers
+    """Return all extension manager instances.
+
+    This will return all the extension managers that have been constructed.
+    The order is not guaranteed.
+
+    Returns:
+        list: The list of ExtensionManager instances.
+    """
+    return _extension_managers.values()
+
+
+def shutdown_extension_managers():
+    """Shut down all extension managers.
+
+    This is called automatically when the process exits, but can be run
+    manually.
+    """
+    for extension_manager in get_extension_managers():
+        extension_manager.shutdown()
+
+
+# When the process ends, shut down the extensions on this manager.
+# That will help work around bugs in Django where it attempts to
+# work with garbage state being held onto by extensions.
+atexit.register(shutdown_extension_managers)
