@@ -46,8 +46,8 @@ from djblets.extensions.forms import SettingsForm
 from djblets.extensions.hooks import (DataGridColumnsHook, ExtensionHook,
                                       ExtensionHookPoint, SignalHook,
                                       TemplateHook, URLHook)
-from djblets.extensions.manager import (_extension_managers, ExtensionManager,
-                                        SettingListWrapper)
+from djblets.extensions.manager import (ExtensionManager, SettingListWrapper,
+                                        get_extension_managers)
 from djblets.extensions.settings import Settings
 from djblets.extensions.signals import settings_saved
 from djblets.extensions.views import configure_extension
@@ -440,7 +440,7 @@ class ExtensionManagerTest(SpyAgency, TestCase):
 
     def test_added_to_extension_managers(self):
         """Testing ExtensionManager registration"""
-        self.assertTrue(self.manager in _extension_managers)
+        self.assertIn(self.manager, get_extension_managers())
 
     def test_get_enabled_extensions_returns_empty(self):
         """Testing ExtensionManager.get_enabled_extensions with no
