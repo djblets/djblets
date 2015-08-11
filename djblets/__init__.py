@@ -40,7 +40,7 @@ VERSION = (0, 9, 0, 'beta', 3, False)
 django_major_version = '1.6'
 
 # Required version of Django
-django_version = 'Django>=1.6.11,<1.7'
+django_version = 'Django>=1.6.11,<1.8.999'
 
 
 def get_version_string():
