@@ -45,7 +45,7 @@ from djblets.auth.util import validate_test_cookie
 
 @csrf_protect
 def register(request, next_page, form_class=RegistrationForm,
-             extra_context={},
+             extra_context={}, initial_values=None,
              template_name="accounts/register.html"):
     """Handle registration of a new user.
 
@@ -69,6 +69,9 @@ def register(request, next_page, form_class=RegistrationForm,
 
         extra_context (dict):
             Extra context variables to pass to the template when rendering.
+
+        initial_values (dict):
+            Initial values to set on the form when it is rendered.
 
         template_name (unicode):
             The name of the template containing the registration form.
@@ -101,7 +104,7 @@ def register(request, next_page, form_class=RegistrationForm,
 
                 return HttpResponseRedirect(next_page)
     else:
-        form = form_class(request=request)
+        form = form_class(initial=initial_values, request=request)
 
     request.session.set_test_cookie()
 
