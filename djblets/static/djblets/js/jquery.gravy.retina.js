@@ -30,39 +30,61 @@
 $.fn.retinaGravatar = function() {
     if (window.devicePixelRatio > 1) {
         $(this).each(function() {
-            var $el = $(this),
-                src = $el.attr('src'),
-                parts = src.split('?', 2),
-                params,
-                param,
-                baseurl,
-                size,
-                i;
+            var $el = $(this);
 
-            if (parts.length === 2) {
-                baseurl = parts[0];
-                params = parts[1].split('&');
-
-                for (i = 0; i < params.length; i++) {
-                    param = params[i].split('=', 2);
-
-                    if (param.length === 2 && param[0] === 's') {
-                        size = parseInt(param[1], 10);
-                        params[i] = 's=' + Math.floor(size * window.devicePixelRatio);
-                    }
-                }
-
-                $el
-                    .attr('src', baseurl + '?' + params.join('&'))
-                    .removeClass('gravatar')
-                    .addClass('gravatar-retina');
-            } else {
-                console.log('Failed to parse URL for gravatar ' + src);
-            }
+            $el
+                .attr('src', Djblets.getGravatarForDisplay($el.attr('src')))
+                .removeClass('gravatar')
+                .addClass('gravatar-retina');
         });
     }
 
     return this;
+};
+
+
+/*
+ * Return a Gravatar URL most appropriate for the display.
+ *
+ * If on a Retina or other high-DPI display, a higher-resolution Gravatar
+ * will be returned.
+ *
+ * Args:
+ *     url (String): The URL to the Gravatar.
+ *
+ * Returns:
+ *     String: The URL to the Gravatar best matching the current display.
+ */
+Djblets.getGravatarForDisplay = function(url) {
+    if (window.devicePixelRatio > 1) {
+        var parts = url.split('?', 2),
+            params,
+            param,
+            baseurl,
+            size,
+            i;
+
+        if (parts.length === 2) {
+            baseurl = parts[0];
+            params = parts[1].split('&');
+
+            for (i = 0; i < params.length; i++) {
+                param = params[i].split('=', 2);
+
+                if (param.length === 2 && param[0] === 's') {
+                    size = parseInt(param[1], 10);
+                    params[i] = 's=' +
+                                Math.floor(size * window.devicePixelRatio);
+                }
+            }
+
+            url = baseurl + '?' + params.join('&');
+        } else {
+            console.log('Failed to parse URL for gravatar ' + src);
+        }
+    }
+
+    return url;
 };
 
 
