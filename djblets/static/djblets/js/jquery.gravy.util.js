@@ -23,6 +23,11 @@
 (function($) {
 
 
+if (!window.Djblets) {
+    window.Djblets = {};
+}
+
+
 if ($.support.touch === undefined) {
     $.support.touch = ('ontouchstart' in window ||
                        navigator.msMaxTouchPoints);
