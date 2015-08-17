@@ -19,10 +19,10 @@ install:
 
 script:
     # Set up the origin/master branch, for doc building.
-    - git fetch origin +master:master
+    #- git fetch origin +master:master
 
     - python ./tests/runtests.py
-    - make -C docs/djblets/ SPHINXOPTS=-W pickle
+    #- make -C docs/djblets/ SPHINXOPTS=-W pickle
 
 
 notifications:
