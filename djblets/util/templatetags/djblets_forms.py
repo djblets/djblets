@@ -82,9 +82,7 @@ def form_field_id(field):
 
 @register.filter
 def is_field_checkbox(field):
-    """
-    Returns whether or not this field is a checkbox (a ```BooleanField''').
-    """
+    """Return whether or not this field is a checkbox field."""
     return isinstance(field.field, forms.BooleanField)
 
 

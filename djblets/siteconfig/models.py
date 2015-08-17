@@ -58,8 +58,9 @@ class SiteConfiguration(models.Model):
     are stored here.
 
     The usual way to retrieve a SiteConfiguration is to use
-    ```SiteConfiguration.objects.get_current()'''
+    :py:meth:`get_current`.
     """
+
     site = models.ForeignKey(Site, related_name="config")
     version = models.CharField(max_length=20)
     settings = JSONField()
@@ -103,10 +104,10 @@ class SiteConfiguration(models.Model):
         self.settings[key] = value
 
     def add_defaults(self, defaults_dict):
-        """
-        Adds a dictionary of defaults to this SiteConfiguration. These
-        defaults will be used when calling ```get''', if that setting wasn't
-        saved in the database.
+        """Add a dictionary of defaults.
+
+        These defaults will be used when calling :py:meth:`get`, if that
+        setting wasn't saved in the database.
         """
         if self.id not in _DEFAULTS:
             _DEFAULTS[self.id] = {}

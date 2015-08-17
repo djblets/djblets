@@ -14,7 +14,7 @@ class InlineStyleProcessor(Treeprocessor):
 
     This will process each element and, depending on the element type,
     create inline styles. These styles are meant to match the stylesheets
-    in the markdown-wysiwyg.less file.
+    in the :file:`markdown-wysiwyg.less` file.
     """
 
     def process_element(self, context, el):
@@ -96,6 +96,8 @@ class WysiwygEMailExtension(Extension):
 
     This is meant to be used with the following Markdown configuration
     and extensions:
+
+    .. code-block:: python
 
         {
             'extensions': [

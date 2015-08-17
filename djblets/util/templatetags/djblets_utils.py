@@ -249,14 +249,15 @@ def basename(value):
 
 @register.filter(name="range")
 def range_filter(value):
-    """
-    Turns an integer into a range of numbers.
+    """Turn an integer into a range of numbers.
 
     This is useful for iterating with the "for" tag. For example:
 
-    {% for i in 10|range %}
-      {{i}}
-    {% endfor %}
+    .. code-block:: python
+
+        {% for i in 10|range %}
+          {{i}}
+        {% endfor %}
     """
     return range(value)
 

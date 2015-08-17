@@ -49,7 +49,7 @@ Extensions should list all other extension names that they require in
 
 Extensions can define static media bundle for Less/CSS and JavaScript files,
 which will automatically be compiled, minified, combined, and packaged. An
-Extension class can define a :py:attr:`Extension.css_bundles` and a
+Extension class can define :py:attr:`Extension.css_bundles` and
 :py:attr:`Extension.js_bundles`. Each is a dictionary mapping bundle names to
 bundle dictionary. These mostly follow the Django Pipeline bundle format.
 

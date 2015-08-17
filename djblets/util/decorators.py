@@ -97,12 +97,16 @@ def augment_method_from(klass):
 
 
 def basictag(takes_context=False):
-    """
-    A decorator similar to Django's @register.simple_tag that optionally
+    """Create a basic template tag with context.
+
+    This is similar to Django's ``@register.simple_tag`` that optionally
     takes a context parameter. This condenses many tag implementations down
     to a few lines of code.
 
-    Example:
+    For example:
+
+    .. code-block:: python
+
         @register.tag
         @basictag(takes_context=True)
         def printuser(context):
@@ -169,7 +173,7 @@ def blocktag(*args, **kwargs):
     beginning and end tag (such as myblock/endmyblock).
 
     By default, the end tag is prefixed with "end", but that can be
-    changed by passing `end_prefix="end_"` or similar to @blocktag.
+    changed by passing ``end_prefix="end_"`` or similar to @blocktag.
 
     blocktag will call the wrapped function with `context`  and `nodelist`
     parameters, as well as any parameters passed to the tag. It will
@@ -177,6 +181,8 @@ def blocktag(*args, **kwargs):
     parameters are passed.
 
     For example:
+
+    .. code-block:: python
 
         @register.tag
         @blocktag

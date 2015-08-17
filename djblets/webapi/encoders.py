@@ -19,13 +19,15 @@ class WebAPIEncoder(object):
 
     Projects can subclass this to provide representations of their objects.
     To make use of a encoder, add the path to the encoder class to
-    the project's settings.WEB_API_ENCODERS list.
+    the project's ``settings.WEB_API_ENCODERS`` list.
 
     For example:
 
-    WEB_API_ENCODERS = (
-        'myproject.webapi.MyEncoder',
-    )
+    .. code-block:: python
+
+        WEB_API_ENCODERS = (
+            'myproject.webapi.MyEncoder',
+        )
     """
 
     def encode(self, o, *args, **kwargs):

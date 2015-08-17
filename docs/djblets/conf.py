@@ -246,10 +246,17 @@ autodoc_excludes = {
         # Common to models.
         'DoesNotExist',
         'MultipleObjectsReturned',
+        'objects',
 
         # Common to forms.
         'base_fields',
         'media',
+
+        # Django template loaders define 'list()' functions, which conflict
+        # with the Python list type. References to list will go to the
+        # functions, which we don't want. It's better not to document them
+        # at all.
+        'list',
     ],
 }
 

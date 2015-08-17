@@ -19,6 +19,8 @@ install:
 
 script:
     - python ./tests/runtests.py
+    - make -C docs/djblets/ SPHINXOPTS=-W pickle
+
 
 notifications:
     slack:
