@@ -18,7 +18,12 @@ install:
     - pip install -r dev-requirements.txt
 
 script:
+    # Set up the origin/master branch, for doc building.
+    #- git fetch origin +master:master
+
     - python ./tests/runtests.py
+    #- make -C docs/djblets/ SPHINXOPTS=-W pickle
+
 
 notifications:
     slack:

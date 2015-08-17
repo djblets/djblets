@@ -5,8 +5,14 @@ Table of Contents
 =================
 
 .. toctree::
-   :maxdepth: 2
+   :hidden:
 
+   index
+
+.. toctree::
+   :maxdepth: 3
+
+   guides/index
    coderef/index
 
 

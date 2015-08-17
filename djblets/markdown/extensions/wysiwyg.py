@@ -179,6 +179,8 @@ class WysiwygFormattingExtension(markdown.Extension):
     This is meant to be used with the following Markdown configuration
     and extensions:
 
+    .. code-block:: python
+
         {
             'lazy_ol': False,
             'extensions': [

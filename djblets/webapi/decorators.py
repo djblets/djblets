@@ -196,10 +196,12 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
     mapping field name to an info dictionary, which contains the following
     keys:
 
-      * ``type`` - The data type for the field.
-      * ```description`` - A description of the field.
+    * ``type`` - The data type for the field.
+    * ``description`` - A description of the field.
 
     For example:
+
+    .. code-block:: python
 
         @webapi_request_fields(required={
             'name': {

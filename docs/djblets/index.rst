@@ -1,12 +1,11 @@
-.. _tableofcontents:
-
 =====================
 Djblets Documentation
 =====================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
+   guides/index
    coderef/index
 
 

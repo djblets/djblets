@@ -45,13 +45,13 @@ class SiteSettingsForm(forms.Form):
         self.load()
 
     def load(self):
-        """
-        Loads settings from the ```SiteConfiguration''' into this form.
+        """Load the settings into the form.
+
         The default values in the form will be the values in the settings.
 
         This also handles setting disabled fields based on the
-        ```disabled_fields''' and ```disabled_reasons''' variables set on
-        this form.
+        :py:attr:`disabled_fields` and :py:attr:`disabled_reasons` variables
+        set on this form.
         """
         for field in self.fields:
             value = self.siteconfig.get(field)
@@ -61,9 +61,7 @@ class SiteSettingsForm(forms.Form):
                 self.fields[field].widget.attrs['disabled'] = 'disabled'
 
     def save(self):
-        """
-        Saves settings from the form back into the ```SiteConfiguration'''.
-        """
+        """Saves settings from the form."""
         if not self.errors:
             if hasattr(self, "Meta"):
                 save_blacklist = getattr(self.Meta, "save_blacklist", [])

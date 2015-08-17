@@ -6,8 +6,8 @@ import re
 import subprocess
 import sys
 
-import reviewboard
-from reviewboard import VERSION
+import djblets
+from djblets import VERSION
 
 
 GIT_BRANCH_CONTAINS_RE = re.compile(r'^\s*([^\s]+)\s+([0-9a-f]+)\s.*')
@@ -18,13 +18,20 @@ _head_ref = None
 
 def _run_git(cmd):
     """Run git with the given arguments, returning the output."""
-    return subprocess.check_output(['git'] + cmd)
+    p = subprocess.Popen(['git'] + cmd, stdout=subprocess.PIPE)
+    output, error = p.communicate()
+    ret_code = p.poll()
+
+    if ret_code:
+        raise subprocess.CalledProcessError(ret_code, 'git')
+
+    return output
 
 
 def _get_branch_for_version():
     """Return the branch or tag for the current version of Review Board."""
-    if VERSION[4] == 'final' or VERSION[5] > 0:
-        if reviewboard.is_release():
+    if VERSION[4] == 'final' or VERSION[4] > 0:
+        if djblets.is_release():
             return 'release-%s.%s.%s' % (VERSION[0], VERSION[1], VERSION[2])
         else:
             return 'release-%s.%s.x' % (VERSION[0], VERSION[1])
@@ -83,7 +90,7 @@ def get_git_doc_ref():
 def github_linkcode_resolve(domain, info):
     """Return a link to the source on GitHub for the given autodoc info."""
     if (domain != 'py' or not info['module'] or
-        not info['module'].startswith('reviewboard')):
+        not info['module'].startswith('djblets')):
         # These aren't the modules you're looking for.
         return None
 
@@ -113,7 +120,7 @@ def github_linkcode_resolve(domain, info):
         return None
 
     filename = os.path.relpath(filename,
-                               start=os.path.dirname(reviewboard.__file__))
+                               start=os.path.dirname(djblets.__file__))
 
     # Find the line number of the thing being documented.
     try:
@@ -133,6 +140,5 @@ def github_linkcode_resolve(domain, info):
     if not ref:
         ref = _get_branch_for_version()
 
-    return ('https://github.com/reviewboard/reviewboard/blob/%s/reviewboard/'
-            '%s%s'
+    return ('https://github.com/djblets/djblets/blob/%s/djblets/%s%s'
             % (ref, filename, linespec))
