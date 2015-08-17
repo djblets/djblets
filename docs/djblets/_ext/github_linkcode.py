@@ -30,7 +30,7 @@ def _run_git(cmd):
 
 def _get_branch_for_version():
     """Return the branch or tag for the current version of Review Board."""
-    if VERSION[4] == 'final' or VERSION[5] > 0:
+    if VERSION[4] == 'final' or VERSION[4] > 0:
         if djblets.is_release():
             return 'release-%s.%s.%s' % (VERSION[0], VERSION[1], VERSION[2])
         else:
