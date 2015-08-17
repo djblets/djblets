@@ -7,6 +7,7 @@ Djblets Documentation
 .. toctree::
    :maxdepth: 2
 
+   guides/index
    coderef/index
 
 
