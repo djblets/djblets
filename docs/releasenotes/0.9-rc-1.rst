@@ -1,0 +1,68 @@
+==============================
+Djblets 0.9 RC 1 Release Notes
+==============================
+
+**Release date**: August 17, 2015
+
+This release contains all bug fixes and features found in Djblets version
+:doc:`0.8.21 <0.8.21>`.
+
+
+Installation
+============
+
+To install this release, run the following::
+
+    $ sudo easy_install \
+        -f http://downloads.reviewboard.org/releases/Djblets/0.9/ \
+        -U Djblets
+
+We **do not** recommend upgrading a production server with this version of
+Djblets. This version is still in-development, and is not guaranteed to have
+API stability.
+
+
+Compatibility Changes
+=====================
+
+This release of Djblets is experimentally compatible with Django 1.8. For the
+time being we still recommend using Django 1.6, but would appreciate bug
+reports if you do hit problems using newer versions.
+
+
+JavaScript
+==========
+
+* Added a function for returning the best Gravatar for the display, given a
+  Gravatar URL.
+
+  :js:func:`Djblets.getGravatarForDisplay` will take a Gravatar URL and
+  return a new URL containing the Gravatar best suited for the display's
+  pixel ratio multiplier. For instance, when running on a Retina display,
+  the size of the Gravatar will be doubled.
+
+
+djblets.extensions
+==================
+
+.. currentmodule:: djblets.extensions
+
+* Extension state is now properly cleaned up when the process ends.
+
+  Previously, we let the Python garbage collector handle the cleanup of
+  extension state, but this would result in some errors when using
+  certain hooks, such as :py:class:`~djblets.extensions.hooks.SignalHook`. We
+  now handle the cleanup manually.
+
+
+djblets.webapi
+==============
+
+.. currentmodule:: djblets.webapi
+
+* Links can now be serialized by subclasses.
+
+  :py:class:`~djblets.webapi.resources.base.WebAPIResource` subclasses can now
+  provide a :samp:`serialize_<linkname>_link()` function that will take an
+  object and serialize a link for it. This is useful for links that need to
+  contain additional metadata about the link would be helpful to consumers.
