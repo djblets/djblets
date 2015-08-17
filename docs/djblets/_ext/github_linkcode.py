@@ -18,7 +18,14 @@ _head_ref = None
 
 def _run_git(cmd):
     """Run git with the given arguments, returning the output."""
-    return subprocess.check_output(['git'] + cmd)
+    p = subprocess.Popen(['git'] + cmd, stdout=subprocess.PIPE)
+    output, error = p.communicate()
+    ret_code = p.poll()
+
+    if ret_code:
+        raise subprocess.CalledProcessError(ret_code, 'git')
+
+    return output
 
 
 def _get_branch_for_version():

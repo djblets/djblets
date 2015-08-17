@@ -18,6 +18,9 @@ install:
     - pip install -q Django==$DJANGO_VERSION
 
 script:
+    # Set up the origin/master branch, for doc building.
+    - git fetch origin +master:master
+
     - python ./tests/runtests.py
     - make -C docs/djblets/ SPHINXOPTS=-W pickle
 
