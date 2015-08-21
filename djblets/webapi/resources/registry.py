@@ -119,7 +119,14 @@ def get_resource_for_object(obj):
     """
     from djblets.webapi.resources.base import WebAPIResource
 
-    resource = _model_to_resources.get(obj.__class__, None)
+    cls = obj.__class__
+
+    # Deferred models are a subclass of the actual model that we want to look
+    # up.
+    if getattr(obj, '_deferred', False):
+        cls = cls.__bases__[0]
+
+    resource = _model_to_resources.get(cls, None)
 
     if not isinstance(resource, WebAPIResource) and six.callable(resource):
         resource = resource(obj)
