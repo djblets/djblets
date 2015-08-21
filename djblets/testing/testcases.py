@@ -164,7 +164,7 @@ class TestCase(testcases.TestCase):
 
 
 class TestModelsLoaderMixin(object):
-    """Allows unit test moduls to provide models to test against.
+    """Allows unit test modules to provide models to test against.
 
     This allows a unit test file to provide models that will be synced to the
     database and flushed after tests. These can be tested against in any unit
