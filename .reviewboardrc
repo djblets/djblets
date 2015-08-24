@@ -1,8 +1,8 @@
 REVIEWBOARD_URL = "https://reviews.reviewboard.org"
 REPOSITORY = "Djblets"
-BRANCH = "release-0.9.x"
-TRACKING_BRANCH = "origin/release-0.9.x"
-LAND_DEST_BRANCH = "release-0.9.x"
+BRANCH = "master"
+TRACKING_BRANCH = "origin/master"
+LAND_DEST_BRANCH = "master"
 
 ALIASES = {
     'clear-pycs': '!find . -name *.pyc -delete',

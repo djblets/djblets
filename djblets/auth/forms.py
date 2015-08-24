@@ -41,6 +41,13 @@ from django.utils.translation import ugettext_lazy as _
 from djblets.db.query import get_object_or_none
 
 
+try:
+    # Django renamed forms.util to forms.utils in 1.7.
+    from django.forms import utils as form_utils
+except ImportError:
+    from django.forms import util as form_utils
+
+
 class RegistrationForm(forms.Form):
     """A standard registration form collecting basic account information.
 
@@ -116,7 +123,7 @@ class RegistrationForm(forms.Form):
                 # it's possible that two users could race for a name.
                 if get_object_or_none(User,
                                       username=self.cleaned_data['username']):
-                    self.errors['username'] = forms.util.ErrorList(
+                    self.errors['username'] = form_utils.ErrorList(
                         [_('Sorry, this username is taken.')])
                 else:
                     raise
