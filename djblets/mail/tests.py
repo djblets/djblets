@@ -2,12 +2,16 @@ from __future__ import unicode_literals
 
 from django.core import mail
 from django.utils.datastructures import MultiValueDict
+from kgb import SpyAgency
 
 from djblets.mail.message import EmailMessage
 from djblets.testing.testcases import TestCase
 
 
-class EmailTests(TestCase):
+_CONSOLE_EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+
+class EmailTests(SpyAgency, TestCase):
     """Tests for sending e-mails."""
 
     def setUp(self):
@@ -81,3 +85,29 @@ class EmailTests(TestCase):
         self.assertIn('X-Foo', message._headers)
         self.assertEqual(set(message._headers.getlist('X-Foo')),
                          set(header_values))
+
+    def test_send_email_unicode_subject(self):
+        """Testing sending an EmailMessage with a unicode subject"""
+        email = EmailMessage(subject='\ud83d\ude04',
+                             text_body='This is a test',
+                             html_body='<p>This is a test</p>',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'],
+                             sender='noreply@example.com')
+
+        with self.settings(EMAIL_BACKEND=_CONSOLE_EMAIL_BACKEND):
+            email.send()
+
+    def test_send_email_unicode_body(self):
+        """Testing sending an EmailMessage with a unicode body"""
+        email = EmailMessage(subject='Test email',
+                             text_body='\ud83d\ude04',
+                             html_body='<p>\ud83d\ude04</p>',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'],
+                             sender='noreply@example.com')
+
+        # If the e-mail doesn't send correctly, it will raise a
+        # UnicodeDecodeError.
+        with self.settings(EMAIL_BACKEND=_CONSOLE_EMAIL_BACKEND):
+            email.send()
