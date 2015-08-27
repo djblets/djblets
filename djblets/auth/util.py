@@ -35,6 +35,13 @@ from django import forms
 from django.utils.translation import ugettext as _
 
 
+try:
+    # Django renamed forms.util to forms.utils in 1.7.
+    from django.forms import utils as form_utils
+except ImportError:
+    from django.forms import util as form_utils
+
+
 def validate_test_cookie(form, request):
     """Validate that the test cookie was properly set in a prior request.
 
@@ -71,5 +78,5 @@ def validate_old_password(form, user, field_name='password'):
     """
     if (not form.errors.get(field_name) and
         not user.check_password(form.data.get(field_name))):
-        form.errors[field_name] = forms.util.ErrorList(
+        form.errors[field_name] = form_utils.ErrorList(
             [_('Incorrect password.')])
