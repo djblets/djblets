@@ -54,7 +54,6 @@ from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
 from django.utils.six.moves import cStringIO as StringIO
 from django.utils.translation import ugettext as _
-from django_evolution.management.commands.evolve import Command as Evolution
 from setuptools.command import easy_install
 
 try:
@@ -836,36 +835,8 @@ class ExtensionManager(object):
         loading.cache.loaded = False
         call_command('syncdb', verbosity=0, interactive=False)
 
-        # Run evolve to do any table modification
-        try:
-            stream = StringIO()
-            evolution = Evolution()
-            evolution.style = no_style()
-            evolution.execute(verbosity=0, interactive=False,
-                              execute=True, hint=False,
-                              compile_sql=False, purge=False,
-                              database=False,
-                              stdout=stream, stderr=stream)
-
-            output = stream.getvalue()
-
-            if output:
-                logging.info('Evolved extension models for %s: %s',
-                             ext_class.id, stream.read())
-
-            stream.close()
-        except CommandError as e:
-            # Something went wrong while running django-evolution, so
-            # grab the output.  We can't raise right away because we
-            # still need to put stdout back the way it was
-            output = stream.getvalue()
-            stream.close()
-
-            logging.error('Error evolving extension models: %s: %s',
-                          e, output, exc_info=1)
-
-            load_error = self._store_load_error(ext_class.id, output)
-            raise InstallExtensionError(six.text_type(e), load_error)
+        # Run evolve to do any table modification.
+        self._migrate_extension_models(ext_class)
 
         # Remove this again, since we only needed it for syncdb and
         # evolve.  _init_extension will add it again later in
@@ -1062,6 +1033,53 @@ class ExtensionManager(object):
     def _add_new_sync_gen(self):
         val = time.mktime(datetime.datetime.now().timetuple())
         return cache.add(self._sync_key, int(val))
+
+    def _migrate_extension_models(self, ext_class):
+        """Perform database migrations for an extension's models.
+
+        This will call out to Django Evolution to handle the migrations.
+
+        Args:
+            ext_class (djblets.extensions.extension.Extension):
+                The class for the extension to migrate.
+        """
+        try:
+            from django_evolution.management.commands.evolve import \
+                Command as Evolution
+        except ImportError:
+            raise InstallExtensionError(
+                "Unable to migrate the extension's database tables. Django "
+                "Evolution is not installed.")
+
+        try:
+            stream = StringIO()
+            evolution = Evolution()
+            evolution.style = no_style()
+            evolution.execute(verbosity=0, interactive=False,
+                              execute=True, hint=False,
+                              compile_sql=False, purge=False,
+                              database=False,
+                              stdout=stream, stderr=stream)
+
+            output = stream.getvalue()
+
+            if output:
+                logging.info('Evolved extension models for %s: %s',
+                             ext_class.id, stream.read())
+
+            stream.close()
+        except CommandError as e:
+            # Something went wrong while running django-evolution, so
+            # grab the output.  We can't raise right away because we
+            # still need to put stdout back the way it was
+            output = stream.getvalue()
+            stream.close()
+
+            logging.error('Error evolving extension models: %s: %s',
+                          e, output, exc_info=1)
+
+            load_error = self._store_load_error(ext_class.id, output)
+            raise InstallExtensionError(six.text_type(e), load_error)
 
     def _recalculate_middleware(self):
         """Recalculates the list of middleware."""
