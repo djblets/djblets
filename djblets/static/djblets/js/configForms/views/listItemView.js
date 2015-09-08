@@ -152,27 +152,49 @@ Djblets.Config.ListItemView = Backbone.View.extend({
     _showActionDropdown: function(action, $action) {
         var actionPos = $action.position(),
             $pane = $('<ul/>')
+                .css('position', 'absolute')
                 .addClass('action-menu')
-                .move(actionPos.left + $action.getExtents('m', 'l'),
-                      actionPos.top + $action.outerHeight(),
-                      'absolute')
                 .click(function(e) {
                     /* Don't let a click on the dropdown close it. */
                     e.stopPropagation();
-                });
+                }),
+            winWidth = $(window).width(),
+            actionLeft = actionPos.left + $action.getExtents('m', 'l'),
+            paneWidth;
 
         _.each(action.children, function(childAction) {
             $('<li/>')
+                .addClass('config-forms-list-action-row-' + childAction.id)
                 .append(this._buildActionEl(childAction))
                 .appendTo($pane);
         }, this);
 
+        this.trigger('actionMenuPopUp', {
+            action: action,
+            $action: $action,
+            $menu: $pane
+        });
+
         $pane.appendTo($action.parent());
 
+        paneWidth = $pane.width();
+
+        $pane.move(($action.offset().left + paneWidth > winWidth
+                    ? actionLeft + $action.innerWidth() - paneWidth
+                    : actionLeft),
+                   actionPos.top + $action.outerHeight(),
+                   'absolute')
+
         /* Any click outside this dropdown should close it. */
-        $(document).one('click', function() {
+        $(document).one('click', _.bind(function() {
+            this.trigger('actionMenuPopDown', {
+                action: action,
+                $action: $action,
+                $menu: $pane
+            });
+
             $pane.remove();
-        });
+        }, this));
     },
 
     /*
@@ -223,6 +245,14 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                             radioValue: action.radioValue
                         });
                 }
+            }
+
+            if (action.enabledPropName) {
+                $action.bindProperty(
+                    'disabled', this.model, action.enabledPropName,
+                    {
+                        inverse: (action.enabledPropInverse !== true)
+                    });
             }
 
             if (actionHandlerName) {

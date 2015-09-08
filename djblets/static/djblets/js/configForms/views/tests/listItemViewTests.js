@@ -32,6 +32,29 @@ suite('djblets/configForms/views/ListItemView', function() {
         });
 
         describe('Actions', function() {
+            it('Checkboxes', function() {
+                var item = new Djblets.Config.ListItem({
+                        text: 'Label',
+                        checkboxAttr: false,
+                        actions: [
+                            {
+                                id: 'mycheckbox',
+                                type: 'checkbox',
+                                label: 'Checkbox',
+                                propName: 'checkboxAttr'
+                            }
+                        ]
+                    }),
+                    itemView = new Djblets.Config.ListItemView({
+                        model: item
+                    });
+
+                itemView.render();
+
+                expect(itemView.$('input[type=checkbox]').length).toBe(1);
+                expect(itemView.$('label').length).toBe(1);
+            });
+
             describe('Buttons', function() {
                 it('Simple', function() {
                     var item = new Djblets.Config.ListItem({
@@ -120,31 +143,12 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
             });
 
-            it('Checkboxes', function() {
-                var item = new Djblets.Config.ListItem({
-                        text: 'Label',
-                        checkboxAttr: false,
-                        actions: [
-                            {
-                                id: 'mycheckbox',
-                                type: 'checkbox',
-                                label: 'Checkbox',
-                                propName: 'checkboxAttr'
-                            }
-                        ]
-                    }),
-                    itemView = new Djblets.Config.ListItemView({
-                        model: item
-                    });
+            describe('Menus', function() {
+                var item,
+                    itemView;
 
-                itemView.render();
-
-                expect(itemView.$('input[type=checkbox]').length).toBe(1);
-                expect(itemView.$('label').length).toBe(1);
-            });
-
-            it('Menus', function() {
-                var item = new Djblets.Config.ListItem({
+                beforeEach(function() {
+                    item = new Djblets.Config.ListItem({
                         text: 'Label',
                         actions: [
                             {
@@ -158,17 +162,229 @@ suite('djblets/configForms/views/ListItemView', function() {
                                 ]
                             }
                         ]
-                    }),
+                    });
+
                     itemView = new Djblets.Config.ListItemView({
                         model: item
-                    }),
-                    $button;
+                    });
 
-                itemView.render();
+                    itemView.render();
+                });
 
-                $button = itemView.$('.btn');
-                expect($button.length).toBe(1);
-                expect($button.text()).toBe('Menu ▾');
+                it('Initial display', function() {
+                    var $button = itemView.$('.btn');
+
+                    expect($button.length).toBe(1);
+                    expect($button.text()).toBe('Menu ▾');
+                });
+
+                it('Opening', function() {
+                    var $action,
+                        $menu;
+
+                    /* Prevent deferring. */
+                    spyOn(_, 'defer').andCallFake(function(cb) {
+                        cb();
+                    });
+
+                    spyOn(itemView, 'trigger');
+
+                    $action = itemView.$('.config-forms-list-action-mymenu');
+                    $action.click();
+
+                    $menu = itemView.$('.action-menu');
+                    expect($menu.length).toBe(1);
+                    expect(itemView.trigger.mostRecentCall.args[0]).toBe(
+                        'actionMenuPopUp');
+                });
+
+                it('Closing', function() {
+                    var $action,
+                        $menu;
+
+                    /* Prevent deferring. */
+                    spyOn(_, 'defer').andCallFake(function(cb) {
+                        cb();
+                    });
+
+                    $action = itemView.$('.config-forms-list-action-mymenu');
+                    $action.click();
+
+                    spyOn(itemView, 'trigger');
+
+                    $menu = itemView.$('.action-menu');
+
+                    $(document.body).click();
+
+                    expect(itemView.trigger.mostRecentCall.args[0]).toBe(
+                        'actionMenuPopDown');
+
+                    $menu = itemView.$('.action-menu');
+                    expect($menu.length).toBe(0);
+                });
+            });
+        });
+
+        describe('Action properties', function() {
+            describe('enabledPropName', function() {
+                it('value == undefined', function() {
+                    var item = new Djblets.Config.ListItem({
+                            text: 'Label',
+                            actions: [
+                                {
+                                    id: 'mycheckbox',
+                                    type: 'checkbox',
+                                    label: 'Checkbox',
+                                    enabledPropName: 'isEnabled'
+                                }
+                            ]
+                        }),
+                        itemView = new Djblets.Config.ListItemView({
+                            model: item
+                        }),
+                        $action;
+
+                    itemView.render();
+
+                    $action =
+                        itemView.$('.config-forms-list-action-mycheckbox');
+
+                    expect($action.prop('disabled')).toBe(true);
+                });
+
+                it('value == true', function() {
+                    var item = new Djblets.Config.ListItem({
+                            text: 'Label',
+                            isEnabled: true,
+                            actions: [
+                                {
+                                    id: 'mycheckbox',
+                                    type: 'checkbox',
+                                    label: 'Checkbox',
+                                    enabledPropName: 'isEnabled'
+                                }
+                            ]
+                        }),
+                        itemView = new Djblets.Config.ListItemView({
+                            model: item
+                        }),
+                        $action;
+
+                    itemView.render();
+
+                    $action =
+                        itemView.$('.config-forms-list-action-mycheckbox');
+
+                    expect($action.prop('disabled')).toBe(false);
+                });
+
+                it('value == false', function() {
+                    var item = new Djblets.Config.ListItem({
+                            text: 'Label',
+                            isEnabled: false,
+                            actions: [
+                                {
+                                    id: 'mycheckbox',
+                                    type: 'checkbox',
+                                    label: 'Checkbox',
+                                    enabledPropName: 'isEnabled'
+                                }
+                            ]
+                        }),
+                        itemView = new Djblets.Config.ListItemView({
+                            model: item
+                        }),
+                        $action;
+
+                    itemView.render();
+
+                    $action =
+                        itemView.$('.config-forms-list-action-mycheckbox');
+
+                    expect($action.prop('disabled')).toBe(true);
+                });
+
+                describe('with enabledPropInverse == true', function() {
+                    it('value == undefined', function() {
+                        var item = new Djblets.Config.ListItem({
+                                text: 'Label',
+                                actions: [
+                                    {
+                                        id: 'mycheckbox',
+                                        type: 'checkbox',
+                                        label: 'Checkbox',
+                                        enabledPropName: 'isDisabled',
+                                        enabledPropInverse: true
+                                    }
+                                ]
+                            }),
+                            itemView = new Djblets.Config.ListItemView({
+                                model: item
+                            }),
+                            $action;
+
+                        itemView.render();
+
+                        $action =
+                            itemView.$('.config-forms-list-action-mycheckbox');
+
+                        expect($action.prop('disabled')).toBe(false);
+                    });
+
+                    it('value == true', function() {
+                        var item = new Djblets.Config.ListItem({
+                                text: 'Label',
+                                isDisabled: true,
+                                actions: [
+                                    {
+                                        id: 'mycheckbox',
+                                        type: 'checkbox',
+                                        label: 'Checkbox',
+                                        enabledPropName: 'isDisabled',
+                                        enabledPropInverse: true
+                                    }
+                                ]
+                            }),
+                            itemView = new Djblets.Config.ListItemView({
+                                model: item
+                            }),
+                            $action;
+
+                        itemView.render();
+
+                        $action =
+                            itemView.$('.config-forms-list-action-mycheckbox');
+
+                        expect($action.prop('disabled')).toBe(true);
+                    });
+
+                    it('value == false', function() {
+                        var item = new Djblets.Config.ListItem({
+                                text: 'Label',
+                                isDisabled: false,
+                                actions: [
+                                    {
+                                        id: 'mycheckbox',
+                                        type: 'checkbox',
+                                        label: 'Checkbox',
+                                        enabledPropName: 'isDisabled',
+                                        enabledPropInverse: true
+                                    }
+                                ]
+                            }),
+                            itemView = new Djblets.Config.ListItemView({
+                                model: item
+                            }),
+                            $action;
+
+                        itemView.render();
+
+                        $action =
+                            itemView.$('.config-forms-list-action-mycheckbox');
+
+                        expect($action.prop('disabled')).toBe(false);
+                    });
+                });
             });
         });
     });
