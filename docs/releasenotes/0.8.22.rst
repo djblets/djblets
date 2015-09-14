@@ -1,0 +1,67 @@
+============================
+Djblets 0.8.22 Release Notes
+============================
+
+**Release date**: September 13, 2015
+
+
+djblets.configforms
+===================
+
+The JavaScript side of the Config Forms support has gained a number of
+additions to help with extensibility:
+
+* Added events when showing/hiding action menus.
+
+  :js:class:`Djblets.Config.ListItemView` now triggers ``actionMenuPopUp``
+  and ``actionMenuPopDown`` events when showing or hiding action menus.
+
+* Added class names for each row in a :js:class:`Djblets.Config.ListView`.
+
+  The rows for each action in a menu now have a class name corresponding to
+  the action ID, to improve styling. The padding around the menu has also
+  changed to be more consistent, so that, for example, an action can have a
+  suitable border separating it and other actions.
+
+* Improved the display logic for action menus.
+
+  Action menus no longer assumes the actions can fit on-screen when
+  positioning the menu to align with the left of the action button. Instead,
+  if there's not enough room, the menu will be positioned to align with the
+  right of the button.
+
+* Added property-based enabling/disabling of action.
+
+  Action items in the menu can now be enabled/disabled based on a given
+  property. This is helpful for having one action affect others, or to limit
+  which actions can be toggled based on other computed state.
+
+
+djblets.extensions
+==================
+
+* Added an ``install-extension-media`` management command for installing
+  extension media.
+
+  This will install the extension media for a site for all enabled
+  extensions, or for the given extension ID (when using
+  :option:`--extension-id`).
+
+
+djblets.testing
+===============
+
+* Added a specialized version of :py:func:`assertRaisesMessage` that works
+  with Python 2.7.10.
+
+  Python 2.7.10 broke Django's :py:func:`assertRaisesMessage`. We've worked
+  around this to ensure any unit tests using
+  :py:class:`~djblets.testing.testcases.TestCase` can use this function
+  without problems.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
