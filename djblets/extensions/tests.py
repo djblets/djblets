@@ -589,15 +589,15 @@ class ExtensionManagerTest(SpyAgency, TestCase):
 
         self.assertEqual(len(self.manager.get_installed_extensions()), 1)
 
-        self.spy_on(self.manager._install_extension_media)
+        self.spy_on(self.manager.install_extension_media)
         self.spy_on(self.manager._install_extension_media_internal,
                     call_original=False)
 
         self._run_thread_test(
-            lambda: self.manager._install_extension_media(extension.__class__))
+            lambda: self.manager.install_extension_media(extension.__class__))
 
         self.assertEqual(
-            len(self.manager._install_extension_media.calls), 2)
+            len(self.manager.install_extension_media.calls), 2)
         self.assertEqual(
             len(self.manager._install_extension_media_internal.calls), 1)
         self.assertEqual(self.exceptions, [])
