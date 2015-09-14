@@ -638,7 +638,7 @@ class ExtensionManager(object):
         ext_class.instance = extension
 
         try:
-            self._install_extension_media(ext_class)
+            self.install_extension_media(ext_class)
         except InstallExtensionError as e:
             raise EnablingExtensionError(e.message, e.load_error)
 
@@ -701,7 +701,7 @@ class ExtensionManager(object):
         # And reload the cache
         get_templatetags_modules()
 
-    def _install_extension_media(self, ext_class):
+    def install_extension_media(self, ext_class, force=False):
         """Installs extension static media.
 
         This method is a wrapper around _install_extension_media_internal to
@@ -722,21 +722,27 @@ class ExtensionManager(object):
         # disabling an extension, so if it were there, it was either
         # copy/pasted, or something went wrong. Either way, we wouldn't
         # be able to trust it.
-        if ext_class.registration.installed:
-            old_version = extension.settings.get(self.VERSION_SETTINGS_KEY)
-        else:
+        if force:
+            logging.debug('Forcing installation fo extension media for %s',
+                          ext_class.info)
             old_version = None
-
-        if old_version == cur_version:
-            # Nothing to do
-            return
-
-        if not old_version:
-            logging.debug('Installing extension media for %s', ext_class.info)
         else:
-            logging.debug('Reinstalling extension media for %s because '
-                          'version changed from %s',
-                          ext_class.info, old_version)
+            if ext_class.registration.installed:
+                old_version = extension.settings.get(self.VERSION_SETTINGS_KEY)
+            else:
+                old_version = None
+
+            if old_version == cur_version:
+                # Nothing to do
+                return
+
+            if not old_version:
+                logging.debug('Installing extension media for %s',
+                              ext_class.info)
+            else:
+                logging.debug('Reinstalling extension media for %s because '
+                              'version changed from %s',
+                              ext_class.info, old_version)
 
         while old_version != cur_version:
             with open(lockfile, 'w') as f:
