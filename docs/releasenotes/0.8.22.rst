@@ -2,7 +2,7 @@
 Djblets 0.8.22 Release Notes
 ============================
 
-**Release date**: TBD
+**Release date**: September 13, 2015
 
 
 djblets.configforms
