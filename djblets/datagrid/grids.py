@@ -1252,8 +1252,7 @@ class DataGrid(object):
         if hasattr(query, 'distinct'):
             query = query.distinct()
 
-        self.paginator = QuerySetPaginator(query, self.paginate_by,
-                                           self.paginate_orphans)
+        self.paginator = self.build_paginator(query)
 
         page_num = self.request.GET.get('page', 1)
 
@@ -1506,6 +1505,22 @@ class DataGrid(object):
 
         return mark_safe(render_to_string(self.paginator_template,
                                           Context(context)))
+
+    def build_paginator(self, queryset):
+        """Build the paginator for the datagrid.
+
+        This can be overridden to use a special paginator or to perform
+        any kind of processing before passing on the query.
+
+        Args:
+            queryset (object):
+                A queryset-compatible object.
+
+        Returns:
+            A populated paginator object.
+        """
+        return QuerySetPaginator(queryset, self.paginate_by,
+                                 self.paginate_orphans)
 
     def _build_render_context(self):
         """Build a dictionary containing RequestContext contents.
