@@ -407,7 +407,12 @@ class Column(object):
                 # This isn't the field type you're looking for.
                 return
 
-            ids.add(getattr(obj, id_field))
+            id_value = getattr(obj, id_field)
+
+            if id_value is None:
+                continue
+
+            ids.add(id_value)
 
             if not model:
                 field = getattr(obj.__class__, self.field_name).field
@@ -418,7 +423,7 @@ class Column(object):
                     # No idea what this is. Bail.
                     return
 
-        if model:
+        if model and ids:
             for obj in model.objects.filter(pk__in=ids):
                 state.data_cache[obj.pk] = obj
 
