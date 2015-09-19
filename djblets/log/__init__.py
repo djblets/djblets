@@ -84,6 +84,7 @@ from __future__ import unicode_literals
 
 from datetime import datetime
 import logging
+import logging.handlers
 import os
 import sys
 
@@ -267,7 +268,7 @@ def init_profile_logger():
         filename = os.path.join(log_directory, log_name + ".prof")
 
         if sys.platform == 'win32':
-            handler = logging.handlers.FileHandler(filename)
+            handler = logging.FileHandler(filename)
         else:
             handler = logging.handlers.WatchedFileHandler(filename)
 
