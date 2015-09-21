@@ -9,7 +9,9 @@ from django.utils import six
 
 from djblets.testing.testcases import TestCase
 from djblets.webapi.resources.base import WebAPIResource
-from djblets.webapi.resources.registry import unregister_resource
+from djblets.webapi.resources.registry import (register_resource_for_model,
+                                               unregister_resource_for_model,
+                                               unregister_resource)
 
 
 class WebAPIResourceTests(TestCase):
@@ -423,7 +425,14 @@ class WebAPIResourceTests(TestCase):
         # That's because serialization of model instances happens when
         # dumping to a JSON string. We're not testing that part.
         self.assertEqual(data, {
-            'field2': obj.field2,
+            'field2': {
+                'links': {
+                    'self': {
+                        'href': 'http://testserver/api/test1/',
+                        'method': 'GET',
+                    },
+                },
+            },
             'links': {
                 'self': {
                     'href': 'http://testserver/api/test2/?only-fields=field2'
@@ -571,6 +580,65 @@ class WebAPIResourceTests(TestCase):
         print(response)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], response_mimetype)
+
+    def test_serialize_object_with_circular_references(self):
+        """Testing WebAPIResource.serialize_object with circular references and
+        ?expand=
+        """
+        class TestObject(Model):
+            def __init__(self, name):
+                super(TestObject, self).__init__()
+
+                self.name = name
+
+        class TestResource(WebAPIResource):
+            fields = {
+                'dependency': {
+                    'type': [TestObject],
+                },
+                'name': {
+                    'type': six.text_type,
+                }
+            }
+
+        try:
+            obj1 = TestObject('obj1')
+            obj2 = TestObject('obj2')
+
+            obj1.dependency = obj2
+            obj2.dependency = obj1
+
+            request = RequestFactory().get('/api/test/?expand=dependency')
+            resource = TestResource()
+            register_resource_for_model(TestObject, resource)
+            data = resource.serialize_object(obj1, request=request)
+
+            self.maxDiff = 100000
+            self.assertEqual(data, {
+                'dependency': {
+                    'links': {
+                        'dependency': {
+                            'href': None,
+                            'method': 'GET',
+                            'title': 'TestObject object',
+                        },
+                        'self': {
+                            'href': 'http://testserver/api/test/?expand=dependency',
+                            'method': 'GET',
+                        },
+                    },
+                    'name': 'obj2',
+                },
+                'links': {
+                    'self': {
+                        'href': 'http://testserver/api/test/?expand=dependency',
+                        'method': 'GET',
+                    },
+                },
+                'name': 'obj1',
+            })
+        finally:
+            unregister_resource_for_model(TestObject)
 
     def _test_item_mimetype_responses(self, resource, url, json_mimetype,
                                       xml_mimetype, json_item_mimetype,

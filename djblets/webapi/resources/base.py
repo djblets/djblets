@@ -807,7 +807,20 @@ class WebAPIResource(object):
                         for o in value
                     ]
                 elif isinstance(value, QuerySet):
-                    data[field] = list(value)
+                    objects = list(value)
+
+                    if objects:
+                        resource = self.get_serializer_for_object(objects[0])
+                        data[field] = [
+                            resource.serialize_object(o, *args, **kwargs)
+                            for o in objects
+                        ]
+                    else:
+                        data[field] = []
+                elif isinstance(value, models.Model):
+                    resource = self.get_serializer_for_object(value)
+                    data[field] = resource.serialize_object(
+                        value, *args, **kwargs)
                 else:
                     data[field] = value
 
@@ -836,8 +849,11 @@ class WebAPIResource(object):
             extra_kwargs.update(**kwargs)
             extra_kwargs.update(self.get_href_parent_ids(obj, **kwargs))
 
-            data[resource_name] = resource._get_queryset(
-                is_list=True, *args, **extra_kwargs)
+            data[resource_name] = [
+                resource.serialize_object(o, *args, **kwargs)
+                for o in resource._get_queryset(
+                    is_list=True, *args, **extra_kwargs)
+            ]
 
         if only_links is None:
             data['links'] = links
