@@ -1,0 +1,51 @@
+=========================
+Djblets 0.9 Release Notes
+=========================
+
+**Release date**: TBD
+
+
+See the release notes for the 0.9 betas and RCs for the complete list of
+changes.
+
+The following are the changes since 0.9 RC 1.
+
+
+djblets.datagrid
+================
+
+* Datagrids can now build their own paginators by implementing
+  :py:meth:`build_paginator`. This is particularly useful when creating a
+  datagrid that integrates with Haystack.
+
+* Optimized database queries a bit.
+
+
+djblets.mail
+============
+
+* Added :py:class:`djblets.mail.message.EmailMessage`. This has been ported
+  from Review Board.
+
+* Ensure all e-mail headers are bytes, rather than unicode. This fixes
+  :py:exc:`UnicodeDecodeErrors <UnicodeDecodeError>` when sending a message
+  that contains non-ASCII headers.
+
+
+djblets.webapi
+==============
+
+* Fixed encoding for API resources using the ``expand`` parameter that would
+  create a circular reference. This had previously been fixed, but regressed
+  with the addition of field limiting.
+
+* Fixed lookups for resources when using deferred models (such as those
+  returned by :py:meth:`django.db.models.query.QuerySet.only`).
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
+* David Trowbridge
