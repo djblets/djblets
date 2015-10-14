@@ -1,0 +1,25 @@
+============================
+Djblets 0.8.23 Release Notes
+============================
+
+**Release date**: October 14, 2015
+
+
+djblets.log
+===========
+
+* Fixed occasional issues with logging handlers not being imported correctly.
+
+
+djblets.webapi
+==============
+
+* Fixed API serialization errors when resources have a circular reference to
+  each other and those fields are listed in ``?expand``.
+
+
+Contributors
+============
+
+* Barret Rennie
+* David Trowbridge
