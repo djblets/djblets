@@ -26,11 +26,8 @@
 from __future__ import unicode_literals
 
 import logging
-import os
-import tempfile
 
 from django import template
-from django.core.files import File
 from django.utils.six.moves import cStringIO as StringIO
 try:
     from PIL import Image
@@ -43,26 +40,19 @@ register = template.Library()
 
 def save_image_to_storage(image, storage, filename):
     """Save an image to storage."""
-    (fd, tmp) = tempfile.mkstemp()
-    file = os.fdopen(fd, 'w+b')
-    image.save(file, 'png')
-    file.close()
-
-    file = File(open(tmp, 'rb'))
-    storage.save(filename, file)
-    file.close()
-
-    os.unlink(tmp)
+    f = storage.open(filename, mode='w+b')
+    image.save(f, 'png')
+    f.close()
 
 
 @register.simple_tag
-def crop_image(file, x, y, width, height):
+def crop_image(f, x, y, width, height):
     """
     Crops an image at the specified coordinates and dimensions, returning the
     resulting URL of the cropped image.
     """
-    filename = file.name
-    storage = file.storage
+    filename = f.name
+    storage = f.storage
     basename = filename
 
     if filename.find(".") != -1:
@@ -71,9 +61,9 @@ def crop_image(file, x, y, width, height):
 
     if not storage.exists(new_name):
         try:
-            file = storage.open(filename)
-            data = StringIO(file.read())
-            file.close()
+            f = storage.open(filename)
+            data = StringIO(f.read())
+            f.close()
 
             image = Image.open(data)
             image = image.crop((x, y, x + width, y + height))
@@ -91,14 +81,14 @@ def crop_image(file, x, y, width, height):
 
 # From http://www.djangosnippets.org/snippets/192
 @register.filter
-def thumbnail(file, size='400x100'):
+def thumbnail(f, size='400x100'):
     """
     Creates a thumbnail of an image with the specified size, returning
     the URL of the thumbnail.
     """
     x, y = [int(x) for x in size.split('x')]
 
-    filename = file.name
+    filename = f.name
     if filename.find(".") != -1:
         basename, format = filename.rsplit('.', 1)
         miniature = '%s_%s.%s' % (basename, size, format)
@@ -106,13 +96,13 @@ def thumbnail(file, size='400x100'):
         basename = filename
         miniature = '%s_%s' % (basename, size)
 
-    storage = file.storage
+    storage = f.storage
 
     if not storage.exists(miniature):
         try:
-            file = storage.open(filename, 'rb')
-            data = StringIO(file.read())
-            file.close()
+            f = storage.open(filename, 'rb')
+            data = StringIO(f.read())
+            f.close()
 
             image = Image.open(data)
             image.thumbnail([x, y], Image.ANTIALIAS)
