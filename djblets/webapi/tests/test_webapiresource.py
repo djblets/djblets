@@ -372,6 +372,9 @@ class WebAPIResourceTests(TestCase):
         class TestModel(Model):
             field = 'test'
 
+            def __init__(self, pk):
+                self.pk = pk  # Django 1.8+ requires a pk field
+
             # TestModel isn't a real model picked up by Django, and this
             # causes deepcopy to fail with it. We need to override for
             # the sake of unit tests.
@@ -383,8 +386,8 @@ class WebAPIResourceTests(TestCase):
 
         class TestObject(object):
             field1 = 'abc'
-            field2 = TestModel()
-            field3 = TestModel()
+            field2 = TestModel(1)
+            field3 = TestModel(2)
 
         class TestResource1(WebAPIResource):
             fields = {
@@ -586,10 +589,11 @@ class WebAPIResourceTests(TestCase):
         ?expand=
         """
         class TestObject(Model):
-            def __init__(self, name):
+            def __init__(self, name, pk):
                 super(TestObject, self).__init__()
 
                 self.name = name
+                self.pk = pk  # Django 1.8+ requires a pk field
 
         class TestResource(WebAPIResource):
             fields = {
@@ -602,8 +606,8 @@ class WebAPIResourceTests(TestCase):
             }
 
         try:
-            obj1 = TestObject('obj1')
-            obj2 = TestObject('obj2')
+            obj1 = TestObject('obj1', 1)
+            obj2 = TestObject('obj2', 2)
 
             obj1.dependency = obj2
             obj2.dependency = obj1
