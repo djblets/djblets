@@ -271,6 +271,36 @@ class JSONField(models.TextField):
             encoder=self.encoder,
             **kwargs)
 
+    def deconstruct(self):
+        """Deconstruct the field for Django migrations.
+
+        This makes JSONField migration-safe by encoding the default value
+        to a string so that it can be safely loaded into the database.
+
+        This is only used on Django 1.7+.
+
+        .. versionadded:: 0.9
+
+        Returns:
+            tuple:
+            A tuple of (name, module path, positional arguments, keyword
+            arguments).
+        """
+        name, path, field_args, field_kwargs = \
+            super(JSONField, self).deconstruct()
+
+        default = field_kwargs.get('default')
+
+        if default is not None:
+            if isinstance(default, type):
+                default = self.dumps(default())
+            else:
+                default = self.dumps(default)
+
+            field_kwargs['default'] = default
+
+        return name, path, field_args, field_kwargs
+
 
 class CounterField(models.IntegerField):
     """A field that provides atomic counter updating and smart initialization.
