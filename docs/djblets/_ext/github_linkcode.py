@@ -42,7 +42,12 @@ def _get_branch_for_version():
 def git_get_nearest_tracking_branch(ref='HEAD', remote='origin'):
     """Return the nearest tracking branch for the given Git repository."""
     merge_base = _get_branch_for_version()
-    _run_git(['fetch', 'origin', '%s:%s' % (merge_base, merge_base)])
+
+    try:
+        _run_git(['fetch', 'origin', '%s:%s' % (merge_base, merge_base)])
+    except Exception:
+        # Ignore, as we may already have this. Hopefully it won't fail later.
+        pass
 
     lines = _run_git(['branch', '-rv', '--contains', merge_base]).splitlines()
 
