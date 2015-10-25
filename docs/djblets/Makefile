@@ -27,6 +27,7 @@ help:
 
 clean:
 	-rm -rf $(BUILDDIR)/*
+	-rm -rf coderef/python/
 
 html:
 	mkdir -p $(BUILDDIR)/html $(BUILDDIR)/doctrees
