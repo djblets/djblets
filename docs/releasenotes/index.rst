@@ -5,8 +5,8 @@ Djblets Release Notes
 =====================
 
 
-0.9 Releases (in-development)
-=============================
+0.9 Releases
+============
 
 .. toctree::
    :maxdepth: 1
