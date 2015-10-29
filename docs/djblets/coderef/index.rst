@@ -34,6 +34,7 @@ Caching
    djblets.cache.backend
    djblets.cache.backend_compat
    djblets.cache.context_processors
+   djblets.cache.errors
    djblets.cache.forwarding_backend
    djblets.cache.serials
 
@@ -136,6 +137,15 @@ Log Handlers and Viewer
    djblets.log.views
 
 
+Mail Sending
+============
+
+.. autosummary::
+   :toctree: python
+
+   djblets.mail.message
+
+
 Markdown Utilities and Extensions
 =================================
 
@@ -160,6 +170,16 @@ Site Configuration
    djblets.siteconfig.middleware
    djblets.siteconfig.models
    djblets.siteconfig.views
+
+
+Template Utilities
+==================
+
+.. autosummary::
+   :toctree: python
+
+   djblets.template.loaders.conditional_cached
+   djblets.template.loaders.namespaced_app_dirs
 
 
 Testing Helpers
@@ -234,5 +254,6 @@ Web API
    djblets.webapi.resources.mixins.forms
    djblets.webapi.resources.mixins.queries
    djblets.webapi.responses
+   djblets.webapi.testing
    djblets.webapi.testing.decorators
    djblets.webapi.testing.testcases

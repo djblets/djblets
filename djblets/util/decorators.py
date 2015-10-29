@@ -49,15 +49,11 @@ def simple_decorator(decorator):
        it is applied."""
     def new_decorator(f):
         g = decorator(f)
-        g.__name__ = f.__name__
-        g.__doc__ = f.__doc__
-        g.__dict__.update(f.__dict__)
+        update_wrapper(g, f)
         return g
     # Now a few lines needed to make simple_decorator itself
     # be a well-behaved decorator.
-    new_decorator.__name__ = decorator.__name__
-    new_decorator.__doc__ = decorator.__doc__
-    new_decorator.__dict__.update(decorator.__dict__)
+    update_wrapper(new_decorator, decorator)
     return new_decorator
 
 
@@ -157,9 +153,8 @@ def basictag(takes_context=False):
 
             return BasicTagNode(takes_context, tag_name, tag_func, bits)
 
-        _setup_tag.__name__ = tag_func.__name__
-        _setup_tag.__doc__ = tag_func.__doc__
-        _setup_tag.__dict__.update(tag_func.__dict__)
+        update_wrapper(_setup_tag, tag_func)
+
         return _setup_tag
 
     return basictag_func

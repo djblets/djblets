@@ -48,10 +48,26 @@ register = template.Library()
 @register.tag
 @blocktag
 def definevar(context, nodelist, varname):
-    """
-    Defines a variable in the context based on the contents of the block.
-    This is useful when you need to reuse the results of some tag logic
-    multiple times in a template or in a blocktrans tag.
+    """Define a variable for later use in the template.
+
+    The variable defined can be used within the same context (such as the
+    same block or for loop). This is useful for caching a portion of a
+    template that would otherwise be expensive to repeatedly compute.
+
+    Args:
+        varname (unicode):
+            The variable name.
+
+        block_content (unicode):
+            The block content to set in the variable.
+
+    Example:
+        .. code-block:: html+django
+
+           {% definevar "myvar" %}{% expensive_tag %}{% enddefinevar %}
+
+           {{myvar}}
+           {{myvar}}
     """
     context[varname] = nodelist.render(context)
     return ""
@@ -60,19 +76,36 @@ def definevar(context, nodelist, varname):
 @register.tag
 @blocktag
 def ifuserorperm(context, nodelist, user, perm):
-    """
-    Renders content depending on whether the logged in user is the specified
-    user or has the specified permission.
+    """Render content only for a given user or a user with a given permission.
 
-    This is useful when you want to restrict some code to the owner of a
-    review request or to a privileged user that has the abilities of the
-    owner.
+    The content will only be rendered if the logged in user matches the
+    specified user, or the logged in user has the specified permission.
 
-    Example::
+    This is useful when you want to restrict some content to the owner of an
+    object or to a privileged user that has the abilities of the owner.
 
-        {% ifuserorperm myobject.user "myobject.can_change_status" %}
-        Owner-specific content here...
-        {% endifuserorperm %}
+    Args:
+        user (django.contrib.auth.models.User):
+            The user to limit access to, unless the logged in user has the
+            specified permission.
+
+        perm (unicode):
+            The permission to require, if the logged in user does not match
+            the specified user.
+
+        block_content (unicode):
+            The block content to render.
+
+    Returns:
+        The content, if the user or permission matches. Otherwise, no content
+        will be returned.
+
+    Example:
+        .. code-block:: html+django
+
+           {% ifuserorperm myobject.user "myobject.can_change_status" %}
+           Owner-specific content here...
+           {% endifuserorperm %}
     """
     if _check_userorperm(context, user, perm):
         return nodelist.render(context)
@@ -83,20 +116,36 @@ def ifuserorperm(context, nodelist, user, perm):
 @register.tag
 @blocktag
 def ifnotuserandperm(context, nodelist, user, perm):
-    """
-    The opposite of ifuserorperm.
+    """Render content if a user and permission don't match the logged in user.
 
-    Renders content if the logged in user is not the specified user and doesn't
-    have the specified permission.
+    This is the opposite of :py:func:`{% ifuserorperm %} <ifuserorperm>`. It
+    will only render content if the logged in user is not the specified user
+    and doesn't have the specified permission.
 
-    Example::
+    Args:
+        user (django.contrib.auth.models.User):
+            The user who cannot see the provided content.
 
-        {% ifuserorperm myobject.user "myobject.can_change_status" %}
-        Owner-specific content here...
-        {% endifuserorperm %}
-        {% ifnotuserandperm myobject.user "myobject.can_change_status" %}
-        Another owner-specific content here...
-        {% endifnotuserandperm %}
+        perm (unicode):
+            Any user with this permission will not see the provided content.
+
+        block_content (unicode):
+            The block content to render.
+
+    Returns:
+        The content, if neither the user nor permission matches. Otherwise, no
+        content will be returned.
+
+    Example:
+        .. code-block:: html+django
+
+           {% ifuserorperm myobject.user "myobject.can_change_status" %}
+           Owner-specific content here...
+           {% endifuserorperm %}
+
+           {% ifnotuserandperm myobject.user "myobject.can_change_status" %}
+           Another owner-specific content here...
+           {% endifnotuserandperm %}
     """
     if not _check_userorperm(context, user, perm):
         return nodelist.render(context)
@@ -122,6 +171,26 @@ def _check_userorperm(context, user, perm):
 @register.tag
 @basictag(takes_context=True)
 def include_as_string(context, template_name):
+    """Include the contents of a template as an escaped string.
+
+    This is primarily for use with JavaScript. It allows another template
+    to be rendered (with the current context) and returned as an escaped
+    string.
+
+    Args:
+        template_name (unicode):
+            The name of the template to render.
+
+    Returns:
+        The escaped content from the template.
+
+    Example:
+        .. code-block:: html+django
+
+           <script>
+           var s = {% include_as_string "message.txt" %};
+           </script>
+    """
     s = render_to_string(template_name, context)
     s = s.replace("'", "\\'")
     s = s.replace("\n", "\\\n")
@@ -131,8 +200,26 @@ def include_as_string(context, template_name):
 @register.tag
 @blocktag
 def attr(context, nodelist, attrname):
-    """
-    Sets an HTML attribute to a value if the value is not an empty string.
+    """Set an HTML attribute to a value if the value is not an empty string.
+
+    This is a handy way of adding attributes with non-empty values to an
+    HTML element without requiring several `{% if %}` tags.
+
+    Args:
+        attrname (unicode):
+            The name for the HTML attribute.
+
+        block_content (unicode):
+            The block content to render for the attribute value.
+
+    Returns:
+        An attribute in the form of ``key="value"``, if the value (the
+        block content) is not empty.
+
+    Example:
+        .. code-block:: html+django
+
+           <div{% attr "data-description" %}{{obj.description}}{% endattr %}>
     """
     content = nodelist.render(context)
 
@@ -144,27 +231,51 @@ def attr(context, nodelist, attrname):
 
 @register.filter
 def escapespaces(value):
-    """HTML-escapes all spaces with ``&nbsp;`` and newlines with ``<br />``."""
+    """HTML-escape all spaces with ``&nbsp;`` and newlines with ``<br />``.
+
+    Args:
+        value (unicode):
+            The value to escape.
+
+    Returns:
+        unicode:
+        The same text, but escaped.
+
+    Example:
+        .. code-block:: html+django
+
+           <div class="text">
+            {{obj.description|escapespaces}}
+           </div>
+    """
     return value.replace('  ', '&nbsp; ').replace('\n', '<br />')
 
 
 @register.simple_tag
 def ageid(timestamp):
-    """
-    Returns an ID based on the difference between a timestamp and the
-    current time.
+    """Return an ID based on the difference between now and a timestamp.
 
-    The ID is returned based on the following differences in days:
+    This can be used to help show the age of an item in days. It will
+    generate an ID in the form of :samp:`age{num}` ranging from
+    ``age1`` (today) through ``age5`` (4+ days old).
 
-      ========== ====
-      Difference ID
-      ========== ====
-      0          age1
-      1          age2
-      2          age3
-      3          age4
-      4 or more  age5
-      ========== ====
+    This is a specialty function, and is not expected to be useful in many
+    cases.
+
+    Args:
+        timestamp (datetime.datetime):
+            The timestamp to compare to.
+
+    Returns:
+        unicode:
+        The ID. One of ``age1``, ``age2``, ``age3``, ``age4``, or ``age5``.
+
+    Example:
+        .. code-block:: html+django
+
+           <div class="{% ageid obj.timestamp %}">
+            {{obj.timestamp}}
+           </div>
     """
     if timestamp is None:
         return ""
@@ -196,11 +307,23 @@ def ageid(timestamp):
 
 @register.filter
 def user_displayname(user):
-    """
-    Returns the display name of the user.
+    """Return the display name of a user.
 
-    If the user has a full name set, it will display this. Otherwise, it will
-    display the username.
+    If the user has a full name set, it will be returned. Otherwise, the
+    username will be returned.
+
+    Args:
+        user (django.contrib.auth.models.User):
+            The user whose full name or username will be returned.
+
+    Returns:
+        unicode:
+        The full name of the user, if set, or the username as a fallback.
+
+    Example:
+        .. code-block:: html+django
+
+           Welcome, {{user|user_displayname}}!
     """
     return user.get_full_name() or user.username
 
@@ -210,65 +333,192 @@ register.filter('humanize_list', humanize_list)
 
 @register.filter
 def contains(container, value):
-    """Returns True if the specified value is in the specified container."""
+    """Return whether the specified value is in the specified container.
+
+    This is equivalent to a ``if value in container`` statement in Python.
+
+    Args:
+        container (object):
+            The list, dictionary, or other object that may or may not
+            contain the value.
+
+        value (object):
+            The value being checked.
+
+    Returns:
+        bool:
+        ``True`` if the value is in the container. Otherwise, ``False``.
+
+    Example:
+        .. code-block:: html+django
+
+           {% if usernames|contains:"bob" %}
+             Hi, Bob!
+           {% endif %}
+    """
     return value in container
 
 
 @register.filter
-def getitem(container, value):
-    """Returns the attribute of a specified name from a container."""
-    return container[value]
+def getitem(container, key):
+    """Return the attribute of a specified name from a container.
+
+    This is equivalent to a ``container[key]`` statement in Python. The
+    container must support this operator.
+
+    Args:
+        container (object):
+            The list, dictionary, or other object that can contain items.
+
+        key (object):
+            The key to look up in the container.
+
+    Returns:
+        object: The content within the container.
+
+    Example:
+        .. code-block:: html+django
+
+           {% for key in keys %}
+             {{key}}: {{obj|getitem:key}}
+           {% endfor %}
+    """
+    return container[key]
 
 
 @register.filter
 def exclude_item(container, item):
-    """Excludes an item from a list."""
-    if isinstance(container, list):
-        container = list(container)
+    """Return a list with the given item excluded.
 
-        if item in container:
-            container.remove(item)
-    else:
+    Args:
+        container (list):
+            The list the item will be excluded from.
+
+        item (object):
+            The item to exclude from the list.
+
+    Returns:
+        list: The list with the item excluded.
+
+    Example:
+        .. code-block:: html+django
+
+           {% for item in mylist|exclude_item:"special" %}
+             ...
+           {% endfor %}
+    """
+    if not isinstance(container, list):
         raise TemplateSyntaxError("remove_item expects a list")
+
+    container = list(container)
+
+    try:
+        container.remove(item)
+    except ValueError:
+        pass
 
     return container
 
 
 @register.filter
 def indent(value, numspaces=4):
-    """Indents a string by the specified number of spaces."""
+    """Indent a string by the specified number of spaces.
+
+    This is especially useful for preformatted content.
+
+    Args:
+        value (unicode):
+            The value containing text to indent.
+
+        numspaces (int, optional):
+            The number of spaces to indent the text. Defaults to 4 spaces.
+
+    Returns:
+        unicode: The indented text.
+
+    Example:
+        .. code-block:: html+django
+
+           <pre>
+           The traceback was:
+
+           {{traceback|indent:2}}
+           </pre>
+    """
     indent_str = ' ' * numspaces
     return indent_str + value.replace('\n', '\n' + indent_str)
 
 
 @register.filter
-def basename(value):
-    """Returns the basename of a path."""
-    return os.path.basename(value)
+def basename(path):
+    """Return the base name of a path.
+
+    This will be computed based on the path rules from the system the
+    server is running on.
+
+    Args:
+        path (unicode):
+            The path for which to retrieve the base name.
+
+    Returns:
+        unicode:
+        The base name of the path.
+
+    Example:
+        .. code-block:: html+django
+
+           The file is contained within <tt>{{path|basename}}</tt>.
+    """
+    return os.path.basename(path)
 
 
 @register.filter(name="range")
 def range_filter(value):
     """Turn an integer into a range of numbers.
 
-    This is useful for iterating with the "for" tag. For example:
+    This is useful for iterating with the "for" tag.
 
-    .. code-block:: python
+    Args:
+        value (int):
+            The number of values in the range.
 
-        {% for i in 10|range %}
-          {{i}}
-        {% endfor %}
+    Returns:
+        list:
+        The list of numbers in the range.
+
+    Example:
+        .. code-block:: html+django
+
+            {% for i in 10|range %}
+             {{i}}
+            {% endfor %}
     """
     return range(value)
 
 
 @register.filter
 def realname(user):
-    """
-    Returns the real name of a user, if available, or the username.
+    """Return the real name of a user, if available, or the username.
 
     If the user has a full name set, this will return the full name.
     Otherwise, this returns the username.
+
+    .. deprecated:: 0.9
+
+       This is deprecated in favor of :py:func:`user_displayname`.
+
+    Args:
+        user (django.contrib.auth.models.User):
+            The user whose full name or username will be returned.
+
+    Returns:
+        unicode:
+        The full name of the user, if set, or the username as a fallback.
+
+    Example:
+        .. code-block:: html+django
+
+           Welcome, {{user|realname}}!
     """
     full_name = user.get_full_name()
     if full_name == '':
@@ -279,25 +529,83 @@ def realname(user):
 
 @register.filter
 @stringfilter
-def startswith(value1, value2):
-    """Returns true if value1 starts with value2."""
-    return value1.startswith(value2)
+def startswith(s, prefix):
+    """Return whether a value starts with another value.
+
+    Args:
+        s (unicode):
+            The string to check.
+
+        prefix (unicode):
+            The prefix to check for.
+
+    Returns:
+        bool:
+        ``True`` if the string starts with the given prefix.
+
+    Example:
+        .. code-block:: html+django
+
+           {% if key|startswith:"__" %}
+             ..
+           {% endif %}
+    """
+    return s.startswith(prefix)
 
 
 @register.filter
 @stringfilter
-def endswith(value1, value2):
-    """Returns true if value1 ends with value2."""
-    return value1.endswith(value2)
+def endswith(s, suffix):
+    """Return whether a value ends with another value.
+
+    Args:
+        s (unicode):
+            The string to check.
+
+        suffix (unicode):
+            The suffix to check for.
+
+    Returns:
+        bool:
+        ``True`` if the string ends with the given suffix.
+
+    Example:
+        .. code-block:: html+django
+
+           {% if filename|endswith:".json" %}
+             ..
+           {% endif %}
+    """
+    return s.endswith(suffix)
 
 
 @register.filter
 @stringfilter
 def paragraphs(text):
-    """
-    Adds <p>...</p> tags around blocks of text in a string. This expects
-    that each paragraph in the string will be on its own line. Blank lines
-    are filtered out.
+    """Return an HTML paragraph for each line of text.
+
+    This iterates through the lines of text given and wraps each in a
+    ``<p>`` tag.
+
+    This expects that each paragraph in the string will be on its own line.
+    Blank lines are filtered out.
+
+    The text is expected to be HTML-safe already.
+
+    Args:
+        text (unicode):
+            The text containing at least one line of content.
+
+    Returns:
+        unicode:
+        The resulting HTML output.
+
+    Example:
+        .. code-block:: html+django
+
+           <article>
+            {{description|paragraphs}}
+           </article>
     """
     s = ""
 
@@ -312,17 +620,62 @@ paragraphs.is_safe = True
 @register.filter
 @stringfilter
 def split(s, delim=','):
-    """Split the string into a list and return the results."""
+    """Split a string into a list.
+
+    The string can be split by any specified delimiter, and defaults to a
+    comma.
+
+    Args:
+        s (unicode):
+            The string to split.
+
+        delim (unicode, optional):
+            The delimiter to split by. Defaults to ``,``.
+
+    Returns:
+        list:
+        The resulting list of tokens from the string.
+
+    Example:
+        .. code-block:: html+django
+
+           {% for token in str|split:'\\t' %}
+             ..
+           {% endfor %}
+    """
     return s.split(delim)
 
 
 @register.tag
 @basictag(takes_context=True)
 def querystring_with(context, attr, value):
-    """Helper for querystring manipulation.
+    """Return the current page URL with a new query string argument added.
 
-    Often, we'll want to update only a single value in a querystring without
-    changing the others. This tag helps with that.
+    This makes it easy to add to or replace part of a query string for the
+    current page's URL, which may already contain a query string.
+
+    If the page URL already has a query string, a new item is added in the form
+    of ``&attr=value``. If it doesn't have a query string, this will start a
+    new one in the form of ``?attr=value``.
+
+    If the attribute already exists in the query string, its value will be
+    replaced.
+
+    Args:
+        attr (unicode):
+            The name of the attribute for the new query string argument.
+
+        value (unicode):
+            The value of the attribute for the new query string argument.
+
+    Returns:
+        unicode:
+        The new URL with the modified query string.
+
+    Example:
+        .. code-block:: html+django
+
+           <a href="{% querystring_with "sorted" "1" %}">Sort</a>
     """
     existing_query = get_url_params_except(context['request'].GET, attr)
     new_query = urlencode({attr.encode('utf-8'): value.encode('utf-8')})
