@@ -4,6 +4,7 @@ import re
 
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db.models.manager import Manager
+from django.db.models.query_utils import Q
 from django.utils import six
 
 
@@ -172,14 +173,109 @@ class LocalDataQuerySet(object):
                 yield item
 
 
-def get_object_or_none(klass, *args, **kwargs):
-    if isinstance(klass, Manager):
-        manager = klass
-        klass = manager.model
+def get_object_or_none(cls, *args, **kwargs):
+    """Return a model instance or None if one can not be found.
+
+    Args:
+        cls (type or django.db.models.manager.Manager):
+            Either the model, a subclass of :py:class:`django.db.models.Model`,
+            or its manager.
+
+        *args (tuple):
+            Arguments to pass to
+            :py:meth:`~django.db.models.manager.Manger.get`.
+
+        **kwargs (dict):
+            Keyword arguments to pass to
+            :py:meth:`~django.db.models.manager.Manger.get`.
+
+    Returns:
+        django.db.models.Model:
+        The model instance, if it could be found, or :py:data:`None` otherwise.
+    """
+    if isinstance(cls, Manager):
+        manager = cls
+        cls = manager.model
     else:
-        manager = klass._default_manager
+        manager = cls._default_manager
 
     try:
         return manager.get(*args, **kwargs)
-    except klass.DoesNotExist:
+    except cls.DoesNotExist:
         return None
+
+
+def prefix_q(prefix, q, clone=True):
+    """Prefix a query expression.
+
+    A :py:class:`query expression <django.db.models.query_utils.Q>` is used in
+    :py:meth:`Manager.get <django.db.models.manager.Manager.get>` and
+    :py:meth:`Manager.filter <django.db.models.manager.Manager.filter>`
+    methods. These expressions are made of a tree of key-value pairs.
+
+    Prefixing these expressions allows a query expression for one model to be
+    used in a related model. The resulting prefixed expression will have every
+    key in every key-value pair prefixed with the given prefix.
+
+    By default, the query expression will be cloned. That is, the given query
+    expression will not be modified and a prefixed copy will be returned.
+
+    Args:
+        prefix (unicode):
+            The prefix to add to each member in the expression. This should be
+            the name of a field and will be automatically suffixed by ``__``.
+
+        q (django.db.models.query_utils.Q):
+            The expression to prefix.
+
+        clone (bool):
+            Determine if the query should be cloned. If this is ``False``,
+            ``q`` will be modified in place. This defaults to ``True``.
+
+    Returns:
+        django.db.models.query_utils.Q:
+        The prefixed query expression.
+
+    Example usage:
+        .. code-block:: python
+
+           from django.db import models
+           from django.db.query_utils import Q
+           from djblets.db.query import prefix_q
+
+           # Given the following models:
+           class A(models.Model):
+               foo = models.IntegerField()
+               bar = models.IntegerField()
+
+           class B(models.Model):
+               fk = models.ForeignKey(A)
+               baz = models.IntegerField()
+
+           # And the following query expressions:
+           a_q = Q(foo=1) & Q(bar=2)
+           b_q = Q(fk__foo=1) & Q(fk__bar=2)
+
+           # The following queries are equivalent:
+           B.objects.filter(b_q)
+           B.objects.filter(prefix_q('fk', a_q))
+    """
+    if clone:
+        q = q.clone()
+
+    for i, child in enumerate(q.children):
+        # django.utils.tree (which Q inherits from) stores its children as a
+        # list. Each member is either an instance of Q (in the case of a nested
+        # expression) or a tuple of the form (key_name, key_val).
+        if isinstance(child, Q):
+            prefix_q(prefix, child, False)
+        else:
+            assert type(q.children[i]) is tuple
+
+            key, value = q.children[i]
+
+            q.children[i] = (
+                b'%s__%s' % (prefix.encode('utf-8'), key),
+                value)
+
+    return q
