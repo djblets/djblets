@@ -92,10 +92,15 @@ class DynamicURLResolver(RegexURLResolver):
         """
         with self._lock:
             for resolver in self.resolver_chain:
-                # Re-populate the lists of patterns. This will keep the
-                # existing caches intact until they're ready to be replaced
-                # with whole new values.
-                resolver._populate()
+                # Clear the caches for the URL resolvers. This will ensure
+                # that the next request on this resolver will re-populate it.
+                #
+                # This is known to work at least through Django 1.9.
+                resolver._reverse_dict = {}
+                resolver._namespace_dict = {}
+                resolver._app_dict = {}
+                resolver._callback_strs = set()
+                resolver._populated = False
 
             clear_url_caches()
 
