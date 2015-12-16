@@ -157,6 +157,17 @@ Markdown Utilities and Extensions
    djblets.markdown.extensions.wysiwyg_email
 
 
+Registries
+==========
+
+.. autosummary::
+   :toctree: python
+
+   djblets.registries
+   djblets.registries.errors
+   djblets.registries.registry
+
+
 Site Configuration
 ==================
 
