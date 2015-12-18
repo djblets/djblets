@@ -208,3 +208,14 @@ example.
            except ItemLookupError:
                return None
 
+This behavior is also available as a mixin, as
+:py:class:`~djblets.registries.mixins.ExceptionFreeGetterMixin`. It can be used
+as follows and is equivalent to the above code example.
+
+.. code-block:: python
+
+   from djblets.registries.mixins import ExceptionFreeGetterMixin
+
+   class SafeRegistry(ExceptionFreeGetterMixin, Registry):
+       pass
+
