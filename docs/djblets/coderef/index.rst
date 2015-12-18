@@ -165,6 +165,7 @@ Registries
 
    djblets.registries
    djblets.registries.errors
+   djblets.registries.mixins
    djblets.registries.registry
 
 

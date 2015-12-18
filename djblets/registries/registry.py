@@ -8,8 +8,12 @@ For information on writing registries, see
 
 from __future__ import unicode_literals
 
-from django.utils.translation import ugettext as _
+import logging
+
+from django.utils.translation import ugettext_lazy as _
 from django.utils import six
+from pkg_resources import iter_entry_points
+
 
 from djblets.registries.errors import (AlreadyRegisteredError,
                                        ItemLookupError,
@@ -22,6 +26,7 @@ INVALID_ATTRIBUTE = 'invalid_attribute'
 MISSING_ATTRIBUTE = 'missing_attribute'
 UNREGISTER = 'unregister'
 NOT_REGISTERED = 'not_registered'
+LOAD_ENTRY_POINT = 'load_entry_point'
 
 
 #: Default error messages for registries.
@@ -35,6 +40,9 @@ DEFAULT_ERRORS = {
     ),
     INVALID_ATTRIBUTE: _(
         '"%(attr_name)s" is not a registered lookup attribute.'
+    ),
+    LOAD_ENTRY_POINT: _(
+        'Could not load entry point %(entry_point)s: %(error)s.',
     ),
     MISSING_ATTRIBUTE: _(
         'Could not register %(item)s: it does not have a "%(attr_name)s" '
@@ -290,3 +298,42 @@ class Registry(object):
         """
         self.populate()
         return item in self._items
+
+
+class EntryPointRegistry(Registry):
+    """A registry that auto-populates from an entry-point."""
+
+    #: The entry point name.
+    entry_point = None
+
+    def get_defaults(self):
+        """Yield the values from the entry point.
+
+        Yields:
+            object: The object from the entry point.
+        """
+        if self.entry_point is not None:
+            entry_points = iter_entry_points(self.entry_point)
+
+            for ep in entry_points:
+                try:
+                    yield self.process_value_from_entry_point(ep)
+                except Exception as e:
+                    logging.exception(self.format_error(LOAD_ENTRY_POINT,
+                                                        entry_point=ep.name,
+                                                        error=e))
+
+    def process_value_from_entry_point(self, entry_point):
+        """Return the item to register from the entry point.
+
+        By default, this returns the loaded entry point.
+
+        Args:
+            entry_point (pkg_resources.EntryPoint):
+                The entry point.
+
+        Returns:
+            object:
+            The processed entry point value.
+        """
+        return entry_point.load()
