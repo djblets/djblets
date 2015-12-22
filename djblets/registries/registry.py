@@ -337,3 +337,96 @@ class EntryPointRegistry(Registry):
             The processed entry point value.
         """
         return entry_point.load()
+
+
+class OrderedRegistry(Registry):
+    """A registry that keeps track of registration order."""
+
+    def __init__(self):
+        """Initialize the OrderedRegistry"""
+        super(OrderedRegistry, self).__init__()
+        self._by_id = {}
+        self._key_order = []
+
+    def register(self, item):
+        """Register an item.
+
+        Args:
+            item (object):
+                The item to register with the class.
+
+        Raises:
+            djblets.registries.errors.RegistrationError:
+                Raised if the item is missing one of the required attributes.
+
+            djblets.registries.errors.AlreadyRegisteredError:
+                Raised if the item is already registered or if the item shares
+                an attribute name, attribute value pair with another item in
+                the registry.
+        """
+        super(OrderedRegistry, self).register(item)
+        item_id = id(item)
+        self._key_order.append(item_id)
+        self._by_id[item_id] = item
+
+    def unregister(self, item):
+        """Unregister an item from the registry.
+
+        Args:
+            item (object):
+                The item to unregister. This must be present in the registry.
+
+        Raises:
+            djblets.registries.errors.ItemLookupError:
+                Raised if the item is not found in the registry.
+        """
+        super(OrderedRegistry, self).unregister(item)
+        item_id = id(item)
+        del self._by_id[item_id]
+        self._key_order.remove(item_id)
+
+    def __iter__(self):
+        """Yield the items in the order they were registered.
+
+        Yields:
+            object: The registered items.
+        """
+        self.populate()
+
+        for key in self._key_order:
+            yield self._by_id[key]
+
+    def __getitem__(self, index):
+        """Return an item by its registered index.
+
+        Args:
+            index (int):
+                The position at which the item was registered. This is 0-based
+                and negative indices are supported.
+
+        Returns:
+            object: The requested item.
+
+        Raises:
+            IndexError:
+                This exception is raised if the requested index is out of
+                range.
+
+            TypeError:
+                This exception is raised if the requested index is not an
+                integer.
+        """
+        if not isinstance(index, int):
+            raise TypeError('Index is not an integer (is %s).'
+                            % type(index).__name__)
+
+        # We don't have to call populate() because calling len() will.
+        length = len(self)
+
+        if index < 0:
+            index += length
+
+        if index > length:
+            raise IndexError('Index is out of range.')
+
+        return self._by_id[self._key_order[index]]
