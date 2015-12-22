@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from django.utils import six
 
-from djblets.registries.registry import Registry, UNREGISTER
+from djblets.registries.registry import Registry, OrderedRegistry, UNREGISTER
 from djblets.registries.errors import (AlreadyRegisteredError,
                                        ItemLookupError,
                                        RegistrationError)
@@ -176,7 +176,7 @@ class RegistryTests(TestCase):
         self.assertFalse(2 in r)
 
     def test_error_override(self):
-        """Test Registry error formatting strings"""
+        """Testing Registry error formatting strings"""
         class TestRegistry(Registry):
             errors = {
                 UNREGISTER: 'The foo "%(item)s" is unregistered.'
@@ -187,3 +187,42 @@ class RegistryTests(TestCase):
         with self.assertRaisesMessage(ItemLookupError,
                                       'The foo "1" is unregistered.'):
             r.unregister(1)
+
+
+class OrderedRegistryTests(TestCase):
+    """Tests for djblets.registries.registry.OrderedRegistry."""
+
+    class TestRegistry(OrderedRegistry):
+        def get_defaults(self):
+            return [1, 2, 3]
+
+    def setUp(self):
+        self.registry = OrderedRegistryTests.TestRegistry()
+
+    def test_iteration_order(self):
+        """Testing OrderedRegistry iteration order"""
+        self.registry.register(4)
+        self.assertListEqual(list(self.registry),
+                             [1, 2, 3, 4])
+
+    def test_getitem(self):
+        """Testing OrderedRegistry.__getitem__"""
+        self.assertTrue(self.registry[0], 1)
+        self.assertTrue(self.registry[1], 2)
+        self.assertTrue(self.registry[2], 3)
+
+    def test_getitem_negative_indices(self):
+        """Testing OrderedRegistry.__getitem__ with negative indices"""
+        self.assertTrue(self.registry[-1], 3)
+        self.assertTrue(self.registry[-2], 2)
+        self.assertTrue(self.registry[-3], 1)
+
+    def test_getitem_invalid_index(self):
+        """Testing OrderedRegistry.__getitem__ with an invalid index"""
+        with self.assertRaises(TypeError):
+            self.registry['foo']
+
+    def test_getitem_out_of_range(self):
+        """Testing OrderedRegistry.__getitem__ with an out of range index"""
+        with self.assertRaises(IndexError):
+            self.registry[1000]

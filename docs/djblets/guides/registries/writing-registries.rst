@@ -179,13 +179,16 @@ default order, we can iterate through in the order the items were registered.
            """Unregister an item and remove it from the insertion order."""
            super(OrderedRegistry, self).unregister(item)
            key = id(item)
-           del self._by_id(item)
+           del self._by_id[key]
            self._key_order.remove(key)
 
        def __iter__(self):
            """Yield each registered item in insertion order."""
            for key in self._key_order:
                yield self._by_id[key]
+
+
+This behavior is available in the :py:class:`OrderedRegistry` class.
 
 
 Exception-less Registries
