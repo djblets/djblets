@@ -28,6 +28,7 @@ from __future__ import unicode_literals
 import datetime
 import unittest
 
+from django.db import models
 from django.http import HttpRequest
 from django.template import Context, Template, TemplateSyntaxError
 from django.utils.html import strip_spaces_between_tags
@@ -36,6 +37,7 @@ from djblets.testing.testcases import TestCase, TagTest
 from djblets.util.http import (get_http_accept_lists,
                                get_http_requested_mimetype,
                                is_mimetype_a)
+from djblets.util.serializers import DjbletsJSONEncoder
 from djblets.util.templatetags import djblets_email, djblets_utils
 
 
@@ -308,3 +310,22 @@ class QuoteTextFilterTest(unittest.TestCase):
         """Testing quote_text filter (level 2)"""
         self.assertEqual(djblets_email.quote_text('foo\nbar', 2),
                          "> > foo\n> > bar")
+
+
+class SerializerTest(TestCase):
+    """Tests for djblets.util.serializers"""
+
+    def test_model_to_json(self):
+        """Testing DjbletsJSONEncoder.encode for a Model"""
+        class TestModel(models.Model):
+            foo = models.IntegerField()
+
+            def to_json(self):
+                return {
+                    'foo': self.foo,
+                }
+
+        obj = TestModel(foo=1)
+        encoder = DjbletsJSONEncoder()
+
+        self.assertEqual(encoder.encode(obj), '{"foo": 1}')
