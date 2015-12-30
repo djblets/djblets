@@ -808,7 +808,11 @@ class DataGrid(object):
         sort_str = self.request.GET.get('sort', profile_sort_list)
 
         if sort_str:
-            self.sort_list = sort_str.split(',')
+            self.sort_list = [
+                sort_column
+                for sort_column in sort_str.split(',')
+                if sort_column
+            ]
         else:
             self.sort_list = self.default_sort
             sort_str = ",".join(self.sort_list)
