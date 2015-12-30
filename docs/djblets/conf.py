@@ -262,7 +262,6 @@ autodoc_excludes = {
 
 autosummary_generate = True
 
-napolean_google_docstring = True
-napolean_numpy_docstring = False
-
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
 linkcode_resolve = github_linkcode_resolve
