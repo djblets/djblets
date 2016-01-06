@@ -149,7 +149,7 @@ class Extension(object):
         """Shuts down all hooks for the extension."""
         for hook in self.hooks:
             if hook.initialized:
-                hook.shutdown()
+                hook.disable_hook()
 
     def _get_admin_urlconf(self):
         if not hasattr(self, "_admin_urlconf_module"):

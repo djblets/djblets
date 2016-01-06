@@ -138,12 +138,10 @@ class TestExtensionWithRegistration(Extension):
 
 @six.add_metaclass(ExtensionHookPoint)
 class DummyHook(ExtensionHook):
-    def __init__(self, extension):
-        super(DummyHook, self).__init__(extension)
+    def initialize(self):
         self.foo = [1]
 
     def shutdown(self):
-        super(DummyHook, self).shutdown()
         self.foo.pop()
 
 
@@ -339,6 +337,44 @@ class ExtensionHookTest(TestCase):
             TestExtensionWithRegistration(extension_manager=manager)
         self.extension_hook = TestExtensionHook(self.extension)
 
+    def test_init_hook_states(self):
+        """Testing ExtensionHook enabling hook states"""
+        @six.add_metaclass(ExtensionHookPoint)
+        class InitTestHook(ExtensionHook):
+            def initialize(hook):
+                self.assertFalse(hook.initialized)
+                self.assertEqual(hook.hook_state,
+                                 ExtensionHook.HOOK_STATE_ENABLING)
+
+        hook = InitTestHook(self.extension)
+        self.assertEqual(hook.hook_state, ExtensionHook.HOOK_STATE_ENABLED)
+        self.assertTrue(hook.initialized)
+
+    def test_disable_hook_states(self):
+        """Testing ExtensionHook disabling states"""
+        @six.add_metaclass(ExtensionHookPoint)
+        class InitTestHook(ExtensionHook):
+            def shutdown(hook):
+                self.assertFalse(hook.initialized)
+                self.assertEqual(hook.hook_state,
+                                 ExtensionHook.HOOK_STATE_DISABLING)
+
+        hook = InitTestHook(self.extension)
+        hook.disable_hook()
+        self.assertEqual(hook.hook_state, ExtensionHook.HOOK_STATE_DISABLED)
+        self.assertFalse(hook.initialized)
+
+    def test_init_with_start_enabled_false(self):
+        """Testing ExtensionHook construction with start_enabled=False"""
+        @six.add_metaclass(ExtensionHookPoint)
+        class InitTestHook(ExtensionHook):
+            def initialize(hook):
+                self.fail('initialize() should not have been reached')
+
+        hook = InitTestHook(self.extension, start_enabled=False)
+        self.assertEqual(hook.hook_state, ExtensionHook.HOOK_STATE_DISABLED)
+        self.assertFalse(hook.initialized)
+
     def test_registration(self):
         """Testing ExtensionHook registration"""
         self.assertEqual(self.extension, self.extension_hook.extension)
@@ -348,9 +384,9 @@ class ExtensionHookTest(TestCase):
 
     def test_shutdown(self):
         """Testing ExtensionHook.shutdown"""
-        self.extension_hook.shutdown()
-        self.assertTrue(self.extension_hook not in
-                        self.extension_hook.__class__.hooks)
+        self.extension_hook.disable_hook()
+        self.assertNotIn(self.extension_hook,
+                         self.extension_hook.__class__.hooks)
 
 
 class ExtensionHookPointTest(TestCase):

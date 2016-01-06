@@ -1,32 +1,25 @@
-#
-# hooks.py -- Common extension hook points.
-#
-# Copyright (c) 2010-2011  Beanbag, Inc.
-# Copyright (c) 2008-2010  Christian Hammond
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"""Base support and implementations for extension hooks.
+
+Extension hooks allow applications to define formal ways to inject logic,
+behavior, or more into part of the application.
+
+This module provides the base support for defining an extension hook, through
+:py:class:`ExtensionHook` and :py:class:`ExtensionHookPoint`, along with
+a utility mixin, :py:class:`AppliesToURLMixin`.
+
+It also provides some built-in hooks for applications and extensions to use:
+
+* :py:class:`DataGridColumnsHook`
+* :py:class:`SignalHook`
+* :py:class:`TemplateHook`
+* :py:class:`URLHook`
+"""
 
 from __future__ import unicode_literals
 
 import logging
 import uuid
+import warnings
 
 from django.template import RequestContext
 from django.template.loader import render_to_string
@@ -34,33 +27,244 @@ from django.utils import six
 
 
 class ExtensionHook(object):
-    """The base class for a hook into some part of the project.
+    """The base class for a hook into some part of an application.
 
     ExtensionHooks are classes that can hook into an
-    :py:class:`ExtensionHookPoint` to provide some level of functionality
-    in a project. A project should provide a subclass of ExtensionHook that
-    will provide functions for getting data or anything else that's needed,
-    and then extensions will subclass that specific ExtensionHook.
+    :py:class:`ExtensionHookPoint` to provide some level of functionality in an
+    application. A consuming application should provide a subclass of
+    ExtensionHook that will provide functions for getting data or anything else
+    that's needed. Extensions may then subclass or initialize that specific
+    ExtensionHook.
 
     A base ExtensionHook subclass must use :py:class:`ExtensionHookPoint`
-    as a metaclass. For example::
+    as a metaclass. All hooks deriving from that subclass will be registered
+    along with that hook point.
 
-        from django.utils import six
+    Example:
+        .. code-block:: python
 
-        @six.add_metaclass(ExtensionHookPoint)
-        class NavigationHook(ExtensionHook):
+           from django.utils import six
+
+           from myproject.nav import register_thing, unregister_thing_id
+
+
+           @six.add_metaclass(ExtensionHookPoint)
+           class ThingHook(ExtensionHook):
+               def initialize(self, thing_id):
+                   self.thing_id = thing_id
+                   register_thing(self.thing_id)
+
+               def shutdown(self):
+                   unregister_thing(self.thing_id)
+
+    .. versionchanged:: 0.10
+
+       Starting with Djblets 0.10, extension hooks should implement the
+       :py:meth:`initialize` method to handle any initialization. It no longer
+       needs to call the parent :py:meth:`shutdown` method, either. However,
+       to retain compatibility with older versions, they may still override
+       :py:meth:`__init__` and may call the parent :py:meth:`shutdown`. See
+       those methods for more details.
+
+    Attributes:
+        extension (djblets.extensions.extension.Extension):
+            The parent extension, or another object that can act as a
+            hook owner.
+
+        hook_state (int):
+            The state of the hook. This will be one of
+            :py:data:`HOOK_STATE_DISABLED`, :py:data:`HOOK_STATE_ENABLED`,
+            :py:data:`HOOK_STATE_DISABLING`, or :py:data:`HOOK_STATE_ENABLING`.
     """
-    def __init__(self, extension):
+
+    #: The hook is disabled.
+    HOOK_STATE_DISABLED = 0
+
+    #: The hook is enabled.
+    HOOK_STATE_ENABLED = 1
+
+    #: The hook is in the process of disabling.
+    HOOK_STATE_DISABLING = 2
+
+    #: The hook is in the process of enabling.
+    HOOK_STATE_ENABLING = 3
+
+    def __init__(self, extension, *args, **kwargs):
+        """Initialize the ExtensionHook.
+
+        This is called when creating an instance of the hook. This will
+        call :py:meth:`enable_hook` with the provided arguments, beginning
+        the internal initialization process. That will then call
+        :py:meth:`initialize`, which is responsible for any initialization
+        of state in the subclass.
+
+        Subclasses should override :py:meth:`initialize` in order to provide
+        any state initialization, rather than overriding this method.
+
+        .. versionchanged:: 0.10
+
+           Prior to Djblets 0.10, initialization all happened in
+           :py:meth:`__init__`. Code that needs to remain compatible with
+           older versions should continue to do so, but otherwise this code
+           should move to :py:meth:`initialize`.
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The parent extension, or another object that can act as a
+                hook owner.
+
+            start_enabled (bool, optional):
+                Whether to enable the hook once constructed. This defaults
+                to ``True``.
+        """
         self.extension = extension
-        self.extension.hooks.add(self)
-        self.__class__.add_hook(self)
-        self.initialized = True
+        self.hook_state = self.HOOK_STATE_DISABLED
+
+        if kwargs.pop('start_enabled', True):
+            self.enable_hook(*args, **kwargs)
+
+    @property
+    def initialized(self):
+        """Whether the hook is initialized and enabled."""
+        return self.hook_state == self.HOOK_STATE_ENABLED
+
+    def initialize(self, *args, **kwargs):
+        """Initialize the extension hook's state.
+
+        Extension subclasses can perform any custom initialization they need
+        here.
+
+        Any additional arguments passed to the hook during construction will be
+        passed to this as well.
+
+        While in this function, :py:attr:`hook_state` will be set to
+        :py:data:`HOOK_STATE_ENABLING`.
+
+        By default, this does nothing.
+
+        .. versionadded:: 0.10
+
+        Args:
+            *args (tuple):
+                The list of additional arguments used to initialize the
+                hook state.
+
+            **kwargs (dict):
+                The additional keyword arguments used to initialize the hook
+                state.
+
+        Example:
+            .. code-block:: python
+
+               @six.add_metaclass(ExtensionHookPoint)
+               class ThingHook(ExtensionHook):
+                   def initialize(self, thing_id):
+                       self.thing_id = thing_id
+                       register_thing(self.thing_id)
+        """
+        pass
 
     def shutdown(self):
-        assert self.initialized
+        """Shut down the extension.
+
+        Extension subclasses can perform any custom cleanup they need here.
+
+        While in this function, :py:attr:`hook_state` will be set to
+        :py:data:`HOOK_STATE_DISABLING`.
+
+        .. versionchanged:: 0.10
+
+           This method used to be responsible both for internal cleanup and the
+           cleanup of the subclass. Starting in Djblets 0.10, internal cleanup
+           has moved to :py:meth:`disable_hook`. Subclasses no longer
+           need to call the parent method unless inheriting from a mixin or
+           another :py:class:`ExtensionHook` subclass, but should continue to
+           do so if they need to retain compatibility with older versions.
+
+        Example:
+
+            .. code-block:: python
+
+               @six.add_metaclass(ExtensionHookPoint)
+               class ThingHook(ExtensionHook):
+                   def shutdown(self):
+                       unregister_thing(self.thing_id)
+        """
+        if self.hook_state == self.HOOK_STATE_ENABLED:
+            # The extension framework will call disable_hook() properly,
+            # but a unit test might manually be calling shutdown(). In this
+            # case, we want to retain the old behavior, but warn.
+            warnings.warn(
+                '%(name)s.disable_hook() should be called when manually '
+                'disabling the hook instead of %(name)s.shutdown(), starting '
+                'in Djblets 0.10.'
+                % {
+                    'name': self.__class__.__name__,
+                },
+                DeprecationWarning)
+
+            # Don't call shutdown() again, as the subclass might have already
+            # dealt with state cleanup.
+            self.disable_hook(call_shutdown=False)
+
+    def enable_hook(self, *args, **kwargs):
+        """Enable the ExtensionHook, beginning the initialization process.
+
+        This will register the instance of the hook and begin its
+        initialization. It takes the same parameters that would be given
+        during construction of the hook, allowing disabled hooks to be
+        created again with fresh state.
+
+        Subclasses should not override this process. They should instead
+        implement :py:meth:`initialize` to handle initialization of the
+        state of the hook.
+
+        .. versionadded:: 0.10
+
+        Args:
+            *args (tuple):
+                The list of additional arguments used to initialize the
+                hook state.
+
+            **kwargs (dict):
+                The additional keyword arguments used to initialize the hook
+                state.
+        """
+        assert self.hook_state == self.HOOK_STATE_DISABLED
+
+        self.hook_state = self.HOOK_STATE_ENABLING
+        self.extension.hooks.add(self)
+        self.__class__.add_hook(self)
+
+        self.initialize(*args, **kwargs)
+        self.hook_state = self.HOOK_STATE_ENABLED
+
+    def disable_hook(self, call_shutdown=True):
+        """Disable the hook, unregistering it from the extension.
+
+        This will unregister the hook and uninitialize it, putting it into
+        a disabled state.
+
+        Consumers can call this if they want to turn off hooks temporarily
+        without reconstructing the instances later. It's also called
+        internally when shutting down an extension.
+
+        .. versionadded:: 0.10
+
+        Args:
+            call_shutdown (bool, optional):
+                Whether to call :py:meth:`shutdown`. This should always be
+                ``True`` unless called internally.
+        """
+        assert self.hook_state == self.HOOK_STATE_ENABLED
+
+        self.hook_state = self.HOOK_STATE_DISABLING
+
+        if call_shutdown:
+            self.shutdown()
 
         self.__class__.remove_hook(self)
-        self.initialized = False
+        self.hook_state = self.HOOK_STATE_DISABLED
 
 
 class ExtensionHookPoint(type):
@@ -94,12 +298,21 @@ class ExtensionHookPoint(type):
 class AppliesToURLMixin(object):
     """A mixin for hooks to allow restricting to certain URLs.
 
-    This provides an applies_to() function for the hook that can be used
-    by consumers to determine if the hook should apply to the current page.
+    This provides an :py:meth:`applies_to` function for the hook that can be
+    used by consumers to determine if the hook should apply to the current
+    page.
     """
-    def __init__(self, extension, apply_to=[], *args, **kwargs):
-        super(AppliesToURLMixin, self).__init__(extension)
+
+    def initialize(self, apply_to=[], *args, **kwargs):
+        """Initialize the mixin for a hook.
+
+        Args:
+            apply_to (list, optional):
+                A list of URL names that the hook will apply to by default.
+        """
         self.apply_to = apply_to
+
+        super(AppliesToURLMixin, self).initialize(*args, **kwargs)
 
     def applies_to(self, request):
         """Returns whether or not this hook applies to the page.
@@ -122,8 +335,19 @@ class DataGridColumnsHook(ExtensionHook):
 
     Each column must have an id already set, and it must be unique.
     """
-    def __init__(self, extension, datagrid_cls, columns):
-        super(DataGridColumnsHook, self).__init__(extension)
+
+    def initialize(self, datagrid_cls, columns):
+        """Initialize the hook.
+
+        Args:
+            datagrid_cls (type):
+                The specific datagrid class that will include this
+                registered list of columns as possible options.
+
+            columns (list):
+                A list of :py:class:`~djblets.datagrid.grids.Column`
+                instances to register on the datagrid.
+        """
         self.datagrid_cls = datagrid_cls
         self.columns = columns
 
@@ -131,8 +355,6 @@ class DataGridColumnsHook(ExtensionHook):
             self.datagrid_cls.add_column(column)
 
     def shutdown(self):
-        super(DataGridColumnsHook, self).shutdown()
-
         for column in self.columns:
             self.datagrid_cls.remove_column(column)
 
@@ -144,15 +366,20 @@ class URLHook(ExtensionHook):
     A hook that installs custom URLs. These URLs reside in a project-specified
     parent URL.
     """
-    def __init__(self, extension, patterns):
-        super(URLHook, self).__init__(extension)
+
+    def initialize(self, patterns):
+        """Initialize the hook.
+
+        Args:
+            patterns (list):
+                The list of :py:func:`~django.conf.urls.url` entries
+                comprising the URLs to register.
+        """
         self.patterns = patterns
         self.dynamic_urls = self.extension.extension_manager.dynamic_urls
         self.dynamic_urls.add_patterns(patterns)
 
     def shutdown(self):
-        super(URLHook, self).shutdown()
-
         self.dynamic_urls.remove_patterns(self.patterns)
 
 
@@ -167,10 +394,28 @@ class SignalHook(ExtensionHook):
     The callback will also be passed an extension= keyword argument pointing
     to the extension instance.
     """
-    def __init__(self, extension, signal, callback, sender=None,
-                 sandbox_errors=True):
-        super(SignalHook, self).__init__(extension)
 
+    def initialize(self, signal, callback, sender=None, sandbox_errors=True):
+        """Initialize the hook.
+
+        Args:
+            signal (django.dispatch.Signal):
+                The signal to connect to.
+
+            callback (callable):
+                The function to call when the signal is fired.
+
+            sender (object or class, optional):
+                The sender argument to pass to the signal connection.
+                See :py:meth:`~django.core.dispatch.Signal.send` for more
+                information.
+
+            sandbox_errors (bool, optional):
+                If ``True``, errors coming from ``callback`` will be
+                sandboxed, preventing them from reaching the code that
+                fired the signal. The error will instead be logged and
+                then ignored.
+        """
         self.signal = signal
         self.callback = callback
         self.dispatch_uid = uuid.uuid1()
@@ -181,8 +426,6 @@ class SignalHook(ExtensionHook):
                        dispatch_uid=self.dispatch_uid)
 
     def shutdown(self):
-        super(SignalHook, self).shutdown()
-
         self.signal.disconnect(dispatch_uid=self.dispatch_uid,
                                sender=self.sender)
 
@@ -208,11 +451,31 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook):
 
     A hook that renders a template at hook points defined in another template.
     """
+
     _by_name = {}
 
-    def __init__(self, extension, name, template_name=None, apply_to=[],
-                 extra_context={}):
-        super(TemplateHook, self).__init__(extension, apply_to=apply_to)
+    def initialize(self, name, template_name=None, apply_to=[],
+                   extra_context={}):
+        """Initialize the hook.
+
+        Args:
+            name (unicode):
+                The name of the template hook point that should render this
+                template. This is application-specific.
+
+            template_name (unicode, optional):
+                The name of the template to render.
+
+            apply_to (list, optional):
+                The list of URL names where this template should render.
+                By default, all templates containing the template hook
+                point will render this template.
+
+            extra_context (dict):
+                Extra context to include when rendering the template.
+        """
+        super(TemplateHook, self).initialize(apply_to=apply_to)
+
         self.name = name
         self.template_name = template_name
         self.extra_context = extra_context
@@ -223,8 +486,6 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook):
             self.__class__._by_name[name].append(self)
 
     def shutdown(self):
-        super(TemplateHook, self).shutdown()
-
         self.__class__._by_name[self.name].remove(self)
 
     def render_to_string(self, request, context):
