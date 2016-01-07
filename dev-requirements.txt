@@ -1,4 +1,5 @@
 --allow-all-external
+coverage
 django_evolution>=0.7.5
 kgb
 nose
