@@ -29,6 +29,7 @@ import inspect
 import os
 
 from django.conf import settings
+from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import get_mod_func
 from django.utils.encoding import python_2_unicode_compatible
@@ -164,6 +165,23 @@ class Extension(object):
 
         return self._admin_urlconf_module
     admin_urlconf = property(_get_admin_urlconf)
+
+    def get_static_url(self, path):
+        """Return the URL to a static media file for this extension.
+
+        This takes care of resolving the static media path name to a path
+        relative to the web server. If a versioned media file is found, it
+        will be used, so that browser-side caching can be used.
+
+        Args:
+            path (unicode):
+                The path within the static directory for the extension.
+
+        Returns:
+            unicode:
+            The resulting static media URL.
+        """
+        return static('ext/%s/%s' % (self.id, path))
 
     def get_bundle_id(self, name):
         """Returns the ID for a CSS or JavaScript bundle."""
