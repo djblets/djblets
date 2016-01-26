@@ -30,10 +30,7 @@ import logging
 from django import template
 from django.utils import six
 from django.utils.six.moves import cStringIO as StringIO
-try:
-    from PIL import Image
-except ImportError:
-    import Image
+from PIL import Image
 
 
 register = template.Library()
