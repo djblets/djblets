@@ -54,6 +54,149 @@ from djblets.extensions.views import configure_extension
 from djblets.testing.testcases import TestCase
 
 
+class FakeEntryPoint(object):
+    """A fake entry point.
+
+    This is modelled after :py:class:`pkg_resources.EntryPoint`.
+    """
+
+    def __init__(self, value, **metadata_kwargs):
+        """Initialize the FakeEntryPoint.
+
+        Args:
+            value (object):
+                The value to be returned when the entry point is loaded.
+
+            **metadata_kwargs (dict):
+                Keyword arguments to pass to the associated
+                :py:class:`FakeDistribution` constructor.
+        """
+        self._value = value
+        self.dist = FakeDistribution(**metadata_kwargs)
+
+    def load(self):
+        """Load the entry point.
+
+        Returns:
+            object: The value specified at initialization time.
+        """
+        return self._value
+
+
+class FakeDistribution(object):
+    """A fake distribution.
+
+    This is modelled after :py:class`pkg_resources.Distribution`.
+    """
+
+    def __init__(self, author='Example Author',
+                 author_email='author@example.com',
+                 description='Test description',
+                 home_page='http://example.com',
+                 project_name='ExampleProject', license_name='Drivers',
+                 summary='Test summary', version='1.0'):
+        """Initialize the FakeDistribution.
+
+        Args:
+            author (unicode):
+                The package author.
+
+            author_email (unicode):
+                The package author's e-mail address.
+
+            description (unicode):
+                The package description.
+
+            home_page (unicode):
+                The package's URL.
+
+            project_name (unicode):
+                The package's name.
+
+            license_name (unicode):
+                The name of the package license.
+
+            summary (unicode):
+                The package summary.
+        """
+        self.metadata = {
+            'Author': author,
+            'Author-email': author_email,
+            'Description': description,
+            'Home-page': home_page,
+            'Name': project_name,
+            'License': license_name,
+            'Summary': summary,
+            'Version': version,
+        }
+
+    def get_metadata_lines(self, *args):
+        """Return the metadata lines.
+
+        Returns:
+            list:
+            A list of the package metadata lines, as :py:class:`unicode`
+            objects.
+        """
+        return [
+            '%s: %s' % (field_name, value)
+            for field_name, value in six.iteritems(self.metadata)
+        ]
+
+    @property
+    def project_name(self):
+        """The project name.
+
+        Returns:
+            unicode:
+            The project name.
+        """
+        return self.metadata['Name']
+
+    @property
+    def version(self):
+        """The project version.
+
+        Returns:
+            unicode:
+            The project version.
+        """
+        return self.metadata['version']
+
+
+class TestExtensionManager(ExtensionManager):
+    """An extension manager for testing.
+
+    The entry points are provided at initialization time.
+    """
+
+    def __init__(self, entry_points=None, *args, **kwargs):
+        """Initialize the TestExtensionManager.
+
+        Args:
+            entry_points (list):
+                A list of :py:class:`FakeEntryPoint`s.
+
+            *args (tuple):
+                Additional positional arguments to pass to the base class'
+                constructor.
+
+            **kwargs (dict):
+                Additional keyword arguments to pass to the base class'
+                constructor.
+        """
+        super(TestExtensionManager, self).__init__(*args, **kwargs)
+        self._entry_points = entry_points or []
+
+    def _entrypoint_iterator(self):
+        """Return the entry points.
+
+        Returns:
+            list: The entry points.
+        """
+        return self._entry_points
+
+
 class SettingsTest(TestCase):
     def setUp(self):
         # Build up a mocked extension
@@ -201,128 +344,83 @@ class ExtensionTest(SpyAgency, TestCase):
 class ExtensionInfoTest(TestCase):
     def test_metadata_from_package(self):
         """Testing ExtensionInfo metadata from package"""
-        entrypoint = Mock()
-        entrypoint.dist = Mock()
-
-        test_author = 'Test author lorem ipsum'
-        test_description = 'Test description lorem ipsum'
-        test_email = 'Test author@email.com'
-        test_home_page = 'http://www.example.com'
-        test_license = 'Test License MIT GPL Apache Drivers'
-        test_module_name = 'testextension.dummy.dummy'
-        test_extension_id = '%s:DummyExtension' % test_module_name
-        test_module_to_app = 'testextension.dummy'
-        test_project_name = 'TestProjectName'
-        test_summary = 'Test summary lorem ipsum'
-        test_version = '1.0'
-
-        test_htdocs_path = os.path.join(settings.MEDIA_ROOT, 'ext',
-                                        test_project_name)
-        test_static_path = os.path.join(settings.STATIC_ROOT, 'ext',
-                                        test_extension_id)
-
-        test_metadata = {
-            'Name': test_project_name,
-            'Version': test_version,
-            'Summary': test_summary,
-            'Description': test_description,
-            'Author': test_author,
-            'Author-email': test_email,
-            'License': test_license,
-            'Home-page': test_home_page,
-        }
-
-        entrypoint.dist.get_metadata_lines = Mock(
-            return_value=[
-                "%s: %s" % (key, value)
-                for key, value in six.iteritems(test_metadata)
-            ])
-
-        entrypoint.dist.project_name = test_project_name
-        entrypoint.dist.version = test_version
+        app_name = 'test_extension.dummy'
+        project_name = 'DummyExtension'
+        module_name = 'test_extension.dummy.submodule'
+        extension_id = '%s:DummyExtension' % module_name
+        htdocs_path = os.path.join(settings.MEDIA_ROOT, 'ext',
+                                   project_name)
+        static_path = os.path.join(settings.STATIC_ROOT, 'ext',
+                                   extension_id)
 
         ext_class = Mock()
-        ext_class.__module__ = test_module_name
-        ext_class.id = test_extension_id
+        ext_class.__module__ = module_name
+        ext_class.id = extension_id
         ext_class.metadata = None
-        extension_info = ExtensionInfo(entrypoint, ext_class)
 
-        self.assertEqual(extension_info.app_name, test_module_to_app)
-        self.assertEqual(extension_info.author, test_author)
-        self.assertEqual(extension_info.author_email, test_email)
-        self.assertEqual(extension_info.description, test_description)
+        entrypoint = FakeEntryPoint(ext_class, project_name=project_name)
+        extension_info = ExtensionInfo(entrypoint, ext_class)
+        metadata = entrypoint.dist.metadata
+
+        self.assertEqual(extension_info.app_name, app_name)
+        self.assertEqual(extension_info.author, metadata['Author'])
+        self.assertEqual(extension_info.author_email, metadata['Author-email'])
+        self.assertEqual(extension_info.description, metadata['Description'])
         self.assertFalse(extension_info.enabled)
         self.assertEqual(extension_info.installed_htdocs_path,
-                         test_htdocs_path)
+                         htdocs_path)
         self.assertEqual(extension_info.installed_static_path,
-                         test_static_path)
+                         static_path)
         self.assertFalse(extension_info.installed)
-        self.assertEqual(extension_info.license, test_license)
-        self.assertEqual(extension_info.metadata, test_metadata)
-        self.assertEqual(extension_info.name, test_project_name)
-        self.assertEqual(extension_info.summary, test_summary)
-        self.assertEqual(extension_info.url, test_home_page)
-        self.assertEqual(extension_info.version, test_version)
+        self.assertEqual(extension_info.license, metadata['License'])
+        self.assertEqual(extension_info.metadata, metadata)
+        self.assertEqual(extension_info.name, metadata['Name'])
+        self.assertEqual(extension_info.summary, metadata['Summary'])
+        self.assertEqual(extension_info.url, metadata['Home-page'])
+        self.assertEqual(extension_info.version, metadata['Version'])
 
     def test_custom_metadata(self):
         """Testing ExtensionInfo metadata from Extension.metadata"""
-        entrypoint = Mock()
-        entrypoint.dist = Mock()
-
-        test_author = 'Test author lorem ipsum'
-        test_description = 'Test description lorem ipsum'
-        test_email = 'Test author@email.com'
-        test_home_page = 'http://www.example.com'
-        test_license = 'Test License MIT GPL Apache Drivers'
-        test_module_name = 'testextension.dummy.dummy'
-        test_module_to_app = 'testextension.dummy'
-        test_project_name = 'TestProjectName'
-        test_summary = 'Test summary lorem ipsum'
-        test_version = '1.0'
-
-        test_htdocs_path = os.path.join(settings.MEDIA_ROOT, 'ext',
-                                        'Dummy')
-
-        test_metadata = {
-            'Name': test_project_name,
-            'Version': test_version,
-            'Summary': test_summary,
-            'Description': test_description,
-            'Author': test_author,
-            'Author-email': test_email,
-            'License': test_license,
-            'Home-page': test_home_page,
+        app_name = 'test_extension.dummy'
+        project_name = 'DummyExtension'
+        module_name = 'test_extension.dummy.submodule'
+        extension_id = '%s:DummyExtension' % module_name
+        htdocs_path = os.path.join(settings.MEDIA_ROOT, 'ext',
+                                   project_name)
+        metadata = {
+            'Name': 'OverrideName',
+            'Version': '3.14159',
+            'Summary': 'Lorem ipsum dolor sit amet.',
+            'Description': 'Tempus fugit.',
+            'Author': 'Somebody',
+            'Author-email': 'somebody@example.com',
+            'License': 'None',
+            'Home-page': 'http://127.0.0.1/',
         }
 
-        entrypoint.dist.get_metadata_lines = Mock(
-            return_value=[
-                "%s: %s" % (key, 'Dummy')
-                for key, value in six.iteritems(test_metadata)
-            ])
-
-        entrypoint.dist.project_name = 'Dummy'
-        entrypoint.dist.version = 'Dummy'
-
         ext_class = Mock()
-        ext_class.__module__ = test_module_name
-        ext_class.metadata = test_metadata
+        ext_class.__module__ = module_name
+        ext_class.metadata = metadata
+        ext_class.id = extension_id
 
-        extension_info = ExtensionInfo(entrypoint, ext_class)
+        entry_point = FakeEntryPoint(ext_class, project_name=project_name)
 
-        self.assertEqual(extension_info.app_name, test_module_to_app)
-        self.assertEqual(extension_info.author, test_author)
-        self.assertEqual(extension_info.author_email, test_email)
-        self.assertEqual(extension_info.description, test_description)
+        extension_info = ExtensionInfo(entry_point, ext_class)
+
+        self.assertEqual(extension_info.app_name, app_name)
+        self.assertEqual(extension_info.author, metadata['Author'])
+        self.assertEqual(extension_info.author_email, metadata['Author-email'])
+        self.assertEqual(extension_info.description, metadata['Description'])
         self.assertFalse(extension_info.enabled)
         self.assertEqual(extension_info.installed_htdocs_path,
-                         test_htdocs_path)
+                         htdocs_path)
         self.assertFalse(extension_info.installed)
-        self.assertEqual(extension_info.license, test_license)
-        self.assertEqual(extension_info.metadata, test_metadata)
-        self.assertEqual(extension_info.name, test_project_name)
-        self.assertEqual(extension_info.summary, test_summary)
-        self.assertEqual(extension_info.url, test_home_page)
-        self.assertEqual(extension_info.version, test_version)
+        self.assertEqual(extension_info.license, metadata['License'])
+        self.assertEqual(extension_info.metadata, metadata)
+        self.assertEqual(extension_info.name, metadata['Name'])
+        self.assertEqual(extension_info.summary, metadata['Summary'])
+        self.assertEqual(extension_info.url, metadata['Home-page'])
+        self.assertEqual(extension_info.version, metadata['Version'])
 
 
 @six.add_metaclass(ExtensionHookPoint)
@@ -428,47 +526,11 @@ class ExtensionManagerTest(SpyAgency, TestCase):
                 }
             }
 
-        self.key = 'test_key'
         self.extension_class = TestExtension
-        self.manager = ExtensionManager(self.key)
-        self.fake_entrypoint = Mock()
-        self.fake_entrypoint.load = Mock(return_value=self.extension_class)
-        self.fake_entrypoint.dist = Mock()
-
-        self.test_author = 'Test author lorem ipsum'
-        self.test_description = 'Test description lorem ipsum'
-        self.test_email = 'Test author@email.com'
-        self.test_home_page = 'http://www.example.com'
-        self.test_license = 'Test License MIT GPL Apache Drivers'
-        self.test_module_name = 'testextension.dummy.dummy'
-        self.test_module_to_app = 'testextension.dummy'
-        self.test_project_name = 'TestProjectName'
-        self.test_summary = 'Test summary lorem ipsum'
-        self.test_version = '1.0'
-
-        self.test_metadata = {
-            'Name': self.test_project_name,
-            'Version': self.test_version,
-            'Summary': self.test_summary,
-            'Description': self.test_description,
-            'Author': self.test_author,
-            'Author-email': self.test_email,
-            'License': self.test_license,
-            'Home-page': self.test_home_page,
-        }
-
-        self.fake_entrypoint.dist.get_metadata_lines = Mock(
-            return_value=[
-                "%s: %s" % (key, value)
-                for key, value in six.iteritems(self.test_metadata)
-            ])
-
-        self.fake_entrypoint.dist.project_name = self.test_project_name
-        self.fake_entrypoint.dist.version = self.test_version
-
-        self.manager._entrypoint_iterator = Mock(
-            return_value=[self.fake_entrypoint]
-        )
+        self.test_project_name = 'TestProject'
+        self.fake_entry_point = FakeEntryPoint(
+            self.extension_class, project_name=self.test_project_name)
+        self.manager = TestExtensionManager([self.fake_entry_point], '')
         self.manager.load()
 
     def tearDown(self):
@@ -560,7 +622,7 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         settings.PIPELINE_CSS = {}
         settings.PIPELINE_JS = {}
 
-        extension = self.extension_class(extension_manager=self.manager)
+        self.extension_class(extension_manager=self.manager)
         extension = self.manager.enable_extension(self.extension_class.id)
 
         self.assertEqual(len(settings.PIPELINE_CSS), 1)
@@ -645,7 +707,7 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         settings.PIPELINE_CSS = {}
         settings.PIPELINE_JS = {}
 
-        extension = self.extension_class(extension_manager=self.manager)
+        self.extension_class(extension_manager=self.manager)
         extension = self.manager.enable_extension(self.extension_class.id)
 
         self.assertEqual(len(settings.PIPELINE_CSS), 1)
@@ -662,13 +724,8 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         """
         key = 'extension-list-sync'
 
-        manager1 = ExtensionManager(key)
-        manager2 = ExtensionManager(key)
-
-        for manager in (manager1, manager2):
-            manager._entrypoint_iterator = Mock(
-                return_value=[self.fake_entrypoint]
-            )
+        manager1 = TestExtensionManager([self.fake_entry_point], key)
+        manager2 = TestExtensionManager([self.fake_entry_point], key)
 
         manager1.load()
         manager2.load()
@@ -699,13 +756,8 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         setting_key = 'foo'
         setting_val = 'abc123'
 
-        manager1 = ExtensionManager(key)
-        manager2 = ExtensionManager(key)
-
-        for manager in (manager1, manager2):
-            manager._entrypoint_iterator = Mock(
-                return_value=[self.fake_entrypoint]
-            )
+        manager1 = TestExtensionManager([self.fake_entry_point], key)
+        manager2 = TestExtensionManager([self.fake_entry_point], key)
 
         manager1.load()
 
@@ -744,13 +796,8 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         number
         """
         key = 'check-expired-test'
-        manager1 = ExtensionManager(key)
-        manager2 = ExtensionManager(key)
-
-        for manager in (manager1, manager2):
-            manager._entrypoint_iterator = Mock(
-                return_value=[self.fake_entrypoint]
-            )
+        manager1 = TestExtensionManager([self.fake_entry_point], key)
+        manager2 = TestExtensionManager([self.fake_entry_point], key)
 
         manager1.load()
         manager1.enable_extension(self.extension_class.id)

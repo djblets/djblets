@@ -4,6 +4,7 @@ from django.conf.urls import patterns, include
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.utils import six
+from django.utils.translation import ugettext as _
 
 from djblets.extensions.errors import (DisablingExtensionError,
                                        EnablingExtensionError,
@@ -122,7 +123,19 @@ class ExtensionResource(WebAPIResource):
                 ext.class_name not in self._extension_manager._load_errors)
 
     def serialize_load_error_field(self, extension, *args, **kwargs):
-        return self._extension_manager._load_errors.get(extension.class_name)
+        s = self._extension_manager._load_errors.get(extension.class_name)
+
+        if s:
+            return s
+
+        if extension.extension_class is None:
+            return _(
+                'This extension is not installed or could not be found. Try '
+                're-installing it and then click "Scan for installed '
+                'extensions."'
+            )
+
+        return None
 
     def serialize_name_field(self, extension, *args, **kwargs):
         if extension.extension_class is None:

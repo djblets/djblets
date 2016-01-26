@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import logging
 
 from django import template
-from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.utils import six
 from pipeline.templatetags.compressed import (CompressedCSSNode,
                                               CompressedJSNode)
@@ -55,7 +54,7 @@ def ext_static(context, extension, path):
     This is meant to be used with
     :py:class:`djblets.extensions.staticfiles.ExtensionFinder`.
     """
-    return static('ext/%s/%s' % (extension.id, path))
+    return extension.get_static_url(path)
 
 
 def _render_bundle(context, node_cls, extension, name, bundle_type):
