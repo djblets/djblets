@@ -9,14 +9,12 @@ from pipeline.templatetags.compressed import (CompressedCSSNode,
 
 from djblets.extensions.hooks import TemplateHook
 from djblets.extensions.manager import get_extension_managers
-from djblets.util.decorators import basictag
 
 
 register = template.Library()
 
 
-@register.tag
-@basictag(takes_context=True)
+@register.simple_tag(takes_context=True)
 def template_hook_point(context, name):
     """Registers a place where TemplateHooks can render to."""
     def _render_hooks():
@@ -43,8 +41,7 @@ def template_hook_point(context, name):
     return ''.join(_render_hooks())
 
 
-@register.tag
-@basictag(takes_context=True)
+@register.simple_tag(takes_context=True)
 def ext_static(context, extension, path):
     """Outputs the URL to the given static media file provided by an extension.
 
@@ -77,15 +74,13 @@ def _render_js_bundle(context, extension, name):
                           'JavaScript')
 
 
-@register.tag
-@basictag(takes_context=True)
+@register.simple_tag(takes_context=True)
 def ext_css_bundle(context, extension, name):
     """Outputs HTML to import an extension's CSS bundle."""
     return _render_css_bundle(context, extension, name)
 
 
-@register.tag
-@basictag(takes_context=True)
+@register.simple_tag(takes_context=True)
 def ext_js_bundle(context, extension, name):
     """Outputs HTML to import an extension's JavaScript bundle."""
     return _render_js_bundle(context, extension, name)
@@ -103,7 +98,6 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
     ``apply_to`` field containing a URL name matching the current page.
     """
     request = context['request']
-
     if not getattr(request, 'resolver_match', None):
         return
 
@@ -124,8 +118,7 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
         break
 
 
-@register.tag
-@basictag(takes_context=True)
+@register.simple_tag(takes_context=True)
 def load_extensions_css(context, extension_manager_key):
     """Loads all CSS bundles that can be rendered on the current page.
 
@@ -136,8 +129,7 @@ def load_extensions_css(context, extension_manager_key):
         extension_manager_key, context, 'css_bundles', _render_css_bundle))
 
 
-@register.tag
-@basictag(takes_context=True)
+@register.simple_tag(takes_context=True)
 def load_extensions_js(context, extension_manager_key):
     """Loads all JavaScript bundles that can be rendered on the current page.
 
