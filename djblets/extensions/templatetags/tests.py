@@ -10,8 +10,6 @@ from djblets.extensions.hooks import TemplateHook
 from djblets.extensions.tests import (FakeEntryPoint, TestExtensionManager,
                                       TestExtensionWithRegistration)
 from djblets.testing.testcases import TestCase
-from djblets.template.loaders.memory import MemoryTemplateLoader
-from djblets.template.loaders.util import replace_template_loaders
 
 
 class TemplateTagTests(TestCase):
@@ -87,18 +85,13 @@ class TemplateTagTests(TestCase):
         self.manager.load()
         self.manager.enable_extension(self.extension.id)
 
-        loader = MemoryTemplateLoader({
-            'pipeline/css.html': '{{url}}',
-        })
-
-        with replace_template_loaders([loader]):
-            self.assertEqual(
-                t.render(Context({
-                    'ext': self.extension,
-                    'request': self.request,
-                })),
-                '/ext/djblets.extensions.templatetags.tests.TestExtension/css/'
-                'default.min.css')
+        self.assertEqual(
+            t.render(Context({
+                'ext': self.extension,
+                'request': self.request,
+            })),
+            '/ext/djblets.extensions.templatetags.tests.TestExtension/css/'
+            'default.min.css\n')
 
     def test_ext_js_bundle_tag(self):
         """Testing ext_js_bundle template tag"""
@@ -108,18 +101,13 @@ class TemplateTagTests(TestCase):
         self.manager.load()
         self.manager.enable_extension(self.extension.id)
 
-        loader = MemoryTemplateLoader({
-            'pipeline/js.html': '{{url}}',
-        })
-
-        with replace_template_loaders([loader]):
-            self.assertEqual(
-                t.render(Context({
-                    'ext': self.extension,
-                    'request': self.request,
-                })),
-                '/ext/djblets.extensions.templatetags.tests.TestExtension/js/'
-                'default.min.js')
+        self.assertEqual(
+            t.render(Context({
+                'ext': self.extension,
+                'request': self.request,
+            })),
+            '/ext/djblets.extensions.templatetags.tests.TestExtension/js/'
+            'default.min.js\n')
 
     def test_load_extensions_css_tag(self):
         """Testing load_extensions_css template tag"""
@@ -128,24 +116,18 @@ class TemplateTagTests(TestCase):
 
         self.manager.load()
         self.manager.enable_extension(self.extension.id)
-
-        loader = MemoryTemplateLoader({
-            'pipeline/css.html': '{{url}}\n',
-        })
-
         self.request.resolver_match = ResolverMatch(None, None, None, 'foo')
 
-        with replace_template_loaders([loader]):
-            self.assertEqual(
-                t.render(Context({
-                    'ext': self.extension,
-                    'manager_id': self.key,
-                    'request': self.request,
-                })),
-                '/ext/djblets.extensions.templatetags.tests.TestExtension/css/'
-                'default.min.css\n'
-                '/ext/djblets.extensions.templatetags.tests.TestExtension/css/'
-                'optional.min.css\n')
+        self.assertEqual(
+            t.render(Context({
+                'ext': self.extension,
+                'manager_id': self.key,
+                'request': self.request,
+            })),
+            '/ext/djblets.extensions.templatetags.tests.TestExtension/css/'
+            'default.min.css\n'
+            '/ext/djblets.extensions.templatetags.tests.TestExtension/css/'
+            'optional.min.css\n')
 
     def test_load_extensions_js_tag(self):
         """Testing load_extensions_js template tag"""
@@ -154,22 +136,15 @@ class TemplateTagTests(TestCase):
 
         self.manager.load()
         self.manager.enable_extension(self.extension.id)
-
-        loader = MemoryTemplateLoader({
-            'pipeline/js.html': '{{url}}\n',
-        })
-
         self.request.resolver_match = ResolverMatch(None, None, None, 'foo')
-        self.request.resolver_match.url_name = 'foo'
 
-        with replace_template_loaders([loader]):
-            self.assertEqual(
-                t.render(Context({
-                    'ext': self.extension,
-                    'manager_id': self.key,
-                    'request': self.request,
-                })),
-                '/ext/djblets.extensions.templatetags.tests.TestExtension/js/'
-                'default.min.js\n'
-                '/ext/djblets.extensions.templatetags.tests.TestExtension/js/'
-                'optional.min.js\n')
+        self.assertEqual(
+            t.render(Context({
+                'ext': self.extension,
+                'manager_id': self.key,
+                'request': self.request,
+            })),
+            '/ext/djblets.extensions.templatetags.tests.TestExtension/js/'
+            'default.min.js\n'
+            '/ext/djblets.extensions.templatetags.tests.TestExtension/js/'
+            'optional.min.js\n')

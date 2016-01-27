@@ -3,8 +3,6 @@ from __future__ import unicode_literals
 from django.http import HttpRequest
 from django.template import Context, Template
 
-from djblets.template.loaders.memory import MemoryTemplateLoader
-from djblets.template.loaders.util import add_template_loader
 from djblets.testing.testcases import TestCase
 from djblets.util.templatetags.djblets_js import json_dumps
 
@@ -32,18 +30,15 @@ class UtilsTagTests(TestCase):
         """Testing include_as_string template tag"""
 
         t = Template('{% load djblets_utils %}'
-                     '{% include_as_string "foo" %}')
+                     '{% include_as_string template_name %}')
 
-        loader = MemoryTemplateLoader({
-            'foo': 'var={{var}}',
-        })
-
-        with add_template_loader(loader):
-            self.assertEqual(
-                t.render(Context({
-                    'var': 1
-                })),
-                "'var=1'")
+        self.assertEqual(
+            t.render(Context({
+                'template_name': 'testing/foo.html',
+                'foo': 1,
+                'bar': 2,
+            })),
+            "'1 2\\\n'")
 
     def test_querystring_with_tag(self):
         """Testing querystring_with template tag"""
@@ -100,15 +95,11 @@ class EmailTagTests(TestCase):
         t = Template('{% load djblets_email %}'
                      '{% quoted_email template_name %}')
 
-        loader = MemoryTemplateLoader({
-            'foo': '{{foo}} {{bar}}',
-        })
-
-        with add_template_loader(loader):
-            self.assertEqual(
-                t.render(Context({
-                    'template_name': 'foo',
-                    'foo': 'baz',
-                    'bar': 'qux',
-                })),
-                '> baz qux')
+        self.assertEqual(
+            t.render(Context({
+                'template_name': 'testing/foo.html',
+                'foo': 'baz',
+                'bar': 'qux',
+            })),
+            '> baz qux\n'
+            '>')
