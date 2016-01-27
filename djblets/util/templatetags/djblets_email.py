@@ -30,14 +30,13 @@ import re
 from django import template
 from django.template.loader import render_to_string
 
-from djblets.util.decorators import basictag, blocktag
+from djblets.util.decorators import blocktag
 
 
 register = template.Library()
 
 
-@register.tag
-@basictag(takes_context=True)
+@register.simple_tag(takes_context=True)
 def quoted_email(context, template_name):
     """
     Renders a specified template as a quoted reply, using the current context.

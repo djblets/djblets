@@ -29,14 +29,12 @@ from django.utils.html import format_html
 
 from djblets.gravatars import (get_gravatar_url,
                                get_gravatar_url_for_email)
-from djblets.util.decorators import basictag
 
 
 register = template.Library()
 
 
-@register.tag
-@basictag(takes_context=True)
+@register.simple_tag(takes_context=True)
 def gravatar(context, user, size=None):
     """
     Outputs the HTML for displaying a user's gravatar.
@@ -64,8 +62,7 @@ def gravatar(context, user, size=None):
         return ''
 
 
-@register.tag
-@basictag(takes_context=True)
+@register.simple_tag(takes_context=True)
 def gravatar_url(context, email, size=None):
     """
     Outputs the URL for a gravatar for the given email address.

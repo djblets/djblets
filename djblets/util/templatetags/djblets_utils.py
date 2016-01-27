@@ -36,7 +36,7 @@ from django.utils.safestring import mark_safe
 from django.utils.six.moves.urllib.parse import urlencode
 from django.utils.timezone import is_aware
 
-from djblets.util.decorators import basictag, blocktag
+from djblets.util.decorators import blocktag
 from djblets.util.dates import get_tz_aware_utcnow
 from djblets.util.http import get_url_params_except
 from djblets.util.humanize import humanize_list
@@ -168,8 +168,7 @@ def _check_userorperm(context, user, perm):
             user == req_user.pk)
 
 
-@register.tag
-@basictag(takes_context=True)
+@register.simple_tag(takes_context=True)
 def include_as_string(context, template_name):
     """Include the contents of a template as an escaped string.
 
@@ -646,8 +645,7 @@ def split(s, delim=','):
     return s.split(delim)
 
 
-@register.tag
-@basictag(takes_context=True)
+@register.simple_tag(takes_context=True)
 def querystring_with(context, attr, value):
     """Return the current page URL with a new query string argument added.
 

@@ -108,6 +108,11 @@ def basictag(takes_context=False):
         def printuser(context):
             return context['user']
     """
+    warnings.warn(
+        'djblets.util.decorators.basictag is deprecated. Use '
+        'Library.simple_tag instead.',
+        DeprecationWarning)
+
     class BasicTagNode(template.Node):
         def __init__(self, take_context, tag_name, tag_func, args):
             self.takes_context = takes_context
