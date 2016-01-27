@@ -212,3 +212,86 @@ class SiteConfigTest(TestCase):
                          'django.core.cache.backends.memcached.MemcachedCache')
         self.assertEqual(settings.CACHES['forwarded_backend']['LOCATION'],
                          'localhost:12345')
+
+    def test_siteconfig_get_invalid_key_no_default(self):
+        """Testing SiteConfiguration.get with passing an invalid key without a
+        registered default
+        """
+        self.assertEqual(self.siteconfig.get('invalid_key', default='default'),
+                         'default')
+
+    def test_siteconfig_get_valid_key_default_not_stored(self):
+        """Testing SiteConfiguration.get with passing a valid key stored in
+        the SiteConfiguration instance but not a registered default
+        """
+        self.siteconfig.add_default('valid_key_1', 'valid_parameter_1')
+
+        self.assertEqual(self.siteconfig.get('valid_key_1'),
+                         'valid_parameter_1')
+
+    def test_siteconfig_get_valid_key_default_and_stored(self):
+        """Testing SiteConfiguration.get with passing a valid key stored in
+        the SiteConfiguration instance
+        """
+        self.siteconfig.set('valid_key_2', 'valid_parameter_2')
+
+        self.assertEqual(self.siteconfig.get('valid_key_2'),
+                         'valid_parameter_2')
+
+    def test_siteconfig_set(self):
+        """Testing SiteConfiguration.set with stored in the
+        SiteConfiguration.settings
+        """
+        self.siteconfig.set('valid_key_2', 'valid_parameter_2')
+        self.siteconfig.set('valid_key_3', 'valid_parameter_3')
+
+        self.assertEqual(
+            self.siteconfig.settings,
+            {
+                'valid_key_2': 'valid_parameter_2',
+                'valid_key_3': 'valid_parameter_3',
+            })
+
+    def test_siteconfig_add_defaults(self):
+        """Testing SiteConfiguration.add_defaults with registering defaults
+        """
+        defaults = {
+            'valid_key_1': 'valid_parameter_1',
+            'valid_key_2': 'valid_parameter_2',
+            'valid_key_3': 'valid_parameter_3',
+        }
+
+        self.siteconfig.add_defaults(defaults)
+
+        self.assertEqual(defaults,
+                         self.siteconfig.get_defaults())
+        self.assertEqual(self.siteconfig.get('valid_key_1'),
+                         'valid_parameter_1')
+
+    def test_siteconfig_add_default(self):
+        """Testing SiteConfiguration.add_default with registering default
+        """
+        self.siteconfig.add_default('valid_key_1', 'valid_new_parameter_2')
+
+        self.assertEqual(self.siteconfig.get('valid_key_1'),
+                         'valid_new_parameter_2')
+
+    def test_siteconfig_get_defaults(self):
+        """Testing SiteConfiguration.get_defaults with compare registering value
+        """
+        defaults = {
+            'valid_key_1': 'valid_parameter_1',
+            'valid_key_2': 'valid_parameter_2',
+            'valid_key_3': 'valid_parameter_3',
+        }
+
+        self.siteconfig.add_defaults(defaults)
+        self.siteconfig.add_default('valid_key_1', 'valid_new_parameter_1')
+
+        self.assertEqual(
+            self.siteconfig.get_defaults(),
+            {
+                'valid_key_1': 'valid_new_parameter_1',
+                'valid_key_2': 'valid_parameter_2',
+                'valid_key_3': 'valid_parameter_3',
+            })
