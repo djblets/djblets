@@ -264,6 +264,20 @@ class Registry(object):
         """
         return []
 
+    def reset(self):
+        """Unregister all items and mark the registry unpopulated.
+
+        This will result in the registry containing no entries. Any call to a
+        method that would populate the registry will repopulate it.
+        """
+        if self._populated:
+            for item in self._items.copy():
+                self.unregister(item)
+
+            self._populated = False
+
+        assert len(self._items) == 0
+
     def __iter__(self):
         """Iterate through all items in the registry.
 
