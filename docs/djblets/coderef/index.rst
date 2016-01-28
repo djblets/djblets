@@ -46,7 +46,9 @@ Config Forms
    :toctree: python
 
    djblets.configforms.forms
+   djblets.configforms.mixins
    djblets.configforms.pages
+   djblets.configforms.registry
    djblets.configforms.views
 
 
