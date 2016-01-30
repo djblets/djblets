@@ -35,6 +35,7 @@ class ConfigPageRegistryTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        super(ConfigPageRegistryTests, cls).setUpClass()
         cls.registry = ConfigPageRegistry()
         DynamicConfigPage.registry = cls.registry
 
