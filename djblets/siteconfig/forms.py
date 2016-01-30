@@ -1,75 +1,53 @@
-#
-# forms.py -- Forms for the siteconfig app.
-#
-# Copyright (c) 2008-2009  Christian Hammond
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
+"""A base form for working with settings stored on SiteConfigurations."""
 
 from __future__ import unicode_literals
 
-from django import forms
-from django.utils import six
+from djblets.forms.forms import KeyValueForm
 
 
-class SiteSettingsForm(forms.Form):
+class SiteSettingsForm(KeyValueForm):
+    """A base form for loading/saving settings for a SiteConfiguration.
+
+    This is meant to be subclassed for different settings pages. Any fields
+    defined by the form will be loaded/saved automatically.
     """
-    A base form for loading/saving settings for a SiteConfiguration. This is
-    meant to be subclassed for different settings pages. Any fields defined
-    by the form will be loaded/saved automatically.
-    """
+
     def __init__(self, siteconfig, *args, **kwargs):
         self.request = kwargs.pop('request', None)
-        super(SiteSettingsForm, self).__init__(*args, **kwargs)
         self.siteconfig = siteconfig
-        self.disabled_fields = {}
-        self.disabled_reasons = {}
 
-        self.load()
+        super(SiteSettingsForm, self).__init__(instance=siteconfig,
+                                               *args, **kwargs)
 
-    def load(self):
-        """Load the settings into the form.
+    def get_key_value(self, key, default=None):
+        """Return the value for a SiteConfiguration settings key.
 
-        The default values in the form will be the values in the settings.
+        Args:
+            key (unicode):
+                The settings key.
 
-        This also handles setting disabled fields based on the
-        :py:attr:`disabled_fields` and :py:attr:`disabled_reasons` variables
-        set on this form.
+            default (object):
+                The default value from the form, which will be ignored,
+                so that the registered siteconfig defaults will be used.
+
+        Returns:
+            object:
+            The resulting value from the settings.
         """
-        for field in self.fields:
-            value = self.siteconfig.get(field)
-            self.fields[field].initial = value
+        return self.instance.get(key)
 
-            if field in self.disabled_fields:
-                self.fields[field].widget.attrs['disabled'] = 'disabled'
+    def set_key_value(self, key, value):
+        """Set the value for a SiteConfiguration settings key.
 
-    def save(self):
-        """Saves settings from the form."""
-        if not self.errors:
-            if hasattr(self, "Meta"):
-                save_blacklist = getattr(self.Meta, "save_blacklist", [])
-            else:
-                save_blacklist = []
+        Args:
+            key (unicode):
+                The settings key.
 
-            for key, value in six.iteritems(self.cleaned_data):
-                if key not in save_blacklist:
-                    self.siteconfig.set(key, value)
+            value (object):
+                The settings value.
+        """
+        self.instance.set(key, value)
 
-            self.siteconfig.save()
+    def save_instance(self):
+        """Save the SiteConfiguration instance."""
+        self.instance.save()
