@@ -37,11 +37,22 @@ def run_tests(verbosity=1, interactive=False):
     management.call_command('syncdb', verbosity=verbosity,
                             interactive=interactive)
 
-    nose_argv = ['runtests.py', '-v',
-                 '--with-coverage',
-                 '--with-doctest',
-                 '--doctest-extension=.txt',
-                 '--cover-package=djblets']
+    nose_argv = [
+        'runtests.py',
+        '-v',
+        '--match=^test',
+        '--with-id',
+        '--with-doctest',
+        '--doctest-extension=.txt',
+    ]
+
+    if '--with-coverage' in sys.argv:
+        sys.argv.remove('--with-coverage')
+        nose_argv += [
+            '--with-coverage',
+            '--cover-inclusive',
+            '--cover-package=djblets',
+        ]
 
     if len(sys.argv) > 2:
         nose_argv += sys.argv[2:]
