@@ -159,6 +159,17 @@ Markdown Utilities and Extensions
    djblets.markdown.extensions.wysiwyg_email
 
 
+reCAPTCHA
+=========
+
+.. autosummary::
+   :toctree: python
+
+   djblets.recaptcha.mixins
+   djblets.recaptcha.templatetags.djblets_recaptcha
+   djblets.recaptcha.widgets
+
+
 Registries
 ==========
 
