@@ -199,11 +199,6 @@ class BuildStaticFiles(Command):
             ]
         )
 
-        settings.PIPELINE_JS = pipeline_js
-        settings.PIPELINE_CSS = pipeline_css
-        settings.PIPELINE_ENABLED = True
-        settings.PIPELINE_STORAGE = \
-            'djblets.extensions.staticfiles.PackagingStorage'
         settings.STATIC_ROOT = \
             os.path.join(self.build_lib,
                          os.path.relpath(os.path.join(module_dir, 'static')))
@@ -213,9 +208,9 @@ class BuildStaticFiles(Command):
         # loaded settings.
         from pipeline.conf import settings as pipeline_settings
 
-        for key in six.iterkeys(pipeline_settings.__dict__):
-            if hasattr(settings, key):
-                setattr(pipeline_settings, key, getattr(settings, key))
+        pipeline_settings.JAVASCRIPT = pipeline_js
+        pipeline_settings.STYLESHEETS = pipeline_css
+        pipeline_settings.PIPELINE_ENABLED = True
 
         # Collect and process all static media files.
         call_command('collectstatic', interactive=False, verbosity=2)

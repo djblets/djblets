@@ -66,6 +66,10 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = 'djblets.testing.urls'
 
+
+PIPELINE = {}
+
+
 TEMPLATE_DIRS = (
     os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates')),
 )

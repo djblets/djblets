@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% load compressed djblets_deco %}
+{% load djblets_deco pipeline %}
 
 {% block title %}{{datagrid.title}}{% endblock %}
 
 {% block extrahead %}
-{%  compressed_css "djblets-datagrid" %}
-{%  include "js/jquery.html" %}
-{%  include "js/jquery-ui.html" %}
-{%  compressed_js "djblets-gravy" %}
-{%  compressed_js "djblets-datagrid" %}
+{%  stylesheet 'djblets-datagrid' %}
+{%  include 'js/jquery.html' %}
+{%  include 'js/jquery-ui.html' %}
+{%  javascript 'djblets-gravy' %}
+{%  javascript 'djblets-datagrid' %}
 {% endblock %}
 
 {% block content %}

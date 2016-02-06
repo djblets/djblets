@@ -1,5 +1,5 @@
 {% extends base_template_name %}
-{% load compressed djblets_deco djblets_js i18n %}
+{% load djblets_deco djblets_js i18n pipeline %}
 
 {% block title %}{{page_title}}{% endblock %}
 
@@ -41,26 +41,26 @@
 {% block css %}
 {{block.super}}
 {%  include "css/fontawesome.html" %}
-{%  compressed_css "djblets-config-forms" %}
+{%  stylesheet 'djblets-config-forms' %}
 {%  for bundle_name in css_bundle_names %}
-{%   compressed_css bundle_name %}
+{%   stylesheet bundle_name %}
 {%  endfor %}
 {%  for form in forms %}
 {%   for css_bundle_name in form.css_bundle_names %}
-{%    compressed_css css_bundle_name %}
+{%    stylesheet css_bundle_name %}
 {%   endfor %}
 {%  endfor %}
 {% endblock css %}
 
 {% block scripts-post %}
 {{block.super}}
-{%  compressed_js "djblets-config-forms" %}
+{%  javascript 'djblets-config-forms' %}
 {%  for bundle_name in js_bundle_names %}
-{%   compressed_js bundle_name %}
+{%   javascript bundle_name %}
 {%  endfor %}
 {%  for form in forms %}
 {%   for js_bundle_name in form.js_bundle_names %}
-{%    compressed_js js_bundle_name %}
+{%    javascript js_bundle_name %}
 {%   endfor %}
 {%  endfor %}
 

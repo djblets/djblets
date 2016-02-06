@@ -2,10 +2,12 @@ from __future__ import unicode_literals
 
 import os
 
-from django.contrib.staticfiles.finders import BaseFinder, FileSystemFinder
+from django.contrib.staticfiles.finders import (BaseFinder, FileSystemFinder,
+                                                get_finders)
 from django.contrib.staticfiles.utils import get_files
 from django.core.files.storage import FileSystemStorage
-from pipeline.storage import PipelineCachedStorage, PipelineFinderStorage
+from pipeline.finders import PipelineFinder
+from pipeline.storage import PipelineCachedStorage
 from pkg_resources import resource_filename
 
 from djblets.extensions.manager import get_extension_managers
@@ -18,6 +20,7 @@ class ExtensionStaticStorage(FileSystemStorage):
     path to the static directory within the extension. It will only operate
     on files within that path.
     """
+
     source_dir = 'static'
     prefix = None
 
@@ -109,6 +112,7 @@ class ExtensionFinder(BaseFinder):
 
         if storage is None:
             storage = self.storage_class(extension)
+            storage.prefix = 'ext/%s/' % extension.id
 
             if not os.path.isdir(storage.location):
                 self.ignored_extensions.add(extension)
@@ -183,18 +187,18 @@ class PackagingCachedFilesStorage(PipelineCachedStorage):
         return storage.hashed_name(matched_path, content)
 
 
-class PackagingStorage(PipelineFinderStorage):
+class PackagingStorage(PipelineFinder):
     """Looks up stored files when packaging an extension.
 
     This is a special Pipeline static file storage implementation that can
     locate the proper Storage class when trying to find a file.
 
-    This works just like PipelineFinderStorage, but can interface with
-    PackagingFinder to trigger a lookup across all storages, since
-    PackagingFinder by default limits to the extension's static files.
+    This works just like PipelineFinder, but can interface with PackagingFinder
+    to trigger a lookup across all storages, since PackagingFinder by default
+    limits to the extension's static files.
     """
     def find_storage(self, name):
-        for finder in self.finders.get_finders():
+        for finder in get_finders():
             if isinstance(finder, PackagingFinder):
                 files = finder.list([], all_storages=True)
             else:

@@ -1,20 +1,20 @@
 {% extends "admin/base_site.html" %}
-{% load admin_list compressed djblets_extensions djblets_js i18n staticfiles %}
+{% load admin_list djblets_extensions djblets_js i18n pipeline staticfiles %}
 
 {% block title %}{% trans "Manage Extensions" %} {{block.super}}{% endblock %}
 
 {% block extrahead %}
 <link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />
-{%  compressed_css "djblets-admin" %}
+{%  stylesheet 'djblets-admin' %}
 {%  url 'admin:jsi18n' as jsi18nurl %}
 <script src="{{jsi18nurl|default:"../../../jsi18n/"}}"></script>
 {%  include "js/jquery.html" %}
 {%  include "js/jquery-ui.html" %}
 {%  include "js/underscore.html" %}
 {%  include "js/backbone.html" %}
-{%  compressed_js "djblets-gravy" %}
-{%  compressed_js "djblets-extensions" %}
-{%  compressed_js "djblets-extensions-admin" %}
+{%  javascript 'djblets-gravy' %}
+{%  javascript 'djblets-extensions' %}
+{%  javascript 'djblets-extensions-admin' %}
 
 {{block.super}}
 {% endblock %}
