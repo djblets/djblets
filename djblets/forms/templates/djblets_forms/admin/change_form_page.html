@@ -1,5 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load admin_list compressed djblets_utils i18n staticfiles %}
+{% load admin_list compressed djblets_forms djblets_utils i18n staticfiles %}
 
 {% block title %}
 {%  block page_title %}{{form.Meta.title}}{% endblock %} {{block.super}}
@@ -50,29 +50,27 @@
  <form action="." method="post"{% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
   {% csrf_token %}
 {%  block form_content %}
-{%   if form.Meta.fieldsets %}
-{%    for fieldset in form.Meta.fieldsets %}
+{%   for fieldset_title, fieldset in form|get_fieldsets %}
   <fieldset class="module aligned{% if fieldset.classes %}{% for class in fieldset.classes %} {{class}}{% endfor %}{% endif %}"{% if fieldset.id %} id="fieldset_{{fieldset.id}}"{% endif %}>
-{%     if fieldset.title %}<h2>{{fieldset.title}}</h2>{% endif %}
-{%     if fieldset.description %}
+{%    if fieldset_title %}<h2>{{fieldset_title}}</h2>{% endif %}
+{%    if fieldset.description %}
    <div class="description">
     {{fieldset.description|paragraphs}}
    </div>
-{%     endif %}
-{%     for fieldname in fieldset.fields %}
-{%      with form|getitem:fieldname as field %}
-{%       include "djblets_forms/admin/form_field.html" %}
-{%      endwith %}
-{%     endfor %}
-  </fieldset>
+{%    endif %}
+{%    for fieldname in fieldset.fields %}
+{%     with form|getitem:fieldname as field %}
+{%      include "djblets_forms/admin/form_field.html" %}
+{%     endwith %}
 {%    endfor %}
-{%   else %}
+  </fieldset>
+{%   empty %}
   <fieldset class="module aligned">
 {%    for field in form %}
 {%     include "djblets_forms/admin/form_field.html" %}
 {%    endfor %}
   </fieldset>
-{%   endif %}
+{%   endfor %}
 {%  endblock %}
 
 {%  block submit_row %}
