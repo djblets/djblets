@@ -31,6 +31,7 @@ from django.db import models
 from django.utils import six
 from django.utils.encoding import python_2_unicode_compatible
 
+from djblets.cache.synchronizer import GenerationSynchronizer
 from djblets.db.fields import JSONField
 from djblets.siteconfig.managers import SiteConfigurationManager
 
@@ -78,10 +79,10 @@ class SiteConfiguration(models.Model):
         if cur_site.pk == self.site_id:
             self.site = cur_site
 
-        # Add this key if it doesn't already exist.
-        cache_key = self.__get_sync_cache_key()
-        cache.add(cache_key, 1)
-        self._last_sync_gen = cache.get(cache_key)
+        # Begin managing the synchronization of settings between all
+        # SiteConfigurations.
+        self._gen_sync = GenerationSynchronizer(
+            '%s:siteconfig:%s:generation' % (self.site.domain, self.pk))
 
         self.settings_wrapper = SiteConfigSettingsWrapper(self)
 
@@ -130,22 +131,19 @@ class SiteConfiguration(models.Model):
         return _DEFAULTS[self.id]
 
     def is_expired(self):
-        """
-        Returns whether or not this SiteConfiguration is expired and needs
-        to be reloaded.
-        """
-        sync_gen = cache.get(self.__get_sync_cache_key())
+        """Return whether or not this SiteConfiguration is expired.
 
-        return (sync_gen is None or
-                (type(sync_gen) == int and sync_gen != self._last_sync_gen))
+        If the configuration is expired, it will need to be reloaded before
+        accessing any settings.
+
+        Returns:
+            bool:
+            Whether or not the current state is expired.
+        """
+        return self._gen_sync.is_expired()
 
     def save(self, clear_caches=True, **kwargs):
-        cache_key = self.__get_sync_cache_key()
-
-        try:
-            self._last_sync_gen = cache.incr(cache_key)
-        except ValueError:
-            self._last_sync_gen = cache.add(cache_key, 1)
+        self._gen_sync.mark_updated()
 
         if clear_caches:
             # The cached siteconfig might be stale now. We'll want a refresh.
@@ -155,9 +153,6 @@ class SiteConfiguration(models.Model):
             Site.objects.clear_cache()
 
         super(SiteConfiguration, self).save(**kwargs)
-
-    def __get_sync_cache_key(self):
-        return "%s:siteconfig:%s:generation" % (self.site.domain, self.id)
 
     def __str__(self):
         return "%s (version %s)" % (six.text_type(self.site), self.version)
