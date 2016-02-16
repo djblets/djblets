@@ -183,7 +183,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                         $menu;
 
                     /* Prevent deferring. */
-                    spyOn(_, 'defer').andCallFake(function(cb) {
+                    spyOn(_, 'defer').and.callFake(function(cb) {
                         cb();
                     });
 
@@ -194,7 +194,7 @@ suite('djblets/configForms/views/ListItemView', function() {
 
                     $menu = itemView.$('.action-menu');
                     expect($menu.length).toBe(1);
-                    expect(itemView.trigger.mostRecentCall.args[0]).toBe(
+                    expect(itemView.trigger.calls.mostRecent().args[0]).toBe(
                         'actionMenuPopUp');
                 });
 
@@ -203,7 +203,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                         $menu;
 
                     /* Prevent deferring. */
-                    spyOn(_, 'defer').andCallFake(function(cb) {
+                    spyOn(_, 'defer').and.callFake(function(cb) {
                         cb();
                     });
 
@@ -216,7 +216,7 @@ suite('djblets/configForms/views/ListItemView', function() {
 
                     $(document.body).click();
 
-                    expect(itemView.trigger.mostRecentCall.args[0]).toBe(
+                    expect(itemView.trigger.calls.mostRecent().args[0]).toBe(
                         'actionMenuPopDown');
 
                     $menu = itemView.$('.action-menu');
