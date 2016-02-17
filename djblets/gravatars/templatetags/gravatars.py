@@ -44,10 +44,15 @@ def gravatar(context, user, size=None):
 
     This is also influenced by the following settings:
 
-        GRAVATAR_SIZE    - Default size for gravatars
-        GRAVATAR_RATING  - Maximum allowed rating (g, pg, r, x)
-        GRAVATAR_DEFAULT - Default image set to show if the user hasn't
-                           specified a gravatar (identicon, monsterid, wavatar)
+    ``GRAVATAR_SIZE``:
+        Default size for gravatars.
+
+    ``GRAVATAR_RATING``:
+        Maximum allowed rating (``g``, ``pg``, ``r``, ``x``)
+
+    ``GRAVATAR_DEFAULT``:
+        Default image set to show if the user hasn't specified a gravatar
+        (``identicon``, ``monsterid``, ``wavatar``)
 
     See http://www.gravatar.com/ for more information.
     """
@@ -72,10 +77,15 @@ def gravatar_url(context, email, size=None):
 
     This is also influenced by the following settings:
 
-        GRAVATAR_SIZE    - Default size for gravatars
-        GRAVATAR_RATING  - Maximum allowed rating (g, pg, r, x)
-        GRAVATAR_DEFAULT - Default image set to show if the user hasn't
-                           specified a gravatar (identicon, monsterid, wavatar)
+    ``GRAVATAR_SIZE``:
+        Default size for gravatars.
+
+    ``GRAVATAR_RATING``:
+        Maximum allowed rating (``g``, ``pg``, ``r``, ``x``)
+
+    ``GRAVATAR_DEFAULT``:
+        Default image set to show if the user hasn't specified a gravatar
+        (``identicon``, ``monsterid``, ``wavatar``)
 
     See http://www.gravatar.com/ for more information.
     """

@@ -64,6 +64,7 @@ except ImportError:
     template_source_loaders = None
 
 from djblets.cache.backend import make_cache_key
+from djblets.cache.synchronizer import GenerationSynchronizer
 from djblets.extensions.errors import (EnablingExtensionError,
                                        InstallExtensionError,
                                        InvalidExtensionError)
@@ -188,8 +189,7 @@ class ExtensionManager(object):
         self._load_errors = {}
 
         # State synchronization
-        self._sync_key = make_cache_key('extensionmgr:%s:gen' % key)
-        self._last_sync_gen = None
+        self._gen_sync = GenerationSynchronizer('extensionmgr:%s:gen' % key)
         self._load_lock = threading.Lock()
         self._shutdown_lock = threading.Lock()
         self._block_sync_gen = False
@@ -226,14 +226,20 @@ class ExtensionManager(object):
         falls out of cache or is changed.
 
         Each ExtensionManager has its own state synchronization cache key.
-        """
-        sync_gen = cache.get(self._sync_key)
 
-        return (sync_gen is None or
-                (type(sync_gen) is int and sync_gen != self._last_sync_gen))
+        Returns:
+            bool:
+            Whether the state has expired.
+        """
+        return self._gen_sync.is_expired()
 
     def clear_sync_cache(self):
-        cache.delete(self._sync_key)
+        """Clear the extension synchronization state.
+
+        This will force every process to reload the extension list and
+        settings.
+        """
+        self._gen_sync.clear()
 
     def get_absolute_url(self):
         return reverse("djblets.extensions.views.extension_list")
@@ -547,9 +553,8 @@ class ExtensionManager(object):
                      for requirement_id in ext_class.requirements]
 
         # Add the sync generation if it doesn't already exist.
-        self._add_new_sync_gen()
-        self._last_sync_gen = cache.get(self._sync_key)
-        settings.AJAX_SERIAL = self._last_sync_gen
+        self._gen_sync.refresh()
+        settings.AJAX_SERIAL = self._gen_sync.sync_gen
 
         if extensions_changed:
             self._recalculate_middleware()
@@ -1029,16 +1034,8 @@ class ExtensionManager(object):
         if self._block_sync_gen:
             return
 
-        try:
-            self._last_sync_gen = cache.incr(self._sync_key)
-        except ValueError:
-            self._last_sync_gen = self._add_new_sync_gen()
-
-        settings.AJAX_SERIAL = self._last_sync_gen
-
-    def _add_new_sync_gen(self):
-        val = time.mktime(datetime.datetime.now().timetuple())
-        return cache.add(self._sync_key, int(val))
+        self._gen_sync.mark_updated()
+        settings.AJAX_SERIAL = self._gen_sync.sync_gen
 
     def _migrate_extension_models(self, ext_class):
         """Perform database migrations for an extension's models.
