@@ -26,13 +26,10 @@ class RecaptchaFormMixin(forms.Form):
     classes to ensure the reCAPTCHA field is the last.
     """
 
-    def __init__(self, request, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Initialize the mixin.
 
         Args:
-            request (django.http.HttpRequest):
-                The current HTTP request.
-
             *args (tuple):
                 Additional positional arguments to pass to the superclass
                 constructor.
@@ -58,9 +55,17 @@ class RecaptchaFormMixin(forms.Form):
 
     def clean(self):
         if self.verify_recaptcha:
+            recaptcha_response = self.cleaned_data.get('g-recaptcha-response')
+
+            if not recaptcha_response:
+                raise ValidationError([
+                    _("You must verify that you're not a robot by clicking "
+                      "\"'I'm not a robot.\"")
+                ])
+
             data = urlencode({
                 'secret': settings.RECAPTCHA_PRIVATE_KEY,
-                'response': self.cleaned_data['g-recaptcha-response'],
+                'response': recaptcha_response,
                 'remote-ip': self.request.META.get('REMOTE_ADDR'),
             })
 
