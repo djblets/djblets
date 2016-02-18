@@ -1,0 +1,23 @@
+============================
+Djblets 0.8.24 Release Notes
+============================
+
+**Release date**: TBD
+
+
+djblets.datagrid
+================
+
+* Fix errors with datagrid sorting with trailing commas.
+
+  Some search crawlers such as Bingbot can attempt to load a datagrid with a
+  sort column list that had a trailing comma, causing a crash. This now filters
+  out any invalid column names.
+
+
+Contributors
+============
+* Barret Rennie
+* Christian Hammond
+* David Trowbridge
+* Weijie Sun
