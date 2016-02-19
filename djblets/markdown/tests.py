@@ -180,6 +180,28 @@ class MarkdownUtilsTests(MarkdownTestCase):
             '<ul start="3"><li>y</li></ul>',
         ])
 
+    def test_markdown_codehilite_blocks(self):
+        """Testing iteration of Markdown codehilite blocks"""
+        rendered = '\n'.join([
+            '<div class="codehilite"><pre>Line one',
+            'Line two',
+            'Line three',
+            'Line four',
+            '</pre></div>',
+        ])
+        lines = list(iter_markdown_lines(rendered))
+
+        self.assertEqual(lines, [
+            ('<div class="codehilite codehilite-multiline-start"><pre>'
+             'Line one</pre></div>'),
+            ('<div class="codehilite codehilite-multiline-middle"><pre>'
+             'Line two</pre></div>'),
+            ('<div class="codehilite codehilite-multiline-middle"><pre>'
+             'Line three</pre></div>'),
+            ('<div class="codehilite codehilite-multiline-end"><pre>'
+             'Line four</pre></div>'),
+        ])
+
     def test_sanitize_illegal_chars(self):
         """Testing sanitize_illegal_chars_for_xml"""
         s = '<a>\u2018\u2019\u201c\u201d\u201c\u201d</a>'
