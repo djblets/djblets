@@ -123,10 +123,33 @@ def iter_markdown_lines(markdown_html):
             if (node.tagName == 'div' and
                 node.attributes.get('class', 'codehilite')):
                 # This is a code block, which will consist of a bunch of lines
-                # for the source code. We want to split that up into
-                # individual lines with their own <pre> tags.
-                for line in node.toxml().splitlines():
-                    yield '<pre>%s</pre>' % line
+                # for the source code. It contains a single <pre> element
+                # within it that contains the full code block. We want to split
+                # that up into individual lines which are each wrapped in their
+                # own <div class="codehilite"><pre> elements.
+                child_lines = node.firstChild.toxml().splitlines()
+
+                # The first and last lines in child_lines begin and end with
+                # <pre> and </pre>, respectively. Clear that out.
+                assert child_lines[0].startswith('<pre>')
+                assert child_lines[-1].endswith('</pre>')
+                child_lines[0] = child_lines[0][len('<pre>'):]
+                child_lines[-1] = child_lines[-1][:-len('</pre>')]
+                if not child_lines[-1]:
+                    child_lines = child_lines[:-1]
+
+                fmt = '<div class="codehilite%s"><pre>%s</pre></div>'
+
+                # If there's just a single line, output that directly
+                if len(child_lines) == 1:
+                    yield fmt % ('', child_lines[0])
+                elif len(child_lines) > 1:
+                    yield fmt % (' codehilite-multiline-start', child_lines[0])
+
+                    for line in child_lines[1:-1]:
+                        yield fmt % (' codehilite-multiline-middle', line)
+
+                    yield fmt % (' codehilite-multiline-end', child_lines[-1])
             elif node.tagName in ('ul', 'ol'):
                 # This is a list. We'll need to split all of its items
                 # into individual lists, in order to retain bullet points

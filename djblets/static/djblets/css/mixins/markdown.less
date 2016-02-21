@@ -179,5 +179,21 @@
       margin-left: 0;
       padding: 0.2em 0.5em;
     }
+
+    &.codehilite-multiline-start {
+      .border-radius(3px 3px 0 0);
+      border-bottom: 0;
+    }
+
+    &.codehilite-multiline-middle {
+      .border-radius(0);
+      border-top: 0;
+      border-bottom: 0;
+    }
+
+    &.codehilite-multiline-end {
+      .border-radius(0 0 3px 3px);
+      border-top: 0;
+    }
   }
 }
