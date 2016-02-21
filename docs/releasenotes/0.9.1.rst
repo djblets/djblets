@@ -1,0 +1,32 @@
+===========================
+Djblets 0.9.1 Release Notes
+===========================
+
+**Release date**: TBD
+
+
+djblets.datagrid
+================
+
+* Fix errors with datagrid sorting with trailing commas.
+
+  Some search crawlers such as Bingbot can attempt to load a datagrid with a
+  sort column list that had a trailing comma, causing a crash. This now filters
+  out any invalid column names.
+
+
+djblets.util
+============
+
+* Added support for serializing Django models to
+  :py:class:`djblets.util.serializers.DjbletsJSONEncoder`.
+
+  Models which include a :py:func:`to_json` method can now be serialized using
+  the basic encoder, which makes it easier to adapt models to WebAPI resources.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Weijie Sun
