@@ -2,7 +2,7 @@
 Djblets 0.8.24 Release Notes
 ============================
 
-**Release date**: TBD
+**Release date**: February 21, 2016
 
 
 Compatibility
