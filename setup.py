@@ -100,7 +100,7 @@ setup(name=PACKAGE_NAME,
           django_version,
           'django-pipeline==1.2.24',
           'feedparser>=5.1.2',
-          'pillowfight',
+          'PIL',
           'pytz',
       ],
       dependency_links = [
