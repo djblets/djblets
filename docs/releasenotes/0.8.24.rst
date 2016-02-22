@@ -5,6 +5,15 @@ Djblets 0.8.24 Release Notes
 **Release date**: TBD
 
 
+Compatibility
+=============
+
+If you use django-storages_, make sure you're using a recent version (we
+recommend 1.1.8 or newer), as this release exposes a bug in earlier releases.
+
+.. _django-storages: https://django-storages.readthedocs.org/en/latest/
+
+
 djblets.datagrid
 ================
 
@@ -15,8 +24,40 @@ djblets.datagrid
   out any invalid column names.
 
 
+djblets.extensions
+==================
+
+* Added the ability to set custom settings data for JavaScript extensions.
+
+  JavaScript extensions (those using
+  :py:class:`~djblets.extensions.extension.JSExtension`) used to output all
+  of an extension's stored settings into the page. Extensions that want to
+  limit that data, or provide a custom set of extension settings data, can
+  override this using :py:meth:`JSExtension.get_settings
+  <djblets.extensions.extension.JSExtension.get_settings>`.
+
+
+djblets.urls
+============
+
+* Sped up the clearing of URL caches in
+  :py:class:`~djblets.urls.resolvers.DynamicURLResolver`.
+
+
+djblets.util
+============
+
+* Simplified generation of thumbnails and image crops, leading to
+  performance gains.
+
+* :py:func:`~djblets.util.decorators.simple_decorator` and
+  :py:func:`~djblets.util.decorators.basictag` now properly set
+  ``__module__``.
+
+
 Contributors
 ============
+
 * Barret Rennie
 * Christian Hammond
 * David Trowbridge
