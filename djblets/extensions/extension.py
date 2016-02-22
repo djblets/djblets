@@ -54,7 +54,9 @@ class JSExtension(object):
 
     To provide additional data to the model instance, the JSExtension subclass
     can implement :py:meth:`get_model_data` and return a dictionary of data
-    to pass.
+    to pass. You may also override the :py:meth`get_settings` method to return,
+    a dict of settings to the :py:class:`model_class`. By default, the
+    associated extension's settings are returned.
     """
     model_class = None
     apply_to = None
@@ -73,6 +75,22 @@ class JSExtension(object):
         the extension.
         """
         return {}
+
+    def get_settings(self):
+        """Return the settings for the JS Extension.
+
+        By default, this is the associated :py:class:`Extension` object's
+        settings. Subclasses may override this method to provide different
+        settings.
+
+        These settings will be provided to the :py:attr:`model_class` as a
+        ``settings`` key in its initialization options.
+
+        Returns:
+            dict:
+            The extension settings.
+        """
+        return self.extension.settings
 
 
 class Extension(object):
