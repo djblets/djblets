@@ -2,17 +2,7 @@
 Djblets 0.7.32 Release Notes
 ============================
 
-**Release date**: TBD
-
-
-Compatibility Changes
-=====================
-
-* New dependency on PillowFight.
-
-  New installations of Djblets 0.7 will now dynamically resolve to either PIL
-  or Pillow depending on what is installed on the system, or prefer Pillow if
-  neither is installed.
+**Release date**: February 21, 2016
 
 
 djblets.siteconfig
