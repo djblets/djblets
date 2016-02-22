@@ -10,7 +10,7 @@
         id: '{{js_extension.extension.id}}',
         name: '{{js_extension.extension.info.name|escapejs}}',
         urlName: '{{url_name}}',
-        settings: {{js_extension.extension.settings|json_dumps}}
+        settings: {{js_extension.get_settings|json_dumps}}
     });
 {%  endfor %}
 </script>
