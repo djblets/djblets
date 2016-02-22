@@ -40,7 +40,7 @@ class RecaptchaFormMixin(forms.Form):
         """
         super(RecaptchaFormMixin, self).__init__(*args, **kwargs)
         self.fields['g-recaptcha-response'] = forms.CharField(
-            required=True,
+            required=False,
             widget=RecaptchaWidget)
 
     @property
