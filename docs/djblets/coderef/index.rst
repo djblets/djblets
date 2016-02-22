@@ -24,6 +24,16 @@ Authentication
    djblets.auth.views
 
 
+Avatars
+=======
+
+.. autosummary::
+   :toctree: python
+
+   djblets.avatars.errors
+   djblets.avatars.registry
+   djblets.avatars.services
+
 
 Caching
 =======

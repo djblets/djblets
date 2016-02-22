@@ -84,12 +84,17 @@ class Registry(object):
     #: subclass as this attribute.
     default_errors = DEFAULT_ERRORS
 
-    def format_error(self, error_name, **error_kwargs):
-        fmt = self.errors.get(error_name,
-                              self.default_errors[error_name])
-        assert fmt
+    #: The lookup error exception class.
+    lookup_error_class = ItemLookupError
 
-        return fmt % error_kwargs
+    @property
+    def populated(self):
+        """Whether or not the registry is populated.
+
+        Returns:
+            bool: Whether or not the registry is populated.
+        """
+        return self._populated
 
     def __init__(self):
         """Initialize the registry."""
@@ -99,6 +104,30 @@ class Registry(object):
 
         for attr_name in self.lookup_attrs:
             self._registry[attr_name] = {}
+
+    def format_error(self, error_name, **error_kwargs):
+        """Format an error message.
+
+        Args:
+            error_name (unicode):
+                A symbolic name for the error, such as
+                :py:data:`ALREADY_REGISTERED`.
+
+            **error_kwargs (dict):
+                The keyword arguments to provide to the error-specific
+                formatting string.
+
+        Returns:
+            unicode:
+                The formatted error message.
+        """
+        fmt = self.errors.get(error_name, self.default_errors.get(error_name))
+
+        if fmt is None:
+            raise ValueError('%s.format_error: Unknown error: "%s".',
+                             type(self), error_name)
+
+        return fmt % error_kwargs
 
     def get(self, attr_name, attr_value):
         """Return an item by its attribute value.
@@ -123,15 +152,14 @@ class Registry(object):
         try:
             attr_map = self._registry[attr_name]
         except KeyError:
-            raise ItemLookupError(self.format_error(INVALID_ATTRIBUTE,
-                                                    attr_name=attr_name))
+            raise self.lookup_error_class(self.format_error(
+                INVALID_ATTRIBUTE, attr_name=attr_name))
 
         try:
             return attr_map[attr_value]
         except KeyError:
-            raise ItemLookupError(self.format_error(NOT_REGISTERED,
-                                                    attr_name=attr_name,
-                                                    attr_value=attr_value))
+            raise self.lookup_error_class(self.format_error(
+                NOT_REGISTERED, attr_name=attr_name, attr_value=attr_value))
 
     def register(self, item):
         """Register an item.
@@ -202,14 +230,13 @@ class Registry(object):
         try:
             attr_map = self._registry[attr_name]
         except KeyError:
-            raise ItemLookupError(self.format_error(INVALID_ATTRIBUTE,
-                                                    attr_name=attr_name))
+            raise self.lookup_error_class(self.format_error(
+                INVALID_ATTRIBUTE, attr_name=attr_name))
         try:
             item = attr_map[attr_value]
         except KeyError:
-            raise ItemLookupError(self.format_error(NOT_REGISTERED,
-                                                    attr_name=attr_name,
-                                                    attr_value=attr_value))
+            raise self.lookup_error_class(self.format_error(
+                NOT_REGISTERED, attr_name=attr_name, attr_value=attr_value))
 
         self.unregister(item)
 
@@ -229,7 +256,8 @@ class Registry(object):
         try:
             self._items.remove(item)
         except KeyError:
-            raise ItemLookupError(self.format_error(UNREGISTER, item=item))
+            raise self.lookup_error_class(self.format_error(UNREGISTER,
+                                                            item=item))
 
         for attr_name in self.lookup_attrs:
             attr_value = getattr(item, attr_name)
@@ -238,20 +266,15 @@ class Registry(object):
     def populate(self):
         """Ensure the registry is populated.
 
-        Calling this method more than once will have no effect.
-
-        Returns:
-            bool: Whether or not this was the first call to the method.
+        Calling this method when the registry is populated will have no effect.
         """
         if self._populated:
-            return False
+            return
 
         self._populated = True
 
         for item in self.get_defaults():
             self.register(item)
-
-        return True
 
     def get_defaults(self):
         """Return the default items for the registry.

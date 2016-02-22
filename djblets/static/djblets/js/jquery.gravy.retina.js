@@ -22,6 +22,80 @@
  */
 (function($) {
 
+/* Whether or not the browser supports the ``srcset`` attribute.
+ *
+ * All versions of IE and Edge do not support this attribute so we need to
+ * polyfill for them.
+ */
+var supportsSourceSet = ($('<img src="" />').get().srcset === '');
+
+/*
+ * Parse the ``srcset`` attribute.
+ *
+ * Args:
+ *     srcset (String):
+ *         The source set, as a string of comma-separated URLs and descriptors.
+ *
+ * Returns:
+ *     Object: A mapping of descriptors to URLs.
+ */
+function parseSourceSet(srcset) {
+    var urls = {},
+        sources = srcset.split(','),
+        i,
+        parts,
+        url,
+        descriptor;
+
+    for (i = 0; i < sources.length; i++) {
+        parts = sources[i].trim().split(' ');
+        url = parts[0];
+
+        if (parts.length !== 2) {
+            descriptor = parts[1];
+        } else {
+            descriptor = '1x';
+        }
+
+        urls[descriptor] = url;
+    }
+
+    return urls;
+}
+
+/*
+ * If appropriate, reload avatar <img> tags with retina resolution equivalents.
+ */
+$.fn.retinaAvatar = function() {
+    var pixelRatio = window.devicePixelRatio;
+
+    if (pixelRatio > 1 && !supportsSourceSet) {
+        /*
+         * It is more useful to provide a 2x avatar on a 1.5 pixel ratio than
+         * to provide a 1x avatar.
+          */
+        pixelRatio = Math.ceil(pixelRatio);
+
+        $(this).each(function() {
+            var $el = $(this),
+                urls = parseSourceSet($el.attr('srcset')),
+                descriptor,
+                url;
+
+            for (descriptor = pixelRatio; descriptor > 0; descriptor--) {
+                url = urls[descriptor + 'x'];
+
+                if (url !== undefined) {
+                    $el
+                        .attr('src', url)
+                        .addClass('avatar-at' + descriptor + 'x');
+
+                    return;
+                }
+            }
+        });
+    }
+};
 
 /*
  * If appropriate, reload gravatar <img> tags with retina resolution
