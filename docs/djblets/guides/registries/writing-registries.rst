@@ -19,8 +19,8 @@ no two registered elements will have the same value for that attribute.
 Subclassing Registries
 ----------------------
 
-Registries are intended to be subclassed. They have two attributes that
-subclasses should override to customize the behaviour:
+Registries are intended to be subclassed. They have attributes that subclasses
+should override to customize the behaviour:
 
 * :py:attr:`~Registry.lookup_attrs`, which determine which attributes on the
   elements will be usable as lookup attributes. This should be either a
@@ -52,6 +52,10 @@ subclasses should override to customize the behaviour:
 
   These messages override the default error messages, which are defined in the
   :py:data:`DEFAULT_ERRORS` dictionary.
+
+* :py:attr:`~Registry.lookup_error_class`, which determines the exception class
+  for item lookup errors (i.e., when an item cannot be found in the registry).
+  This should be a sub-class of `~djblets.registries.errors.ItemLookupError`.
 
 
 Overriding Error Messages

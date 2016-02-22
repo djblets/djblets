@@ -29,6 +29,7 @@ import logging
 
 from django import template
 from django.utils import six
+from django.utils.html import mark_safe
 from django.utils.six.moves import cStringIO as StringIO
 from PIL import Image
 
@@ -135,3 +136,22 @@ def thumbnail(f, size='400x100'):
             return ""
 
     return storage.url(miniature)
+
+
+@register.simple_tag
+def srcset(sources):
+    """Render the source set attribute for the given sources.
+
+    Args:
+        sources (dict):
+            A mapping of descriptors (e.g., ``'2x'`` or ``'512w'``) that
+            describe the requirement for the source to be shown to URLs.
+
+    Returns:
+        unicode: The rendered ``srcset`` attribute.
+    """
+    return mark_safe(', '.join(
+        '%s %s' % (url, descriptor)
+        for descriptor, url in six.iteritems(sources)
+        if url is not None
+    ))

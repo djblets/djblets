@@ -19,7 +19,7 @@ class EmailMessage(EmailMultiAlternatives):
     """
 
     def __init__(self, subject, text_body, html_body, from_email, to, cc=None,
-                 sender=None, in_reply_to=None, headers=None,
+                 bcc=None, sender=None, in_reply_to=None, headers=None,
                  auto_generated=False, prevent_auto_responses=False):
         """Create a new EmailMessage.
 
@@ -40,10 +40,15 @@ class EmailMessage(EmailMultiAlternatives):
                 A list of e-mail addresses as :py:class:`unicode` objects that
                 are to receive the e-mail.
 
-            cc (list)
+            cc (list):
                 A list of e-mail addresses as :py:class:`unicode` objects that
                 are to receive a carbon copy of the e-mail, or ``None`` if
                 there are no CC recipients.
+
+            bcc (list):
+                A list of e-mail addresses as :py:class:`unicode` objects that
+                are to receive a blind carbon copy of the e-mail, or ``None``
+                if there are not BCC recipients.
 
             in_reply_to (unicode):
                 An optional message ID (which will be used as the value for the
@@ -93,10 +98,8 @@ class EmailMessage(EmailMultiAlternatives):
             headers['X-Auto-Response-Suppress'] = 'DR, RN, OOF, AutoReply'
 
         super(EmailMessage, self).__init__(
-            subject, text_body, settings.DEFAULT_FROM_EMAIL, to,
-            headers={
-                'From': from_email,
-            })
+            subject, text_body, settings.DEFAULT_FROM_EMAIL, to, cc=cc,
+            bcc=bcc, headers={'From': from_email})
 
         self.cc = cc or []
         self.message_id = None
