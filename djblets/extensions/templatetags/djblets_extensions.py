@@ -93,8 +93,8 @@ def ext_js_bundle(context, extension, name):
 
 
 def _get_extension_bundles(extension_manager_key, context, bundle_attr,
-                           renderer):
-    """Returns media bundles that can be rendered on the current page.
+                           default_bundles, renderer):
+    """Yield media bundles that can be rendered on the current page.
 
     This will look through all enabled extensions and find any with static
     media bundles that should be included on the current page, as indicated
@@ -102,6 +102,31 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
 
     All bundles marked "default" will be included, as will any with an
     ``apply_to`` field containing a URL name matching the current page.
+
+    If a bundle has an ``include_bundles`` key, the referenced bundles will
+    also be outputted. Note that this does not check for duplicates, and is
+    not recursive.
+
+    Args:
+        extension_manager_key (unicode):
+            The key for the extension manager for these bundles.
+
+        context (django.template.Context):
+            The template context.
+
+        bundle_attr (unicode):
+            The attribute name for the bundle on the extension class.
+
+        default_bundles (unicode):
+            A string containing a comma-separated list of bundles to always
+            include.
+
+        renderer (callable):
+            The renderer function to call for each applicable bundle.
+
+    Yields:
+        unicode:
+        The HTML used to include the bundled content.
     """
     request = context['request']
 
@@ -109,6 +134,7 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
         return
 
     requested_url_name = request.resolver_match.url_name
+    default_bundles = set(default_bundles.split(','))
 
     for manager in get_extension_managers():
         if manager.key != extension_manager_key:
@@ -118,8 +144,11 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
             bundles = getattr(extension, bundle_attr, {})
 
             for bundle_name, bundle in six.iteritems(bundles):
-                if (bundle_name == 'default' or
+                if (bundle_name in default_bundles or
                     requested_url_name in bundle.get('apply_to', [])):
+                    for include_bundle in bundle.get('include_bundles', []):
+                        yield renderer(context, extension, include_bundle)
+
                     yield renderer(context, extension, bundle_name)
 
         break
@@ -127,26 +156,60 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
 
 @register.tag
 @basictag(takes_context=True)
-def load_extensions_css(context, extension_manager_key):
-    """Loads all CSS bundles that can be rendered on the current page.
+def load_extensions_css(context, extension_manager_key,
+                        default_bundles='default'):
+    """Load all CSS bundles that can be rendered on the current page.
 
     This will include all "default" bundles and any with an ``apply_to``
     containing a URL name matching the current page.
+
+    Args:
+        context (django.template.Context):
+            The template context.
+
+        extension_manager_key (unicode):
+            The key for the extension manager for these bundles.
+
+        default_bundles (unicode):
+            A string containing a comma-separated list of bundles to always
+            include. Defaults to ``"default"``.
+
+    Returns:
+        unicode:
+        The HTML used to include the bundled content.
     """
     return ''.join(_get_extension_bundles(
-        extension_manager_key, context, 'css_bundles', _render_css_bundle))
+        extension_manager_key, context, 'css_bundles', default_bundles,
+        _render_css_bundle))
 
 
 @register.tag
 @basictag(takes_context=True)
-def load_extensions_js(context, extension_manager_key):
-    """Loads all JavaScript bundles that can be rendered on the current page.
+def load_extensions_js(context, extension_manager_key,
+                       default_bundles='default'):
+    """Load all JavaScript bundles that can be rendered on the current page.
 
     This will include all "default" bundles and any with an ``apply_to``
     containing a URL name matching the current page.
+
+    Args:
+        context (django.template.Context):
+            The template context.
+
+        extension_manager_key (unicode):
+            The key for the extension manager for these bundles.
+
+        default_bundles (unicode):
+            A string containing a comma-separated list of bundles to always
+            include. Defaults to ``"default"``.
+
+    Returns:
+        unicode:
+        The HTML used to include the bundled content.
     """
     return ''.join(_get_extension_bundles(
-        extension_manager_key, context, 'js_bundles', _render_js_bundle))
+        extension_manager_key, context, 'js_bundles', default_bundles,
+        _render_js_bundle))
 
 
 @register.inclusion_tag('extensions/init_js_extensions.html',
