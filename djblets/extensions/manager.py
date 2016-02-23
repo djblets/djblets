@@ -54,6 +54,7 @@ from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
 from django.utils.six.moves import cStringIO as StringIO
 from django.utils.translation import ugettext as _
+from pipeline.conf import settings as pipeline_settings
 from setuptools.command import easy_install
 
 try:
@@ -941,15 +942,9 @@ class ExtensionManager(object):
 
                 pipeline_bundles[extension.get_bundle_id(name)] = new_bundle
 
-        if not hasattr(settings, 'PIPELINE_CSS'):
-            settings.PIPELINE_CSS = {}
-
-        if not hasattr(settings, 'PIPELINE_JS'):
-            settings.PIPELINE_JS = {}
-
-        _add_bundles(settings.PIPELINE_CSS, extension.css_bundles,
+        _add_bundles(pipeline_settings.STYLESHEETS, extension.css_bundles,
                      'css', '.css')
-        _add_bundles(settings.PIPELINE_JS, extension.js_bundles,
+        _add_bundles(pipeline_settings.JAVASCRIPT, extension.js_bundles,
                      'js', '.js')
 
     def _unregister_static_bundles(self, extension):
@@ -964,11 +959,12 @@ class ExtensionManager(object):
                 except KeyError:
                     pass
 
-        if hasattr(settings, 'PIPELINE_CSS'):
-            _remove_bundles(settings.PIPELINE_CSS, extension.css_bundles)
+        if hasattr(settings, 'PIPELINE'):
+            _remove_bundles(pipeline_settings.STYLESHEETS,
+                            extension.css_bundles)
 
-        if hasattr(settings, 'PIPELINE_JS'):
-            _remove_bundles(settings.PIPELINE_JS, extension.js_bundles)
+            _remove_bundles(pipeline_settings.JAVASCRIPT,
+                            extension.js_bundles)
 
     def _init_admin_site(self, extension):
         """Creates and initializes an admin site for an extension.

@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from django.forms import Form
 from django.http import HttpRequest
 from django.template import Context, Template
+from pipeline.conf import settings as pipeline_settings
 
 from djblets.testing.testcases import TestCase
 from djblets.util.templatetags.djblets_js import json_dumps
@@ -179,3 +180,37 @@ class FormsTests(TestCase):
             'Title: None\n'
             'Description: This is test 2\n'
             'Fields: field_3,field_4\n')
+
+
+class CompressedTagTests(TestCase):
+    """Tests for compressed template tags."""
+
+    def test_compressed_css_tag(self):
+        """Testing compressed_css template tag"""
+        pipeline_settings.STYLESHEETS = {
+            'test': {
+                'source_filenames': [],
+                'output_filename': 'test.css',
+            }
+        }
+
+        t = Template('{% load compressed %}'
+                     '{% compressed_css "test" %}')
+
+        self.assertEqual(t.render(Context({'test': 'test'})),
+                         '/test.css\n')
+
+    def test_compressed_js_tag(self):
+        """Testing compressed_js template tag"""
+        pipeline_settings.JAVASCRIPT = {
+            'test': {
+                'source_filenames': [],
+                'output_filename': 'test.js',
+            }
+        }
+
+        t = Template('{% load compressed %}'
+                     '{% compressed_js "test" %}')
+
+        self.assertEqual(t.render(Context({'test': 'test'})),
+                         '/test.js\n')

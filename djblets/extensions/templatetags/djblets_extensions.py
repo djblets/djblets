@@ -4,8 +4,7 @@ import logging
 
 from django import template
 from django.utils import six
-from pipeline.templatetags.compressed import (CompressedCSSNode,
-                                              CompressedJSNode)
+from pipeline.templatetags.pipeline import JavascriptNode, StylesheetNode
 
 from djblets.extensions.hooks import TemplateHook
 from djblets.extensions.manager import get_extension_managers
@@ -57,38 +56,98 @@ def ext_static(context, extension, path):
 def _render_bundle(context, node_cls, extension, name, bundle_type):
     try:
         return node_cls('"%s"' % extension.get_bundle_id(name)).render(context)
-    except Exception as e:
-        logging.critical("Unable to load %s bundle '%s' for "
-                         "extension '%s' (%s): %s",
-                         bundle_type, name, extension.info.name,
-                         extension.id, e, exc_info=1)
-        return ''
+    except:
+        logging.exception('Unable to load %s bundle "%s" for extension "%s" '
+                          '(%s)',
+                          bundle_type, name, extension.info.name, extension.id)
+        raise
 
 
 def _render_css_bundle(context, extension, name):
-    return _render_bundle(context, CompressedCSSNode, extension, name, 'CSS')
+    """Render a given CSS bundle.
+
+    Args:
+        context (dict):
+            The template rendering context.
+
+        extension (djblets.extensions.extension.Extension):
+            The extension instance.
+
+        name (unicode):
+            The name of the CSS bundle to render.
+
+    Returns:
+        django.utils.safetext.SafeString:
+        The rendered HTML.
+    """
+    return _render_bundle(context, StylesheetNode, extension, name, 'CSS')
 
 
 def _render_js_bundle(context, extension, name):
-    return _render_bundle(context, CompressedJSNode, extension, name,
-                          'JavaScript')
+    """Render a given JavaScript bundle.
+
+    Args:
+        context (dict):
+            The template rendering context.
+
+        extension (djblets.extensions.extension.Extension):
+            The extension instance.
+
+        name (unicode):
+            The name of the JS bundle to render.
+
+    Returns:
+        django.utils.safetext.SafeString:
+        The rendered HTML.
+    """
+    return _render_bundle(context, JavascriptNode, extension, name, 'JS')
 
 
 @register.simple_tag(takes_context=True)
 def ext_css_bundle(context, extension, name):
-    """Outputs HTML to import an extension's CSS bundle."""
+    """Return HTML to import an extension's CSS bundle.
+
+    Args:
+        context (dict):
+            The template rendering context.
+
+        extension (djblets.extensions.extension.Extension):
+            The extension instance.
+
+        name (unicode):
+            The name of the CSS bundle to render.
+
+    Returns:
+        django.utils.safetext.SafeString:
+        The rendered HTML.
+    """
     return _render_css_bundle(context, extension, name)
 
 
 @register.simple_tag(takes_context=True)
 def ext_js_bundle(context, extension, name):
-    """Outputs HTML to import an extension's JavaScript bundle."""
+    """Return HTML to import an extension's JavaScript bundle.
+
+    Args:
+        context (dict):
+            The template rendering context.
+
+        extension (djblets.extensions.extension.Extension):
+            The extension instance.
+
+        name (unicode):
+            The name of the CSS bundle to render.
+
+    Returns:
+        django.utils.safetext.SafeString:
+        The rendered HTML.
+    """
     return _render_js_bundle(context, extension, name)
 
 
 def _get_extension_bundles(extension_manager_key, context, bundle_attr,
                            renderer):
-    """Returns media bundles that can be rendered on the current page.
+    """Return media bundles that can be rendered on the current page.
 
     This will look through all enabled extensions and find any with static
     media bundles that should be included on the current page, as indicated
@@ -96,6 +155,23 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
 
     All bundles marked "default" will be included, as will any with an
     ``apply_to`` field containing a URL name matching the current page.
+
+    Args:
+        extension_manager_key (unicode):
+            The key for the extension manager to use.
+
+        context (dict):
+            The template rendering context.
+
+        bundle_attr (unicode):
+            The type of bundle (either ``css_bundles`` or ``js_bundles``).
+
+        renderer (function):
+            The function to call to render each bundle.
+
+    Yields:
+        django.utils.safetext.SafeString:
+        The rendered HTML for each bundle.
     """
     request = context['request']
     if not getattr(request, 'resolver_match', None):

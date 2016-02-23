@@ -39,6 +39,7 @@ from django.template import Context, Template
 from django.utils import six
 from kgb import SpyAgency
 from mock import Mock
+from pipeline.conf import settings as pipeline_settings
 
 from djblets.datagrid.grids import Column, DataGrid
 from djblets.extensions.extension import Extension, ExtensionInfo
@@ -619,21 +620,21 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         """Testing ExtensionManager registers static bundles when enabling
         extension
         """
-        settings.PIPELINE_CSS = {}
-        settings.PIPELINE_JS = {}
+        pipeline_settings.STYLESHETS = {}
+        pipeline_settings.JAVASCRIPT = {}
 
         self.extension_class(extension_manager=self.manager)
         extension = self.manager.enable_extension(self.extension_class.id)
 
-        self.assertEqual(len(settings.PIPELINE_CSS), 1)
-        self.assertEqual(len(settings.PIPELINE_JS), 1)
+        self.assertEqual(len(pipeline_settings.STYLESHEETS), 1)
+        self.assertEqual(len(pipeline_settings.JAVASCRIPT), 1)
 
         key = '%s-default' % extension.id
-        self.assertIn(key, settings.PIPELINE_CSS)
-        self.assertIn(key, settings.PIPELINE_JS)
+        self.assertIn(key, pipeline_settings.STYLESHEETS)
+        self.assertIn(key, pipeline_settings.JAVASCRIPT)
 
-        css_bundle = settings.PIPELINE_CSS[key]
-        js_bundle = settings.PIPELINE_JS[key]
+        css_bundle = pipeline_settings.STYLESHEETS[key]
+        js_bundle = pipeline_settings.JAVASCRIPT[key]
 
         self.assertIn('source_filenames', css_bundle)
         self.assertEqual(css_bundle['source_filenames'],
@@ -704,19 +705,19 @@ class ExtensionManagerTest(SpyAgency, TestCase):
         """Testing ExtensionManager unregisters static bundles when disabling
         extension
         """
-        settings.PIPELINE_CSS = {}
-        settings.PIPELINE_JS = {}
+        pipeline_settings.STYLESHEETS = {}
+        pipeline_settings.JAVASCRIPT = {}
 
         self.extension_class(extension_manager=self.manager)
         extension = self.manager.enable_extension(self.extension_class.id)
 
-        self.assertEqual(len(settings.PIPELINE_CSS), 1)
-        self.assertEqual(len(settings.PIPELINE_JS), 1)
+        self.assertEqual(len(pipeline_settings.STYLESHEETS), 1)
+        self.assertEqual(len(pipeline_settings.JAVASCRIPT), 1)
 
         self.manager.disable_extension(extension.id)
 
-        self.assertEqual(len(settings.PIPELINE_CSS), 0)
-        self.assertEqual(len(settings.PIPELINE_JS), 0)
+        self.assertEqual(len(pipeline_settings.STYLESHEETS), 0)
+        self.assertEqual(len(pipeline_settings.JAVASCRIPT), 0)
 
     def test_extension_list_sync(self):
         """Testing ExtensionManager extension list synchronization
