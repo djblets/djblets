@@ -207,7 +207,7 @@ class WysiwygRenderTests(MarkdownTestCase):
                 '\n'
                 'done.'),
             ('<p>begin:</p>\n'
-             '<div class="codehilite"><pre>if (1) {}\n'
+             '<div class="codehilite"><pre><span></span>if (1) {}\n'
              '</pre></div>\n'
              '<p>done.</p>'))
 
@@ -226,7 +226,7 @@ class WysiwygRenderTests(MarkdownTestCase):
                 'done.'),
             ('<p>begin:</p>\n'
              '<p></p>\n'
-             '<div class="codehilite"><pre>if (1) {}\n'
+             '<div class="codehilite"><pre><span></span>if (1) {}\n'
              '</pre></div>\n'
              '<p></p>\n'
              '<p>done.</p>'))
@@ -249,7 +249,7 @@ class WysiwygRenderTests(MarkdownTestCase):
             ('<p>begin:</p>\n'
              '<p></p>\n'
              '<p></p>\n'
-             '<div class="codehilite"><pre>if (1) {}\n'
+             '<div class="codehilite"><pre><span></span>if (1) {}\n'
              '</pre></div>\n'
              '<p></p>\n'
              '<p></p>\n'
@@ -276,7 +276,7 @@ class WysiwygRenderTests(MarkdownTestCase):
              '<p></p>\n'
              '<p></p>\n'
              '<p></p>\n'
-             '<div class="codehilite"><pre>if (1) {}\n'
+             '<div class="codehilite"><pre><span></span>if (1) {}\n'
              '</pre></div>\n'
              '<p></p>\n'
              '<p></p>\n'
