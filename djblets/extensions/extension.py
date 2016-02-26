@@ -27,6 +27,8 @@ from __future__ import unicode_literals
 
 import inspect
 import os
+import locale
+from email.parser import FeedParser
 
 from django.conf import settings
 from django.contrib.staticfiles.templatetags.staticfiles import static
@@ -216,13 +218,19 @@ class ExtensionInfo(object):
     in the Python package for the extension.
     """
     def __init__(self, entrypoint, ext_class):
-        metadata = {}
+        data = '\n'.join(entrypoint.dist.get_metadata_lines("PKG-INFO"))
 
-        for line in entrypoint.dist.get_metadata_lines("PKG-INFO"):
-            key, value = line.split(": ", 1)
+        encodings = ['utf-8', locale.getpreferredencoding(False), 'latin1']
+        for enc in encodings:
+            try:
+                data = data.decode(enc)
+            except UnicodeDecodeError:
+                continue
+            break
 
-            if value != "UNKNOWN":
-                metadata[key] = value
+        p = FeedParser()
+        p.feed(data or '')
+        metadata = p.close()
 
         # Extensions will often override "Name" to be something
         # user-presentable, but we sometimes need the package name
