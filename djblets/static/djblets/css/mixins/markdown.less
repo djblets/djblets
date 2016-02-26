@@ -3,8 +3,8 @@
 
 .code-block() {
   background-color: #fbfaf8;
-  .border-radius(3px);
   border: 1px solid #ccc;
+  border-radius: 3px;
   margin: -3px;
   padding: 2px;
 }
@@ -21,6 +21,9 @@
  * changes here, you may also want to make changes there.
  */
 .markdown-wysiwyg() {
+  box-sizing: border-box;
+  line-height: @textarea-line-height;
+
   .hide-br() {
     br {
       display: none;
@@ -32,9 +35,6 @@
       display: block;
     }
   }
-
-  line-height: @textarea-line-height;
-  .box-sizing(border-box);
 
   * {
     margin: 0;
@@ -153,12 +153,12 @@
   }
 
   pre {
-    .pre-wrap();
     font-size: inherit;
     margin-left: 2.5em;
+    white-space: pre-wrap;
 
     * {
-      .pre-wrap();
+      white-space: pre-wrap;
     }
   }
 
@@ -181,19 +181,19 @@
     }
 
     &.codehilite-multiline-start {
-      .border-radius(3px 3px 0 0);
       border-bottom: 0;
+      border-radius: 3px 3px 0 0;
     }
 
     &.codehilite-multiline-middle {
-      .border-radius(0);
       border-top: 0;
       border-bottom: 0;
+      border-radius: 0;
     }
 
     &.codehilite-multiline-end {
-      .border-radius(0 0 3px 3px);
       border-top: 0;
+      border-radius: 0 0 3px 3px;
     }
   }
 }

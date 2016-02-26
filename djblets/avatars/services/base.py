@@ -37,7 +37,7 @@ class AvatarService(object):
             user (django.contrib.auth.models.User):
                 The user for whom the avatar URLs are to be retrieved.
 
-            size (int, optional):
+            size (int):
                 The requested avatar size (height and width) in pixels.
 
         Returns:
