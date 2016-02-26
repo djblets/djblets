@@ -6,6 +6,7 @@ Djblets.egg-info
 docs/djblets/coderef/python
 
 .coverage
+.noseids
 
 *.rej
 *.orig
