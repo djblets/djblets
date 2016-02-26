@@ -123,11 +123,15 @@ class AvatarServiceRegistry(Registry):
             services = set(services)
 
         for service in services:
-            if not self.has_service(service.id):
+            if not self.has_service(service.avatar_service_id):
                 raise self.lookup_error_class(self.format_error(
-                    UNKNOWN_SERVICE_ENABLED, service_id=service.id))
+                    UNKNOWN_SERVICE_ENABLED,
+                    service_id=service.avatar_service_id))
 
-        self._enabled_services = {service.id for service in services}
+        self._enabled_services = {
+            service.avatar_service_id
+            for service in services
+        }
         default_service = self.default_service
 
         if (default_service is not None and
@@ -173,12 +177,13 @@ class AvatarServiceRegistry(Registry):
             self._default_service_id = None
         elif service not in self:
             raise self.lookup_error_class(self.format_error(
-                UNKNOWN_SERVICE_DEFAULT, service_id=service.id))
-        elif not self.is_enabled(service.id):
+                UNKNOWN_SERVICE_DEFAULT, service_id=service.avatar_service_id))
+        elif not self.is_enabled(service.avatar_service_id):
             raise DisabledServiceError(self.format_error(
-                DISABLED_SERVICE_DEFAULT, service_id=service.id))
+                DISABLED_SERVICE_DEFAULT,
+                service_id=service.avatar_service_id))
         else:
-            self._default_service_id = service.id
+            self._default_service_id = service.avatar_service_id
 
         if save:
             self.save()
@@ -225,7 +230,8 @@ class AvatarServiceRegistry(Registry):
         self._enabled_services.discard(service_id)
         default_service = self.default_service
 
-        if default_service is not None and default_service.id == service_id:
+        if (default_service is not None and
+            default_service.avatar_service_id == service_id):
             self.set_default_service(None)
 
         if save:
@@ -281,7 +287,7 @@ class AvatarServiceRegistry(Registry):
             djblets.avatars.errors.AvatarServiceNotFoundError:
                 Raised if the specified service cannot be found.
         """
-        self.disable_service(service.id)
+        self.disable_service(service.avatar_service_id)
         super(AvatarServiceRegistry, self).unregister(service)
 
     def populate(self):
