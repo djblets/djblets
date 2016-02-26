@@ -71,8 +71,8 @@
 
         &:last-child {
           &.active, &:hover {
-            .border-radius(0 0 @config-forms-box-border-radius
-                           @config-forms-box-border-radius);
+            border-radius: 0 0 @config-forms-box-border-radius
+                           @config-forms-box-border-radius;
           }
         }
 
@@ -236,7 +236,7 @@
 
         input {
           margin-left: 0.5em;
-          width: (@forms-width - 7em);
+          width: @forms-width - 7em;
           max-width: 100%;
         }
       }
