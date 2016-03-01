@@ -1,0 +1,29 @@
+===========================
+Djblets 0.9.2 Release Notes
+===========================
+
+**Release date**: March 1, 2016
+
+
+Security Updates
+================
+
+* Fixed a Self-XSS vulnerability in the :py:class:`djblets.datagrid` column
+  headers.
+
+  A recently-discovered vulnerability in the datagrid templates allows an
+  attacker to generate a URL to any datagrid page containing malicious code in
+  a column sorting value. If the user visits that URL and then clicks that
+  column, the code will execute.
+
+  The cause of the vulnerability was due to a template not escaping
+  user-provided values.
+
+  This vulnerability was reported by Jose Carlos Exposito Bueno (0xlabs).
+
+
+Contributors
+============
+
+* Christian Hammond
+* Jose Carlos Exposito Bueno (0xlabs)
