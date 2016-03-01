@@ -1,0 +1,41 @@
+============================
+Djblets 0.7.33 Release Notes
+============================
+
+**Release date**: March 1, 2016
+
+
+Upgrade Instructions
+====================
+
+To upgrade to Djblets 0.7.33, run::
+
+    pip install Djblets==0.7.33
+
+or::
+
+    easy_install Djblets==0.7.33
+
+
+Security Updates
+================
+
+* Fixed a Self-XSS vulnerability in the :py:class:`djblets.datagrid` column
+  headers.
+
+  A recently-discovered vulnerability in the datagrid templates allows an
+  attacker to generate a URL to any datagrid page containing malicious code in
+  a column sorting value. If the user visits that URL and then clicks that
+  column, the code will execute.
+
+  The cause of the vulnerability was due to a template not escaping
+  user-provided values.
+
+  This vulnerability was reported by Jose Carlos Exposito Bueno (0xlabs).
+
+
+Contributors
+============
+
+* Christian Hammond
+* Jose Carlos Exposito Bueno (0xlabs)
