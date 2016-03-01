@@ -1,6 +1,6 @@
 {% load djblets_utils i18n staticfiles %}
 {% if column.sortable %}
-<th onclick="javascript:window.location = '{{sort_url}}';" class="datagrid-header">
+<th onclick="javascript:window.location = '{{sort_url|escapejs}}';" class="datagrid-header">
  <a href="{{sort_url}}">{% if column.label %}{{column.label}}{% endif %}
 {% if column.image_url %}
   <img src="{{column.image_url}}" width="{{column.image_width}}"
