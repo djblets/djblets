@@ -11,6 +11,7 @@ Djblets Release Notes
 .. toctree::
    :maxdepth: 1
 
+   0.9.2
    0.9.1
    0.9
    0.9-rc-1
@@ -24,6 +25,7 @@ Djblets Release Notes
 .. toctree::
    :maxdepth: 1
 
+   0.8.25
    0.8.24
    0.8.23
    0.8.22
@@ -64,6 +66,7 @@ Djblets Release Notes
 .. toctree::
    :maxdepth: 1
 
+   0.7.33
    0.7.32
    0.7.31
    0.7.30
