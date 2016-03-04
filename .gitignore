@@ -4,6 +4,7 @@ dist
 djblets/htdocs/*
 Djblets.egg-info
 docs/djblets/coderef/python
+node_modules/
 
 .coverage
 .noseids
