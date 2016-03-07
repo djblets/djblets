@@ -33,13 +33,28 @@ STATICFILES_FINDERS = (
 STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
 
 
+NODE_PATH = os.path.join(DJBLETS_ROOT, '..', 'node_modules')
+os.environ['NODE_PATH'] = NODE_PATH
+
+
 PIPELINE = {
     'PIPELINE_ENABLED': not DEBUG or os.getenv('FORCE_BUILD_MEDIA'),
-    'COMPILERS': ['pipeline.compilers.less.LessCompiler'],
+    'COMPILERS': [
+        'djblets.pipeline.compilers.es6.ES6Compiler',
+        'djblets.pipeline.compilers.less.LessCompiler',
+    ],
     'CSS_COMPRESSOR': None,
     'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
     'JAVASCRIPT': PIPELINE_JAVASCRIPT,
     'STYLESHEETS': PIPELINE_STYLESHEETS,
+    'BABEL_BINARY': os.path.join(NODE_PATH, 'babel-cli', 'bin', 'babel.js'),
+    'BABEL_ARGUMENTS': ['--presets', 'es2015', '-s', 'true'],
+    'LESS_BINARY': os.path.join(NODE_PATH, 'less', 'bin', 'lessc'),
+    'LESS_ARGUMENTS': [
+        '--no-color',
+        '--source-map',
+        '--autoprefix=> 2%, ie >= 9'
+    ],
 }
 
 INSTALLED_APPS = [
