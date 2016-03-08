@@ -156,7 +156,7 @@ Djblets.getGravatarForDisplay = function(url) {
 
             url = baseurl + '?' + params.join('&');
         } else {
-            console.log('Failed to parse URL for gravatar ' + src);
+            console.log('Failed to parse URL for gravatar ' + url);
         }
     }
 
