@@ -24,6 +24,10 @@ class RecaptchaFormMixin(forms.Form):
 
     If other mixins are used, this should be the first in the list of base
     classes to ensure the reCAPTCHA field is the last.
+
+    Users of this mixin must set the :py:attr:`request` attribute as the
+    current :py:class:`~django.http.HttpRequest` instance before
+    :py:meth:`clean` is called.
     """
 
     def __init__(self, *args, **kwargs):

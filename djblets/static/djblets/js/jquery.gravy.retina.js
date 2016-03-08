@@ -78,7 +78,7 @@ $.fn.retinaAvatar = function() {
 
         $(this).each(function() {
             var $el = $(this),
-                urls = parseSourceSet($el.attr('srcset')),
+                urls = parseSourceSet($el.attr('srcset') || ''),
                 descriptor,
                 url;
 
@@ -95,6 +95,8 @@ $.fn.retinaAvatar = function() {
             }
         });
     }
+
+    return this;
 };
 
 /*
@@ -154,7 +156,7 @@ Djblets.getGravatarForDisplay = function(url) {
 
             url = baseurl + '?' + params.join('&');
         } else {
-            console.log('Failed to parse URL for gravatar ' + src);
+            console.log('Failed to parse URL for gravatar ' + url);
         }
     }
 
