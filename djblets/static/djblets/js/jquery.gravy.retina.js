@@ -78,7 +78,7 @@ $.fn.retinaAvatar = function() {
 
         $(this).each(function() {
             var $el = $(this),
-                urls = parseSourceSet($el.attr('srcset')),
+                urls = parseSourceSet($el.attr('srcset') || ''),
                 descriptor,
                 url;
 
@@ -95,6 +95,8 @@ $.fn.retinaAvatar = function() {
             }
         });
     }
+
+    return this;
 };
 
 /*
