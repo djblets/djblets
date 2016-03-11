@@ -26,7 +26,10 @@
 from __future__ import unicode_literals
 
 import inspect
+import locale
+import logging
 import os
+from email.parser import FeedParser
 
 from django.conf import settings
 from django.contrib.staticfiles.templatetags.staticfiles import static
@@ -215,14 +218,29 @@ class ExtensionInfo(object):
     whether or not it's enabled or installed, and anything else that may be
     in the Python package for the extension.
     """
+
+    encodings = ['utf-8', locale.getpreferredencoding(False), 'latin1']
+
     def __init__(self, entrypoint, ext_class):
-        metadata = {}
+        data = '\n'.join(entrypoint.dist.get_metadata_lines('PKG-INFO'))
 
-        for line in entrypoint.dist.get_metadata_lines("PKG-INFO"):
-            key, value = line.split(": ", 1)
+        # Try to decode the PKG-INFO content. If no decoding method is
+        # successful then the PKG-INFO content will remain unchanged and
+        # processing will continue with the parsing.
+        for enc in self.encodings:
+            try:
+                data = data.decode(enc)
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            logging.warning(
+                'Failed decoding PKG-INFO content for extension %s',
+                entrypoint.name)
 
-            if value != "UNKNOWN":
-                metadata[key] = value
+        p = FeedParser()
+        p.feed(data)
+        metadata = p.close()
 
         # Extensions will often override "Name" to be something
         # user-presentable, but we sometimes need the package name
