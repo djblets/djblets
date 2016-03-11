@@ -34,6 +34,7 @@ from email.parser import FeedParser
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import get_mod_func
+from django.utils import six
 from django.utils.encoding import python_2_unicode_compatible
 
 from djblets.extensions.settings import Settings
@@ -316,11 +317,13 @@ class ExtensionInfo(object):
 
         p = FeedParser()
         p.feed(data)
-        metadata = p.close()
+        pkg_info = p.close()
 
         # Extensions will often override "Name" to be something
         # user-presentable, but we sometimes need the package name
-        self.package_name = metadata.get('Name')
+        self.package_name = pkg_info.get('Name')
+
+        metadata = dict(pkg_info.items())
 
         if ext_class.metadata is not None:
             metadata.update(ext_class.metadata)
