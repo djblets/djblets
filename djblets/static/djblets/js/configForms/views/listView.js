@@ -26,6 +26,7 @@ Djblets.Config.ListView = Backbone.View.extend({
         options = options || {};
 
         this.ItemView = options.ItemView || this.defaultItemView;
+        this.views = [];
         this.animateItems = !!options.animateItems;
 
         this.once('rendered', function() {
@@ -80,6 +81,7 @@ Djblets.Config.ListView = Backbone.View.extend({
         }
 
         this.$listBody.append(view.$el);
+        this.views.push(view);
     },
 
     /*
@@ -88,20 +90,26 @@ Djblets.Config.ListView = Backbone.View.extend({
      * Removes the element from the list.
      */
     _removeItem: function(item, collection, options) {
-        var $item = this.$listBody.children().eq(options.index),
-            animateItem = (options && options.animate !== false);
-
-        /*
-         * If this ListView has animation enabled, and this specific
-         * item is being animated (the default unless options.animate
-         * is false), we'll fade out the item.
-         */
-        if (this.animateItems && animateItem) {
-            $item.fadeOut(function() {
-                $item.remove();
+        var animateItem = (options && options.animate !== false),
+            view = _.find(this.views, function(view) {
+                return view.model === item;
             });
-        } else {
-            $item.remove();
+
+        if (view) {
+            this.views = _.without(this.views, view);
+
+            /*
+             * If this ListView has animation enabled, and this specific
+             * item is being animated (the default unless options.animate
+             * is false), we'll fade out the item.
+             */
+            if (this.animateItems && animateItem) {
+                view.$el.fadeOut(function() {
+                    view.remove();
+                });
+            } else {
+                view.remove();
+            }
         }
     },
 
@@ -109,7 +117,10 @@ Djblets.Config.ListView = Backbone.View.extend({
      * Renders all items from the list.
      */
     _renderItems: function() {
-        this.$listBody.empty();
+        this.views.forEach(function(view) {
+            view.remove();
+        });
+        this.views = [];
 
         this.model.collection.each(function(item) {
             this._addItem(item, item.collection, {
