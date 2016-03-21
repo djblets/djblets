@@ -182,7 +182,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                     ? actionLeft + $action.innerWidth() - paneWidth
                     : actionLeft),
                    actionPos.top + $action.outerHeight(),
-                   'absolute')
+                   'absolute');
 
         /* Any click outside this dropdown should close it. */
         $(document).one('click', _.bind(function() {
