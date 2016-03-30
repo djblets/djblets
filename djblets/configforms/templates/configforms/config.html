@@ -85,15 +85,23 @@
         formView = new {{form.js_view_class}}({
             {{form.get_js_view_data|json_dumps_items:','}}
 {%     if form.js_model_class %}
+{%      with form_model_data=form.get_js_model_data %}
             model: new {{form.js_model_class}}({
-                {{form.get_js_model_data|json_dumps_items:','}}
+{%       if form_model_data and js_model_class %}
+                {{js_model_data|json_dumps_items:','}}
                 config: config
-            },
-{%     endif %}
+{%       elif form_model_data %}
+                {{js_model_data|json_dumps_items}}
+{%       elif js_model_class %}
+                config: config
+ {%      endif %}
+{%      endwith %}
+            }),
+{%     endif  %}
             el: $('#form_{{form.form_id}}'),
             configView: configView
         });
-        formView.render()
+        formView.render();
 {%    endif %}
 {%   endfor %}
 {%  endspaceless %}
