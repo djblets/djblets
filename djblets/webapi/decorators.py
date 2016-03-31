@@ -164,8 +164,8 @@ def webapi_permission_required(perm):
             if not request.user.is_authenticated():
                 response = NOT_LOGGED_IN
             elif not request.user.has_perm(perm):
-                logging.debug('%s %s: user %s is missing required permission '
-                              '"%s".',
+                logging.warning('%s %s: user %s is missing required '
+                                'permission "%s".',
                               request.method, request.path,
                               request.user.username, perm)
                 response = PERMISSION_DENIED
