@@ -211,6 +211,30 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         self.assertEqual(registry.enabled_services,
                          {dummy_service, gravatar_service})
 
+    def test_get_enabled_services_populated(self):
+        """Testing AvatarServiceRegistry.enabled_services getter calls
+        populate()
+        """
+        dummy_service = DummyAvatarService()
+
+        class TestRegistry(AvatarServiceRegistry):
+            def populate(self):
+                if self.populated:
+                    return
+
+                super(TestRegistry, self).populate()
+                self.enabled_services = [dummy_service]
+
+            def get_defaults(self):
+                yield dummy_service
+
+        registry = TestRegistry()
+        self.assertFalse(registry.populated)
+
+        enabled_services = set(registry.enabled_services)
+        self.assertTrue(registry.populated)
+        self.assertSetEqual(enabled_services, {dummy_service})
+
     def test_set_enabled_services_invalid_service(self):
         """Testing AvatarServiceRegistry.enabled_services setter with an
         unregistered service
