@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 
+import logging
 import warnings
 
 from django.conf.urls import include, patterns, url
@@ -1199,6 +1200,10 @@ class WebAPIResource(object):
         errors.
         """
         if request.user.is_authenticated():
+            logging.debug('%s %s: user %s does not have '
+                          'permission to access this resource.',
+                          request.method, request.path,
+                          request.user.username)
             return PERMISSION_DENIED
         else:
             return NOT_LOGGED_IN
