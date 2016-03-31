@@ -96,6 +96,8 @@ class AvatarServiceRegistry(Registry):
             The set of enabled avatar services, as
             :py:class:`djblets.avatars.service.AvatarService` instances.
         """
+        self.populate()
+
         return {
             self.get('avatar_service_id', service_id)
             for service_id in self._enabled_services
@@ -119,6 +121,8 @@ class AvatarServiceRegistry(Registry):
                 This exception is raised when an unknown avatar service is
                 enabled.
         """
+        self.populate()
+
         if not isinstance(services, set):
             services = set(services)
 
