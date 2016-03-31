@@ -107,12 +107,12 @@ class ConfigPageForm(forms.Form):
         """Return data to pass to the JavaScript Model during instantiation.
 
         If :py:attr:`js_model_class` is provided, the data returned from this
-        function will be provided to the model when constructued.
+        function will be provided to the model when constructed.
 
         Returns:
             dict:
-                A dictionary of attributes to pass to the Model instance. By
-                default, this will be empty.
+            A dictionary of attributes to pass to the Model instance. By
+            default, it will be empty.
         """
         return {}
 
@@ -120,12 +120,12 @@ class ConfigPageForm(forms.Form):
         """Return data to pass to the JavaScript View during instantiation.
 
         If :py:attr:`js_view_class` is provided, the data returned from this
-        function will be provided to the view when constructued.
+        function will be provided to the view when constructed.
 
         Returns:
             dict:
-                A dictionary of options to pass to the View instance. By
-                default, this will be empty.
+            A dictionary of options to pass to the View instance. By default,
+            it will be empty.
         """
         return {}
 
@@ -141,12 +141,24 @@ class ConfigPageForm(forms.Form):
         Returns:
             unicode: The rendered form as HTML.
         """
-        return render_to_string(
-            self.template_name,
-            RequestContext(self.request, {
-                'form': self,
-                'page': self.page,
-            }))
+        context = dict({
+            'form': self,
+            'page': self.page,
+        }, **self.get_extra_context())
+
+        return render_to_string(self.template_name,
+                                RequestContext(self.request, context))
+
+    def get_extra_context(self):
+        """Return extra rendering context.
+
+        Subclasses can override this to provide additional rendering context.
+
+        Returns:
+            dict:
+            The additional rendering context. By default, it is empty.
+        """
+        return {}
 
     def load(self):
         """Load data for the form.
