@@ -121,6 +121,7 @@ Djblets.Config.ListView = Backbone.View.extend({
             view.remove();
         });
         this.views = [];
+        this.$listBody.empty();
 
         this.model.collection.each(function(item) {
             this._addItem(item, item.collection, {

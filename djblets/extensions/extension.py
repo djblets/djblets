@@ -223,7 +223,23 @@ class ExtensionInfo(object):
     encodings = ['utf-8', locale.getpreferredencoding(False), 'latin1']
 
     def __init__(self, entrypoint, ext_class):
-        data = '\n'.join(entrypoint.dist.get_metadata_lines('PKG-INFO'))
+        dist = entrypoint.dist
+
+        try:
+            # Wheel, or other modern package.
+            lines = dist.get_metadata_lines('METADATA')
+        except IOError:
+            try:
+                # Egg, or other legacy package.
+                lines = dist.get_metadata_lines('PKG-INFO')
+            except IOError:
+                lines = []
+                logging.error('No METADATA or PKG-INFO found for the package '
+                              'containing the %s extension. Information on '
+                              'the extension may be missing.',
+                              ext_class.id)
+
+        data = '\n'.join(lines)
 
         # Try to decode the PKG-INFO content. If no decoding method is
         # successful then the PKG-INFO content will remain unchanged and
