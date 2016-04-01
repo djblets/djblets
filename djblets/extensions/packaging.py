@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import inspect
 import os
+import re
 import sys
 
 import pkg_resources
@@ -162,6 +163,7 @@ class BuildStaticFiles(Command):
 
     def _build_static_media(self, extension):
         from django.conf import settings
+        from pipeline.conf import settings as pipeline_settings
 
         pipeline_js = {}
         pipeline_css = {}
@@ -186,22 +188,16 @@ class BuildStaticFiles(Command):
             PackagingFinder.extension_static_dir
         ]
 
-        # Register the include path and any global variables used for
-        # building .less files.
-        settings.PIPELINE_LESS_ARGUMENTS = ' '.join(
-            [
-                '--include-path=%s'
-                % os.path.pathsep.join(self.get_lessc_include_path())
-            ] + [
-                '--global-var="%s=%s"'
-                % (key, self._serialize_lessc_value(value))
-                for key, value in six.iteritems(self.get_lessc_global_vars())
-            ]
-        )
-
         settings.STATIC_ROOT = \
             os.path.join(self.build_lib,
                          os.path.relpath(os.path.join(module_dir, 'static')))
+
+        # Tell djblets.pipeline.compiles.less.LessCompiler (if enabled) not
+        # to check for outdated using its special import script, and to in
+        # fact assume all files are outdated so they'll all be rebuilt. This
+        # will also prevent access denied issues (due to referenced files not
+        # being in the sandboxed tree defined for the static media).
+        pipeline_settings._DJBLETS_LESS_ALWAYS_REBUILD = True
 
         # Due to how Pipeline copies and stores its settings, we actually
         # have to copy over some of these, as they'll be from the original
@@ -211,6 +207,7 @@ class BuildStaticFiles(Command):
         pipeline_settings.JAVASCRIPT = pipeline_js
         pipeline_settings.STYLESHEETS = pipeline_css
         pipeline_settings.PIPELINE_ENABLED = True
+        pipeline_settings.LESS_ARGUMENTS = self._build_lessc_args()
 
         # Collect and process all static media files.
         call_command('collectstatic', interactive=False, verbosity=2)
@@ -220,6 +217,49 @@ class BuildStaticFiles(Command):
                 pipeline_css, os.path.join(settings.STATIC_ROOT, 'css'))
             self._remove_source_files(
                 pipeline_js, os.path.join(settings.STATIC_ROOT, 'js'))
+
+    def _build_lessc_args(self):
+        """Build the list of arguments for the less compiler.
+
+        This will return a set of arguments that define any global variables
+        or include paths for the less compiler. It respects most existing
+        arguments already in ``settings.PIPELINE['LESS_ARGUMENTS']``, but
+        will filter out any existing include paths and global variables needed
+        for packaging.
+
+        Returns:
+            list:
+            A list of arguments to pass to lessc.
+        """
+        from django.conf import settings
+
+        # Get all the arguments that the application defines, but remove those
+        # that we need to override or the ones that aren't compatible with
+        # building this media.
+        lessc_global_vars = self.get_lessc_global_vars()
+        exclude_re = re.compile(
+            '^--(include-path=|global-var="?(%s)=)'
+            % '|'.join(
+                re.escape(global_var)
+                for global_var in six.iterkeys(lessc_global_vars)
+            ))
+
+        lessc_args = [
+            lessc_arg
+            for lessc_arg in settings.PIPELINE.get('LESS_ARGUMENTS', [])
+            if not exclude_re.match(lessc_arg)
+        ]
+
+        # Register the include path and any global variables used for
+        # building .less files.
+        return lessc_args + [
+            '--include-path=%s'
+            % os.path.pathsep.join(self.get_lessc_include_path())
+        ] + [
+            '--global-var=%s=%s'
+            % (key, self._serialize_lessc_value(value))
+            for key, value in six.iteritems(lessc_global_vars)
+        ]
 
     def _add_bundle(self, pipeline_bundles, extension_bundles, default_dir,
                     ext):
@@ -260,7 +300,7 @@ class BuildStaticFiles(Command):
 
     def _serialize_lessc_value(self, value):
         if isinstance(value, six.text_type):
-            return '\\"%s\\"' % value
+            return '"%s"' % value
         elif isinstance(value, bool):
             if value:
                 return 'true'

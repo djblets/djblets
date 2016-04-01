@@ -4,6 +4,7 @@ import logging
 
 from django import template
 from django.utils import six
+from pipeline.conf import settings as pipeline_settings
 from pipeline.templatetags.pipeline import JavascriptNode, StylesheetNode
 
 from djblets.extensions.hooks import TemplateHook
@@ -11,6 +12,61 @@ from djblets.extensions.manager import get_extension_managers
 
 
 register = template.Library()
+
+
+class ExtensionStaticMediaNodeMixin(object):
+    """Mixin for extension-specific static media rendering logic.
+
+    This is used to change the behavior for how static media in extensions
+    are rendered, allowing us to work with both development setups and
+    installed packages.
+    """
+
+    def render_compressed(self, *args, **kwargs):
+        """Render an extension media bundle to HTML.
+
+        If Pipeline is disabled (typically on development setups), this will
+        attempt to render the compressed files, as normal. However, if that
+        fails (due to the source files not being available in a package) or
+        Pipeline is enabled (typically on a production setup), the bundle's
+        output file will be rendered instead.
+
+        Args:
+            *args (tuple):
+                Positional arguments to pass to the rendering function.
+
+            **kwargs (dict):
+                Keyword arguments to pass to the rendering function.
+
+        Returns:
+            unicode:
+            The HTML for loading the static media.
+        """
+        rendered = ''
+
+        if not pipeline_settings.PIPELINE_ENABLED:
+            rendered = self.render_compressed_sources(*args, **kwargs)
+
+        if not rendered:
+            rendered = self.render_compressed_output(*args, **kwargs)
+
+        return rendered
+
+
+class ExtensionJavascriptNode(ExtensionStaticMediaNodeMixin, JavascriptNode):
+    """Template node for including extension-specific JavaScript.
+
+    This will allow both extensions in development mode or installed via a
+    package to be used on a page.
+    """
+
+
+class ExtensionStylesheetNode(ExtensionStaticMediaNodeMixin, StylesheetNode):
+    """Template node for including extension-specific CSS.
+
+    This will allow both extensions in development mode or installed via a
+    package to be used on a page.
+    """
 
 
 @register.simple_tag(takes_context=True)
@@ -80,7 +136,8 @@ def _render_css_bundle(context, extension, name):
         django.utils.safetext.SafeString:
         The rendered HTML.
     """
-    return _render_bundle(context, StylesheetNode, extension, name, 'CSS')
+    return _render_bundle(context, ExtensionStylesheetNode, extension,
+                          name, 'CSS')
 
 
 def _render_js_bundle(context, extension, name):
@@ -100,7 +157,8 @@ def _render_js_bundle(context, extension, name):
         django.utils.safetext.SafeString:
         The rendered HTML.
     """
-    return _render_bundle(context, JavascriptNode, extension, name, 'JS')
+    return _render_bundle(context, ExtensionJavascriptNode, extension,
+                          name, 'JS')
 
 
 @register.simple_tag(takes_context=True)

@@ -65,8 +65,10 @@ class LessCompiler(PipelineLessCompiler):
             bool:
             True if the file is out of date and needs to be recompiled.
         """
-        # If the file itself is outdated, just use that.
-        if super(LessCompiler, self).is_outdated(infile, outfile):
+        # If the file itself is outdated, or we want to always treat all files
+        # as outdated, don't bother to dive into dependencies.
+        if (pipeline_settings.get('_DJBLETS_LESS_ALWAYS_REBUILD', False) or
+            super(LessCompiler, self).is_outdated(infile, outfile)):
             return True
 
         # Now parse out a deep list of the imported files and check those.

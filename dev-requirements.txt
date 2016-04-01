@@ -1,7 +1,6 @@
 --allow-all-external
 https://github.com/beanbaginc/django-evolution/archive/master.zip
 coverage
-django-pipeline==1.6.6
 kgb
 nose
 Markdown>=2.4.0,<2.4.999
