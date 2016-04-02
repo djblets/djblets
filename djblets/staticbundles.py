@@ -81,4 +81,10 @@ PIPELINE_STYLESHEETS = {
         ),
         'output_filename': 'djblets/css/datagrid.min.css',
     },
+    'djblets-integrations': {
+        'source_filenames': (
+            'djblets/css/integrations.less',
+        ),
+        'output_filename': 'djblets/css/integrations.min.css',
+    },
 }
