@@ -1,0 +1,62 @@
+{% extends "admin/base_site.html" %}
+{% load compressed djblets_utils i18n staticfiles %}
+
+{% block title %}
+{%  trans "Manage Integrations" %}
+{{block.super}}
+{% endblock title %}
+
+{% block extrahead %}
+{%  compressed_css "djblets-integrations" %}
+{{block.super}}
+{% endblock extrahead %}
+
+{% block bodyclass %}{{block.super}} integrations-list-page{% endblock %}
+
+{% block content %}
+<h1 class="title">{% trans "Manage Integrations" %}</h1>
+
+<div id="content-main">
+ <form id="integration_manager" method="POST" action=".">
+  <ul id="integration_list">
+{%  for integration_info in integrations %}
+   <li>
+{%   if integration_info.icons.1x %}
+    {# TODO: Move to the srcset filter, once it's landed. #}
+    <img class="integration-icon"
+         src="{{integration_info.icons.1x}}"
+{%    if integration_info.icons.2x %}
+         data-at2x="{{integration_info.icons.2x}}"
+{%    endif %}
+         width="48" height="48" alt="" />
+{%   endif %}
+    <div class="integration-details">
+     <div class="integration-name">{{integration_info.name}}</div>
+     <div class="integration-description">{{integration_info.description}}</div>
+     <ul class="object-tools">
+      <li>
+       <a href="{% url 'integration-add-config' integration_info.id %}" class="add-config-action"><span class="fa fa-plus"></span> {% trans "Add a new configuration" %}</a>
+      </li>
+     </ul>
+     <ul class="integration-configs">
+{%   for config in integration_info.configs %}
+      <li class="integration-config-{% if config.enabled %}enabled{% else %}disabled{% endif %}">
+{%    if config.enabled %}
+       <span class="fa fa-check"></span>
+{%    else %}
+       <span class="fa fa-ban"></span>
+{%    endif %}
+       <a href="{% url 'integration-change-config' integration_info.id config.pk %}">{{config.name}}</a>
+{%    if not config.enabled %}
+       {% trans "(Disabled)" %}
+{%    endif %}
+      </li>
+{%   endfor %}
+     </ul>
+    </div>
+   </li>
+{%  endfor %}
+  </ul>
+ </form>
+</div>
+{% endblock content %}

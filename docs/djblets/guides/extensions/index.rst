@@ -1,3 +1,5 @@
+.. _extension-guides:
+
 ================
 Extension Guides
 ================

@@ -1,0 +1,42 @@
+{% extends "djblets_forms/admin/change_form_page.html" %}
+{% load i18n %}
+
+{% block page_title %}
+{%  blocktrans with name=form.integration.name %}Configure {{name}}{% endblocktrans %}
+{% endblock %}
+
+{% block form_title %}
+{%  blocktrans with name=form.integration.name %}Configure {{name}}{% endblocktrans %}
+{% endblock %}
+
+{% block save_message %}
+{%  trans "The integration settings have been saved." %}
+{% endblock %}
+
+{% block submit_row_buttons %}
+{{block.super}}
+<p class="deletelink-box">
+ <a href="#" class="deletelink">{% trans "Delete" %}</a>
+</p>
+{% endblock %}
+
+{% block scripts-post %}
+{{block.super}}
+
+<script>
+    $('.deletelink').click(function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (confirm(gettext("Are you sure you want to delete this configuration?"))) {
+            $.ajax({
+                type: 'DELETE',
+                url: '.',
+                success: function() {
+                    window.location = "{{success_url|escapejs}}";
+                }
+            });
+        }
+    });
+</script>
+{% endblock scripts-post %}
