@@ -7,6 +7,6 @@ except ImportError:
     AppConfig = object
 
 
-class ExtensionsAppConfig(AppConfig):
+class IntegrationsAppConfig(AppConfig):
     name = 'djblets.integrations'
     label = 'djblets_integrations'

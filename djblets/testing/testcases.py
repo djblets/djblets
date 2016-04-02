@@ -241,9 +241,10 @@ class TestModelsLoaderMixin(object):
             apps.set_installed_apps(settings.INSTALLED_APPS)
             app_config = apps.get_containing_app_config(self.tests_app)
 
-            for key, value in six.iteritems(models_mod.__dict__):
-                if inspect.isclass(value) and issubclass(value, Model):
-                    apps.register_model(app_config.label, value)
+            if models_mod:
+                for key, value in six.iteritems(models_mod.__dict__):
+                    if inspect.isclass(value) and issubclass(value, Model):
+                        apps.register_model(app_config.label, value)
 
             call_command('migrate', verbosity=0, interactive=False)
         else:
