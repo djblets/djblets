@@ -83,6 +83,23 @@ Database Utilities
    djblets.db.validators
 
 
+Integrations
+============
+
+.. autosummary::
+   :toctree: python
+
+   djblets.integrations.errors
+   djblets.integrations.forms
+   djblets.integrations.hooks
+   djblets.integrations.integration
+   djblets.integrations.manager
+   djblets.integrations.mixins
+   djblets.integrations.models
+   djblets.integrations.urls
+   djblets.integrations.views
+
+
 Extensions
 ==========
 

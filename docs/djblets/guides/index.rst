@@ -7,6 +7,7 @@ Guides
 
    avatars/index
    extensions/index
+   integrations/index
    recaptcha/index
    registries/index
    webapi/index
