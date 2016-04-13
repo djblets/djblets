@@ -1,0 +1,59 @@
+============================
+Djblets 0.8.26 Release Notes
+============================
+
+**Release date**: April 13, 2016
+
+
+Upgrade Instructions
+====================
+
+To upgrade to Djblets 0.8.26, run::
+
+    pip install Djblets==0.8.26
+
+or::
+
+    easy_install Djblets==0.8.26
+
+
+djblets.configforms
+===================
+
+* Fixed problems with the model data payload outputted to the page when
+  rendering config forms.
+
+
+djblets.extensions
+==================
+
+* Added support for extensions bundled in Python Wheel packages.
+
+  Our extension support now looks for :file:`METADATA` files in the Wheel
+  packages, allowing them to be used instead of eggs.
+
+* Added support for parsing multi-line descriptions in a package's
+  :file:`PKG-INFO` or :file:`METADATA` file. (:bug:`4196`)
+
+  Patch by Horatiu Eugen Vlad
+
+* Allowed for specifying a specific default static media bundle to load when
+  calling ``{% load_extensions_css %}`` or ``{% load_extensions_js %}``.
+
+  This is taken as another parameter to these tags. The bundle will be
+  loaded instead of the "default" bundle.
+
+* Static media bundles can now include other bundles.
+
+  This is specified by providing an ``include_bundles`` list in the bundle
+  information. Note that this does not handle nesting of included bundles.
+  Only the bundle being loaded can include other bundles.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
+* David Trowbridge
+* Horatiu Eugen Vlad
