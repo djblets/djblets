@@ -1,0 +1,70 @@
+===========================
+Djblets 0.9.3 Release Notes
+===========================
+
+**Release date**: April 13, 2016
+
+
+djblets.configforms
+===================
+
+* Fixed problems with the model data payload outputted to the page when
+  rendering config forms.
+
+* Removing an item from a :js:class:`Djblets.Config.ListItemView` no longer
+  removes an additional item as well.
+
+* Fixed completely emptying a list of items when resetting a
+  :js:class:`Djblets.Config.ListView`.
+
+
+djblets.extensions
+==================
+
+* Added support for extensions bundled in Python Wheel packages.
+
+  Our extension support now looks for :file:`METADATA` files in the Wheel
+  packages, allowing them to be used instead of eggs.
+
+* Added support for parsing multi-line descriptions in a package's
+  :file:`PKG-INFO` or :file:`METADATA` file. (:bug:`4196`)
+
+  Patch by Horatiu Eugen Vlad
+
+* Allowed for specifying a specific default static media bundle to load when
+  calling ``{% load_extensions_css %}`` or ``{% load_extensions_js %}``.
+
+  This is taken as another parameter to these tags. The bundle will be
+  loaded instead of the "default" bundle.
+
+* Static media bundles can now include other bundles.
+
+  This is specified by providing an ``include_bundles`` list in the bundle
+  information. Note that this does not handle nesting of included bundles.
+  Only the bundle being loaded can include other bundles.
+
+
+djblets.webapi
+==============
+
+* Added warning-level logging for permission denied errors hit by a user.
+  (:bug:`3108`)
+
+  This allows for auditing when users are attempting to access resources they
+  shouldn't.
+
+
+JavaScript
+==========
+
+* Fixed a failure when logging other failures in
+  :js:func:`Djblets.getGravatarForDisplay`.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
+* David Trowbridge
+* Horatiu Eugen Vlad
