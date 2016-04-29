@@ -1,13 +1,18 @@
 @import (reference) "../defs.less";
 
 
-.code-block() {
-  background-color: #fbfaf8;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  margin: -3px;
-  padding: 2px;
-}
+@code-block-bg: #FBFAF8;
+@code-block-border-color: #DDD;
+@code-block-border-size: 1px;
+@code-block-border-radius: 3px;
+@code-block-padding-vert: 3px;
+@code-block-padding-horiz: @textarea-editor-padding;
+
+@inline-code-bg: @code-block-bg;
+@inline-code-border-color: #E3E3E3;
+@inline-code-border-radius: @code-block-border-radius;
+@inline-code-border-size: @code-block-border-size;
+@inline-code-text-color: #BB1144;
 
 
 /*
@@ -148,8 +153,23 @@
   }
 
   code {
-    .code-block();
-    color: #dd4444;
+    background-color: @inline-code-bg;
+    border: @inline-code-border-size solid @inline-code-border-color;
+    border-radius: @inline-code-border-radius;
+    color: @inline-code-text-color;
+    display: inline-block;
+    margin: -@inline-code-border-size;
+
+    /*
+     * Add just enough spacing to represent the backtick (`) before and after
+     * the code block, so we can leave room there. The goal is to align the
+     * content the best we can, so there's a more predictable width for the
+     * line.
+     */
+    &:before, &:after {
+      content: "`";
+      visibility: hidden;
+    }
   }
 
   pre {
@@ -173,11 +193,21 @@
   }
 
   .codehilite {
-    .code-block();
+    @codehilite-margin-vert: -(@code-block-border-size +
+                               @code-block-padding-vert);
+
+    background-color: @code-block-bg;
+    border: @inline-code-border-size solid @code-block-border-color;
+    border-radius: @code-block-border-radius;
+    margin: @codehilite-margin-vert
+            0
+            @codehilite-margin-vert
+            -(@code-block-border-size + @code-block-padding-horiz);
+    padding: @code-block-padding-vert @code-block-padding-horiz;
 
     pre {
       margin-left: 0;
-      padding: 0.2em 0.5em;
+      padding: 0;
     }
 
     &.codehilite-multiline-start {
