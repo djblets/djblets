@@ -719,8 +719,32 @@ class WebAPIResource(object):
         return {
             'method': 'GET',
             'href': resource.get_href(obj, *args, **kwargs),
-            'title': six.text_type(obj),
+            'title': resource.get_object_title(obj, *args, **kwargs),
         }
+
+    def get_object_title(self, obj, request=None, *args, **kwargs):
+        """Return the object's title.
+
+        By default, this returns the object's unicode representation.
+
+        Args:
+            obj (object):
+                The object to serialize.
+
+            request (django.http.HttpRequest):
+                The current request.
+
+            *args (tuple):
+                Additional positional arguments.
+
+            **kwargs (dict):
+                Additional keyword arguments.
+
+        Returns:
+            unicode:
+            The object's title.
+        """
+        return six.text_type(obj)
 
     def serialize_object(self, obj, *args, **kwargs):
         """Serializes the object into a Python dictionary."""
