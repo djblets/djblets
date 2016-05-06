@@ -6,12 +6,13 @@
  */
 (function($) {
 
-
-/*
- * Creates a datagrid. This will cause drag and drop and column
- * customization to be enabled.
+/**
+ * Create a datagrid.
+ *
+ * This will enable drag and drop column customization for the datagrid, as
+ * well as supporting a mobile-friendly mode.
  */
-$.fn.datagrid = function(options) {
+$.fn.datagrid = function() {
     var $grid = this,
         gridId = this.attr("id"),
         $menu = $("#" + gridId + "-menu"),
@@ -39,8 +40,6 @@ $.fn.datagrid = function(options) {
         $savedTBody,
         $savedTHead,
         lastWindowWidth;
-
-    options = options || {};
 
 
     /********************************************************************
@@ -185,7 +184,6 @@ $.fn.datagrid = function(options) {
             numCols = origHeaderCells.length,
             bodyWidths = [],
             headWidths = [],
-            extraWidth = 0,
             bodyContainerWidth,
             width,
             i;
@@ -402,6 +400,10 @@ $.fn.datagrid = function(options) {
 
         $savedTBody = $(table.tBodies[0]);
         $(table.tBodies[0]).replaceWith($newTBody);
+
+        $grid
+            .attr('data-datagrid-display-mode', 'mobile')
+            .trigger('datagridDisplayModeChanged', {mode: 'mobile'});
     }
 
     /*
@@ -415,6 +417,10 @@ $.fn.datagrid = function(options) {
             $($bodyTable[0].tBodies[0]).replaceWith($savedTBody);
             $headTable.find('thead').replaceWith($savedTHead);
         }
+
+        $grid
+            .attr('data-datagrid-display-mode', 'desktop')
+            .trigger('datagridDisplayModeChanged', {mode: 'desktop'});
     }
 
 
