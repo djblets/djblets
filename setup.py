@@ -149,6 +149,11 @@ setup(name=PACKAGE_NAME,
           download_url,
       ],
       include_package_data=True,
+      data_files=[
+          ('contrib/internal', [
+              'contrib/internal/less-imports.js',
+          ]),
+      ],
       zip_safe=False,
       maintainer="Christian Hammond",
       maintainer_email="christian@beanbaginc.com",
