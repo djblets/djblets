@@ -137,10 +137,10 @@ class GravatarServiceTests(SpyAgency, TestCase):
 
         self.assertEqual(
             urls['1x'],
-            get_gravatar_url_for_email(self.request, self.user.email, 48))
+            get_gravatar_url_for_email(email=self.user.email, size=48))
         self.assertEqual(
             urls['2x'],
-            get_gravatar_url_for_email(self.request, self.user.email, 96))
+            get_gravatar_url_for_email(email=self.user.email, size=96))
 
     def test_render_safely(self):
         """Testing GravatarService.render renders to HTML safely"""

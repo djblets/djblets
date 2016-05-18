@@ -34,29 +34,38 @@ from djblets.gravatars import (get_gravatar_url,
 register = template.Library()
 
 
-@register.simple_tag(takes_context=True)
-def gravatar(context, user, size=None):
-    """
-    Outputs the HTML for displaying a user's gravatar.
+@register.simple_tag
+def gravatar(user, size=None):
+    """Return HTML for displaying a user's Gravatar.
 
-    This can take an optional size of the image (defaults to 80 if not
-    specified).
-
-    This is also influenced by the following settings:
+    This is also influenced by the following Django settings:
 
     ``GRAVATAR_SIZE``:
-        Default size for gravatars.
+        The default size for Gravatars.
 
     ``GRAVATAR_RATING``:
-        Maximum allowed rating (``g``, ``pg``, ``r``, ``x``)
+        The maximum allowed rating (one of ``'g'``, ``'pg'``, ``'r'``, or
+        ``'x'``).
 
     ``GRAVATAR_DEFAULT``:
-        Default image set to show if the user hasn't specified a gravatar
-        (``identicon``, ``monsterid``, ``wavatar``)
+        The default image to show if the user hasn't specified a Gravatar (one
+        of ``identicon``, ``monsterid``, or ``wavatar``).
 
-    See http://www.gravatar.com/ for more information.
+    See https://gravatar.com for more information.
+
+    Args:
+        user (django.contrib.auth.models.User):
+            The user whose gravatar is to be displayed.
+
+        size (int):
+            An optional height and width for the image (in pixels). This will
+            default to 80 if not specified.
+
+    Returns:
+        django.utils.safestring.SafeText:
+        HTML for rendering the Gravatar.
     """
-    url = get_gravatar_url(context['request'], user, size)
+    url = get_gravatar_url(user=user, size=size)
 
     if url:
         return format_html(
@@ -67,26 +76,35 @@ def gravatar(context, user, size=None):
         return ''
 
 
-@register.simple_tag(takes_context=True)
-def gravatar_url(context, email, size=None):
-    """
-    Outputs the URL for a gravatar for the given email address.
+@register.simple_tag
+def gravatar_url(email, size=None):
+    """Return a Gravatar URL for an e-mail address.
 
-    This can take an optional size of the image (defaults to 80 if not
-    specified).
-
-    This is also influenced by the following settings:
+    This is also influenced by the following Django settings:
 
     ``GRAVATAR_SIZE``:
-        Default size for gravatars.
+        The default size for Gravatars.
 
     ``GRAVATAR_RATING``:
-        Maximum allowed rating (``g``, ``pg``, ``r``, ``x``)
+        The maximum allowed rating (one of ``'g'``, ``'pg'``, ``'r'``, or
+        ``'x'``).
 
     ``GRAVATAR_DEFAULT``:
-        Default image set to show if the user hasn't specified a gravatar
-        (``identicon``, ``monsterid``, ``wavatar``)
+        The default image to show if the user hasn't specified a Gravatar (one
+        of ``identicon``, ``monsterid``, or ``wavatar``).
 
-    See http://www.gravatar.com/ for more information.
+    See https://gravatar.com for more information.
+
+    Args:
+        email (unicode):
+            The e-mail address.
+
+        size (int):
+            An optional height and width of the image (in pixels). This will
+            default to 80 if not specified.
+
+    Returns:
+        django.utils.safestring.SafeText:
+        HTML for rendering the Gravatar.
     """
-    return get_gravatar_url_for_email(context['request'], email, size)
+    return get_gravatar_url_for_email(email=email, size=size)
