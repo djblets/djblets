@@ -69,20 +69,17 @@ class AvatarService(object):
         try:
             urls = request._avatar_cache[key]
         except KeyError:
-            urls = self.get_avatar_urls_uncached(request, user, size)
+            urls = self.get_avatar_urls_uncached(user, size)
             request._avatar_cache[key] = urls
 
         return urls
 
-    def get_avatar_urls_uncached(self, request, user, size):
+    def get_avatar_urls_uncached(self, user, size):
         """Return the avatar URLs for the given user.
 
         Subclasses must override this to provide the actual URLs.
 
         Args:
-            request (django.http.HttpRequest):
-                The HTTP request.
-
             user (django.contrib.auth.models.User):
                 The user for whom the avatar URLs are to be retrieved.
 

@@ -26,45 +26,101 @@
 from __future__ import unicode_literals
 
 from hashlib import md5
+from warnings import warn
 
 from django.conf import settings
+from django.http import QueryDict
+
 
 
 default_app_config = 'djblets.gravatars.apps.GravatarsAppConfig'
 
 
-def get_gravatar_url_for_email(request, email, size=None):
+def get_gravatar_url_for_email(request=None, email=None, size=None):
+    """Return the Gravatar URL for an e-mail address.
+
+    The returned URL will always use HTTPS.
+
+    Args:
+        request (django.http.HttpRequest):
+            Ignored. This argument will be removed in Djblets 0.11.0.
+
+        email (unicode):
+            The e-mail address to get the Gravatar URL for.
+
+        size (int, optional):
+            An optional height and width of the image (in pixels).
+
+    Returns:
+        unicode:
+        The URL for the Gravatar associated with the given e-mail address.
+    """
+    if request is not None:
+        warn("djblets.gravatars.get_gravatar_url_for_email's request "
+             "argument is deprecated and should be None. It will be removed "
+             "in Djblets 0.11.0. Use get_gravatar_url_for_email(email=email, "
+             "size=size) instead.",
+             DeprecationWarning)
+
+    if email is None:
+        raise ValueError('"email" cannot be None.')
     email_hash = md5(email.encode('utf-8')).hexdigest()
 
-    if request.is_secure():
-        url_base = 'https://secure.gravatar.com'
-    else:
-        url_base = 'http://www.gravatar.com'
+    url = 'https://secure.gravatar.com/avatar/%s' % email_hash
+    params = QueryDict('', mutable=True)
 
-    url = "%s/avatar/%s" % (url_base, email_hash)
-    params = []
-
-    if not size and hasattr(settings, "GRAVATAR_SIZE"):
+    if not size and hasattr(settings, 'GRAVATAR_SIZE'):
         size = settings.GRAVATAR_SIZE
 
     if size:
-        params.append("s=%s" % size)
+        params['s'] = size
 
-    if hasattr(settings, "GRAVATAR_RATING"):
-        params.append("r=%s" % settings.GRAVATAR_RATING)
+    if hasattr(settings, 'GRAVATAR_RATING'):
+        params['r'] = settings.GRAVATAR_RATING
 
-    if hasattr(settings, "GRAVATAR_DEFAULT"):
-        params.append("d=%s" % settings.GRAVATAR_DEFAULT)
+    if hasattr(settings, 'GRAVATAR_DEFAULT'):
+        params['d'] = settings.GRAVATAR_DEFAULT
 
-    if params:
-        url += "?" + "&".join(params)
+    if len(params):
+        url = '%s?%s' % (url, params.urlencode())
 
     return url
 
 
-def get_gravatar_url(request, user, size=None):
+def get_gravatar_url(request=None, user=None, size=None):
+    """Return the Gravatar URL for a user.
+
+    The returned URL will always use HTTPS.
+
+    Args:
+        request (django.http.HttpRequest):
+            Ignored. This argument will be removed in Djblets 0.11.0.
+
+        user (django.contrib.auth.models.User):
+            The user whose Gravatar URL is to be retrieved.
+
+        size (int, optional):
+            An optional height and width of the image (in pixels).
+
+    Returns:
+        unicode:
+        The URL for the user's Gravatar.
+
+    Raises:
+        ValueError:
+            Raised if ``user`` is ``None``.
+    """
+    if request is not None:
+        warn("djblets.gravatars.get_gravatar_url's request request argument "
+             "is deprecated and should be None. It will be removed in Djblets "
+             "0.11.0. Use get_gravatar_url(user=user, size=size) instead.",
+             DeprecationWarning)
+
+    if user is None:
+        raise ValueError('"user" cannot be None.')
+
     if user.is_anonymous() or not user.email:
-        return ""
+        return ''
 
     email = user.email.strip().lower()
-    return get_gravatar_url_for_email(request, email, size)
+    return get_gravatar_url_for_email(email=email, size=size)

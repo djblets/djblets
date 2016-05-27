@@ -44,11 +44,8 @@ For example
        avatar_service_id = 'my-avatar-service'
        name = 'My Avatar Service'
 
-       def get_avatar_urls_uncached(self, request, user, size):
-           if request.is_secure():
-               url = 'https://example.com/avatars/%s/%d.png'
-           else:
-               url = 'http://example.com/avatars/%s/%d.png'
+       def get_avatar_urls_uncached(self, user, size):
+           url = 'https://example.com/avatars/%s/%d.png'
            return {
                '1x': mark_safe(url % (escape(user.username), size)),
                '2x': mark_safe(url % (escape(user.username), size * 2)),

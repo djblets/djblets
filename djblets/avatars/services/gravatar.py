@@ -14,13 +14,10 @@ class GravatarService(AvatarService):
     avatar_service_id = 'gravatar'
     name = 'Gravatar'
 
-    def get_avatar_urls_uncached(self, request, user, size):
-        """Return the avatar URLs for the requested user.
+    def get_avatar_urls_uncached(self, user, size):
+        """Return the Gravatar URLs for the requested user.
 
         Args:
-            request (django.http.HttpRequest):
-                The current HTTP request.
-
             user (django.contrib.auth.models.User):
                 The user whose avatar URLs are to be fetched.
 
@@ -34,6 +31,6 @@ class GravatarService(AvatarService):
         """
         return {
             '%dx' % resolution: mark_safe(get_gravatar_url_for_email(
-                request, user.email, size * resolution))
+                email=user.email, size=(size * resolution)))
             for resolution in (1, 2, 3)
         }
