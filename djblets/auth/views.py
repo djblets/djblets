@@ -45,8 +45,8 @@ from djblets.auth.util import validate_test_cookie
 
 @csrf_protect
 def register(request, next_page, form_class=RegistrationForm,
-             extra_context={}, initial_values=None,
-             template_name="accounts/register.html"):
+             extra_context=None, initial_values=None,
+             form_kwargs=None, template_name="accounts/register.html"):
     """Handle registration of a new user.
 
     This works along with :py:class:`djblets.auth.forms.RegistrationForm`
@@ -73,14 +73,24 @@ def register(request, next_page, form_class=RegistrationForm,
         initial_values (dict):
             Initial values to set on the form when it is rendered.
 
+        form_kwargs (dict):
+            Additional keyword arguments to pass to the form class during
+            instantiation.
+
         template_name (unicode):
             The name of the template containing the registration form.
 
     Returns:
         HttpResponse: The page's rendered response or redirect.
     """
+    if initial_values is None:
+        initial_values = {}
+
+    if form_kwargs is None:
+        form_kwargs = {}
+
     if request.method == 'POST':
-        form = form_class(data=request.POST, request=request)
+        form = form_class(data=request.POST, request=request, **form_kwargs)
         form.full_clean()
         validate_test_cookie(form, request)
 
@@ -104,13 +114,16 @@ def register(request, next_page, form_class=RegistrationForm,
 
                 return HttpResponseRedirect(next_page)
     else:
-        form = form_class(initial=initial_values, request=request)
+        form = form_class(initial=initial_values, request=request,
+                          **form_kwargs)
 
     request.session.set_test_cookie()
 
     context = {
         'form': form,
     }
-    context.update(extra_context)
+
+    if extra_context:
+        context.update(extra_context)
 
     return render_to_response(template_name, RequestContext(request, context))
