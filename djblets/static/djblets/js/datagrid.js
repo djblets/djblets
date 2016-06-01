@@ -29,7 +29,7 @@ $.fn.datagrid = function() {
         /* State */
         storedColWidths = [],
         activeColumns = [],
-        $activeMenu = null,
+        menuOpen = false,
         inMobileMode = null,
         columnMidpoints = [],
         dragColumn = null,
@@ -70,7 +70,7 @@ $.fn.datagrid = function() {
 
         syncColumnSizes();
 
-        if ($activeMenu) {
+        if (menuOpen) {
             updateMenuPosition();
         }
     };
@@ -257,7 +257,7 @@ $.fn.datagrid = function() {
 
             syncColumnSizes();
 
-            if ($activeMenu) {
+            if (menuOpen) {
                 updateMenuPosition();
             }
         }
@@ -458,28 +458,26 @@ $.fn.datagrid = function() {
      * Hides the currently open columns menu.
      */
     function hideColumnsMenu() {
-        if ($activeMenu !== null) {
-            $activeMenu.animate({
-                right: -$menu.outerWidth()
-            }, {
-                complete: function() {
-                    $activeMenu.hide();
-                    $activeMenu = null;
-                }
-            });
-        }
+        $menu.animate({
+            right: -$menu.outerWidth()
+        }, {
+            complete: function() {
+                $menu.hide();
+                menuOpen = false;
+            }
+        });
     }
 
     /*
      * Toggles the visibility of the specified columns menu.
      */
     function toggleColumnsMenu() {
-        if ($menu.is(":visible")) {
-            hideColumnsMenu();
-        } else {
-            $activeMenu = $menu;
-
-            updateMenuPosition();
+        if (!$menu.is(':animated')) {
+            if ($menu.is(':visible')) {
+                hideColumnsMenu();
+            } else {
+                updateMenuPosition();
+            }
         }
     }
 
@@ -495,6 +493,10 @@ $.fn.datagrid = function() {
             .show()
             .animate({
                 right: 0
+            }, {
+                complete: function() {
+                    menuOpen = true;
+                }
             });
     }
 
