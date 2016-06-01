@@ -18,25 +18,25 @@
 {%   endfor %}
   </ul>
  </div>
-</div>
 {%  endbox %}
 
-<div class="config-forms-page-content">
+ <div class="config-forms-page-content">
 {%  if messages %}
- <ul id="messages">
+  <ul id="messages">
 {%   for message in messages %}
-  <li{% if message.tags %} class="{{message.tags}}"{% endif %}>{{message}}</li>
+   <li{% if message.tags %} class="{{message.tags}}"{% endif %}>{{message}}</li>
 {%   endfor %}
- </ul>
+  </ul>
 {%  endif %}
 
 {%  for page in pages %}
 {%   if page.is_visible %}
- <div class="page" id="page_{{page.page_id}}">
+  <div class="page" id="page_{{page.page_id}}">
 {{page.render|safe}}
- </div>
+  </div>
 {%   endif %}
 {%  endfor %}
+ </div>
 </div>
 {% endblock content %}
 
