@@ -18,6 +18,7 @@
 {%   endfor %}
   </ul>
  </div>
+</div>
 {%  endbox %}
 
 <div class="config-forms-page-content">
@@ -36,6 +37,7 @@
  </div>
 {%   endif %}
 {%  endfor %}
+</div>
 {% endblock content %}
 
 {% block css %}
@@ -88,14 +90,14 @@
 {%     if form.js_model_class %}
 {%      with form_model_data=form.get_js_model_data %}
             model: new {{form.js_model_class}}({
-{%       if form_model_data and js_model_class %}
-                {{js_model_data|json_dumps_items:','}}
+{%       if form_model_data and form.js_model_class %}
+                {{form_model_data|json_dumps_items:','}}
                 config: config
 {%       elif form_model_data %}
-                {{js_model_data|json_dumps_items}}
-{%       elif js_model_class %}
+                {{form_model_data|json_dumps_items}}
+{%       elif form.js_model_class %}
                 config: config
- {%      endif %}
+{%       endif %}
 {%      endwith %}
             }),
 {%     endif  %}

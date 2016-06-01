@@ -429,8 +429,7 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         registry = AvatarServiceRegistry()
         registry.enable_service(GravatarService.avatar_service_id)
         registry.set_default_service(
-            registry.get('avatar_service_id',
-                         GravatarService.avatar_service_id))
+            registry.get_avatar_service(GravatarService.avatar_service_id))
 
         registry.disable_service(GravatarService.avatar_service_id)
         self.assertIsNone(registry.default_service)
@@ -442,8 +441,23 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         registry = AvatarServiceRegistry()
         registry.enable_service(GravatarService.avatar_service_id)
         registry.set_default_service(
-            registry.get('avatar_service_id',
-                         GravatarService.avatar_service_id))
+            registry.get_avatar_service(GravatarService.avatar_service_id))
 
         registry.enabled_services = []
         self.assertIsNone(registry.default_service)
+
+    def test_get_or_default(self):
+        """Testing AvatarServiceRegistry.get_or_default"""
+        registry = AvatarServiceRegistry()
+        registry.enable_service(GravatarService.avatar_service_id)
+
+        gravatar_service = registry.get_avatar_service(
+            GravatarService.avatar_service_id)
+
+        registry.set_default_service(gravatar_service)
+
+        self.assertEqual(registry.get_or_default(), gravatar_service)
+        self.assertEqual(
+            registry.get_or_default(GravatarService.avatar_service_id),
+            gravatar_service)
+        self.assertEqual(registry.get_or_default('unknown'), gravatar_service)

@@ -80,12 +80,34 @@ class AvatarServiceRegistry(Registry):
 
     lookup_error_class = AvatarServiceNotFoundError
 
+    #: The default avatar service classes.
+    default_avatar_service_classes = [
+        GravatarService,
+    ]
+
     def __init__(self):
         """Initialize the avatar service registry."""
         super(AvatarServiceRegistry, self).__init__()
 
         self._enabled_services = set()
         self._default_service_id = None
+
+    def get_avatar_service(self, avatar_service_id):
+        """Return the requested avatar service.
+
+        Args:
+            avatar_service_id (unicode):
+                The unique identifier for the avatar service.
+
+        Returns:
+            djblets.avatars.services.base.AvatarService:
+            The requested avatar service.
+
+        Raises:
+            AvatarServiceNotFoundError:
+                Raised if the avatar service cannot be found.
+        """
+        return self.get('avatar_service_id', avatar_service_id)
 
     @property
     def enabled_services(self):
@@ -99,7 +121,7 @@ class AvatarServiceRegistry(Registry):
         self.populate()
 
         return {
-            self.get('avatar_service_id', service_id)
+            self.get_avatar_service(service_id)
             for service_id in self._enabled_services
         }
 
@@ -132,15 +154,27 @@ class AvatarServiceRegistry(Registry):
                     UNKNOWN_SERVICE_ENABLED,
                     service_id=service.avatar_service_id))
 
-        self._enabled_services = {
+        new_service_ids = {
             service.avatar_service_id
             for service in services
         }
+
+        to_enable = new_service_ids - self._enabled_services
+        to_disable = self._enabled_services - new_service_ids
+
+        for service_id in to_disable:
+            self.disable_service(service_id, save=False)
+
+        for service_id in to_enable:
+            self.enable_service(service_id, save=False)
+
         default_service = self.default_service
 
         if (default_service is not None and
             not self.is_enabled(default_service.avatar_service_id)):
             self.set_default_service(None)
+
+        self.save()
 
     @property
     def default_service(self):
@@ -155,7 +189,7 @@ class AvatarServiceRegistry(Registry):
         if self._default_service_id is None:
             return None
 
-        return self.get('avatar_service_id', self._default_service_id)
+        return self.get_avatar_service(self._default_service_id)
 
     def set_default_service(self, service, save=True):
         """Set the default avatar service.
@@ -204,7 +238,7 @@ class AvatarServiceRegistry(Registry):
         """
         try:
             # We do this to get around usage of the ExceptionFreeGetterMixin.
-            return self.get('avatar_service_id', service_id) in self
+            return self.get_avatar_service(service_id) in self
         except ItemLookupError:
             return False
 
@@ -338,9 +372,12 @@ class AvatarServiceRegistry(Registry):
     def get_defaults(self):
         """Yield the default avatar services.
 
-        By default, this is only the Gravatar service.
+        Subclasses should override the
+        :py:attr:`default_avatar_service_classes` attribute instead of this in
+        most cases.
         """
-        yield GravatarService()
+        for service_class in self.default_avatar_service_classes:
+            yield service_class()
 
     def save(self):
         """Save the list of enabled avatar services to the database."""
@@ -348,3 +385,28 @@ class AvatarServiceRegistry(Registry):
         siteconfig.set(self.ENABLED_SERVICES_KEY, list(self._enabled_services))
         siteconfig.set(self.DEFAULT_SERVICE_KEY, self._default_service_id)
         siteconfig.save()
+
+    def get_or_default(self, service_id=None):
+        """Return either the requested avatar service or the default.
+
+        If the requested service is unregistered or disabled, the default
+        avatar service will be returned (which may be ``None`` if there is no
+        default).
+
+        Args:
+            service_id (unicode, optional):
+                The unique identifier of the service that is to be retrieved.
+                If this is ``None``, the default service will be used.
+
+        Returns:
+            djblets.avatars.services.base.AvatarService:
+            Either the requested avatar service, if it is both registered and
+            enabled, or the default avatar service. If there is no default
+            avatar service, this will return ``None``.
+        """
+        if (service_id is not None and
+            self.has_service(service_id) and
+            self.is_enabled(service_id)):
+            return self.get_avatar_service(service_id)
+
+        return self.default_service
