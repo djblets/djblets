@@ -159,7 +159,7 @@ Ordered Registries
 ~~~~~~~~~~~~~~~~~~
 
 Suppose we wanted to retrieve each item from the registry in the order it was
-registered in. We can do that by keeping a list that contains the :py:fn:`id`
+registered in. We can do that by keeping a list that contains the :py:func:`id`
 of each registered item. Then, instead of iterating through the registry in the
 default order, we can iterate through in the order the items were registered.
 
