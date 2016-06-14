@@ -25,7 +25,7 @@
 #
 """Components for creating customizable datagrids from database data.
 
-Datagrids are used to display to display a table-based view of data from
+Datagrids are used to display a table-based view of data from
 a database, complete with pagination, batch selection, sorting, and
 flexible column rendering.
 
