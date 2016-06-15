@@ -84,6 +84,9 @@ class Registry(object):
     #: subclass as this attribute.
     default_errors = DEFAULT_ERRORS
 
+    #: The error class indicating an already registered item.
+    already_registered_error_class = AlreadyRegisteredError
+
     #: The lookup error exception class.
     lookup_error_class = ItemLookupError
 
@@ -181,7 +184,7 @@ class Registry(object):
         attr_values = {}
 
         if item in self._items:
-            raise AlreadyRegisteredError(self.format_error(
+            raise self.already_registered_error_class(self.format_error(
                 ALREADY_REGISTERED,
                 item=item))
 
@@ -192,12 +195,12 @@ class Registry(object):
                 attr_value = getattr(item, attr_name)
 
                 if attr_value in attr_map:
-                    raise AlreadyRegisteredError(self.format_error(
-                        ATTRIBUTE_REGISTERED,
-                        item=item,
-                        duplicate=attr_map[attr_value],
-                        attr_name=attr_name,
-                        attr_value=attr_value))
+                    raise self.already_registered_error_class(
+                        self.format_error(ATTRIBUTE_REGISTERED,
+                                          item=item,
+                                          duplicate=attr_map[attr_value],
+                                          attr_name=attr_name,
+                                          attr_value=attr_value))
 
                 attr_values[attr_name] = attr_value
             except AttributeError:
