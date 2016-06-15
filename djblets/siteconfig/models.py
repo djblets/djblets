@@ -26,7 +26,6 @@
 from __future__ import unicode_literals
 
 from django.contrib.sites.models import Site
-from django.core.cache import cache
 from django.db import models
 from django.utils import six
 from django.utils.encoding import python_2_unicode_compatible
@@ -64,6 +63,8 @@ class SiteConfiguration(models.Model):
 
     site = models.ForeignKey(Site, related_name="config")
     version = models.CharField(max_length=20)
+
+    #: A JSON dictionary field of settings stored for a site.
     settings = JSONField()
 
     objects = SiteConfigurationManager()

@@ -124,6 +124,21 @@ Extensions
    djblets.extensions.templatetags.djblets_extensions
 
 
+Feature Checks
+==============
+
+.. autosummary::
+   :toctree: python
+
+   djblets.features
+   djblets.features.checkers
+   djblets.features.errors
+   djblets.features.feature
+   djblets.features.level
+   djblets.features.registry
+   djblets.features.testing
+
+
 Feed View for RSS
 =================
 
