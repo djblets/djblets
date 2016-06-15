@@ -19,15 +19,44 @@ from djblets.webapi.errors import WebAPITokenGenerationError
 class WebAPITokenManager(Manager):
     """Manages WebAPIToken models."""
 
-    def generate_token(self, user, max_attempts=20, local_site=None,
-                       note=None, policy=None):
+    def generate_token(self, user, max_attempts=20, note=None, policy={},
+                       **kwargs):
         """Generate a WebAPIToken for a user.
 
         This will attempt to construct a unique WebAPIToken for a user.
 
         Since a collision is possible, it will try up to a certain number
         of times. If it cannot create a unique token, a
-        :py:class:`WebAPITokenGenerationError` will be raised.
+        :py:class:`~djblets.webapi.errors.WebAPITokenGenerationError` will be
+        raised.
+
+        Args:
+            user (django.contrib.auth.models.User):
+                The user who will own the token.
+
+            max_attempts (int, optional):
+                The maximum number of attempts to try to find a non-conflicting
+                token. Defaults to 20.
+
+            note (unicode, optional):
+                A note describing the token.
+
+            policy (dict, optional):
+                The policy document describing what this token can access
+                in the API. By default, this provides full access.
+
+            **kwargs (dict):
+                Additional keyword arguments representing fields in the token.
+                These will be set on the token object.
+
+        Returns:
+            djblets.webapi.models.BaseWebAPIToken:
+            The generated API token.
+
+        Raises:
+            djblets.webapi.errors.WebAPITokenGenerationError:
+                The token was not able to be generated after ``max_attempts``
+                number of collisions were hit.
         """
         prefix = settings.SECRET_KEY + six.text_type(user.pk) + user.password
 
@@ -43,9 +72,9 @@ class WebAPITokenManager(Manager):
             try:
                 return self.create(user=user,
                                    token=token,
-                                   local_site=local_site,
-                                   note=note,
-                                   policy=policy)
+                                   note=note or '',
+                                   policy=policy,
+                                   **kwargs)
             except IntegrityError:
                 # We hit a collision with the token value. Try again.
                 pass
