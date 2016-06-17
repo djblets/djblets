@@ -1,4 +1,14 @@
 PIPELINE_JAVASCRIPT = {
+    'djblets-avatars-config': {
+        'source_filenames': (
+            'djblets/js/avatars/base.js',
+            'djblets/js/avatars/models/avatarSettingsModel.es6.js',
+            'djblets/js/avatars/views/avatarServiceSettingsFormView.es6.js',
+            'djblets/js/avatars/views/avatarSettingsFormView.es6.js',
+            'djblets/js/avatars/views/fileUploadSettingsFormView.es6.js',
+        ),
+        'output_filename': 'djblets/js/avatars-config.min.js',
+    },
     'djblets-config-forms': {
         'source_filenames': (
             'djblets/js/configForms/base.js',
@@ -58,10 +68,22 @@ PIPELINE_JAVASCRIPT = {
         ),
         'output_filename': 'djblets/js/tests.min.js',
     },
+    'djblets-utils': {
+        'source_filenames': (
+            'djblets/js/utils/promise.es6.js',
+        ),
+        'output_filename': 'djblets/js/utils.min.js',
+    },
 }
 
 
 PIPELINE_STYLESHEETS = {
+    'djblets-avatars-config': {
+        'source_filenames': (
+            'djblets/css/avatars.less',
+        ),
+        'output_filename': 'djblets/css/avatars-config.min.css',
+    },
     'djblets-admin': {
         'source_filenames': (
             'djblets/css/admin.less',
