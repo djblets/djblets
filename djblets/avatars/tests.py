@@ -12,6 +12,7 @@ from kgb import SpyAgency
 
 from djblets.avatars.errors import DisabledServiceError
 from djblets.avatars.registry import AvatarServiceRegistry
+from djblets.avatars.settings import AvatarSettingsManager
 from djblets.avatars.services.base import AvatarService
 from djblets.avatars.services.gravatar import GravatarService
 from djblets.gravatars import get_gravatar_url_for_email
@@ -63,6 +64,69 @@ class DummyAvatarService(AvatarService):
             urls['2x'] = mark_safe('http://example.com/avatar@2x.png')
 
         return urls
+
+
+class DummySettingsManager(AvatarSettingsManager):
+    """A dummy settings manager that always returns the same settings."""
+
+    @property
+    def avatar_service_id(self):
+        return self._avatar_service_id
+
+    @property
+    def configuration(self):
+        """The configuration.
+
+        Returns:
+            dict: The configuration."""
+        return self._settings
+
+    def __init__(self, avatar_service_id, settings):
+        """Initialize the settings manager.
+
+        Args:
+            avatar_service_id (unicode):
+                The avatar service ID.
+
+            settings (dict):
+                The avatar services configuration.
+        """
+        super(DummySettingsManager, self).__init__(None)
+
+        self._avatar_service_id = avatar_service_id
+        self._settings = settings
+
+    def configuration_for(self, avatar_service_id):
+        """Return the configuration for the specified service.
+
+        Args:
+            avatar_service_id (unicode):
+                The unique ID for the avatar service.
+
+        Returns:
+            dict: Configuration for the given avatar service.
+        """
+        return self._settings.get(avatar_service_id, {})
+
+    def __call__(self, *args, **kwargs):
+        """Return the avatar settings manager.
+
+        The :py:class:`~djblets.avatars.registry.AvatarServiceRegistry
+        expects a ``type`` instead of an instance, so we override ``call()`` to
+        pretend to be one.
+
+        Args:
+            *args (tuple):
+                Ignored positional arguments.
+
+            **kwargs (dict)
+                Ignored keyword arguments.
+
+        Returns:
+            DummySettingsManager:
+            This instance.
+        """
+        return self
 
 
 class AvatarServiceTests(SpyAgency, TestCase):
@@ -446,18 +510,41 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         registry.enabled_services = []
         self.assertIsNone(registry.default_service)
 
-    def test_get_or_default(self):
-        """Testing AvatarServiceRegistry.get_or_default"""
-        registry = AvatarServiceRegistry()
-        registry.enable_service(GravatarService.avatar_service_id)
+    def test_for_user(self):
+        """Testing AvatarServiceRegistry.for_user"""
+        class AnotherDummyAvatarService(DummyAvatarService):
+            avatar_service_id = 'dummy2'
 
+        class DummyAvatarServiceRegistry(AvatarServiceRegistry):
+            settings_manager_class = DummySettingsManager('dummy', {})
+            default_avatar_service_classes = [AnotherDummyAvatarService,
+                                              DummyAvatarService,
+                                              GravatarService]
+
+        registry = DummyAvatarServiceRegistry()
         gravatar_service = registry.get_avatar_service(
             GravatarService.avatar_service_id)
+        dummy_service = registry.get_avatar_service(
+            DummyAvatarService.avatar_service_id)
+        dummy2_service = registry.get_avatar_service(
+            AnotherDummyAvatarService.avatar_service_id)
 
-        registry.set_default_service(gravatar_service)
+        registry.enable_service(GravatarService.avatar_service_id, save=False)
+        registry.enable_service(DummyAvatarService.avatar_service_id,
+                                save=False)
+        registry.enable_service(AnotherDummyAvatarService.avatar_service_id,
+                                save=False)
+        registry.set_default_service(gravatar_service, save=False)
 
-        self.assertEqual(registry.get_or_default(), gravatar_service)
+        # Case 1: Their set avatar service.
+        self.assertEqual(registry.for_user(None), dummy_service)
+
+        # Case 2: A requested avatar service.
         self.assertEqual(
-            registry.get_or_default(GravatarService.avatar_service_id),
-            gravatar_service)
-        self.assertEqual(registry.get_or_default('unknown'), gravatar_service)
+            registry.for_user(None,
+                              AnotherDummyAvatarService.avatar_service_id),
+            dummy2_service)
+
+        # Case 3: The default avatar service
+        registry.settings_manager_class._avatar_service_id = None
+        self.assertEqual(registry.for_user(None), gravatar_service)

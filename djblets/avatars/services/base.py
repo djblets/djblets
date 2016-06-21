@@ -4,6 +4,8 @@ from __future__ import unicode_literals
 
 from django.template.loader import render_to_string
 
+from djblets.avatars.settings import AvatarSettingsManager
+
 
 class AvatarService(object):
     """A service that provides avatar support.
@@ -12,6 +14,16 @@ class AvatarService(object):
     :py:attr:`name` attributes, as well as override the
     :py:meth:`get_avatar_urls` method.
     """
+
+    def __init__(self, settings_manager_class=AvatarSettingsManager):
+        """Initialize the avatar service.
+
+        Args:
+            settings_manager_class (type):
+                The :py:class`AvatarSettingsManager` subclass to use for
+                managing settings.
+        """
+        self._settings_manager_class = settings_manager_class
 
     #: The avatar service's ID.
     #:
@@ -23,6 +35,22 @@ class AvatarService(object):
 
     #: The template for rendering the avatar as HTML.
     template_name = 'avatars/avatar.html'
+
+    #: An optional form to provide per-user configuration for the service.
+    #:
+    #: This should be a sub-class of
+    # :py:class:`djblets.avatars.forms.AvatarServiceConfigForm`.
+    config_form_class = None
+
+    @property
+    def is_configurable(self):
+        """Whether or not the service is configurable.
+
+        Returns:
+            bool:
+            Whether or not the service is configurable.
+        """
+        return self.config_form_class is not None
 
     def get_avatar_urls(self, request, user, size):
         """Render the avatar URLs for the given user.
@@ -132,3 +160,15 @@ class AvatarService(object):
             'username': user.get_full_name() or user.username,
             'size': size,
         })
+
+    def cleanup(self, user):
+        """Clean up state when a user no longer uses this service.
+
+        Subclasses may use this to clean up database state or remove files. By
+        default, this method does nothing.
+
+        Args:
+            user (django.contrib.auth.models.User):
+                The user who is no longer using the service.
+        """
+        pass

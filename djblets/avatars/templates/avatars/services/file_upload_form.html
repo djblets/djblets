@@ -1,0 +1,24 @@
+{% load avatars djblets_forms djblets_utils i18n %}
+
+{% block pre_fields %}{% endblock %}
+
+{{form.non_field_errors}}
+
+{% for field in form %}
+{%  if field.is_hidden %}
+{{field}}
+{%  endif %}
+{% endfor %}
+
+<div class="avatar-preview">
+{% if configuration.absolute_url %}
+ <img src="{% avatar_url request.user 128 '1x' avatar_service_id %}" alt="{% trans "Current avatar" %}">
+{% else %}
+ <div class="avatar-missing"></div>
+{% endif %}
+ <p class="caption">{% trans "Avatar Preview" %}</p>
+</div>
+
+{% label_tag form.avatar_upload %}
+{{form.avatar_upload}}
+{{form.avatar_upload.errors}}

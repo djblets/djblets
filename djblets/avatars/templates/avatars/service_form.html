@@ -1,0 +1,17 @@
+{% load djblets_forms djblets_utils i18n %}
+
+{% block pre_fields %}{% endblock %}
+
+{{form.non_field_errors}}
+
+{% for field in form %}
+{%  if field.is_hidden %}
+{{field}}
+{%  endif %}
+{% endfor %}
+
+{% for field in form %}
+{%  if not field.is_hidden %}
+{% label_tag field %} {{field}} {{field.errors}}
+{%  endif %}
+{% endfor %}

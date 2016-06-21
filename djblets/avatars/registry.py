@@ -9,6 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 from djblets.avatars.errors import (AvatarServiceNotFoundError,
                                     DisabledServiceError)
 from djblets.avatars.services.gravatar import GravatarService
+from djblets.avatars.settings import AvatarSettingsManager
 from djblets.registries.errors import ItemLookupError
 from djblets.registries.registry import (ALREADY_REGISTERED,
                                          ATTRIBUTE_REGISTERED, DEFAULT_ERRORS,
@@ -85,6 +86,9 @@ class AvatarServiceRegistry(Registry):
         GravatarService,
     ]
 
+    #: The settings manager for avatar services.
+    settings_manager_class = AvatarSettingsManager
+
     def __init__(self):
         """Initialize the avatar service registry."""
         super(AvatarServiceRegistry, self).__init__()
@@ -108,6 +112,22 @@ class AvatarServiceRegistry(Registry):
                 Raised if the avatar service cannot be found.
         """
         return self.get('avatar_service_id', avatar_service_id)
+
+    @property
+    def configurable_services(self):
+        """Yield the enabled services that have configuration forms.
+
+        Yields:
+            tuple:
+            djblets.avatars.forms.AvatarServiceConfigForm:
+            The enabled services that have configuration forms.
+        """
+        self.populate()
+        return (
+            service
+            for service in self.enabled_services
+            if service.is_configurable
+        )
 
     @property
     def enabled_services(self):
@@ -386,27 +406,34 @@ class AvatarServiceRegistry(Registry):
         siteconfig.set(self.DEFAULT_SERVICE_KEY, self._default_service_id)
         siteconfig.save()
 
-    def get_or_default(self, service_id=None):
-        """Return either the requested avatar service or the default.
+    def for_user(self, user, service_id=None):
+        """Return the requested avatar service for the given user.
 
-        If the requested service is unregistered or disabled, the default
-        avatar service will be returned (which may be ``None`` if there is no
-        default).
+        The following options will be tried:
+
+            * the requested avatar service (if it is enabled);
+            * the user's chosen avatar service (if it is enabled); or
+            * the default avatar service (which may be ``None``).
 
         Args:
+            user (django.contrib.auth.models.User):
+                The user to retrieve the avatar service for.
+
             service_id (unicode, optional):
                 The unique identifier of the service that is to be retrieved.
                 If this is ``None``, the default service will be used.
 
         Returns:
             djblets.avatars.services.base.AvatarService:
-            Either the requested avatar service, if it is both registered and
-            enabled, or the default avatar service. If there is no default
-            avatar service, this will return ``None``.
+            An avatar service, or ``None`` if one could not be found.
         """
-        if (service_id is not None and
-            self.has_service(service_id) and
-            self.is_enabled(service_id)):
-            return self.get_avatar_service(service_id)
+        settings_manager = self.settings_manager_class(user)
+        user_service_id = settings_manager.avatar_service_id
+
+        for sid in (service_id, user_service_id):
+            if (sid is not None and
+                self.has_service(sid) and
+                self.is_enabled(sid)):
+                return self.get_avatar_service(sid)
 
         return self.default_service

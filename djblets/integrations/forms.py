@@ -51,12 +51,15 @@ class IntegrationConfigForm(KeyValueForm):
             'size': 40,
         }))
 
-    def __init__(self, integration, *args, **kwargs):
+    def __init__(self, integration, request, *args, **kwargs):
         """Initialize the form.
 
         Args:
             integration (djblets.integrations.integration.Integration):
                 The integration being configured.
+
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
 
             *args (tuple):
                 Positional arguments to pass to the form.
@@ -65,6 +68,7 @@ class IntegrationConfigForm(KeyValueForm):
                 Keyword arguments to pass to the form.
         """
         self.integration = integration
+        self.request = request
 
         self.build_fieldsets()
 

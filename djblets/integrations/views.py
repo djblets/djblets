@@ -254,8 +254,10 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin, FormView):
     def get_form_kwargs(self):
         """Return keyword arguments to pass to the form.
 
-        THis will, by default, provide ``integration`` and configuration
-        ``instance`` keyword arguments to the form during initialization.
+        This will, by default, provide ``integration`` and configuration
+        ``instance`` keyword arguments to the form during initialization,
+        along with the ``request``.
+
         Subclases can override it with additional arguments if needed.
 
         Returns:
@@ -266,6 +268,7 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin, FormView):
             super(BaseIntegrationConfigFormView, self).get_form_kwargs()
         form_kwargs.update({
             'integration': self.integration,
+            'request': self.request,
             'instance': self.config,
         })
 

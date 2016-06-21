@@ -25,9 +25,9 @@
 #
 """Components for creating customizable datagrids from database data.
 
-Datagrids are used to display to display a table-based view of data from
-a database, complete with pagination, batch selection, sorting, and
-flexible column rendering.
+Datagrids are used to display a table-based view of data from a database,
+complete with pagination, batch selection, sorting, and flexible column
+rendering.
 
 Datagrids have one or more :py:class:`Column` subclasses associated, which will
 render the data. The datagrid may display a subset of the rendered columns,
