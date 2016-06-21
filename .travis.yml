@@ -12,7 +12,12 @@ matrix:
           env: DJANGO_VERSION=1.8.2
 
 install:
-    - pip install -q Django==$DJANGO_VERSION
+    - >
+      if [[ "$DJANGO_VERSION" = "1.6.11" ]]; then
+          easy_install -U https://s3.amazonaws.com/downloads.reviewboard.org/releases/Django/1.6/Django-1.6.11.3.tar.gz
+      else
+          pip install -q Django==$DJANGO_VERSION
+      fi
     - python setup.py develop
     - pip install -r dev-requirements.txt
 
