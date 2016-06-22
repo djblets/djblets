@@ -173,6 +173,8 @@ class XMLEncoderAdapter(object):
             self.text(o)
         elif isinstance(o, six.integer_types):
             self.text("%d" % o)
+        elif isinstance(o, float):
+            self.text("%s" % o)
         elif isinstance(o, bool):
             if o:
                 self.text("True")
