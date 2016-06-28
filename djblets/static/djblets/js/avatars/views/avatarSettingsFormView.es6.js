@@ -12,7 +12,7 @@ const [readyPromise, resolve] = Promise.withResolver();
  */
 Djblets.Avatars.SettingsFormView = Backbone.View.extend({
     events: {
-        'change select[name="avatar_service_id"]': '_onServiceChanged',
+        'change #id_avatar_service_id': '_onServiceChanged',
         'submit': '_onSubmit'
     },
 
@@ -67,7 +67,11 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
             form.render();
         }
 
-        const serviceID = this.model.get('serviceID');
+        /*
+         * Ensure that if the browser sets the value of the <select> upon
+         * refresh that we update the model accordingly.
+         */
+        this.$('#id_avatar_service_id').change();
         this._showHideForms(true);
 
         return this;

@@ -397,7 +397,7 @@ class AvatarServiceRegistry(Registry):
         most cases.
         """
         for service_class in self.default_avatar_service_classes:
-            yield service_class()
+            yield service_class(self.settings_manager_class)
 
     def save(self):
         """Save the list of enabled avatar services to the database."""

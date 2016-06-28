@@ -13,7 +13,7 @@ const allowedMimeTypes = [
  */
 Djblets.Avatars.FileUploadSettingsFormView = Djblets.Avatars.ServiceSettingsFormView.extend({
     events: {
-        'change #id_avatar_upload': '_onFileChanged'
+        'change #id_file-upload-avatar_upload': '_onFileChanged'
     },
 
 
@@ -23,7 +23,7 @@ Djblets.Avatars.FileUploadSettingsFormView = Djblets.Avatars.ServiceSettingsForm
      * If a file is selected, ensure it is has the correct MIME type.
      */
     validate() {
-        const file = this.$('#id_avatar_upload')[0].files[0];
+        const file = this.$('#id_file-upload-avatar_upload')[0].files[0];
 
         if (!file) {
             alert(gettext('You must choose a file.'));
@@ -34,6 +34,8 @@ Djblets.Avatars.FileUploadSettingsFormView = Djblets.Avatars.ServiceSettingsForm
             alert(gettext('Invalid file format'));
             return false;
         }
+
+        return true;
     },
 
     /**
