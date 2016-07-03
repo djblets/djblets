@@ -9,6 +9,7 @@ with generating consistent docstrings.
 from __future__ import print_function, unicode_literals
 
 import json
+import pprint
 
 from django.test.client import BOUNDARY, MULTIPART_CONTENT, encode_multipart
 from django.utils import six
@@ -121,7 +122,8 @@ class WebAPITestCaseMixin(TestCase):
         else:
             rsp = response.content
 
-        print("Response: %s" % rsp)
+        print('Response:')
+        pprint.pprint(rsp)
 
         return rsp
 
@@ -405,6 +407,7 @@ class WebAPITestCaseMixin(TestCase):
             rsp = None
         else:
             rsp = json.loads(response.content)
-            print("Response: %s" % rsp)
+            print('Response:')
+            pprint.pprint(rsp)
 
         return rsp
