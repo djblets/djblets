@@ -92,6 +92,23 @@ class KeyValueFormTests(TestCase):
                          'disabled')
         self.assertNotIn('disabled', form.fields['bool_field'].widget.attrs)
 
+    def test_load_with_custom_deserialized_field(self):
+        """Testing KeyValueForm.load with custom deserializer for field"""
+        class DeserializerForm(DummyForm):
+            custom = forms.CharField()
+
+            def deserialize_custom_field(self, value):
+                return value['value']
+
+        form = DeserializerForm(instance={
+            'custom': {
+                'is_custom': True,
+                'value': 'my value',
+            },
+        })
+
+        self.assertEqual(form.fields['custom'].initial, 'my value')
+
     def test_save_without_instance(self):
         """Testing KeyValueForm.save without existing instance"""
         form = DummyForm(data={
@@ -217,3 +234,38 @@ class KeyValueFormTests(TestCase):
                 'bool_field': False,
             })
         self.assertTrue(instance is result)
+
+    def test_save_with_custom_serialized_field(self):
+        """Testing KeyValueForm.save with custom serializer for field"""
+        class SerializerForm(DummyForm):
+            custom = forms.CharField()
+
+            def serialize_custom_field(self, value):
+                return {
+                    'is_custom': True,
+                    'value': value,
+                }
+
+        instance = {
+            'custom': {
+                'is_custom': True,
+                'value': 'orig value',
+            },
+        }
+
+        form = SerializerForm(
+            instance=instance,
+            data={
+                'custom': 'new value',
+            })
+
+        self.assertTrue(form.is_valid())
+        result = form.save()
+
+        self.assertTrue(instance is result)
+        self.assertEqual(
+            result['custom'],
+            {
+                'is_custom': True,
+                'value': 'new value',
+            })

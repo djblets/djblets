@@ -22,6 +22,12 @@ class KeyValueForm(forms.Form):
     This can be overridden by providing implementations of
     :py:meth:`get_key_value` and :py:meth:`set_key_value`.
 
+    Values for specific keys can be specially serialized/deserialized by
+    providing :samp:`serialize_{keyname}_field()` and
+    :samp:`deserialize_{keyname}_field()` functions. These take a value and are
+    expected to return a serializable JSON value or a deserialized value,
+    respectively.
+
     It's also makes it easy to implement saving behavior for the object
     by overriding :py:meth:`save_instance`.
 
@@ -53,6 +59,23 @@ class KeyValueForm(forms.Form):
             The instance being loaded and saved. This can be ``None`` (the
             default) when not yet working on an instance (but in that case,
             :py:meth:`create_instance` must be defined).
+
+    Example:
+        With custom field serialization:
+
+        .. code-block:: python
+
+            class MyForm(KeyValueForm):
+                book = forms.ModelChoiceField(queryset=Book.objects.all())
+
+                def serialize_book_field(self, value):
+                    return {
+                        'id': book.pk,
+                        'title': book.title,
+                    }
+
+                def deserialize_book_field(self, value):
+                    return Book.objects.get(pk=value['id'])
     """
 
     def __init__(self, data=None, files=None, instance=None, *args, **kwargs):
@@ -98,8 +121,15 @@ class KeyValueForm(forms.Form):
 
         for field_name, field in six.iteritems(self.fields):
             if self.instance is not None and field_name not in load_blacklist:
-                field.initial = self.get_key_value(field_name,
-                                                   default=field.initial)
+                value = self.get_key_value(field_name, default=field.initial)
+                deserialize_func = getattr(self,
+                                           'deserialize_%s_field' % field_name,
+                                           None)
+
+                if deserialize_func is not None:
+                    value = deserialize_func(value)
+
+                field.initial = value
 
             if field_name in disabled_fields:
                 field.widget.attrs['disabled'] = 'disabled'
@@ -137,6 +167,12 @@ class KeyValueForm(forms.Form):
 
         for key, value in six.iteritems(self.cleaned_data):
             if key not in blacklist:
+                serialize_func = getattr(self, 'serialize_%s_field' % key,
+                                         None)
+
+                if serialize_func is not None:
+                    value = serialize_func(value)
+
                 self.set_key_value(key, value)
 
         if commit:
