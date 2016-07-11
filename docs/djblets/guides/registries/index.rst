@@ -1,3 +1,5 @@
+.. _registry-guides:
+
 =================
 Registries Guides
 =================
