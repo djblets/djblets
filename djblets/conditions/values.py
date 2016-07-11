@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 from django import forms
+from django.utils.translation import ugettext_lazy as _
 
 from djblets.conditions.errors import InvalidConditionValueError
 
@@ -287,3 +288,105 @@ class ConditionValueFormField(BaseConditionValueField):
         # The name is a placeholder, and will be updated by the JavaScript.
         # However, we must have it for render.
         return self.field.widget.render(name='XXX', value=None)
+
+
+class ConditionValueBooleanField(ConditionValueFormField):
+    """Condition value wrapper for boolean form fields.
+
+    This is a convenience for condition values that want to use a
+    :py:class:`~django.forms.fields.BooleanField`. It accepts the same
+    keyword arguments in the constructor that the field itself accepts.
+
+    It also specially serializes the value to a string for use in the
+    JavaScript widget.
+
+    Example:
+        value_field = ConditionValueBooleanField(initial=True)
+    """
+
+    def __init__(self, **field_kwargs):
+        """Initialize the value field.
+
+        Args:
+            **field_kwargs (dict):
+                Keyword arguments to pass to the
+                :py:class:`~django.forms.fields.BooleanField` constructor.
+        """
+        widget = field_kwargs.pop('widget', None)
+
+        if not widget:
+            widget = forms.widgets.Select(choices=(
+                (True, _('True')),
+                (False, _('False')),
+            ))
+
+        super(ConditionValueBooleanField, self).__init__(
+            field=forms.BooleanField(
+                required=False,
+                widget=widget,
+                **field_kwargs))
+
+    def prepare_value_for_widget(self, value):
+        """Return a value suitable for use in the widget.
+
+        This will convert a boolean value to a string, so that it can be
+        properly matched against the string choices for the select box.
+
+        Args:
+            value (bool):
+                The value to prepare for the widget.
+
+        Returns:
+            unicode:
+            The string value for the widget.
+        """
+        if value:
+            return 'True'
+        else:
+            return 'False'
+
+
+class ConditionValueCharField(ConditionValueFormField):
+    """Condition value wrapper for single-line text form fields.
+
+    This is a convenience for condition values that want to use a
+    :py:class:`~django.forms.fields.CharField`. It accepts the same keyword
+    arguments in the constructor that the field itself accepts.
+
+    Example:
+        value_field = ConditionValueCharField(max_length=100)
+    """
+
+    def __init__(self, **field_kwargs):
+        """Initialize the value field.
+
+        Args:
+            **field_kwargs (dict):
+                Keyword arguments to pass to the
+                :py:class:`~django.forms.fields.CharField` constructor.
+        """
+        super(ConditionValueCharField, self).__init__(
+            field=forms.CharField(**field_kwargs))
+
+
+class ConditionValueIntegerField(ConditionValueFormField):
+    """Condition value wrapper for integer form fields.
+
+    This is a convenience for condition values that want to use a
+    :py:class:`~django.forms.fields.IntegerField`. It accepts the same
+    keyword arguments in the constructor that the field itself accepts.
+
+    Example:
+        value_field = ConditionValueIntegerField(min_value=0, max_value=100)
+    """
+
+    def __init__(self, **field_kwargs):
+        """Initialize the value field.
+
+        Args:
+            **field_kwargs (dict):
+                Keyword arguments to pass to the
+                :py:class:`~django.forms.fields.IntegerField` constructor.
+        """
+        super(ConditionValueIntegerField, self).__init__(
+            field=forms.IntegerField(**field_kwargs))

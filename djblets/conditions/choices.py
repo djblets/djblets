@@ -6,6 +6,17 @@ from django.utils.translation import ugettext_lazy as _
 
 from djblets.conditions.errors import (ConditionChoiceConflictError,
                                        ConditionChoiceNotFoundError)
+from djblets.conditions.operators import (ConditionOperators,
+                                          ContainsOperator,
+                                          EndsWithOperator,
+                                          GreaterThanOperator,
+                                          IsNotOperator,
+                                          IsOperator,
+                                          LessThanOperator,
+                                          StartsWithOperator)
+from djblets.conditions.values import (ConditionValueBooleanField,
+                                       ConditionValueCharField,
+                                       ConditionValueIntegerField)
 from djblets.registries.registry import (ALREADY_REGISTERED,
                                          ATTRIBUTE_REGISTERED, DEFAULT_ERRORS,
                                          NOT_REGISTERED, OrderedRegistry,
@@ -102,6 +113,54 @@ class BaseConditionChoice(object):
             The value that this choice's operators will match against.
         """
         return value
+
+
+class BaseConditionBooleanChoice(BaseConditionChoice):
+    """Base class for a standard boolean-based condition choice.
+
+    This is a convenience for choices that cover boolean values.
+    """
+
+    operators = ConditionOperators([
+        IsOperator,
+    ])
+
+    default_value_field = ConditionValueBooleanField()
+
+
+class BaseConditionIntegerChoice(BaseConditionChoice):
+    """Base class for a standard integer-based condition choice.
+
+    This is a convenience for choices that are based on integers. It provides
+    some standard operators that work well with integers for checking.
+    """
+
+    operators = ConditionOperators([
+        IsOperator,
+        IsNotOperator,
+        GreaterThanOperator,
+        LessThanOperator,
+    ])
+
+    default_value_field = ConditionValueIntegerField()
+
+
+class BaseConditionStringChoice(BaseConditionChoice):
+    """Base class for a standard string-based condition choice.
+
+    This is a convenience for choices that are based on strings. It provides
+    some standard operators that work well with strings for checking.
+    """
+
+    operators = ConditionOperators([
+        IsOperator,
+        IsNotOperator,
+        ContainsOperator,
+        StartsWithOperator,
+        EndsWithOperator,
+    ])
+
+    default_value_field = ConditionValueCharField()
 
 
 class ConditionChoices(OrderedRegistry):
