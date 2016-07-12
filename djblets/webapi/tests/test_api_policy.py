@@ -22,7 +22,7 @@ root_resource = RootResource([
 ])
 
 
-class WebAPIToken(BaseWebAPIToken):
+class APIPolicyWebAPIToken(BaseWebAPIToken):
     @classmethod
     def get_root_resource(self):
         return root_resource
@@ -327,13 +327,13 @@ class APIPolicyValidationTests(TestCase):
     """Tests API policy validation."""
     def test_empty(self):
         """Testing BaseWebAPIToken.validate_policy with empty policy"""
-        WebAPIToken.validate_policy({})
+        APIPolicyWebAPIToken.validate_policy({})
 
     def test_not_object(self):
         """Testing BaseWebAPIToken.validate_policy without JSON object"""
         self.assertRaisesValidationError(
             'The policy must be a JSON object.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             [])
 
     #
@@ -346,7 +346,7 @@ class APIPolicyValidationTests(TestCase):
         """
         self.assertRaisesValidationError(
             'The policy is missing a "resources" section.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'foo': {}
             })
@@ -356,7 +356,7 @@ class APIPolicyValidationTests(TestCase):
         """
         self.assertRaisesValidationError(
             'The policy\'s "resources" section must not be empty.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {}
             })
@@ -366,7 +366,7 @@ class APIPolicyValidationTests(TestCase):
         """
         self.assertRaisesValidationError(
             'The policy\'s "resources" section must be a JSON object.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': []
             })
@@ -377,7 +377,7 @@ class APIPolicyValidationTests(TestCase):
 
     def test_global_valid(self):
         """Testing BaseWebAPIToken.validate_policy with valid '*' section"""
-        WebAPIToken.validate_policy({
+        APIPolicyWebAPIToken.validate_policy({
             'resources': {
                 '*': {
                     'allow': ['*'],
@@ -391,7 +391,7 @@ class APIPolicyValidationTests(TestCase):
         self.assertRaisesValidationError(
             'The "resources.*" section must have "allow" and/or "block" '
             'rules.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {
                     '*': {}
@@ -404,7 +404,7 @@ class APIPolicyValidationTests(TestCase):
         """
         self.assertRaisesValidationError(
             'The "resources.*" section must be a JSON object.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {
                     '*': []
@@ -415,7 +415,7 @@ class APIPolicyValidationTests(TestCase):
         """Testing BaseWebAPIToken.validate_policy with *.allow not a list"""
         self.assertRaisesValidationError(
             'The "resources.*" section\'s "allow" rule must be a list.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {
                     '*': {
@@ -428,7 +428,7 @@ class APIPolicyValidationTests(TestCase):
         """Testing BaseWebAPIToken.validate_policy with *.block not a list"""
         self.assertRaisesValidationError(
             'The "resources.*" section\'s "block" rule must be a list.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {
                     '*': {
@@ -443,7 +443,7 @@ class APIPolicyValidationTests(TestCase):
 
     def test_resource_global_valid(self):
         """Testing BaseWebAPIToken.validate_policy with <resource>.* valid"""
-        WebAPIToken.validate_policy({
+        APIPolicyWebAPIToken.validate_policy({
             'resources': {
                 'someobject': {
                     '*': {
@@ -459,7 +459,7 @@ class APIPolicyValidationTests(TestCase):
         self.assertRaisesValidationError(
             'The "resources.someobject.*" section must have "allow" and/or '
             '"block" rules.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {
                     'someobject': {
@@ -474,7 +474,7 @@ class APIPolicyValidationTests(TestCase):
         """
         self.assertRaisesValidationError(
             '"foobar" is not a valid resource policy ID.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {
                     'foobar': {
@@ -491,7 +491,7 @@ class APIPolicyValidationTests(TestCase):
         """
         self.assertRaisesValidationError(
             'The "resources.someobject.*" section must be a JSON object.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {
                     'someobject': {
@@ -507,7 +507,7 @@ class APIPolicyValidationTests(TestCase):
         self.assertRaisesValidationError(
             'The "resources.someobject.*" section\'s "allow" rule must be a '
             'list.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {
                     'someobject': {
@@ -525,7 +525,7 @@ class APIPolicyValidationTests(TestCase):
         self.assertRaisesValidationError(
             'The "resources.someobject.*" section\'s "block" rule must be a '
             'list.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {
                     'someobject': {
@@ -543,7 +543,7 @@ class APIPolicyValidationTests(TestCase):
     def test_resource_id_valid(self):
         """Testing BaseWebAPIToken.validate_policy with <resource>.<id> valid
         """
-        WebAPIToken.validate_policy({
+        APIPolicyWebAPIToken.validate_policy({
             'resources': {
                 'someobject': {
                     '42': {
@@ -560,7 +560,7 @@ class APIPolicyValidationTests(TestCase):
         self.assertRaisesValidationError(
             'The "resources.someobject.42" section must have "allow" and/or '
             '"block" rules.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {
                     'someobject': {
@@ -575,7 +575,7 @@ class APIPolicyValidationTests(TestCase):
         """
         self.assertRaisesValidationError(
             '42 must be a string in "resources.someobject"',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {
                     'someobject': {
@@ -592,7 +592,7 @@ class APIPolicyValidationTests(TestCase):
         """
         self.assertRaisesValidationError(
             'The "resources.someobject.42" section must be a JSON object.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {
                     'someobject': {
@@ -608,7 +608,7 @@ class APIPolicyValidationTests(TestCase):
         self.assertRaisesValidationError(
             'The "resources.someobject.42" section\'s "allow" rule must '
             'be a list.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {
                     'someobject': {
@@ -626,7 +626,7 @@ class APIPolicyValidationTests(TestCase):
         self.assertRaisesValidationError(
             'The "resources.someobject.42" section\'s "block" rule must '
             'be a list.',
-            WebAPIToken.validate_policy,
+            APIPolicyWebAPIToken.validate_policy,
             {
                 'resources': {
                     'someobject': {
