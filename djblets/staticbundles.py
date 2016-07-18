@@ -43,6 +43,20 @@ PIPELINE_JAVASCRIPT = {
         ),
         'output_filename': 'djblets/js/extensions.min.js',
     },
+    'djblets-forms': {
+        'source_filenames': (
+            'djblets/js/forms/base.js',
+            'djblets/js/forms/models/conditionChoiceModel.es6.js',
+            'djblets/js/forms/models/conditionModel.es6.js',
+            'djblets/js/forms/models/conditionOperatorModel.es6.js',
+            'djblets/js/forms/models/conditionSetModel.es6.js',
+            'djblets/js/forms/models/conditionValueField.es6.js',
+            'djblets/js/forms/views/baseConditionValueFieldView.es6.js',
+            'djblets/js/forms/views/conditionSetView.es6.js',
+            'djblets/js/forms/views/conditionValueFormFieldView.es6.js',
+        ),
+        'output_filename': 'djblets/js/forms.min.js',
+    },
     'djblets-gravy': {
         'source_filenames': (
             # These are in dependency order
@@ -65,6 +79,12 @@ PIPELINE_JAVASCRIPT = {
             'djblets/js/configForms/views/tests/listViewTests.js',
             'djblets/js/configForms/views/tests/tableItemViewTests.js',
             'djblets/js/configForms/views/tests/tableViewTests.js',
+            'djblets/js/forms/models/tests/conditionChoiceModelTests.es6.js',
+            'djblets/js/forms/models/tests/conditionModelTests.es6.js',
+            'djblets/js/forms/models/tests/conditionOperatorModelTests.es6.js',
+            'djblets/js/forms/models/tests/conditionSetModelTests.es6.js',
+            'djblets/js/forms/views/tests/conditionSetViewTests.es6.js',
+            'djblets/js/forms/views/tests/conditionValueFormFieldViewTests.es6.js',
         ),
         'output_filename': 'djblets/js/tests.min.js',
     },
@@ -90,6 +110,12 @@ PIPELINE_STYLESHEETS = {
             'djblets/css/extensions.less',
         ),
         'output_filename': 'djblets/css/admin.min.css',
+    },
+    'djblets-forms': {
+        'source_filenames': (
+            'djblets/css/forms/conditions.less',
+        ),
+        'output_filename': 'djblets/css/forms.min.css',
     },
     'djblets-config-forms': {
         'source_filenames': (

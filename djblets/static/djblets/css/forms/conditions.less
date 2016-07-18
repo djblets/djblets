@@ -1,0 +1,125 @@
+@conditions-action-icon-size: 16px;
+@conditions-action-button-size: 20px;
+@conditions-add-bg-color: #F9F9F9;
+@conditions-add-button-color: #00AA00;
+@conditions-add-text-color: #222222;
+@conditions-delete-button-color: #CC0000;
+
+@conditions-error-color: #990000;
+
+@conditions-choices-min-width: 130px;
+@conditions-operator-min-width: @conditions-choices-min-width;
+
+@conditions-border-color: #CCC;
+@conditions-border-radius: 6px;
+@conditions-bg-color: #F3F3F3;
+@conditions-padding: 0.5em;
+@conditions-field-spacing: 0.3em;
+
+
+.conditions-field {
+  overflow: hidden;
+
+  .conditions-field-action {
+    cursor: pointer;
+    float: left;
+    display: inline-block;
+    margin-right: @conditions-field-spacing;
+    text-align: center;
+    width: @conditions-action-button-size;
+    height: @conditions-action-button-size;
+
+    .fa {
+      line-height: @conditions-action-button-size;
+      font-size: @conditions-action-icon-size;
+    }
+  }
+
+  .conditions-field-add-condition {
+    background: @conditions-add-bg-color;
+    clear: both;
+    display: inline-block;
+    line-height: @conditions-action-button-size;
+    padding: @conditions-padding;
+    color: @conditions-add-text-color;
+
+    .fa {
+      color: @conditions-add-button-color;
+    }
+  }
+
+  .conditions-field-choice {
+    margin-right: @conditions-field-spacing;
+
+    select {
+      min-width: @conditions-operator-min-width;
+    }
+  }
+
+  .conditions-field-mode {
+    ul {
+      margin: 0 0 1em 0;
+      padding: 0;
+
+      li {
+        display: inline-block;
+        margin-left: 1em;
+
+        input {
+          margin: 0;
+          vertical-align: baseline;
+        }
+
+        label {
+          display: inline-block;
+        }
+      }
+    }
+  }
+
+  .conditions-field-operator {
+    margin-right: @conditions-field-spacing;
+
+    select {
+      min-width: @conditions-operator-min-width;
+    }
+  }
+
+  .conditions-field-rows-container {
+    border: 1px @conditions-border-color solid;
+    border-radius: @conditions-border-radius;
+    overflow: hidden;  /* Don't let backgrounds overlap borders. */
+  }
+
+  .conditions-field-rows {
+    background: @conditions-bg-color;
+    margin: 0;
+    padding: 0;
+  }
+
+  .conditions-field-row {
+    border-bottom: 1px @conditions-border-color solid;
+    clear: both;
+    margin: 0;
+    padding: @conditions-padding;
+
+    select {
+      vertical-align: top;
+    }
+  }
+
+  .conditions-field-row-delete .fa {
+    color: @conditions-delete-button-color;
+  }
+
+  .conditions-field-row-options {
+    display: block;
+    overflow: hidden;
+  }
+
+  .error-list {
+    color: @conditions-error-color;
+    margin: 0 0 @conditions-padding 0;
+    padding: 0;
+  }
+}
