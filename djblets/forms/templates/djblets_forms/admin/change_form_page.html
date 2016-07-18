@@ -9,7 +9,8 @@
 {%  url 'admin:jsi18n' as jsi18nurl %}
 <link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />
 <script src="{{jsi18nurl|default:"../../../jsi18n/"}}"></script>
-{%  stylesheet 'djblets-admin' %}
+{%  stylesheet "djblets-admin" %}
+{%  stylesheet "djblets-forms" %}
 {{form.media.render_css|join:''}}
 {{block.super}}
 {% endblock %}
@@ -21,9 +22,12 @@
         jQuery: jQuery
     };
 </script>
+
 {{block.super}}
+
+{%  javascript "djblets-forms" %}
 {{form.media.render_js|join:''}}
-{% endblock %}
+{% endblock scripts-post %}
 
 {% block bodyclass %}{{block.super}} change-form{% endblock %}
 
