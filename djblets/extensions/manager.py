@@ -26,7 +26,6 @@
 from __future__ import unicode_literals
 
 import atexit
-import datetime
 import errno
 import logging
 import os
@@ -42,7 +41,6 @@ import weakref
 from django.conf import settings
 from django.conf.urls import patterns, include
 from django.contrib.admin.sites import AdminSite
-from django.core.cache import cache
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.core.management.color import no_style
@@ -64,7 +62,6 @@ except ImportError:
     from django.template import engines as template_engines
     template_source_loaders = None
 
-from djblets.cache.backend import make_cache_key
 from djblets.cache.synchronizer import GenerationSynchronizer
 from djblets.extensions.errors import (EnablingExtensionError,
                                        InstallExtensionError,
@@ -471,7 +468,8 @@ class ExtensionManager(object):
             # Don't override the info if we've previously loaded this
             # class.
             if not getattr(ext_class, 'info', None):
-                ext_class.info = ExtensionInfo(entrypoint, ext_class)
+                ext_class.info = ExtensionInfo.create_from_entrypoint(
+                    entrypoint, ext_class)
 
             registered_ext = registered_extensions.get(class_name)
 
