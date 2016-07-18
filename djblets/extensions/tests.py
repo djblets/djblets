@@ -29,6 +29,7 @@ import logging
 import os
 import threading
 import time
+import warnings
 
 from django import forms
 from django.conf import settings
@@ -343,83 +344,103 @@ class ExtensionTest(SpyAgency, TestCase):
                 self.fail("Should have loaded admin_urls.py")
 
 
-class ExtensionInfoTest(TestCase):
-    def test_metadata_from_package(self):
-        """Testing ExtensionInfo metadata from package"""
-        app_name = 'test_extension.dummy'
-        project_name = 'DummyExtension'
+class ExtensionInfoTests(TestCase):
+    def test_create_from_entrypoint(self):
+        """Testing ExtensionInfo.create_from_entrypoint"""
+        module_name = 'test_extension.dummy.submodule'
+        package_name = 'DummyExtension'
+        extension_id = '%s:DummyExtension' % module_name
+
+        class TestExtension(Extension):
+            __module__ = module_name
+            id = extension_id
+
+        entrypoint = FakeEntryPoint(TestExtension, project_name=package_name)
+        extension_info = ExtensionInfo.create_from_entrypoint(entrypoint,
+                                                              TestExtension)
+
+        self._check_extension_info(extension_info=extension_info,
+                                   app_name='test_extension.dummy',
+                                   package_name=package_name,
+                                   extension_id=extension_id,
+                                   metadata=entrypoint.dist.metadata)
+
+    def test_create_from_entrypoint_with_custom_metadata(self):
+        """Testing ExtensionInfo.create_from_entrypoint with custom
+        Extension.metadata
+        """
+        package_name = 'DummyExtension'
         module_name = 'test_extension.dummy.submodule'
         extension_id = '%s:DummyExtension' % module_name
-        htdocs_path = os.path.join(settings.MEDIA_ROOT, 'ext',
-                                   project_name)
-        static_path = os.path.join(settings.STATIC_ROOT, 'ext',
-                                   extension_id)
 
-        ext_class = Mock()
-        ext_class.__module__ = module_name
-        ext_class.id = extension_id
-        ext_class.metadata = None
+        class TestExtension(Extension):
+            __module__ = module_name
+            id = extension_id
+            metadata = {
+                'Name': 'OverrideName',
+                'Version': '3.14159',
+                'Summary': 'Lorem ipsum dolor sit amet.',
+                'Description': 'Tempus fugit.',
+                'License': 'None',
+                'Home-page': 'http://127.0.0.1/',
+            }
 
-        entrypoint = FakeEntryPoint(ext_class, project_name=project_name)
-        extension_info = ExtensionInfo(entrypoint, ext_class)
-        metadata = entrypoint.dist.metadata
+        entrypoint = FakeEntryPoint(TestExtension, project_name=package_name)
+        extension_info = ExtensionInfo.create_from_entrypoint(entrypoint,
+                                                              TestExtension)
+
+        expected_metadata = entrypoint.dist.metadata.copy()
+        expected_metadata.update(TestExtension.metadata)
+
+        self._check_extension_info(extension_info=extension_info,
+                                   app_name='test_extension.dummy',
+                                   package_name=package_name,
+                                   extension_id=extension_id,
+                                   metadata=expected_metadata)
+
+    def test_deprecated_entrypoint_in_init(self):
+        """Testing ExtensionInfo.__init__ with deprecated entrypoint support"""
+        module_name = 'test_extension.dummy.submodule'
+        package_name = 'DummyExtension'
+        extension_id = '%s:DummyExtension' % module_name
+
+        class TestExtension(Extension):
+            __module__ = module_name
+            id = extension_id
+
+        entrypoint = FakeEntryPoint(TestExtension, project_name=package_name)
+
+        with warnings.catch_warnings(record=True) as w:
+            extension_info = ExtensionInfo(entrypoint, TestExtension)
+
+            self.assertEqual(six.text_type(w[0].message),
+                             'ExtensionInfo.__init__() no longer accepts an '
+                             'EntryPoint. Please update your code to call '
+                             'ExtensionInfo.create_from_entrypoint() instead.')
+
+        self._check_extension_info(extension_info=extension_info,
+                                   app_name='test_extension.dummy',
+                                   package_name=package_name,
+                                   extension_id=extension_id,
+                                   metadata=entrypoint.dist.metadata)
+
+    def _check_extension_info(self, extension_info, app_name, package_name,
+                              extension_id, metadata):
+        htdocs_path = os.path.join(settings.MEDIA_ROOT, 'ext', package_name)
+        static_path = os.path.join(settings.STATIC_ROOT, 'ext', extension_id)
 
         self.assertEqual(extension_info.app_name, app_name)
         self.assertEqual(extension_info.author, metadata['Author'])
         self.assertEqual(extension_info.author_email, metadata['Author-email'])
         self.assertEqual(extension_info.description, metadata['Description'])
         self.assertFalse(extension_info.enabled)
-        self.assertEqual(extension_info.installed_htdocs_path,
-                         htdocs_path)
-        self.assertEqual(extension_info.installed_static_path,
-                         static_path)
+        self.assertEqual(extension_info.installed_htdocs_path, htdocs_path)
+        self.assertEqual(extension_info.installed_static_path, static_path)
         self.assertFalse(extension_info.installed)
         self.assertEqual(extension_info.license, metadata['License'])
         self.assertEqual(extension_info.metadata, metadata)
         self.assertEqual(extension_info.name, metadata['Name'])
-        self.assertEqual(extension_info.summary, metadata['Summary'])
-        self.assertEqual(extension_info.url, metadata['Home-page'])
-        self.assertEqual(extension_info.version, metadata['Version'])
-
-    def test_custom_metadata(self):
-        """Testing ExtensionInfo metadata from Extension.metadata"""
-        app_name = 'test_extension.dummy'
-        project_name = 'DummyExtension'
-        module_name = 'test_extension.dummy.submodule'
-        extension_id = '%s:DummyExtension' % module_name
-        htdocs_path = os.path.join(settings.MEDIA_ROOT, 'ext',
-                                   project_name)
-        metadata = {
-            'Name': 'OverrideName',
-            'Version': '3.14159',
-            'Summary': 'Lorem ipsum dolor sit amet.',
-            'Description': 'Tempus fugit.',
-            'Author': 'Somebody',
-            'Author-email': 'somebody@example.com',
-            'License': 'None',
-            'Home-page': 'http://127.0.0.1/',
-        }
-
-        ext_class = Mock()
-        ext_class.__module__ = module_name
-        ext_class.metadata = metadata
-        ext_class.id = extension_id
-
-        entry_point = FakeEntryPoint(ext_class, project_name=project_name)
-
-        extension_info = ExtensionInfo(entry_point, ext_class)
-
-        self.assertEqual(extension_info.app_name, app_name)
-        self.assertEqual(extension_info.author, metadata['Author'])
-        self.assertEqual(extension_info.author_email, metadata['Author-email'])
-        self.assertEqual(extension_info.description, metadata['Description'])
-        self.assertFalse(extension_info.enabled)
-        self.assertEqual(extension_info.installed_htdocs_path,
-                         htdocs_path)
-        self.assertFalse(extension_info.installed)
-        self.assertEqual(extension_info.license, metadata['License'])
-        self.assertEqual(extension_info.metadata, metadata)
-        self.assertEqual(extension_info.name, metadata['Name'])
+        self.assertEqual(extension_info.package_name, package_name)
         self.assertEqual(extension_info.summary, metadata['Summary'])
         self.assertEqual(extension_info.url, metadata['Home-page'])
         self.assertEqual(extension_info.version, metadata['Version'])

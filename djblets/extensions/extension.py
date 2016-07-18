@@ -29,13 +29,14 @@ import inspect
 import locale
 import logging
 import os
+import warnings
 from email.parser import FeedParser
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import get_mod_func
-from django.utils import six
 from django.utils.encoding import python_2_unicode_compatible
+from django.utils.translation import ugettext as _
 
 from djblets.extensions.settings import Settings
 
@@ -298,7 +299,52 @@ class ExtensionInfo(object):
 
     encodings = ['utf-8', locale.getpreferredencoding(False), 'latin1']
 
-    def __init__(self, entrypoint, ext_class):
+    @classmethod
+    def create_from_entrypoint(cls, entrypoint, ext_class):
+        """Create a new ExtensionInfo from a Python EntryPoint.
+
+        This will pull out information from the EntryPoint and return a new
+        ExtensionInfo from it.
+
+        It handles pulling out metadata from the older :file:`PKG-INFO` files
+        and the newer :file:`METADATA` files.
+
+        Args:
+            entrypoint (pkg_resources.EntryPoint):
+                The EntryPoint pointing to the extension class.
+
+            ext_class (type):
+                The extension class (subclass of :py:class:`Extension`).
+
+        Returns:
+            ExtensionInfo:
+            An ExtensionInfo instance, populated with metadata from the
+            package.
+        """
+        metadata = cls._get_metadata_from_entrypoint(entrypoint, ext_class.id)
+
+        return cls(ext_class=ext_class,
+                   package_name=metadata.get('Name'),
+                   metadata=metadata)
+
+    @classmethod
+    def _get_metadata_from_entrypoint(cls, entrypoint, extension_id):
+        """Return metadata information from an entrypoint.
+
+        This is used internally to parse and validate package information from
+        an entrypoint for use in ExtensionInfo.
+
+        Args:
+            entrypoint (pkg_resources.EntryPoint):
+                The EntryPoint pointing to the extension class.
+
+            extension_id (unicode):
+                The extension's ID.
+
+        Returns:
+            dict:
+            The resulting metadata dictionary.
+        """
         dist = entrypoint.dist
 
         try:
@@ -313,14 +359,14 @@ class ExtensionInfo(object):
                 logging.error('No METADATA or PKG-INFO found for the package '
                               'containing the %s extension. Information on '
                               'the extension may be missing.',
-                              ext_class.id)
+                              extension_id)
 
         data = '\n'.join(lines)
 
         # Try to decode the PKG-INFO content. If no decoding method is
         # successful then the PKG-INFO content will remain unchanged and
         # processing will continue with the parsing.
-        for enc in self.encodings:
+        for enc in cls.encodings:
             try:
                 data = data.decode(enc)
                 break
@@ -335,17 +381,85 @@ class ExtensionInfo(object):
         p.feed(data)
         pkg_info = p.close()
 
-        # Extensions will often override "Name" to be something
-        # user-presentable, but we sometimes need the package name
-        self.package_name = pkg_info.get('Name')
+        return dict(pkg_info.items())
 
-        metadata = dict(pkg_info.items())
+    def __init__(self, ext_class, package_name, metadata={}):
+        """Instantiate the ExtensionInfo using metadata and an extension class.
 
+        This will set information about the extension based on the metadata
+        provided by the caller and the extension class itself.
+
+        Args:
+            ext_class (type):
+                The extension class (subclass of :py:class:`Extension`).
+
+            package_name (unicode):
+                The package name owning the extension.
+
+            metadata (dict, optional):
+                Optional metadata for the extension. If the extension provides
+                its own metadata, that will take precedence.
+
+        Raises:
+            TypeError:
+                The parameters passed were invalid (they weren't a new-style
+                call or a legacy entrypoint-related call).
+        """
+        try:
+            issubclass(ext_class, Extension)
+        except TypeError:
+            try:
+                is_entrypoint = (hasattr(ext_class, 'dist') and
+                                 issubclass(package_name, Extension))
+            except TypeError:
+                is_entrypoint = False
+
+            if is_entrypoint:
+                # These are really (probably) an entrypoint and class,
+                # respectively. Fix up the variables.
+                entrypoint, ext_class = ext_class, package_name
+
+                metadata = self._get_metadata_from_entrypoint(entrypoint,
+                                                              ext_class.id)
+                package_name = metadata.get('Name')
+
+                # Warn after the above. Something about the above calls cause
+                # warnings to be reset.
+                warnings.warn(
+                    'ExtensionInfo.__init__() no longer accepts an '
+                    'EntryPoint. Please update your code to call '
+                    'ExtensionInfo.create_from_entrypoint() instead.',
+                    DeprecationWarning)
+            else:
+                logging.error('Unexpected parameters passed to '
+                              'ExtensionInfo.__init__: ext_class=%r, '
+                              'package_name=%r, metadata=%r',
+                              ext_class, package_name, metadata)
+
+                raise TypeError(
+                    _('Invalid parameters passed to ExtensionInfo.__init__'))
+
+        # Set the base information from the extension and the package.
+        self.package_name = package_name
+        self.app_name = '.'.join(ext_class.__module__.split('.')[:-1])
+        self.is_configurable = ext_class.is_configurable
+        self.has_admin_site = ext_class.has_admin_site
+        self.installed_htdocs_path = \
+            os.path.join(settings.MEDIA_ROOT, 'ext', self.package_name)
+        self.installed_static_path = \
+            os.path.join(settings.STATIC_ROOT, 'ext', ext_class.id)
+
+        # State set by ExtensionManager.
+        self.enabled = False
+        self.installed = False
+        self.requirements = []
+
+        # Set information from the provided metadata.
         if ext_class.metadata is not None:
             metadata.update(ext_class.metadata)
 
         self.metadata = metadata
-        self.name = metadata.get('Name')
+        self.name = metadata.get('Name', package_name)
         self.version = metadata.get('Version')
         self.summary = metadata.get('Summary')
         self.description = metadata.get('Description')
@@ -354,15 +468,6 @@ class ExtensionInfo(object):
         self.license = metadata.get('License')
         self.url = metadata.get('Home-page')
         self.author_url = metadata.get('Author-home-page', self.url)
-        self.app_name = '.'.join(ext_class.__module__.split('.')[:-1])
-        self.enabled = False
-        self.installed = False
-        self.is_configurable = ext_class.is_configurable
-        self.has_admin_site = ext_class.has_admin_site
-        self.installed_htdocs_path = \
-            os.path.join(settings.MEDIA_ROOT, 'ext', self.package_name)
-        self.installed_static_path = \
-            os.path.join(settings.STATIC_ROOT, 'ext', ext_class.id)
 
     def __str__(self):
         return "%s %s (enabled = %s)" % (self.name, self.version, self.enabled)

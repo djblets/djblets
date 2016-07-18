@@ -450,7 +450,8 @@ class ExtensionManager(object):
             # Don't override the info if we've previously loaded this
             # class.
             if not getattr(ext_class, 'info', None):
-                ext_class.info = ExtensionInfo(entrypoint, ext_class)
+                ext_class.info = ExtensionInfo.create_from_entrypoint(
+                    entrypoint, ext_class)
 
             registered_ext = registered_extensions.get(class_name)
 
