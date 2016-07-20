@@ -27,7 +27,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'djblets.settings')
 
 import djblets
 
-from github_linkcode import github_linkcode_resolve
+from beanbag_docutils.sphinx.ext.github import github_linkcode_resolve
 
 
 # General configuration
@@ -43,10 +43,10 @@ extensions = [
     'sphinx.ext.linkcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.todo',
-    'autodoc_utils',
-    'djangorefs',
-    'httprole',
-    'retina_images',
+    'beanbag_docutils.sphinx.ext.autodoc_utils',
+    'beanbag_docutils.sphinx.ext.django_utils',
+    'beanbag_docutils.sphinx.ext.http_role',
+    'beanbag_docutils.sphinx.ext.retina_images',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -217,11 +217,11 @@ latex_documents = [
 
 
 intersphinx_mapping = {
-    'django': ('https://docs.djangoproject.com/en/%s/'
+    'django': ('http://django.readthedocs.io/en/%s.x/'
                % djblets.django_major_version,
-               'https://docs.djangoproject.com/en/%s/_objects/'
-               % djblets.django_major_version),
+               None),
     'python': ('https://docs.python.org/2.7', None),
+    'reviewboard': ('https://www.reviewboard.org/docs/manual/2.5/', None),
 }
 
 todo_include_todos = True
@@ -262,7 +262,24 @@ autodoc_excludes = {
 
 autosummary_generate = True
 
-napolean_google_docstring = True
-napolean_numpy_docstring = False
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
 
-linkcode_resolve = github_linkcode_resolve
+
+def linkcode_resolve(domain, info):
+    version = djblets.VERSION
+
+    if version[4] == 'final' or version[4] > 0:
+        if djblets.is_release():
+            branch = 'release-%s.%s.%s' % (version[0], version[1], version[2])
+        else:
+            branch = 'release-%s.%s.x' % (version[0], version[1])
+    else:
+        branch = 'master'
+
+    return github_linkcode_resolve(domain=domain,
+                                   info=info,
+                                   allowed_module_names=['djblets'],
+                                   github_org_id='djblets',
+                                   github_repo_id='djblets',
+                                   branch=branch)
