@@ -378,6 +378,36 @@ $.extend(String.prototype, {
 });
 
 
+/**
+ * Return an object/prototype/attribute given a dotted path.
+ *
+ * This will take a path as a string in the form of ``Djblets.Foo.Bar`` and
+ * return the matching object, if found. By default, this starts at
+ * ``window``, but any starting object can be provided.
+ *
+ * If not found, this will assert with a failure.
+ *
+ * Args:
+ *     path (string):
+ *         The dotted path to look up.
+ *
+ *     obj (object, optional):
+ *         The object to use as the starting point for lookups. If not
+ *         provided, ``window`` is used.
+ *
+ * Returns:
+ *     object:
+ *     The object matching the dotted path.
+ */
+Djblets.getObjectByName = function(name, obj) {
+    var cls = name.split('.').reduce(function(o, i) { return o[i]; },
+                                     obj || window);
+    console.assert(cls, 'Invalid class path "' + name + '".');
+
+    return cls;
+};
+
+
 })(jQuery);
 
 // vim: set et:

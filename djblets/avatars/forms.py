@@ -138,6 +138,19 @@ class AvatarSettingsForm(ConfigPageForm):
 
         avatar_service_id.initial = avatar_service.avatar_service_id
 
+        if self.request.method == 'POST':
+            kwargs['files'] = self.request.FILES
+
+        self.avatar_service_forms = {
+            service.avatar_service_id: service.config_form_class(
+                self.settings_manager.configuration_for(
+                    service.avatar_service_id),
+                prefix=service.avatar_service_id,
+                *args,
+                **kwargs)
+            for service in self.avatar_service_registry.configurable_services
+        }
+
     def clean_avatar_service_id(self):
         """Clean the avatar_service_id field.
 
@@ -179,22 +192,15 @@ class AvatarSettingsForm(ConfigPageForm):
                 Raised when the form for the selected avatar service is
                 invalid.
         """
-        self.cleaned_data = super(AvatarSettingsForm, self).clean()
+        super(AvatarSettingsForm, self).clean()
+
         avatar_service_id = self.cleaned_data['avatar_service_id']
         avatar_service = self.avatar_service_registry.get_avatar_service(
             avatar_service_id)
 
         if avatar_service.is_configurable:
-            config = self.settings_manager.configuration_for(avatar_service_id)
-            self._subform = avatar_service.config_form_class(
-                config, self.page, self.request, self.user,
-                data=self.request.POST, files=self.request.FILES)
-
-            if not self._subform.is_valid():
-                raise ValidationError(
-                    _('Invalid avatar service configuration.'))
-            else:
-                self.request._subform_errors = None
+            avatar_service_form = self.avatar_service_forms[avatar_service_id]
+            avatar_service_form.is_valid()
 
         return self.cleaned_data
 
@@ -225,8 +231,9 @@ class AvatarSettingsForm(ConfigPageForm):
         self.settings_manager.avatar_service_id = avatar_service_id
 
         if new_avatar_service.is_configurable:
+            avatar_service_form = self.avatar_service_forms[avatar_service_id]
             self.settings_manager.configuration[avatar_service_id] = \
-                self._subform.save()
+                avatar_service_form.save()
 
         self.settings_manager.save()
 
@@ -239,28 +246,9 @@ class AvatarSettingsForm(ConfigPageForm):
         """
         service = self.avatar_service_registry.for_user(self.user)
 
-        config_forms = {}
-
-        for service in self.avatar_service_registry.enabled_services:
-            if service.is_configurable:
-                config = self.settings_manager.configuration_for(
-                    service.avatar_service_id)
-
-                config_forms[service.avatar_service_id] = \
-                    service.config_form_class(config, self.page, self.request,
-                                              self.user)
-
-        # We previously cached the selected avatar service's configuration form
-        # in clean(). Now, we update the errors dictionary of our newly created
-        # sub-form so that validation errors can be displayed to the user.
-        if hasattr(self, '_subform'):
-            config_forms[self._subform.avatar_service_id].errors.update(
-                self._subform.errors)
-
         return {
             'current_avatar_service': service,
             'avatar_services': self.avatar_service_registry.enabled_services,
-            'forms': config_forms,
         }
 
     def get_js_model_data(self):

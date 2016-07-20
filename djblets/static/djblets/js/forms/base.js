@@ -1,0 +1,1 @@
+Djblets.Forms = {};

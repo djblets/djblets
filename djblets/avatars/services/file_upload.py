@@ -55,6 +55,7 @@ class FileUploadAvatarForm(AvatarServiceConfigForm):
             The avatar service configuration.
         """
         storage = DefaultStorage()
+
         file_path = self.cleaned_data['avatar_upload'].name
         file_path = storage.get_valid_name(file_path)
 

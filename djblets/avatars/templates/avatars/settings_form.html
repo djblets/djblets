@@ -1,7 +1,6 @@
 {% load djblets_forms djblets_utils i18n %}
 
 {% block pre_fields %}{% endblock %}
-
 {{form.non_field_errors}}
 
 {% for field in form %}
@@ -17,16 +16,15 @@
  </div>
 </div>
 
-{% for service_id, form in forms.items %}
+{% for service_id, form in form.avatar_service_forms.items %}
 <div class="avatar-service-fields" data-avatar-service-id="{{service_id}}">
  {{form.render|safe}}
 </div>
 {% endfor %}
-
 <script>
 $().ready(function() {
     Djblets.Avatars.SettingsFormView.ready.then(function() {
-{% for service_id, form in forms.items %}
+{% for service_id, form in form.avatar_service_forms.items %}
         Djblets.Avatars.SettingsFormView.addConfigForm('{{service_id}}', {{form.js_view_class}});
 {% endfor %}
         Djblets.Avatars.SettingsFormView.instance.renderForms();
