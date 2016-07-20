@@ -171,7 +171,7 @@ class ConditionsWidgetTests(TestCase):
             })
         self.assertEqual(result['field_id'], 'my-conditions')
         self.assertEqual(result['field_name'], 'my_conditions')
-        self.assertEqual(
+        self.assertHTMLEqual(
             result['rendered_mode'],
             '<ul id="my_conditions_mode">\n'
             '<li><label for="my_conditions_mode_0">'
