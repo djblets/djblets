@@ -6,3 +6,4 @@ Extension Guides
    :maxdepth: 2
 
    writing-extensions
+   testing-extensions

@@ -90,6 +90,8 @@ Extensions
    djblets.extensions.settings
    djblets.extensions.signals
    djblets.extensions.staticfiles
+   djblets.extensions.testing
+   djblets.extensions.testing.testcases
    djblets.extensions.urls
    djblets.extensions.views
    djblets.extensions.templatetags.djblets_extensions
@@ -190,6 +192,7 @@ Testing Helpers
 
    djblets.testing.decorators
    djblets.testing.testcases
+   djblets.testing.testrunners
 
 
 URL Utilities
