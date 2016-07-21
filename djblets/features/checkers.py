@@ -8,7 +8,6 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 from djblets.features.level import FeatureLevel
-from djblets.siteconfig.models import SiteConfiguration
 
 
 _feature_checker = None
@@ -143,6 +142,12 @@ class SiteConfigFeatureChecker(SettingsFeatureChecker):
             bool:
             A boolean value indicating if the feature is enabled.
         """
+        # We import this here instead of at the top of the file in order to
+        # avoid a loading issue on Django 1.7+. Technically, nothing imported
+        # in an app's __init__.py should ever import models, and checkers.py
+        # qualifies.
+        from djblets.siteconfig.models import SiteConfiguration
+
         siteconfig = SiteConfiguration.objects.get_current()
         enabled_features = siteconfig.get(self.siteconfig_key, {})
 
