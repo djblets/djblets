@@ -235,7 +235,11 @@ class TestRunner(DiscoverRunner):
             self.nose_argv += argv[(argv.index('--') + 1):]
 
         if test_labels:
-            self.nose_argv += test_labels
+            self.nose_argv += [
+                test_label
+                for test_label in test_labels
+                if test_label not in self.nose_argv
+            ]
         else:
             # If specific tests are not requested, test all the configured
             # test packages.
