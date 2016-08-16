@@ -449,8 +449,8 @@ class ExtensionManager(object):
             try:
                 ext_class = entrypoint.load()
             except Exception as e:
-                logging.error("Error loading extension %s: %s" %
-                              (entrypoint.name, e))
+                logging.exception("Error loading extension %s: %s" %
+                                  (entrypoint.name, e))
                 extension_id = '%s.%s' % (entrypoint.module_name,
                                           '.'.join(entrypoint.attrs))
                 self._store_load_error(extension_id, e)
