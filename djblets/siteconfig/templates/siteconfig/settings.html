@@ -37,6 +37,7 @@
 <div id="content-main">
  <form action="." method="post"{% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
   {% csrf_token %}
+  {{form.non_field_errors}}
 {% block form_content %}
 {% if form.Meta.fieldsets %}
 {%  for fieldset in form.Meta.fieldsets %}
