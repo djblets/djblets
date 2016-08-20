@@ -30,6 +30,12 @@ class BaseConditionChoice(object):
     an object or attribute that would be matched, and contains a human-readable
     name for the choice, a list of operators that pertain to the choice, and
     the default type of field that a user will be using to select a value.
+
+    Attributes:
+        extra_state (dict):
+            Extra state provided to the choice during construction as keyword
+            arguments. This can be useful for condition choices that need more
+            advanced logic around value field construction or matching.
     """
 
     #: The ID of the choice.
@@ -53,8 +59,21 @@ class BaseConditionChoice(object):
     #: overridden.
     #:
     #: This must be set to an instance of a
-    #: :py:class:`~djblets.conditions.values.BaseConditionValueField` subclass.
+    #: :py:class:`~djblets.conditions.values.BaseConditionValueField` subclass
+    #: or a function returning an instance.
+    #:
+    #: If it's a function, it must accept a ``**kwargs``, for future expansion.
     default_value_field = None
+
+    def __init__(self, **kwargs):
+        """Initialize the condition choice.
+
+        Args:
+            **kwargs (dict):
+                Additional data used for the condition choice. These will be
+                available as :py:attr:`extra_state`.
+        """
+        self.extra_state = kwargs
 
     def get_operator(self, operator_id):
         """Return an operator instance from this choice with the given ID.
@@ -218,7 +237,7 @@ class ConditionChoices(OrderedRegistry):
 
         self._choices = choices or self.choice_classes
 
-    def get_choice(self, choice_id):
+    def get_choice(self, choice_id, choice_kwargs={}):
         """Return a choice instance with the given ID.
 
         Instances are not cached. Repeated calls will construct new instances.
@@ -226,6 +245,9 @@ class ConditionChoices(OrderedRegistry):
         Args:
             choice_id (unicode):
                 The ID of the choice to retrieve.
+
+            choice_kwargs (dict):
+                Keyword arguments to pass to the choice's constructor.
 
         Returns:
             BaseConditionChoice:
@@ -237,9 +259,9 @@ class ConditionChoices(OrderedRegistry):
         """
         choice_cls = self.get('choice_id', choice_id)
 
-        return choice_cls()
+        return choice_cls(**choice_kwargs)
 
-    def get_choices(self):
+    def get_choices(self, choice_kwargs={}):
         """Return a generator for all choice instances.
 
         This is a convenience around iterating through all choice classes and
@@ -247,12 +269,16 @@ class ConditionChoices(OrderedRegistry):
 
         Instances are not cached. Repeated calls will construct new instances.
 
+        Args:
+            choice_kwargs (dict):
+                Keyword arguments to pass to each choice's constructor.
+
         Yields:
             BaseConditionChoice:
             The choice instance.
         """
         for choice_cls in self:
-            yield choice_cls()
+            yield choice_cls(**choice_kwargs)
 
     def get_defaults(self):
         """Return the default choices for the list.

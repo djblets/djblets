@@ -10,6 +10,7 @@ import copy
 
 from django.forms import widgets
 from django.template.loader import render_to_string
+from django.utils import six
 from django.utils.six.moves import range
 from django.utils.translation import ugettext as _
 
@@ -30,18 +31,41 @@ class ConditionsWidget(widgets.Widget):
     choice-provided field for a value.
 
     Additional conditions can be added by the user dynamically.
+
+    Attributes:
+        choices (djblets.conditions.choices.ConditionChoices):
+            The condition choices for the field.
+
+        mode_widget (django.forms.widgets.RadioSelect):
+            The widget for selecting the mode.
+
+        choice_widget (django.forms.widgets.Select):
+            The widget for selecting choices. One of these will be rendered
+            for every row.
+
+        operator_widget (django.forms.widgets.Select):
+            The widget for selecting operators. One of these will be
+            rendered for every row.
+
+        choice_kwargs (dict):
+            Optional keyword arguments to pass to each
+            :py:class:`~djblets.conditions.choices.BaseConditionChoice`
+            constructor. This is useful for more advanced conditions that
+            need additional data from the form.
+
+            This can be updated dynamically by the form during initialization.
     """
 
     #: The name of the template used to render the widget.
     template_name = 'djblets_forms/conditions_widget.html'
 
     def __init__(self, choices, mode_widget, choice_widget, operator_widget,
-                 attrs=None):
+                 choice_kwargs=None, attrs=None):
         """Initialize the widget.
 
         Args:
             choices (djblets.conditions.choices.ConditionChoices):
-                The condition set for the field.
+                The condition choices for the field.
 
             mode_widget (django.forms.widgets.RadioSelect):
                 The widget for selecting the mode.
@@ -54,6 +78,12 @@ class ConditionsWidget(widgets.Widget):
                 The widget for selecting operators. One of these will be
                 rendered for every row.
 
+            choice_kwargs (dict):
+                Optional keyword arguments to pass to each
+                :py:class:`~djblets.conditions.choices.BaseConditionChoice`
+                constructor. This is useful for more advanced conditions that
+                need additional data from the form.
+
             attrs (dict, optional):
                 Additional HTML element attributes for the widget.
         """
@@ -63,6 +93,7 @@ class ConditionsWidget(widgets.Widget):
         self.mode_widget = mode_widget
         self.choice_widget = choice_widget
         self.operator_widget = operator_widget
+        self.choice_kwargs = choice_kwargs
         self.condition_errors = {}
 
     @property
@@ -75,7 +106,9 @@ class ConditionsWidget(widgets.Widget):
         media = (widgets.Media() + self.choice_widget.media +
                  self.operator_widget.media)
 
-        for choice in self.choices.get_choices():
+        choices = self.choices.get_choices(choice_kwargs=self.choice_kwargs)
+
+        for choice in choices:
             media += choice.default_value_field.widget.media
 
             for operator in choice.get_operators():
@@ -122,9 +155,11 @@ class ConditionsWidget(widgets.Widget):
             value_name = '%s_value[%s]' % (name, i)
 
             try:
-                choice = self.choices.get_choice(choice_id)
+                choice = self.choices.get_choice(
+                    choice_id,
+                    choice_kwargs=self.choice_kwargs)
                 operator = choice.get_operator(operator_id)
-                value_field = operator.value_field
+                value_field = self._get_value_field(operator)
 
                 if value_field is None:
                     value = None
@@ -219,7 +254,9 @@ class ConditionsWidget(widgets.Widget):
             # operator is missing. We'll just show the raw data. It won't save,
             # but the user will at least get a suitable error.
             try:
-                choice = self.choices.get_choice(choice_id)
+                choice = self.choices.get_choice(
+                    choice_id,
+                    choice_kwargs=self.choice_kwargs)
                 operator = choice.get_operator(operator_id)
                 error = self.condition_errors.get(i)
             except ConditionChoiceNotFoundError:
@@ -283,7 +320,7 @@ class ConditionsWidget(widgets.Widget):
                 choices=operators)
 
             if valid:
-                value_field = operator.value_field
+                value_field = self._get_value_field(operator)
 
                 if value_field is not None:
                     condition_value = \
@@ -333,7 +370,8 @@ class ConditionsWidget(widgets.Widget):
             'rendered_rows': rendered_rows,
             'serialized_choices': [
                 self._serialize_choice(temp_choice)
-                for temp_choice in self.choices.get_choices()
+                for temp_choice in self.choices.get_choices(
+                    choice_kwargs=self.choice_kwargs)
             ],
             'serialized_rows': rows,
         }
@@ -358,7 +396,7 @@ class ConditionsWidget(widgets.Widget):
             'id': choice.choice_id,
             'name': choice.name,
             'valueField': self._serialize_value_field(
-                choice.default_value_field),
+                self._normalize_value_field(choice.default_value_field)),
             'operators': [
                 self._serialize_operator(operator)
                 for operator in choice.get_operators()
@@ -387,7 +425,7 @@ class ConditionsWidget(widgets.Widget):
             'useValue': True,
         }
 
-        value_field = operator.value_field
+        value_field = self._get_value_field(operator)
 
         if value_field is None:
             # This operator doesn't want any kind of value field.
@@ -395,8 +433,7 @@ class ConditionsWidget(widgets.Widget):
         elif operator.has_custom_value_field:
             # This operator has a field that differs from the default for the
             # choice, so specify it.
-            data['valueField'] = \
-                self._serialize_value_field(operator.value_field)
+            data['valueField'] = self._serialize_value_field(value_field)
 
         return data
 
@@ -427,6 +464,44 @@ class ConditionsWidget(widgets.Widget):
             }
         else:
             return {}
+
+    def _get_value_field(self, operator):
+        """Return the normalized value field for an operator.
+
+        If the operator's value field is a function, the resulting value field
+        from calling that function will be returned. Otherwise, the value field
+        will be returned directly.
+
+        Args:
+            operator (djblets.conditions.operators.BaseConditionOperator):
+                The operator containing the value field.
+
+        Returns:
+            djblets.conditions.values.BaseConditionValueField:
+            The resulting value field.
+        """
+        return self._normalize_value_field(operator.value_field)
+
+    def _normalize_value_field(self, value_field):
+        """Normalize and return a value field.
+
+        If ``value_field`` is a function, the resulting value field from
+        calling that function will be returned. Otherwise, ``value_field``
+        will be returned directly.
+
+        Args:
+            value_field (object):
+            A :py:class:`~djblets.conditions.values.BaseConditionValueField`
+            or a function returning one.
+
+        Returns:
+            djblets.conditions.values.BaseConditionValueField:
+            The resulting value field.
+        """
+        if six.callable(value_field):
+            value_field = value_field()
+
+        return value_field
 
     def __deepcopy__(self, memo):
         """Return a deep copy of the widget.

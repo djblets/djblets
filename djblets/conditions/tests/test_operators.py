@@ -15,7 +15,8 @@ from djblets.conditions.operators import (AnyOperator,
                                           OneOfOperator,
                                           StartsWithOperator,
                                           UnsetOperator)
-from djblets.conditions.values import BaseConditionValueField
+from djblets.conditions.values import (BaseConditionValueField,
+                                       ConditionValueIntegerField)
 from djblets.testing.testcases import TestCase
 
 
@@ -59,6 +60,23 @@ class BaseConditionOperatorTests(TestCase):
         op = choice.get_operator('my-op')
         self.assertNotEqual(op.value_field, choice.default_value_field)
         self.assertTrue(op.has_custom_value_field)
+
+    def test_with_overrides(self):
+        """Testing BaseConditionOperator.with_overrides"""
+        class MyOperator(BaseConditionOperator):
+            operator_id = 'my-op'
+            name = 'My Op'
+
+            value_field = BaseConditionValueField()
+
+        CustomOperator = MyOperator.with_overrides(
+            name='Custom Op',
+            value_field=ConditionValueIntegerField())
+
+        self.assertEqual(CustomOperator.__name__, b'CustomMyOperator')
+        self.assertEqual(CustomOperator.name, 'Custom Op')
+        self.assertIs(CustomOperator.value_field.__class__,
+                      ConditionValueIntegerField)
 
 
 class ConditionOperatorsTests(TestCase):

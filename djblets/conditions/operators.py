@@ -37,6 +37,25 @@ class BaseConditionOperator(object):
     #: The displayed name for the operator.
     name = None
 
+    @classmethod
+    def with_overrides(cls, **attrs):
+        """Dynamically create a subclass with overridden attributes.
+
+        This makes it easy for a choice to make use of existing operators
+        while using a custom name for display, or a custom value field,
+        without having to create their own subclasses. It's meant only for
+        simple changes.
+
+        Args:
+            **attrs (dict):
+                Attributes to override on the operator.
+
+        Returns:
+            type:
+            A new subclass with the overridden attributes.
+        """
+        return type(b'Custom%s' % cls.__name__, (cls,), attrs)
+
     def __init__(self, choice):
         """Initialize the operator.
 
@@ -54,7 +73,10 @@ class BaseConditionOperator(object):
         can be disabled by setting this to ``None``, or a different field can
         be used by setting it to an instance of a
         :py:class:`~djblets.conditions.values.BaseConditionValueField`
-        subclass.
+        subclass or a function returning an instance.
+
+        If it's a function, it must accept a ``**kwargs``, for future
+        expansion.
         """
         return self.choice.default_value_field
 

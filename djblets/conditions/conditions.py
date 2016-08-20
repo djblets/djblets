@@ -40,7 +40,8 @@ class Condition(object):
     """
 
     @classmethod
-    def deserialize(cls, choices, data, condition_index=None):
+    def deserialize(cls, choices, data, condition_index=None,
+                    choice_kwargs={}):
         """Deserialize a condition from serialized data.
 
         This expects data serialized by :py:meth:`serialize`.
@@ -99,7 +100,7 @@ class Condition(object):
 
         # Load the choice.
         try:
-            choice = choices.get_choice(choice_id)
+            choice = choices.get_choice(choice_id, choice_kwargs=choice_kwargs)
         except ConditionChoiceNotFoundError as e:
             logging.debug('Condition.deserialize: Invalid "choice" value '
                           '"%s" for condition %r',
@@ -245,7 +246,7 @@ class ConditionSet(object):
     MODE_ANY = 'any'
 
     @classmethod
-    def deserialize(cls, choices, data):
+    def deserialize(cls, choices, data, choice_kwargs={}):
         """Deserialize a set of conditions from serialized data.
 
         This expects data serialized by :py:meth:`deserialize`.
@@ -289,7 +290,7 @@ class ConditionSet(object):
                 % mode)
 
         return cls(mode, [
-            Condition.deserialize(choices, condition_data, i)
+            Condition.deserialize(choices, condition_data, i, choice_kwargs)
             for i, condition_data in enumerate(data.get('conditions', []))
         ])
 

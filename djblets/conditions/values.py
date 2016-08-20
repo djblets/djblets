@@ -197,11 +197,29 @@ class ConditionValueFormField(BaseConditionValueField):
 
         Args:
             field (django.forms.fields.Field):
-                The Django form field instance for the value.
+                The Django form field instance for the value. This may also
+                be a callable that returns a field.
         """
         super(ConditionValueFormField, self).__init__()
 
         self.field = field
+
+    @property
+    def field(self):
+        """The form field to use for the value.
+
+        This will always return a :py:class:`~django.forms.fields.Field`,
+        but can be given a callable that returns a field when set.
+        """
+        if callable(self._field):
+            self._field = self._field()
+
+        return self._field
+
+    # Note that the docstring will be inherited from the field property.
+    @field.setter
+    def field(self, field):
+        self._field = field
 
     def serialize_value(self, value):
         """Serialize a Python object into a JSON-compatible serialized form.

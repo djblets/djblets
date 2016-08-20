@@ -30,7 +30,14 @@ class ConditionsFieldTests(TestCase):
 
         self.assertIs(field.choices.__class__, MyChoices)
 
-    def test_init_with_missing_operaators(self):
+    def test_init_with_choice_kwargs(self):
+        """Testing ConditionsField initialization with choice_kwargs"""
+        choices = ConditionChoices([BaseConditionStringChoice])
+        field = ConditionsField(choices=choices, choice_kwargs={'abc': 123})
+
+        self.assertEqual(field.widget.choice_kwargs, field.choice_kwargs)
+
+    def test_init_with_missing_operators(self):
         """Testing ConditionsField initialization with choices missing
         operators
         """
@@ -91,6 +98,31 @@ class ConditionsFieldTests(TestCase):
         self.assertEqual(condition.choice.choice_id, 'my-choice')
         self.assertEqual(condition.operator.operator_id, 'is')
         self.assertEqual(condition.value, 'my-value')
+
+    def test_to_python_with_choice_kwargs(self):
+        """Testing ConditionsField.to_python with choice_kwargs set"""
+        class MyChoice(BaseConditionStringChoice):
+            choice_id = 'my-choice'
+
+        choices = ConditionChoices([MyChoice])
+        field = ConditionsField(choices=choices,
+                                choice_kwargs={'abc': 123})
+
+        condition_set = field.to_python({
+            'mode': 'any',
+            'conditions': [{
+                'choice': 'my-choice',
+                'op': 'is',
+                'value': 'my-value',
+            }]
+        })
+
+        self.assertEqual(condition_set.mode, ConditionSet.MODE_ANY)
+        self.assertEqual(len(condition_set.conditions), 1)
+
+        choice = condition_set.conditions[0].choice
+        self.assertEqual(choice.choice_id, 'my-choice')
+        self.assertEqual(choice.extra_state, {'abc': 123})
 
     def test_to_python_with_mode_error(self):
         """Testing ConditionsField.to_python with mode error"""

@@ -107,6 +107,15 @@ class ConditionChoicesTests(TestCase):
         with self.assertRaises(ConditionChoiceNotFoundError):
             choices.get_choice('invalid')
 
+    def test_get_choice_with_kwargs(self):
+        """Testing ConditionChoices.get_choice with kwargs for extra state"""
+        class MyChoice1(BaseConditionChoice):
+            choice_id = 'my-choice-1'
+
+        choices = ConditionChoices([MyChoice1])
+        choice = choices.get_choice('my-choice-1', choice_kwargs={'abc': 123})
+        self.assertEqual(choice.extra_state, {'abc': 123})
+
     def test_get_choices(self):
         """Testing ConditionChoices.get_choices"""
         class MyChoice1(BaseConditionChoice):
@@ -121,3 +130,18 @@ class ConditionChoicesTests(TestCase):
         self.assertEqual(len(choices), 2)
         self.assertEqual(choices[0].__class__, MyChoice1)
         self.assertEqual(choices[1].__class__, MyChoice2)
+
+    def test_get_choices_with_kwargs(self):
+        """Testing ConditionChoices.get_choices with kwargs"""
+        class MyChoice1(BaseConditionChoice):
+            choice_id = 'my-choice-1'
+
+        class MyChoice2(BaseConditionChoice):
+            choice_id = 'my-choice-2'
+
+        choices = ConditionChoices([MyChoice1, MyChoice2])
+
+        choices = list(choices.get_choices(choice_kwargs={'abc': 123}))
+        self.assertEqual(len(choices), 2)
+        self.assertEqual(choices[0].extra_state, {'abc': 123})
+        self.assertEqual(choices[1].extra_state, {'abc': 123})

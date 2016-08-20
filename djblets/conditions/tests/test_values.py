@@ -48,6 +48,12 @@ class ConditionValueFormFieldTests(TestCase):
         self.assertEqual(field.render_html(),
                          '<input name="XXX" type="text" />')
 
+    def test_field_with_callable(self):
+        """Testing ConditionValueFormField.field with callable field"""
+        field = ConditionValueFormField(lambda: forms.CharField())
+
+        self.assertTrue(isinstance(field.field, forms.CharField))
+
 
 class ConditionValueBooleanFieldTests(TestCase):
     """Unit tests for djblets.conditions.values.ConditionValueBooleanField."""
