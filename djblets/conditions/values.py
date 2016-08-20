@@ -408,3 +408,83 @@ class ConditionValueIntegerField(ConditionValueFormField):
         """
         super(ConditionValueIntegerField, self).__init__(
             field=forms.IntegerField(**field_kwargs))
+
+
+class ConditionValueModelField(ConditionValueFormField):
+    """Condition value wrapper for single model form fields.
+
+    This is a convenience for condition values that want to use a
+    :py:class:`~django.forms.fields.ModelChoiceField`. It accepts the same
+    keyword arguments in the constructor that the field itself accepts.
+
+    Unlike the standard field, the provided queryset can be a callable that
+    returns a queryset.
+
+    Example:
+        value_field = ConditionValueModelField(queryset=MyObject.objects.all())
+    """
+
+    def __init__(self, queryset, **field_kwargs):
+        """Initialize the value field.
+
+        Args:
+            queryset (django.db.models.query.QuerySet):
+                The queryset used for the field. This may also be a callable
+                that returns a queryset.
+
+            **field_kwargs (dict):
+                Keyword arguments to pass to the
+                :py:class:`~django.forms.fields.ModelChoiceField` constructor.
+        """
+        def _build_field():
+            if callable(queryset):
+                qs = queryset()
+            else:
+                qs = queryset
+
+            empty_label = field_kwargs.pop('empty_label', None)
+
+            return forms.ModelChoiceField(queryset=qs,
+                                          empty_label=empty_label,
+                                          **field_kwargs)
+
+        super(ConditionValueModelField, self).__init__(field=_build_field)
+
+
+class ConditionValueMultipleModelField(ConditionValueFormField):
+    """Condition value wrapper for multiple model form fields.
+
+    This is a convenience for condition values that want to use a
+    :py:class:`~django.forms.fields.ModelMutipleChoiceField`. It accepts the
+    same keyword arguments in the constructor that the field itself accepts.
+
+    Unlike the standard field, the provided queryset can be a callable that
+    returns a queryset.
+
+    Example:
+        value_field = ConditionValueMultipleModelField(
+            queryset=MyObject.objects.all())
+    """
+
+    def __init__(self, queryset, **field_kwargs):
+        """Initialize the value field.
+
+        Args:
+            queryset (django.db.models.query.QuerySet):
+                The queryset used for the field. This may also be a callable
+                that returns a queryset.
+
+            **field_kwargs (dict):
+                Keyword arguments to pass to the
+                :py:class:`~django.forms.fields.ModelChoiceField` constructor.
+        """
+        def _build_field():
+            if callable(queryset):
+                qs = queryset()
+            else:
+                qs = queryset
+
+            return forms.ModelMultipleChoiceField(queryset=qs, **field_kwargs)
+
+        super(ConditionValueMultipleModelField, self).__init__(
+            field=_build_field)

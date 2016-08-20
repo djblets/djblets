@@ -113,7 +113,7 @@ class BaseConditionOperator(object):
         raise NotImplementedError
 
 
-class OneOfOperator(BaseConditionOperator):
+class IsOneOfOperator(BaseConditionOperator):
     """An operator that matches against a set of possible values.
 
     This operator checks if the lookup value matches one of a set of possible
@@ -129,7 +129,7 @@ class OneOfOperator(BaseConditionOperator):
     name = _('Is one of')
 
     def matches(self, lookup_value, condition_value):
-        """Return whether the lookup value has a boolean or truthy value.
+        """Return whether the lookup value is one of a set of values.
 
         Args:
             lookup_value (object):
@@ -150,6 +150,45 @@ class OneOfOperator(BaseConditionOperator):
                 the expression.
         """
         return lookup_value in condition_value
+
+
+class IsNotOneOfOperator(BaseConditionOperator):
+    """An operator that matches if not one of a set of possible values.
+
+    This operator checks if the lookup value is not one of a set of possible
+    values listed in the condition.
+
+    This is equivalent to::
+
+        if lookup_value not in condition_value:
+            ...
+    """
+
+    operator_id = 'not-one-of'
+    name = _('Is not one of')
+
+    def matches(self, lookup_value, condition_value):
+        """Return whether the lookup value is not one of a set of values.
+
+        Args:
+            lookup_value (object):
+                The caller's value to check against the state for this
+                operator.
+
+            condition_value (list):
+                A list of possible values that the lookup value must not match.
+
+        Returns:
+            bool:
+            ``True`` if the lookup value is not present in the list of possible
+            values.
+
+        Raises:
+            TypeError:
+                Either the lookup or condition value was not compatible with
+                the expression.
+        """
+        return lookup_value not in condition_value
 
 
 class AnyOperator(BaseConditionOperator):

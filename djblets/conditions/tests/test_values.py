@@ -2,11 +2,14 @@ from __future__ import unicode_literals
 
 from django import forms
 from django.contrib.sites.models import Site
+from django.db.models.query import QuerySet
 from django.http import QueryDict
 
 from djblets.conditions.values import (ConditionValueBooleanField,
                                        ConditionValueFormField,
-                                       ConditionValueIntegerField)
+                                       ConditionValueIntegerField,
+                                       ConditionValueModelField,
+                                       ConditionValueMultipleModelField)
 from djblets.testing.testcases import TestCase
 
 
@@ -97,3 +100,71 @@ class ConditionValueIntegerFieldTests(TestCase):
         """Testing ConditionValueIntegerField.deserialize_value"""
         self.assertEqual(self.value_field.deserialize_value(100), 100)
         self.assertEqual(self.value_field.deserialize_value('100'), 100)
+
+
+class ConditionValueModelFieldTests(TestCase):
+    """Unit tests for ConditionValueModelField."""
+
+    def test_init_with_queryset(self):
+        """Testing ConditionValueModelField initialization with QuerySet"""
+        field = ConditionValueModelField(queryset=Site.objects.all())
+
+        self.assertTrue(isinstance(field.field.queryset, QuerySet))
+
+    def test_init_with_callable(self):
+        """Testing ConditionValueModelField initialization with callable"""
+        field = ConditionValueModelField(queryset=lambda: Site.objects.all())
+
+        self.assertTrue(isinstance(field.field.queryset, QuerySet))
+
+    def test_serialize_value(self):
+        """Testing ConditionValueModelField.serialize_value"""
+        field = ConditionValueModelField(queryset=Site.objects.all())
+
+        site = Site.objects.get_current()
+        self.assertEqual(field.serialize_value(site), site.pk)
+
+    def test_deserialize_value(self):
+        """Testing ConditionValueModelField.deserialize_value"""
+        field = ConditionValueModelField(queryset=Site.objects.all())
+
+        site = Site.objects.get_current()
+        self.assertEqual(field.deserialize_value(site.pk), site)
+
+
+class ConditionValueMultipleModelFieldTests(TestCase):
+    """Unit tests for ConditionValueMultipleModelField."""
+
+    def test_init_with_queryset(self):
+        """Testing ConditionValueMultipleModelField initialization with
+        QuerySet
+        """
+        field = ConditionValueMultipleModelField(queryset=Site.objects.all())
+
+        self.assertTrue(isinstance(field.field.queryset, QuerySet))
+
+    def test_init_with_callable(self):
+        """Testing ConditionValueMultipleModelField initialization with
+        callable
+        """
+        field = ConditionValueMultipleModelField(
+            queryset=lambda: Site.objects.all())
+
+        self.assertTrue(isinstance(field.field.queryset, QuerySet))
+
+    def test_serialize_value(self):
+        """Testing ConditionValueMultipleModelField.serialize_value"""
+        field = ConditionValueMultipleModelField(queryset=Site.objects.all())
+
+        site = Site.objects.get_current()
+        self.assertEqual(field.serialize_value([site]), [site.pk])
+
+    def test_deserialize_value(self):
+        """Testing ConditionValueMultipleModelField.deserialize_value"""
+        field = ConditionValueMultipleModelField(queryset=Site.objects.all())
+
+        site = Site.objects.get_current()
+        result = field.deserialize_value([site.pk])
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], site)

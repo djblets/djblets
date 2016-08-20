@@ -9,10 +9,11 @@ from djblets.conditions.operators import (AnyOperator,
                                           DoesNotContainOperator,
                                           EndsWithOperator,
                                           GreaterThanOperator,
-                                          IsOperator,
+                                          IsNotOneOfOperator,
                                           IsNotOperator,
+                                          IsOneOfOperator,
+                                          IsOperator,
                                           LessThanOperator,
-                                          OneOfOperator,
                                           StartsWithOperator,
                                           UnsetOperator)
 from djblets.conditions.values import (BaseConditionValueField,
@@ -137,16 +138,29 @@ class ConditionOperatorsTests(TestCase):
 class StandardOperatorTests(TestCase):
     """Unit tests for standard condition operators."""
 
-    def test_one_of_op_with_match(self):
-        """Testing OneOfOperator with match"""
-        self.assertTrue(self._check_match(OneOfOperator, 'a', ['a', 'b', 'c']))
-        self.assertTrue(self._check_match(OneOfOperator, 1, [0, 1, 2]))
+    def test_is_one_of_op_with_match(self):
+        """Testing IsOneOfOperator with match"""
+        self.assertTrue(self._check_match(IsOneOfOperator, 'a',
+                                          ['a', 'b', 'c']))
+        self.assertTrue(self._check_match(IsOneOfOperator, 1, [0, 1, 2]))
 
-    def test_one_of_op_without_match(self):
-        """Testing OneOfOperator without match"""
-        self.assertFalse(self._check_match(OneOfOperator, 'd',
+    def test_is_one_of_op_without_match(self):
+        """Testing IsOneOfOperator without match"""
+        self.assertFalse(self._check_match(IsOneOfOperator, 'd',
                                            ['a', 'b', 'c']))
-        self.assertFalse(self._check_match(OneOfOperator, 4, [0, 1, 2]))
+        self.assertFalse(self._check_match(IsOneOfOperator, 4, [0, 1, 2]))
+
+    def test_is_not_one_of_op_with_match(self):
+        """Testing IsNotOneOfOperator with match"""
+        self.assertTrue(self._check_match(IsNotOneOfOperator, 'z',
+                                          ['a', 'b', 'c']))
+        self.assertTrue(self._check_match(IsNotOneOfOperator, 9, [0, 1, 2]))
+
+    def test_is_not_one_of_op_without_match(self):
+        """Testing IsNotOneOfOperator without match"""
+        self.assertFalse(self._check_match(IsNotOneOfOperator, 'a',
+                                           ['a', 'b', 'c']))
+        self.assertFalse(self._check_match(IsNotOneOfOperator, 0, [0, 1, 2]))
 
     def test_any_op_with_match(self):
         """Testing AnyOperator with match"""

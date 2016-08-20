@@ -6,17 +6,23 @@ from django.utils.translation import ugettext_lazy as _
 
 from djblets.conditions.errors import (ConditionChoiceConflictError,
                                        ConditionChoiceNotFoundError)
-from djblets.conditions.operators import (ConditionOperators,
+from djblets.conditions.operators import (AnyOperator,
+                                          ConditionOperators,
                                           ContainsOperator,
                                           EndsWithOperator,
                                           GreaterThanOperator,
+                                          IsNotOneOfOperator,
                                           IsNotOperator,
+                                          IsOneOfOperator,
                                           IsOperator,
                                           LessThanOperator,
-                                          StartsWithOperator)
+                                          StartsWithOperator,
+                                          UnsetOperator)
 from djblets.conditions.values import (ConditionValueBooleanField,
                                        ConditionValueCharField,
-                                       ConditionValueIntegerField)
+                                       ConditionValueIntegerField,
+                                       ConditionValueModelField,
+                                       ConditionValueMultipleModelField)
 from djblets.registries.registry import (ALREADY_REGISTERED,
                                          ATTRIBUTE_REGISTERED, DEFAULT_ERRORS,
                                          NOT_REGISTERED, OrderedRegistry,
@@ -182,6 +188,119 @@ class BaseConditionStringChoice(BaseConditionChoice):
     default_value_field = ConditionValueCharField()
 
 
+class ModelQueryChoiceMixin(object):
+    """A mixin for choices that want to allow for custom querysets.
+
+    This allows subclasses to either define a :py:attr:`queryset` or
+    define a more complex queryset by overriding :py:meth:`get_queryset`.
+    """
+
+    #: The queryset used for the choice.
+    queryset = None
+
+    def get_queryset(self):
+        """Return the queryset used for the choice.
+
+        By default, this returns :py:attr:`queryset`. It can be overridden
+        to return a more dynamic queryset.
+
+        Returns:
+            django.db.query.QuerySet:
+            The queryset for the choice.
+        """
+        if self.queryset is None:
+            raise ValueError('%s.queryset cannot be None!'
+                             % self.__class__.__name__)
+
+        return self.queryset
+
+
+class BaseConditionModelChoice(ModelQueryChoiceMixin, BaseConditionChoice):
+    """Base class for a standard model-based condition choice.
+
+    This is a convenience for choices that are based on a single model. It
+    provides some standard operators that work well with comparing models.
+
+    Subclasses should provide a :py:attr:`queryset` attribute, or override
+    :py:meth:`get_queryset` to provide a more dynamic queryset.
+    """
+
+    operators = ConditionOperators([
+        UnsetOperator,
+        IsOperator,
+        IsNotOperator,
+    ])
+
+    def default_value_field(self, **kwargs):
+        """Return the default value field for this choice.
+
+        This will call out to :py:meth:`get_queryset` before returning the
+        field, allowing subclasses to simply set :py:attr:`queryset` or to
+        perform more dynamic queries before constructing the form field.
+
+        Args:
+            **kwargs (dict):
+                Extra keyword arguments for this function, for future
+                expansion.
+
+        Returns:
+            djblets.conditions.values.ConditionValueMultipleModelField:
+            The form field for the value.
+        """
+        return ConditionValueModelField(queryset=self.get_queryset)
+
+
+class BaseConditionRequiredModelChoice(BaseConditionModelChoice):
+    """Base class for a model-based condition that requires a value.
+
+    This is simply a variation on :py:class:`BaseConditionModelChoice` that
+    doesn't include a :py:class:`~djblets.conditions.operators.UnsetOperator`.
+    """
+
+    operators = ConditionOperators([
+        IsOperator,
+        IsNotOperator,
+    ])
+
+
+class BaseConditionModelMultipleChoice(ModelQueryChoiceMixin,
+                                       BaseConditionChoice):
+    """Base class for a standard multi-model-based condition choice.
+
+    This is a convenience for choices that are based on comparing against
+    multiple instances of models. It provides some standard operators that work
+    well with comparing sets of models.
+
+    Subclasses should provide a :py:attr:`queryset` attribute, or override
+    :py:meth:`get_queryset` to provide a more dynamic queryset.
+    """
+
+    operators = ConditionOperators([
+        AnyOperator.with_overrides(name=_('Any')),
+        UnsetOperator.with_overrides(name=_('None')),
+        IsOneOfOperator,
+        IsNotOneOfOperator,
+    ])
+
+    def default_value_field(self, **kwargs):
+        """Return the default value field for this choice.
+
+        This will call out to :py:meth:`get_queryset` before returning the
+        field, allowing subclasses to simply set :py:attr:`queryset` or to
+        perform more dynamic queries before constructing the form field.
+
+        Args:
+            **kwargs (dict):
+                Extra keyword arguments for this function, for future
+                expansion.
+
+        Returns:
+            djblets.conditions.values.ConditionValueMultipleModelField:
+            The form field for the value.
+        """
+        return ConditionValueMultipleModelField(queryset=self.get_queryset)
+
+
 class ConditionChoices(OrderedRegistry):
     """Represents a list of choices for conditions.
 
@@ -213,7 +332,7 @@ class ConditionChoices(OrderedRegistry):
         ),
         ATTRIBUTE_REGISTERED: _(
             'Could not register condition choice %(item)s: Another choice '
-            '%(duplicate)s) is already registered with the same ID.'
+            '(%(duplicate)s) is already registered with the same ID.'
         ),
         NOT_REGISTERED: _(
             'No condition choice was found matching "%(attr_value)s".'
