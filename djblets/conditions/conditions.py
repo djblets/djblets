@@ -179,20 +179,30 @@ class Condition(object):
         else:
             self.raw_value = raw_value
 
-    def matches(self, value):
+    def matches(self, value, value_state_cache=None):
         """Return whether a value matches the condition.
 
         Args:
             value (object):
                 The value to match against.
 
+            value_state_cache (dict):
+                An optional dictionary used to cache common computable data
+                that might be shared across instances of one or more
+                conditions.
+
         Returns:
             bool:
             ``True`` if the value fulfills the condition. ``False`` if it
             does not.
         """
-        return self.operator.matches(self.choice.get_match_value(value),
-                                     self.value)
+        if value_state_cache is None:
+            value_state_cache = {}
+
+        return self.operator.matches(
+            self.choice.get_match_value(value,
+                                        value_state_cache=value_state_cache),
+            self.value)
 
     def serialize(self):
         """Serialize the condition to a JSON-serializable dictionary.
@@ -341,8 +351,10 @@ class ConditionSet(object):
             # after creating the condition set.
             assert False
 
+        value_state_cache = {}
+
         return match_conditions(
-            condition.matches(value)
+            condition.matches(value, value_state_cache=value_state_cache)
             for condition in self.conditions
         )
 

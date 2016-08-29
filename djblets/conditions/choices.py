@@ -115,7 +115,7 @@ class BaseConditionChoice(object):
         for operator_cls in self.operators:
             yield operator_cls(self)
 
-    def get_match_value(self, value):
+    def get_match_value(self, value, value_state_cache=None, **kwargs):
         """Return a normalized value used for matching.
 
         This will take the value provided to the parent
@@ -132,6 +132,17 @@ class BaseConditionChoice(object):
         Args:
             value (object):
                 The value provided to match against.
+
+            value_state_cache (dict):
+                An dictionary used to cache common computable data
+                that might be shared across instances of one or more
+                conditions.
+
+                This can be assumed to be a valid dictionary when called
+                in normal usage through condition matching.
+
+            **kwargs (dict):
+                Extra keyword arguments passed, for future expansion.
 
         Returns:
             object:
