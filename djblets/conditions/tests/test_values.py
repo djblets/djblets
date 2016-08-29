@@ -1,15 +1,19 @@
 from __future__ import unicode_literals
 
+import re
+
 from django import forms
 from django.contrib.sites.models import Site
 from django.db.models.query import QuerySet
 from django.http import QueryDict
 
+from djblets.conditions.errors import InvalidConditionValueError
 from djblets.conditions.values import (ConditionValueBooleanField,
                                        ConditionValueFormField,
                                        ConditionValueIntegerField,
                                        ConditionValueModelField,
-                                       ConditionValueMultipleModelField)
+                                       ConditionValueMultipleModelField,
+                                       ConditionValueRegexField)
 from djblets.testing.testcases import TestCase
 
 
@@ -168,3 +172,41 @@ class ConditionValueMultipleModelFieldTests(TestCase):
 
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], site)
+
+
+class ConditionValueRegexFieldTests(TestCase):
+    """Unit tests for djblets.conditions.values.ConditionValueRegexField."""
+
+    def setUp(self):
+        super(ConditionValueRegexFieldTests, self).setUp()
+
+        self.value_field = ConditionValueRegexField()
+
+    def test_deserialize_value(self):
+        """Testing ConditionValueRegexField.deserialize_value"""
+        regex_obj = self.value_field.deserialize_value('ab[^c]d+e?')
+
+        # Weird, right? re.RegexObject, the documented result of a
+        # re.compile(), does not exist. Instead, it's a _sre.SRE_Pattern,
+        # but that's basically an internal detail we don't want to rely upon.
+        # Internally, the re module actually does this type() mess to get
+        # the type to use, so that's what we're doing!
+        regex_type = type(re.compile(''))
+
+        self.assertTrue(isinstance(regex_obj, regex_type))
+        self.assertEqual(regex_obj.pattern, re.compile('ab[^c]d+e?').pattern)
+
+    def test_deserialize_value_with_bad_pattern(self):
+        """Testing ConditionValueRegexField.deserialize_value with bad
+        pattern
+        """
+        with self.assertRaises(InvalidConditionValueError):
+            self.value_field.deserialize_value('*')
+
+    def test_serialize_value(self):
+        """Testing ConditionValueRegexField.serialize_value"""
+        regex_obj = re.compile('ab[^c]d+e?')
+
+        self.assertEqual(
+            self.value_field.serialize_value(regex_obj),
+            'ab[^c]d+e?')

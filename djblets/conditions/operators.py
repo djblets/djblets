@@ -6,6 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from djblets.conditions.errors import (ConditionOperatorConflictError,
                                        ConditionOperatorNotFoundError)
+from djblets.conditions.values import ConditionValueRegexField
 from djblets.registries.registry import (ALREADY_REGISTERED,
                                          ATTRIBUTE_REGISTERED, DEFAULT_ERRORS,
                                          NOT_REGISTERED, OrderedRegistry,
@@ -601,6 +602,73 @@ class LessThanOperator(BaseConditionOperator):
             ``True`` if the lookup value is less than the condition value.
         """
         return lookup_value < condition_value
+
+
+class MatchesRegexOperator(BaseConditionOperator):
+    """An operator that checks if a value matches against a regex.
+
+    It's equivalent to::
+
+        if condition_value.match(lookup_value):
+            ...
+    """
+
+    operator_id = 'matches-regex'
+    name = _('Matches regex')
+    value_field = ConditionValueRegexField()
+
+    def matches(self, lookup_value, condition_value, **kwargs):
+        """Return whether the lookup value matches the condition's regex.
+
+        Args:
+            lookup_value (unicode):
+                The caller's value to check.
+
+            condition_value (re.RegexObject):
+                The regex value that the lookup value must match.
+
+            **kwargs (dict):
+                Unused extra keyword arguments.
+
+        Returns:
+            bool:
+            ``True`` if the lookup value matches the regex in the condition.
+        """
+        return condition_value.match(lookup_value) is not None
+
+
+class DoesNotMatchRegexOperator(BaseConditionOperator):
+    """An operator that checks if a value does not match against a regex.
+
+    It's equivalent to::
+
+        if not condition_value.match(lookup_value):
+            ...
+    """
+
+    operator_id = 'does-not-match-regex'
+    name = _('Does not match regex')
+    value_field = ConditionValueRegexField()
+
+    def matches(self, lookup_value, condition_value, **kwargs):
+        """Return whether the lookup value doesn't match the condition's regex.
+
+        Args:
+            lookup_value (unicode):
+                The caller's value to check.
+
+            condition_value (re.RegexObject):
+                The regex value that the lookup value must not match.
+
+            **kwargs (dict):
+                Unused extra keyword arguments.
+
+        Returns:
+            bool:
+            ``True`` if the lookup value doesn't match the regex in the
+            condition.
+        """
+        return condition_value.match(lookup_value) is None
 
 
 class ConditionOperators(OrderedRegistry):

@@ -2,6 +2,8 @@
 
 from __future__ import unicode_literals
 
+import re
+
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
@@ -488,3 +490,47 @@ class ConditionValueMultipleModelField(ConditionValueFormField):
 
         super(ConditionValueMultipleModelField, self).__init__(
             field=_build_field)
+
+
+class ConditionValueRegexField(ConditionValueCharField):
+    """Condition value for fields that accept regexes.
+
+    This value accepts and validates regex patterns entered into the field.
+
+    Example:
+        value_field = ConditionValueRegexField()
+    """
+
+    def serialize_value(self, value):
+        """Serialize a compiled regex into a string.
+
+        Args:
+            value (object):
+                The value to serialize.
+
+        Returns:
+            object:
+            The JSON-compatible serialized value.
+        """
+        return value.pattern
+
+    def deserialize_value(self, value_data):
+        """Deserialize a regex pattern string into a compiled regex.
+
+        Args:
+            value_data (unicode):
+                The serialized regex pattern to compile.
+
+        Returns:
+            object:
+            The deserialized value.
+
+        Raises:
+            djblets.conditions.errors.InvalidConditionValueError:
+                The regex could not be compiled.
+        """
+        try:
+            return re.compile(value_data, re.UNICODE)
+        except re.error as e:
+            raise InvalidConditionValueError(
+                'Your regex pattern had an error: %s' % e)

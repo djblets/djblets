@@ -9,6 +9,8 @@ from djblets.conditions.errors import (ConditionChoiceConflictError,
 from djblets.conditions.operators import (AnyOperator,
                                           ConditionOperators,
                                           ContainsOperator,
+                                          DoesNotContainOperator,
+                                          DoesNotMatchRegexOperator,
                                           EndsWithOperator,
                                           GreaterThanOperator,
                                           IsNotOneOfOperator,
@@ -16,6 +18,7 @@ from djblets.conditions.operators import (AnyOperator,
                                           IsOneOfOperator,
                                           IsOperator,
                                           LessThanOperator,
+                                          MatchesRegexOperator,
                                           StartsWithOperator,
                                           UnsetOperator)
 from djblets.conditions.values import (ConditionValueBooleanField,
@@ -192,8 +195,11 @@ class BaseConditionStringChoice(BaseConditionChoice):
         IsOperator,
         IsNotOperator,
         ContainsOperator,
+        DoesNotContainOperator,
         StartsWithOperator,
         EndsWithOperator,
+        MatchesRegexOperator,
+        DoesNotMatchRegexOperator,
     ])
 
     default_value_field = ConditionValueCharField()

@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import re
+
 from djblets.conditions.choices import BaseConditionChoice
 from djblets.conditions.errors import ConditionOperatorNotFoundError
 from djblets.conditions.operators import (AnyOperator,
@@ -7,6 +9,7 @@ from djblets.conditions.operators import (AnyOperator,
                                           ConditionOperators,
                                           ContainsOperator,
                                           DoesNotContainOperator,
+                                          DoesNotMatchRegexOperator,
                                           EndsWithOperator,
                                           GreaterThanOperator,
                                           IsNotOneOfOperator,
@@ -14,6 +17,7 @@ from djblets.conditions.operators import (AnyOperator,
                                           IsOneOfOperator,
                                           IsOperator,
                                           LessThanOperator,
+                                          MatchesRegexOperator,
                                           StartsWithOperator,
                                           UnsetOperator)
 from djblets.conditions.values import (BaseConditionValueField,
@@ -278,6 +282,34 @@ class StandardOperatorTests(TestCase):
     def test_less_than_op_without_match(self):
         """Testing LessThanOperator without match"""
         self.assertFalse(self._check_match(LessThanOperator, 100, 20))
+
+    def test_matches_regex_op_with_match(self):
+        """Testing MatchesRegexOperator with match"""
+        self.assertTrue(self._check_match(
+            MatchesRegexOperator,
+            'abccd',
+            re.compile('abc+de?')))
+
+    def test_matches_regex_op_without_match(self):
+        """Testing MatchesRegexOperator without match"""
+        self.assertFalse(self._check_match(
+            MatchesRegexOperator,
+            'xyz',
+            re.compile('abc+de?')))
+
+    def test_does_not_match_regex_op_with_match(self):
+        """Testing DoesNotMatchRegexOperator with match"""
+        self.assertTrue(self._check_match(
+            DoesNotMatchRegexOperator,
+            'xyz',
+            re.compile('abc+de?')))
+
+    def test_does_not_match_regex_op_without_match(self):
+        """Testing DoesNotMatchRegexOperator without match"""
+        self.assertFalse(self._check_match(
+            DoesNotMatchRegexOperator,
+            'abccd',
+            re.compile('abc+de?')))
 
     def _check_match(self, op_cls, lookup_value, condition_value=None):
         op = op_cls(None)
