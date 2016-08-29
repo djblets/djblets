@@ -33,8 +33,8 @@ class NoValueTestOperator(BaseConditionOperator):
 class EqualsTestOperator(BaseConditionOperator):
     operator_id = 'equals-test-op'
 
-    def matches(self, match_value, condition_value):
-        return match_value == condition_value
+    def matches(self, lookup_value, condition_value):
+        return lookup_value == condition_value
 
 
 class BasicTestChoice(BaseConditionChoice):

@@ -281,4 +281,5 @@ class StandardOperatorTests(TestCase):
 
     def _check_match(self, op_cls, lookup_value, condition_value=None):
         op = op_cls(None)
-        return op.matches(lookup_value, condition_value)
+        return op.matches(lookup_value=lookup_value,
+                          condition_value=condition_value)

@@ -223,16 +223,13 @@ class AnyOperator(BaseConditionOperator):
     name = _('Has a value')
     value_field = None
 
-    def matches(self, lookup_value, condition_value, **kwargs):
+    def matches(self, lookup_value, **kwargs):
         """Return whether the lookup value is non-empty.
 
         Args:
             lookup_value (object):
                 The caller's value to check against the state for this
                 operator.
-
-            condition_value (object):
-                Unused.
 
             **kwargs (dict):
                 Unused extra keyword arguments.
@@ -267,16 +264,13 @@ class UnsetOperator(BaseConditionOperator):
     name = _('Is unset')
     value_field = None
 
-    def matches(self, lookup_value, condition_value, **kwargs):
+    def matches(self, lookup_value, **kwargs):
         """Return whether the lookup value is empty.
 
         Args:
             lookup_value (object):
                 The caller's value to check against the state for this
                 operator.
-
-            condition_value (object):
-                Unused.
 
             **kwargs (dict):
                 Unused extra keyword arguments.
