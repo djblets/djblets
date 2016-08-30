@@ -28,7 +28,6 @@ from __future__ import unicode_literals
 import datetime
 import unittest
 
-from django.db import models
 from django.http import HttpRequest
 from django.template import Context, Template, TemplateSyntaxError
 from django.utils.html import strip_spaces_between_tags
@@ -312,20 +311,36 @@ class QuoteTextFilterTest(unittest.TestCase):
                          "> > foo\n> > bar")
 
 
-class SerializerTest(TestCase):
-    """Tests for djblets.util.serializers"""
+class DjbletsJSONEncoderTests(TestCase):
+    """Tests for djblets.util.serializers.DjbletsJSONEncoder."""
 
-    def test_model_to_json(self):
-        """Testing DjbletsJSONEncoder.encode for a Model"""
-        class TestModel(models.Model):
-            foo = models.IntegerField()
-
+    def test_object_to_json(self):
+        """Testing DjbletsJSONEncoder.encode for an object with a to_json()
+        method
+        """
+        class TestObject(object):
             def to_json(self):
                 return {
-                    'foo': self.foo,
+                    'foo': 1,
                 }
 
-        obj = TestModel(foo=1)
+        obj = TestObject()
         encoder = DjbletsJSONEncoder()
 
         self.assertEqual(encoder.encode(obj), '{"foo": 1}')
+
+    def test_datetime(self):
+        """Testing DjbletsJSONENcoder.encode with datetimes"""
+        encoder = DjbletsJSONEncoder()
+        self.assertEqual(
+            encoder.encode(datetime.datetime(2016, 8, 26, 3, 3, 26, 123456)),
+            '"2016-08-26T03:03:26"')
+
+    def test_datetime_with_strip_ms(self):
+        """Testing DjbletsJSONENcoder.encode with datetimes when using
+        strip_datetime_ms=False
+        """
+        encoder = DjbletsJSONEncoder(strip_datetime_ms=False)
+        self.assertEqual(
+            encoder.encode(datetime.datetime(2016, 8, 26, 3, 3, 26, 123456)),
+            '"2016-08-26T03:03:26.123"')
