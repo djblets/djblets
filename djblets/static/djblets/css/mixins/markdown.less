@@ -193,16 +193,11 @@
   }
 
   .codehilite {
-    @codehilite-margin-vert: -(@code-block-border-size +
-                               @code-block-padding-vert);
-
     background-color: @code-block-bg;
     border: @inline-code-border-size solid @code-block-border-color;
     border-radius: @code-block-border-radius;
-    margin: @codehilite-margin-vert
-            0
-            @codehilite-margin-vert
-            -(@code-block-border-size + @code-block-padding-horiz);
+    margin: -(@code-block-padding-vert + @code-block-border-size)
+            -(@code-block-padding-horiz + @code-block-border-size);
     padding: @code-block-padding-vert @code-block-padding-horiz;
 
     pre {
