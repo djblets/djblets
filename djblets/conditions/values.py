@@ -2,6 +2,8 @@
 
 from __future__ import unicode_literals
 
+import re
+
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
@@ -197,11 +199,29 @@ class ConditionValueFormField(BaseConditionValueField):
 
         Args:
             field (django.forms.fields.Field):
-                The Django form field instance for the value.
+                The Django form field instance for the value. This may also
+                be a callable that returns a field.
         """
         super(ConditionValueFormField, self).__init__()
 
         self.field = field
+
+    @property
+    def field(self):
+        """The form field to use for the value.
+
+        This will always return a :py:class:`~django.forms.fields.Field`,
+        but can be given a callable that returns a field when set.
+        """
+        if callable(self._field):
+            self._field = self._field()
+
+        return self._field
+
+    # Note that the docstring will be inherited from the field property.
+    @field.setter
+    def field(self, field):
+        self._field = field
 
     def serialize_value(self, value):
         """Serialize a Python object into a JSON-compatible serialized form.
@@ -390,3 +410,127 @@ class ConditionValueIntegerField(ConditionValueFormField):
         """
         super(ConditionValueIntegerField, self).__init__(
             field=forms.IntegerField(**field_kwargs))
+
+
+class ConditionValueModelField(ConditionValueFormField):
+    """Condition value wrapper for single model form fields.
+
+    This is a convenience for condition values that want to use a
+    :py:class:`~django.forms.fields.ModelChoiceField`. It accepts the same
+    keyword arguments in the constructor that the field itself accepts.
+
+    Unlike the standard field, the provided queryset can be a callable that
+    returns a queryset.
+
+    Example:
+        value_field = ConditionValueModelField(queryset=MyObject.objects.all())
+    """
+
+    def __init__(self, queryset, **field_kwargs):
+        """Initialize the value field.
+
+        Args:
+            queryset (django.db.models.query.QuerySet):
+                The queryset used for the field. This may also be a callable
+                that returns a queryset.
+
+            **field_kwargs (dict):
+                Keyword arguments to pass to the
+                :py:class:`~django.forms.fields.ModelChoiceField` constructor.
+        """
+        def _build_field():
+            if callable(queryset):
+                qs = queryset()
+            else:
+                qs = queryset
+
+            empty_label = field_kwargs.pop('empty_label', None)
+
+            return forms.ModelChoiceField(queryset=qs,
+                                          empty_label=empty_label,
+                                          **field_kwargs)
+
+        super(ConditionValueModelField, self).__init__(field=_build_field)
+
+
+class ConditionValueMultipleModelField(ConditionValueFormField):
+    """Condition value wrapper for multiple model form fields.
+
+    This is a convenience for condition values that want to use a
+    :py:class:`~django.forms.fields.ModelMutipleChoiceField`. It accepts the
+    same keyword arguments in the constructor that the field itself accepts.
+
+    Unlike the standard field, the provided queryset can be a callable that
+    returns a queryset.
+
+    Example:
+        value_field = ConditionValueMultipleModelField(
+            queryset=MyObject.objects.all())
+    """
+
+    def __init__(self, queryset, **field_kwargs):
+        """Initialize the value field.
+
+        Args:
+            queryset (django.db.models.query.QuerySet):
+                The queryset used for the field. This may also be a callable
+                that returns a queryset.
+
+            **field_kwargs (dict):
+                Keyword arguments to pass to the
+                :py:class:`~django.forms.fields.ModelChoiceField` constructor.
+        """
+        def _build_field():
+            if callable(queryset):
+                qs = queryset()
+            else:
+                qs = queryset
+
+            return forms.ModelMultipleChoiceField(queryset=qs, **field_kwargs)
+
+        super(ConditionValueMultipleModelField, self).__init__(
+            field=_build_field)
+
+
+class ConditionValueRegexField(ConditionValueCharField):
+    """Condition value for fields that accept regexes.
+
+    This value accepts and validates regex patterns entered into the field.
+
+    Example:
+        value_field = ConditionValueRegexField()
+    """
+
+    def serialize_value(self, value):
+        """Serialize a compiled regex into a string.
+
+        Args:
+            value (object):
+                The value to serialize.
+
+        Returns:
+            object:
+            The JSON-compatible serialized value.
+        """
+        return value.pattern
+
+    def deserialize_value(self, value_data):
+        """Deserialize a regex pattern string into a compiled regex.
+
+        Args:
+            value_data (unicode):
+                The serialized regex pattern to compile.
+
+        Returns:
+            object:
+            The deserialized value.
+
+        Raises:
+            djblets.conditions.errors.InvalidConditionValueError:
+                The regex could not be compiled.
+        """
+        try:
+            return re.compile(value_data, re.UNICODE)
+        except re.error as e:
+            raise InvalidConditionValueError(
+                'Your regex pattern had an error: %s' % e)

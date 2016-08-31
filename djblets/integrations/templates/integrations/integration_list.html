@@ -55,6 +55,12 @@
      </ul>
     </div>
    </li>
+{%  empty %}
+   <li class="integrations-list-empty">
+{%   block integrations_list_empty %}
+    {% trans "There are no integrations installed." %}
+{%   endblock integrations_list_empty %}
+   </li>
 {%  endfor %}
   </ul>
  </form>

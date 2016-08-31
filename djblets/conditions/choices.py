@@ -6,17 +6,26 @@ from django.utils.translation import ugettext_lazy as _
 
 from djblets.conditions.errors import (ConditionChoiceConflictError,
                                        ConditionChoiceNotFoundError)
-from djblets.conditions.operators import (ConditionOperators,
+from djblets.conditions.operators import (AnyOperator,
+                                          ConditionOperators,
                                           ContainsOperator,
+                                          DoesNotContainOperator,
+                                          DoesNotMatchRegexOperator,
                                           EndsWithOperator,
                                           GreaterThanOperator,
+                                          IsNotOneOfOperator,
                                           IsNotOperator,
+                                          IsOneOfOperator,
                                           IsOperator,
                                           LessThanOperator,
-                                          StartsWithOperator)
+                                          MatchesRegexOperator,
+                                          StartsWithOperator,
+                                          UnsetOperator)
 from djblets.conditions.values import (ConditionValueBooleanField,
                                        ConditionValueCharField,
-                                       ConditionValueIntegerField)
+                                       ConditionValueIntegerField,
+                                       ConditionValueModelField,
+                                       ConditionValueMultipleModelField)
 from djblets.registries.registry import (ALREADY_REGISTERED,
                                          ATTRIBUTE_REGISTERED, DEFAULT_ERRORS,
                                          NOT_REGISTERED, OrderedRegistry,
@@ -30,6 +39,12 @@ class BaseConditionChoice(object):
     an object or attribute that would be matched, and contains a human-readable
     name for the choice, a list of operators that pertain to the choice, and
     the default type of field that a user will be using to select a value.
+
+    Attributes:
+        extra_state (dict):
+            Extra state provided to the choice during construction as keyword
+            arguments. This can be useful for condition choices that need more
+            advanced logic around value field construction or matching.
     """
 
     #: The ID of the choice.
@@ -53,8 +68,21 @@ class BaseConditionChoice(object):
     #: overridden.
     #:
     #: This must be set to an instance of a
-    #: :py:class:`~djblets.conditions.values.BaseConditionValueField` subclass.
+    #: :py:class:`~djblets.conditions.values.BaseConditionValueField` subclass
+    #: or a function returning an instance.
+    #:
+    #: If it's a function, it must accept a ``**kwargs``, for future expansion.
     default_value_field = None
+
+    def __init__(self, **kwargs):
+        """Initialize the condition choice.
+
+        Args:
+            **kwargs (dict):
+                Additional data used for the condition choice. These will be
+                available as :py:attr:`extra_state`.
+        """
+        self.extra_state = kwargs
 
     def get_operator(self, operator_id):
         """Return an operator instance from this choice with the given ID.
@@ -90,7 +118,7 @@ class BaseConditionChoice(object):
         for operator_cls in self.operators:
             yield operator_cls(self)
 
-    def get_match_value(self, value):
+    def get_match_value(self, value, value_state_cache=None, **kwargs):
         """Return a normalized value used for matching.
 
         This will take the value provided to the parent
@@ -107,6 +135,17 @@ class BaseConditionChoice(object):
         Args:
             value (object):
                 The value provided to match against.
+
+            value_state_cache (dict):
+                An dictionary used to cache common computable data
+                that might be shared across instances of one or more
+                conditions.
+
+                This can be assumed to be a valid dictionary when called
+                in normal usage through condition matching.
+
+            **kwargs (dict):
+                Extra keyword arguments passed, for future expansion.
 
         Returns:
             object:
@@ -156,11 +195,127 @@ class BaseConditionStringChoice(BaseConditionChoice):
         IsOperator,
         IsNotOperator,
         ContainsOperator,
+        DoesNotContainOperator,
         StartsWithOperator,
         EndsWithOperator,
+        MatchesRegexOperator,
+        DoesNotMatchRegexOperator,
     ])
 
     default_value_field = ConditionValueCharField()
+
+
+class ModelQueryChoiceMixin(object):
+    """A mixin for choices that want to allow for custom querysets.
+
+    This allows subclasses to either define a :py:attr:`queryset` or
+    define a more complex queryset by overriding :py:meth:`get_queryset`.
+    """
+
+    #: The queryset used for the choice.
+    queryset = None
+
+    def get_queryset(self):
+        """Return the queryset used for the choice.
+
+        By default, this returns :py:attr:`queryset`. It can be overridden
+        to return a more dynamic queryset.
+
+        Returns:
+            django.db.query.QuerySet:
+            The queryset for the choice.
+        """
+        if self.queryset is None:
+            raise ValueError('%s.queryset cannot be None!'
+                             % self.__class__.__name__)
+
+        return self.queryset
+
+
+class BaseConditionModelChoice(ModelQueryChoiceMixin, BaseConditionChoice):
+    """Base class for a standard model-based condition choice.
+
+    This is a convenience for choices that are based on a single model. It
+    provides some standard operators that work well with comparing models.
+
+    Subclasses should provide a :py:attr:`queryset` attribute, or override
+    :py:meth:`get_queryset` to provide a more dynamic queryset.
+    """
+
+    operators = ConditionOperators([
+        UnsetOperator,
+        IsOperator,
+        IsNotOperator,
+    ])
+
+    def default_value_field(self, **kwargs):
+        """Return the default value field for this choice.
+
+        This will call out to :py:meth:`get_queryset` before returning the
+        field, allowing subclasses to simply set :py:attr:`queryset` or to
+        perform more dynamic queries before constructing the form field.
+
+        Args:
+            **kwargs (dict):
+                Extra keyword arguments for this function, for future
+                expansion.
+
+        Returns:
+            djblets.conditions.values.ConditionValueMultipleModelField:
+            The form field for the value.
+        """
+        return ConditionValueModelField(queryset=self.get_queryset)
+
+
+class BaseConditionRequiredModelChoice(BaseConditionModelChoice):
+    """Base class for a model-based condition that requires a value.
+
+    This is simply a variation on :py:class:`BaseConditionModelChoice` that
+    doesn't include a :py:class:`~djblets.conditions.operators.UnsetOperator`.
+    """
+
+    operators = ConditionOperators([
+        IsOperator,
+        IsNotOperator,
+    ])
+
+
+class BaseConditionModelMultipleChoice(ModelQueryChoiceMixin,
+                                       BaseConditionChoice):
+    """Base class for a standard multi-model-based condition choice.
+
+    This is a convenience for choices that are based on comparing against
+    multiple instances of models. It provides some standard operators that work
+    well with comparing sets of models.
+
+    Subclasses should provide a :py:attr:`queryset` attribute, or override
+    :py:meth:`get_queryset` to provide a more dynamic queryset.
+    """
+
+    operators = ConditionOperators([
+        AnyOperator.with_overrides(name=_('Any')),
+        UnsetOperator.with_overrides(name=_('None')),
+        IsOneOfOperator,
+        IsNotOneOfOperator,
+    ])
+
+    def default_value_field(self, **kwargs):
+        """Return the default value field for this choice.
+
+        This will call out to :py:meth:`get_queryset` before returning the
+        field, allowing subclasses to simply set :py:attr:`queryset` or to
+        perform more dynamic queries before constructing the form field.
+
+        Args:
+            **kwargs (dict):
+                Extra keyword arguments for this function, for future
+                expansion.
+
+        Returns:
+            djblets.conditions.values.ConditionValueMultipleModelField:
+            The form field for the value.
+        """
+        return ConditionValueMultipleModelField(queryset=self.get_queryset)
 
 
 class ConditionChoices(OrderedRegistry):
@@ -194,7 +349,7 @@ class ConditionChoices(OrderedRegistry):
         ),
         ATTRIBUTE_REGISTERED: _(
             'Could not register condition choice %(item)s: Another choice '
-            '%(duplicate)s) is already registered with the same ID.'
+            '(%(duplicate)s) is already registered with the same ID.'
         ),
         NOT_REGISTERED: _(
             'No condition choice was found matching "%(attr_value)s".'
@@ -218,7 +373,7 @@ class ConditionChoices(OrderedRegistry):
 
         self._choices = choices or self.choice_classes
 
-    def get_choice(self, choice_id):
+    def get_choice(self, choice_id, choice_kwargs={}):
         """Return a choice instance with the given ID.
 
         Instances are not cached. Repeated calls will construct new instances.
@@ -226,6 +381,9 @@ class ConditionChoices(OrderedRegistry):
         Args:
             choice_id (unicode):
                 The ID of the choice to retrieve.
+
+            choice_kwargs (dict):
+                Keyword arguments to pass to the choice's constructor.
 
         Returns:
             BaseConditionChoice:
@@ -237,9 +395,9 @@ class ConditionChoices(OrderedRegistry):
         """
         choice_cls = self.get('choice_id', choice_id)
 
-        return choice_cls()
+        return choice_cls(**choice_kwargs)
 
-    def get_choices(self):
+    def get_choices(self, choice_kwargs={}):
         """Return a generator for all choice instances.
 
         This is a convenience around iterating through all choice classes and
@@ -247,12 +405,16 @@ class ConditionChoices(OrderedRegistry):
 
         Instances are not cached. Repeated calls will construct new instances.
 
+        Args:
+            choice_kwargs (dict):
+                Keyword arguments to pass to each choice's constructor.
+
         Yields:
             BaseConditionChoice:
             The choice instance.
         """
         for choice_cls in self:
-            yield choice_cls()
+            yield choice_cls(**choice_kwargs)
 
     def get_defaults(self):
         """Return the default choices for the list.

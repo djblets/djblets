@@ -33,8 +33,8 @@ class NoValueTestOperator(BaseConditionOperator):
 class EqualsTestOperator(BaseConditionOperator):
     operator_id = 'equals-test-op'
 
-    def matches(self, match_value, condition_value):
-        return match_value == condition_value
+    def matches(self, lookup_value, condition_value):
+        return lookup_value == condition_value
 
 
 class BasicTestChoice(BaseConditionChoice):
@@ -65,6 +65,27 @@ class ConditionTests(SpyAgency, TestCase):
             })
 
         self.assertEqual(condition.choice.__class__, BasicTestChoice)
+        self.assertEqual(condition.operator.__class__, BasicTestOperator)
+        self.assertEqual(condition.value, 'my-value')
+        self.assertEqual(condition.raw_value, 'my-value')
+
+    def test_deserialize_with_choice_kwargs(self):
+        """Testing Condition.deserialize with choice_kwargs"""
+        choices = ConditionChoices([BasicTestChoice])
+
+        condition = Condition.deserialize(
+            choices,
+            {
+                'choice': 'basic-test-choice',
+                'op': 'basic-test-op',
+                'value': 'my-value',
+            },
+            choice_kwargs={
+                'abc': 123,
+            })
+
+        self.assertEqual(condition.choice.__class__, BasicTestChoice)
+        self.assertEqual(condition.choice.extra_state, {'abc': 123})
         self.assertEqual(condition.operator.__class__, BasicTestOperator)
         self.assertEqual(condition.value, 'my-value')
         self.assertEqual(condition.raw_value, 'my-value')
@@ -308,6 +329,33 @@ class ConditionSetTests(TestCase):
         self.assertEqual(len(condition_set.conditions), 1)
         self.assertEqual(condition_set.conditions[0].choice.choice_id,
                          'basic-test-choice')
+
+    def test_deserialize_with_choice_kwargs(self):
+        """Testing ConditionSet.deserialize with choice_kwargs"""
+        choices = ConditionChoices([BasicTestChoice])
+
+        condition_set = ConditionSet.deserialize(
+            choices,
+            {
+                'mode': 'any',
+                'conditions': [
+                    {
+                        'choice': 'basic-test-choice',
+                        'op': 'basic-test-op',
+                        'value': 'my-value',
+                    },
+                ],
+            },
+            choice_kwargs={
+                'abc': 123,
+            })
+
+        self.assertEqual(condition_set.mode, ConditionSet.MODE_ANY)
+        self.assertEqual(len(condition_set.conditions), 1)
+
+        choice = condition_set.conditions[0].choice
+        self.assertEqual(choice.choice_id, 'basic-test-choice')
+        self.assertEqual(choice.extra_state, {'abc': 123})
 
     def test_deserialize_with_invalid_mode(self):
         """Testing ConditionSet.deserialize with invalid mode"""

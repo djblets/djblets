@@ -6,6 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from djblets.conditions.errors import (ConditionOperatorConflictError,
                                        ConditionOperatorNotFoundError)
+from djblets.conditions.values import ConditionValueRegexField
 from djblets.registries.registry import (ALREADY_REGISTERED,
                                          ATTRIBUTE_REGISTERED, DEFAULT_ERRORS,
                                          NOT_REGISTERED, OrderedRegistry,
@@ -37,6 +38,25 @@ class BaseConditionOperator(object):
     #: The displayed name for the operator.
     name = None
 
+    @classmethod
+    def with_overrides(cls, **attrs):
+        """Dynamically create a subclass with overridden attributes.
+
+        This makes it easy for a choice to make use of existing operators
+        while using a custom name for display, or a custom value field,
+        without having to create their own subclasses. It's meant only for
+        simple changes.
+
+        Args:
+            **attrs (dict):
+                Attributes to override on the operator.
+
+        Returns:
+            type:
+            A new subclass with the overridden attributes.
+        """
+        return type(b'Custom%s' % cls.__name__, (cls,), attrs)
+
     def __init__(self, choice):
         """Initialize the operator.
 
@@ -54,7 +74,10 @@ class BaseConditionOperator(object):
         can be disabled by setting this to ``None``, or a different field can
         be used by setting it to an instance of a
         :py:class:`~djblets.conditions.values.BaseConditionValueField`
-        subclass.
+        subclass or a function returning an instance.
+
+        If it's a function, it must accept a ``**kwargs``, for future
+        expansion.
         """
         return self.choice.default_value_field
 
@@ -63,7 +86,7 @@ class BaseConditionOperator(object):
         """Whether the operator has a custom value field."""
         return self.value_field is not self.choice.default_value_field
 
-    def matches(self, lookup_value, stored_value):
+    def matches(self, lookup_value, stored_value, **kwargs):
         """Return whether a value matches the operator and condition's value.
 
         This must be implemented by subclasses.
@@ -78,6 +101,9 @@ class BaseConditionOperator(object):
                 This will only be used if the operator has a value field
                 associated.
 
+            **kwargs (dict):
+                Extra keyword arguments, for future expansion.
+
         Returns:
             bool:
             ``True`` if the lookup value fulfills the condition. ``False`` if
@@ -91,7 +117,7 @@ class BaseConditionOperator(object):
         raise NotImplementedError
 
 
-class OneOfOperator(BaseConditionOperator):
+class IsOneOfOperator(BaseConditionOperator):
     """An operator that matches against a set of possible values.
 
     This operator checks if the lookup value matches one of a set of possible
@@ -106,8 +132,8 @@ class OneOfOperator(BaseConditionOperator):
     operator_id = 'one-of'
     name = _('Is one of')
 
-    def matches(self, lookup_value, condition_value):
-        """Return whether the lookup value has a boolean or truthy value.
+    def matches(self, lookup_value, condition_value, **kwargs):
+        """Return whether the lookup value is one of a set of values.
 
         Args:
             lookup_value (object):
@@ -122,12 +148,57 @@ class OneOfOperator(BaseConditionOperator):
             ``True`` if the lookup value is present in the list of possible
             values.
 
+            **kwargs (dict):
+                Unused extra keyword arguments.
+
         Raises:
             TypeError:
                 Either the lookup or condition value was not compatible with
                 the expression.
         """
         return lookup_value in condition_value
+
+
+class IsNotOneOfOperator(BaseConditionOperator):
+    """An operator that matches if not one of a set of possible values.
+
+    This operator checks if the lookup value is not one of a set of possible
+    values listed in the condition.
+
+    This is equivalent to::
+
+        if lookup_value not in condition_value:
+            ...
+    """
+
+    operator_id = 'not-one-of'
+    name = _('Is not one of')
+
+    def matches(self, lookup_value, condition_value, **kwargs):
+        """Return whether the lookup value is not one of a set of values.
+
+        Args:
+            lookup_value (object):
+                The caller's value to check against the state for this
+                operator.
+
+            condition_value (list):
+                A list of possible values that the lookup value must not match.
+
+            **kwargs (dict):
+                Unused extra keyword arguments.
+
+        Returns:
+            bool:
+            ``True`` if the lookup value is not present in the list of possible
+            values.
+
+        Raises:
+            TypeError:
+                Either the lookup or condition value was not compatible with
+                the expression.
+        """
+        return lookup_value not in condition_value
 
 
 class AnyOperator(BaseConditionOperator):
@@ -153,7 +224,7 @@ class AnyOperator(BaseConditionOperator):
     name = _('Has a value')
     value_field = None
 
-    def matches(self, lookup_value, condition_value):
+    def matches(self, lookup_value, **kwargs):
         """Return whether the lookup value is non-empty.
 
         Args:
@@ -161,8 +232,8 @@ class AnyOperator(BaseConditionOperator):
                 The caller's value to check against the state for this
                 operator.
 
-            condition_value (object):
-                Unused.
+            **kwargs (dict):
+                Unused extra keyword arguments.
 
         Returns:
             bool:
@@ -194,7 +265,7 @@ class UnsetOperator(BaseConditionOperator):
     name = _('Is unset')
     value_field = None
 
-    def matches(self, lookup_value, condition_value):
+    def matches(self, lookup_value, **kwargs):
         """Return whether the lookup value is empty.
 
         Args:
@@ -202,8 +273,8 @@ class UnsetOperator(BaseConditionOperator):
                 The caller's value to check against the state for this
                 operator.
 
-            condition_value (object):
-                Unused.
+            **kwargs (dict):
+                Unused extra keyword arguments.
 
         Returns:
             bool:
@@ -230,7 +301,7 @@ class IsOperator(BaseConditionOperator):
     operator_id = 'is'
     name = _('Is')
 
-    def matches(self, lookup_value, condition_value):
+    def matches(self, lookup_value, condition_value, **kwargs):
         """Return whether the lookup value equals a condition value.
 
         Args:
@@ -240,6 +311,9 @@ class IsOperator(BaseConditionOperator):
 
             condition_value (object):
                 The value to compare against.
+
+            **kwargs (dict):
+                Unused extra keyword arguments.
 
         Returns:
             bool:
@@ -265,7 +339,7 @@ class IsNotOperator(BaseConditionOperator):
     operator_id = 'is-not'
     name = _('Is not')
 
-    def matches(self, lookup_value, condition_value):
+    def matches(self, lookup_value, condition_value, **kwargs):
         """Return whether the lookup value is not equal to a condition value.
 
         Args:
@@ -275,6 +349,9 @@ class IsNotOperator(BaseConditionOperator):
 
             condition_value (object):
                 The value to compare against.
+
+            **kwargs (dict):
+                Unused extra keyword arguments.
 
         Returns:
             bool:
@@ -301,7 +378,7 @@ class ContainsOperator(BaseConditionOperator):
     operator_id = 'contains'
     name = _('Contains')
 
-    def matches(self, lookup_value, condition_value):
+    def matches(self, lookup_value, condition_value, **kwargs):
         """Return whether the lookup value contains a condition value.
 
         Args:
@@ -310,6 +387,9 @@ class ContainsOperator(BaseConditionOperator):
 
             condition_value (object):
                 The value to check within the lookup value.
+
+            **kwargs (dict):
+                Unused extra keyword arguments.
 
         Returns:
             bool:
@@ -341,7 +421,7 @@ class DoesNotContainOperator(BaseConditionOperator):
     operator_id = 'does-not-contain'
     name = _('Does not contain')
 
-    def matches(self, lookup_value, condition_value):
+    def matches(self, lookup_value, condition_value, **kwargs):
         """Return whether the lookup value does not contain a condition value.
 
         Args:
@@ -350,6 +430,9 @@ class DoesNotContainOperator(BaseConditionOperator):
 
             condition_value (object):
                 The value to check within the lookup value.
+
+            **kwargs (dict):
+                Unused extra keyword arguments.
 
         Returns:
             bool:
@@ -378,7 +461,7 @@ class StartsWithOperator(BaseConditionOperator):
     operator_id = 'starts-with'
     name = _('Starts with')
 
-    def matches(self, lookup_value, condition_value):
+    def matches(self, lookup_value, condition_value, **kwargs):
         """Return whether the lookup value starts with the condition value.
 
         Args:
@@ -387,6 +470,9 @@ class StartsWithOperator(BaseConditionOperator):
 
             condition_value (unicode):
                 The value to check at the start of the lookup value string.
+
+            **kwargs (dict):
+                Unused extra keyword arguments.
 
         Returns:
             bool:
@@ -419,7 +505,7 @@ class EndsWithOperator(BaseConditionOperator):
     operator_id = 'ends-with'
     name = _('Ends with')
 
-    def matches(self, lookup_value, condition_value):
+    def matches(self, lookup_value, condition_value, **kwargs):
         """Return whether the lookup value ends with the condition value.
 
         Args:
@@ -428,6 +514,9 @@ class EndsWithOperator(BaseConditionOperator):
 
             condition_value (unicode):
                 The value to check at the end of the lookup value string.
+
+            **kwargs (dict):
+                Unused extra keyword arguments.
 
         Returns:
             bool:
@@ -460,7 +549,7 @@ class GreaterThanOperator(BaseConditionOperator):
     operator_id = 'greater-than'
     name = _('Greater than')
 
-    def matches(self, lookup_value, condition_value):
+    def matches(self, lookup_value, condition_value, **kwargs):
         """Return whether the lookup value is greater than the condition value.
 
         Args:
@@ -469,6 +558,9 @@ class GreaterThanOperator(BaseConditionOperator):
 
             condition_value (object):
                 The value that the lookup value must be greater than.
+
+            **kwargs (dict):
+                Unused extra keyword arguments.
 
         Returns:
             bool:
@@ -492,7 +584,7 @@ class LessThanOperator(BaseConditionOperator):
     operator_id = 'less-than'
     name = _('Less than')
 
-    def matches(self, lookup_value, condition_value):
+    def matches(self, lookup_value, condition_value, **kwargs):
         """Return whether the lookup value is less than the condition value.
 
         Args:
@@ -502,11 +594,81 @@ class LessThanOperator(BaseConditionOperator):
             condition_value (object):
                 The value that the lookup value must be less than.
 
+            **kwargs (dict):
+                Unused extra keyword arguments.
+
         Returns:
             bool:
             ``True`` if the lookup value is less than the condition value.
         """
         return lookup_value < condition_value
+
+
+class MatchesRegexOperator(BaseConditionOperator):
+    """An operator that checks if a value matches against a regex.
+
+    It's equivalent to::
+
+        if condition_value.match(lookup_value):
+            ...
+    """
+
+    operator_id = 'matches-regex'
+    name = _('Matches regex')
+    value_field = ConditionValueRegexField()
+
+    def matches(self, lookup_value, condition_value, **kwargs):
+        """Return whether the lookup value matches the condition's regex.
+
+        Args:
+            lookup_value (unicode):
+                The caller's value to check.
+
+            condition_value (re.RegexObject):
+                The regex value that the lookup value must match.
+
+            **kwargs (dict):
+                Unused extra keyword arguments.
+
+        Returns:
+            bool:
+            ``True`` if the lookup value matches the regex in the condition.
+        """
+        return condition_value.match(lookup_value) is not None
+
+
+class DoesNotMatchRegexOperator(BaseConditionOperator):
+    """An operator that checks if a value does not match against a regex.
+
+    It's equivalent to::
+
+        if not condition_value.match(lookup_value):
+            ...
+    """
+
+    operator_id = 'does-not-match-regex'
+    name = _('Does not match regex')
+    value_field = ConditionValueRegexField()
+
+    def matches(self, lookup_value, condition_value, **kwargs):
+        """Return whether the lookup value doesn't match the condition's regex.
+
+        Args:
+            lookup_value (unicode):
+                The caller's value to check.
+
+            condition_value (re.RegexObject):
+                The regex value that the lookup value must not match.
+
+            **kwargs (dict):
+                Unused extra keyword arguments.
+
+        Returns:
+            bool:
+            ``True`` if the lookup value doesn't match the regex in the
+            condition.
+        """
+        return condition_value.match(lookup_value) is None
 
 
 class ConditionOperators(OrderedRegistry):

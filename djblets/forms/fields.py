@@ -37,6 +37,18 @@ class ConditionsField(forms.Field):
     defines all the possible condition choices, each containing possible
     operators for that choice (such as "is," "is not," "starts with," etc.) and
     possible fields for inputting values.
+
+    Attributes:
+        choices (djblets.conditions.choices.ConditionChoices):
+            The condition choies for the field.
+
+        choice_kwargs (dict):
+            Optional keyword arguments to pass to each
+            :py:class:`~djblets.conditions.choices.BaseConditionChoice`
+            constructor. This is useful for more advanced conditions that
+            need additional data from the form.
+
+            This can be updated dynamically by the form during initialization.
     """
 
     widget = ConditionsWidget
@@ -48,7 +60,7 @@ class ConditionsField(forms.Field):
         'value_required': _('A value is required for this condition.'),
     }
 
-    def __init__(self, choices, *args, **kwargs):
+    def __init__(self, choices, choice_kwargs=None, *args, **kwargs):
         """Initialize the field.
 
         Args:
@@ -58,6 +70,12 @@ class ConditionsField(forms.Field):
                 This should either be a class, or a function that returns
                 an instance. Note that the class will be constructed or the
                 function called when the field is first instantiated.
+
+            choice_kwargs (dict, optional):
+                Optional keyword arguments to pass to each
+                :py:class:`~djblets.conditions.choices.BaseConditionChoice`
+                constructor. This is useful for more advanced conditions that
+                need additional data from the form.
 
             *args (tuple):
                 Extra positional arguments for the field.
@@ -81,6 +99,7 @@ class ConditionsField(forms.Field):
         widget_cls = kwargs.get('widget', self.widget)
 
         self.choices = choices
+        self.choice_kwargs = choice_kwargs or {}
 
         self.mode_field = forms.ChoiceField(
             required=True,
@@ -105,7 +124,8 @@ class ConditionsField(forms.Field):
             widget=widget_cls(choices=choices,
                               mode_widget=self.mode_field.widget,
                               choice_widget=self.choice_field.widget,
-                              operator_widget=self.operator_field.widget),
+                              operator_widget=self.operator_field.widget,
+                              choice_kwargs=self.choice_kwargs),
             *args, **kwargs)
 
     def prepare_value(self, data):
@@ -160,7 +180,10 @@ class ConditionsField(forms.Field):
             return None
 
         try:
-            condition_set = ConditionSet.deserialize(self.choices, value)
+            condition_set = ConditionSet.deserialize(
+                self.choices,
+                value,
+                choice_kwargs=self.choice_kwargs)
         except InvalidConditionModeError as e:
             raise forms.ValidationError(six.text_type(e),
                                         code='invalid_mode')

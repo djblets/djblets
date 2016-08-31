@@ -36,7 +36,6 @@ import weakref
 import django
 from django import forms
 from django.conf import settings
-from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.db.models import F, Q
 from django.db.models.signals import (m2m_changed, post_delete, post_init,
@@ -52,6 +51,7 @@ except ImportError:
 
 from djblets.db.validators import validate_json
 from djblets.util.dates import get_tz_aware_utcnow
+from djblets.util.serializers import DjbletsJSONEncoder
 
 
 class Base64DecodedValue(str):
@@ -170,7 +170,7 @@ class JSONFormField(forms.CharField):
     """
     def __init__(self, encoder=None, *args, **kwargs):
         super(JSONFormField, self).__init__(*args, **kwargs)
-        self.encoder = encoder or DjangoJSONEncoder()
+        self.encoder = encoder or DjbletsJSONEncoder(strip_datetime_ms=False)
 
     def prepare_value(self, value):
         if isinstance(value, six.string_types):
@@ -189,7 +189,8 @@ class JSONField(models.TextField):
     default_validators = [validate_json]
 
     def __init__(self, verbose_name=None, name=None,
-                 encoder=DjangoJSONEncoder(), **kwargs):
+                 encoder=DjbletsJSONEncoder(strip_datetime_ms=False),
+                 **kwargs):
         blank = kwargs.pop('blank', True)
         models.TextField.__init__(self, verbose_name, name, blank=blank,
                                   **kwargs)
