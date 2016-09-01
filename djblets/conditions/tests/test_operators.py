@@ -365,7 +365,7 @@ class StandardOperatorTests(TestCase):
             'abccd',
             re.compile('abc+de?')))
 
-    def _check_match(self, op_cls, lookup_value, condition_value=None):
+    def _check_match(self, op_cls, match_value, condition_value=None):
         op = op_cls(None)
-        return op.matches(lookup_value=lookup_value,
+        return op.matches(match_value=match_value,
                           condition_value=condition_value)

@@ -202,7 +202,7 @@ class BaseConditionChoice(object):
             ``False`` if it does not.
         """
         return operator.matches(
-            lookup_value=self.get_match_value(
+            match_value=self.get_match_value(
                 match_value,
                 value_state_cache=value_state_cache),
             condition_value=condition_value)
@@ -276,7 +276,7 @@ class ConditionChoiceMatchListItemsMixin(object):
             check_results = any
 
         return check_results(
-            operator.matches(lookup_value=match_item_value,
+            operator.matches(match_value=match_item_value,
                              condition_value=condition_value)
             for match_item_value in match_value
         )
