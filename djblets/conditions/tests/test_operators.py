@@ -7,7 +7,9 @@ from djblets.conditions.errors import ConditionOperatorNotFoundError
 from djblets.conditions.operators import (AnyOperator,
                                           BaseConditionOperator,
                                           ConditionOperators,
+                                          ContainsAnyOperator,
                                           ContainsOperator,
+                                          DoesNotContainAnyOperator,
                                           DoesNotContainOperator,
                                           DoesNotMatchRegexOperator,
                                           EndsWithOperator,
@@ -44,6 +46,28 @@ class BaseConditionOperatorTests(TestCase):
         choice = MyChoice()
         op = choice.get_operator('my-op')
         self.assertEqual(op.value_field, choice.default_value_field)
+        self.assertFalse(op.has_custom_value_field)
+
+    def test_value_field_with_default_as_function(self):
+        """Testing BaseConditionOperator.value_field with default choice field
+        as a function
+        """
+        class MyOperator(BaseConditionOperator):
+            operator_id = 'my-op'
+
+        class MyChoice(BaseConditionChoice):
+            operators = ConditionOperators([
+                MyOperator,
+            ])
+
+            def default_value_field(self, **kwargs):
+                return _my_value_field
+
+        _my_value_field = BaseConditionValueField()
+
+        choice = MyChoice()
+        op = choice.get_operator('my-op')
+        self.assertEqual(op.value_field, _my_value_field)
         self.assertFalse(op.has_custom_value_field)
 
     def test_value_field_with_custom(self):
@@ -247,6 +271,36 @@ class StandardOperatorTests(TestCase):
         self.assertFalse(self._check_match(DoesNotContainOperator,
                                            [1, 2, 3], 1))
 
+    def test_contains_any_op_with_match(self):
+        """Testing ContainsAnyOperator with match"""
+        self.assertTrue(self._check_match(ContainsAnyOperator,
+                                          ['abc', 'def', 'xyz'],
+                                          ['def']))
+        self.assertTrue(self._check_match(ContainsAnyOperator,
+                                          ['abc', 'def', 'xyz'],
+                                          ['def', 'XXX']))
+
+    def test_contains_any_op_without_match(self):
+        """Testing ContainsAnyOperator without match"""
+        self.assertFalse(self._check_match(ContainsAnyOperator,
+                                           ['abc', 'def', 'xyz'],
+                                           ['XXX']))
+
+    def test_does_not_contain_any_op_with_match(self):
+        """Testing DoesNotContainAnyOperator with match"""
+        self.assertTrue(self._check_match(DoesNotContainAnyOperator,
+                                          ['abc', 'def', 'xyz'],
+                                          ['XXX']))
+
+    def test_does_not_contain_any_op_without_match(self):
+        """Testing DoesNotContainAnyOperator without match"""
+        self.assertFalse(self._check_match(DoesNotContainAnyOperator,
+                                           ['abc', 'def', 'xyz'],
+                                           ['def']))
+        self.assertFalse(self._check_match(DoesNotContainAnyOperator,
+                                           ['abc', 'def', 'xyz'],
+                                           ['def', 'XXX']))
+
     def test_starts_with_op_with_match(self):
         """Testing StartsWithOperator with match"""
         self.assertTrue(self._check_match(StartsWithOperator,
@@ -311,7 +365,7 @@ class StandardOperatorTests(TestCase):
             'abccd',
             re.compile('abc+de?')))
 
-    def _check_match(self, op_cls, lookup_value, condition_value=None):
+    def _check_match(self, op_cls, match_value, condition_value=None):
         op = op_cls(None)
-        return op.matches(lookup_value=lookup_value,
+        return op.matches(match_value=match_value,
                           condition_value=condition_value)
