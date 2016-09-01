@@ -79,12 +79,18 @@ class BaseConditionOperator(object):
         If it's a function, it must accept a ``**kwargs``, for future
         expansion.
         """
-        return self.choice.default_value_field
+        default_value_field = self.choice.default_value_field
+
+        if callable(default_value_field):
+            return default_value_field()
+        else:
+            return default_value_field
 
     @property
     def has_custom_value_field(self):
         """Whether the operator has a custom value field."""
-        return self.value_field is not self.choice.default_value_field
+        return (self.__class__.value_field is not
+                BaseConditionOperator.value_field)
 
     def matches(self, lookup_value, stored_value, **kwargs):
         """Return whether a value matches the operator and condition's value.

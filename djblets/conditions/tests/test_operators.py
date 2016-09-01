@@ -46,6 +46,28 @@ class BaseConditionOperatorTests(TestCase):
         self.assertEqual(op.value_field, choice.default_value_field)
         self.assertFalse(op.has_custom_value_field)
 
+    def test_value_field_with_default_as_function(self):
+        """Testing BaseConditionOperator.value_field with default choice field
+        as a function
+        """
+        class MyOperator(BaseConditionOperator):
+            operator_id = 'my-op'
+
+        class MyChoice(BaseConditionChoice):
+            operators = ConditionOperators([
+                MyOperator,
+            ])
+
+            def default_value_field(self, **kwargs):
+                return _my_value_field
+
+        _my_value_field = BaseConditionValueField()
+
+        choice = MyChoice()
+        op = choice.get_operator('my-op')
+        self.assertEqual(op.value_field, _my_value_field)
+        self.assertFalse(op.has_custom_value_field)
+
     def test_value_field_with_custom(self):
         """Testing BaseConditionOperator.value_field with custom choice field
         """
