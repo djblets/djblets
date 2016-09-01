@@ -328,15 +328,18 @@ class ConditionSet(object):
         self.mode = mode
         self.conditions = conditions
 
-    def matches(self, value):
+    def matches(self, **values):
         """Check if a value matches the condition set.
 
         Depending on the mode of the condition set, this will either require
         all conditions to match, or only one.
 
         Args:
-            value (object):
-                The value to match against.
+            **values (dict):
+                Values to match against. By default, condition choices
+                will match against a single ``value`` keyword argument, but
+                more specialized uses might take into account one or more
+                other keyword arguments.
 
         Returns:
             bool:
@@ -344,20 +347,16 @@ class ConditionSet(object):
             does not.
         """
         if self.mode == self.MODE_ALL:
-            match_conditions = all
+            match_conditions = self._match_all
         elif self.mode == self.MODE_ANY:
             match_conditions = any
         else:
             # We shouldn't be here, unless someone set the mode to a bad value
             # after creating the condition set.
-            assert False
+            raise ValueError('Invalid condition mode %r' % self.mode)
 
-        value_state_cache = {}
-
-        return match_conditions(
-            condition.matches(value, value_state_cache=value_state_cache)
-            for condition in self.conditions
-        )
+        return match_conditions(self._get_condition_results(self.conditions,
+                                                            values))
 
     def serialize(self):
         """Serialize the condition set to a JSON-serializable dictionary.
@@ -374,3 +373,59 @@ class ConditionSet(object):
                 for condition in self.conditions
             ],
         }
+
+    def _get_condition_results(self, conditions, values):
+        """Yield the results from each condition match.
+
+        This will iterate through all the conditions, running a match against
+        the provided values, yielding each result.
+
+        If a condition expects a particular value that's not provided in
+        ``values``, it will evaluate as a false match.
+
+        Args:
+            conditions (list of djblets.conditions.condition.Condition):
+                The conditions to iterate through.
+
+            values (dict):
+                The dictionary of values to match against.
+
+        Yields:
+            bool:
+            The result of each condition match.
+        """
+        value_state_cache = {}
+
+        for condition in conditions:
+            value_kwarg = condition.choice.value_kwarg
+
+            if value_kwarg in values:
+                yield condition.matches(values[value_kwarg],
+                                        value_state_cache=value_state_cache)
+            else:
+                yield False
+
+    def _match_all(self, results):
+        """Return whether all results are truthy and the list is non-empty.
+
+        This works similarly to :py:func:`all`, but will return ``False`` if
+        the provided list is empty.
+
+        Args:
+            results (generator):
+                The condition results to iterate through.
+
+        Returns:
+            bool:
+            ``True`` if there are condition results present and they all
+            evaluate to ``True``. ``False`` otherwise.
+        """
+        found = False
+
+        for result in results:
+            if not result:
+                return False
+
+            found = True
+
+        return found

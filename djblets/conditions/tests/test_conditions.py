@@ -384,7 +384,7 @@ class ConditionSetTests(TestCase):
             Condition(choice, choice.get_operator('equals-test-op'), 'abc123'),
         ])
 
-        self.assertTrue(condition_set.matches('abc123'))
+        self.assertTrue(condition_set.matches(value='abc123'))
 
     def test_matches_with_all_mode_and_no_match(self):
         """Testing ConditionSet.matches with "all" mode and no match"""
@@ -395,7 +395,7 @@ class ConditionSetTests(TestCase):
             Condition(choice, choice.get_operator('equals-test-op'), 'def123'),
         ])
 
-        self.assertFalse(condition_set.matches('abc123'))
+        self.assertFalse(condition_set.matches(value='abc123'))
 
     def test_matches_with_any_mode_and_match(self):
         """Testing ConditionSet.matches with "any" mode and match"""
@@ -406,7 +406,7 @@ class ConditionSetTests(TestCase):
             Condition(choice, choice.get_operator('equals-test-op'), 'def123'),
         ])
 
-        self.assertTrue(condition_set.matches('abc123'))
+        self.assertTrue(condition_set.matches(value='abc123'))
 
     def test_matches_with_any_mode_and_no_match(self):
         """Testing ConditionSet.matches with "any" mode and no match"""
@@ -417,7 +417,78 @@ class ConditionSetTests(TestCase):
             Condition(choice, choice.get_operator('equals-test-op'), 'def123'),
         ])
 
-        self.assertFalse(condition_set.matches('foo'))
+        self.assertFalse(condition_set.matches(value='foo'))
+
+    def test_matches_with_custom_value_kwargs(self):
+        """Testing ConditionSet.matches with custom value keyword arguments"""
+        class CustomEqualsChoice(EqualsTestChoice):
+            value_kwarg = 'my_value'
+
+        choice = CustomEqualsChoice()
+
+        condition_set = ConditionSet(ConditionSet.MODE_ALL, [
+            Condition(choice, choice.get_operator('equals-test-op'),
+                      'abc123'),
+        ])
+
+        self.assertTrue(condition_set.matches(my_value='abc123'))
+        self.assertFalse(condition_set.matches(value='abc123'))
+
+    def test_matches_with_all_mode_and_custom_value_kwargs_multiple(self):
+        """Testing ConditionSet.matches with "all" mode and multiple custom
+        value keyword arguments across multiple choices
+        """
+        class CustomEqualsChoice1(EqualsTestChoice):
+            value_kwarg = 'my_value1'
+
+        class CustomEqualsChoice2(EqualsTestChoice):
+            value_kwarg = 'my_value2'
+
+        choice1 = CustomEqualsChoice1()
+        choice2 = CustomEqualsChoice2()
+
+        condition_set = ConditionSet(ConditionSet.MODE_ALL, [
+            Condition(choice1, choice1.get_operator('equals-test-op'),
+                      'abc123'),
+            Condition(choice2, choice2.get_operator('equals-test-op'),
+                      'def456'),
+        ])
+
+        self.assertTrue(condition_set.matches(my_value1='abc123',
+                                              my_value2='def456'))
+        self.assertFalse(condition_set.matches(my_value1='abc123'))
+        self.assertFalse(condition_set.matches(my_value2='def456'))
+        self.assertFalse(condition_set.matches(my_value1='abc123',
+                                               my_value2='xxx'))
+
+    def test_matches_with_any_mode_and_custom_value_kwargs_multiple(self):
+        """Testing ConditionSet.matches with "any" mode and multiple custom
+        value keyword arguments across multiple choices
+        """
+        class CustomEqualsChoice1(EqualsTestChoice):
+            value_kwarg = 'my_value1'
+
+        class CustomEqualsChoice2(EqualsTestChoice):
+            value_kwarg = 'my_value2'
+
+        choice1 = CustomEqualsChoice1()
+        choice2 = CustomEqualsChoice2()
+
+        condition_set = ConditionSet(ConditionSet.MODE_ANY, [
+            Condition(choice1, choice1.get_operator('equals-test-op'),
+                      'abc123'),
+            Condition(choice2, choice2.get_operator('equals-test-op'),
+                      'def456'),
+        ])
+
+        self.assertTrue(condition_set.matches(my_value1='abc123',
+                                              my_value2='def456'))
+        self.assertTrue(condition_set.matches(my_value1='abc123'))
+        self.assertTrue(condition_set.matches(my_value2='def456'))
+        self.assertTrue(condition_set.matches(my_value1='abc123',
+                                              my_value2='xxx'))
+        self.assertFalse(condition_set.matches(my_value1='xxx',
+                                               my_value2='xxx'))
 
     def test_serialize(self):
         """Testing ConditionSet.serialize"""

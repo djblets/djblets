@@ -74,6 +74,19 @@ class BaseConditionChoice(object):
     #: If it's a function, it must accept a ``**kwargs``, for future expansion.
     default_value_field = None
 
+    #: The keyword argument required for condition matching.
+    #:
+    #: This is the name of the keyword argument that must be provided in order
+    #: for this choice to be considered for matching. By default, this expects
+    #: a ``value=`` keyword argument to be passed to
+    #: :py:meth:`Condition.match
+    #: <djblets.conditions.conditions.Condition.match>`, but choices can
+    #: specify another name instead.
+    #:
+    #: This allows multiple choices with different expected values to be used
+    #: in the same :py:class:`~djblets.conditions.conditions.ConditionSet`.
+    value_kwarg = 'value'
+
     def __init__(self, **kwargs):
         """Initialize the condition choice.
 
