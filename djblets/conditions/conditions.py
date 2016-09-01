@@ -228,6 +228,9 @@ class Condition(object):
 
         return data
 
+    # Make this serializable in a DjbletsJSONEncoder.
+    to_json = serialize
+
 
 class ConditionSet(object):
     """A set of conditions used to match state and define rules.
@@ -373,6 +376,9 @@ class ConditionSet(object):
                 for condition in self.conditions
             ],
         }
+
+    # Make this serializable in a DjbletsJSONEncoder.
+    to_json = serialize
 
     def _get_condition_results(self, conditions, values):
         """Yield the results from each condition match.
