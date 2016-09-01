@@ -166,6 +166,121 @@ class BaseConditionChoice(object):
         """
         return value
 
+    def matches(self, operator, match_value, condition_value,
+                value_state_cache, **kwargs):
+        """Return whether a value matches this choice and operator.
+
+        This is called internally be
+        :py:meth:`~djblets.conditions.conditions.Condition`. It should not
+        be called manually.
+
+        Args:
+            operator (djblets.conditions.operators.BaseConditionOperator):
+                The operator that will perform the match, given this choice's
+                match value and the provided condition value.
+
+            match_value (object):
+                The value to match against the operator and condition value.
+                This will be normalized before being passed to the operator
+                for matching.
+
+            condition_value (object):
+                The optional value stored in the condition, which the
+                operator will use for the match.
+
+            value_state_cache (dict):
+                An optional dictionary used to cache common computable data
+                that might be shared across instances of one or more
+                conditions.
+
+            **kwargs (dict):
+                Unused keyword arguments.
+
+        Returns:
+            bool:
+            ``True`` if the value fulfills this choice and operator.
+            ``False`` if it does not.
+        """
+        return operator.matches(
+            lookup_value=self.get_match_value(
+                match_value,
+                value_state_cache=value_state_cache),
+            condition_value=condition_value)
+
+
+class ConditionChoiceMatchListItemsMixin(object):
+    """Mixin to match against each item in a list instead of the list itself.
+
+    This allows a condition choice to perform an operator match against each
+    item a value, instead of performing the match against the value itself.
+    It's useful for choices that want to offer, for instance, a string-based
+    operator against a list of filenames.
+
+    By default, the match will be considered successful if any item in the
+    list matches, and will be considered unsuccessful if no items match.
+    Consumers of the mixin can set :py:attr:`require_match_all_items` to
+    ``True`` to require all items in the list to match.
+    """
+
+    #: Whether all items must match for the choice's match to be successful.
+    #:
+    #: By default, the match is successful if any item in the list matches.
+    #: If ``True``, all items must match.
+    require_match_all_items = False
+
+    def matches(self, operator, match_value, condition_value,
+                value_state_cache, **kwargs):
+        """Return whether a value matches this choice and operator.
+
+        This is called internally be
+        :py:meth:`~djblets.conditions.conditions.Condition`. It should not
+        be called manually.
+
+        Args:
+            operator (djblets.conditions.operators.BaseConditionOperator):
+                The operator that will perform the match, given this choice's
+                match value and the provided condition value.
+
+            match_value (object):
+                The value to match against the operator and condition value.
+                This will be normalized before being passed to the operator
+                for matching.
+
+            condition_value (object):
+                The optional value stored in the condition, which the
+                operator will use for the match.
+
+            value_state_cache (dict):
+                An optional dictionary used to cache common computable data
+                that might be shared across instances of one or more
+                conditions.
+
+            **kwargs (dict):
+                Unused keyword arguments.
+
+        Returns:
+            bool:
+            ``True`` if the value fulfills this choice and operator.
+            ``False`` if it does not.
+        """
+        match_value = self.get_match_value(
+            match_value,
+            value_state_cache=value_state_cache)
+
+        if not match_value:
+            return False
+
+        if self.require_match_all_items:
+            check_results = all
+        else:
+            check_results = any
+
+        return check_results(
+            operator.matches(lookup_value=match_item_value,
+                             condition_value=condition_value)
+            for match_item_value in match_value
+        )
+
 
 class BaseConditionBooleanChoice(BaseConditionChoice):
     """Base class for a standard boolean-based condition choice.

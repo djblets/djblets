@@ -199,11 +199,10 @@ class Condition(object):
         if value_state_cache is None:
             value_state_cache = {}
 
-        return self.operator.matches(
-            lookup_value=self.choice.get_match_value(
-                value,
-                value_state_cache=value_state_cache),
-            condition_value=self.value)
+        return self.choice.matches(operator=self.operator,
+                                   match_value=value,
+                                   condition_value=self.value,
+                                   value_state_cache=value_state_cache)
 
     def serialize(self):
         """Serialize the condition to a JSON-serializable dictionary.

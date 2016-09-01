@@ -7,7 +7,9 @@ from djblets.conditions.errors import ConditionOperatorNotFoundError
 from djblets.conditions.operators import (AnyOperator,
                                           BaseConditionOperator,
                                           ConditionOperators,
+                                          ContainsAnyOperator,
                                           ContainsOperator,
+                                          DoesNotContainAnyOperator,
                                           DoesNotContainOperator,
                                           DoesNotMatchRegexOperator,
                                           EndsWithOperator,
@@ -268,6 +270,36 @@ class StandardOperatorTests(TestCase):
                                            'hello world', 'hello'))
         self.assertFalse(self._check_match(DoesNotContainOperator,
                                            [1, 2, 3], 1))
+
+    def test_contains_any_op_with_match(self):
+        """Testing ContainsAnyOperator with match"""
+        self.assertTrue(self._check_match(ContainsAnyOperator,
+                                          ['abc', 'def', 'xyz'],
+                                          ['def']))
+        self.assertTrue(self._check_match(ContainsAnyOperator,
+                                          ['abc', 'def', 'xyz'],
+                                          ['def', 'XXX']))
+
+    def test_contains_any_op_without_match(self):
+        """Testing ContainsAnyOperator without match"""
+        self.assertFalse(self._check_match(ContainsAnyOperator,
+                                           ['abc', 'def', 'xyz'],
+                                           ['XXX']))
+
+    def test_does_not_contain_any_op_with_match(self):
+        """Testing DoesNotContainAnyOperator with match"""
+        self.assertTrue(self._check_match(DoesNotContainAnyOperator,
+                                          ['abc', 'def', 'xyz'],
+                                          ['XXX']))
+
+    def test_does_not_contain_any_op_without_match(self):
+        """Testing DoesNotContainAnyOperator without match"""
+        self.assertFalse(self._check_match(DoesNotContainAnyOperator,
+                                           ['abc', 'def', 'xyz'],
+                                           ['def']))
+        self.assertFalse(self._check_match(DoesNotContainAnyOperator,
+                                           ['abc', 'def', 'xyz'],
+                                           ['def', 'XXX']))
 
     def test_starts_with_op_with_match(self):
         """Testing StartsWithOperator with match"""

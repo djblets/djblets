@@ -452,6 +452,94 @@ class DoesNotContainOperator(BaseConditionOperator):
         return condition_value not in lookup_value
 
 
+class ContainsAnyOperator(BaseConditionOperator):
+    """Checks if a lookup value contains any specified condition values.
+
+    This operator checks if the provided lookup value contains any items in
+    a list of condition value. It's useful for checking if a list contains
+    anything from another list.
+
+    It's equivalent to::
+
+        if set(condition_value) & set(lookup_value):
+            ...
+
+    This is the opposite of :py:class:`DoesNotContainAnyOperator`.
+    """
+
+    operator_id = 'contains-any'
+    name = _('Any of')
+
+    def matches(self, lookup_value, condition_value, **kwargs):
+        """Return whether the lookup value contains any condition values.
+
+        Args:
+            lookup_value (object):
+                The caller's value to check for condition values within.
+
+            condition_value (object):
+                The values to check within the lookup value.
+
+            **kwargs (dict):
+                Unused extra keyword arguments.
+
+        Returns:
+            bool:
+            ``True`` if the lookup value contains any of the given condition
+            values.
+
+        Raises:
+            TypeError:
+                Either the lookup or condition value was not compatible with
+                the expression.
+        """
+        return bool(set(condition_value) & set(lookup_value))
+
+
+class DoesNotContainAnyOperator(BaseConditionOperator):
+    """Checks if a lookup value doesn't contain any of the specified values.
+
+    This operator checks if the provided lookup value does not contain any
+    of the provided condition values. It's useful for checking if a list
+    does not contain any items from another list.
+
+    It's equivalent to::
+
+        if not (set(condition_value) & set(lookup_value)):
+            ...
+
+    This is the opposite of :py:class:`ContainsAnyOperator`.
+    """
+
+    operator_id = 'does-not-contain-any'
+    name = _('Not any of')
+
+    def matches(self, lookup_value, condition_value, **kwargs):
+        """Return if the lookup value doesn't contain any condition values.
+
+        Args:
+            lookup_value (object):
+                The caller's value to check for a condition value within.
+
+            condition_value (object):
+                The values to check within the lookup value.
+
+            **kwargs (dict):
+                Unused extra keyword arguments.
+
+        Returns:
+            bool:
+            ``True`` if the lookup value does not contain any of the condition
+            value.
+
+        Raises:
+            TypeError:
+                Either the lookup or condition value was not compatible with
+                the expression.
+        """
+        return not bool(set(condition_value) & set(lookup_value))
+
+
 class StartsWithOperator(BaseConditionOperator):
     """An operator that checks if a string starts with another string.
 
