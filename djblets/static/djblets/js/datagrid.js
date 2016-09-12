@@ -24,6 +24,7 @@ $.fn.datagrid = function() {
         $bodyTableHead = $bodyTable.children('thead'),
         $paginator = $gridContainer.children('.paginator'),
         $window = $(window),
+        editButtonSel = '#' + gridId + '-edit',
         $editButton,
 
         /* State */
@@ -157,6 +158,8 @@ $.fn.datagrid = function() {
                 .prop('checked', $checkbox.prop('checked'))
                 .change();
         });
+
+        $editButton = $(editButtonSel);
     }
 
     /*
@@ -245,16 +248,10 @@ $.fn.datagrid = function() {
                     disableMobileMode();
                 }
 
-                $editButton = $('#' + gridId + '-edit')
-                    .off('click')
-                    .click(function(evt) {
-                        evt.stopPropagation();
-                        toggleColumnsMenu();
-                    });
-
                 inMobileMode = newMobileMode;
             }
 
+            $editButton = $(editButtonSel);
             syncColumnSizes();
 
             if (menuOpen) {
@@ -736,7 +733,12 @@ $.fn.datagrid = function() {
      * Datagrid initialization
      ********************************************************************/
 
-    $grid.data('datagrid', this);
+    $grid
+        .data('datagrid', this)
+        .on('click', editButtonSel, function(e) {
+            e.stopPropagation();
+            toggleColumnsMenu();
+        })
 
     setupHeader();
 
