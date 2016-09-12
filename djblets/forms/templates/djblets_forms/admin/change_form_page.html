@@ -1,5 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load admin_list djblets_forms djblets_utils i18n pipeline staticfiles %}
+{% load admin_list i18n pipeline staticfiles %}
 
 {% block title %}
 {%  block page_title %}{{form.Meta.title}}{% endblock %} {{block.super}}
@@ -54,27 +54,7 @@
  <form action="." method="post"{% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
   {% csrf_token %}
 {%  block form_content %}
-{%   for fieldset_title, fieldset in form|get_fieldsets %}
-  <fieldset class="module aligned{% if fieldset.classes %}{% for class in fieldset.classes %} {{class}}{% endfor %}{% endif %}"{% if fieldset.id %} id="fieldset_{{fieldset.id}}"{% endif %}>
-{%    if fieldset_title %}<h2>{{fieldset_title}}</h2>{% endif %}
-{%    if fieldset.description %}
-   <div class="description">
-    {{fieldset.description|paragraphs}}
-   </div>
-{%    endif %}
-{%    for fieldname in fieldset.fields %}
-{%     with form|getitem:fieldname as field %}
-{%      include "djblets_forms/admin/form_field.html" %}
-{%     endwith %}
-{%    endfor %}
-  </fieldset>
-{%   empty %}
-  <fieldset class="module aligned">
-{%    for field in form %}
-{%     include "djblets_forms/admin/form_field.html" %}
-{%    endfor %}
-  </fieldset>
-{%   endfor %}
+{%   include "djblets_forms/admin/form_fieldsets.html" %}
 {%  endblock %}
 
 {%  block submit_row %}
