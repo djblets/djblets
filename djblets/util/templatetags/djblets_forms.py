@@ -105,3 +105,44 @@ def form_field_has_label_first(field):
     widget. This is the case in all fields except checkboxes.
     """
     return not is_field_checkbox(field)
+
+
+@register.filter
+def get_fieldsets(form):
+    """Normalize and iterate over fieldsets in a form.
+
+    This will loop through the fieldsets on a given form, converting either
+    standard Django style or legay Djblets style fieldset data into a standard
+    form and returning it to the template.
+
+    Args:
+        form (django.forms.Form):
+            The form containing the fieldsets.
+
+    Yields:
+        tuple:
+        A tuple of (fieldset_title, fieldset_info).
+
+    Example:
+        .. code-block:: html+django
+
+           {% for fieldset_title, fieldset in form|get_fieldsets %}
+           ...
+           {% endfor %}
+    """
+    try:
+        fieldsets = form.Meta.fieldsets
+    except AttributeError:
+        fieldsets = []
+
+    for fieldset in fieldsets:
+        if isinstance(fieldset, tuple):
+            # This is a standard Django-style fieldset entry. It's a tuple
+            # of (title, info).
+            yield fieldset
+        elif isinstance(fieldset, dict):
+            # This is a legacy Djblets-style fieldset entry. It's a dictionary
+            # that may contain the title as a "title" key.
+            yield fieldset.get('title'), fieldset
+        else:
+            raise ValueError('Invalid fieldset value: %r' % fieldset)

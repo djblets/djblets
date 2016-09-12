@@ -1,0 +1,23 @@
+{% load djblets_forms djblets_utils %}
+
+{% for fieldset_title, fieldset in form|get_fieldsets %}
+  <fieldset class="module aligned{% if fieldset.classes %}{% for class in fieldset.classes %} {{class}}{% endfor %}{% endif %}"{% if fieldset.id %} id="fieldset_{{fieldset.id}}"{% endif %}>
+{%  if fieldset_title %}<h2>{{fieldset_title}}</h2>{% endif %}
+{%  if fieldset.description %}
+   <div class="description">
+    {{fieldset.description|paragraphs}}
+   </div>
+{%  endif %}
+{%  for fieldname in fieldset.fields %}
+{%   with form|getitem:fieldname as field %}
+{%    include "siteconfig/settings_field.html" %}
+{%   endwith %}
+{%  endfor %}
+  </fieldset>
+{% empty %}
+  <fieldset class="module aligned">
+{%   for field in form %}
+{%    include "siteconfig/settings_field.html" %}
+{%   endfor %}
+  </fieldset>
+{% endfor %}

@@ -1,5 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load admin_list compressed djblets_utils i18n staticfiles %}
+{% load admin_list compressed i18n staticfiles %}
 
 {% block title %}
 {% block page_title %}{{form.Meta.title}}{% endblock %} {{block.super}}
@@ -39,29 +39,7 @@
   {% csrf_token %}
   {{form.non_field_errors}}
 {% block form_content %}
-{% if form.Meta.fieldsets %}
-{%  for fieldset in form.Meta.fieldsets %}
-  <fieldset class="module aligned{% if fieldset.classes %}{% for class in fieldset.classes %} {{class}}{% endfor %}{% endif %}"{% if fieldset.id %} id="fieldset_{{fieldset.id}}"{% endif %}>
-{%   if fieldset.title %}<h2>{{fieldset.title}}</h2>{% endif %}
-{%   if fieldset.description %}
-   <div class="description">
-    {{fieldset.description|paragraphs}}
-   </div>
-{%   endif %}
-{%   for fieldname in fieldset.fields %}
-{%    with form|getitem:fieldname as field %}
-{%     include "siteconfig/settings_field.html" %}
-{%    endwith %}
-{%   endfor %}
-  </fieldset>
-{%  endfor %}
-{% else %}
-  <fieldset class="module aligned">
-{%   for field in form %}
-{%    include "siteconfig/settings_field.html" %}
-{%   endfor %}
-  </fieldset>
-{% endif %}
+{%  include "siteconfig/settings_fieldsets.html" %}
 {% endblock %}
 
 {% block submit_row %}
