@@ -1,7 +1,7 @@
 --allow-all-external
-https://github.com/beanbaginc/django-evolution/archive/master.zip
 beanbag-docutils
 coverage
+django_evolution>=0.7.6
 kgb
 nose
 Markdown>=2.4.0,<2.4.999
