@@ -246,16 +246,50 @@ class DmarcTests(SpyAgency, TestCase):
             raise dns_resolver.NXDOMAIN
 
 
-class EmailTests(SpyAgency, TestCase):
-    """Tests for sending e-mails."""
+class EmailMessageTests(SpyAgency, TestCase):
+    """Tests for djblets.mail.message.EmailMessage."""
 
     def setUp(self):
-        super(EmailTests, self).setUp()
+        super(EmailMessageTests, self).setUp()
 
         mail.outbox = []
 
-    def test_headers_from_sender(self):
-        """Testing EmailMessage From/Sender headers"""
+    def test_init_with_html_body(self):
+        """Testing EmailMessage.__init__ with html_body="""
+        # auto_generated is True by default, so test with that case to ensure
+        # it doesn't unintentionally change.
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             html_body='<p>This is a test.</p>',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'])
+
+        self.assertEqual(email.alternatives,
+                         [('<p>This is a test.</p>', 'text/html')])
+
+    def test_message_with_from(self):
+        """Testing EmailMessage.message with from_email="""
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'])
+
+        self.assertNotIn('Sender', email._headers)
+        self.assertNotIn('X-Sender', email._headers)
+        self.assertNotIn('From', email.extra_headers)
+        self.assertNotIn('From', email._headers)
+        self.assertNotIn('Sender', email.extra_headers)
+        self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertIn('Reply-To', email._headers)
+        self.assertEqual(email.from_email, 'doc@example.com')
+        self.assertEqual(email._headers['Reply-To'], 'doc@example.com')
+
+        msg = email.message()
+        self.assertEqual(msg['From'], 'doc@example.com')
+        self.assertEqual(msg['Reply-To'], 'doc@example.com')
+
+    def test_message_with_sender(self):
+        """Testing EmailMessage.message with sender="""
         email = EmailMessage(subject='Test email',
                              text_body='This is a test.',
                              html_body='<p>This is a test.</p>',
@@ -263,13 +297,12 @@ class EmailTests(SpyAgency, TestCase):
                              to=['sleepy@example.com'],
                              sender='noreply@example.com')
 
-        self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
+        self.assertNotIn('From', email.extra_headers)
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
-        self.assertEqual(email.extra_headers['From'], 'doc@example.com')
         self.assertEqual(email._headers['Sender'], 'noreply@example.com')
         self.assertEqual(email._headers['X-Sender'], 'noreply@example.com')
 
@@ -278,8 +311,83 @@ class EmailTests(SpyAgency, TestCase):
         self.assertEqual(msg['Sender'], 'noreply@example.com')
         self.assertEqual(msg['X-Sender'], 'noreply@example.com')
 
-    def test_extra_headers_dict(self):
-        """Testing sending extra headers as a dict with an e-mail message"""
+    def test_message_with_in_reply_to(self):
+        """Testing EmailMessage.message with in_reply_to="""
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'],
+                             in_reply_to='someone@example.com')
+
+        self.assertIn('In-Reply-To', email._headers)
+        self.assertIn('References', email._headers)
+        self.assertEqual(email._headers['In-Reply-To'], 'someone@example.com')
+        self.assertEqual(email._headers['References'], 'someone@example.com')
+
+        msg = email.message()
+        self.assertEqual(msg['In-Reply-To'], 'someone@example.com')
+        self.assertEqual(msg['References'], 'someone@example.com')
+
+    def test_message_with_auto_generated_true(self):
+        """Testing EmailMessage.message with auto_generated=True"""
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'],
+                             auto_generated=True)
+
+        self.assertIn('Auto-Submitted', email._headers)
+        self.assertEqual(email._headers['Auto-Submitted'], 'auto-generated')
+
+        msg = email.message()
+        self.assertEqual(msg['Auto-Submitted'], 'auto-generated')
+
+    def test_message_with_auto_generated_false(self):
+        """Testing EmailMessage.message with auto_generated=False"""
+        # auto_generated is True by default, so test with that case to ensure
+        # it doesn't unintentionally change.
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'])
+
+        self.assertNotIn('Auto-Submitted', email._headers)
+
+        msg = email.message()
+        self.assertNotIn('Auto-Submitted', msg)
+
+    def test_message_with_prevent_auto_responses_true(self):
+        """Testing EmailMessage.message with prevent_auto_responses=True"""
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'],
+                             prevent_auto_responses=True)
+
+        self.assertIn('X-Auto-Response-Suppress', email._headers)
+        self.assertEqual(email._headers['X-Auto-Response-Suppress'],
+                         'DR, RN, OOF, AutoReply')
+
+        msg = email.message()
+        self.assertEqual(msg['X-Auto-Response-Suppress'],
+                         'DR, RN, OOF, AutoReply')
+
+    def test_message_with_prevent_auto_responses_false(self):
+        """Testing EmailMessage.message with prevent_auto_responses=False"""
+        # prevent_auto_responses is False by default, so test with that case
+        # to ensure it doesn't unintentionally change.
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'])
+
+        self.assertNotIn('X-Auto-Response-Suppress', email._headers)
+
+        msg = email.message()
+        self.assertNotIn('X-Auto-Response-Suppress', msg)
+
+    def test_message_with_extra_headers_dict(self):
+        """Testing EmailMessage.message with extra headers as a dict"""
         email = EmailMessage(subject='Test email',
                              text_body='This is a test.',
                              html_body='<p>This is a test.</p>',
@@ -289,17 +397,13 @@ class EmailTests(SpyAgency, TestCase):
                                  'X-Foo': 'Bar',
                              })
 
-        email.send()
+        message = email.message()
 
-        self.assertEqual(len(mail.outbox), 1)
-        message = mail.outbox[0]
+        self.assertIn('X-Foo', message)
+        self.assertEqual(message['X-Foo'], 'Bar')
 
-        self.assertIn('X-Foo', message._headers)
-        self.assertEqual(message._headers['X-Foo'], 'Bar')
-
-    def test_extra_headers_multivalue_dict(self):
-        """Testing sending extra headers as a MultiValueDict with an e-mail
-        message
+    def test_message_with_extra_headers_multivalue_dict(self):
+        """Testing EmailMessage.message with extra headers as a MultiValueDict
         """
         header_values = ['Bar', 'Baz']
 
@@ -312,17 +416,14 @@ class EmailTests(SpyAgency, TestCase):
                                  'X-Foo': header_values,
                              }))
 
-        email.send()
+        message = email.message()
 
-        self.assertEqual(len(mail.outbox), 1)
-        message = mail.outbox[0]
-
-        self.assertIn('X-Foo', message._headers)
-        self.assertEqual(set(message._headers.getlist('X-Foo')),
+        self.assertIn('X-Foo', message)
+        self.assertEqual(set(message.get_all('X-Foo')),
                          set(header_values))
 
-    def test_send_email_unicode_subject(self):
-        """Testing sending an EmailMessage with a unicode subject"""
+    def test_send_with_unicode_subject(self):
+        """Testing EmailMessage.send with a Unicode subject"""
         email = EmailMessage(subject='\ud83d\ude04',
                              text_body='This is a test',
                              html_body='<p>This is a test</p>',
@@ -333,8 +434,8 @@ class EmailTests(SpyAgency, TestCase):
         with self.settings(EMAIL_BACKEND=_CONSOLE_EMAIL_BACKEND):
             email.send()
 
-    def test_send_email_unicode_body(self):
-        """Testing sending an EmailMessage with a unicode body"""
+    def test_send_with_unicode_body(self):
+        """Testing EmailMessage.send with a Unicode body"""
         email = EmailMessage(subject='Test email',
                              text_body='\ud83d\ude04',
                              html_body='<p>\ud83d\ude04</p>',
