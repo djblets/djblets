@@ -1,6 +1,7 @@
 recursive-include contrib *
 recursive-include djblets *.txt *.html *.css *.less *.js *.htc *.png *.jpg *.gif
 recursive-include djblets/locale *
+include djblets/mail/public_suffix_list.dat
 include AUTHORS
 include NEWS
 include ez_setup.py
