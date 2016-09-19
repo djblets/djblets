@@ -196,12 +196,22 @@ class EmailMessage(EmailMultiAlternatives):
         if prevent_auto_responses:
             headers['X-Auto-Response-Suppress'] = 'DR, RN, OOF, AutoReply'
 
-        super(EmailMessage, self).__init__(subject=subject,
-                                           body=text_body,
-                                           from_email=from_email,
-                                           to=to,
-                                           cc=cc,
-                                           bcc=bcc)
+        # We're always going to explicitly send with the DEFAULT_FROM_EMAIL,
+        # but replace the From header with the e-mail address we decided on.
+        # While this class and its parent classes don't really care about the
+        # difference between these, Django's SMTP e-mail sending machinery
+        # treats them differently, sending the value of EmailMessage.from_email
+        # when communicating with the SMTP server.
+        super(EmailMessage, self).__init__(
+            subject=subject,
+            body=text_body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=to,
+            cc=cc,
+            bcc=bcc,
+            headers={
+                'From': from_email,
+            })
 
         self.message_id = None
 
