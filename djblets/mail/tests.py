@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+from django.contrib.auth.models import User
 from django.core import mail
 from django.core.cache import cache
 from django.utils.datastructures import MultiValueDict
@@ -9,6 +10,8 @@ from kgb import SpyAgency
 
 from djblets.mail.dmarc import DmarcPolicy, get_dmarc_record
 from djblets.mail.message import EmailMessage
+from djblets.mail.utils import (build_email_address,
+                                build_email_address_for_user)
 from djblets.testing.testcases import TestCase
 
 
@@ -447,3 +450,28 @@ class EmailMessageTests(SpyAgency, TestCase):
         # UnicodeDecodeError.
         with self.settings(EMAIL_BACKEND=_CONSOLE_EMAIL_BACKEND):
             email.send()
+
+
+class UtilsTests(TestCase):
+    """Unit tests for djblets.mail.utils."""
+
+    def test_build_email_address_with_full_name(self):
+        """Testing build_email_address with full name"""
+        self.assertEqual(build_email_address(email='test@example.com',
+                                             full_name='Test User'),
+                         'Test User <test@example.com>')
+
+    def test_build_email_address_without_full_name(self):
+        """Testing build_email_address without full name"""
+        self.assertEqual(build_email_address(email='test@example.com'),
+                         'test@example.com')
+
+    def test_build_email_address_for_user(self):
+        """Testing build_email_address_for_user"""
+        user = User.objects.create(username='test',
+                                   first_name='Test',
+                                   last_name='User',
+                                   email='test@example.com')
+
+        self.assertEqual(build_email_address_for_user(user),
+                         'Test User <test@example.com>')
