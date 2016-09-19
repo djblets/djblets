@@ -1,33 +1,45 @@
 from __future__ import unicode_literals
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.cache import cache
+from django.test.utils import override_settings
 from django.utils.datastructures import MultiValueDict
 from dns import resolver as dns_resolver
 from dns.rdtypes.ANY.TXT import TXT
 from kgb import SpyAgency
 
-from djblets.mail.dmarc import DmarcPolicy, get_dmarc_record
+from djblets.mail.dmarc import (DmarcPolicy, get_dmarc_record,
+                                is_email_allowed_by_dmarc)
 from djblets.mail.message import EmailMessage
 from djblets.mail.utils import (build_email_address,
-                                build_email_address_for_user)
+                                build_email_address_for_user,
+                                build_email_address_via_service)
 from djblets.testing.testcases import TestCase
 
 
 _CONSOLE_EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 
-class DmarcTests(SpyAgency, TestCase):
-    """Tests for DMARC support."""
-
+class DmarcDnsTestsMixin(SpyAgency):
     def setUp(self):
-        super(DmarcTests, self).setUp()
+        super(DmarcDnsTestsMixin, self).setUp()
 
         self.dmarc_txt_records = {}
 
         self.spy_on(dns_resolver.query, call_fake=self._dns_query)
         cache.clear()
+
+    def _dns_query(self, qname, rdtype, *args, **kwargs):
+        try:
+            return [TXT(1, 16, [self.dmarc_txt_records[qname]])]
+        except KeyError:
+            raise dns_resolver.NXDOMAIN
+
+
+class DmarcTests(DmarcDnsTestsMixin, TestCase):
+    """Tests for DMARC support."""
 
     def test_get_dmarc_record_with_no_record(self):
         """Testing get_dmarc_record with no DMARC record in DNS"""
@@ -242,14 +254,51 @@ class DmarcTests(SpyAgency, TestCase):
 
         self.assertEqual(len(dns_resolver.query.spy.calls), 1)
 
-    def _dns_query(self, qname, rdtype, *args, **kwargs):
-        try:
-            return [TXT(1, 16, [self.dmarc_txt_records[qname]])]
-        except KeyError:
-            raise dns_resolver.NXDOMAIN
+    def test_is_email_allowed_by_dmarc_with_domain_policy_none(self):
+        """Testing is_email_allowed_by_dmarc with domain policy=none"""
+        self.dmarc_txt_records['_dmarc.example.com'] = 'v=DMARC1; p=none;'
+        self.assertTrue(is_email_allowed_by_dmarc('test@example.com'))
+
+    def test_is_email_allowed_by_dmarc_with_domain_policy_quarantine(self):
+        """Testing is_email_allowed_by_dmarc with domain policy=quarantine"""
+        self.dmarc_txt_records['_dmarc.example.com'] = \
+            'v=DMARC1; p=quarantine;'
+        self.assertFalse(is_email_allowed_by_dmarc('test@example.com'))
+
+    def test_is_email_allowed_by_dmarc_with_domain_policy_reject(self):
+        """Testing is_email_allowed_by_dmarc with domain policy=reject"""
+        self.dmarc_txt_records['_dmarc.example.com'] = 'v=DMARC1; p=reject;'
+        self.assertFalse(is_email_allowed_by_dmarc('test@example.com'))
+
+    def test_is_email_allowed_by_dmarc_with_domain_policy_pct_0(self):
+        """Testing is_email_allowed_by_dmarc with domain 0% match"""
+        self.dmarc_txt_records['_dmarc.example.com'] = \
+            'v=DMARC1; p=reject; pct=0;'
+        self.assertTrue(is_email_allowed_by_dmarc('test@example.com'))
+
+    def test_is_email_allowed_by_dmarc_with_subdomain_policy_none(self):
+        """Testing is_email_allowed_by_dmarc with subdomain and policy=none"""
+        self.dmarc_txt_records['_dmarc.example.com'] = \
+            'v=DMARC1; p=reject; sp=none;'
+        self.assertTrue(is_email_allowed_by_dmarc('test@mail.example.com'))
+
+    def test_is_email_allowed_by_dmarc_with_subdomain_policy_quarantine(self):
+        """Testing is_email_allowed_by_dmarc with subdomain and
+        policy=quarantine
+        """
+        self.dmarc_txt_records['_dmarc.example.com'] = \
+            'v=DMARC1; p=reject; sp=quarantine;'
+        self.assertFalse(is_email_allowed_by_dmarc('test@mail.example.com'))
+
+    def test_is_email_allowed_by_dmarc_with_subdomain_policy_reject(self):
+        """Testing is_email_allowed_by_dmarc with subdomain and policy=reject
+        """
+        self.dmarc_txt_records['_dmarc.example.com'] = \
+            'v=DMARC1; p=reject; sp=reject;'
+        self.assertFalse(is_email_allowed_by_dmarc('test@mail.example.com'))
 
 
-class EmailMessageTests(SpyAgency, TestCase):
+class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
     """Tests for djblets.mail.message.EmailMessage."""
 
     def setUp(self):
@@ -277,15 +326,18 @@ class EmailMessageTests(SpyAgency, TestCase):
                              from_email='doc@example.com',
                              to=['sleepy@example.com'])
 
-        self.assertNotIn('Sender', email._headers)
-        self.assertNotIn('X-Sender', email._headers)
         self.assertNotIn('From', email.extra_headers)
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertIn('Sender', email._headers)
+        self.assertIn('X-Sender', email._headers)
         self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, 'doc@example.com')
         self.assertEqual(email._headers['Reply-To'], 'doc@example.com')
+        self.assertEqual(email._headers['Sender'], settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email._headers['X-Sender'],
+                         settings.DEFAULT_FROM_EMAIL)
 
         msg = email.message()
         self.assertEqual(msg['From'], 'doc@example.com')
@@ -313,6 +365,118 @@ class EmailMessageTests(SpyAgency, TestCase):
         self.assertEqual(msg['From'], 'doc@example.com')
         self.assertEqual(msg['Sender'], 'noreply@example.com')
         self.assertEqual(msg['X-Sender'], 'noreply@example.com')
+
+    @override_settings(EMAIL_DEFAULT_SENDER_SERVICE_NAME='My Service')
+    def test_message_with_smart_spoofing_and_allowed(self):
+        """Testing EmailMessage.message with enable_smart_spoofing=True and
+        From address allowed
+        """
+        self.dmarc_txt_records['_dmarc.corp.example.com'] = \
+            'v=DMARC1; p=none;'
+
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             from_email='Doc Dwarf <doc@corp.example.com>',
+                             sender='noreply@mail.example.com',
+                             to=['sleepy@example.com'],
+                             enable_smart_spoofing=True)
+
+        self.assertNotIn('From', email.extra_headers)
+        self.assertNotIn('From', email._headers)
+        self.assertNotIn('Sender', email.extra_headers)
+        self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertIn('Sender', email._headers)
+        self.assertIn('X-Sender', email._headers)
+        self.assertIn('Reply-To', email._headers)
+        self.assertEqual(email.from_email,
+                         'Doc Dwarf <doc@corp.example.com>')
+        self.assertEqual(email._headers['Reply-To'],
+                         'Doc Dwarf <doc@corp.example.com>')
+        self.assertEqual(email._headers['Sender'],
+                         'noreply@mail.example.com')
+        self.assertEqual(email._headers['X-Sender'],
+                         'noreply@mail.example.com')
+
+        msg = email.message()
+        self.assertEqual(msg['From'],
+                         'Doc Dwarf <doc@corp.example.com>')
+        self.assertEqual(msg['Reply-To'],
+                         'Doc Dwarf <doc@corp.example.com>')
+
+    @override_settings(EMAIL_DEFAULT_SENDER_SERVICE_NAME='My Service')
+    def test_message_with_smart_spoofing_and_not_allowed(self):
+        """Testing EmailMessage.message with enable_smart_spoofing=True and
+        From address not allowed
+        """
+        self.dmarc_txt_records['_dmarc.corp.example.com'] = \
+            'v=DMARC1; p=quarantine;'
+
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             from_email='Doc Dwarf <doc@corp.example.com>',
+                             sender='noreply@mail.example.com',
+                             to=['sleepy@example.com'],
+                             enable_smart_spoofing=True)
+
+        self.assertNotIn('From', email.extra_headers)
+        self.assertNotIn('From', email._headers)
+        self.assertNotIn('Sender', email.extra_headers)
+        self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertIn('Sender', email._headers)
+        self.assertIn('X-Sender', email._headers)
+        self.assertIn('Reply-To', email._headers)
+        self.assertEqual(email.from_email,
+                         'Doc Dwarf via My Service <noreply@mail.example.com>')
+        self.assertEqual(email._headers['Reply-To'],
+                         'Doc Dwarf <doc@corp.example.com>')
+        self.assertEqual(email._headers['Sender'],
+                         'noreply@mail.example.com')
+        self.assertEqual(email._headers['X-Sender'],
+                         'noreply@mail.example.com')
+
+        msg = email.message()
+        self.assertEqual(msg['From'],
+                         'Doc Dwarf via My Service <noreply@mail.example.com>')
+        self.assertEqual(msg['Reply-To'],
+                         'Doc Dwarf <doc@corp.example.com>')
+
+    @override_settings(EMAIL_DEFAULT_SENDER_SERVICE_NAME='My Service',
+                       EMAIL_ENABLE_SMART_SPOOFING=True)
+    def test_message_with_smart_spoofing_setting_and_not_allowed(self):
+        """Testing EmailMessage.message with
+        settings.EMAIL_ENABLE_SMART_SPOOFING=True and
+        From address not allowed
+        """
+        self.dmarc_txt_records['_dmarc.corp.example.com'] = \
+            'v=DMARC1; p=quarantine;'
+
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             from_email='Doc Dwarf <doc@corp.example.com>',
+                             sender='noreply@mail.example.com',
+                             to=['sleepy@example.com'])
+
+        self.assertNotIn('From', email.extra_headers)
+        self.assertNotIn('From', email._headers)
+        self.assertNotIn('Sender', email.extra_headers)
+        self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertIn('Sender', email._headers)
+        self.assertIn('X-Sender', email._headers)
+        self.assertIn('Reply-To', email._headers)
+        self.assertEqual(email.from_email,
+                         'Doc Dwarf via My Service <noreply@mail.example.com>')
+        self.assertEqual(email._headers['Reply-To'],
+                         'Doc Dwarf <doc@corp.example.com>')
+        self.assertEqual(email._headers['Sender'],
+                         'noreply@mail.example.com')
+        self.assertEqual(email._headers['X-Sender'],
+                         'noreply@mail.example.com')
+
+        msg = email.message()
+        self.assertEqual(msg['From'],
+                         'Doc Dwarf via My Service <noreply@mail.example.com>')
+        self.assertEqual(msg['Reply-To'],
+                         'Doc Dwarf <doc@corp.example.com>')
 
     def test_message_with_in_reply_to(self):
         """Testing EmailMessage.message with in_reply_to="""
@@ -475,3 +639,58 @@ class UtilsTests(TestCase):
 
         self.assertEqual(build_email_address_for_user(user),
                          'Test User <test@example.com>')
+
+    def test_build_email_address_via_service(self):
+        """Testing test_build_email_address_via_service"""
+        self.assertEqual(
+            build_email_address_via_service(
+                email='test@example.com',
+                full_name='Test User',
+                service_name='My Service',
+                sender_email='noreply@example.com'),
+            'Test User via My Service <noreply@example.com>')
+
+    def test_build_email_address_via_service_without_full_name(self):
+        """Testing test_build_email_address_via_service without full name"""
+        self.assertEqual(
+            build_email_address_via_service(
+                email='test@example.com',
+                service_name='My Service',
+                sender_email='noreply@example.com'),
+            'test via My Service <noreply@example.com>')
+
+    @override_settings(EMAIL_DEFAULT_SENDER_SERVICE_NAME='My Service')
+    def test_build_email_address_via_service_with_service_name_setting(self):
+        """Testing test_build_email_address_via_service with service name
+        from settings.EMAIL_DEFAULT_SENDER_SERVICE_NAME
+        """
+        self.assertEqual(
+            build_email_address_via_service(
+                email='test@example.com',
+                full_name='Test User',
+                sender_email='noreply@example.com'),
+            'Test User via My Service <noreply@example.com>')
+
+    @override_settings(EMAIL_DEFAULT_SENDER_SERVICE_NAME=None)
+    def test_build_email_address_via_service_with_computed_service_name(self):
+        """Testing test_build_email_address_via_service with service name
+        computed from sender e-mail
+        """
+        self.assertEqual(
+            build_email_address_via_service(
+                email='test@example.com',
+                full_name='Test User',
+                sender_email='noreply@example.com'),
+            '"Test User via example.com" <noreply@example.com>')
+
+    @override_settings(DEFAULT_FROM_EMAIL='noreply@example.com')
+    def test_build_email_address_via_service_with_sender_email_setting(self):
+        """Testing test_build_email_address_via_service with sender e-mail
+        from settings.DEFAULT_FROM_EMAIL
+        """
+        self.assertEqual(
+            build_email_address_via_service(
+                full_name='Test User',
+                email='test@example.com',
+                service_name='My Service'),
+            'Test User via My Service <noreply@example.com>')

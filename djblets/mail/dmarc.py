@@ -275,3 +275,37 @@ def get_dmarc_record(hostname, use_cache=True,
                                              cache_expiration=cache_expiration)
 
     return record
+
+
+def is_email_allowed_by_dmarc(email_address):
+    """Return whether DMARC rules safely allow sending using an e-mail address.
+
+    This will take an e-mail address (which must be in the form of
+    ``name@domain``, ideally parsed by :py:func:`mail.utils.parseaddr`) and
+    check to see if there are any DMARC rules that could prevent the e-mail
+    from being sent/received if it were to fail sender verification.
+
+    Callers can use this to decide whether they can safely send using a user's
+    e-mail address, or whether they need to send using the service's address.
+
+    Args:
+        email_address (unicode):
+            The e-mail address for the From field.
+
+    Returns:
+        bool:
+        ``True`` if the e-mail address can be safely used in a
+        :mailheader:`From` header. ``False`` if it should not be used.
+    """
+    hostname = email_address.split('@')[-1]
+    bad_policies = (DmarcPolicy.QUARANTINE, DmarcPolicy.REJECT)
+
+    dmarc_record = get_dmarc_record(hostname)
+
+    return not (dmarc_record and
+                dmarc_record.pct > 0 and
+                ((dmarc_record.hostname == hostname and
+                  dmarc_record.policy in bad_policies) or
+                 (dmarc_record.hostname != hostname and
+                  hostname.endswith(dmarc_record.hostname) and
+                  dmarc_record.subdomain_policy in bad_policies)))

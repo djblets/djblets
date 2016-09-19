@@ -2,10 +2,16 @@
 
 from __future__ import unicode_literals
 
+import logging
+from email.utils import parseaddr
+
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.utils import six
 from django.utils.datastructures import MultiValueDict
+
+from djblets.mail.dmarc import is_email_allowed_by_dmarc
+from djblets.mail.utils import build_email_address_via_service
 
 
 class EmailMessage(EmailMultiAlternatives):
@@ -20,13 +26,29 @@ class EmailMessage(EmailMultiAlternatives):
     accessed via the :py:attr:`message_id` attribute after the e-mail has been
     sent.
 
+    In order to prevent issues when sending on behalf of users whose e-mail
+    domains are controlled by DMARC, callers can specify
+    ``enable_smart_spoofing=True`` (or set
+    ``settings.EMAIL_ENABLE_SMART_SPOOFING``). If set, then the e-mail address
+    used for the :mailheader:`From` header will only be used if there aren't
+    any DMARC rules that may prevent the e-mail from being sent/received.
+
+    In the event that a DMARC rule would prevent sending on behalf of that
+    user, the ``sender`` address will be used instead, with the full name
+    appearing as the value in ``from_email`` with "via <Service Name>" tacked
+    onto it.
+
+    Callers wishing to use this should also set
+    ``settings.EMAIL_DEFAULT_SENDER_SERVICE_NAME`` to the desired service name.
+    Otherwise, the domain on the sender e-mail will be used instead.
+
     This class also supports repeated headers.
     """
 
     def __init__(self, subject='', text_body='', html_body='', from_email=None,
                  to=None, cc=None, bcc=None, sender=None, in_reply_to=None,
                  headers=None, auto_generated=False,
-                 prevent_auto_responses=False):
+                 prevent_auto_responses=False, enable_smart_spoofing=None):
         """Create a new EmailMessage.
 
         Args:
@@ -61,6 +83,15 @@ class EmailMessage(EmailMultiAlternatives):
                 are to receive a blind carbon copy of the e-mail, or ``None``
                 if there are not BCC recipients.
 
+            sender (unicode, optional):
+                The actual e-mail address sending this e-mail, for use in
+                the :mailheader:`Sender` header. If this differs from
+                ``from_email``, it will be left out of the header as per
+                :rfc:`2822`.
+
+                This will default to :django:setting:`DEFAULT_FROM_EMAIL`
+                if unspecified.
+
             in_reply_to (unicode, optional):
                 An optional message ID (which will be used as the value for the
                 :mailheader:`In-Reply-To` and :mailheader:`References`
@@ -80,6 +111,13 @@ class EmailMessage(EmailMultiAlternatives):
                 If ``True``, the e-mail will contain headers to prevent auto
                 replies for delivery reports, read receipts, out of office
                 e-mails, and other auto-generated e-mails from Exchange.
+
+            enable_smart_spoofing (bool, optional):
+                Whether to enable smart spoofing of any e-mail addresses for
+                the :mailheader:`From` header.
+
+                This defaults to ``settings.EMAIL_ENABLE_SMART_SPOOFING``
+                (which itself defaults to ``False``).
         """
         headers = headers or MultiValueDict()
 
@@ -92,15 +130,65 @@ class EmailMessage(EmailMultiAlternatives):
                 for key, value in six.iteritems(headers)
             ))
 
-        if sender:
-            headers['Sender'] = sender
-            headers['X-Sender'] = sender
-
         if in_reply_to:
             headers['In-Reply-To'] = in_reply_to
             headers['References'] = in_reply_to
 
         headers['Reply-To'] = from_email
+
+        if enable_smart_spoofing is None:
+            enable_smart_spoofing = \
+                getattr(settings, 'EMAIL_ENABLE_SMART_SPOOFING', False)
+
+        # Figure out the From/Sender we'll be wanting to use.
+        if not sender:
+            sender = settings.DEFAULT_FROM_EMAIL
+
+        if sender == from_email:
+            # RFC 2822 section 3.6.2 states that we should only include Sender
+            # if the two are not equal. We also know that we're not spoofing,
+            # so e-mail sending should work fine here.
+            sender = None
+        elif enable_smart_spoofing:
+            # We will be checking the DMARC record from the e-mail address
+            # we'd be ideally sending on behalf of. If the record indicates
+            # that the message has any likelihood of being quarantined or
+            # rejected, we'll alter the From field to send using our Sender
+            # address instead.
+            parsed_from_name, parsed_from_email = parseaddr(from_email)
+            parsed_sender_name, parsed_sender_email = parseaddr(sender)
+
+            # The above will return ('', '') if the address couldn't be parsed,
+            # so check for this.
+            if not parsed_from_email:
+                logging.warning('EmailMessage: Unable to parse From address '
+                                '"%s"',
+                                from_email)
+
+            if not parsed_sender_email:
+                logging.warning('EmailMessage: Unable to parse Sender address '
+                                '"%s"',
+                                sender)
+
+            # We may not be allowed to send on behalf of this user.
+            # We actually aren't going to check for this (it may be due
+            # to SPF, which is too complex for us to want to check, or
+            # it may be due to another ruleset somewhere). Instead, just
+            # check if this e-mail could get lost due to the DMARC rules.
+            if (parsed_from_email != parsed_sender_email and
+                not is_email_allowed_by_dmarc(parsed_from_email)):
+                # We can't spoof the e-mail address, so instead, we'll keep
+                # the e-mail in Reply To and create a From address we own,
+                # which will also indicate what service is sending on behalf
+                # of the user.
+                from_email = build_email_address_via_service(
+                    full_name=parsed_from_name,
+                    email=parsed_from_email,
+                    sender_email=parsed_sender_email)
+
+        if sender:
+            headers['Sender'] = sender
+            headers['X-Sender'] = sender
 
         if auto_generated:
             headers['Auto-Submitted'] = 'auto-generated'
