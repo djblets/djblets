@@ -108,6 +108,28 @@ class BuildI18n(Command):
             raise RuntimeError('Failed to build i18n files')
 
 
+class FetchPublicSuffixList(Command):
+    description = 'Fetch the DNS public suffix list from publicsuffix.org.'
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        from publicsuffix import fetch as fetch_public_suffix
+
+        print 'Fetching DNS public suffix list...'
+        filename = os.path.join('djblets', 'mail', 'public_suffix_list.dat')
+
+        with open(filename, 'w') as fp:
+            fp.write(fetch_public_suffix().read().encode('utf-8'))
+
+        print 'Public suffix list stored at %s' % filename
+
+
 def run_tests(*args):
     import os
     os.system("tests/runtests.py")
@@ -118,6 +140,7 @@ cmdclasses = {
     'egg_info': BuildEggInfo,
     'build_media': BuildMedia,
     'build_i18n': BuildI18n,
+    'fetch_public_suffix_list': FetchPublicSuffixList,
 }
 
 
@@ -140,8 +163,10 @@ setup(name=PACKAGE_NAME,
       install_requires=[
           django_version,
           'django-pipeline>=1.6.8,<1.6.9999',
+          'dnspython>=1.14.0',
           'feedparser>=5.1.2',
           'pillowfight',
+          'publicsuffix>=1.1',
           'pytz',
       ],
       dependency_links=[
