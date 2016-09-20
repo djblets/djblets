@@ -145,7 +145,10 @@ Mail Sending
 .. autosummary::
    :toctree: python
 
+   djblets.mail.dmarc
    djblets.mail.message
+   djblets.mail.testing
+   djblets.mail.utils
 
 
 Markdown Utilities and Extensions
