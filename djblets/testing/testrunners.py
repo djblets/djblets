@@ -136,6 +136,12 @@ class TestRunner(DiscoverRunner):
         settings.STATICFILES_STORAGE = \
             'django.contrib.staticfiles.storage.StaticFilesStorage'
 
+        # By default, don't look up DMARC records when generating From
+        # addresses for e-mails. Just assume we can, since we're not
+        # sending anything out. Some unit tests will override
+        # this.
+        settings.EMAIL_ENABLE_SMART_SPOOFING = False
+
         # Create a temp directory that tests can rely upon.
         self.tempdir = tempfile.mkdtemp(prefix='rb-tests-')
 
