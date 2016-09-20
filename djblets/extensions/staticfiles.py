@@ -264,7 +264,19 @@ class PackagingFinder(FileSystemFinder):
             locations = [('', self.extension_static_dir)]
 
         for prefix, root in locations:
-            storage = self.storages[root]
+            try:
+                storage = self.storages[root]
+            except KeyError:
+                # If this is hit, look for any calls to static() that are
+                # part of a class definition somewhere in the consuming
+                # application. These need to be dealt with.
+                raise KeyError('Unable to find a static files storage class '
+                               'for "%s". This is most likely due to a '
+                               'bug in the consuming application where '
+                               'static() is called too early, or where '
+                               'djblets.urls.staticfiles.static_lazy() should '
+                               'be used instead.'
+                               % root)
 
             for path in get_files(storage, ignore_patterns):
                 yield path, storage

@@ -209,6 +209,7 @@ URL Utilities
    djblets.urls.patterns
    djblets.urls.resolvers
    djblets.urls.root
+   djblets.urls.staticfiles
 
 
 Generic Utilities
