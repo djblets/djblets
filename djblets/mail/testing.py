@@ -8,7 +8,7 @@ from dns.rdtypes.ANY.TXT import TXT
 from kgb import SpyAgency
 
 
-class DmarcDnsTestsMixin(SpyAgency):
+class DmarcDnsTestsMixin(object):
     """Mixin to help with e-mail tests that need to perform DMARC lookups.
 
     This mixin makes it easy for unit tests to fake DMARC results, in order
@@ -31,8 +31,15 @@ class DmarcDnsTestsMixin(SpyAgency):
 
         self.dmarc_txt_records = {}
 
-        self.spy_on(dns_resolver.query, call_fake=self._dns_query)
+        self._dmarc_spy_agency = SpyAgency()
+        self._dmarc_spy_agency.spy_on(dns_resolver.query,
+                                      call_fake=self._dns_query)
         cache.clear()
+
+    def tearDown(self):
+        super(DmarcDnsTestsMixin, self).tearDown()
+
+        self._dmarc_spy_agency.unspy_all()
 
     def _dns_query(self, qname, rdtype, *args, **kwargs):
         try:
