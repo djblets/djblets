@@ -7,12 +7,11 @@ from django.core.cache import cache
 from django.test.utils import override_settings
 from django.utils.datastructures import MultiValueDict
 from dns import resolver as dns_resolver
-from dns.rdtypes.ANY.TXT import TXT
-from kgb import SpyAgency
 
 from djblets.mail.dmarc import (DmarcPolicy, get_dmarc_record,
                                 is_email_allowed_by_dmarc)
 from djblets.mail.message import EmailMessage
+from djblets.mail.testing import DmarcDnsTestsMixin
 from djblets.mail.utils import (build_email_address,
                                 build_email_address_for_user,
                                 build_email_address_via_service)
@@ -20,22 +19,6 @@ from djblets.testing.testcases import TestCase
 
 
 _CONSOLE_EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-
-class DmarcDnsTestsMixin(SpyAgency):
-    def setUp(self):
-        super(DmarcDnsTestsMixin, self).setUp()
-
-        self.dmarc_txt_records = {}
-
-        self.spy_on(dns_resolver.query, call_fake=self._dns_query)
-        cache.clear()
-
-    def _dns_query(self, qname, rdtype, *args, **kwargs):
-        try:
-            return [TXT(1, 16, [self.dmarc_txt_records[qname]])]
-        except KeyError:
-            raise dns_resolver.NXDOMAIN
 
 
 class DmarcTests(DmarcDnsTestsMixin, TestCase):
