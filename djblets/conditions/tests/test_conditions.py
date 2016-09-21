@@ -375,6 +375,11 @@ class ConditionSetTests(TestCase):
                     ],
                 })
 
+    def test_matches_with_always_mode(self):
+        """Testing ConditionSet.matches with "always" mode"""
+        condition_set = ConditionSet(ConditionSet.MODE_ALWAYS, [])
+        self.assertTrue(condition_set.matches(value='abc123'))
+
     def test_matches_with_all_mode_and_match(self):
         """Testing ConditionSet.matches with "all" mode and match"""
         choice = EqualsTestChoice()

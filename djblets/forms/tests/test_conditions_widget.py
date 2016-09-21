@@ -176,12 +176,16 @@ class ConditionsWidgetTests(TestCase):
             '<ul id="my_conditions_mode">\n'
             '<li><label for="my_conditions_mode_0">'
             '<input id="my_conditions_mode_0" name="my_conditions_mode"'
-            ' type="radio" value="all" />'
-            ' Match <b>all</b> of the following</label></li>\n'
+            ' type="radio" value="always" />'
+            ' Always match</label></li>\n'
             '<li><label for="my_conditions_mode_1">'
-            '<input checked="checked" id="my_conditions_mode_1" '
+            '<input id="my_conditions_mode_1" name="my_conditions_mode"'
+            ' type="radio" value="all" />'
+            ' Match <b>all</b> of the following:</label></li>\n'
+            '<li><label for="my_conditions_mode_2">'
+            '<input checked="checked" id="my_conditions_mode_2" '
             'name="my_conditions_mode" type="radio" value="any" />'
-            ' Match <b>any</b> of the following</label></li>\n'
+            ' Match <b>any</b> of the following:</label></li>\n'
             '</ul>')
 
         rendered_rows = result['rendered_rows']

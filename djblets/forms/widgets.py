@@ -138,13 +138,13 @@ class ConditionsWidget(widgets.Widget):
             The value from the form data.
         """
         try:
-            last_id = int(data.get('%s_last_id' % name))
+            last_id = int(data.get('%s_last_id' % name)) + 1
         except (KeyError, ValueError):
-            return None
+            last_id = 0
 
         conditions = []
 
-        for i in range(last_id + 1):
+        for i in range(last_id):
             choice_id = data.get('%s_choice[%s]' % (name, i))
 
             if choice_id is None:

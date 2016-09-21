@@ -104,10 +104,12 @@ class ConditionsField(forms.Field):
         self.mode_field = forms.ChoiceField(
             required=True,
             choices=(
+                (ConditionSet.MODE_ALWAYS,
+                 mark_safe(_('Always match'))),
                 (ConditionSet.MODE_ALL,
-                 mark_safe(_('Match <b>all</b> of the following'))),
+                 mark_safe(_('Match <b>all</b> of the following:'))),
                 (ConditionSet.MODE_ANY,
-                 mark_safe(_('Match <b>any</b> of the following')))
+                 mark_safe(_('Match <b>any</b> of the following:')))
             ),
             widget=forms.widgets.RadioSelect())
 
@@ -152,6 +154,11 @@ class ConditionsField(forms.Field):
         """
         if isinstance(data, ConditionSet):
             data = data.serialize()
+        elif data is None:
+            data = {
+                'mode': ConditionSet.DEFAULT_MODE,
+                'conditions': [],
+            }
 
         if not isinstance(data, dict):
             raise ValueError(
