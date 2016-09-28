@@ -184,7 +184,7 @@ unregister, and re-register features.
 Looking Up Features
 -------------------
 
-You can fetch any previously-registerd feature by calling
+You can fetch any previously-registered feature by calling
 :py:meth:`~FeaturesRegistry.get_feature`:
 
 .. code-block:: python

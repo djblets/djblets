@@ -293,7 +293,8 @@ Djblets.Forms.ConditionSetView = Backbone.View.extend({
     DEFAULT_ROW_ANIMATION_SPEED_MS: 300,
 
     events: {
-        'click .conditions-field-add-condition': '_onAddRowClicked'
+        'click .conditions-field-add-condition': '_onAddRowClicked',
+        'change #conditions_mode input': '_onConditionModeChanged',
     },
 
     /**
@@ -324,7 +325,9 @@ Djblets.Forms.ConditionSetView = Backbone.View.extend({
 
         this._$lastID = this.$el.children(`input[name=${fieldName}_last_id]`)
             .bindProperty('value', this.model, 'lastID');
-        this._$rows = this.$('.conditions-field-rows');
+        this._$mode = this.$('#conditions_mode input');
+        this._$rowsContainer = this.$('.conditions-field-rows-container');
+        this._$rows = this._$rowsContainer.children('.conditions-field-rows');
 
         /* Render rows for any existing conditions. */
         const $rowItems = this._$rows.children();
@@ -336,6 +339,8 @@ Djblets.Forms.ConditionSetView = Backbone.View.extend({
         /* Begin listening for any events that impact the rows or inputs. */
         this.listenTo(conditions, 'add',
                       condition => this._addConditionRow(condition));
+
+        this._onConditionModeChanged();
 
         return this;
     },
@@ -390,7 +395,18 @@ Djblets.Forms.ConditionSetView = Backbone.View.extend({
         e.preventDefault();
 
         this.model.addNewCondition();
-    }
+    },
+
+    /**
+     * Handler for when the condition mode changes.
+     *
+     * If the current mode is "Always", hide the conditions list.
+     */
+    _onConditionModeChanged() {
+        const mode = this._$mode.filter(':checked').val();
+
+        this._$rowsContainer.setVisible(mode !== 'always');
+    },
 });
 
 

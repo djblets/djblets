@@ -252,11 +252,20 @@ class ConditionSet(object):
             The list of conditions that comprise this set.
     """
 
+    #: Always match without conditions.
+    MODE_ALWAYS = 'always'
+
     #: All conditions must match a value to satisfy the condition set.
     MODE_ALL = 'all'
 
     #: Any condition may match a value to satisfy the condition set.
     MODE_ANY = 'any'
+
+    #: A set of all the valid modes.
+    CONDITIONS = (MODE_ALWAYS, MODE_ALL, MODE_ANY)
+
+    #: The default mode.
+    DEFAULT_MODE = MODE_ALL
 
     @classmethod
     def deserialize(cls, choices, data, choice_kwargs={}):
@@ -293,7 +302,7 @@ class ConditionSet(object):
         """
         mode = data.get('mode')
 
-        if mode not in (cls.MODE_ALL, cls.MODE_ANY):
+        if mode not in cls.CONDITIONS:
             logging.debug('ConditionSet.deserialize: Invalid "mode" value '
                           '"%s" for condition set %r',
                           mode, data)
@@ -307,7 +316,7 @@ class ConditionSet(object):
             for i, condition_data in enumerate(data.get('conditions', []))
         ])
 
-    def __init__(self, mode=MODE_ALL, conditions=[]):
+    def __init__(self, mode=DEFAULT_MODE, conditions=[]):
         """Initialize the condition set.
 
         Args:
@@ -322,7 +331,7 @@ class ConditionSet(object):
             djblets.conditions.errors.InvalidConditionModeError:
                 The match mode is not a valid mode.
         """
-        if mode not in (self.MODE_ALL, self.MODE_ANY):
+        if mode not in self.CONDITIONS:
             raise InvalidConditionModeError(
                 _('"%s" is not a valid condition mode.')
                 % mode)
@@ -348,7 +357,9 @@ class ConditionSet(object):
             ``True`` if the value fulfills the condition set. ``False`` if it
             does not.
         """
-        if self.mode == self.MODE_ALL:
+        if self.mode == self.MODE_ALWAYS:
+            match_conditions = lambda x: True
+        elif self.mode == self.MODE_ALL:
             match_conditions = self._match_all
         elif self.mode == self.MODE_ANY:
             match_conditions = any
