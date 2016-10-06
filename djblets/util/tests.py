@@ -26,6 +26,7 @@
 from __future__ import unicode_literals
 
 import datetime
+import pytz
 import unittest
 
 from django.http import HttpRequest
@@ -33,6 +34,7 @@ from django.template import Context, Template, TemplateSyntaxError
 from django.utils.html import strip_spaces_between_tags
 
 from djblets.testing.testcases import TestCase, TagTest
+from djblets.util import dates
 from djblets.util.http import (get_http_accept_lists,
                                get_http_requested_mimetype,
                                is_mimetype_a)
@@ -344,3 +346,45 @@ class DjbletsJSONEncoderTests(TestCase):
         self.assertEqual(
             encoder.encode(datetime.datetime(2016, 8, 26, 3, 3, 26, 123456)),
             '"2016-08-26T03:03:26.123"')
+
+
+class DatesTests(TestCase):
+    """Tests for djblets.util.dates."""
+
+    def test_http_date_with_datetime(self):
+        """Testing http_date with datetime"""
+        date_time = datetime.datetime(2016, 8, 26, 3, 3, 26, 123456)
+        self.assertEqual(
+            dates.http_date(date_time),
+            'Fri, 26 Aug 2016 03:03:26 GMT')
+
+    def test_http_date_with_date_string(self):
+        """Testing http_date with date string"""
+        date = '20/06/2016'
+        self.assertEqual(dates.http_date(date), date)
+
+    def test_http_date_with_unix_timestamp(self):
+        """Testing http_date with unix timestamp"""
+        unix_timestamp = '1466424000'
+        self.assertEqual(dates.http_date(unix_timestamp), unix_timestamp)
+
+    def test_get_latest_timestamp_with_empty_list(self):
+        """Testing get_latest_timestamp without any timestamps in the
+         list
+         """
+        self.assertEqual(dates.get_latest_timestamp([]), None)
+
+    def test_get_latest_timestamp_with_jumbled_list(self):
+        """Testing get_latest_timestamp with unsorted date time
+        list.
+         """
+        self.assertEqual(dates.get_latest_timestamp([
+            '1453204800',
+            '1466337600',
+            '1466424000'
+        ]), '1466424000')
+
+    def test_date_time_is_in_utc(self):
+        """Testing get_tz_aware_utcnow returns UTC time."""
+        utc_time = dates.get_tz_aware_utcnow()
+        self.assertEqual(utc_time.tzinfo, pytz.utc)
