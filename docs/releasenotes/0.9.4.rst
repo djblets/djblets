@@ -2,7 +2,7 @@
 Djblets 0.9.4 Release Notes
 ===========================
 
-**Release date**: TBD
+**Release date**: October 17, 2016
 
 
 djblets.configforms
