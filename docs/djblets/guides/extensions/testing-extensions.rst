@@ -5,7 +5,8 @@ Testing Extensions
 ==================
 
 .. currentmodule:: djblets.extensions.testing.testcases
-.. versionadded:: 0.10
+.. versionadded:: 0.8.27
+.. versionadded:: 0.9.4
 
 
 Overview

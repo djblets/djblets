@@ -1,0 +1,90 @@
+============================
+Djblets 0.8.27 Release Notes
+============================
+
+**Release date**: October 17, 2016
+
+
+Upgrade Instructions
+====================
+
+To upgrade to Djblets 0.8.27, run::
+
+    pip install Djblets==0.8.27
+
+or::
+
+    easy_install Djblets==0.8.27
+
+
+djblets.configforms
+===================
+
+* Fixed passing JavaScript model data to the configuration forms.
+
+* Fixed missing end tags in the configuration forms.
+
+
+djblets.extensions
+==================
+
+* Added infrastructure to help test extensions.
+
+  This allows projects to provide an easy way for extension authors to
+  maintain test suites for their extensions, and offers utilities for
+  extension authors themselves.
+
+  See `Testing Extensions`_ for more information. Please note that these
+  docs are written for Djblets 0.9, but still generally apply to this
+  release.
+
+* Updated :py:class:`~djblets.extensions.extension.ExtensionInfo` to work
+  either with or without entrypoints.
+
+  This class, which is used to store metadata information on an extension,
+  used to require that the extension be backed by an entrypoint, which made
+  it difficult to test. These are now able to be created and populated
+  manually.
+
+* Added better error reporting when failing to look up static media files
+  in an extension during packaging.
+
+* Exception tracebacks are now logged when an extension fails to load.
+
+
+.. _`Testing Extensions`:
+   https://www.reviewboard.org/docs/djblets/0.9/guides/extensions/testing-extensions/
+
+
+djblets.siteconfig
+==================
+
+* Fixed showing non-field error messages in the siteconfig settings page.
+
+  The wrong variable was being accessed, preventing these errors from
+  appearing.
+
+* Added a template for rendering fieldsets for forms.
+
+  The template logic for rendering fieldsets for siteconfig (or most standard
+  forms) has been made available in the ``siteconfig/settings_fieldsets.html``
+  template. This may be useful to templates that need to do something a bit
+  custom.
+
+  If using Djblets 0.9+, you will want to instead use
+  ``forms/admin/form_fieldsets.html``, as the siteconfig templates are
+  considered deprecated in newer versions.
+
+* Added support for standard Django fieldset definitions in siteconfig
+  settings forms.
+
+  The old form required the use of a custom, legacy format for fieldset
+  definitions in ``my_form_cls.Meta.fieldsets``. The new template supports
+  the standard format that Django documents for forms.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond

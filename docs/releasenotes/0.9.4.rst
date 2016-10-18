@@ -1,0 +1,133 @@
+===========================
+Djblets 0.9.4 Release Notes
+===========================
+
+**Release date**: October 17, 2016
+
+
+djblets.configforms
+===================
+
+* Fixed passing JavaScript model data to the configuration forms.
+
+* Fixed missing end tags in the configuration forms.
+
+
+djblets.datagrid
+================
+
+* Added signals and attributes to the ``$.fn.datagrid`` widget for mobile
+  mode.
+
+  The datagrid widget now triggers ``datagridDisplayModeChanged`` events
+  when going in and out of mobile mode. These provide a ``mode`` parameter
+  indicating if it's in ``mobile`` or ``desktop`` modes. Callers can also
+  look up the ``data-datagrid-display-mode`` attribute on the element to
+  see what the current mode is at any time.
+
+* Fixed a breakage in the columns menu when attempting to toggle it opened
+  and closed really fast.
+
+
+djblets.extensions
+==================
+
+* Added infrastructure to help test extensions.
+
+  This allows projects to provide an easy way for extension authors to
+  maintain test suites for their extensions, and offers utilities for
+  extension authors themselves.
+
+  See :ref:`testing-extensions` for more information.
+
+* Updated :py:class:`~djblets.extensions.extension.ExtensionInfo` to work
+  either with or without entrypoints.
+
+  This class, which is used to store metadata information on an extension,
+  used to require that the extension be backed by an entrypoint, which made
+  it difficult to test. These are now able to be created and populated
+  manually.
+
+* Added better error reporting when failing to look up static media files
+  in an extension during packaging.
+
+* Exception tracebacks are now logged when an extension fails to load.
+
+
+djblets.mail
+============
+
+* Added functionality for looking up DMARC_ records for a domain.
+
+  The methods in :py:mod:`djblets.mail.dmarc` make it easy to look up
+  the DMARC policies set for unverified senders, allowing for more
+  intelligent decision making when preparing to send an e-mail on behalf
+  of a user.
+
+* Added optional smart spoofing of e-mail addresses in
+  :py:class:`~djblets.mail.message.EmailMessage`.
+
+  Projects can enable smart spoofing of sender e-mail addresses, which will
+  choose a suitable :mailheader:`From` address based on whether a DMARC
+  record could get in the way of an e-mail with a spoofed sender from being
+  received by other users. See the documentation for
+  :py:class:`~djblets.mail.message.EmailMessage` for information on how to
+  enable this.
+
+* Added support for setting BCC addresses in
+  :py:class:`~djblets.mail.message.EmailMessage`.
+
+* Made most of the options to :py:class:`~djblets.mail.message.EmailMessage`
+  optional.
+
+* Added utility functions for buliding e-mail addresses.
+
+  The new methods in :py:mod:`djblets.mail.utils` can be used to properly
+  format e-mail addresses, given a
+  :py:class:`~django.contrib.auth.models.User` or a user's information.
+
+
+.. _DMARC: https://en.wikipedia.org/wiki/DMARC
+
+
+djblets.siteconfig
+==================
+
+* Fixed showing non-field error messages in the siteconfig settings page.
+
+  The wrong variable was being accessed, preventing these errors from
+  appearing.
+
+
+djblets.urls
+============
+
+* Added a function for lazily looking up a static media URL.
+
+  The new :py:func:`~djblets.urls.staticfiles.static_lazy` can be used in
+  a class body or global variable to reference a static media path without
+  triggering an immediate lookup. The result will be resolved on demand when
+  accessed by running code.
+
+
+djblets.webapi
+==============
+
+* Removed references to "local sites" when generating API tokens.
+
+  Local sites are a Review Board concept, which was accidentally brought
+  over when API Token support was moved into Djblets.
+
+* Floating point values are now serialized without crashing when using an XML
+  response payload.
+
+  Patch by Griffin Myers.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
+* David Trowbridge
+* Griffin Myers
