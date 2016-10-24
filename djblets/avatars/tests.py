@@ -21,51 +21,6 @@ from djblets.siteconfig.models import SiteConfiguration
 from djblets.testing.testcases import TestCase
 
 
-class DummyAvatarService(AvatarService):
-    """An Avatar service for testing."""
-
-    avatar_service_id = 'dummy'
-    name = 'Dummy Avatar Service'
-
-    def __init__(self, use_2x=False):
-        """Initialize the dummy avatar service.
-
-        Args:
-            use_2x (bool):
-                Whether or not the avatar service should provide high-DPI
-                (retina) avatars.
-        """
-        self.use_2x = use_2x
-
-    def get_avatar_urls_uncached(self, request, user, size=None):
-        """Return the avatar urls.
-
-        Args:
-            request (django.http.HttpRequest):
-                The HTTP request.
-
-            user (django.contrib.auth.models.User):
-                The user.
-
-            size (int, optional):
-                The requested avatar size.
-
-        Returns:
-            dict:
-            A dictionary of avatars. If ``use_2x`` was specified at
-            initialization, a high-DPI avatar will be supplied.
-        """
-        urls = {
-            '1x': mark_safe('http://example.com/avatar.png'),
-            '2x': None,
-        }
-
-        if self.use_2x:
-            urls['2x'] = mark_safe('http://example.com/avatar@2x.png')
-
-        return urls
-
-
 class DummySettingsManager(AvatarSettingsManager):
     """A dummy settings manager that always returns the same settings."""
 
@@ -129,6 +84,57 @@ class DummySettingsManager(AvatarSettingsManager):
         return self
 
 
+class DummyAvatarService(AvatarService):
+    """An Avatar service for testing."""
+
+    avatar_service_id = 'dummy'
+    name = 'Dummy Avatar Service'
+
+    def __init__(self, settings_manager_class=DummySettingsManager,
+                 use_2x=False):
+        """Initialize the dummy avatar service.
+
+        Args:
+            settings_manager_class (type):
+                The settings manager class to use.
+
+            use_2x (bool):
+                Whether or not the avatar service should provide high-DPI
+                (retina) avatars.
+        """
+        super(DummyAvatarService, self).__init__(settings_manager_class)
+        self.use_2x = use_2x
+
+    def get_avatar_urls_uncached(self, request, user, size=None):
+        """Return the avatar urls.
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request.
+
+            user (django.contrib.auth.models.User):
+                The user.
+
+            size (int, optional):
+                The requested avatar size.
+
+        Returns:
+            dict:
+            A dictionary of avatars. If ``use_2x`` was specified at
+            initialization, a high-DPI avatar will be supplied.
+        """
+        urls = {
+            '1x': mark_safe('http://example.com/avatar.png'),
+            '2x': None,
+        }
+
+        if self.use_2x:
+            urls['2x'] = mark_safe('http://example.com/avatar@2x.png')
+
+        return urls
+
+
+
 class AvatarServiceTests(SpyAgency, TestCase):
     """Tests for djblets.avatars.services.base."""
 
@@ -142,7 +148,7 @@ class AvatarServiceTests(SpyAgency, TestCase):
 
     def test_default_urls(self):
         """Testing AvatarService.get_avatar_urls default implementation"""
-        service = AvatarService()
+        service = AvatarService(DummySettingsManager)
         request = HttpRequest()
 
         with self.assertRaises(NotImplementedError):
@@ -151,7 +157,7 @@ class AvatarServiceTests(SpyAgency, TestCase):
     def test_render(self):
         """Testing AvatarService.render at 1x resolution."""
         service = DummyAvatarService()
-        self.assertEqual(
+        self.assertHTMLEqual(
             service.render(HttpRequest(), self.user, 24),
             '<img src="http://example.com/avatar.png" alt="User Name"'
             ' width="24" height="24"'
@@ -160,7 +166,7 @@ class AvatarServiceTests(SpyAgency, TestCase):
     def test_render_2x(self):
         """Testing AvatarService.render at 2x resolution."""
         service = DummyAvatarService(use_2x=True)
-        self.assertEqual(
+        self.assertHTMLEqual(
             service.render(HttpRequest(), self.user, 24),
             '<img src="http://example.com/avatar.png" alt="User Name"'
             ' width="24" height="24"'
@@ -188,7 +194,7 @@ class GravatarServiceTests(SpyAgency, TestCase):
     def setUp(self):
         super(GravatarServiceTests, self).setUp()
 
-        self.service = GravatarService()
+        self.service = GravatarService(DummySettingsManager)
         self.request = HttpRequest()
         self.user = User(username='username',
                          email='username@example.com',
@@ -232,72 +238,65 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
     def test_enable_service(self):
         """Testing AvatarServiceRegistry.enable_service"""
         registry = AvatarServiceRegistry()
-        service = DummyAvatarService()
 
-        registry.register(service)
-        self.assertFalse(registry.is_enabled(service.avatar_service_id))
+        registry.register(DummyAvatarService)
+        self.assertFalse(registry.is_enabled(DummyAvatarService))
         self.assertSetEqual(set(registry.enabled_services), set())
 
-        registry.enable_service(service.avatar_service_id)
-        self.assertTrue(registry.is_enabled(service.avatar_service_id))
+        registry.enable_service(DummyAvatarService)
+        self.assertTrue(registry.is_enabled(DummyAvatarService))
         self.assertSetEqual(
             registry.enabled_services,
-            {service})
+            {DummyAvatarService})
 
     def test_disable_service(self):
         """Testing AvatarServiceRegistry.disable_service"""
         registry = AvatarServiceRegistry()
-        self.assertFalse(registry.is_enabled(
-            GravatarService.avatar_service_id))
-        registry.enable_service(GravatarService.avatar_service_id)
+        self.assertFalse(registry.is_enabled(GravatarService))
+        registry.enable_service(GravatarService)
 
-        self.assertTrue(registry.is_enabled(GravatarService.avatar_service_id))
+        self.assertTrue(registry.is_enabled(GravatarService))
         self.assertSetEqual(set(registry.enabled_services),
                             set(registry))
 
-        registry.disable_service(GravatarService.avatar_service_id)
-        self.assertFalse(registry.is_enabled(
-            GravatarService.avatar_service_id))
+        registry.disable_service(GravatarService)
+        self.assertFalse(registry.is_enabled(GravatarService))
         self.assertSetEqual(set(registry.enabled_services), set())
 
     def test_set_enabled_services(self):
         """Testing AvatarServiceRegistry.enabled_services setter"""
         registry = AvatarServiceRegistry()
 
-        dummy_service = DummyAvatarService()
-        registry.register(dummy_service)
+        registry.register(DummyAvatarService)
 
-        gravatar_service = registry.get('avatar_service_id',
-                                        GravatarService.avatar_service_id)
-
-        registry.enabled_services = [dummy_service, gravatar_service]
+        registry.enabled_services = [DummyAvatarService, GravatarService]
 
         self.assertEqual(registry.enabled_services,
-                         {dummy_service, gravatar_service})
+                         {DummyAvatarService, GravatarService})
 
     def test_get_enabled_services_populated(self):
         """Testing AvatarServiceRegistry.enabled_services getter calls
         populate()
         """
-        dummy_service = DummyAvatarService()
-
         class TestRegistry(AvatarServiceRegistry):
+            settings_manager_class = DummySettingsManager
+
             def populate(self):
                 if self.populated:
                     return
 
                 super(TestRegistry, self).populate()
-                self.enabled_services = [dummy_service]
+                self.enabled_services = [DummyAvatarService]
 
             def get_defaults(self):
-                yield dummy_service
+                yield DummyAvatarService
 
         registry = TestRegistry()
         self.assertFalse(registry.populated)
 
         enabled_services = set(registry.enabled_services)
         self.assertTrue(registry.populated)
-        self.assertSetEqual(enabled_services, {dummy_service})
+        self.assertSetEqual(enabled_services, {DummyAvatarService})
 
     def test_set_enabled_services_invalid_service(self):
         """Testing AvatarServiceRegistry.enabled_services setter with an
@@ -305,13 +304,8 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         """
         registry = AvatarServiceRegistry()
 
-        dummy_service = DummyAvatarService()
-
-        gravatar_service = registry.get('avatar_service_id',
-                                        GravatarService.avatar_service_id)
-
         with self.assertRaises(ItemLookupError):
-            registry.enabled_services = [dummy_service, gravatar_service]
+            registry.enabled_services = [DummyAvatarService, GravatarService]
 
         self.assertEqual(registry.enabled_services, set())
 
@@ -319,19 +313,16 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         """Testing AvatarServiceRegistry.default_service"""
         registry = AvatarServiceRegistry()
 
-        dummy_serivce = DummyAvatarService()
-        gravatar_service = registry.get('avatar_service_id',
-                                        GravatarService.avatar_service_id)
-        registry.register(dummy_serivce)
-        registry.enabled_services = [dummy_serivce, gravatar_service]
+        registry.register(DummyAvatarService)
+        registry.enabled_services = [DummyAvatarService, GravatarService]
 
         self.assertIsNone(registry.default_service)
 
-        registry.set_default_service(dummy_serivce)
-        self.assertEqual(registry.default_service, dummy_serivce)
+        registry.set_default_service(DummyAvatarService)
+        self.assertIsInstance(registry.default_service, DummyAvatarService)
 
-        registry.set_default_service(gravatar_service)
-        self.assertEqual(registry.default_service, gravatar_service)
+        registry.set_default_service(GravatarService)
+        self.assertIsInstance(registry.default_service, GravatarService)
 
         registry.set_default_service(None)
         self.assertIsNone(registry.default_service)
@@ -380,12 +371,9 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         registry = AvatarServiceRegistry()
         registry.populate()
 
-        gravatar_service = registry.get('avatar_service_id',
-                                        GravatarService.avatar_service_id)
-
         self.assertTrue(registry.populated)
-        self.assertEqual(registry.default_service, gravatar_service)
-        self.assertEqual(registry.enabled_services, {gravatar_service})
+        self.assertIsInstance(registry.default_service, GravatarService)
+        self.assertEqual(registry.enabled_services, {GravatarService})
 
         self.assertFalse(logging.error.spy.called)
 
@@ -456,12 +444,10 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         """Testing AvatarServiceRegistry.populate for subclasses with custom
         default registrations
         """
-        dummy_service = DummyAvatarService()
-
         class TestRegistry(AvatarServiceRegistry):
-            def get_defaults(self):
-                yield dummy_service
-                yield GravatarService()
+            settings_manager_class = DummySettingsManager(None, {})
+            default_avatar_service_classes = [DummyAvatarService,
+                                              GravatarService]
 
         self.spy_on(logging.error)
         self.siteconfig.set(AvatarServiceRegistry.ENABLED_SERVICES_KEY,
@@ -471,7 +457,7 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         self.siteconfig.save()
 
         registry = TestRegistry()
-        self.assertIs(registry.default_service, dummy_service)
+        self.assertIsInstance(registry.default_service, DummyAvatarService)
         self.assertFalse(logging.error.spy.called)
 
     def test_unregister(self):
@@ -480,7 +466,7 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         gravatar_service = registry.get('avatar_service_id',
                                         GravatarService.avatar_service_id)
 
-        registry.enable_service(GravatarService.avatar_service_id)
+        registry.enable_service(GravatarService)
 
         self.assertSetEqual(registry.enabled_services, {gravatar_service})
         registry.unregister(gravatar_service)
@@ -491,11 +477,10 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         service
         """
         registry = AvatarServiceRegistry()
-        registry.enable_service(GravatarService.avatar_service_id)
-        registry.set_default_service(
-            registry.get_avatar_service(GravatarService.avatar_service_id))
+        registry.enable_service(GravatarService)
+        registry.set_default_service(GravatarService)
 
-        registry.disable_service(GravatarService.avatar_service_id)
+        registry.disable_service(GravatarService)
         self.assertIsNone(registry.default_service)
 
     def test_disable_default_from_setter(self):
@@ -503,9 +488,8 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         default services
         """
         registry = AvatarServiceRegistry()
-        registry.enable_service(GravatarService.avatar_service_id)
-        registry.set_default_service(
-            registry.get_avatar_service(GravatarService.avatar_service_id))
+        registry.enable_service(GravatarService)
+        registry.set_default_service(GravatarService)
 
         registry.enabled_services = []
         self.assertIsNone(registry.default_service)
@@ -522,29 +506,20 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
                                               GravatarService]
 
         registry = DummyAvatarServiceRegistry()
-        gravatar_service = registry.get_avatar_service(
-            GravatarService.avatar_service_id)
-        dummy_service = registry.get_avatar_service(
-            DummyAvatarService.avatar_service_id)
-        dummy2_service = registry.get_avatar_service(
-            AnotherDummyAvatarService.avatar_service_id)
-
-        registry.enable_service(GravatarService.avatar_service_id, save=False)
-        registry.enable_service(DummyAvatarService.avatar_service_id,
-                                save=False)
-        registry.enable_service(AnotherDummyAvatarService.avatar_service_id,
-                                save=False)
-        registry.set_default_service(gravatar_service, save=False)
+        registry.enable_service(GravatarService, save=False)
+        registry.enable_service(DummyAvatarService, save=False)
+        registry.enable_service(AnotherDummyAvatarService, save=False)
+        registry.set_default_service(GravatarService, save=False)
 
         # Case 1: Their set avatar service.
-        self.assertEqual(registry.for_user(None), dummy_service)
+        self.assertIsInstance(registry.for_user(None), DummyAvatarService)
 
         # Case 2: A requested avatar service.
-        self.assertEqual(
-            registry.for_user(None,
-                              AnotherDummyAvatarService.avatar_service_id),
-            dummy2_service)
+        self.assertIsInstance(
+            registry.for_user(
+                None, AnotherDummyAvatarService.avatar_service_id),
+            AnotherDummyAvatarService)
 
         # Case 3: The default avatar service
         registry.settings_manager_class._avatar_service_id = None
-        self.assertEqual(registry.for_user(None), gravatar_service)
+        self.assertIsInstance(registry.for_user(None), GravatarService)

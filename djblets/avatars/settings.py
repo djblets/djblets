@@ -9,6 +9,9 @@ class AvatarSettingsManager(object):
     Each user can have different avatar configuration and the settings
     manager is responsible for loading and saving per-user configuration for
     services.
+
+    This class is intended to be sub-classed to be able to provide
+    configuration management for individual users.
     """
 
     def __init__(self, user):
