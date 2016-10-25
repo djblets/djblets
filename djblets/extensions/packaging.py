@@ -1,13 +1,18 @@
+"""Packaging support for extensions."""
+
 from __future__ import unicode_literals
 
 import inspect
 import os
 import re
 import sys
+from distutils.errors import DistutilsExecError
+from fnmatch import fnmatch
 
 import pkg_resources
 from django.core.management import call_command
 from django.utils import six
+from djblets.util.filesystem import is_exe_in_path
 from setuptools.command.build_py import build_py
 from setuptools import Command
 
@@ -30,6 +35,7 @@ class BuildStaticFiles(Command):
     settings module, for use in the DJANGO_SETTINGS_MODULE environment
     variable.
     """
+
     description = 'Build static media files'
     extension_entrypoint_group = None
     django_settings_module = None
@@ -101,6 +107,96 @@ class BuildStaticFiles(Command):
             less_include.add(dirname)
 
         return less_include
+
+    def install_pipeline_deps(self, extension, css_bundles, js_bundles):
+        """Install dependencies needed for the static media pipelining.
+
+        This will install the LessCSS and UglifyJS tools, if needed for the
+        packaging process. These will only be installed if they'd be used,
+        which is determined based on the contents of the bundles.
+
+        Subclasses can override this to support additional tools.
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension being packaged.
+
+            css_bundles (dict):
+                A dictionary of CSS bundles being built for the package.
+
+            js_bundles (dict):
+                A dictionary of JavaScript bundles being built for the package.
+        """
+        from django.conf import settings
+
+        if self.get_bundle_file_matches(css_bundles, '*.less'):
+            self.npm_install('less')
+            settings.PIPELINE_LESS_BINARY = \
+                os.path.join(os.getcwd(), 'node_modules', 'less', 'bin',
+                             'lessc')
+
+        if self.get_bundle_file_matches(js_bundles, '*.js'):
+            self.npm_install('uglifyjs')
+            settings.PIPELINE_UGLIFYJS_BINARY = \
+                os.path.join(os.getcwd(), 'node_modules', 'uglifyjs', 'bin',
+                             'uglifyjs')
+
+    def get_bundle_file_matches(self, bundles, pattern):
+        """Return whether there's any files in a bundle matching a pattern.
+
+        Args:
+            bundles (dict):
+                A dictionary of bundles.
+
+            pattern (unicode):
+                The filename pattern to match against.
+
+        Returns:
+            bool:
+            ``True`` if a filename in one or more bundles matches the pattern.
+            ``False`` if no filenames match.
+        """
+        for bundle_name, bundle_info in six.iteritems(bundles):
+            for filename in bundle_info.get('source_filenames', []):
+                if fnmatch(filename, pattern):
+                    return True
+
+        return False
+
+    def npm_install(self, package_spec):
+        """Install a package via npm.
+
+        This will first determine if npm is available, and then attempt to
+        install the given package.
+
+        Args:
+            package_spec (unicode):
+                The package specification (name and optional version range)
+                to install.
+
+        Raises:
+            distutils.errors.DistutilsExecError:
+                :command:`npm` could not be found, or there was an error
+                installing the package.
+        """
+        if not hasattr(self, '_checked_npm'):
+            if not is_exe_in_path('npm'):
+                raise DistutilsExecError(
+                    'Unable to locate npm in the path, which is needed to '
+                    'install %s. Static media cannot be built.'
+                    % package_spec)
+
+            self._checked_npm = True
+
+        if not os.path.exists('node_modules'):
+            os.mkdir('node_modules', 0755)
+
+        print 'Installing %s...' % package_spec
+        result = os.system('npm install %s' % package_spec)
+
+        if result != 0:
+            raise DistutilsExecError('Installation of %s failed.'
+                                     % package_spec)
 
     def run(self):
         from django.conf import settings
@@ -180,6 +276,9 @@ class BuildStaticFiles(Command):
         if not os.path.exists(static_dir):
             # This extension doesn't define any static files.
             return
+
+        # Install any dependencies that might be needed by the bundles.
+        self.install_pipeline_deps(extension, pipeline_css, pipeline_js)
 
         from djblets.extensions.staticfiles import PackagingFinder
         PackagingFinder.extension_static_dir = static_dir
