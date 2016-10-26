@@ -134,6 +134,7 @@ class AvatarSettingsForm(ConfigPageForm):
         avatar_service_id.choices = [
             (service.avatar_service_id, service.name)
             for service in self.avatar_service_registry.enabled_services
+            if not service.hidden
         ]
         avatar_service = self.avatar_service_registry.for_user(self.user)
 
@@ -173,7 +174,7 @@ class AvatarSettingsForm(ConfigPageForm):
             if not self.avatar_service_registry.is_enabled(avatar_service):
                 avatar_service = None
 
-        if avatar_service is None:
+        if avatar_service is None or avatar_service.hidden:
             raise ValidationError(_('Invalid service ID'))
 
         return avatar_service_id

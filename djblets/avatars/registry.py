@@ -9,6 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 from djblets.avatars.errors import (AvatarServiceNotFoundError,
                                     DisabledServiceError)
 from djblets.avatars.services.gravatar import GravatarService
+from djblets.avatars.services.url import URLAvatarService
 from djblets.avatars.settings import AvatarSettingsManager
 from djblets.registries.registry import (ALREADY_REGISTERED,
                                          ATTRIBUTE_REGISTERED, DEFAULT_ERRORS,
@@ -88,6 +89,7 @@ class AvatarServiceRegistry(Registry):
     #: The default avatar service classes.
     default_avatar_service_classes = [
         GravatarService,
+        URLAvatarService,
     ]
 
     #: The settings manager for avatar services.
@@ -163,7 +165,7 @@ class AvatarServiceRegistry(Registry):
         return (
             self.get_avatar_service(service.avatar_service_id)
             for service in self.enabled_services
-            if service.is_configurable()
+            if service.is_configurable() and not service.hidden
         )
 
     @property

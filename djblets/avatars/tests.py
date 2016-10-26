@@ -13,8 +13,9 @@ from kgb import SpyAgency
 from djblets.avatars.errors import DisabledServiceError
 from djblets.avatars.registry import AvatarServiceRegistry
 from djblets.avatars.settings import AvatarSettingsManager
-from djblets.avatars.services.base import AvatarService
-from djblets.avatars.services.gravatar import GravatarService
+from djblets.avatars.services import (AvatarService,
+                                      GravatarService,
+                                      URLAvatarService)
 from djblets.gravatars import get_gravatar_url_for_email
 from djblets.registries.errors import ItemLookupError
 from djblets.siteconfig.models import SiteConfiguration
@@ -27,6 +28,10 @@ class DummySettingsManager(AvatarSettingsManager):
     @property
     def avatar_service_id(self):
         return self._avatar_service_id
+
+    @avatar_service_id.setter
+    def avatar_service_id(self, value):
+        self._avatar_service_id = value
 
     @property
     def configuration(self):
@@ -61,7 +66,14 @@ class DummySettingsManager(AvatarSettingsManager):
         Returns:
             dict: Configuration for the given avatar service.
         """
-        return self._settings.get(avatar_service_id, {})
+        return self._settings.setdefault(avatar_service_id, {})
+
+    def save(self):
+        """Save the configuration.
+
+        This method intentionally left blank.
+        """
+        pass
 
     def __call__(self, *args, **kwargs):
         """Return the avatar settings manager.
@@ -188,7 +200,7 @@ class AvatarServiceTests(SpyAgency, TestCase):
         self.assertEqual(len(service.get_avatar_urls_uncached.calls), 2)
 
 
-class GravatarServiceTests(SpyAgency, TestCase):
+class GravatarServiceTests(TestCase):
     """Tests for djblets.avatars.services.gravatar."""
 
     def setUp(self):
@@ -221,6 +233,43 @@ class GravatarServiceTests(SpyAgency, TestCase):
         self.assertNotIn('&amp;', urls['1x'])
         self.assertIn('&', urls['2x'])
         self.assertNotIn('&amp;', urls['2x'])
+
+
+class URLAvatarServiceTests(SpyAgency, TestCase):
+    """Tests for djblets.avatars.services.url."""
+
+    def setUp(self):
+        super(URLAvatarServiceTests, self).setUp()
+        self.settings_manager = DummySettingsManager(
+            URLAvatarService.avatar_service_id, {})
+        self.service = URLAvatarService(self.settings_manager)
+
+    def test_setup(self):
+        """Testing URLAvatarService.setup"""
+        urls = {
+            '1x': 'http://example.com/foo.jpg',
+            '2x': 'http://example.com/bar@2x.jpg',
+        }
+        self.service.setup(User(), urls)
+        self.assertEqual(urls,
+                         self.settings_manager.configuration_for(
+                             URLAvatarService.avatar_service_id))
+        self.assertIsNot(urls,
+                         self.settings_manager.configuration_for(
+                             URLAvatarService.avatar_service_id))
+
+    def test_get_urls_uncached(self):
+        """Testing URLAvatarService.get_urls_uncached"""
+        urls = {
+            '1x': 'http://example.com/foo.jpg',
+            '2x': 'http://example.com/bar@2x.jpg',
+        }
+        self.settings_manager.configuration_for(
+            URLAvatarService.avatar_service_id).update(urls)
+
+        self.assertEqual(
+            urls,
+            self.service.get_avatar_urls_uncached(User(), None))
 
 
 class AvatarServiceRegistryTests(SpyAgency, TestCase):
@@ -257,7 +306,7 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
 
         self.assertTrue(registry.is_enabled(GravatarService))
         self.assertSetEqual(set(registry.enabled_services),
-                            set(registry))
+                            {GravatarService})
 
         registry.disable_service(GravatarService)
         self.assertFalse(registry.is_enabled(GravatarService))

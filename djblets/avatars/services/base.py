@@ -8,20 +8,10 @@ from django.template.loader import render_to_string
 class AvatarService(object):
     """A service that provides avatar support.
 
-    At the very least, subclasses must set the :py:attr:`id` and
+    At the very least, subclasses must set the :py:attr:`avatar_service_id` and
     :py:attr:`name` attributes, as well as override the
     :py:meth:`get_avatar_urls` method.
     """
-
-    def __init__(self, settings_manager_class):
-        """Initialize the avatar service.
-
-        Args:
-            settings_manager_class (type):
-                The :py:class`AvatarSettingsManager` subclass to use for
-                managing settings.
-        """
-        self._settings_manager_class = settings_manager_class
 
     #: The avatar service's ID.
     #:
@@ -39,6 +29,22 @@ class AvatarService(object):
     #: This should be a sub-class of
     # :py:class:`djblets.avatars.forms.AvatarServiceConfigForm`.
     config_form_class = None
+
+    #: Whether or not the avatar service is hidden from users.
+    #:
+    #: Hidden avatar services are not exposed to users and are intended to be
+    #: used only internally, such as with extensions providing bots.
+    hidden = False
+
+    def __init__(self, settings_manager_class):
+        """Initialize the avatar service.
+
+        Args:
+            settings_manager_class (type):
+                The :py:class:`AvatarSettingsManager` subclass to use for
+                managing settings.
+        """
+        self._settings_manager_class = settings_manager_class
 
     @classmethod
     def is_configurable(cls):
