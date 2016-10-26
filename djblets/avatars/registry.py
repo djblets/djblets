@@ -129,18 +129,18 @@ class AvatarServiceRegistry(Registry):
         """
         if avatar_service_id not in self._instance_cache:
             try:
-                service = self.get('avatar_service_id', avatar_service_id)
+                service_cls = self.get('avatar_service_id', avatar_service_id)
             except self.lookup_error_class:
-                service = None
+                service_cls = None
 
-            if service:
-                if not self.is_enabled(service):
+            if service_cls:
+                if not self.is_enabled(service_cls):
                     raise DisabledServiceError(self.format_error(
                         DISABLED_SERVICE,
                         service_id=avatar_service_id))
 
-                self._instance_cache[avatar_service_id] = \
-                    service(self.settings_manager_class)
+                service = self._instance_cache[avatar_service_id] = \
+                    service_cls(self.settings_manager_class)
             else:
                 # If get() returns None, that means ExceptionFreeGetterMixin is
                 # used, so we will return None here too. Otherwise, if the
