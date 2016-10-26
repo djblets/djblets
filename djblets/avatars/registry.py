@@ -148,7 +148,7 @@ class AvatarServiceRegistry(Registry):
                 return None
         else:
             service = self._instance_cache[avatar_service_id]
-            assert self.is_enabled(service)
+            assert self.is_enabled(type(service))
 
         return service
 
@@ -231,7 +231,7 @@ class AvatarServiceRegistry(Registry):
         default_service = self.default_service
 
         if (default_service is not None and
-            not self.is_enabled(default_service.avatar_service_id)):
+            not self.is_enabled(type(default_service))):
             self.set_default_service(None)
 
         self.save()
