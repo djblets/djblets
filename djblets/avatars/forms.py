@@ -6,6 +6,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
+from djblets.avatars.errors import AvatarServiceNotFoundError
 from djblets.configforms.forms import ConfigPageForm
 from djblets.registries.errors import ItemLookupError
 
@@ -133,6 +134,7 @@ class AvatarSettingsForm(ConfigPageForm):
         avatar_service_id.choices = [
             (service.avatar_service_id, service.name)
             for service in self.avatar_service_registry.enabled_services
+            if not service.hidden
         ]
         avatar_service = self.avatar_service_registry.for_user(self.user)
 
@@ -142,12 +144,8 @@ class AvatarSettingsForm(ConfigPageForm):
             kwargs['files'] = self.request.FILES
 
         self.avatar_service_forms = {
-            service.avatar_service_id: service.config_form_class(
-                self.settings_manager.configuration_for(
-                    service.avatar_service_id),
-                prefix=service.avatar_service_id,
-                *args,
-                **kwargs)
+            service.avatar_service_id: service.get_configuration_form(
+                self.user, *args, **kwargs)
             for service in self.avatar_service_registry.configurable_services
         }
 
@@ -167,8 +165,16 @@ class AvatarSettingsForm(ConfigPageForm):
         """
         avatar_service_id = self.cleaned_data['avatar_service_id']
 
-        if (not self.avatar_service_registry.has_service(avatar_service_id) or
-            not self.avatar_service_registry.is_enabled(avatar_service_id)):
+        try:
+            avatar_service = self.avatar_service_registry.get(
+                'avatar_service_id', avatar_service_id)
+        except AvatarServiceNotFoundError:
+            avatar_service = None
+        else:
+            if not self.avatar_service_registry.is_enabled(avatar_service):
+                avatar_service = None
+
+        if avatar_service is None or avatar_service.hidden:
             raise ValidationError(_('Invalid service ID'))
 
         return avatar_service_id
@@ -198,7 +204,7 @@ class AvatarSettingsForm(ConfigPageForm):
         avatar_service = self.avatar_service_registry.get_avatar_service(
             avatar_service_id)
 
-        if avatar_service.is_configurable:
+        if avatar_service.is_configurable():
             avatar_service_form = self.avatar_service_forms[avatar_service_id]
             avatar_service_form.is_valid()
 
@@ -218,7 +224,7 @@ class AvatarSettingsForm(ConfigPageForm):
         except ItemLookupError:
             old_avatar_service = None
 
-        if old_avatar_service and old_avatar_service.is_configurable:
+        if old_avatar_service and old_avatar_service.is_configurable():
             old_avatar_service.cleanup(self.user)
             self.settings_manager.configuration.pop(
                 old_avatar_service.avatar_service_id)
@@ -230,7 +236,7 @@ class AvatarSettingsForm(ConfigPageForm):
         )
         self.settings_manager.avatar_service_id = avatar_service_id
 
-        if new_avatar_service.is_configurable:
+        if new_avatar_service.is_configurable():
             avatar_service_form = self.avatar_service_forms[avatar_service_id]
             self.settings_manager.configuration[avatar_service_id] = \
                 avatar_service_form.save()
@@ -265,7 +271,7 @@ class AvatarSettingsForm(ConfigPageForm):
             'serviceID': service.avatar_service_id,
             'services': {
                 service.avatar_service_id: {
-                    'isConfigurable': service.is_configurable,
+                    'isConfigurable': service.is_configurable(),
                 }
                 for service in self.avatar_service_registry.enabled_services
             },

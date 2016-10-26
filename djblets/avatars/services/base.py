@@ -4,26 +4,14 @@ from __future__ import unicode_literals
 
 from django.template.loader import render_to_string
 
-from djblets.avatars.settings import AvatarSettingsManager
-
 
 class AvatarService(object):
     """A service that provides avatar support.
 
-    At the very least, subclasses must set the :py:attr:`id` and
+    At the very least, subclasses must set the :py:attr:`avatar_service_id` and
     :py:attr:`name` attributes, as well as override the
     :py:meth:`get_avatar_urls` method.
     """
-
-    def __init__(self, settings_manager_class=AvatarSettingsManager):
-        """Initialize the avatar service.
-
-        Args:
-            settings_manager_class (type):
-                The :py:class`AvatarSettingsManager` subclass to use for
-                managing settings.
-        """
-        self._settings_manager_class = settings_manager_class
 
     #: The avatar service's ID.
     #:
@@ -42,15 +30,66 @@ class AvatarService(object):
     # :py:class:`djblets.avatars.forms.AvatarServiceConfigForm`.
     config_form_class = None
 
-    @property
-    def is_configurable(self):
-        """Whether or not the service is configurable.
+    #: Whether or not the avatar service is hidden from users.
+    #:
+    #: Hidden avatar services are not exposed to users and are intended to be
+    #: used only internally, such as with extensions providing bots.
+    hidden = False
+
+    def __init__(self, settings_manager_class):
+        """Initialize the avatar service.
+
+        Args:
+            settings_manager_class (type):
+                The :py:class:`AvatarSettingsManager` subclass to use for
+                managing settings.
+        """
+        self._settings_manager_class = settings_manager_class
+
+    @classmethod
+    def is_configurable(cls):
+        """Return whether or not the service is configurable.
 
         Returns:
             bool:
             Whether or not the service is configurable.
         """
-        return self.config_form_class is not None
+        return cls.config_form_class is not None
+
+    def get_configuration_form(self, user, *args, **kwargs):
+        """Return an instantiated configuration form.
+
+        Args:
+            user (django.contrib.auth.models.User):
+                The user.
+
+            *args (tuple):
+                Additional positional arguments to pass to the configuration
+                form constructor.
+
+            **kwargs (dict):
+                Additional keyword arguments to pass to the configuration form
+                constructor.
+
+        Returns:
+            djblets.avatars.forms.AvatarServiceConfigForm:
+            The form, instantiated with the user's configuration, or ``None``
+            if the service is not configurable (i.e., does not have a
+            configuration form).
+        """
+
+        if not self.is_configurable():
+            return None
+
+        configuration = (
+            self._settings_manager_class(user)
+                .configuration_for(self.avatar_service_id)
+        )
+
+        return self.config_form_class(configuration,
+                                      prefix=self.avatar_service_id,
+                                      *args,
+                                      **kwargs)
 
     def get_avatar_urls(self, request, user, size):
         """Render the avatar URLs for the given user.

@@ -78,6 +78,12 @@ class KeyValueForm(forms.Form):
                     return Book.objects.get(pk=value['id'])
     """
 
+    #: The list of CSS bundle names to include on the page.
+    css_bundle_names = []
+
+    #: The list of JavaScript bundle names to include on the page.
+    js_bundle_names = []
+
     def __init__(self, data=None, files=None, instance=None, *args, **kwargs):
         """Initialize the form.
 

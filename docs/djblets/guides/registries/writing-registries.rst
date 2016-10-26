@@ -55,7 +55,8 @@ should override to customize the behaviour:
 
 * :py:attr:`~Registry.lookup_error_class`, which determines the exception class
   for item lookup errors (i.e., when an item cannot be found in the registry).
-  This should be a sub-class of `~djblets.registries.errors.ItemLookupError`.
+  This should be a subclass of
+  :py:class:`~djblets.registries.errors.ItemLookupError`.
 
 
 Overriding Error Messages
@@ -139,11 +140,11 @@ For example:
    class DefaultItemsRegistry(Registry):
        """A registry that provides default items."""
 
-       def default_items(self):
+       def get_defaults(self):
            return [1, 2, 3]
 
 
-The :py:meth:`~Registry.default_items` method can either return an iterable
+The :py:meth:`~Registry.get_defaults` method can either return an iterable
 (such as a :py:class:`list`) or ``yield`` its items, as the result will only
 ever be consumed once
 

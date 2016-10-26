@@ -7,11 +7,18 @@
 
 {% block extrahead %}
 {%  url 'admin:jsi18n' as jsi18nurl %}
-<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />
 <script src="{{jsi18nurl|default:"../../../jsi18n/"}}"></script>
+{{block.super}}
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />
 {%  stylesheet "djblets-admin" %}
 {%  stylesheet "djblets-forms" %}
 {{form.media.render_css|join:''}}
+{%  for bundle_name in form.css_bundle_names %}
+{%   stylesheet bundle_name %}
+{%  endfor %}
 {{block.super}}
 {% endblock %}
 
@@ -22,7 +29,9 @@
         jQuery: jQuery
     };
 </script>
-
+{%  for bundle_name in form.js_bundle_names %}
+{%   javascript bundle_name %}
+{%  endfor %}
 {{block.super}}
 
 {%  javascript "djblets-forms" %}

@@ -9,14 +9,15 @@ from django.utils.translation import ugettext_lazy as _
 from djblets.avatars.errors import (AvatarServiceNotFoundError,
                                     DisabledServiceError)
 from djblets.avatars.services.gravatar import GravatarService
+from djblets.avatars.services.url import URLAvatarService
 from djblets.avatars.settings import AvatarSettingsManager
-from djblets.registries.errors import ItemLookupError
 from djblets.registries.registry import (ALREADY_REGISTERED,
                                          ATTRIBUTE_REGISTERED, DEFAULT_ERRORS,
                                          NOT_REGISTERED, Registry, UNREGISTER)
 from djblets.siteconfig.models import SiteConfiguration
 
 
+DISABLED_SERVICE = 'disabled_service'
 DISABLED_SERVICE_DEFAULT = 'disabled_service_default'
 UNKNOWN_SERVICE_DEFAULT = 'unknown_service_default'
 UNKNOWN_SERVICE_DISABLED = 'unknown_service_disabled'
@@ -33,13 +34,17 @@ AVATAR_SERVICE_DEFAULT_ERRORS.update({
         'Could not register avatar service %(attr_value)s: This service is '
         'already registered.'
     ),
+    DISABLED_SERVICE: _(
+        'Could not fetch instance of %(service_id)s service: This service is '
+        'disabled.'
+    ),
     DISABLED_SERVICE_DEFAULT: _(
         'Could not set the default service to %(service_id)s: This service is '
         'disabled.'
     ),
     NOT_REGISTERED: _(
-        'Could not unregister unknown avatar service %(attr_value)s: This '
-        'service is not registered.'
+        'Unknown avatar service %(attr_value)s: This service is not '
+        'registered.'
     ),
     UNKNOWN_SERVICE_DEFAULT: _(
         'Could not set the default avatar service to %(service_id)s: This '
@@ -84,9 +89,13 @@ class AvatarServiceRegistry(Registry):
     #: The default avatar service classes.
     default_avatar_service_classes = [
         GravatarService,
+        URLAvatarService,
     ]
 
     #: The settings manager for avatar services.
+    #:
+    #: This should be changed in a subclass as the default cannot get or set
+    #: avatar service configurations.
     settings_manager_class = AvatarSettingsManager
 
     def __init__(self):
@@ -95,9 +104,13 @@ class AvatarServiceRegistry(Registry):
 
         self._enabled_services = set()
         self._default_service_id = None
+        self._instance_cache = {}
 
     def get_avatar_service(self, avatar_service_id):
-        """Return the requested avatar service.
+        """Return an instance of the requested avatar service.
+
+        The instance will be instantiated with the
+        :py:attr:`settings_manager_class`.
 
         Args:
             avatar_service_id (unicode):
@@ -110,12 +123,38 @@ class AvatarServiceRegistry(Registry):
         Raises:
             AvatarServiceNotFoundError:
                 Raised if the avatar service cannot be found.
+
+            DisabledServiceError:
+                Raised if the requested service is disabled.
         """
-        return self.get('avatar_service_id', avatar_service_id)
+        if avatar_service_id not in self._instance_cache:
+            try:
+                service_cls = self.get('avatar_service_id', avatar_service_id)
+            except self.lookup_error_class:
+                service_cls = None
+
+            if service_cls:
+                if not self.is_enabled(service_cls):
+                    raise DisabledServiceError(self.format_error(
+                        DISABLED_SERVICE,
+                        service_id=avatar_service_id))
+
+                service = self._instance_cache[avatar_service_id] = \
+                    service_cls(self.settings_manager_class)
+            else:
+                # If get() returns None, that means ExceptionFreeGetterMixin is
+                # used, so we will return None here too. Otherwise, if the
+                # mixin is not used, we will have thrown by now.
+                return None
+        else:
+            service = self._instance_cache[avatar_service_id]
+            assert self.is_enabled(service)
+
+        return service
 
     @property
     def configurable_services(self):
-        """Yield the enabled services that have configuration forms.
+        """Yield the enabled service instances that have configuration forms.
 
         Yields:
             tuple:
@@ -124,9 +163,9 @@ class AvatarServiceRegistry(Registry):
         """
         self.populate()
         return (
-            service
+            self.get_avatar_service(service.avatar_service_id)
             for service in self.enabled_services
-            if service.is_configurable
+            if service.is_configurable() and not service.hidden
         )
 
     @property
@@ -141,7 +180,7 @@ class AvatarServiceRegistry(Registry):
         self.populate()
 
         return {
-            self.get_avatar_service(service_id)
+            self.get('avatar_service_id', service_id)
             for service_id in self._enabled_services
         }
 
@@ -154,9 +193,8 @@ class AvatarServiceRegistry(Registry):
 
         Args:
             services (set):
-                A list of the unique service identifiers (each as
-                :py:class:`~djblets.avatars.service.AvatarService`
-                subclasses).
+                The set of services to set as enabled. Each element must be a
+                subclass of :py:class:`~djblets.avatars.service.AvatarService`.
 
         Raises:
             djblets.avatars.errors.AvatarServiceNotFoundError:
@@ -169,7 +207,7 @@ class AvatarServiceRegistry(Registry):
             services = set(services)
 
         for service in services:
-            if not self.has_service(service.avatar_service_id):
+            if service not in self:
                 raise self.lookup_error_class(self.format_error(
                     UNKNOWN_SERVICE_ENABLED,
                     service_id=service.avatar_service_id))
@@ -183,10 +221,12 @@ class AvatarServiceRegistry(Registry):
         to_disable = self._enabled_services - new_service_ids
 
         for service_id in to_disable:
-            self.disable_service(service_id, save=False)
+            self.disable_service(self.get('avatar_service_id', service_id),
+                                 save=False)
 
         for service_id in to_enable:
-            self.enable_service(service_id, save=False)
+            self.enable_service(self.get('avatar_service_id', service_id),
+                                save=False)
 
         default_service = self.default_service
 
@@ -215,7 +255,7 @@ class AvatarServiceRegistry(Registry):
         """Set the default avatar service.
 
         Args:
-            service (djblets.avatars.service.AvatarService):
+            service (Type[AvatarService]):
                 The avatar service to set as default.
 
             save (bool):
@@ -236,7 +276,7 @@ class AvatarServiceRegistry(Registry):
         elif service not in self:
             raise self.lookup_error_class(self.format_error(
                 UNKNOWN_SERVICE_DEFAULT, service_id=service.avatar_service_id))
-        elif not self.is_enabled(service.avatar_service_id):
+        elif not self.is_enabled(service):
             raise DisabledServiceError(self.format_error(
                 DISABLED_SERVICE_DEFAULT,
                 service_id=service.avatar_service_id))
@@ -257,20 +297,19 @@ class AvatarServiceRegistry(Registry):
             bool: Whether or not the service ID is registered.
         """
         try:
-            # We do this to get around usage of the ExceptionFreeGetterMixin.
-            return self.get_avatar_service(service_id) in self
-        except ItemLookupError:
+            return self.get('avatar_service_id', service_id) in self
+        except self.lookup_error_class:
             return False
 
-    def disable_service(self, service_id, save=True):
+    def disable_service(self, service, save=True):
         """Disable an avatar service.
 
         This has no effect if the service is already disabled. If the default
         service becomes be disabled, it becomes ``None``.
 
         Args:
-            service_id (unicode):
-                The service's unique identifier.
+            service (Type[AvatarService]):
+                The service to disable
 
             save (bool, optional):
                 Whether or not the avatar service registry will be saved to
@@ -281,26 +320,32 @@ class AvatarServiceRegistry(Registry):
             djblets.avatars.errors.AvatarServiceNotFoundError:
                 This is raised if the service is not registered.
         """
-        if not self.has_service(service_id):
+        if service not in self:
             raise self.lookup_error_class(self.format_error(
-                UNKNOWN_SERVICE_DISABLED, service_id=service_id))
+                UNKNOWN_SERVICE_DISABLED,
+                service_id=service.avatar_service_id))
 
-        self._enabled_services.discard(service_id)
-        default_service = self.default_service
+        default_service = type(self.default_service)
+        self._enabled_services.discard(service.avatar_service_id)
 
-        if (default_service is not None and
-            default_service.avatar_service_id == service_id):
+        if default_service is service:
             self.set_default_service(None)
+
+        try:
+            del self._instance_cache[service.avatar_service_id]
+        except KeyError:
+            pass
 
         if save:
             self.save()
 
-    def enable_service(self, service_id, save=True):
+    def enable_service(self, service, save=True):
         """Enable an avatar service.
 
         Args:
-            service_id (unicode):
-                The service's unique identifier.
+            service (type):
+                The service to enable. This must be a subclass of
+                :py:class:`~djblets.avatars.service.AvatarService`.
 
             save (bool, optional):
                 Whether or not the avatar service registry will be saved to the
@@ -310,27 +355,28 @@ class AvatarServiceRegistry(Registry):
             djblets.avatars.errors.AvatarServiceNotFoundError:
                 This is raised if the service is not registered.
         """
-        if not self.has_service(service_id):
+        if service not in self:
             raise self.lookup_error_class(self.format_error(
-                UNKNOWN_SERVICE_ENABLED, service_id=service_id))
+                UNKNOWN_SERVICE_ENABLED, service_id=service.avatar_service_id))
 
-        self._enabled_services.add(service_id)
+        self._enabled_services.add(service.avatar_service_id)
 
         if save:
             self.save()
 
-    def is_enabled(self, service_id):
+    def is_enabled(self, service):
         """Return whether or not the given avatar service is enabled.
 
         Args:
-            service_id (unicode):
-                The service's unique identifier.
+            service (type):
+                The service to check. This must be a ubclass of
+                :py:class:`~djblets.avatars.service.AvatarService`.
 
         Returns:
             bool: Whether or not the service ID is registered.
         """
-        return (self.has_service(service_id) and
-                service_id in self._enabled_services)
+        return (service in self and
+                service.avatar_service_id in self._enabled_services)
 
     def unregister(self, service):
         """Unregister an avatar service.
@@ -338,14 +384,14 @@ class AvatarServiceRegistry(Registry):
         If the service is enabled, it will be disabled.
 
         Args:
-            service (djblets.avatars.services.AvatarService):
+            service (Type[AvatarService]):
                 The avatar service to unregister.
 
         Raises:
             djblets.avatars.errors.AvatarServiceNotFoundError:
                 Raised if the specified service cannot be found.
         """
-        self.disable_service(service.avatar_service_id)
+        self.disable_service(service)
         super(AvatarServiceRegistry, self).unregister(service)
 
     def populate(self):
@@ -369,7 +415,9 @@ class AvatarServiceRegistry(Registry):
         if avatar_service_ids:
             for avatar_service_id in avatar_service_ids:
                 if self.has_service(avatar_service_id):
-                    self.enable_service(avatar_service_id, save=False)
+                    self.enable_service(
+                        self.get('avatar_service_id', avatar_service_id),
+                        save=False)
                 else:
                     logging.error(self.format_error(
                         UNKNOWN_SERVICE_ENABLED, service_id=avatar_service_id))
@@ -381,7 +429,7 @@ class AvatarServiceRegistry(Registry):
                 default_service = self.get('avatar_service_id',
                                            default_service_id)
                 self.set_default_service(default_service)
-            except ItemLookupError:
+            except self.lookup_error_class:
                 logging.error(self.format_error(UNKNOWN_SERVICE_DEFAULT,
                                                 service_id=default_service_id))
             except DisabledServiceError:
@@ -397,7 +445,7 @@ class AvatarServiceRegistry(Registry):
         most cases.
         """
         for service_class in self.default_avatar_service_classes:
-            yield service_class(self.settings_manager_class)
+            yield service_class
 
     def save(self):
         """Save the list of enabled avatar services to the database."""
@@ -431,9 +479,12 @@ class AvatarServiceRegistry(Registry):
         user_service_id = settings_manager.avatar_service_id
 
         for sid in (service_id, user_service_id):
-            if (sid is not None and
-                self.has_service(sid) and
-                self.is_enabled(sid)):
+            if sid is None or not self.has_service(sid):
+                continue
+
+            service = self.get('avatar_service_id', sid)
+
+            if self.is_enabled(service):
                 return self.get_avatar_service(sid)
 
         return self.default_service
