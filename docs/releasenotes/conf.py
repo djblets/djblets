@@ -30,6 +30,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(__file__, '..', '..', '..')))
 sys.path.insert(0, os.path.dirname(__file__))
 
 import djblets
+from djblets.dependencies import django_doc_major_version
 
 
 # General configuration
@@ -204,6 +205,3 @@ latex_documents = [
 
 # If false, no module index is generated.
 #latex_use_modindex = True
-
-
-# Example configuration for intersphinx: refer to the Python standard library.
