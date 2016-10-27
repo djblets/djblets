@@ -8,10 +8,12 @@ scripts_dir = os.path.abspath(os.path.dirname(__file__))
 # Source root directory
 sys.path.insert(0, os.path.abspath(os.path.join(scripts_dir, '..', '..')))
 
-from djblets import django_version
+from djblets.dependencies import django_version
 
 import __main__
-__main__.__requires__ = [django_version]
+__main__.__requires__ = ['Django' + django_version]
+
+# This is required to re-import.
 import pkg_resources
 
 from django.core.management import call_command

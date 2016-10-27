@@ -30,6 +30,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(__file__, '..', '..', '..')))
 sys.path.insert(0, os.path.dirname(__file__))
 
 import djblets
+from djblets.dependencies import django_doc_major_version
 
 
 # General configuration
@@ -209,9 +210,9 @@ latex_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'django': ('https://docs.djangoproject.com/en/%s/'
-               % djblets.django_major_version,
+               % django_doc_major_version,
                'https://docs.djangoproject.com/en/%s/_objects/'
-               % djblets.django_major_version),
+               % django_doc_major_version),
     'python': ('https://docs.python.org/2.7', None),
     'djblets': ('https://www.reviewboard.org/docs/djblets/dev/', None),
 }

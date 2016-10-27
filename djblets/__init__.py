@@ -36,13 +36,6 @@ from __future__ import unicode_literals
 VERSION = (0, 9, 5, 'alpha', 0, False)
 
 
-#: The major version of Django we're using.
-django_major_version = '1.6'
-
-# Required version of Django
-django_version = 'Django>=1.6.11,<1.8.999'
-
-
 def get_version_string():
     version = '%s.%s' % (VERSION[0], VERSION[1])
 
