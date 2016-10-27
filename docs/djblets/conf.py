@@ -25,9 +25,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'djblets.settings')
 
-import djblets
-
 from beanbag_docutils.sphinx.ext.github import github_linkcode_resolve
+
+import djblets
+from djblets.dependencies import django_doc_major_version
 
 
 # General configuration
@@ -218,7 +219,7 @@ latex_documents = [
 
 intersphinx_mapping = {
     'django': ('http://django.readthedocs.io/en/%s.x/'
-               % djblets.django_major_version,
+               % django_doc_major_version,
                None),
     'python': ('https://docs.python.org/2.7', None),
     'reviewboard': ('https://www.reviewboard.org/docs/manual/2.5/', None),
