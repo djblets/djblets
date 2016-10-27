@@ -3,8 +3,11 @@ _build
 dist
 djblets/htdocs/*
 Djblets.egg-info
+node_modules
+package.json
 
 .coverage
+.noseids
 
 *.rej
 *.orig
