@@ -4,8 +4,11 @@ dist
 djblets/htdocs/*
 Djblets.egg-info
 docs/djblets/coderef/python
+node_modules
+package.json
 
 .coverage
+.noseids
 
 *.rej
 *.orig
