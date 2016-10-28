@@ -42,6 +42,14 @@
                 url: '.',
                 success: function() {
                     window.location = "{{success_url|escapejs}}";
+                },
+                beforeSend: function(xhr) {
+                    var csrfToken = $('input[name="csrfmiddlewaretoken"]')
+                        .val();
+
+                    if (csrfToken) {
+                        xhr.setRequestHeader('X-CSRFToken', csrfToken);
+                    }
                 }
             });
         }
