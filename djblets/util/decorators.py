@@ -33,6 +33,7 @@ import warnings
 from django import template
 from django.conf import settings
 from django.template import TemplateSyntaxError, Variable
+from django.utils.functional import cached_property as django_cached_property
 
 
 # The decorator decorator.  This is copyright unknown, verbatim from
@@ -235,6 +236,31 @@ def blocktag(*args, **kwargs):
     else:
         # This is being called in the @blocktag(...) form.
         return _blocktag_func
+
+
+class cached_property(django_cached_property):
+    """Decorator for creating a read-only property that caches a value.
+
+    This is a drop-in replacement for Django's
+    :py:class:`~django.utils.functional.cached_property` that retains the
+    docstring and attributes of the original method.
+
+    While Django 1.8+ does retain the docstring, it does not retain the
+    attributes.
+    """
+
+    def __init__(self, func):
+        """Initialize the property.
+
+        Args:
+            func (callable):
+                The function that will be called when this property is
+                accessed. The property will have its name, documentation,
+                and other attributes.
+        """
+        super(cached_property, self).__init__(func)
+
+        update_wrapper(self, func)
 
 
 @simple_decorator
