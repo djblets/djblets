@@ -140,7 +140,10 @@ class DevelopCommand(develop):
             RuntimeError:
                 The :command:`pip` command returned a non-zero exit code.
         """
-        cmd = subprocess.list2cmdline([sys.executable, '-m', 'pip'] + args)
+        # NOTE: We need to do pip.__main__ to support Python 2.6. This is not
+        #       required (but does work) for Python 2.7+.
+        cmd = subprocess.list2cmdline([sys.executable, '-m', 'pip.__main__'] +
+                                      args)
         ret = os.system(cmd)
 
         if ret != 0:
