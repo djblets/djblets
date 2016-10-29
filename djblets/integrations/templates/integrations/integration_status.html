@@ -1,0 +1,10 @@
+{% load i18n %}
+{% if config.enabled %}
+ <span class="fa fa-check" aria-hidden="true"></span>
+{% else %}
+ <span class="fa fa-ban" aria-hidden="true"></span>
+{% endif %}
+ <a href="{% url 'integration-change-config' integration.integration_id config.pk %}">{{config.name}}</a>
+{% if not config.enabled %}
+ {% trans "(Disabled)" %}
+{% endif %}

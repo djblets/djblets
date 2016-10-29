@@ -69,11 +69,12 @@ class BaseIntegrationListView(NeedsIntegrationManagerMixin, TemplateView):
 
         for integration in integration_manager.get_integrations():
             integrations_data[integration.integration_id] = {
-                'id': integration.integration_id,
-                'name': integration.name,
+                'configs': [],
                 'description': integration.description,
                 'icons': integration.icon_static_urls,
-                'configs': [],
+                'id': integration.integration_id,
+                'instance': integration,
+                'name': integration.name,
             }
 
         for config in self.get_configs_queryset():
