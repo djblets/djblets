@@ -2,6 +2,8 @@
 
 from __future__ import unicode_literals
 
+from django.template.loader import render_to_string
+
 from djblets.integrations.forms import IntegrationConfigForm
 
 
@@ -214,3 +216,24 @@ class Integration(object):
             config.save()
 
         return config
+
+    def render_config_status(self, config):
+        """Render the status for the given configuration.
+
+        By default, this will just indicate whether or not the integration
+        config is enabled or disabled. Subclasses may override this to
+        customize the rendering (in the case where there may be multiple
+        statuses).
+
+        Args:
+            config (djblets.integrations.models.IntegrationConfig):
+                The configuration to render the status for.
+
+        Returns:
+            django.utils.safestring.SafeText:
+            The integration's status as rendered HTML.
+        """
+        return render_to_string('integrations/integration_status.html', {
+            'integration': self,
+            'config': config,
+        })

@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 import inspect
+import json
 import os
 import re
 import sys
@@ -12,9 +13,13 @@ from fnmatch import fnmatch
 import pkg_resources
 from django.core.management import call_command
 from django.utils import six
-from djblets.util.filesystem import is_exe_in_path
 from setuptools.command.build_py import build_py
 from setuptools import Command
+
+from djblets.dependencies import (babel_npm_dependencies,
+                                  lesscss_npm_dependencies,
+                                  uglifyjs_npm_dependencies)
+from djblets.util.filesystem import is_exe_in_path
 
 
 class BuildStaticFiles(Command):
@@ -127,19 +132,56 @@ class BuildStaticFiles(Command):
             js_bundles (dict):
                 A dictionary of JavaScript bundles being built for the package.
         """
-        from django.conf import settings
+        from pipeline.conf import settings as pipeline_settings
+
+        build_dir = os.path.join(os.getcwd(), 'build')
+        node_modules_dir = os.path.join(build_dir, 'node_modules')
+
+        if not os.path.exists(build_dir):
+            os.mkdir(build_dir, 0755)
+
+        if not os.path.exists(node_modules_dir):
+            os.mkdir(node_modules_dir, 0755)
+
+        dependencies = {}
 
         if self.get_bundle_file_matches(css_bundles, '*.less'):
-            self.npm_install('less')
-            settings.PIPELINE_LESS_BINARY = \
-                os.path.join(os.getcwd(), 'node_modules', 'less', 'bin',
-                             'lessc')
+            dependencies.update(lesscss_npm_dependencies)
+
+            pipeline_settings.LESS_BINARY = \
+                os.path.join(node_modules_dir, 'less', 'bin', 'lessc')
 
         if self.get_bundle_file_matches(js_bundles, '*.js'):
-            self.npm_install('uglifyjs')
-            settings.PIPELINE_UGLIFYJS_BINARY = \
-                os.path.join(os.getcwd(), 'node_modules', 'uglifyjs', 'bin',
-                             'uglifyjs')
+            dependencies.update(uglifyjs_npm_dependencies)
+
+            pipeline_settings.UGLIFYJS_BINARY = \
+                os.path.join(node_modules_dir, 'uglifyjs', 'bin', 'uglifyjs')
+
+            if self.get_bundle_file_matches(js_bundles, '*.es6.js'):
+                dependencies.update(babel_npm_dependencies)
+
+                pipeline_settings.BABEL_BINARY = \
+                    os.path.join(node_modules_dir, 'babel-cli', 'bin',
+                                 'babel.js')
+
+        package_file = os.path.join(build_dir, 'package.json')
+
+        with open(package_file, 'w') as fp:
+            fp.write(json.dumps(
+                {
+                    'name': '%s-extension' % os.path.basename(os.getcwd()),
+                    'private': 'true',
+                    'devDependencies': {},
+                    'dependencies': dependencies,
+                },
+                indent=2))
+
+        old_cwd = os.getcwd()
+        os.chdir(build_dir)
+
+        self.npm_install()
+
+        os.chdir(old_cwd)
 
     def get_bundle_file_matches(self, bundles, pattern):
         """Return whether there's any files in a bundle matching a pattern.
@@ -163,16 +205,17 @@ class BuildStaticFiles(Command):
 
         return False
 
-    def npm_install(self, package_spec):
+    def npm_install(self, package_spec=None):
         """Install a package via npm.
 
         This will first determine if npm is available, and then attempt to
         install the given package.
 
         Args:
-            package_spec (unicode):
+            package_spec (unicode, optional):
                 The package specification (name and optional version range)
-                to install.
+                to install. If not specified, this will use the default
+                behavior of reading :file:`package.json`.
 
         Raises:
             distutils.errors.DistutilsExecError:
@@ -188,15 +231,20 @@ class BuildStaticFiles(Command):
 
             self._checked_npm = True
 
-        if not os.path.exists('node_modules'):
-            os.mkdir('node_modules', 0755)
+        if package_spec:
+            # Ensure there's a node_modules directory here, so it doesn't
+            # install higher up in the directory hierarchy.
+            if not os.path.exists('node_modules'):
+                os.mkdir('node_modules', 0755)
 
-        print 'Installing %s...' % package_spec
-        result = os.system('npm install %s' % package_spec)
+            print 'Installing %s...' % package_spec
+            result = os.system('npm install %s' % package_spec)
+        else:
+            print 'Installing node packages...'
+            result = os.system('npm install')
 
         if result != 0:
-            raise DistutilsExecError('Installation of %s failed.'
-                                     % package_spec)
+            raise DistutilsExecError('Installation from npm failed.')
 
     def run(self):
         from django.conf import settings
