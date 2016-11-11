@@ -34,6 +34,7 @@ uglifyjs_npm_dependencies = {
 babel_npm_dependencies = {
     'babel-cli': '6.5.1',
     'babel-preset-es2015': '6.5.0',
+    'babel-plugin-dedent': '2.0.0',
 }
 
 #: All static media dependencies required to package/develop against  Djblets.
