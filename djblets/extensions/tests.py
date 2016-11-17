@@ -326,14 +326,14 @@ class ExtensionTest(SpyAgency, TestCase):
         for hook in self.extension.hooks:
             self.assertFalse(hook.shutdown.called)
 
-    def test_get_admin_urlconf(self):
+    def test_admin_urlconf(self):
         """Testing Extension with admin URLConfs"""
         did_fail = False
         old_module = self.extension.__class__.__module__
         self.extension.__class__.__module__ = 'djblets.extensions.test.test'
 
         try:
-            self.extension._get_admin_urlconf()
+            self.extension.admin_urlconf
         except ImproperlyConfigured:
             did_fail = True
         finally:
