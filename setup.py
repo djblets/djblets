@@ -88,6 +88,26 @@ class DevelopCommand(develop):
             develop.install_for_development(self)
             return
 
+        try:
+            subprocess.check_output(['node', '--version'])
+        except (subprocess.CalledProcessError, OSError):
+            try:
+                subprocess.check_output(['nodejs', '--version'])
+
+                raise RuntimeError(
+                    'Unable to find "node" in the path, but "nodejs" was '
+                    'found. You will need to ensure "nodejs" can be run '
+                    'by typing "node". You can do this by typing `ln -s '
+                    'nodejs node` in the directory containing "nodejs".')
+            except:
+                # nodejs wasn't found, which is fine. We want to ignore this.
+                pass
+
+            raise RuntimeError(
+                'Unable to find "node" in the path. You will need to '
+                'install a modern version of NodeJS and ensure you can '
+                'run it by typing "node" on the command line.')
+
         # Install the latest pip and setuptools. Note that the order here
         # matters, as otherwise a stale setuptools can be left behind,
         # causing installation errors.
@@ -251,7 +271,7 @@ class InstallNodeDependenciesCommand(Command):
             npm_command = 'npm'
 
         try:
-            subprocess.check_call([npm_command, '--version'])
+            subprocess.check_output([npm_command, '--version'])
         except subprocess.CalledProcessError:
             raise RuntimeError(
                 'Unable to locate %s in the path, which is needed to '
