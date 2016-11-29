@@ -523,3 +523,30 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook):
     @classmethod
     def by_name(cls, name):
         return cls._by_name.get(name, [])
+
+
+class BaseRegistryHook(ExtensionHook):
+    """A hook for registering items with registries.
+
+    This hook should not be used directly. Instead, it should be subclassed
+    with the :py:attr:`registry` attribute set.
+
+    Subclasses must use the :py:class:`ExtensionHookPoint` metaclass.
+    """
+
+    #: The registry to register items with.
+    registry = None
+
+    def initialize(self, item):
+        """Initialize the registry hook with the item.
+
+        Args:
+            item (object):
+                The object to register.
+        """
+        self.item = item
+        self.registry.register(item)
+
+    def shutdown(self):
+        """Shut down the registry hook and unregister the item."""
+        self.registry.unregister(self.item)
