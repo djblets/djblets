@@ -46,13 +46,14 @@ from djblets.datagrid.grids import Column, DataGrid
 from djblets.extensions.extension import Extension, ExtensionInfo
 from djblets.extensions.forms import SettingsForm
 from djblets.extensions.hooks import (DataGridColumnsHook, ExtensionHook,
-                                      ExtensionHookPoint, SignalHook,
-                                      TemplateHook, URLHook)
+                                      ExtensionHookPoint, BaseRegistryHook,
+                                      SignalHook, TemplateHook, URLHook)
 from djblets.extensions.manager import (ExtensionManager, SettingListWrapper,
                                         get_extension_managers)
 from djblets.extensions.settings import Settings
 from djblets.extensions.signals import settings_saved
 from djblets.extensions.views import configure_extension
+from djblets.registries.registry import Registry
 from djblets.testing.testcases import TestCase
 
 
@@ -1208,6 +1209,50 @@ class DataGridColumnsHookTest(SpyAgency, TestCase):
         hook.shutdown()
 
         self.assertTrue(DataGrid.remove_column.called)
+
+
+class BaseRegistryHookTests(TestCase):
+    """Tests for BaseRegistryHooks."""
+
+    class DummyRegistry(Registry):
+        lookup_attrs = ('foo_id',)
+
+    class DummyItem(object):
+        def __init__(self, foo_id):
+            self.foo_id = foo_id
+
+    def setUp(self):
+        super(BaseRegistryHookTests, self).setUp()
+
+        self.registry = self.DummyRegistry()
+
+        @six.add_metaclass(ExtensionHookPoint)
+        class DummyRegistryHook(BaseRegistryHook):
+            registry = self.registry
+
+        self.hook_cls = DummyRegistryHook
+
+        self.manager = ExtensionManager('')
+        self.extension = \
+            TestExtensionWithRegistration(extension_manager=self.manager)
+
+    def test_hook_register(self):
+        """Testing BaseRegistryHook item registration"""
+        self.assertEqual(list(self.registry), [])
+
+        item = self.DummyItem(123)
+        self.hook_cls(self.extension, item)
+
+        self.assertIn(item, self.registry)
+
+    def test_hook_unregister(self):
+        """Testing BaseRegistryHook item unregistration"""
+        self.assertEqual(list(self.registry), [])
+        item = self.DummyItem(123)
+        self.hook_cls(self.extension, item)
+
+        self.extension.shutdown()
+        self.assertEqual(list(self.registry), [])
 
 
 class ViewTests(SpyAgency, TestCase):
