@@ -34,3 +34,16 @@ class GravatarService(AvatarService):
                 email=user.email, size=(size * resolution)))
             for resolution in (1, 2, 3)
         }
+
+    def get_etag_data(self, user):
+        """Return the ETag data for the user's avatar.
+
+        Args:
+            user (django.contrib.auth.models.User):
+                The user.
+
+        Returns:
+            list of unicode:
+            The uniquely identifying information for the user's avatar.
+        """
+        return [self.avatar_service_id, user.email]
