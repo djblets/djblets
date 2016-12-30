@@ -93,15 +93,15 @@ class DevelopCommand(develop):
         except (subprocess.CalledProcessError, OSError):
             try:
                 subprocess.check_output(['nodejs', '--version'])
-
+            except:
+                # nodejs wasn't found, which is fine. We want to ignore this.
+                pass
+            else:
                 raise RuntimeError(
                     'Unable to find "node" in the path, but "nodejs" was '
                     'found. You will need to ensure "nodejs" can be run '
                     'by typing "node". You can do this by typing `ln -s '
                     'nodejs node` in the directory containing "nodejs".')
-            except:
-                # nodejs wasn't found, which is fine. We want to ignore this.
-                pass
 
             raise RuntimeError(
                 'Unable to find "node" in the path. You will need to '
