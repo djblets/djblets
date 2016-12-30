@@ -305,7 +305,7 @@ class InstallNodeDependenciesCommand(Command):
 
         try:
             subprocess.check_output([npm_command, '--version'])
-        except subprocess.CalledProcessError:
+        except (subprocess.CalledProcessError, OSError):
             raise RuntimeError(
                 'Unable to locate %s in the path, which is needed to '
                 'install dependencies required to build this package.'
