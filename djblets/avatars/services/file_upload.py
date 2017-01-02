@@ -2,6 +2,8 @@
 
 from __future__ import unicode_literals
 
+from hashlib import md5
+
 from django.core.exceptions import ValidationError
 from django.core.files.storage import DefaultStorage
 from django.forms import forms
@@ -58,13 +60,18 @@ class FileUploadAvatarForm(AvatarServiceConfigForm):
 
         file_path = self.cleaned_data['avatar_upload'].name
         file_path = storage.get_valid_name(file_path)
+        file_data = self.cleaned_data['avatar_upload'].read()
 
         with storage.open(file_path, 'wb') as f:
-            f.write(self.cleaned_data['avatar_upload'].read())
+            f.write(file_data)
+
+        file_hash = md5()
+        file_hash.update(file_data)
 
         return {
             'absolute_url': storage.url(file_path),
             'file_path': file_path,
+            'file_hash': file_hash.hexdigest(),
         }
 
 
@@ -115,5 +122,37 @@ class FileUploadService(AvatarService):
         configuration = settings_manager.configuration_for(
             self.avatar_service_id)
 
+        del configuration['file_hash']
+        settings_manager.save()
+
         storage = DefaultStorage()
         storage.delete(configuration['file_path'])
+
+    def get_etag_data(self, user):
+        """Return the ETag data for the user's avatar.
+
+        Args:
+            user (django.contrib.auth.models.User):
+                The user.
+
+        Returns:
+            list of unicode:
+            The uniquely identifying information for the user's avatar.
+        """
+        settings_manager = self._settings_manager_class(user)
+        configuration = \
+            settings_manager.configuration_for(self.avatar_service_id)
+
+        file_hash = configuration.get('file_hash')
+
+        if not file_hash:
+            storage = DefaultStorage()
+            file_hash = md5()
+
+            with storage.open(configuration['file_path'], 'rb') as f:
+                file_hash = file_hash.update(f.read())
+
+            configuration['file_hash'] = file_hash.hexdigest()
+            settings_manager.save()
+
+        return [self.avatar_service_id, file_hash]

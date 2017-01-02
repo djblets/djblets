@@ -75,3 +75,26 @@ class URLAvatarService(AvatarService):
             self._settings_manager_class(user)
             .configuration_for(self.avatar_service_id)
         )
+
+    def get_etag_data(self, user):
+        """Return the ETag data for the user's avatar.
+
+        Args:
+            user (django.contrib.auth.models.User):
+                The user.
+
+        Returns:
+            list of unicode:
+            The uniquely identifying information for the user's avatar.
+        """
+        urls = self._settings_manager_class(user).configuration_for(
+            self.avatar_service_id)
+
+        data = [self.avatar_service_id]
+
+        # The sort order here does not matter as long as it is consistent.
+        for key in sorted(urls):
+            data.append(key)
+            data.append(urls[key])
+
+        return data

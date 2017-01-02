@@ -211,3 +211,25 @@ class AvatarService(object):
                 The user who is no longer using the service.
         """
         pass
+
+    def get_etag_data(self, user):
+        """Return ETag data for the user's avatar.
+
+        ETags (Entity Tags) are used in caching HTTP request results. The data
+        returned by this function should be a list of
+        :py:class:`unicode strings <unicode>` that uniquely represent the
+        avatar service and its configuration.
+
+        Subclasses must implement this method.
+
+        Args:
+            user (django.contrib.auth.models.User):
+                The user.
+
+        Returns:
+            list of unicode:
+            The uniquely identifying information for the user's avatar.
+        """
+        raise NotImplementedError(
+            '%s must implement get_etag_data' % type(self).__name__
+        )
