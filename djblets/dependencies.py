@@ -46,7 +46,12 @@ npm_dependencies.update(babel_npm_dependencies)
 #: All dependencies required to install Djblets.
 package_dependencies = {
     'Django': django_version,
-    'django-pipeline': '>=1.6.8,<1.6.9999',
+
+    # NOTE: 1.6.10 has a cache computation bug, causing a recompile on every
+    #       page view. 1.6.11 should contain the fix, at which point we can
+    #       update this dependency.
+    'django-pipeline': '==1.6.9',
+
     'dnspython': '>=1.14.0',
     'feedparser': '>=5.1.2',
     'pillowfight': '',

@@ -54,8 +54,7 @@ def run_tests(verbosity=1, interactive=False):
             '--cover-package=djblets',
         ]
 
-    if len(sys.argv) > 2:
-        nose_argv += sys.argv[2:]
+    nose_argv += sys.argv[1:]
 
     # If the test files are executable on the file system, nose will need the
     #  --exe argument to run them
