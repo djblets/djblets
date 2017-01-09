@@ -25,6 +25,15 @@ if sys.hexversion < 0x02060000:
     sys.exit(1)
 
 
+# We want to use subprocess.check_output to see if certain commands can be run,
+# but on Python 2.6 we don't have this. Instead, use subprocess.check_call
+# (which will display any results to stdout).
+if hasattr(subprocess, 'check_output'):
+    check_run = subprocess.check_output
+else:
+    check_run = subprocess.check_call
+
+
 class BuildEggInfoCommand(egg_info):
     """Build the egg information for the package.
 
@@ -89,10 +98,10 @@ class DevelopCommand(develop):
             return
 
         try:
-            subprocess.check_output(['node', '--version'])
+            check_run(['node', '--version'])
         except (subprocess.CalledProcessError, OSError):
             try:
-                subprocess.check_output(['nodejs', '--version'])
+                check_run(['nodejs', '--version'])
             except:
                 # nodejs wasn't found, which is fine. We want to ignore this.
                 pass
@@ -304,7 +313,7 @@ class InstallNodeDependenciesCommand(Command):
             npm_command = 'npm'
 
         try:
-            subprocess.check_output([npm_command, '--version'])
+            check_run([npm_command, '--version'])
         except (subprocess.CalledProcessError, OSError):
             raise RuntimeError(
                 'Unable to locate %s in the path, which is needed to '
