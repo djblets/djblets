@@ -1,15 +1,31 @@
 from __future__ import unicode_literals
 
+import re
 import uuid
 
 from django.core.urlresolvers import ResolverMatch
 from django.http import HttpRequest
 from django.template import Context, Template
 
+from djblets.extensions.extension import JSExtension
 from djblets.extensions.hooks import TemplateHook
 from djblets.extensions.tests import (FakeEntryPoint, TestExtensionManager,
                                       TestExtensionWithRegistration)
 from djblets.testing.testcases import TestCase
+
+
+class TestJSExtension(JSExtension):
+    model_class = 'FooNew'
+
+    def get_model_data(self, request, **kwargs):
+        return {'test': 'new'}
+
+
+class TestJSExtensionDeprecated(JSExtension):
+    model_class = 'FooOld'
+
+    def get_model_data(self):
+        return {'test': 'old'}
 
 
 class TemplateTagTests(TestCase):
@@ -29,6 +45,8 @@ class TemplateTagTests(TestCase):
                 'apply_to': ['foo'],
             },
         }
+
+        js_extensions = [TestJSExtension, TestJSExtensionDeprecated]
 
     def setUp(self):
         self.key = uuid.uuid4()
@@ -145,3 +163,26 @@ class TemplateTagTests(TestCase):
             'default.min.js\n'
             '/ext/djblets.extensions.templatetags.tests.TestExtension/js/'
             'optional.min.js\n')
+
+    def test_init_js_extensions(self):
+        """Testing init_js_extensions template tag"""
+        t = Template('{% load djblets_extensions %}'
+                     '{% init_js_extensions manager_id %}')
+
+        self.manager.load()
+        self.manager.enable_extension(self.extension.id)
+        self.request.resolver_match = ResolverMatch(None, None, None, 'foo')
+
+        content = t.render(Context({
+            'ext': self.extension,
+            'manager_id': self.key,
+            'request': self.request,
+        }))
+
+        self.assertIsNotNone(re.search(
+            r'new FooNew\({\s+"test": "new",',
+            content))
+
+        self.assertIsNotNone(re.search(
+            r'new FooOld\({\s+"test": "old",',
+            content))
