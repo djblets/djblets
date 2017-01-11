@@ -1,16 +1,16 @@
 {% load djblets_js %}
 
-{% if js_extensions %}
+{% if js_extension_items %}
 <script>
-{%  for js_extension in js_extensions %}
-    new {{js_extension.model_class}}({
-{%   for key, value in js_extension.get_model_data.items %}
+{%  for item in js_extension_items %}
+    new {{item.js_extension.model_class}}({
+{%   for key, value in item.model_data.items %}
         {{key|json_dumps}}: {{value|json_dumps}},
 {%   endfor %}
-        id: '{{js_extension.extension.id}}',
-        name: '{{js_extension.extension.info.name|escapejs}}',
+        id: '{{item.js_extension.extension.id}}',
+        name: '{{item.js_extension.extension.info.name|escapejs}}',
         urlName: '{{url_name}}',
-        settings: {{js_extension.get_settings|json_dumps}}
+        settings: {{item.js_extension.get_settings|json_dumps}}
     });
 {%  endfor %}
 </script>

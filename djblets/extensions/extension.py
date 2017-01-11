@@ -99,12 +99,16 @@ class JSExtension(object):
         """
         return self.apply_to is None or url_name in self.apply_to
 
-    def get_model_data(self):
+    def get_model_data(self, request, **kwargs):
         """Return model data for the Extension model instance in JavaScript.
 
         Subclasses can override this to return custom data to pass to
         the extension class defined in :js:attr:`model_class`. This data must
         be JSON-serializable.
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
 
         Returns:
             dict:

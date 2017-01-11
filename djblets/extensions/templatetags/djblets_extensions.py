@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 
+import inspect
 import logging
+import warnings
 
 from django import template
 from django.utils import six
@@ -328,7 +330,8 @@ def init_js_extensions(context, extension_manager_key):
     Each extension's required JavaScript files will be loaded in the page,
     and their JavaScript-side Extension subclasses will be instantiated.
     """
-    url_name = context['request'].resolver_match.url_name
+    request = context['request']
+    url_name = request.resolver_match.url_name
 
     for manager in get_extension_managers():
         if manager.key == extension_manager_key:
@@ -341,9 +344,29 @@ def init_js_extensions(context, extension_manager_key):
                     if js_extension.applies_to(url_name):
                         js_extensions.append(js_extension)
 
+            js_extension_items = []
+
+            for js_extension in js_extensions:
+                arg_spec = inspect.getargspec(js_extension.get_model_data)
+
+                if arg_spec.keywords is None:
+                    warnings.warn(
+                        '%s.get_model_data will need to take keyword '
+                        'arguments. The old function signature is deprecated.'
+                        % js_extension_cls.__name__)
+
+                    model_data = js_extension.get_model_data()
+                else:
+                    model_data = js_extension.get_model_data(request=request)
+
+                js_extension_items.append({
+                    'js_extension': js_extension,
+                    'model_data': model_data,
+                })
+
             return {
                 'url_name': url_name,
-                'js_extensions': js_extensions,
+                'js_extension_items': js_extension_items,
             }
 
     return {}
