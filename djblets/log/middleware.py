@@ -32,8 +32,10 @@ import time
 import traceback
 
 from django.conf import settings
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.db import connection
 from django.db.backends import util
+from django.http import Http404
 from django.utils import six
 from django.utils.six.moves import cStringIO as StringIO
 
@@ -148,6 +150,12 @@ class LoggingMiddleware(object):
     ``WARNING``, ``ERROR`` and ``CRITICAL``.
     """
 
+    #: Exceptions that should be ignored by this logger.
+    #:
+    #: Each of these are handled by Django itself on the HTTP layer. We don't
+    #: want to do any extra/unwanted logging of these.
+    ignored_exceptions = (Http404, PermissionDenied, SuspiciousOperation)
+
     def process_request(self, request):
         """
         Processes an incoming request. This will set up logging.
@@ -235,11 +243,24 @@ class LoggingMiddleware(object):
         return response
 
     def process_exception(self, request, exception):
-        """Handle for exceptions on a page.
+        """Handle exceptions raised on a page.
 
         Logs the exception, along with the username and path where the
         exception occurred.
+
+        Exceptions normally handled by Django's HTTP layer will be ignored.
+        This helps avoid extraneous logging for 404 and Permission Denied
+        errors.
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request for the page.
+
+            exception (Exception):
+                The exception that was raised.
         """
-        logging.error("Exception thrown for user %s at %s\n\n%s",
-                      request.user, request.build_absolute_uri(),
-                      exception, exc_info=1)
+        if not isinstance(exception, self.ignored_exceptions):
+            logging.exception('Exception thrown for user %s at %s\n\n%s',
+                              request.user, request.build_absolute_uri(),
+                              exception,
+                              request=request)
