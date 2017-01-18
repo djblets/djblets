@@ -50,7 +50,13 @@ class ForwardingCacheBackend(object):
         backend to be picked up.
         """
         if self._backend:
-            self._backend.close()
+            try:
+                self._backend.close()
+            except:
+                # We don't really care if this fails. We just want the new
+                # configuration.
+                pass
+
             self._load_backend()
 
     def close(self, *args, **kwargs):
