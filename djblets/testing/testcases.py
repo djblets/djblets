@@ -34,6 +34,7 @@ import re
 import socket
 import sys
 import threading
+from importlib import import_module
 
 from django.conf import settings
 from django.core import serializers
@@ -48,7 +49,6 @@ from django.db.models.loading import cache, load_app
 from django.template import Node
 from django.test import testcases
 from django.utils import six
-from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
 
 try:

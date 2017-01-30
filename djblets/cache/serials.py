@@ -7,11 +7,12 @@ it changes on disk.
 """
 
 from __future__ import unicode_literals
+
+import importlib
 import logging
 import os
 
 from django.conf import settings
-from django.utils import importlib
 
 
 def generate_media_serial():

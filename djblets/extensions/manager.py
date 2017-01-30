@@ -37,6 +37,7 @@ import threading
 import time
 import traceback
 import weakref
+from importlib import import_module
 
 from django.conf import settings
 from django.conf.urls import patterns, include
@@ -48,7 +49,6 @@ from django.core.urlresolvers import reverse
 from django.db import IntegrityError
 from django.db.models import loading
 from django.utils import six
-from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
 from django.utils.six.moves import cStringIO as StringIO
 from django.utils.translation import ugettext as _
