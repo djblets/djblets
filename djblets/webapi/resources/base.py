@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 import logging
 import warnings
 
-from django.conf.urls import include, patterns, url
+from django.conf.urls import include, url
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -642,10 +642,9 @@ class WebAPIResource(object):
         for resource in self.list_child_resources:
             resource._parent_resource = self
             child_regex = r'^' + resource.uri_name + r'/'
-            urlpatterns += patterns(
-                '',
+            urlpatterns += [
                 url(child_regex, include(resource.get_url_patterns())),
-            )
+            ]
 
         if self.uri_object_key or self.singleton:
             # If the resource has particular items in it...
@@ -664,10 +663,9 @@ class WebAPIResource(object):
             for resource in self.item_child_resources:
                 resource._parent_resource = self
                 child_regex = base_regex + resource.uri_name + r'/'
-                urlpatterns += patterns(
-                    '',
+                urlpatterns += [
                     url(child_regex, include(resource.get_url_patterns())),
-                )
+                ]
 
         return urlpatterns
 

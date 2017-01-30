@@ -1,11 +1,11 @@
 from __future__ import unicode_literals
 
-from django.conf.urls import patterns, url, include
+from django.conf.urls import include, url
+
+from djblets.extensions.tests import test_view_method
 
 
-urlpatterns = patterns(
-    'djblets.extensions.tests',
-
-    url(r'^$', 'test_view_method', name="test-url-name"),
+urlpatterns = [
+    url(r'^$', test_view_method, name='test-url-name'),
     url(r'^admin/extensions/', include('djblets.extensions.urls')),
-)
+]

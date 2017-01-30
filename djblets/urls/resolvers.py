@@ -22,7 +22,7 @@ class DynamicURLResolver(RegexURLResolver):
     The usage is very simple::
 
         dynamic_patterns = DynamicURLResolver()
-        urlpatterns = patterns('', dynamic_patterns)
+        urlpatterns = [dynamic_patterns]
 
         dynamic_patterns.add_patterns([
             url(...),

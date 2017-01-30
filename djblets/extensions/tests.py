@@ -33,7 +33,7 @@ import warnings
 
 from django import forms
 from django.conf import settings
-from django.conf.urls import include, patterns
+from django.conf.urls import include, url
 from django.core.exceptions import ImproperlyConfigured
 from django.dispatch import Signal
 from django.template import Context, Template
@@ -1030,9 +1030,9 @@ class URLHookTest(TestCase):
         manager = ExtensionManager('')
         self.test_extension = \
             TestExtensionWithRegistration(extension_manager=manager)
-        self.patterns = patterns(
-            '',
-            (r'^url_hook_test/', include('djblets.extensions.test.urls')))
+        self.patterns = [
+            url(r'^url_hook_test/', include('djblets.extensions.test.urls')),
+        ]
         self.url_hook = URLHook(self.test_extension, self.patterns)
 
     def test_url_registration(self):

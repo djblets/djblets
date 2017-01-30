@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from django.conf.urls import include, patterns, url
+from django.conf.urls import include, url
 
 
 def build_integration_urlpatterns(list_view_cls, config_form_view_cls):
@@ -22,19 +22,15 @@ def build_integration_urlpatterns(list_view_cls, config_form_view_cls):
             be a subclass of
             :py:class:`~djblets.integrations.views.BaseIntegrationConfigFormView`.
     """
-    configs_urlpatterns = patterns(
-        '',
-
+    configs_urlpatterns = [
         url('^add/$', config_form_view_cls.as_view(),
             name='integration-add-config'),
         url('^(?P<config_id>[0-9]+)/$', config_form_view_cls.as_view(),
             name='integration-change-config'),
-    )
+    ]
 
-    return patterns(
-        '',
-
+    return [
         url('^$', list_view_cls.as_view(), name='integration-list'),
         url('^(?P<integration_id>[A-Za-z0-9_\.]+)/configs/',
             include(configs_urlpatterns)),
-    )
+    ]

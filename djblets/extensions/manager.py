@@ -40,7 +40,7 @@ import weakref
 from importlib import import_module
 
 from django.conf import settings
-from django.conf.urls import patterns, include
+from django.conf.urls import include, url
 from django.contrib.admin.sites import AdminSite
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -210,11 +210,15 @@ class ExtensionManager(object):
         _extension_managers[instance_id] = self
 
     def get_url_patterns(self):
-        """Returns the URL patterns for the Extension Manager.
+        """Return the URL patterns for the Extension Manager.
 
         This should be included in the root urlpatterns for the site.
+
+        Returns:
+            list:
+            The list of URL patterns for the Extension Manager.
         """
-        return patterns('', self.dynamic_urls)
+        return [self.dynamic_urls]
 
     def is_expired(self):
         """Returns whether or not the extension state is possibly expired.
@@ -240,7 +244,7 @@ class ExtensionManager(object):
         self._gen_sync.clear()
 
     def get_absolute_url(self):
-        return reverse("djblets.extensions.views.extension_list")
+        return reverse('extension-list')
 
     def get_can_disable_extension(self, registered_extension):
         extension_id = registered_extension.class_name
@@ -896,20 +900,21 @@ class ExtensionManager(object):
 
         if extension.is_configurable:
             urlconf = extension.admin_urlconf
-            if hasattr(urlconf, "urlpatterns"):
-                extension.admin_urlpatterns = patterns(
-                    '',
-                    (r'^%s%s/config/' % (prefix, extension.id),
-                     include(urlconf.__name__)))
+
+            if hasattr(urlconf, 'urlpatterns'):
+                extension.admin_urlpatterns = [
+                    url(r'^%s%s/config/' % (prefix, extension.id),
+                        include(urlconf.__name__)),
+                ]
 
                 self.dynamic_urls.add_patterns(
                     extension.admin_urlpatterns)
 
         if getattr(extension, 'admin_site', None):
-            extension.admin_site_urlpatterns = patterns(
-                '',
-                (r'^%s%s/db/' % (prefix, extension.id),
-                 include(extension.admin_site.urls)))
+            extension.admin_site_urlpatterns = [
+                url(r'^%s%s/db/' % (prefix, extension.id),
+                    include(extension.admin_site.urls)),
+            ]
 
             self.dynamic_urls.add_patterns(
                 extension.admin_site_urlpatterns)
