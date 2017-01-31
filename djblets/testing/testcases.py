@@ -89,18 +89,18 @@ class TestCase(testcases.TestCase):
 
     def __call__(self, *args, **kwargs):
         method = getattr(self, self._testMethodName)
-        old_fixtures = getattr(self, 'fixtures', [])
+        old_fixtures = getattr(self, 'fixtures', None)
 
         if hasattr(method, '_fixtures'):
-            if getattr(method, '_replace_fixtures'):
+            if (getattr(method, '_replace_fixtures') or
+                old_fixtures is None):
                 self.fixtures = method._fixtures
             else:
                 self.fixtures = old_fixtures + method._fixtures
 
         super(TestCase, self).__call__(*args, **kwargs)
 
-        if old_fixtures:
-            self.fixtures = old_fixtures
+        self.fixtures = old_fixtures
 
     def shortDescription(self):
         """Returns the description of the current test.
