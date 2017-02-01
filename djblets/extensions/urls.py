@@ -25,11 +25,11 @@
 
 from __future__ import unicode_literals
 
-from django.conf.urls import patterns, url
+from django.conf.urls import url
+
+from djblets.extensions.views import extension_list
 
 
-urlpatterns = patterns(
-    'djblets.extensions.views',
-
-    url(r'^$', 'extension_list', name='extension-list'),
-)
+urlpatterns = [
+    url(r'^$', extension_list, name='extension-list'),
+]

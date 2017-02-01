@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from django.conf import settings
-from django.conf.urls import include, patterns, url
+from django.conf.urls import include, url
 from django.core.urlresolvers import NoReverseMatch, reverse
 
 from djblets.testing.testcases import TestCase
@@ -19,19 +19,15 @@ class URLResolverTests(TestCase):
         """Testing DynamicURLResolver"""
         self.dynamic_urls = DynamicURLResolver()
 
-        settings.ROOT_URLCONF = patterns(
-            '',
-
-            url(r'^root/', include(patterns('', self.dynamic_urls))),
+        settings.ROOT_URLCONF = [
+            url(r'^root/', include([self.dynamic_urls])),
             url(r'^foo/', self._dummy_view, name='foo'),
-        )
+        ]
 
-        new_patterns = patterns(
-            '',
-
+        new_patterns = [
             url(r'^bar/$', self._dummy_view, name='bar'),
             url(r'^baz/$', self._dummy_view, name='baz'),
-        )
+        ]
 
         # The new patterns shouldn't reverse, just the original "foo".
         reverse('foo')

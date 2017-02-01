@@ -34,6 +34,7 @@ import re
 import socket
 import sys
 import threading
+from importlib import import_module
 
 from django.conf import settings
 from django.core import serializers
@@ -48,7 +49,6 @@ from django.db.models.loading import cache, load_app
 from django.template import Node
 from django.test import testcases
 from django.utils import six
-from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
 
 try:
@@ -89,18 +89,18 @@ class TestCase(testcases.TestCase):
 
     def __call__(self, *args, **kwargs):
         method = getattr(self, self._testMethodName)
-        old_fixtures = getattr(self, 'fixtures', [])
+        old_fixtures = getattr(self, 'fixtures', None)
 
         if hasattr(method, '_fixtures'):
-            if getattr(method, '_replace_fixtures'):
+            if (getattr(method, '_replace_fixtures') or
+                old_fixtures is None):
                 self.fixtures = method._fixtures
             else:
                 self.fixtures = old_fixtures + method._fixtures
 
         super(TestCase, self).__call__(*args, **kwargs)
 
-        if old_fixtures:
-            self.fixtures = old_fixtures
+        self.fixtures = old_fixtures
 
     def shortDescription(self):
         """Returns the description of the current test.

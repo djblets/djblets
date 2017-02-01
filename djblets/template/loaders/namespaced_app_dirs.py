@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
 
 import os
+from importlib import import_module
 
 from django.template.base import TemplateDoesNotExist
 from django.template.loaders import app_directories
-from django.utils.importlib import import_module
 
 
 class Loader(app_directories.Loader):

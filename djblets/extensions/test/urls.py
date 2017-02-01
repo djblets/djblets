@@ -1,10 +1,12 @@
 from __future__ import unicode_literals
 
-from django.conf.urls import patterns
+from django.conf.urls import url
 
 
-urlpatterns = patterns(
-    'djblets.extensions.views',
+def test_url(request):
+    pass
 
-    (r'^$', 'test_url')
-)
+
+urlpatterns = [
+    url(r'^$', test_url),
+]

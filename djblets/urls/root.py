@@ -26,7 +26,7 @@
 from __future__ import unicode_literals
 
 from django.conf import settings
-from django.conf.urls import patterns, include, handler404, handler500
+from django.conf.urls import handler404, handler500, include, url
 from django.core.exceptions import ImproperlyConfigured
 
 
@@ -37,11 +37,10 @@ if hasattr(settings, 'SITE_ROOT'):
         raise ImproperlyConfigured('SITE_ROOT_URLCONF must be set when '
                                    'using SITE_ROOT')
 
-    urlpatterns = patterns(
-        '',
-
-        (r'^%s' % settings.SITE_ROOT[1:], include(settings.SITE_ROOT_URLCONF)),
-    )
+    urlpatterns = [
+        url(r'^%s' % settings.SITE_ROOT[1:],
+            include(settings.SITE_ROOT_URLCONF)),
+    ]
 else:
     urlpatterns = None
 

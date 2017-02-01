@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from django.conf.urls import patterns, include
+from django.conf.urls import include, url
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.utils import six
@@ -252,7 +252,7 @@ class ExtensionResource(WebAPIResource):
         # so we override get_url_patterns in order to capture and store
         # a reference to the url_patterns at /api/extensions/.
         url_patterns = super(ExtensionResource, self).get_url_patterns()
-        url_patterns += patterns('', self._dynamic_patterns)
+        url_patterns += [self._dynamic_patterns]
 
         return url_patterns
 
@@ -308,10 +308,10 @@ class ExtensionResource(WebAPIResource):
 
         # For each resource, generate the URLs
         for resource in extension.resources:
-            self._resource_url_patterns_map[extension].extend(patterns(
-                '',
-                (r'^%s/%s/' % (extension.id, resource.uri_name),
-                 include(resource.get_url_patterns()))))
+            self._resource_url_patterns_map[extension].extend([
+                url(r'^%s/%s/' % (extension.id, resource.uri_name),
+                    include(resource.get_url_patterns())),
+            ])
 
         self._dynamic_patterns.add_patterns(
             self._resource_url_patterns_map[extension])
