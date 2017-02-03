@@ -14,12 +14,14 @@ class DjbletsJSONEncoder(DjangoJSONEncoder):
     following:
 
     * Evaluates strings translated with
-     :py:meth:`~django.utils.translation.ugettext_lazy` or
-     :py:meth:`~django.tuils.translation.gettext_lazy` to real strings.
-    * Removes the milliseconds and microseconds
-      from :py:class:`datetimes <datetime.datetime>`s.
-    * Serializes Django :py:class`models <django.db.models.base.Model>` with a
-      ``to_json`` method via that method.
+      :py:meth:`~django.utils.translation.ugettext_lazy` or
+      :py:meth:`~django.utils.translation.gettext_lazy` to real strings.
+
+    * Removes the milliseconds and microseconds from
+      :py:class:`datetimes <datetime.datetime>`.
+
+    * Serializes Django :py:class:`models <django.db.models.base.Model>` with
+      a ``to_json`` method via that method.
     """
 
     def default(self, obj):

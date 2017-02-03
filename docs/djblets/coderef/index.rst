@@ -1,3 +1,5 @@
+.. _djblets-coderef:
+
 ===========================
 Module and Class References
 ===========================

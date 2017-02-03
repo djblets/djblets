@@ -38,20 +38,39 @@ register = template.Library()
 @register.tag
 @basictag(takes_context=True)
 def gravatar(context, user, size=None):
-    """
-    Outputs the HTML for displaying a user's gravatar.
+    """Output the HTML for displaying a user's Gravatar.
 
     This can take an optional size of the image (defaults to 80 if not
     specified).
 
-    This is also influenced by the following settings:
+    This is also influenced by the following settings in :file:`settings.py`:
 
-        GRAVATAR_SIZE    - Default size for gravatars
-        GRAVATAR_RATING  - Maximum allowed rating (g, pg, r, x)
-        GRAVATAR_DEFAULT - Default image set to show if the user hasn't
-                           specified a gravatar (identicon, monsterid, wavatar)
+    ``GRAVATAR_SIZE``:
+        Default size for Gravatars.
 
-    See http://www.gravatar.com/ for more information.
+    ``GRAVATAR_RATING``:
+        Maximum allowed rating. This should be one of: ``g``, ``pg``, ``r``,
+        ``x``
+
+    ``GRAVATAR_DEFAULT``:
+        Default image set to show if the user hasn't specified a Gravatar.
+        This should be one of: ``identicon``, ``monsterid``, ``wavatar``
+
+    See https://www.gravatar.com/ for more information.
+
+    Args:
+        context (django.template.RequestContext):
+            The context for the page.
+
+        user (django.contrib.auth.models.User):
+            The user for the Gravatar.
+
+        size (int, optional):
+            The size of the Gravatar. Defaults to 80.
+
+    Returns:
+        unicode:
+        The HTML for displaying the Gravatar.
     """
     url = get_gravatar_url(context['request'], user, size)
 
@@ -67,19 +86,38 @@ def gravatar(context, user, size=None):
 @register.tag
 @basictag(takes_context=True)
 def gravatar_url(context, email, size=None):
-    """
-    Outputs the URL for a gravatar for the given email address.
+    """Output the URL for a Gravatar for the given email address.
 
     This can take an optional size of the image (defaults to 80 if not
     specified).
 
-    This is also influenced by the following settings:
+    This is also influenced by the following settings in :file:`settings.py`:
 
-        GRAVATAR_SIZE    - Default size for gravatars
-        GRAVATAR_RATING  - Maximum allowed rating (g, pg, r, x)
-        GRAVATAR_DEFAULT - Default image set to show if the user hasn't
-                           specified a gravatar (identicon, monsterid, wavatar)
+    ``GRAVATAR_SIZE``:
+        Default size for Gravatars.
 
-    See http://www.gravatar.com/ for more information.
+    ``GRAVATAR_RATING``:
+        Maximum allowed rating. This should be one of: ``g``, ``pg``, ``r``,
+        ``x``
+
+    ``GRAVATAR_DEFAULT``:
+        Default image set to show if the user hasn't specified a Gravatar.
+        This should be one of: ``identicon``, ``monsterid``, ``wavatar``
+
+    See https://www.gravatar.com/ for more information.
+
+    Args:
+        context (django.template.RequestContext):
+            The context for the page.
+
+        email (unicode):
+            The e-mail address for the user.
+
+        size (int, optional):
+            The size of the Gravatar. Defaults to 80.
+
+    Returns:
+        unicode:
+        The HTML for displaying the Gravatar.
     """
     return get_gravatar_url_for_email(context['request'], email, size)
