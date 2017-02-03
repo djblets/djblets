@@ -1,14 +1,14 @@
 from __future__ import unicode_literals
 
 from itertools import chain
-from optparse import make_option
 
-from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import ugettext_lazy as _
+from django.core.management.base import CommandError
+from django.utils.translation import ugettext as _
 
 from djblets.extensions.errors import (InstallExtensionError,
                                        InvalidExtensionError)
 from djblets.extensions.manager import get_extension_managers
+from djblets.util.compat.django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
@@ -20,19 +20,25 @@ class Command(BaseCommand):
     checking will be done.
     """
 
-    option_list = BaseCommand.option_list + (
-        make_option(
+    def add_arguments(self, parser):
+        """Add arguments to the command.
+
+        Args:
+            parser (object):
+                The argument parser to add to.
+        """
+        parser.add_argument(
             '--extension-id',
             dest='extension_id',
             default=None,
-            help=_('An optional extension id')),
-        make_option(
+            help=_('An optional extension id'))
+
+        parser.add_argument(
             '--force',
             dest='force',
             action='store_true',
             default=False,
-            help=_('Force installation of extension media.')),
-    )
+            help=_('Force installation of extension media'))
 
     def handle(self, *args, **options):
         managers = get_extension_managers()
