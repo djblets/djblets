@@ -44,20 +44,20 @@ from django.core.management import call_command
 from django.core.servers import basehttp
 from django.db import (DatabaseError, DEFAULT_DB_ALIAS, IntegrityError,
                        connections, router)
-from django.db.models import Model, get_apps
-from django.db.models.loading import cache, load_app
+from django.db.models import Model
 from django.template import Node
 from django.test import testcases
 from django.utils import six
 from django.utils.module_loading import module_has_submodule
 
 try:
+    # Django >= 1.7
     from django.apps import apps
-    from django.db import migrations
 except ImportError:
     # Django < 1.7
+    from django.db.models.loading import cache as app_cache, load_app
+
     apps = None
-    migrations = None
 
 
 class StubNodeList(Node):
@@ -201,6 +201,7 @@ class TestModelsLoaderMixin(object):
             # module that this TestCase is in.
             models_mod_name = '%s.models' % cls.tests_app
             models_mod = imp.new_module(models_mod_name)
+            module_name = cls.__module__
 
             # Django needs a value here. Doesn't matter what it is.
             models_mod.__file__ = ''
@@ -209,7 +210,9 @@ class TestModelsLoaderMixin(object):
             test_module = sys.modules[cls.__module__]
 
             for key, value in six.iteritems(test_module.__dict__):
-                if inspect.isclass(value) and issubclass(value, Model):
+                if (inspect.isclass(value) and
+                    issubclass(value, Model) and
+                    value.__module__ == module_name):
                     models_mod.__dict__[key] = value
 
             cls._tests_loader_models_mod = models_mod
@@ -242,11 +245,24 @@ class TestModelsLoaderMixin(object):
             app_config = apps.get_containing_app_config(self.tests_app)
 
             if models_mod:
+                app_label = app_config.label
+
                 for key, value in six.iteritems(models_mod.__dict__):
                     if inspect.isclass(value) and issubclass(value, Model):
-                        apps.register_model(app_config.label, value)
+                        # The model was likely registered under another app,
+                        # so we need to remove the old one and add the new
+                        # one.
+                        try:
+                            del apps.all_models[value._meta.app_label][
+                                value._meta.model_name]
+                        except KeyError:
+                            pass
 
-            call_command('migrate', verbosity=0, interactive=False)
+                        value._meta.app_label = app_label
+                        apps.register_model(app_label, value)
+
+            call_command('migrate', run_syncdb=True, verbosity=0,
+                         interactive=False)
         else:
             load_app(self.tests_app)
             call_command('syncdb', verbosity=0, interactive=False)
@@ -269,12 +285,12 @@ class TestModelsLoaderMixin(object):
 
         if apps:
             apps.unset_installed_apps()
-            cache.clear_cache()
+            apps.all_models[self.tests_app].clear()
         else:
             if models_mod:
-                del cache.app_store[models_mod]
+                del app_cache.app_store[models_mod]
 
-            cache._get_models_cache.clear()
+            app_cache._get_models_cache.clear()
 
 
 class FixturesCompilerMixin(object):
@@ -386,7 +402,7 @@ class FixturesCompilerMixin(object):
         if not self._fixture_dirs:
             app_module_paths = []
 
-            for app in get_apps():
+            for app in self._get_app_model_modules():
                 if hasattr(app, '__path__'):
                     # It's a 'models/' subpackage.
                     for path in app.__path__:
@@ -449,6 +465,24 @@ class FixturesCompilerMixin(object):
             model._meta.db_table
             for model in models
         ])
+
+    def _get_app_model_modules(self):
+        """Return the entire list of registered Django app models modules.
+
+        This is an internal utility function that's used to provide
+        compatibility with all supported versions of Django.
+
+        Returns:
+            list:
+            The list of Django applications.
+        """
+        if apps:
+            return [
+                app.models_module
+                for app in apps.get_app_configs()
+            ]
+        else:
+            return app_cache.get_apps()
 
     def __getattribute__(self, name):
         if name == 'fixtures' and self.__dict__.get('_hide_fixtures'):
