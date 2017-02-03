@@ -7,10 +7,9 @@ from django.core.urlresolvers import ResolverMatch
 from django.http import HttpRequest
 from django.template import Context, Template
 
-from djblets.extensions.extension import JSExtension
+from djblets.extensions.extension import Extension, JSExtension
 from djblets.extensions.hooks import TemplateHook
-from djblets.extensions.tests import (FakeEntryPoint, TestExtensionManager,
-                                      TestExtensionWithRegistration)
+from djblets.extensions.tests import ExtensionTestsMixin
 from djblets.testing.testcases import TestCase
 
 
@@ -28,10 +27,10 @@ class TestJSExtensionDeprecated(JSExtension):
         return {'test': 'old'}
 
 
-class TemplateTagTests(TestCase):
+class TemplateTagTests(ExtensionTestsMixin, TestCase):
     """Tests for djblets.extensions.templatetags."""
 
-    class TestExtension(TestExtensionWithRegistration):
+    class TestExtension(Extension):
         css_bundles = {
             'default': {},
             'optional': {
@@ -49,15 +48,13 @@ class TemplateTagTests(TestCase):
         js_extensions = [TestJSExtension, TestJSExtensionDeprecated]
 
     def setUp(self):
+        super(TemplateTagTests, self).setUp()
+
         self.key = uuid.uuid4()
 
-        self.manager = TestExtensionManager(
-            [FakeEntryPoint(self.TestExtension)], self.key)
-        self.extension = self.TestExtension(self.manager)
+        self.extension = self.setup_extension(self.TestExtension,
+                                              manager_key=self.key)
         self.request = HttpRequest()
-
-    def tearDown(self):
-        self.manager.shutdown()
 
     def test_template_hook_point_tag(self):
         """Testing template_hook_point template tag"""
@@ -100,9 +97,6 @@ class TemplateTagTests(TestCase):
         t = Template('{% load djblets_extensions %}'
                      '{% ext_css_bundle ext "default" %}')
 
-        self.manager.load()
-        self.manager.enable_extension(self.extension.id)
-
         self.assertEqual(
             t.render(Context({
                 'ext': self.extension,
@@ -115,9 +109,6 @@ class TemplateTagTests(TestCase):
         """Testing ext_js_bundle template tag"""
         t = Template('{% load djblets_extensions %}'
                      '{% ext_js_bundle ext "default" %}')
-
-        self.manager.load()
-        self.manager.enable_extension(self.extension.id)
 
         self.assertEqual(
             t.render(Context({
@@ -132,8 +123,6 @@ class TemplateTagTests(TestCase):
         t = Template('{% load djblets_extensions %}'
                      '{% load_extensions_css manager_id %}')
 
-        self.manager.load()
-        self.manager.enable_extension(self.extension.id)
         self.request.resolver_match = ResolverMatch(None, None, None, 'foo')
 
         self.assertEqual(
@@ -152,8 +141,6 @@ class TemplateTagTests(TestCase):
         t = Template('{% load djblets_extensions %}'
                      '{% load_extensions_js manager_id %}')
 
-        self.manager.load()
-        self.manager.enable_extension(self.extension.id)
         self.request.resolver_match = ResolverMatch(None, None, None, 'foo')
 
         self.assertEqual(
@@ -172,8 +159,6 @@ class TemplateTagTests(TestCase):
         t = Template('{% load djblets_extensions %}'
                      '{% init_js_extensions manager_id %}')
 
-        self.manager.load()
-        self.manager.enable_extension(self.extension.id)
         self.request.resolver_match = ResolverMatch(None, None, None, 'foo')
 
         content = t.render(Context({
