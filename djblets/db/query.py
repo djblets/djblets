@@ -261,7 +261,7 @@ def prefix_q(prefix, q, clone=True):
            B.objects.filter(prefix_q('fk', a_q))
     """
     if clone:
-        q = q.clone()
+        q = _clone_q(q)
 
     for i, child in enumerate(q.children):
         # django.utils.tree (which Q inherits from) stores its children as a
@@ -277,5 +277,41 @@ def prefix_q(prefix, q, clone=True):
             q.children[i] = (
                 b'%s__%s' % (prefix.encode('utf-8'), key),
                 value)
+
+    return q
+
+
+def _clone_q(q):
+    """Clone a query expression.
+
+    This will clone a :py:class:`~django.db.models.Q` object and all children,
+    allowing for modifications to be made on its tree.
+
+    Args:
+        q (django.db.models.Q):
+            The query expression.
+
+    Returns:
+        django.db.models.Q:
+        A clone of the query expression.
+    """
+    if hasattr(q, 'clone'):
+        q = q.clone()
+    else:
+        # Newer versions of Django do not support this, so we have to
+        # re-implement the logic.
+        new_q = q.__class__._new_instance(children=[],
+                                          connector=q.connector,
+                                          negated=q.negated)
+
+        for child in q.children:
+            if isinstance(child, Q):
+                new_child = _clone_q(child)
+            elif hasattr(child, 'clone'):
+                new_child = child.clone()
+            else:
+                new_child = child
+
+            new_q.children.append(new_child)
 
     return q

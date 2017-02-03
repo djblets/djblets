@@ -645,15 +645,15 @@ class RelationCounterField(CounterField):
         def __init__(self, model_cls, rel_field_name):
             self._rel_field_name = rel_field_name
 
-            if django.VERSION >= (1, 7):
-                # Django >= 1.7
+            if django.VERSION >= (1, 8):
+                # Django >= 1.8
                 self._rel_field = model_cls._meta.get_field(rel_field_name)
                 rel_model = self._rel_field.model
                 is_rel_direct = (not self._rel_field.auto_created or
                                  self._rel_field.concrete)
                 is_m2m = self._rel_field.many_to_many
             else:
-                # Django < 1.7
+                # Django < 1.8
                 self._rel_field, rel_model, is_rel_direct, is_m2m = \
                     model_cls._meta.get_field_by_name(rel_field_name)
 
