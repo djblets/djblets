@@ -4,7 +4,6 @@ from contextlib import contextmanager
 
 from django.contrib.sites.models import Site
 
-from djblets.siteconfig.models import SiteConfiguration
 from djblets.testing.testcases import TestCase
 from djblets.webapi.resources.base import WebAPIResource
 from djblets.webapi.resources.registry import (get_resource_for_object,
@@ -32,13 +31,9 @@ class ResourceRegistryTests(TestCase):
             pass
 
         resource = TestResource()
-        register_resource_for_model(SiteConfiguration, resource)
 
-        site = Site.objects.create(domain='example.com', name='example.com')
-        SiteConfiguration.objects.create(site=site)
-
-        with register_resource_for_model_temp(SiteConfiguration, resource):
-            config = SiteConfiguration.objects.only('site').get()
+        with register_resource_for_model_temp(Site, resource):
+            config = Site.objects.only('domain').get()
 
             self.assertEqual(get_resource_for_object(config),
                              resource)

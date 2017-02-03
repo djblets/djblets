@@ -18,9 +18,10 @@ def run_tests(verbosity=1, interactive=False):
 
         # Django >= 1.7
         setup()
+        use_migrations = True
     except ImportError:
         # Django < 1.7
-        pass
+        use_migrations = False
 
     # Restore warnings, if Django turns them off.
     warnings.simplefilter('default')
@@ -34,8 +35,16 @@ def run_tests(verbosity=1, interactive=False):
 
     old_db_name = 'default'
     connection.creation.create_test_db(verbosity, autoclobber=not interactive)
-    management.call_command('syncdb', verbosity=verbosity,
-                            interactive=interactive)
+
+    if use_migrations:
+        management.call_command('migrate',
+                                use_syncdb=True,
+                                verbosity=verbosity,
+                                interactive=interactive)
+    else:
+        management.call_command('syncdb',
+                                verbosity=verbosity,
+                                interactive=interactive)
 
     nose_argv = [
         'runtests.py',

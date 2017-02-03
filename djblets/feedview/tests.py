@@ -24,12 +24,13 @@
 
 from __future__ import unicode_literals
 
+from django.test.utils import override_settings
+
 from djblets.testing.testcases import TestCase
 
 
+@override_settings(ROOT_URLCONF='djblets.feedview.test_urls')
 class FeedViewTests(TestCase):
-    urls = "djblets.feedview.test_urls"
-
     def testViewFeedPage(self):
         """Testing view_feed with the feed-page.html template"""
         response = self.client.get('/feed/')
