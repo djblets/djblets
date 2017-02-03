@@ -8,39 +8,107 @@ from __future__ import unicode_literals
 
 import logging
 import sys
-import time
 import traceback
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.db import connection
-from django.db.backends import util
 from django.http import Http404
 from django.utils import six
 from django.utils.six.moves import cStringIO as StringIO
 
+try:
+    # Django >= 1.7
+    from django.db.backends import utils as db_backend_utils
+    from django.db.backends.base.base import BaseDatabaseWrapper
+except ImportError:
+    # Django < 1.7
+    from django.db.backends import (util as db_backend_utils,
+                                    BaseDatabaseWrapper)
+
 from djblets.log import init_logging, init_profile_logger, log_timed
 
 
-class CursorDebugWrapper(util.CursorDebugWrapper):
+class CursorDebugWrapper(db_backend_utils.CursorDebugWrapper):
+    """Debug cursor for databases that stores tracebacks in query logs.
+
+    This is a replacement for the default debug wrapper for database cursors
+    which stores a traceback in :py:attr:`connection.queries
+    <django.db.connection.queries>`.
+
+    This will dramatically increase the overhead of having
+    ``settings.DEBUG=True``, so use with caution.
     """
-    Replacement for CursorDebugWrapper which stores a traceback in
-    `connection.queries`. This will dramatically increase the overhead of
-    having DEBUG=True, so use with caution.
-    """
-    def execute(self, sql, params=()):
-        start = time.time()
+
+    def execute(self, *args, **kwargs):
+        """Execute a SQL statement.
+
+        This will record an entry in the query log and attach a stack trace.
+
+        Args:
+            *args (tuple):
+                Positional arguments for the parent method.
+
+            **kwargs (dict):
+                Keyword arguments for the parent method.
+
+        Returns:
+            object:
+            The result of the statement.
+        """
         try:
-            return self.cursor.execute(sql, params)
+            return super(CursorDebugWrapper, self).execute(*args, **kwargs)
         finally:
-            stop = time.time()
-            sql = self.db.ops.last_executed_query(self.cursor, sql, params)
-            self.db.queries.append({
-                'sql': sql,
-                'time': stop - start,
-                'stack': traceback.format_stack(),
-            })
-util.CursorDebugWrapper = CursorDebugWrapper
+            self._store_traceback(traceback.format_stack())
+
+    def executemany(self, *args, **kwargs):
+        """Execute multiple SQL statements.
+
+        This will record an entry in the query log and attach a stack trace.
+
+        Note that the Django ORM does not appear to actually make use of this
+        method. Third-parties can still use it.
+
+        Args:
+            *args (tuple):
+                Positional arguments for the parent method.
+
+            **kwargs (dict):
+                Keyword arguments for the parent method.
+
+        Returns:
+            object:
+            The result of the statement.
+        """
+        try:
+            return super(CursorDebugWrapper, self).executemany(*args, **kwargs)
+        finally:
+            self._store_traceback(traceback.format_stack())
+
+    def _store_traceback(self, stack):
+        """Store a traceback in the query log.
+
+        This will look up the correct variable for the query log and add the
+        stack trace to the last entry.
+
+        Args:
+            stack (unicode):
+                The formatted stack trace.
+        """
+        try:
+            # Django >= 1.8
+            queries = self.db.queries_log
+        except AttributeError:
+            # Django < 1.8
+            queries = self.db.queries
+
+        queries[-1]['stack'] = stack
+
+
+# Return this cursor by default in the database backends. Custom backends
+# potentially could override this.
+BaseDatabaseWrapper.make_debug_cursor = \
+    lambda self, cursor: CursorDebugWrapper(cursor, self)
 
 
 def reformat_sql(sql):
