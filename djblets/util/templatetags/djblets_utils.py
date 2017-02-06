@@ -32,6 +32,7 @@ from django import template
 from django.template import TemplateSyntaxError
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
+from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.six.moves.urllib.parse import urlencode
 from django.utils.timezone import is_aware
@@ -193,7 +194,13 @@ def include_as_string(context, template_name):
     s = render_to_string(template_name, context)
     s = s.replace("'", "\\'")
     s = s.replace("\n", "\\\n")
-    return "'%s'" % s
+
+    # Since this works like {% include %}, we have to trust the resulting
+    # content here. It's still possible that a nefarious template could cause
+    # problems, but this is the responsibility of the caller.
+    #
+    # In prior versions of Django (< 1.9), this was implicitly marked safe.
+    return mark_safe("'%s'" % s)
 
 
 @register.tag
@@ -679,6 +686,8 @@ def querystring_with(context, attr, value):
     new_query = urlencode({attr.encode('utf-8'): value.encode('utf-8')})
 
     if existing_query:
-        return '?%s&%s' % (existing_query, new_query)
+        result = '?%s&%s' % (existing_query, new_query)
     else:
-        return '?%s' % new_query
+        result = '?%s' % new_query
+
+    return escape(result)

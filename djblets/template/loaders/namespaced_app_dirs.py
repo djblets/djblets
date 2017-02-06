@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import os
 from importlib import import_module
 
-from django.template.base import TemplateDoesNotExist
+from django.template import TemplateDoesNotExist
 from django.template.loaders import app_directories
 
 

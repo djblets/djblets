@@ -7,6 +7,7 @@ This module contains widgets that correspond to fields provided in
 from __future__ import unicode_literals
 
 import copy
+from contextlib import contextmanager
 
 from django.forms import widgets
 from django.template.loader import render_to_string
@@ -299,11 +300,11 @@ class ConditionsWidget(widgets.Widget):
                 choice_attrs = dict(choice_attrs,
                                     id='%s_choice_%s' % (widget_id, i))
 
-            rendered_choice = self.choice_widget.render(
-                name=choice_name,
-                value=choice_id,
-                attrs=choice_attrs,
-                choices=choices)
+            with self._add_widget_choices(self.choice_widget, choices):
+                rendered_choice = self.choice_widget.render(
+                    name=choice_name,
+                    value=choice_id,
+                    attrs=choice_attrs)
 
             # Render the list of operators.
             operator_name = '%s_operator[%s]' % (name, i)
@@ -313,11 +314,11 @@ class ConditionsWidget(widgets.Widget):
                 operator_attrs = dict(operator_attrs,
                                       id='%s_operator_%s' % (widget_id, i))
 
-            rendered_operator = self.operator_widget.render(
-                name=operator_name,
-                value=operator_id,
-                attrs=operator_attrs,
-                choices=operators)
+            with self._add_widget_choices(self.operator_widget, operators):
+                rendered_operator = self.operator_widget.render(
+                    name=operator_name,
+                    value=operator_id,
+                    attrs=operator_attrs)
 
             if valid:
                 value_field = self._get_value_field(operator)
@@ -502,6 +503,29 @@ class ConditionsWidget(widgets.Widget):
             value_field = value_field()
 
         return value_field
+
+    @contextmanager
+    def _add_widget_choices(self, widget, choices):
+        """Temporarily add choices to a widget.
+
+        This temporary appends the provided list of choices to a widget's
+        existing list, allowing some additional choices to be there for
+        rendering purposes. After the caller's logic is done, the list of
+        choices will be reset.
+
+        Args:
+            widget (django.forms.fields.widgets.ChoiceInput):
+                The choice widget.
+
+            choices (list):
+                The list of choices to temporarily append.
+        """
+        old_choices = widget.choices
+        widget.choices = widget.choices + list(choices)
+
+        yield
+
+        widget.choices = old_choices
 
     def __deepcopy__(self, memo):
         """Return a deep copy of the widget.

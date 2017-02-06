@@ -44,10 +44,8 @@ from django.conf.urls import include, url
 from django.contrib.admin.sites import AdminSite
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.core.management.color import no_style
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError
-from django.db.models import loading
 from django.utils import six
 from django.utils.module_loading import module_has_submodule
 from django.utils.six.moves import cStringIO as StringIO
@@ -56,11 +54,18 @@ from pipeline.conf import settings as pipeline_settings
 from setuptools.command import easy_install
 
 try:
-    from django.template.loader import template_source_loaders
-    template_engines = None
+    import django_evolution
 except ImportError:
-    from django.template import engines as template_engines
-    template_source_loaders = None
+    django_evolution = None
+
+try:
+    # Django >= 1.7
+    from django.apps.registry import apps
+except ImportError:
+    # Django == 1.6
+    from django.db.models import loading
+
+    apps = None
 
 from djblets.cache.synchronizer import GenerationSynchronizer
 from djblets.extensions.errors import (EnablingExtensionError,
@@ -70,6 +75,8 @@ from djblets.extensions.extension import ExtensionInfo
 from djblets.extensions.models import RegisteredExtension
 from djblets.extensions.signals import (extension_initialized,
                                         extension_uninitialized)
+from djblets.template.caches import (clear_template_caches,
+                                     clear_template_tag_caches)
 from djblets.urls.resolvers import DynamicURLResolver
 from djblets.util.compat.django.core.files import locks
 
@@ -87,34 +94,62 @@ class SettingListWrapper(object):
     if it doesn't already exist. Removing items reduces the ref count,
     removing when it hits 0.
     """
-    def __init__(self, setting_name, display_name):
+
+    def __init__(self, setting_name, display_name, parent_dict=None):
+        """Initialize the settings wrapper.
+
+        Args:
+            setting_name (unicode):
+                The name of the setting. This is the key in either
+                ``parent_dict`` or ``settings``.
+
+            display_name (unicode):
+                The display name of the setting, for use in error output.
+
+            parent_dict (dict, optional):
+                The dictionary containing the setting. If not set, this
+                will fall back to ``settings``.
+        """
         self.setting_name = setting_name
         self.display_name = display_name
         self.ref_counts = {}
 
-        self.setting = getattr(settings, setting_name)
+        parent_dict = parent_dict or settings
+
+        if isinstance(parent_dict, dict):
+            self.setting = parent_dict[setting_name]
+        else:
+            self.setting = getattr(parent_dict, setting_name)
 
         if isinstance(self.setting, tuple):
             self.setting = list(self.setting)
-            setattr(settings, setting_name, self.setting)
+
+            if isinstance(parent_dict, dict):
+                parent_dict[setting_name] = self.setting
+            else:
+                setattr(parent_dict, setting_name, self.setting)
 
         for item in self.setting:
             self.ref_counts[item] = 1
 
     def add(self, item):
-        """Adds an item to the setting.
+        """Add an item to the setting.
 
         If the item is already in the list, it won't be added again.
         The ref count will just be incremented.
 
         If it's a new item, it will be added to the list with a ref count
         of 1.
+
+        Args:
+            item (object):
+                The item to add.
         """
         if item in self.ref_counts:
             self.ref_counts[item] += 1
         else:
             assert item not in self.setting, \
-                ("Extension's %s %s is already in settings.%s, with "
+                ("Extension's %s %s is already in %s in settings, with "
                  "ref count of 0."
                  % (self.display_name, item, self.setting_name))
 
@@ -122,37 +157,76 @@ class SettingListWrapper(object):
             self.setting.append(item)
 
     def add_list(self, items):
-        """Adds a list of items to the setting."""
+        """Add a list of items to the setting.
+
+        Args:
+            item (list of object):
+                The list of items to add.
+        """
         for item in items:
             self.add(item)
 
     def remove(self, item):
-        """Removes an item from the setting.
+        """Remove an item from the setting.
 
         The item's ref count will be decremented. If it hits 0, it will
         be removed from the list.
+
+        Args:
+            item (object):
+                The item to remove.
+
+        Returns:
+            bool:
+            ``True`` if the item was removed from the list. ``False`` if it
+            was left in due to still having a reference.
         """
         assert item in self.ref_counts, \
             ("Extension's %s %s is missing a ref count."
              % (self.display_name, item))
         assert item in self.setting, \
-            ("Extension's %s %s is not in settings.%s"
+            ("Extension's %s %s is not in %s in settings"
              % (self.display_name, item, self.setting_name))
 
         if self.ref_counts[item] == 1:
+            # This is the very last reference to this item in the list. We
+            # can now safely remove it from the list and inform the caller.
             del self.ref_counts[item]
             self.setting.remove(item)
+
+            return True
         else:
+            # There's still more references to this item in the list. We can't
+            # remove it yet.
             self.ref_counts[item] -= 1
 
+            return False
+
     def remove_list(self, items):
-        """Removes a list of items from the setting."""
+        """Remove a list of items from the setting.
+
+        Args:
+            items (list of object):
+                The list of items to remove.
+
+        Returns:
+            list of object:
+            The list of items that were removed (or that did not exist in
+            the list).
+        """
+        removed_items = []
+
         for item in items:
             try:
-                self.remove(item)
+                removed = self.remove(item)
             except ValueError:
                 # This may have already been removed. Ignore the error.
-                pass
+                removed = True
+
+            if removed:
+                removed_items.append(item)
+
+        return removed_items
 
 
 class ExtensionManager(object):
@@ -202,9 +276,17 @@ class ExtensionManager(object):
         self._installed_apps_setting = SettingListWrapper(
             'INSTALLED_APPS',
             'installed app')
-        self._context_processors_setting = SettingListWrapper(
-            'TEMPLATE_CONTEXT_PROCESSORS',
-            'context processor')
+
+        if hasattr(settings, 'TEMPLATES'):
+            # Django >= 1.7
+            self._context_processors_setting = SettingListWrapper(
+                'context_processors',
+                'context processor',
+                parent_dict=settings.TEMPLATES[0]['OPTIONS'])
+        else:
+            self._context_processors_setting = SettingListWrapper(
+                'TEMPLATE_CONTEXT_PROCESSORS',
+                'context processor')
 
         instance_id = id(self)
         _extension_managers[instance_id] = self
@@ -329,7 +411,7 @@ class ExtensionManager(object):
         ext_class.registration.enabled = True
         ext_class.registration.save()
 
-        self._clear_template_cache()
+        clear_template_caches()
         self._bump_sync_gen()
         self._recalculate_middleware()
 
@@ -378,7 +460,7 @@ class ExtensionManager(object):
         registration.enabled = False
         registration.save(update_fields=['enabled'])
 
-        self._clear_template_cache()
+        clear_template_caches()
         self._bump_sync_gen()
         self._recalculate_middleware()
 
@@ -433,7 +515,7 @@ class ExtensionManager(object):
         if full_reload:
             # We're reloading everything, so nuke all the cached copies.
             self._clear_extensions()
-            self._clear_template_cache()
+            clear_template_caches()
             self._load_errors = {}
 
         # Preload all the RegisteredExtension objects
@@ -585,24 +667,6 @@ class ExtensionManager(object):
         self._extension_classes = {}
         self._extension_instances = {}
 
-    def _clear_template_cache(self):
-        """Clears the Django template caches."""
-        if template_source_loaders:
-            # We're running in Django <=1.7.
-            template_loaders = template_source_loaders
-        elif template_engines:
-            template_loaders = []
-
-            for engine in template_engines.all():
-                template_loaders += engine.engine.template_loaders
-        else:
-            # It's valid for there to not be any loaders.
-            template_loaders = []
-
-        for template_loader in template_loaders:
-            if hasattr(template_loader, 'reset'):
-                template_loader.reset()
-
     def _init_extension(self, ext_class):
         """Initializes an extension.
 
@@ -642,7 +706,7 @@ class ExtensionManager(object):
         extension.info.enabled = True
         self._add_to_installed_apps(extension)
         self._context_processors_setting.add_list(extension.context_processors)
-        self._reset_templatetags_cache()
+        clear_template_tag_caches()
         ext_class.instance = extension
 
         try:
@@ -650,9 +714,37 @@ class ExtensionManager(object):
         except InstallExtensionError as e:
             raise EnablingExtensionError(e.message, e.load_error)
 
+        self._sync_database(ext_class)
+
+        # Mark the extension as installed.
+        ext_class.registration.installed = True
+        ext_class.registration.save()
+
         extension_initialized.send(self, ext_class=extension)
 
         return extension
+
+    def _sync_database(self, ext_class):
+        """Synchronize extension-provided models to the database.
+
+        This will create any database tables that need to be created and
+        the perform a database migration, if needed.
+
+        Args:
+            ext_class (type):
+                The extension class owning the database models.
+        """
+        if apps:
+            # Django >= 1.7
+            call_command('migrate', run_syncdb=True, verbosity=0,
+                         interactive=False)
+        else:
+            # Django == 1.6
+            loading.cache.loaded = False
+            call_command('syncdb', verbosity=0, interactive=False)
+
+        # Run evolve to do any table modification.
+        self._migrate_extension_models(ext_class)
 
     def _uninit_extension(self, extension):
         """Uninitializes the extension.
@@ -677,7 +769,7 @@ class ExtensionManager(object):
         self._context_processors_setting.remove_list(
             extension.context_processors)
         self._remove_from_installed_apps(extension)
-        self._reset_templatetags_cache()
+        clear_template_tag_caches()
         extension.info.enabled = False
         extension_uninitialized.send(self, ext_class=extension)
 
@@ -690,24 +782,6 @@ class ExtensionManager(object):
         self._load_errors[extension_id] = error_details
 
         return error_details
-
-    def _reset_templatetags_cache(self):
-        """Clears the Django templatetags_modules cache."""
-        # We'll import templatetags_modules here because
-        # we want the most recent copy of templatetags_modules
-        from django.template.base import get_templatetags_modules
-
-        # Wipe out the contents.
-        if hasattr(get_templatetags_modules, 'cache_clear'):
-            # Django >= 1.7
-            get_templatetags_modules.cache_clear()
-        else:
-            # Django < 1.7
-            from django.template.base import templatetags_modules
-            del(templatetags_modules[:])
-
-        # And reload the cache
-        get_templatetags_modules()
 
     def install_extension_media(self, ext_class, force=False):
         """Installs extension static media.
@@ -837,29 +911,6 @@ class ExtensionManager(object):
                                                     'static')
 
                 shutil.copytree(extracted_path, ext_static_path, symlinks=True)
-
-        # Mark the extension as installed
-        ext_class.registration.installed = True
-        ext_class.registration.save()
-
-        # Now let's build any tables that this extension might need
-        self._add_to_installed_apps(ext_class)
-
-        # Call syncdb to create the new tables
-        loading.cache.loaded = False
-        call_command('syncdb', verbosity=0, interactive=False)
-
-        # Run evolve to do any table modification.
-        self._migrate_extension_models(ext_class)
-
-        # Remove this again, since we only needed it for syncdb and
-        # evolve.  _init_extension will add it again later in
-        # the install.
-        self._remove_from_installed_apps(ext_class)
-
-        # Mark the extension as installed
-        ext_class.registration.installed = True
-        ext_class.registration.save()
 
     def _uninstall_extension(self, extension):
         """Uninstalls extension data.
@@ -1003,12 +1054,83 @@ class ExtensionManager(object):
                     % extension.info.app_name)
 
     def _add_to_installed_apps(self, extension):
+        """Add an extension's apps to the list of installed apps.
+
+        This will register each app with Django and clear any caches needed
+        to load the extension's modules.
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension whose apps are being added.
+        """
         self._installed_apps_setting.add_list(
             extension.apps or [extension.info.app_name])
 
+        if apps:
+            apps.set_installed_apps(settings.INSTALLED_APPS)
+
     def _remove_from_installed_apps(self, extension):
-        self._installed_apps_setting.remove_list(
+        """Remove an extension's apps from the list of installed apps.
+
+        This will unregister each app with Django and clear any caches
+        storing the apps' models.
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension whose apps are being removed.
+        """
+        # Remove the extension's apps from INSTALLED_APPS.
+        removed_apps = self._installed_apps_setting.remove_list(
             extension.apps or [extension.info.app_name])
+
+        # Now clear the apps and their modules from any caches.
+        if apps:
+            apps.unset_installed_apps()
+        else:
+            for app_name in removed_apps:
+                # In Django 1.6, the only apps that are registered are those
+                # with models. If this particular app does not have models, we
+                # don't want to clear any caches below. There might be another
+                # app with the same label that actually does have models, and
+                # we'd be clearing those away. An example would be
+                # reviewboard.hostingsvcs (which has models) and
+                # rbpowerpack.hostingsvcs (which does not).
+                #
+                # Django 1.6 doesn't technically allow multiple apps with the
+                # same label to have models (other craziness will happen), so
+                # we don't have to worry about that. It's not our problem.
+                try:
+                    app_mod = import_module('%s.models' % app_name)
+                except ImportError:
+                    # Something went very wrong. Maybe this module didn't
+                    # exist anymore. Ignore it.
+                    continue
+
+                # Fetch the models before we make any changes to the cache.
+                model_modules = {app_mod}
+                model_modules.update(
+                    import_module(model.__module__)
+                    for model in loading.get_models(app_mod)
+                )
+
+                # Start pruning this app from the caches.
+                #
+                # We are going to keep this in loading.cache.app_models.
+                # If we don't, we'll never get those modules again without
+                # some potentially dangerous manipulation of sys.modules and
+                # possibly other state. get_models() will default to ignoring
+                # anything in that list if the app label isn't present in
+                # loading.cache.app_labels, which we'll remove, so the model
+                # will appear as "uninstalled."
+                app_label = app_name.rpartition('.')[2]
+                loading.cache.app_labels.pop(app_label, None)
+
+                for module in model_modules:
+                    loading.cache.app_store.pop(module, None)
+
+            # Force get_models() to recompute models for lookups, so that
+            # now-unregistered models aren't returned.
+            loading.cache._get_models_cache.clear()
 
     def _entrypoint_iterator(self):
         return pkg_resources.iter_entry_points(self.key)
@@ -1045,24 +1167,19 @@ class ExtensionManager(object):
             ext_class (djblets.extensions.extension.Extension):
                 The class for the extension to migrate.
         """
-        try:
-            from django_evolution.management.commands.evolve import \
-                Command as Evolution
-        except ImportError:
-            raise InstallExtensionError(
-                "Unable to migrate the extension's database tables. Django "
-                "Evolution is not installed.")
+        if django_evolution is None:
+            # Django Evolution isn't installed. Extensions with evolutions
+            # are not supported.
+            return
 
         try:
             stream = StringIO()
-            evolution = Evolution()
-            evolution.style = no_style()
-            evolution.execute(verbosity=0, interactive=False,
-                              execute=True, hint=False,
-                              compile_sql=False, purge=False,
-                              database=False,
-                              stdout=stream, stderr=stream)
-
+            call_command('evolve',
+                         verbosity=0,
+                         interactive=False,
+                         execute=True,
+                         stdout=stream,
+                         stderr=stream)
             output = stream.getvalue()
 
             if output:

@@ -9,10 +9,6 @@ from django.conf.urls import include, url
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.db.models.fields.related import (
-    ManyRelatedObjectsDescriptor,
-    ReverseManyRelatedObjectsDescriptor,
-    ReverseSingleRelatedObjectDescriptor)
 from django.db.models.query import QuerySet
 from django.http import (HttpResponseNotAllowed, HttpResponse,
                          HttpResponseNotModified)
@@ -40,6 +36,27 @@ from djblets.webapi.errors import (DOES_NOT_EXIST,
                                    NOT_LOGGED_IN,
                                    PERMISSION_DENIED,
                                    WebAPIError)
+
+try:
+    # Django >= 1.9
+    from django.db.models.fields.related_descriptors import (
+        ManyToManyDescriptor,
+        ForwardManyToOneDescriptor)
+
+    m2m_descriptors = (ManyToManyDescriptor,)
+    fkey_descriptors = (ForwardManyToOneDescriptor,)
+except ImportError:
+    # Django < 1.9
+    from django.db.models.fields.related import (
+        ManyRelatedObjectsDescriptor,
+        ReverseManyRelatedObjectsDescriptor,
+        ReverseSingleRelatedObjectDescriptor)
+
+    m2m_descriptors = (
+        ManyRelatedObjectsDescriptor,
+        ReverseManyRelatedObjectsDescriptor,
+    )
+    fkey_descriptors = (ReverseSingleRelatedObjectDescriptor,)
 
 
 class WebAPIResource(object):
@@ -1252,9 +1269,7 @@ class WebAPIResource(object):
 
                 field_type = getattr(self.model, field, None)
 
-                if (field_type and
-                    isinstance(field_type,
-                               ReverseSingleRelatedObjectDescriptor)):
+                if field_type and isinstance(field_type, fkey_descriptors):
                     self._select_related_fields.append(field)
 
         if self._select_related_fields:
@@ -1271,10 +1286,7 @@ class WebAPIResource(object):
 
                     field_type = getattr(self.model, field, None)
 
-                    if (field_type and
-                        isinstance(field_type,
-                                   (ReverseManyRelatedObjectsDescriptor,
-                                    ManyRelatedObjectsDescriptor))):
+                    if field_type and isinstance(field_type, m2m_descriptors):
                         self._prefetch_related_fields.append(field)
 
             if self._prefetch_related_fields:

@@ -53,10 +53,30 @@ ADMIN_MEDIA_PREFIX = '/media/'
 SECRET_KEY = 'af=y9ydd51a0g#bevy0+p#(7ime@m#k)$4$9imoz*!rl97w0j0'
 
 # List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader',
-)
+TEMPLATE_LOADERS = [
+    ('django.template.loaders.cached.Loader', (
+        'django.template.loaders.filesystem.Loader',
+        'django.template.loaders.app_directories.Loader',
+    )),
+]
+
+TEMPLATE_DIRS = [
+    os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates')),
+]
+
+CONTEXT_PROCESSORS = []
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': TEMPLATE_DIRS,
+        'OPTIONS': {
+            'debug': True,
+            'context_processors': CONTEXT_PROCESSORS,
+            'loaders': TEMPLATE_LOADERS,
+        },
+    },
+]
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
@@ -67,12 +87,13 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = 'djblets.testing.urls'
 
 
+# Explicitly set TEST_RUNNER to avoid incorrect compatibility check warnings
+# from Django 1.7.
+TEST_RUNNER = 'djblets.testing.testrunners.TestRunner'
+
+
 PIPELINE = {}
 
-
-TEMPLATE_DIRS = (
-    os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates')),
-)
 
 INSTALLED_APPS = [
     'django.contrib.admin',

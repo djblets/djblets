@@ -60,14 +60,15 @@ class UtilsTagTests(TestCase):
 
         request = HttpRequest()
         request.GET = {
-            'bar': 'baz',
+            'a': '1',
+            'b': '2',
         }
 
         self.assertEqual(
             t.render(Context({
                 'request': request
             })),
-            '?bar=baz&foo=bar')
+            '?a=1&amp;b=2&amp;foo=bar')
 
     def test_querystring_with_existing_query_override(self):
         """Testing querystring_with template tag with an existing query that
@@ -86,7 +87,7 @@ class UtilsTagTests(TestCase):
             t.render(Context({
                 'request': request
             })),
-            '?bar=baz&foo=bar')
+            '?bar=baz&amp;foo=bar')
 
 
 class EmailTagTests(TestCase):

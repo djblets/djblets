@@ -1,27 +1,39 @@
 from __future__ import unicode_literals
 
-from optparse import make_option
-
-from django.core.management.base import CommandError, NoArgsCommand
+from django.core.management.base import CommandError
 from django.utils import six
 from django.utils.translation import ugettext as _
 
 from djblets.siteconfig.models import SiteConfiguration
+from djblets.util.compat.django.core.management.base import BaseCommand
 
 
-class Command(NoArgsCommand):
+class Command(BaseCommand):
     """Sets a setting in the site configuration.
 
     This cannot create new settings. It can only set existing ones.
     """
-    option_list = NoArgsCommand.option_list + (
-        make_option('--key', action='store', dest='key',
-                    help=_('The existing key to modify (dot-separated)')),
-        make_option('--value', action='store', dest='value',
-                    help=_('The value to store')),
-    )
 
-    def handle_noargs(self, **options):
+    def add_arguments(self, parser):
+        """Add arguments to the command.
+
+        Args:
+            parser (object):
+                The argument parser to add to.
+        """
+        parser.add_argument(
+            '--key',
+            action='store',
+            dest='key',
+            help=_('The existing key to modify (dot-separated)'))
+
+        parser.add_argument(
+            '--value',
+            action='store',
+            dest='value',
+            help=_('The value to store'))
+
+    def handle(self, *args, **options):
         siteconfig = SiteConfiguration.objects.get_current()
 
         key = options['key']
