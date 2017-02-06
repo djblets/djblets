@@ -38,7 +38,7 @@
 {% block datagrid_rows %}
 {%  if datagrid.rows %}
 {%   for row in datagrid.rows %}
-      <tr class="{% cycle odd,even %}" data-url="{{row.url}}">
+      <tr class="{% cycle "odd" "even" %}" data-url="{{row.url}}">
 {%    for cell in row.cells %}
        {{cell}}{% endfor %}
       </tr>

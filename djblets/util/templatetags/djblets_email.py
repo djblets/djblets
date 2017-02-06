@@ -29,6 +29,7 @@ import re
 
 from django import template
 from django.template.loader import render_to_string
+from django.utils.safestring import mark_safe
 
 from djblets.util.decorators import blocktag
 
@@ -69,4 +70,4 @@ def quote_text(text, level=1):
     for line in lines:
         quoted += "%s%s\n" % ("> " * level, line)
 
-    return quoted.rstrip()
+    return mark_safe(quoted.rstrip())
