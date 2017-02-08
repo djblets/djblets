@@ -234,16 +234,18 @@ class TestRunner(DiscoverRunner):
         if len(argv) > 2 and '--' in argv:
             self.nose_argv += argv[(argv.index('--') + 1):]
 
-        if test_labels:
-            self.nose_argv += [
-                test_label
-                for test_label in test_labels
-                if test_label not in self.nose_argv
-            ]
-        else:
-            # If specific tests are not requested, test all the configured
-            # test packages.
-            self.nose_argv += self.test_packages
+        # test_labels may be provided to us with some command line arguments,
+        # which we would have already added above. We need to sanitize this.
+        test_labels = [
+            test_label
+            for test_label in test_labels
+            if (not test_label.startswith('-') and
+                test_label not in self.nose_argv)
+        ]
+
+        # If specific tests are not requested, test all the configured
+        # test packages.
+        self.nose_argv += (test_labels or self.test_packages)
 
         self.run_nose()
 
