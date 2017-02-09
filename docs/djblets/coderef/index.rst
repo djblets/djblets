@@ -67,6 +67,7 @@ Database Utilities
 .. autosummary::
    :toctree: python
 
+   djblets.db.backends.mysql.base
    djblets.db.fields
    djblets.db.managers
    djblets.db.query

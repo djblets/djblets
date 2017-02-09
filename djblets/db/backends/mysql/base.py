@@ -16,6 +16,9 @@ class DatabaseWrapper(BaseMySQLDatabaseWrapper):
     :py:class:`~django.db.models.BinaryField` could trigger a MySQL warning
     due to the binary contents being validated as Unicode. This bug was fixed
     in Django 1.10.5, but is present on older versions.
+
+    To use this backend, just use ``djblets.db.backends.mysql`` as the database
+    backend instead of ``django.db.backends.mysql`` in :file:`settings.py`.
     """
 
     def __init__(self, *args, **kwargs):
