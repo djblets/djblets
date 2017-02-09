@@ -20,8 +20,12 @@ class ConfigPage(object):
         self.config_view = config_view
         self.request = request
         self.forms = [
-            form_cls(self, request, user)
-            for form_cls in self.form_classes
+            form
+            for form in (
+                form_cls(self, request, user)
+                for form_cls in self.form_classes
+            )
+            if form.is_visible()
         ]
 
     def is_visible(self):
