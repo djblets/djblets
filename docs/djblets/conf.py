@@ -221,6 +221,7 @@ intersphinx_mapping = {
     'django': ('http://django.readthedocs.io/en/%s.x/'
                % django_doc_major_version,
                None),
+    'setuptools': ('https://setuptools.readthedocs.io/en/latest/', None),
     'python': ('https://docs.python.org/2.7', None),
     'reviewboard': ('https://www.reviewboard.org/docs/manual/2.5/', None),
 }

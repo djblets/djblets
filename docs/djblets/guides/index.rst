@@ -1,3 +1,5 @@
+.. _djblets-guides:
+
 ======
 Guides
 ======

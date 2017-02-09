@@ -1,0 +1,117 @@
+===========================
+Djblets 0.9.5 Release Notes
+===========================
+
+**Release date**: February 9, 2017
+
+
+Packaging
+=========
+
+* Simplified installation of dependencies for contributors to Djblets.
+
+  If you're working on the Djblets codebase, installing the package in
+  development mode (running :command:`setup.py develop`) will now install
+  all of Python packages as Wheels instead of Eggs (simplifying installation
+  on most systems), and will install the node.js dependencies needed for
+  building static media.
+
+  This should help contributors get going with development. It does not
+  impact consumers of the Djblets packages in any way.
+
+* The complete list of package dependencies now lives in the
+  :py:mod:`djblets.dependencies` module instead of :file:`setup.py`.
+
+  Package maintainers looking to update the list of dependencies in some way
+  or wanting to stay up-to-date on the list of dependencies should consult
+  the :file:`djblets/dependencies.py` file. Note that only the Python
+  dependencies listed in there are requirements for consuming the package.
+  The node.js dependencies are only used to build the Djblets packages.
+
+
+djblets.cache
+=============
+
+* :py:class:`~djblets.cache.forwarding_backend.ForwardingCacheBackend` now
+  ignores errors when closing the old backend during a reset.
+
+  This avoids crashes when the old caching backend configuration was bad
+  in some way (such as the memcached host string being invalid).
+
+
+djblets.db
+==========
+
+* Added a MySQL database backend that fixes problems with Django's
+  :py:class:`~django.db.models.BinaryField`.
+
+  The new :py:mod:`djblets.db.backends.mysql` backend is a drop-in replacement
+  for :py:mod:`django.db.backends.mysql` that sends the correct SQL when
+  inserting binary content into the database using a
+  :py:class:`~django.db.models.BinaryField`.
+
+  Django's backend, prior to 1.10.5, will cause warnings from MySQL, which
+  will result in errors if ``settings.DEBUG`` is set to ``True``. This backend
+  backports Django's fix to older versions of Django.
+
+
+djblets.extensions
+==================
+
+* Added automatic installation of node.js packages needed for building
+  static media for extensions.
+
+  In order to simplify the building of extension packages that use static
+  media, the extension packaging code now installs the LessCSS compiler and
+  UglifyJS minifier automatically inside of a :file:`node_modules` directory
+  in the extension's source tree. LessCSS is installed only if :file:`*.less`
+  files are used, and UglifyJS is installed only if :file:`*.js` files are
+  used.
+
+  Consumers of Djblets can override the dependencies being installed by
+  implementing their own :py:meth:`BuildStaticFiles.install_pipeline_deps()
+  <djblets.extensions.packaging.BuildStaticFiles.install_pipeline_deps>`
+  method.
+
+* Added access to the current HTTP ``request`` object in
+  :py:meth:`JSExtension.get_model_data()
+  <djblets.extensions.extension.JSExtension.get_model_data>`.
+
+  This can be used to inject data into the page that's specific to the user
+  or HTTP request in some way. Note that extensions implementing this method
+  must now accept ``**kwargs``. Older methods that don't will trigger warnings
+  in the logs.
+
+  Patch by Erik Johansson.
+
+
+djblets.log
+===========
+
+* :py:class:`~djblets.log.middleware.LoggingMiddleware` now filters out
+  :py:class:`~django.http.Http404`,
+  :py:class:`~django.core.exceptions.PermissionDenied`, and
+  :py:class:`~django.core.exceptions.SuspiciousOperation` exceptions.
+
+  These are handled specially by Django's HTTP layer. The 404 errors, in
+  particular, just led to noisy log files without contributing much value.
+
+
+djblets.util
+============
+
+* Added a smarter version of Django's ``@cached_property`` decorator.
+
+  This introduces a new :py:meth:`~djblets.util.decorators.cached_property`
+  decorator, which is a version of Django's decorator that retains the
+  original method's documentation and name, which Django's does not. This
+  allows for proper introspection and documentation generation for methods
+  using this decorator.
+
+
+Contributors
+============
+
+* Christian Hammond
+* Erik Johansson
+* Michael Stensby

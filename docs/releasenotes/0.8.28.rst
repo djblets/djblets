@@ -1,0 +1,80 @@
+============================
+Djblets 0.8.28 Release Notes
+============================
+
+**Release date**: February 9, 2017
+
+
+Packaging
+=========
+
+* Simplified installation of dependencies for contributors to Djblets.
+
+  If you're working on the Djblets codebase, installing the package in
+  development mode (running :command:`setup.py develop`) will now install
+  all of Python packages as Wheels instead of Eggs (simplifying installation
+  on most systems), and will install the node.js dependencies needed for
+  building static media.
+
+  This should help contributors get going with development. It does not
+  impact consumers of the Djblets packages in any way.
+
+* The complete list of package dependencies now lives in the
+  :py:mod:`djblets.dependencies` module instead of :file:`setup.py`.
+
+  Package maintainers looking to update the list of dependencies in some way
+  or wanting to stay up-to-date on the list of dependencies should consult
+  the :file:`djblets/dependencies.py` file. Note that only the Python
+  dependencies listed in there are requirements for consuming the package.
+  The node.js dependencies are only used to build the Djblets packages.
+
+
+djblets.cache
+=============
+
+* :py:class:`~djblets.cache.forwarding_backend.ForwardingCacheBackend` now
+  ignores errors when closing the old backend during a reset.
+
+  This avoids crashes when the old caching backend configuration was bad
+  in some way (such as the memcached host string being invalid).
+
+
+djblets.log
+===========
+
+* :py:class:`~djblets.log.middleware.LoggingMiddleware` now filters out
+  :py:class:`~django.http.Http404`,
+  :py:class:`~django.core.exceptions.PermissionDenied`, and
+  :py:class:`~django.core.exceptions.SuspiciousOperation` exceptions.
+
+  These are handled specially by Django's HTTP layer. The 404 errors, in
+  particular, just led to noisy log files without contributing much value.
+
+
+djblets.testing
+===============
+
+* Fixed :py:class:`~djblets.testing.testrunners.TestRunner` when defining
+  :py:attr:`~djblets.testing.testrunners.TestRunner.test_packages` and
+  passing command line arguments.
+
+  The test packages were being ignored if command line arguments were
+  provided.
+
+
+djblets.util
+============
+
+* Added a smarter version of Django's ``@cached_property`` decorator.
+
+  This introduces a new :py:meth:`~djblets.util.decorators.cached_property`
+  decorator, which is a version of Django's decorator that retains the
+  original method's documentation and name, which Django's does not. This
+  allows for proper introspection and documentation generation for methods
+  using this decorator.
+
+
+Contributors
+============
+
+* Christian Hammond

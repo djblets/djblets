@@ -480,6 +480,7 @@ class FixturesCompilerMixin(object):
             return [
                 app.models_module
                 for app in apps.get_app_configs()
+                if app.models_module
             ]
         else:
             return app_cache.get_apps()
