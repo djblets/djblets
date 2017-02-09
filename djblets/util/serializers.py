@@ -25,7 +25,8 @@ class DjbletsJSONEncoder(DjangoJSONEncoder):
       data coming from a MySQL database (which historically, and by default,
       chops off milliseconds).
 
-    * Serializes objects with a ``to_json`` method.
+    * Serializes Django :py:class:`models <django.db.models.base.Model>` with
+      a ``to_json`` method via that method.
     """
 
     def __init__(self, strip_datetime_ms=True, *args, **kwargs):
