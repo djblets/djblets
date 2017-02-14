@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+from kgb import SpyAgency
+
 from djblets.configforms.forms import ConfigPageForm
 from djblets.configforms.mixins import DynamicConfigPageMixin
 from djblets.configforms.pages import ConfigPage
@@ -30,7 +32,7 @@ class TestPageTwo(DynamicConfigPage):
     form_classes = [TestFormA, TestFormB]
 
 
-class ConfigPageRegistryTests(TestCase):
+class ConfigPageRegistryTests(SpyAgency, TestCase):
     """Tests for djblets.configforms.registry.ConfigPageRegistry."""
 
     @classmethod
@@ -41,6 +43,8 @@ class ConfigPageRegistryTests(TestCase):
 
     def tearDown(self):
         self.registry.reset()
+        TestPageOne.form_classes = [TestFormB]
+        TestPageTwo.formClasses = [TestFormA, TestFormB]
 
     def test_reset(self):
         """Testing ConfigPageRegistry.reset"""
@@ -136,3 +140,71 @@ class ConfigPageRegistryTests(TestCase):
 
         self.registry.register(TestPage)
         self.assertListEqual(TestPage.form_classes, [])
+
+    def test_add_form_to_page_populate(self):
+        """Testing ConfigPageRegistry.add_form_to_page populates itself and the
+         ConfigPageFormRegistry
+         """
+        class TestRegistry(ConfigPageRegistry):
+            def get_defaults(self):
+                yield TestPageOne
+
+        registry = TestRegistry()
+
+        self.spy_on(registry.populate)
+        self.spy_on(registry._forms.populate)
+
+        registry.add_form_to_page(TestPageOne, TestFormA)
+
+        self.assertTrue(registry.populate.spy.called)
+        self.assertTrue(registry._forms.populate.spy.called)
+        self.assertEqual(set(registry._forms), {TestFormA, TestFormB})
+
+    def test_add_form_to_page_populate_duplicate(self):
+        """Testing ConfigPageRegistry.add_form_to_page with an already
+        registered page raises an error due to population
+        """
+        class TestRegistry(ConfigPageRegistry):
+            def get_defaults(self):
+                yield TestPageOne
+
+        registry = TestRegistry()
+
+        with self.assertRaises(registry.already_registered_error_class):
+            registry.add_form_to_page(TestPageOne, TestFormB)
+
+        self.assertEqual(set(registry._forms), {TestFormB})
+
+    def test_remove_form_from_page_populate(self):
+        """Testing ConfigPageRegistry.remove_form_from_page populates itself
+        and the ConfigPgaeFormRegistry
+        """
+        class TestRegistry(ConfigPageRegistry):
+            def get_defaults(self):
+                yield TestPageOne
+
+        registry = TestRegistry()
+
+        self.spy_on(registry.populate)
+        self.spy_on(registry._forms.populate)
+
+        registry.remove_form_from_page(TestPageOne, TestFormB)
+
+        self.assertTrue(registry.populate.spy.called)
+        self.assertTrue(registry._forms.populate.spy.called)
+        self.assertEqual(set(registry._forms), set())
+
+    def test_remove_form_from_page_populate_unregistered(self):
+        """Testing ConfigPageForm.remove_form_from_page with an unregistered
+        page raises an error due to population
+        """
+        class TestRegistry(ConfigPageRegistry):
+            def get_defaults(self):
+                yield TestPageOne
+
+        registry = TestRegistry()
+
+        with self.assertRaises(registry.lookup_error_class):
+            registry.remove_form_from_page(TestPageOne, TestFormA)
+
+        self.assertEqual(set(registry._forms), {TestFormB})

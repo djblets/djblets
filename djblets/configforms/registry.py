@@ -189,6 +189,7 @@ class ConfigPageRegistry(OrderedRegistry):
                 Raised if the form shares an attribute with an already
                 registered form.
         """
+        self.populate()
         self._forms.register(form_class)
         page_class.form_classes.append(form_class)
         self._form_to_page[form_class.form_id] = page_class.page_id
@@ -213,6 +214,7 @@ class ConfigPageRegistry(OrderedRegistry):
             djblets.registries.errors.ItemLookupError:
                 Raised if the form was not previously registered.
         """
+        self.populate()
         self._forms.unregister(form_class)
         page_class.form_classes.remove(form_class)
         del self._form_to_page[form_class.form_id]
