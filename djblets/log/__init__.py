@@ -26,11 +26,13 @@
 
 from __future__ import unicode_literals
 
-from datetime import datetime
+import inspect
 import logging
 import logging.handlers
 import os
 import sys
+from datetime import datetime
+from functools import update_wrapper
 
 from django.conf import settings
 
@@ -102,33 +104,6 @@ class RequestLogFormatter(logging.Formatter):
             return ''
 
 
-def _wrap_logger(logger):
-    """Wraps a logger, providing an extra 'request' argument."""
-    def _log_with_request(self, *args, **kwargs):
-        extra = kwargs.pop('extra', {})
-        request = kwargs.pop('request', None)
-
-        if request:
-            extra['request'] = request
-
-        kwargs['extra'] = extra
-
-        old_log(self, *args, **kwargs)
-
-    if not hasattr(logger, '_djblets_wrapped'):
-        # This should be a good assumption on all supported versions of Python.
-        assert hasattr(logger, '_log')
-        old_log = logger._log
-        logger._log = _log_with_request
-        logger._djblets_wrapped = True
-
-
-# Regardless of whether we have logging enabled, we'll want this to be
-# set so that logging calls don't fail when passing request.
-root = logging.getLogger('')
-_wrap_logger(root)
-
-
 def init_logging():
     """
     Sets up the main loggers, if they haven't already been set up.
@@ -157,6 +132,8 @@ def init_logging():
 
     formatter = RequestLogFormatter(request_format_str, format_str)
     logging_to_stderr = False
+
+    root = logging.getLogger()
 
     if log_path:
         try:
@@ -253,3 +230,48 @@ def log_timed(message, warning_at=5, critical_at=15,
     """
     return TimedLogInfo(message, warning_at, critical_at, default_level,
                         log_beginning, request)
+
+
+# Add support in Logger to take a request= parameter. This will apply to the
+# root logger and all instances/subclasses of logging.Logger.
+#
+# Ideally, we would use logging.setLoggerClass() to set a custom Logger that
+# understands request=, but the root logger wouldn't be affected and anything
+# that called logging.getLogger('...') before this file was imported wouldn't
+# benefit.
+def _Logger_log(self, *args, **kwargs):
+    extra = kwargs.pop('extra', {})
+    request = kwargs.pop('request', None)
+
+    if request:
+        extra['request'] = request
+
+    kwargs['extra'] = extra
+
+    _old_log(self, *args, **kwargs)
+
+_old_log = logging.Logger._log
+
+if _old_log is not _Logger_log:
+    update_wrapper(_Logger_log, logging.Logger._log)
+    logging.Logger._log = _Logger_log
+
+
+# On some versions of Python (2.6.x, 2.7.0-2.7.5, 3.0.x, and 3.1.x),
+# Logger.exception/logging.exception doesn't support keyword arguments,
+# which impacts not only request= but also extra=. We need to patch these.
+if inspect.getargspec(logging.exception).keywords is None:
+    def _logging_exception(msg, *args, **kwargs):
+        kwargs['exc_info'] = 1
+        logging.error(msg, *args, **kwargs)
+
+    update_wrapper(_logging_exception, logging.exception)
+    logging.exception = _logging_exception
+
+if inspect.getargspec(logging.Logger.exception).keywords is None:
+    def _Logger_exception(self, msg, *args, **kwargs):
+        kwargs['exc_info'] = 1
+        self.error(msg, *args, **kwargs)
+
+    update_wrapper(_Logger_exception, logging.Logger.exception)
+    logging.Logger.exception = _Logger_exception
