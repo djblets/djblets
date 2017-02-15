@@ -138,7 +138,8 @@ class AvatarSettingsForm(ConfigPageForm):
         ]
         avatar_service = self.avatar_service_registry.for_user(self.user)
 
-        avatar_service_id.initial = avatar_service.avatar_service_id
+        if avatar_service:
+            avatar_service_id.initial = avatar_service.avatar_service_id
 
         if self.request.method == 'POST':
             kwargs['files'] = self.request.FILES

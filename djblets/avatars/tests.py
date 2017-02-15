@@ -11,11 +11,13 @@ from django.utils.html import mark_safe
 from kgb import SpyAgency
 
 from djblets.avatars.errors import DisabledServiceError
+from djblets.avatars.forms import AvatarSettingsForm
 from djblets.avatars.registry import AvatarServiceRegistry
 from djblets.avatars.settings import AvatarSettingsManager
 from djblets.avatars.services import (AvatarService,
                                       GravatarService,
                                       URLAvatarService)
+from djblets.configforms.pages import ConfigPage
 from djblets.gravatars import get_gravatar_url_for_email
 from djblets.registries.errors import ItemLookupError
 from djblets.siteconfig.models import SiteConfiguration
@@ -587,3 +589,45 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         # Case 3: The default avatar service
         registry.settings_manager_class._avatar_service_id = None
         self.assertIsInstance(registry.for_user(None), GravatarService)
+
+
+class AvatarSettingsFormTests(SpyAgency, TestCase):
+    """Tests for djblets.avatars.forms.AvatarSettingsForm."""
+
+    @classmethod
+    def setUpClass(cls):
+        super(AvatarSettingsFormTests, cls).setUpClass()
+        cls.request_factory = RequestFactory()
+
+    def setUp(self):
+        super(AvatarSettingsFormTests, self).setUp()
+        site = Site.objects.get_current()
+        self.siteconfig = SiteConfiguration.objects.create(site=site)
+
+    def tearDown(self):
+        super(AvatarSettingsFormTests, self).tearDown()
+        self.siteconfig.delete()
+
+    def test_instantiate_form_no_default_service(self):
+        """Testing AvatarSettingsForm instantiation when there is no
+        default avatar service
+        """
+        class TestAvatarServiceRegistry(AvatarServiceRegistry):
+            default_avatar_service_classes = []
+            settings_manager_class = DummySettingsManager(None, {})
+
+        class TestSettingsForm(AvatarSettingsForm):
+            avatar_service_registry = TestAvatarServiceRegistry()
+
+        class TestPage(ConfigPage):
+            form_classes = [TestSettingsForm]
+
+        self.spy_on(User.get_profile, call_fake=lambda *args: None)
+
+        self.assertIsNone(
+            TestSettingsForm.avatar_service_registry.default_service)
+
+        request = self.request_factory.get('/')
+        user = User(username='test', email='test@example.com')
+        page = TestPage(None, request, user)
+        TestSettingsForm(page, request, user)
