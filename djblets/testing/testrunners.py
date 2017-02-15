@@ -235,8 +235,9 @@ class TestRunner(DiscoverRunner):
             self.nose_argv += argv[(argv.index('--') + 1):]
 
         # test_labels may be provided to us with some command line arguments,
-        # which we would have already added above. We need to sanitize this.
-        test_labels = [
+        # which we would have already added above. We need to sanitize this
+        # when adding it to the argument list.
+        self.nose_argv += [
             test_label
             for test_label in test_labels
             if (not test_label.startswith('-') and
@@ -245,7 +246,14 @@ class TestRunner(DiscoverRunner):
 
         # If specific tests are not requested, test all the configured
         # test packages.
-        self.nose_argv += (test_labels or self.test_packages)
+        specific_tests = [
+            test_name
+            for test_name in self.nose_argv[1:]
+            if not test_name.startswith('-')
+        ]
+
+        if not specific_tests:
+            self.nose_argv += self.test_packages
 
         self.run_nose()
 
