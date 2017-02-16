@@ -2,7 +2,7 @@
 Djblets 0.9.6 Release Notes
 ===========================
 
-**Release date**: TBD
+**Release date**: February 15, 2017
 
 
 djblets.configforms
