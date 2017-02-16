@@ -1,0 +1,40 @@
+===========================
+Djblets 0.9.6 Release Notes
+===========================
+
+**Release date**: February 15, 2017
+
+
+djblets.configforms
+===================
+
+* Fixed a bug where :py:class:`djblets.configforms.forms.ConfigPageForm`
+  would always render, even if set to be invisible.
+
+
+djblets.log
+===========
+
+* Fixed support for ``request=`` arguments to custom loggers.
+
+* Patched :py:func:`logging.exception` to accept keyword arguments on older
+  versions of Python. (:bug:`4523`)
+
+  Python 2.6.x, 2.7.0 through 2.7.5, 3.0.x, and 3.1.x all had a bug where
+  :py:func:`logging.exception` wouldn't accept keyword arguments, which is
+  required for ``request=`` or ``extra=`` keyword arguments.
+
+
+djblets.testing
+===============
+
+* Fixed a regression where :py:class:`djblets.testing.testrunners.TestRunner`
+  could end up running the entire test suite when trying to run only
+  specific tests.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
