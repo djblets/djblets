@@ -272,6 +272,55 @@ class FetchPublicSuffixListCommand(Command):
         print 'Public suffix list stored at %s' % filename
 
 
+class ListNodeDependenciesCommand(Command):
+    """"Write all node.js dependencies to standard output."""
+
+    description = 'Generate a package.json that lists node.js dependencies'
+
+    user_options = [
+        ('to-stdout', None,
+         'Write to standard output instead of a package.json file.')
+    ]
+
+    boolean_options = ['to-file']
+
+    def initialize_options(self):
+        """Set the command's option defaults."""
+        self.to_stdout = False
+
+    def finalize_options(self):
+        """Post-process command options.
+
+        This method intentionally left blank.
+        """
+        pass
+
+    def run(self):
+        """Run the command."""
+        if self.to_stdout:
+            self._write_deps(sys.stdout)
+        else:
+            with open('package.json', 'w') as f:
+                self._write_deps(f)
+
+    def _write_deps(self, f):
+        """Write the packaage.json to the given file handle.
+
+        Args:
+            f (file):
+                The file handle to write to.
+        """
+        f.write(json.dumps(
+            {
+                'name': 'djblets',
+                'private': 'true',
+                'devDependencies': {},
+                'dependencies': npm_dependencies,
+            },
+            indent=2))
+        f.write('\n')
+
+
 class InstallNodeDependenciesCommand(Command):
     """Installs all node.js dependencies from npm.
 
@@ -320,15 +369,7 @@ class InstallNodeDependenciesCommand(Command):
                 'install dependencies required to build this package.'
                 % npm_command)
 
-        with open('package.json', 'w') as fp:
-            fp.write(json.dumps(
-                {
-                    'name': 'djblets',
-                    'private': 'true',
-                    'devDependencies': {},
-                    'dependencies': npm_dependencies,
-                },
-                indent=2))
+        self.run_command('list_node_deps')
 
         print 'Installing node.js modules...'
         result = os.system('%s install' % npm_command)
@@ -371,6 +412,7 @@ setup(
         'build_i18n': BuildI18nCommand,
         'fetch_public_suffix_list': FetchPublicSuffixListCommand,
         'install_node_deps': InstallNodeDependenciesCommand,
+        'list_node_deps': ListNodeDependenciesCommand,
     },
     classifiers=[
         'Development Status :: 4 - Beta',
