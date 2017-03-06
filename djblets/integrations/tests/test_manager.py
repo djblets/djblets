@@ -405,9 +405,14 @@ class IntegrationManagerTests(IntegrationsTestCase):
 
     def test_shutdown_integration_managers(self):
         """Testing shutdown_integration_managers"""
-        IntegrationManager(IntegrationConfig)
-        IntegrationManager(IntegrationConfig)
+        manager1 = IntegrationManager(IntegrationConfig)
+        self.assertTrue(manager1.enabled)
+
+        manager2 = IntegrationManager(IntegrationConfig)
+        self.assertTrue(manager2.enabled)
 
         shutdown_integration_managers()
 
         self.assertEqual(get_integration_managers(), [])
+        self.assertFalse(manager1.enabled)
+        self.assertFalse(manager2.enabled)
