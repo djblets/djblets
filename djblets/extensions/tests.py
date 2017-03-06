@@ -27,6 +27,7 @@ from __future__ import unicode_literals
 
 import logging
 import os
+import shutil
 import threading
 import time
 import warnings
@@ -717,36 +718,235 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertEqual(len(self.manager._init_extension.calls), 2)
         self.assertEqual(self.exceptions, [])
 
-    def test_install_extension_media_with_stale_version_key(self):
-        """Testing ExtensionManager installing media for newly installed
-        extension with existing stale version key
+    def test_sync_database_with_no_settings_version(self):
+        """Testing ExtensionManager synchronizes database when no version
+        found in settings (new install)
         """
         class TestExtension(Extension):
             pass
 
         extension = self.setup_extension(TestExtension, enable=False)
-        version_key = ExtensionManager.VERSION_SETTINGS_KEY
+        extension.registration.installed = True
+        extension.registration.save()
 
-        self.assertFalse(extension.registration.installed)
+        self.assertNotIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
 
-        # Add a bad version key, perhaps copy/pasted by hand from an admin.
-        # We'll set it to the current version.
-        extension.settings.set(version_key, extension.info.version)
-        extension.settings.save()
+        self.spy_on(self.manager._sync_database, call_original=False)
 
-        # Enable the extension. It shouldn't blow up.
         extension = self.manager.enable_extension(TestExtension.id)
-        self.assertTrue(extension.registration.installed)
-        self.assertIsNotNone(extension.settings.get(version_key))
 
-    def test_install_media_concurrent_threads(self):
-        """Testing ExtensionManager updating media for existing
-        extension with concurrent threads
+        self.assertTrue(extension.registration.installed)
+        self.assertTrue(self.manager._sync_database.called)
+        self.assertIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
+        self.assertEqual(extension.settings[self.manager.VERSION_SETTINGS_KEY],
+                         extension.info.version)
+
+    def test_sync_database_with_old_settings_version(self):
+        """Testing ExtensionManager synchronizes database when old version
+        found in settings (upgrade)
         """
         class TestExtension(Extension):
             pass
 
-        version_key = ExtensionManager.VERSION_SETTINGS_KEY
+        extension = self.setup_extension(TestExtension, enable=False)
+        extension.registration.installed = True
+        extension.registration.save()
+
+        self.assertNotIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
+        extension.settings.set(self.manager.VERSION_SETTINGS_KEY, '0.5')
+        extension.settings.save()
+
+        self.spy_on(self.manager._sync_database, call_original=False)
+
+        extension = self.manager.enable_extension(TestExtension.id)
+
+        self.assertTrue(extension.registration.installed)
+        self.assertTrue(self.manager._sync_database.called)
+        self.assertIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
+        self.assertEqual(extension.settings[self.manager.VERSION_SETTINGS_KEY],
+                         extension.info.version)
+
+    def test_sync_database_with_current_settings_version(self):
+        """Testing ExtensionManager doesn't synchronize database when current
+        version found in settings
+        """
+        class TestExtension(Extension):
+            pass
+
+        extension = self.setup_extension(TestExtension, enable=False)
+        extension.registration.installed = True
+        extension.registration.save()
+
+        self.assertNotIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
+        extension.settings.set(self.manager.VERSION_SETTINGS_KEY,
+                               extension.info.version)
+        extension.settings.save()
+
+        self.spy_on(self.manager._sync_database, call_original=False)
+
+        extension = self.manager.enable_extension(TestExtension.id)
+
+        self.assertTrue(extension.registration.installed)
+        self.assertFalse(self.manager._sync_database.called)
+        self.assertIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
+        self.assertEqual(extension.settings[self.manager.VERSION_SETTINGS_KEY],
+                         extension.info.version)
+
+    def test_sync_database_with_newer_settings_version(self):
+        """Testing ExtensionManager doesn't synchronize database when newer
+        version found in settings (downgrade)
+        """
+        class TestExtension(Extension):
+            pass
+
+        extension = self.setup_extension(TestExtension, enable=False)
+        extension.registration.installed = True
+        extension.registration.save()
+
+        self.assertNotIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
+        extension.settings.set(self.manager.VERSION_SETTINGS_KEY, '100.0')
+        extension.settings.save()
+
+        self.spy_on(self.manager._sync_database, call_original=False)
+        self.spy_on(logging.warning)
+
+        extension = self.manager.enable_extension(TestExtension.id)
+
+        self.assertTrue(extension.registration.installed)
+        self.assertFalse(self.manager._sync_database.called)
+        self.assertIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
+        self.assertEqual(extension.settings[self.manager.VERSION_SETTINGS_KEY],
+                         '100.0')
+        self.assertIn('is older than the version recorded',
+                      logging.warning.spy.calls[-1].args[0])
+
+    def test_install_extension_media_with_no_version_file(self):
+        """Testing ExtensionManager installs media when no version file exists
+        in the media directory (new install or upgrade from pre-version file)
+        """
+        class TestExtension(Extension):
+            pass
+
+        extension = self.setup_extension(TestExtension, enable=False)
+        extension.registration.installed = True
+        extension.registration.enabled = True
+        extension.registration.save()
+        TestExtension.instance = extension
+
+        # Re-create the directories.
+        shutil.rmtree(extension.info.installed_static_path)
+        os.mkdir(extension.info.installed_static_path, 0755)
+
+        self.manager.should_install_static_media = True
+
+        self.spy_on(self.manager.install_extension_media)
+        self.spy_on(self.manager._install_extension_media_internal,
+                    call_original=False)
+
+        # Fake the current version being installed.
+        version_filename = os.path.join(extension.info.installed_static_path,
+                                        '.version')
+        self.assertFalse(os.path.exists(version_filename))
+
+        # Enable the extension. We shouldn't install anything.
+        extension = self.manager.enable_extension(TestExtension.id)
+        self.assertTrue(extension.registration.installed)
+
+        self.assertEqual(len(self.manager.install_extension_media.calls), 1)
+        self.assertEqual(
+            len(self.manager._install_extension_media_internal.calls), 1)
+
+        with open(version_filename, 'r') as fp:
+            self.assertEqual(fp.read().strip(), extension.info.version)
+
+    def test_install_extension_media_with_outdated_version(self):
+        """Testing ExtensionManager installs media when version file is
+        older than the current version (upgrade)
+        """
+        class TestExtension(Extension):
+            pass
+
+        extension = self.setup_extension(TestExtension, enable=False)
+        extension.registration.installed = True
+        extension.registration.enabled = True
+        extension.registration.save()
+        TestExtension.instance = extension
+
+        # Re-create the directories.
+        shutil.rmtree(extension.info.installed_static_path)
+        os.mkdir(extension.info.installed_static_path, 0755)
+
+        self.manager.should_install_static_media = True
+
+        self.spy_on(self.manager.install_extension_media)
+        self.spy_on(self.manager._install_extension_media_internal,
+                    call_original=False)
+
+        # Fake the current version being installed.
+        version_filename = os.path.join(extension.info.installed_static_path,
+                                        '.version')
+
+        with open(version_filename, 'w') as fp:
+            fp.write('0.5\n')
+
+        # Enable the extension. We shouldn't install anything.
+        extension = self.manager.enable_extension(TestExtension.id)
+        self.assertTrue(extension.registration.installed)
+
+        self.assertEqual(len(self.manager.install_extension_media.calls), 1)
+        self.assertEqual(
+            len(self.manager._install_extension_media_internal.calls), 1)
+
+        with open(version_filename, 'r') as fp:
+            self.assertEqual(fp.read().strip(), extension.info.version)
+
+    def test_install_extension_media_with_newer_version(self):
+        """Testing ExtensionManager installs media when version file is
+        newer than the current version (downgrade)
+        """
+        class TestExtension(Extension):
+            pass
+
+        extension = self.setup_extension(TestExtension, enable=False)
+        extension.registration.installed = True
+        extension.registration.enabled = True
+        extension.registration.save()
+        TestExtension.instance = extension
+
+        # Re-create the directories.
+        shutil.rmtree(extension.info.installed_static_path)
+        os.mkdir(extension.info.installed_static_path, 0755)
+
+        self.manager.should_install_static_media = True
+
+        self.spy_on(self.manager.install_extension_media)
+        self.spy_on(self.manager._install_extension_media_internal,
+                    call_original=False)
+
+        # Fake the current version being installed.
+        version_filename = os.path.join(extension.info.installed_static_path,
+                                        '.version')
+
+        with open(version_filename, 'w') as fp:
+            fp.write('100.0\n')
+
+        # Enable the extension. We shouldn't install anything.
+        extension = self.manager.enable_extension(TestExtension.id)
+        self.assertTrue(extension.registration.installed)
+
+        self.assertEqual(len(self.manager.install_extension_media.calls), 1)
+        self.assertEqual(
+            len(self.manager._install_extension_media_internal.calls), 1)
+
+        with open(version_filename, 'r') as fp:
+            self.assertEqual(fp.read().strip(), extension.info.version)
+
+    def test_install_media_concurrent_threads(self):
+        """Testing ExtensionManager installs media safely with multiple
+        threads
+        """
+        class TestExtension(Extension):
+            pass
 
         # Manually mark the extension as installed and enabled without going
         # through the enable process, since we don't want to trigger any
@@ -757,8 +957,10 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         extension.registration.save()
         TestExtension.instance = extension
 
-        extension.settings.set(version_key, '0.5')
-        extension.settings.save()
+        # Clear out the old directory, if it exists.
+        shutil.rmtree(extension.info.installed_static_path)
+
+        self.manager.should_install_static_media = True
 
         self.assertEqual(len(self.manager.get_installed_extensions()), 1)
 
@@ -766,6 +968,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         self.spy_on(self.manager._install_extension_media_internal,
                     call_original=False)
 
+        # Simulate numerous simultaneous attempts at installing static media.
         self._run_thread_test(
             lambda: self.manager.install_extension_media(extension.__class__))
 
@@ -774,6 +977,53 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertEqual(
             len(self.manager._install_extension_media_internal.calls), 1)
         self.assertEqual(self.exceptions, [])
+
+        version_filename = os.path.join(extension.info.installed_static_path,
+                                        '.version')
+
+        with open(version_filename, 'r') as fp:
+            self.assertEqual(fp.read().strip(), extension.info.version)
+
+    def test_install_extension_media_with_current_version(self):
+        """Testing ExtensionManager doesn't install media when version file
+        matches current version
+        """
+        class TestExtension(Extension):
+            pass
+
+        extension = self.setup_extension(TestExtension, enable=False)
+        extension.registration.installed = True
+        extension.registration.enabled = True
+        extension.registration.save()
+        TestExtension.instance = extension
+
+        # Re-create the directories.
+        shutil.rmtree(extension.info.installed_static_path)
+        os.mkdir(extension.info.installed_static_path, 0755)
+
+        self.manager.should_install_static_media = True
+
+        self.spy_on(self.manager.install_extension_media)
+        self.spy_on(self.manager._install_extension_media_internal,
+                    call_original=False)
+
+        # Fake the current version being installed.
+        version_filename = os.path.join(extension.info.installed_static_path,
+                                        '.version')
+
+        with open(version_filename, 'w') as fp:
+            fp.write('%s\n' % extension.info.version)
+
+        # Enable the extension. We shouldn't install anything.
+        extension = self.manager.enable_extension(TestExtension.id)
+        self.assertTrue(extension.registration.installed)
+
+        self.assertEqual(len(self.manager.install_extension_media.calls), 1)
+        self.assertEqual(
+            len(self.manager._install_extension_media_internal.calls), 0)
+
+        with open(version_filename, 'r') as fp:
+            self.assertEqual(fp.read().strip(), extension.info.version)
 
     def test_enable_extension_registers_static_bundles(self):
         """Testing ExtensionManager.enable_extension registers static bundles
