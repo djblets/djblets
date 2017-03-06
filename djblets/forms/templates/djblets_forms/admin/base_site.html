@@ -1,0 +1,32 @@
+{% extends "admin/base_site.html" %}
+
+{% comment %}
+This file works as a base administration site template for other templates used
+in Djblets. It provides "admin_css", "admin_scripts", and "admin_scripts_post"
+blocks, which templates can use to inject CSS files, JavaScript in <head>, and
+JavaScript near the end of the page (respectively).
+
+This ultimately gives more control of when JavaScript files are loaded,
+allowing a page to render before loading all the necessary JavaScript.
+
+Consumers that override these blocks or simply don't include them in the base
+template are responsible for defining these blocks in their own template.
+Failure to do so will prevent some pages from loading.
+{% endcomment %}
+
+{% block extrastyle %}
+{{block.super}}
+{% block admin_css %}{% endblock %}
+{% endblock extrastyle %}
+
+
+{% block extrahead %}
+{{block.super}}
+{% block admin_scripts %}{% endblock %}
+{% endblock extrahead %}
+
+
+{% block footer %}
+{{block.super}}
+{% block admin_scripts_post %}{% endblock %}
+{% endblock footer %}

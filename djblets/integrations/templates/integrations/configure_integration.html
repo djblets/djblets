@@ -20,18 +20,18 @@
 </p>
 {% endblock %}
 
-{% block scripts %}
+{% block admin_scripts %}
 {{block.super}}
+{% include "js/jquery.html" %}
  <script src="{% static "admin/js/core.js" %}"></script>
-{%  url "admin:jsi18n" as jsi18nurl %}
+ <script src="{% static "admin/js/jquery.init.js" %}"></script>
+{% endblock admin_scripts %}
 
-<script src="{{jsi18nurl|default:"../../../jsi18n/"}}"></script>
-{% endblock scripts %}
-
-{% block scripts-post %}
+{% block admin_scripts_post %}
 {{block.super}}
 
 <script>
+(function($) {
     $('.deletelink').click(function(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -54,5 +54,7 @@
             });
         }
     });
+})(django.jQuery);
+
 </script>
-{% endblock scripts-post %}
+{% endblock admin_scripts_post %}

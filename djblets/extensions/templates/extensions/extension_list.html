@@ -1,23 +1,31 @@
-{% extends "admin/base_site.html" %}
+{% extends "djblets_forms/admin/base_site.html" %}
 {% load admin_list djblets_extensions djblets_js i18n pipeline staticfiles %}
+
 
 {% block title %}{% trans "Manage Extensions" %} {{block.super}}{% endblock %}
 
-{% block extrahead %}
+
+{% block admin_css %}
 <link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />
 {%  stylesheet 'djblets-admin' %}
+{% endblock admin_css %}
+
+
+{% block admin_scripts %}
 {%  url 'admin:jsi18n' as jsi18nurl %}
 <script src="{{jsi18nurl|default:"../../../jsi18n/"}}"></script>
 {%  include "js/jquery.html" %}
+{{block.super}}
+{% endblock admin_scripts %}
+
+{% block admin_scripts_post %}
 {%  include "js/jquery-ui.html" %}
 {%  include "js/underscore.html" %}
 {%  include "js/backbone.html" %}
 {%  javascript 'djblets-gravy' %}
 {%  javascript 'djblets-extensions' %}
 {%  javascript 'djblets-extensions-admin' %}
-
-{{block.super}}
-{% endblock %}
+{% endblock admin_scripts_post %}
 
 {% block bodyclass %}{{block.super}} extensions-list-page{% endblock %}
 
@@ -42,6 +50,7 @@
 </div>
 
 <script>
+(function($) {
     $(document).ready(function() {
         var view = new Djblets.ExtensionManagerView({
             el: $('#extension-manager'),
@@ -50,5 +59,6 @@
 
         view.render();
     });
+}(window.jQuery || django.jQuery));
 </script>
 {% endblock %}
