@@ -390,6 +390,8 @@ class IntegrationManager(object):
                 else:
                     integration.disable_integration()
 
+        self._needs_recalc = False
+
     def _make_config_filter_cache_key(self, integration_cls, **filter_kwargs):
         """Return a cache key for a config query filter.
 
