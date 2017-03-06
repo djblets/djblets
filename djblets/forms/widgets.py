@@ -102,19 +102,33 @@ class ConditionsWidget(widgets.Widget):
         """Media needed for the widget.
 
         This is used by the form to return all CSS/JavaScript media that the
-        page will need in order to render the widget.
+        page will need in order to render this widget and any widgets used
+        in the condition value fields.
+
+        Returns:
+            django.forms.widgets.Media:
+            The media to include on the path.
         """
-        media = (widgets.Media() + self.choice_widget.media +
+        media = (widgets.Media() +
+                 self.choice_widget.media +
                  self.operator_widget.media)
 
         choices = self.choices.get_choices(choice_kwargs=self.choice_kwargs)
 
         for choice in choices:
-            media += choice.default_value_field.widget.media
+            default_value_field = choice.default_value_field
+
+            if callable(default_value_field):
+                default_value_field = default_value_field()
+
+            if hasattr(default_value_field, 'widget'):
+                media += default_value_field.widget.media
 
             for operator in choice.get_operators():
                 if operator.has_custom_value_field:
-                    media += operator.value_field.widget.media
+                    if (operator.value_field and
+                        hasattr(operator.value_field, 'widget')):
+                        media += operator.value_field.widget.media
 
         return media
 
