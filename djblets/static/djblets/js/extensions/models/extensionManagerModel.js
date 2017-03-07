@@ -26,7 +26,7 @@ InstalledExtension = Backbone.Model.extend({
     },
 
     url: function() {
-        return SITE_ROOT + 'api/extensions/' + this.id + '/';
+        return Backbone.Model.prototype.url.call(this) + '/';
     },
 
     /*
@@ -143,10 +143,6 @@ InstalledExtension = Backbone.Model.extend({
 InstalledExtensionCollection = Backbone.Collection.extend({
     model: InstalledExtension,
 
-    url: function() {
-        return SITE_ROOT + 'api/extensions/';
-    },
-
     parse: function(rsp) {
         return rsp.extensions;
     }
@@ -158,10 +154,20 @@ InstalledExtensionCollection = Backbone.Collection.extend({
  *
  * This stores a collection of installed extensions, and provides
  * functionality for loading the current list from the server.
+ *
+ * Model Attributes:
+ *     apiRoot (string):
+ *         The root of the extensions API, used for all lookups.
  */
 Djblets.ExtensionManager = Backbone.Model.extend({
+    defaults: {
+        apiRoot: null
+    },
+
     initialize: function() {
-        this.installedExtensions = new InstalledExtensionCollection();
+        this.installedExtensions = new InstalledExtensionCollection([], {
+            url: this.get('apiRoot')
+        })
     },
 
     load: function() {
