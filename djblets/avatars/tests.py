@@ -21,6 +21,7 @@ from djblets.configforms.pages import ConfigPage
 from djblets.gravatars import get_gravatar_url_for_email
 from djblets.registries.errors import ItemLookupError
 from djblets.siteconfig.models import SiteConfiguration
+from djblets.testing.decorators import requires_user_profile
 from djblets.testing.testcases import TestCase
 
 
@@ -608,6 +609,7 @@ class AvatarSettingsFormTests(SpyAgency, TestCase):
         super(AvatarSettingsFormTests, self).tearDown()
         self.siteconfig.delete()
 
+    @requires_user_profile
     def test_instantiate_form_no_default_service(self):
         """Testing AvatarSettingsForm instantiation when there is no
         default avatar service
