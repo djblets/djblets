@@ -2,8 +2,6 @@
   @inner-margin-vert: 0.5em;
 
   background: white;
-  border: 1px #AAA solid;
-  border-top: 0;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -79,24 +77,28 @@
     .object-tools {
       float: none;
       margin: 2em 0 @inner-margin-vert 0;
+      padding: 0;
 
       li {
-        display: inline;
+        display: inline-block;
         float: none;
         margin: 0 1em 0 0;
 
         a {
+          background: none;
+          color: blue;
           display: inline;
           float: none;
           font-weight: normal;
           margin: 0;
           padding: 0;
-          vertical-align: bottom;
+          vertical-align: middle;
         }
 
         .fa {
           color: #444;
           font-size: 140%;
+          vertical-align: middle;
           width: 16px;
         }
 
@@ -105,6 +107,10 @@
         }
       }
     }
+  }
+
+  li {
+    list-style: none;
   }
 }
 

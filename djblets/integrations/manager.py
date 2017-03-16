@@ -33,10 +33,17 @@ class IntegrationManager(object):
     care to cache the lookups for any integrations and invalidate them when
     a configuration has been updated.
 
-    Attrs:
+    Attributes:
         config_model (type):
             The model used to store configuration data. This is a subclass of
             :py:class:`djblets.integrations.models.BaseIntegrationConfig`.
+
+        enabled (bool):
+            The integration manager is enabled and can be used for registering,
+            unregistering, and otherwise using integrations. If this is
+            ``False``, then :py:meth:`shutdown` has been called, and it should
+            be assumed that no integrations are registered or need to be
+            unregistered.
     """
 
     def __init__(self, config_model):
@@ -69,6 +76,8 @@ class IntegrationManager(object):
 
         key = ('integrationmgr:%s.%s'
                % (self.__class__.__module__, self.__class__.__name__))
+
+        self.enabled = True
 
         self._integration_classes = {}
         self._integration_configs = {}
@@ -110,6 +119,8 @@ class IntegrationManager(object):
             del _integration_managers[id(self)]
         except KeyError:
             pass
+
+        self.enabled = False
 
     def get_integration_classes(self):
         """Return all the integration classes that have been registered.
@@ -389,6 +400,8 @@ class IntegrationManager(object):
                     integration.enable_integration()
                 else:
                     integration.disable_integration()
+
+        self._needs_recalc = False
 
     def _make_config_filter_cache_key(self, integration_cls, **filter_kwargs):
         """Return a cache key for a config query filter.

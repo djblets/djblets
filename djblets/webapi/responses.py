@@ -45,13 +45,6 @@ class WebAPIResponse(HttpResponse):
             self.content_set = True
             return
 
-        if not request.is_ajax() and request.FILES:
-            # When uploading a file using AJAX to a webapi view,
-            # we must set the mimetype to text/plain. If we use
-            # application/json instead, the browser will ask the user
-            # to save the file. It's not great, but it's what we must do.
-            mimetype = 'text/plain'
-
         super(WebAPIResponse, self).__init__(content_type=mimetype,
                                              status=status)
         self.request = request

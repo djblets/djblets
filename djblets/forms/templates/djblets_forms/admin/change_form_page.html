@@ -1,4 +1,4 @@
-{% extends "admin/base_site.html" %}
+{% extends "djblets_forms/admin/base_site.html" %}
 {% load admin_list i18n pipeline staticfiles %}
 
 {% block title %}
@@ -7,38 +7,46 @@
 
 {% block extrahead %}
 {%  url 'admin:jsi18n' as jsi18nurl %}
-<script src="{{jsi18nurl|default:"../../../jsi18n/"}}"></script>
+<script src="{% url 'admin:jsi18n' %}"></script>
 {{block.super}}
-{% endblock %}
+{% endblock extrahead %}
 
-{% block css %}
+
+{% block admin_css %}
 <link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />
 {%  stylesheet "djblets-admin" %}
 {%  stylesheet "djblets-forms" %}
-{{form.media.render_css|join:''}}
+
+{%  if media %}
+{{media.css}}
+{%  elif form.media %}
+{{form.media.css}}
+{%  endif %}
+
 {%  for bundle_name in form.css_bundle_names %}
 {%   stylesheet bundle_name %}
 {%  endfor %}
 {{block.super}}
-{% endblock %}
+{% endblock admin_css %}
 
-{% block scripts-post %}
-<script src="{% static 'admin/js/core.js' %}"></script>
-<script>
-    var django = {
-        jQuery: jQuery
-    };
-</script>
+
+{% block admin_scripts_post %}
 {%  for bundle_name in form.js_bundle_names %}
 {%   javascript bundle_name %}
 {%  endfor %}
 {{block.super}}
 
 {%  javascript "djblets-forms" %}
-{{form.media.render_js|join:''}}
-{% endblock scripts-post %}
+{%  if media %}
+{{media.js}}
+{%  elif form.media %}
+{{form.media.js}}
+{%  endif %}
+{% endblock admin_scripts_post %}
+
 
 {% block bodyclass %}{{block.super}} change-form{% endblock %}
+
 
 {% block content %}
 {%  if form.errors %}

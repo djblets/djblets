@@ -29,6 +29,7 @@
   </a>
  </div>
  <script>
+(function($) {
     $(document).ready(function() {
         var view = new Djblets.Forms.ConditionSetView({
             el: $('#{{field_id|escapejs}}'),
@@ -42,5 +43,6 @@
         });
         view.render();
     });
+})($ || window.jQuery || django.jQuery);
  </script>
 </div>

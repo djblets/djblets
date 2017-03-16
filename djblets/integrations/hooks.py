@@ -53,12 +53,13 @@ class BaseIntegrationHook(NeedsIntegrationManagerMixin, ExtensionHook):
         """
         manager = self.get_integration_manager()
 
-        try:
-            manager.unregister_integration_class(self.integration_cls)
-        except IntegrationError as e:
-            logging.exception('%s could not unregister integration class '
-                              '%s with %s: %s',
-                              self.extension.__class__.__name__,
-                              self.__class__.__name__,
-                              self.integration_cls.__name__,
-                              e)
+        if manager.enabled:
+            try:
+                manager.unregister_integration_class(self.integration_cls)
+            except IntegrationError as e:
+                logging.exception('%s could not unregister integration class '
+                                  '%s with %s: %s',
+                                  self.extension.__class__.__name__,
+                                  self.__class__.__name__,
+                                  self.integration_cls.__name__,
+                                  e)

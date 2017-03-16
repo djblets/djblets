@@ -65,8 +65,6 @@
 #extension-manager {
   .actions {
     background: #FDFDFD;
-    border: 1px #AAAAAA solid;
-    border-top: 0;
     border-bottom: 1px #999999 solid;
     list-style: none;
     margin: 0;
@@ -95,15 +93,15 @@
     margin-bottom: 20px;
     width: 100%;
   }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
 }
 
 .extensions {
-  border: 1px #AAAAAA solid;
-  border-top: 0;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-
   li {
     list-style: none;
     padding: 1em;
@@ -184,11 +182,15 @@
     margin: 0 0 0 1em;
 
     li {
+      background: none;
       display: inline;
       float: none;
       margin: 0 1em 0 0;
+      padding: 0;
 
       a {
+        background: none;
+        color: blue;
         display: inline;
         float: none;
         font-weight: normal;

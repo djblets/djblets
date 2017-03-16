@@ -1,54 +1,71 @@
-{% extends "admin/base_site.html" %}
+{% extends "djblets_forms/admin/base_site.html" %}
 {% load admin_list djblets_extensions djblets_js i18n pipeline staticfiles %}
+
 
 {% block title %}{% trans "Manage Extensions" %} {{block.super}}{% endblock %}
 
-{% block extrahead %}
+
+{% block admin_css %}
 <link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />
 {%  stylesheet 'djblets-admin' %}
+{% endblock admin_css %}
+
+
+{% block admin_scripts %}
 {%  url 'admin:jsi18n' as jsi18nurl %}
 <script src="{{jsi18nurl|default:"../../../jsi18n/"}}"></script>
 {%  include "js/jquery.html" %}
+{{block.super}}
+{% endblock admin_scripts %}
+
+
+{% block admin_scripts_post %}
 {%  include "js/jquery-ui.html" %}
 {%  include "js/underscore.html" %}
 {%  include "js/backbone.html" %}
 {%  javascript 'djblets-gravy' %}
 {%  javascript 'djblets-extensions' %}
 {%  javascript 'djblets-extensions-admin' %}
+{% endblock admin_scripts_post %}
 
-{{block.super}}
-{% endblock %}
 
-{% block bodyclass %}{{block.super}} extensions-list-page{% endblock %}
+{% block bodyclass %}{{block.super}} change-list extensions-list-page{% endblock %}
+
 
 {% block content %}
-
 <h1 class="title">{% trans "Manage Extensions" %}</h1>
 
 <div id="content-main">
- <form id="extension-manager" method="POST" action=".">
+  <div id="changelist" class="module">
+  <form id="extension-manager" method="POST" action=".">
   {% csrf_token %}
-  <input type="hidden" name="full-reload" value="1" />
+   <input type="hidden" name="full-reload" value="1" />
 
-  <ul class="actions">
+   <ul class="actions">
 {%  block extension_list_actions %}
-   <li><a href="#" id="reload-extensions">{% trans "Scan for installed extensions" %}</a></li>
+    <li><a href="#" id="reload-extensions">{% trans "Scan for installed extensions" %}</a></li>
 {%  endblock %}
-  </ul>
-  <ul class="extensions">
-   <li class="loading">{% trans "Loading..." %}</li>
-  </ul>
- </form>
+   </ul>
+   <ul class="extensions">
+    <li class="loading">{% trans "Loading..." %}</li>
+   </ul>
+  </form>
+ </div>
 </div>
 
+{% url "extensions-resource" as extensions_api_root %}
 <script>
+(function($) {
     $(document).ready(function() {
         var view = new Djblets.ExtensionManagerView({
             el: $('#extension-manager'),
-            model: new Djblets.ExtensionManager()
+            model: new Djblets.ExtensionManager({
+                apiRoot: "{{extensions_api_root|escapejs}}"
+            })
         });
 
         view.render();
     });
+}(window.jQuery || django.jQuery));
 </script>
-{% endblock %}
+{% endblock content %}

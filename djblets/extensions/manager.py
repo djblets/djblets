@@ -249,6 +249,22 @@ class ExtensionManager(object):
 
     Each project should have one ExtensionManager.
     """
+
+    #: Whether to explicitly install static media files from packages.
+    #:
+    #: By default, we install static media files if :django:setting:`DEBUG`
+    #: is ``True``. Subclasses can override this to factor in other settings,
+    #: if needed.
+    should_install_static_media = not settings.DEBUG
+
+    #: The key in the settings indicating the last known configured version.
+    #:
+    #: This setting is used to differentiate the version of an extension
+    #: installed locally on a system and the last version that completed
+    #: database-related installation/upgrade steps.
+    #:
+    #: This should not be changed by subclasses, and generally is not needed
+    #: outside of this class.
     VERSION_SETTINGS_KEY = '_extension_installed_version'
 
     def __init__(self, key):
@@ -714,7 +730,31 @@ class ExtensionManager(object):
         except InstallExtensionError as e:
             raise EnablingExtensionError(e.message, e.load_error)
 
-        self._sync_database(ext_class)
+        # Check if the version information stored along with the extension is
+        # stale. If so, we may need to perform some updates.
+        cur_version = ext_class.info.version
+
+        if ext_class.registration.installed:
+            old_version = extension.settings.get(self.VERSION_SETTINGS_KEY)
+        else:
+            old_version = None
+
+        if (not old_version or
+            pkg_resources.parse_version(old_version) <
+            pkg_resources.parse_version(cur_version)):
+            # We may need to update the database.
+            self._sync_database(ext_class)
+
+            # Record this version so we don't update the database again.
+            extension.settings.set(self.VERSION_SETTINGS_KEY, cur_version)
+            extension.settings.save()
+        elif (old_version and
+              pkg_resources.parse_version(old_version) >
+              pkg_resources.parse_version(cur_version)):
+            logging.warning('The version of the "%s" extension installed on '
+                            'the server is older than the version recorded '
+                            'in the database! Upgrades will not be performed.',
+                            ext_class)
 
         # Mark the extension as installed.
         ext_class.registration.installed = True
@@ -794,8 +834,16 @@ class ExtensionManager(object):
         or if the version of the extension media that we installed is different
         from the current version of the extension.
         """
+        # If we're not installing static media, it's assumed that media will
+        # be looked up using the static media finders instead. In that case,
+        # media will be served directly out of the extension's static/
+        # directory. We won't want to be storing version files there.
+        if not self.should_install_static_media:
+            return
+
         lockfile = os.path.join(tempfile.gettempdir(), ext_class.id + '.lock')
-        extension = ext_class.instance
+        media_version_dir = ext_class.info.installed_static_path
+        media_version_filename = os.path.join(media_version_dir, '.version')
 
         cur_version = ext_class.info.version
 
@@ -805,13 +853,18 @@ class ExtensionManager(object):
         # copy/pasted, or something went wrong. Either way, we wouldn't
         # be able to trust it.
         if force:
-            logging.debug('Forcing installation fo extension media for %s',
+            logging.debug('Forcing installation of extension media for %s',
                           ext_class.info)
             old_version = None
         else:
-            if ext_class.registration.installed:
-                old_version = extension.settings.get(self.VERSION_SETTINGS_KEY)
+            if (ext_class.registration.installed and
+                os.path.exists(media_version_filename)):
+                # There's a media version stamp we can read from for this site.
+                with open(media_version_filename, 'r') as fp:
+                    old_version = fp.read().strip()
             else:
+                # This is either a new install, or an older one from before the
+                # media version stamp files.
                 old_version = None
 
             if old_version == cur_version:
@@ -834,16 +887,31 @@ class ExtensionManager(object):
                     if e.errno in (errno.EAGAIN, errno.EACCES, errno.EINTR):
                         # Sleep for one second, then try again
                         time.sleep(1)
-                        extension.settings.load()
-                        old_version = extension.settings.get(
-                            self.VERSION_SETTINGS_KEY)
+
+                        # See if the version has changed at all. If so, we'll
+                        # be able to break the loop. Otherwise, we're going to
+                        # try for the lock again.
+                        if os.path.exists(media_version_filename):
+                            with open(media_version_filename, 'r') as fp:
+                                old_version = fp.read().strip()
+
                         continue
                     else:
                         raise e
 
                 self._install_extension_media_internal(ext_class)
-                extension.settings.set(self.VERSION_SETTINGS_KEY, cur_version)
-                extension.settings.save()
+
+                try:
+                    if not os.path.exists(media_version_dir):
+                        os.makedirs(media_version_dir, 0755)
+
+                    with open(media_version_filename, 'w') as fp:
+                        fp.write('%s\n' % cur_version)
+                except IOError:
+                    logging.error('Failed to write static media version file '
+                                  '"%s" for extension "%s": %s',
+                                  media_version_filename, ext_class.info, e)
+
                 old_version = cur_version
 
                 locks.unlock(f)
@@ -861,56 +929,34 @@ class ExtensionManager(object):
                               exc_info=1)
 
     def _install_extension_media_internal(self, ext_class):
-        """Installs extension data.
+        """Install static media for an extension.
 
-        Performs any installation necessary for an extension.
-
-        If the extension has a legacy htdocs/ directory for static media
-        files, they will be installed into MEDIA_ROOT/ext/, and a warning
-        will be logged.
-
-        If the extension has a modern static/ directory, they will be
-        installed into STATIC_ROOT/ext/.
+        Performs any installation necessary for an extension. If the extension
+        has a modern static/ directory, they will be installed into
+        :file:`{settings.STATIC_ROOT}/ext/`.
         """
-        ext_htdocs_path = ext_class.info.installed_htdocs_path
-        ext_htdocs_path_exists = os.path.exists(ext_htdocs_path)
-
-        if ext_htdocs_path_exists:
-            # First, get rid of the old htdocs contents, so we can start
-            # fresh.
-            shutil.rmtree(ext_htdocs_path, ignore_errors=True)
-
         if pkg_resources.resource_exists(ext_class.__module__, 'htdocs'):
             # This is an older extension that doesn't use the static file
             # support. Log a deprecation notice and then install the files.
-            logging.warning('The %s extension uses the deprecated "htdocs" '
-                            'directory for static files. It should be updated '
-                            'to use a "static" directory instead.'
-                            % ext_class.info.name)
+            logging.error('The %s extension uses the deprecated "htdocs" '
+                          'directory for static files. This is no longer '
+                          'supported. It must be updated to use a "static" '
+                          'directory instead.'
+                          % ext_class.info.name)
 
+        ext_static_path = ext_class.info.installed_static_path
+        ext_static_path_exists = os.path.exists(ext_static_path)
+
+        if ext_static_path_exists:
+            # Also get rid of the old static contents.
+            shutil.rmtree(ext_static_path, ignore_errors=True)
+
+        if pkg_resources.resource_exists(ext_class.__module__, 'static'):
             extracted_path = \
-                pkg_resources.resource_filename(ext_class.__module__, 'htdocs')
+                pkg_resources.resource_filename(ext_class.__module__,
+                                                'static')
 
-            shutil.copytree(extracted_path, ext_htdocs_path, symlinks=True)
-
-        # We only want to install static media on a non-DEBUG install.
-        # Otherwise, we run the risk of creating a new 'static' directory and
-        # causing Django to look up all static files (not just from
-        # extensions) from there instead of from their source locations.
-        if not settings.DEBUG:
-            ext_static_path = ext_class.info.installed_static_path
-            ext_static_path_exists = os.path.exists(ext_static_path)
-
-            if ext_static_path_exists:
-                # Also get rid of the old static contents.
-                shutil.rmtree(ext_static_path, ignore_errors=True)
-
-            if pkg_resources.resource_exists(ext_class.__module__, 'static'):
-                extracted_path = \
-                    pkg_resources.resource_filename(ext_class.__module__,
-                                                    'static')
-
-                shutil.copytree(extracted_path, ext_static_path, symlinks=True)
+            shutil.copytree(extracted_path, ext_static_path, symlinks=True)
 
     def _uninstall_extension(self, extension):
         """Uninstalls extension data.
