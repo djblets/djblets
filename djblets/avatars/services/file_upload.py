@@ -122,7 +122,11 @@ class FileUploadService(AvatarService):
         configuration = settings_manager.configuration_for(
             self.avatar_service_id)
 
-        del configuration['file_hash']
+        try:
+            del configuration['file_hash']
+        except KeyError:
+            pass
+
         settings_manager.save()
 
         storage = DefaultStorage()
@@ -150,7 +154,7 @@ class FileUploadService(AvatarService):
             file_hash = md5()
 
             with storage.open(configuration['file_path'], 'rb') as f:
-                file_hash = file_hash.update(f.read())
+                file_hash.update(f.read())
 
             configuration['file_hash'] = file_hash.hexdigest()
             settings_manager.save()
