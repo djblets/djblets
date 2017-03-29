@@ -77,7 +77,6 @@ class AvatarService(object):
             if the service is not configurable (i.e., does not have a
             configuration form).
         """
-
         if not self.is_configurable():
             return None
 
@@ -86,7 +85,8 @@ class AvatarService(object):
                 .configuration_for(self.avatar_service_id)
         )
 
-        return self.config_form_class(configuration,
+        return self.config_form_class(configuration=configuration,
+                                      service=self,
                                       prefix=self.avatar_service_id,
                                       *args,
                                       **kwargs)

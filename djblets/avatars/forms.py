@@ -20,22 +20,28 @@ class AvatarServiceConfigForm(ConfigPageForm):
     #: The avatar service ID of the associated service.
     avatar_service_id = None
 
-    def __init__(self, configuration, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Initialize the configuration form.
 
         Args:
-            configuration (dict):
-                The current configuration
-
             *args (tuple):
                 Additional positional arguments for the superclass constructor.
 
             **kwargs (dict):
                 Additional keyword arguments for the superclass constructor.
+
+        Keyword Args:
+            configuration (dict):
+                The current configuration
+
+            service (djblets.avatars.services.base.AvatarService):
+                The avatar service instance that instantiated this form.
         """
+        self.configuration = kwargs.pop('configuration')
+        self.service = kwargs.pop('service')
+
         super(AvatarServiceConfigForm, self).__init__(*args, **kwargs)
         self.fields.pop('form_target')
-        self.configuration = configuration
 
     def get_extra_context(self):
         """Return extra rendering context.
@@ -124,7 +130,15 @@ class AvatarSettingsForm(ConfigPageForm):
                 yield bundle
 
     def __init__(self, *args, **kwargs):
-        """Initialize the form."""
+        """Initialize the form.
+
+        Args:
+            *args (tuple):
+                Additional Positional arguments.
+
+            **kwargs (dict):
+                Additional keyword arguments.
+        """
         super(AvatarSettingsForm, self).__init__(*args, **kwargs)
 
         self.settings_manager = \
