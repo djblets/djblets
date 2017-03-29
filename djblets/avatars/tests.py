@@ -670,9 +670,9 @@ class AvatarSettingsFormTests(SpyAgency, TestCase):
         TestSettingsForm.avatar_service_registry.enable_service(
             InvalidAvatarService, save=False)
         form = TestSettingsForm(
-            page=page,
-            request=request,
-            user=user,
+            page,
+            request,
+            user,
             data={
                 'avatar_service_id': InvalidAvatarService.avatar_service_id,
             })
@@ -700,7 +700,8 @@ class FileUploadTests(SpyAgency, TestCase):
 
     @requires_user_profile
     def test_filename_generation(self):
-        """Testing FileUploadAvatarForm.save puts files in the correct location
+        """Testing FileUploadServiceForm.save puts files in the correct
+        location
         """
         self.spy_on(User.get_profile, call_fake=lambda *args: None)
 
@@ -708,11 +709,8 @@ class FileUploadTests(SpyAgency, TestCase):
                                     content_type='image/png')
 
         service = FileUploadService(self.settings_mgr)
-        form = service.get_configuration_form(
-            page=None,
-            request=None,
-            user=self.user,
-            data={})
+        form = service.get_configuration_form(self.user, None, None, self.user,
+                                              data={})
 
         form.files = {
             form.add_prefix('avatar_upload'): avatar,
@@ -730,8 +728,8 @@ class FileUploadTests(SpyAgency, TestCase):
 
     @requires_user_profile
     def test_filename_generation_no_ext(self):
-        """Testing FileUploadServiceForm.save puts files in the correct location
-        when there is no file extension
+        """Testing FileUploadServiceForm.save puts files in the correct
+        location when there is no file extension
         """
         self.spy_on(User.get_profile, call_fake=lambda *args: None)
 
@@ -739,11 +737,8 @@ class FileUploadTests(SpyAgency, TestCase):
                                     content_type='image/png')
 
         service = FileUploadService(self.settings_mgr)
-        form = service.get_configuration_form(
-            page=None,
-            request=None,
-            user=self.user,
-            data={})
+        form = service.get_configuration_form(self.user, None, None, self.user,
+                                              data={})
 
         form.files = {
             form.add_prefix('avatar_upload'): avatar,
@@ -761,8 +756,8 @@ class FileUploadTests(SpyAgency, TestCase):
 
     @requires_user_profile
     def test_filename_generation_improper_ext(self):
-        """Testing FileUploadServiceForm.save puts files in the correct location
-        when the extension is improper
+        """Testing FileUploadServiceForm.save puts files in the correct
+        location when the extension is improper
         """
         self.spy_on(User.get_profile, call_fake=lambda *args: None)
 
@@ -770,11 +765,8 @@ class FileUploadTests(SpyAgency, TestCase):
                                     content_type='image/png')
 
         service = FileUploadService(self.settings_mgr)
-        form = service.get_configuration_form(
-            page=None,
-            request=None,
-            user=self.user,
-            data={})
+        form = service.get_configuration_form(self.user, None, None, self.user,
+                                              data={})
 
         form.files = {
             form.add_prefix('avatar_upload'): avatar,
