@@ -207,7 +207,10 @@ class AvatarSettingsForm(ConfigPageForm):
 
         if avatar_service.is_configurable():
             avatar_service_form = self.avatar_service_forms[avatar_service_id]
-            avatar_service_form.is_valid()
+
+            if not avatar_service_form.is_valid():
+                raise ValidationError(_('The avatar service is improperly '
+                                        'configured.'))
 
         return self.cleaned_data
 

@@ -6,12 +6,13 @@ import logging
 
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from django.core.exceptions import ValidationError
 from django.test.client import RequestFactory
 from django.utils.html import mark_safe
 from kgb import SpyAgency
 
 from djblets.avatars.errors import DisabledServiceError
-from djblets.avatars.forms import AvatarSettingsForm
+from djblets.avatars.forms import AvatarServiceConfigForm, AvatarSettingsForm
 from djblets.avatars.registry import AvatarServiceRegistry
 from djblets.avatars.settings import AvatarSettingsManager
 from djblets.avatars.services import (AvatarService,
@@ -633,3 +634,43 @@ class AvatarSettingsFormTests(SpyAgency, TestCase):
         user = User(username='test', email='test@example.com')
         page = TestPage(None, request, user)
         TestSettingsForm(page, request, user)
+
+    @requires_user_profile
+    def test_ensure_valid_subform_config(self):
+        """Testing AvatarSettingsForm.is_valid ensures avatar service
+        configuration form is also valid
+        """
+        class InvalidAvatarServiceForm(AvatarServiceConfigForm):
+            def clean(self):
+                raise ValidationError('Invalid!')
+
+        class InvalidAvatarService(AvatarService):
+            avatar_service_id = 'invalid-service'
+            config_form_class = InvalidAvatarServiceForm
+
+        class TestAvatarServiceRegistry(AvatarServiceRegistry):
+            default_avatar_service_classes = [InvalidAvatarService]
+            settings_manager_class = DummySettingsManager(None, {})
+
+        class TestSettingsForm(AvatarSettingsForm):
+            avatar_service_registry = TestAvatarServiceRegistry()
+
+        class TestPage(ConfigPage):
+            form_classes = [TestSettingsForm]
+
+        self.spy_on(User.get_profile, call_fake=lambda self: None)
+
+        request = self.request_factory.get('/')
+        user = User(username='test', email='test@example.com')
+        page = TestPage(None, request, user)
+        TestSettingsForm.avatar_service_registry.enable_service(
+            InvalidAvatarService, save=False)
+        form = TestSettingsForm(
+            page=page,
+            request=request,
+            user=user,
+            data={
+                'avatar_service_id': InvalidAvatarService.avatar_service_id,
+            })
+
+        self.assertFalse(form.is_valid())
