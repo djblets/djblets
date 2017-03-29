@@ -85,7 +85,6 @@ class FileUploadServiceForm(AvatarServiceConfigForm):
         file_path = storage.save(file_path, uploaded_file)
 
         return {
-            'absolute_url': storage.url(file_path),
             'file_path': file_path,
             'file_hash': file_hash.hexdigest(),
         }
@@ -140,6 +139,7 @@ class FileUploadService(AvatarService):
             A dictionary containing the URLs of the user's avatars at normal-
             and high-DPI.
         """
+        storage = DefaultStorage()
         settings_manager = self._settings_manager_class(user)
         configuration = \
             settings_manager.configuration_for(self.avatar_service_id)
@@ -148,7 +148,7 @@ class FileUploadService(AvatarService):
             return {}
 
         return {
-            '1x': configuration['absolute_url'],
+            '1x': storage.url(configuration['file_path'])
         }
 
     def cleanup(self, user):
