@@ -1,3 +1,5 @@
+.. _recaptcha-guides:
+
 ================
 reCAPTCHA Guides
 ================
