@@ -1,0 +1,401 @@
+=================================
+Djblets 0.10 Beta 1 Release Notes
+=================================
+
+**Release date**: TBD
+
+This release contains all bug fixes and features found in Djblets version
+:doc:`0.9.6 <0.9.6>`.
+
+
+Installation
+============
+
+To install this release, run the following::
+
+    $ sudo pip install \
+        --trusted-host downloads.reviewboard.org \
+        -f http://downloads.reviewboard.org/releases/Djblets/0.10/ \
+        --pre -U Djblets
+
+Or::
+
+    $ sudo easy_install \
+        -f http://downloads.reviewboard.org/releases/Djblets/0.10/ \
+        -U Djblets
+
+We **do not** recommend upgrading a production server with this version of
+Djblets. This version is still in-development, and is not guaranteed to have
+API stability.
+
+
+Compatibility Changes
+=====================
+
+* Added initial support for Django 1.7 and higher.
+
+  We're working toward supporting all versions of Django 1.6 and up. We
+  expect to ship full support for these versions by the final Djblets 0.10
+  release. For now, we still recommend Django 1.6 for greatest compatibility.
+
+* Updated to django-pipeline 1.6.x.
+
+  This release uses django-pipeline 1.6.x, which requires various changes in
+  your application. Specifically, you'll need to change your
+  :file:`settings.py` file to use the new ``PIPELINE`` attribute, and update
+  your templates to use ``stylesheet`` and ``javascript`` instead of
+  ``compressed_css`` and ``compressed_js``.
+
+  See django-pipeline's `upgrade guide
+  <https://django-pipeline.readthedocs.org/en/1.6.9/installation.html#upgrading-from-1-3>`_
+  for more details.
+
+
+Style Sheets
+============
+
+* Modernized the look of literal text and code blocks in Markdown rendered
+  text.
+
+  The text is shown as red with a red border and light grey background,
+  resembling the look used on Slack and other services.
+
+  Code blocks have improved margins and padding to help align the rendered
+  text with the source text.
+
+
+djblets.auth
+============
+
+* The account registration view can now take extra context for the template.
+
+  :py:func:`~djblets0.10:djblets.auth.views.register` now accepts an
+  ``extra_context`` argument for passing custom data down to the template
+  for rendering.
+
+
+djblets.avatars (new)
+=====================
+
+* Added support for configurable avatars.
+
+  This introduces new support for avatar display using Gravatars, uploaded
+  files, URLs, or custom backends.
+
+  Avatars can be customized on a global or per-user basis.
+
+  See :ref:`djblets0.10:avatar-guides` for information on avatars.
+
+
+djblets.cache
+=============
+
+* Added a class for synchronizing generation IDs across processes and servers.
+
+  :py:class:`~djblets0.10:djblets.cache.synchronizer.GenerationSynchronizer`
+  can be used to synchronize a form of identification across multiple
+  processes or servers, helping to coordinate when state needs to be reloaded
+  from disk, database, another server, etc. When state changes, the caller
+  just needs to mark the synchronizer as updated on their end, and other
+  processes will see the state as expired on their end.
+
+
+.. _0.10-beta-1-conditions:
+
+djblets.conditions (new)
+========================
+
+* Added support for user-customizable condition rules.
+
+  Conditions are a way to allow applications to give users a degree of
+  flexibility for choosing when certain actions should take place. Users
+  can define one or more conditions, consisting of a choice (a properly
+  on an object to match upon in some form), an operator ("is", "starts with",
+  etc.), and a value (depending on the type of choice and operator), along
+  with whether all or any conditions must be matched.
+
+  These can be used for extension or integration development, or for anything
+  else needed by the application. There are form fields to drop conditions
+  onto a page, and lots of support for crafting types of condition choices
+  and operators.
+
+  See :py:mod:`djblets0.10:djblets.conditions` for more information.
+
+
+djblets.configforms
+===================
+
+* Added support for dynamically-augmented configuration pages.
+
+  Configuration pages inheriting from
+  :py:class:`~djblets0.10:djblets.configforms.mixins.DynamicConfigPageMixin`
+  can be augmented by other callers (such as extensions). This makes use of
+  the new `registries <0.10-beta-1-registries>`_ support.
+
+* Custom configuration pages can now pass extra context to the template.
+
+  Subclasses can override :py:meth:`ConfigPageForm.get_extra_context
+  <djblets0.10:djblets.configforms.forms.ConfigPageForm.get_extra_context>`
+  to return extra context that the templates for the page or a form within
+  the page can use, allowing for data to be computed before rendering the
+  template.
+
+
+djblets.db
+==========
+
+* Added custom object serialization for
+  :py:class:`~djblets0.10:djblets.db.fields.JSONField`.
+
+  Objects being stored can now handle their own serialization by implementing
+  a :py:meth:`to_json` method.
+
+  There is no support for custom deserialization into objects.
+
+* Added a method for prefixing query expressions.
+
+  :py:func:`~djblets0.10:djblets.db.query.prefix_q` is used to provide a
+  prefix to all :py:class:`~django1.6:django.db.models.Q` objects for a query.
+  This can be used to create a common query expression and to allow a caller
+  to tailor it for a relation on another object.
+
+
+djblets.extensions
+==================
+
+* Simplified writing extension hooks.
+
+  :py:class:`~djblets0.10:djblets.extensions.hooks.ExtensionHook` subclasses
+  can now override
+  :py:meth:`~djblets0.10:djblets.extensions.hooks.ExtensionHook.initialize`
+  instead of
+  :py:meth:`~djblets0.10:djblets.extensions.hooks.ExtensionHook.__init__`
+  to perform setup work for a hook. These don't need to call the parent
+  method, and are simpler to use.
+
+* Add proper support for dynamically enabling/disabling extension hooks.
+
+  Extension hooks can now be safely disabled by calling
+  :py:meth:`~djblets0.10:djblets.extensions.hooks.ExtensionHook.disable_hook`
+  and re-enabled by calling
+  :py:meth:`~djblets0.10:djblets.extensions.hooks.ExtensionHook.enable_hook`.
+  The current state can be checked by looking at
+  :py:attr:`~djblets0.10:djblets.extensions.hooks.ExtensionHook.hook_state`
+  or
+  :py:attr:`~djblets0.10:djblets.extensions.hooks.ExtensionHook.initialized`.
+
+  Extension hook instances can also be created without being enabled by
+  default by passing ``start_enabled=True`` when instantiating.
+
+* Added a convenience method for getting the URL for an extension's static
+  media.
+
+  The new
+  :py:meth:`~djblets0.10:djblets.extensions.extension.Extension.get_static_url`
+  returns the URL for a given static media file shipped by the extension.
+
+* Added a base extension hook for hooks that work with
+  `registries <0.10-beta-1-registries>`_.
+
+  :py:class:`~djblets0.10:djblets.extensions.hooks.BaseRegistryHook` can be
+  subclassed by applications to easily provide hooks that interface with
+  registries, handling registration when enabled or unregistration when
+  disabled.
+
+* Improved database synchronization and static media installation for
+  extensions in multi-deployment setups.
+
+  We previously kept a version identifier stored in the extension settings
+  to help determine when static media needed to be installed, but this didn't
+  work so well for multi-deployment setups. We also used this to determine
+  when to perform a database synchronization.
+
+  Now both of these requirements are stored separately, and media installation
+  will happen automatically as needed. This will also help when moving a
+  Review Board installation to a new server.
+
+* Failing to load an uninstalled extension now shows an appropriate error
+  message.
+
+
+djblets.features (new)
+======================
+
+* Added support for light-weight feature checks.
+
+  Feature checks (also known as feature switches/toggles) are a way to allow
+  new features to be built and tested in a codebase without exposing them to
+  every user.
+
+  The feature check support in Djblets is built to make feature checks easy
+  to use and flexible to consume. Applications can implement feature checker
+  classes that determine how a feature is checked. These can check a
+  hard-coded list of features in :file:`settings.py`, a list in the site
+  configuration, a list against a user or an organization account, or anything
+  else the application needs.
+
+  See :ref:`djblets0.10:feature-checks-guides` for more information.
+
+
+djblets.forms
+=============
+
+* Added a new form base class for storing key/value data in a dictionary
+  or dictionary-like object.
+
+  :py:class:`~djblets0.10:djblets.forms.forms.key_value_form.KeyValueForm`
+  makes it easy to load data from a dictionary and save it back to the
+  dictionary. It supports advanced features like disabling certain fields from
+  being edited, setting text describing why the fields are disabled, and
+  blacklisting certain fields from being loaded from or written to the
+  dictionary.
+
+  Subclasses can override this and provide smarter load/save support or
+  adapt the form to work with other types of objects that don't act exactly
+  like a dictionary.
+
+* Added form fields for working with `conditions <0.10-beta-1-conditions>`_.
+
+* Added a new base template for customizable administration change forms.
+
+  The ``djblets_forms/admin/change_form_page.html`` template makes it easier
+  to have an administration page for a change form, without using the Django
+  admin model functionality. This forms the basis for extension configuration
+  and siteconfig settings pages and supports all standard features (fieldsets,
+  help text, custom widgets, and more).
+
+  Along with this, there's a ``djblets_forms/admin/form_field.html`` template
+  for form fields that live in the change form, and
+  ``djblets_forms/admin/form_fieldsets.html`` for fieldsets.
+
+
+djblets.integrations (new)
+==========================
+
+* Added new support for creating and consuming third-party service
+  integrations.
+
+  Integrations are similar to extensions in that they can augment a product
+  with new functionality. Unlike extensions, they have built-in support for
+  creating and using any number of distinct configurations, allowing, for
+  instance, a Slack integration to post to different channels depending on
+  different conditions.
+
+  Integrations can make use of extension hooks, just like an extension.
+  Integrations and their hooks are not enabled until there's at least one
+  enabled configuration for the integration.
+
+  See :ref:`djblets0.10:integration-guides` for information on writing and
+  consuming integrations.
+
+
+djblets.recaptcha (new)
+=======================
+
+* Added a module for working with reCAPTCHA_.
+
+  This provides easy support for using reCAPTCHA. Forms can make use of the
+  :py:class:`~djblets0.10:djblets.recaptcha.mixins.RecaptchaFormMixin` to
+  display and process a reCAPTCHA. There are also widgets, template tags,
+  and siteconfig support, which can be used as well.
+
+  See :ref:`djblets0.10:recaptcha-guides` for more information.
+
+
+.. _reCAPTCHA: https://www.google.com/recaptcha/intro/
+
+
+.. _0.10-beta-1-registries:
+
+djblets.registries (new)
+========================
+
+* Added registries, which are used to register and look up objects.
+
+  Registries are classes that provide registration, lookup, iteration,
+  validation, and error reporting for a type of value. These can be used
+  to provide extensibility for parts of an application. Consumers can subclass
+  the base registry class
+  (:py:class:`~djblets0.10:djblets.registries.registry.Registry`) to provide
+  registry functionality, and then create an instance in a module for callers
+  to use.
+
+  The :py:class:`~djblets0.10:djblets.registries.registry.OrderedRegistry`
+  subclass can be used when items in a registry need to maintain their order
+  when listed.
+
+  The :py:class:`~djblets0.10:djblets.registries.registry.EntryPointRegistry`
+  subclass can be used for registries that are backed by Python Entrypoints,
+  helping bring extensibility to applications already allowing hooks from
+  other Python packages.
+
+  See :ref:`djblets0.10:registry-guides` to learn more.
+
+
+djblets.pipeline
+================
+
+* Added a django-pipeline compiler for compiling :file:`*.es6.js` files as
+  ES6 JavaScript.
+
+  The :py:class:`~djblets0.10:djblets.pipeline.compilers.es6.ES6Compiler`
+  can be used to match :file:`*.es6.js` files and compile them as ES6
+  JavaScript. This can be used by adding
+  ``djblets.pipeline.compilers.es6.ES6Compiler`` to
+  ``settings.PIPELINE['COMPILERS']``.
+
+* Added a more efficient LessCSS compiler that only recompiles when necessary.
+
+  The :py:class:`~djblets0.10:djblets.pipeline.compilers.less.LessCompiler`
+  is an improvement over the default compiler that better inspects
+  dependencies and recompiles files when there are actual changes, rather than
+  recompiling on every page load.
+
+  This can be used by adding ``djblets.pipeline.compilers.less.LessCompiler``
+  to ``settings.PIPELINE['COMPILERS']``.
+
+
+djblets.util.decorators
+=======================
+
+* Deprecated :py:func:`~djblets0.10:djblets.util.decorators.basictag`.
+
+  Django's :py:meth:`~django1.6:django.template.Library.simple_tag` now
+  provides all the same functionality that ``basictag`` provided.
+
+
+djblets.util.templatetags
+=========================
+
+* Added a template tag for iterating over fieldsets in a form.
+
+  The :py:func:`~djblets0.10:djblets.util.templatetags.djblets_forms.get_fieldsets`
+  template tag can be used to iterate over all fieldsets on a form, helping to
+  craft custom templates for building more advanced forms.
+
+
+djblets.webapi
+==============
+
+* Resources can now specify the title of serialized links.
+
+  By default, link titles are always based on the string representation of
+  the object. Now, resources can override
+  :py:meth:`~djblets0.10:djblets.webapi.resources.base.WebAPIResource.get_object_title`
+  to provide a custom title.
+
+* Uploading files to an API no longer returns a :mimetype:`text/plain`
+  mimetype.
+
+  This used to be sent in order to meet a requirement in older versions of
+  Review Board, but this is no longer the case. The proper mimetype for the
+  resource is now returned.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
+* David Trowbridge
+* John Larmie

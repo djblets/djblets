@@ -1,3 +1,5 @@
+.. _avatar-guides:
+
 ======================
 Avatar Services Guides
 ======================

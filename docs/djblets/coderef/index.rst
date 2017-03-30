@@ -49,6 +49,7 @@ Caching
    djblets.cache.errors
    djblets.cache.forwarding_backend
    djblets.cache.serials
+   djblets.cache.synchronizer
 
 
 Conditions
@@ -175,6 +176,8 @@ Form Utilities
    :toctree: python
 
    djblets.forms.fields
+   djblets.forms.forms
+   djblets.forms.forms.key_value_form
 
 
 Gravatars
@@ -221,6 +224,16 @@ Markdown Utilities and Extensions
    djblets.markdown
    djblets.markdown.extensions.wysiwyg
    djblets.markdown.extensions.wysiwyg_email
+
+
+Django Pipeline Additions
+=========================
+
+.. autosummary::
+   :toctree: python
+
+   djblets.pipeline.compilers.es6.ES6Compiler
+   djblets.pipeline.compilers.less.LessCompiler
 
 
 reCAPTCHA
