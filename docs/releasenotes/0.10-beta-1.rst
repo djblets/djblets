@@ -14,13 +14,14 @@ Installation
 To install this release, run the following::
 
     $ sudo pip install \
-        -f http://downloads.reviewboard.org/releases/Djblets/0.9/ \
-        -U Djblets
+        --trusted-host downloads.reviewboard.org \
+        -f http://downloads.reviewboard.org/releases/Djblets/0.10/ \
+        --pre -U Djblets
 
 Or::
 
     $ sudo easy_install \
-        -f http://downloads.reviewboard.org/releases/Djblets/0.9/ \
+        -f http://downloads.reviewboard.org/releases/Djblets/0.10/ \
         -U Djblets
 
 We **do not** recommend upgrading a production server with this version of
@@ -53,7 +54,7 @@ Compatibility Changes
 Style Sheets
 ============
 
-* Modernized the look of Literal text and code blocks in Markdown rendered
+* Modernized the look of literal text and code blocks in Markdown rendered
   text.
 
   The text is shown as red with a red border and light grey background,

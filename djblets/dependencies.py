@@ -17,7 +17,7 @@ from __future__ import unicode_literals
 django_doc_major_version = '1.6'
 
 #: The version range required for Django.
-django_version = '>=1.6.11,<1.8.999'
+django_version = '>=1.6.11,<1.10.999'
 
 #: Dependencies required for LessCSS pipelining.
 lesscss_npm_dependencies = {
