@@ -2,7 +2,7 @@
 Djblets 0.10 Beta 1 Release Notes
 =================================
 
-**Release date**: TBD
+**Release date**: March 29, 2017
 
 This release contains all bug fixes and features found in Djblets version
 :doc:`0.9.6 <0.9.6>`.
