@@ -3,18 +3,23 @@
 from __future__ import unicode_literals
 
 import logging
+import uuid
 
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from django.core.exceptions import ValidationError
+from django.core.files.storage import get_storage_class
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
 from django.utils.html import mark_safe
 from kgb import SpyAgency
 
 from djblets.avatars.errors import DisabledServiceError
-from djblets.avatars.forms import AvatarSettingsForm
+from djblets.avatars.forms import AvatarServiceConfigForm, AvatarSettingsForm
 from djblets.avatars.registry import AvatarServiceRegistry
 from djblets.avatars.settings import AvatarSettingsManager
 from djblets.avatars.services import (AvatarService,
+                                      FileUploadService,
                                       GravatarService,
                                       URLAvatarService)
 from djblets.configforms.pages import ConfigPage
@@ -633,3 +638,147 @@ class AvatarSettingsFormTests(SpyAgency, TestCase):
         user = User(username='test', email='test@example.com')
         page = TestPage(None, request, user)
         TestSettingsForm(page, request, user)
+
+    @requires_user_profile
+    def test_ensure_valid_subform_config(self):
+        """Testing AvatarSettingsForm.is_valid ensures avatar service
+        configuration form is also valid
+        """
+        class InvalidAvatarServiceForm(AvatarServiceConfigForm):
+            def clean(self):
+                raise ValidationError('Invalid!')
+
+        class InvalidAvatarService(AvatarService):
+            avatar_service_id = 'invalid-service'
+            config_form_class = InvalidAvatarServiceForm
+
+        class TestAvatarServiceRegistry(AvatarServiceRegistry):
+            default_avatar_service_classes = [InvalidAvatarService]
+            settings_manager_class = DummySettingsManager(None, {})
+
+        class TestSettingsForm(AvatarSettingsForm):
+            avatar_service_registry = TestAvatarServiceRegistry()
+
+        class TestPage(ConfigPage):
+            form_classes = [TestSettingsForm]
+
+        self.spy_on(User.get_profile, call_fake=lambda self: None)
+
+        request = self.request_factory.get('/')
+        user = User(username='test', email='test@example.com')
+        page = TestPage(None, request, user)
+        TestSettingsForm.avatar_service_registry.enable_service(
+            InvalidAvatarService, save=False)
+        form = TestSettingsForm(
+            page,
+            request,
+            user,
+            data={
+                'avatar_service_id': InvalidAvatarService.avatar_service_id,
+            })
+
+        self.assertFalse(form.is_valid())
+
+
+class FileUploadTests(SpyAgency, TestCase):
+    """Unit tests for FileUploadService and FileUploadServiceForm."""
+
+    def setUp(self):
+        super(FileUploadTests, self).setUp()
+
+        self.user = User(username='doc')
+
+        # We cache a UUID so that we can compare resultant filenames.
+        self.uuid = uuid.uuid4()
+        self.spy_on(uuid.uuid4, call_fake=lambda: self.uuid)
+
+        self.configuration = {}
+        self.settings_mgr = DummySettingsManager(
+            FileUploadService.avatar_service_id, self.configuration)
+
+        self.storage_cls = get_storage_class()
+
+    @requires_user_profile
+    def test_filename_generation(self):
+        """Testing FileUploadServiceForm.save puts files in the correct
+        location
+        """
+        self.spy_on(User.get_profile, call_fake=lambda *args: None)
+
+        avatar = SimpleUploadedFile('filename.png', content=b' ',
+                                    content_type='image/png')
+
+        service = FileUploadService(self.settings_mgr)
+        form = service.get_configuration_form(self.user, None, None, self.user,
+                                              data={})
+
+        form.files = {
+            form.add_prefix('avatar_upload'): avatar,
+        }
+
+        self.assertTrue(form.is_valid())
+
+        self.spy_on(self.storage_cls.save,
+                    call_fake=lambda self, filename, data: filename)
+        form.save()
+
+        self.assertTrue(self.storage_cls.save.spy.called)
+        self.assertEqual(self.storage_cls.save.spy.last_call.args[0],
+                         'uploaded/avatars/d/do/doc__%s.png' % self.uuid)
+
+    @requires_user_profile
+    def test_filename_generation_no_ext(self):
+        """Testing FileUploadServiceForm.save puts files in the correct
+        location when there is no file extension
+        """
+        self.spy_on(User.get_profile, call_fake=lambda *args: None)
+
+        avatar = SimpleUploadedFile('filename', content=b' ',
+                                    content_type='image/png')
+
+        service = FileUploadService(self.settings_mgr)
+        form = service.get_configuration_form(self.user, None, None, self.user,
+                                              data={})
+
+        form.files = {
+            form.add_prefix('avatar_upload'): avatar,
+        }
+
+        self.assertTrue(form.is_valid())
+
+        self.spy_on(self.storage_cls.save,
+                    call_fake=lambda self, filename, data: filename)
+        form.save()
+
+        self.assertTrue(self.storage_cls.save.spy.called)
+        self.assertEqual(self.storage_cls.save.spy.last_call.args[0],
+                         'uploaded/avatars/d/do/doc__%s' % self.uuid)
+
+    @requires_user_profile
+    def test_filename_generation_improper_ext(self):
+        """Testing FileUploadServiceForm.save puts files in the correct
+        location when the extension is improper
+        """
+        self.spy_on(User.get_profile, call_fake=lambda *args: None)
+
+        avatar = SimpleUploadedFile('filename. bad extension', content=b' ',
+                                    content_type='image/png')
+
+        service = FileUploadService(self.settings_mgr)
+        form = service.get_configuration_form(self.user, None, None, self.user,
+                                              data={})
+
+        form.files = {
+            form.add_prefix('avatar_upload'): avatar,
+        }
+
+        self.assertTrue(form.is_valid())
+
+        self.spy_on(self.storage_cls.save,
+                    call_fake=lambda self, filename, data: filename)
+        form.save()
+
+        self.assertTrue(self.storage_cls.save.spy.called)
+        self.assertEqual(self.storage_cls.save.spy.last_call.args[0],
+                         'uploaded/avatars/d/do/doc__%s._bad_extension'
+                         % self.uuid)

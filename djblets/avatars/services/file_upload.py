@@ -2,8 +2,11 @@
 
 from __future__ import unicode_literals
 
+import os
 from hashlib import md5
+from uuid import uuid4
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.storage import DefaultStorage
 from django.forms import forms
@@ -13,8 +16,8 @@ from djblets.avatars.forms import AvatarServiceConfigForm
 from djblets.avatars.services.base import AvatarService
 
 
-class FileUploadAvatarForm(AvatarServiceConfigForm):
-    """The UploadAvatarService configuration form."""
+class FileUploadServiceForm(AvatarServiceConfigForm):
+    """The FileUploadService configuration form."""
 
     avatar_service_id = 'file-upload'
 
@@ -57,19 +60,31 @@ class FileUploadAvatarForm(AvatarServiceConfigForm):
             The avatar service configuration.
         """
         storage = DefaultStorage()
+        username = self.user.username
 
-        file_path = self.cleaned_data['avatar_upload'].name
-        file_path = storage.get_valid_name(file_path)
-        file_data = self.cleaned_data['avatar_upload'].read()
-
-        with storage.open(file_path, 'wb') as f:
-            f.write(file_data)
-
+        uploaded_file = self.cleaned_data['avatar_upload']
         file_hash = md5()
-        file_hash.update(file_data)
+
+        for chunk in uploaded_file.chunks():
+            file_hash.update(chunk)
+
+        # In the case where the filename does not have an extension,
+        # splitext(filename) will return (filename, '').
+        file_path = storage.get_valid_name(
+            '%s%s'
+            % (self.service.get_unique_filename(username),
+               os.path.splitext(self.cleaned_data['avatar_upload'].name)[1])
+        )
+
+        file_path = os.path.join(username[0], username[:2], file_path)
+
+        if self.service.file_path_prefix:
+            file_path = os.path.join(self.service.file_path_prefix,
+                                     file_path)
+
+        file_path = storage.save(file_path, uploaded_file)
 
         return {
-            'absolute_url': storage.url(file_path),
             'file_path': file_path,
             'file_hash': file_hash.hexdigest(),
         }
@@ -81,7 +96,33 @@ class FileUploadService(AvatarService):
     avatar_service_id = 'file-upload'
     name = _('File Upload')
 
-    config_form_class = FileUploadAvatarForm
+    config_form_class = FileUploadServiceForm
+
+    @property
+    def file_path_prefix(self):
+        """The storage location for uploaded avatars.
+
+        This will be prepended to the path of all uploaded files. By default,
+        it is controlled by the :setting:`UPLOADED_AVATARS_PATH` setting.
+        """
+        return getattr(settings, 'UPLOADED_AVATARS_PATH',
+                       os.path.join('uploaded', 'avatars'))
+
+    def get_unique_filename(self, filename):
+        """Create a unique filename.
+
+        The unique filename will be the original filename suffixed with a
+        generated UUID.
+
+        Args:
+            filename (unicode):
+                The filename, excluding the extension.
+
+        Returns:
+            unicode:
+            The unique filename.
+        """
+        return '%s__%s' % (filename, uuid4())
 
     def get_avatar_urls_uncached(self, user, size):
         """Return the avatar URLs for the requested user.
@@ -98,6 +139,7 @@ class FileUploadService(AvatarService):
             A dictionary containing the URLs of the user's avatars at normal-
             and high-DPI.
         """
+        storage = DefaultStorage()
         settings_manager = self._settings_manager_class(user)
         configuration = \
             settings_manager.configuration_for(self.avatar_service_id)
@@ -106,7 +148,7 @@ class FileUploadService(AvatarService):
             return {}
 
         return {
-            '1x': configuration['absolute_url'],
+            '1x': storage.url(configuration['file_path'])
         }
 
     def cleanup(self, user):
