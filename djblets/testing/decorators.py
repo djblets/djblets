@@ -50,7 +50,14 @@ def requires_user_profile(f):
         finally:
             # Ensure that the method is the one we added. It is possible that
             # some code has replaced the method.
-            if add_profile and getattr(User, 'get_profile') is get_profile:
-                delattr(User, 'get_profile')
+            if add_profile and hasattr(User, 'get_profile'):
+                # We have to un-spy for KGB-added spies because they will end
+                # up re-adding User.get_profile in test tear down after this
+                # decorator exits otherwise.
+                if hasattr(User.get_profile, 'orig_func'):
+                    User.get_profile.unspy()
+
+                if User.get_profile.im_func is get_profile:
+                    delattr(User, 'get_profile')
 
     return decorated
