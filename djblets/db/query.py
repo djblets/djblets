@@ -2,7 +2,9 @@ from __future__ import unicode_literals
 
 import re
 
+import django
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
+from django.db.models.query import QuerySet
 from django.db.models.manager import Manager
 from django.utils import six
 
@@ -170,6 +172,93 @@ class LocalDataQuerySet(object):
 
             if match == return_matches:
                 yield item
+
+
+class _Django16ChainableSelectRelatedQuerySet(QuerySet):
+    """A special QuerySet that allows for chaining select_related calls.
+
+    This is used internally by :py:func:`chainable_select_related_queryset`
+    to allow for chaining
+    :py:meth:`~django.db.models.query.QuerySet.select_related` calls on
+    Django 1.6. This is not used on newer versions of Django.
+
+    This class should not be used directly.
+    """
+
+    def select_related(self, *fields):
+        """Return a new QuerySet instance that will select related objects.
+
+        If fields are specified, they must be
+        :ref:`~django.db.models.ForeignKey` fields.
+
+        If ``select_related(None)`` is called, the list is cleared.
+
+        Unlike the standard version in Django 1.6, subsequent calls to this
+        method will not override the previous list.
+
+        Args:
+            *fields (tuple, optional):
+                Specific fields to select.
+
+        Returns:
+            django.db.models.query.QuerySet:
+            The resulting queryset.
+        """
+        obj = (
+            super(_Django16ChainableSelectRelatedQuerySet, self)
+            .select_related(*fields)
+        )
+
+        if (fields and fields != (None,) and
+            self.query.select_related and
+            isinstance(self.query.select_related, dict)):
+            self._merge_dicts(obj.query.select_related,
+                              self.query.select_related)
+
+        return obj
+
+    def _merge_dicts(self, dest_dict, source_dict):
+        """Recursively merge a source dictionary into a destination dictionary.
+
+        Args:
+            dest_dict (dict):
+                The dictionary to merge into.
+
+            source_dict (dict):
+                The dictionary to merge from.
+        """
+        for key, value in six.iteritems(source_dict):
+            if isinstance(value, dict):
+                self._merge_dicts(dest_dict.setdefault(key, {}), value)
+            else:
+                dest_dict[key] = value
+
+
+def chainable_select_related_queryset(queryset):
+    """Allow for chaining select_related calls on a queryset.
+
+    This is a workaround for Django 1.6's inability to chain calls to
+    :py:meth:`QuerySet.select_related()
+    <django.db.models.query.QuerySet.select_related>`. When using Django 1.6,
+    the returned queryset will be a special type that handles the chaining.
+    On Django 1.7 and higher, querysets support this natively, so this function
+    will just return the queryset as-is.
+
+    Args:
+        queryset (django.db.models.query.QuerySet):
+            The queryset to make chainable.
+
+    Returns:
+        django.db.models.query.QuerySet:
+        A queryset that allows for chaining.
+    """
+    if django.VERSION[:2] == (1, 6):
+        # Django 1.6 needs this helper to allow for chainable select_related()
+        # calls.
+        queryset = queryset._clone(
+            klass=_Django16ChainableSelectRelatedQuerySet)
+
+    return queryset
 
 
 def get_object_or_none(klass, *args, **kwargs):
