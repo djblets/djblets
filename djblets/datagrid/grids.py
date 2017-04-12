@@ -82,6 +82,7 @@ except ImportError:
     # Django < 1.8
     template_engines = None
 
+from djblets.db.query import chainable_select_related_queryset
 from djblets.util.decorators import cached_property
 from djblets.util.http import get_url_params_except
 
@@ -1353,12 +1354,15 @@ class DataGrid(object):
         to the queryset. This handles adding all of those.
 
         Args:
-            queryset (QuerySet):
+            queryset (django.db.models.query.QuerySet):
                 The queryset to augment.
 
         Returns:
-            QuerySet: The resulting augmented QuerySet.
+            django.db.models.query.QuerySet:
+            The resulting augmented QuerySet.
         """
+        queryset = chainable_select_related_queryset(queryset)
+
         for column in self.columns:
             try:
                 queryset = column.augment_queryset(queryset)
