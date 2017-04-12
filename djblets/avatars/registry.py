@@ -450,9 +450,24 @@ class AvatarServiceRegistry(Registry):
     def save(self):
         """Save the list of enabled avatar services to the database."""
         siteconfig = SiteConfiguration.objects.get_current()
-        siteconfig.set(self.ENABLED_SERVICES_KEY, list(self._enabled_services))
-        siteconfig.set(self.DEFAULT_SERVICE_KEY, self._default_service_id)
-        siteconfig.save()
+        dirty = False
+
+        enabled_services = self._enabled_services
+        default_service = self._default_service_id
+
+        stored_enabled_services = \
+            siteconfig.get(self.ENABLED_SERVICES_KEY) or []
+
+        if enabled_services != set(stored_enabled_services):
+            siteconfig.set(self.ENABLED_SERVICES_KEY, list(enabled_services))
+            dirty = True
+
+        if default_service != siteconfig.get(self.DEFAULT_SERVICE_KEY):
+            siteconfig.set(self.DEFAULT_SERVICE_KEY, default_service)
+            dirty = True
+
+        if dirty:
+            siteconfig.save()
 
     def for_user(self, user, service_id=None):
         """Return the requested avatar service for the given user.

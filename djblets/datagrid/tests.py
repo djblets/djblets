@@ -142,6 +142,55 @@ class DataGridTest(TestCase):
         # Exercise the code paths when rendering
         self.datagrid.render_listview()
 
+    def test_post_process_queryset_with_select_related(self):
+        """Testing DataGrid.post_process_queryset with chained select_related
+        calls
+        """
+        class Column1(Column):
+            def augment_queryset(self, state, queryset):
+                return queryset.select_related('foo')
+
+        class Column2(Column):
+            def augment_queryset(self, state, queryset):
+                return queryset.select_related('foo__bar')
+
+        class Column3(Column):
+            def augment_queryset(self, state, queryset):
+                return queryset.select_related('foo', 'foo__abc')
+
+        class TestDataGrid(DataGrid):
+            col1 = Column1()
+            col2 = Column2()
+            col3 = Column3()
+
+            def __init__(self, *args, **kwargs):
+                super(TestDataGrid, self).__init__(*args, **kwargs)
+
+                self.default_columns = ['col1', 'col2', 'col3']
+                self.default_sort = []
+
+            def post_process_queryset(self, queryset):
+                return super(TestDataGrid, self).post_process_queryset(
+                    queryset.select_related('baz'))
+
+        grid = TestDataGrid(self.request, queryset=Group.objects.all())
+        grid.columns = [
+            grid.get_stateful_column(grid.get_column(name))
+            for name in grid.default_columns
+        ]
+
+        queryset = grid.post_process_queryset(grid.queryset)
+
+        self.assertEqual(
+            queryset.query.select_related,
+            {
+                'foo': {
+                    'bar': {},
+                    'abc': {},
+                },
+                'baz': {},
+            })
+
 
 class SandboxColumn(Column):
     def setup_state(self, state):
@@ -215,5 +264,5 @@ class SandboxTests(SpyAgency, TestCase):
 
         self.spy_on(SandboxColumn.augment_queryset)
 
-        self.datagrid.post_process_queryset(queryset=[])
+        self.datagrid.post_process_queryset(queryset=Group.objects.all())
         self.assertTrue(SandboxColumn.augment_queryset.called)
