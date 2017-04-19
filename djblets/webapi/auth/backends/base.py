@@ -9,6 +9,9 @@ from django.contrib import auth
 from django.utils import six
 
 
+logger = logging.getLogger(__name__)
+
+
 class WebAPIAuthBackend(object):
     """Handles a form of authentication for the web API.
 
@@ -130,7 +133,7 @@ class WebAPIAuthBackend(object):
         }
 
         cleaned_credentials = self.clean_credentials_for_display(credentials)
-        logging.debug(
+        logger.debug(
             'Attempting authentication on API: %s',
             ', '.join([
                 '%s=%s' % pair
@@ -145,8 +148,8 @@ class WebAPIAuthBackend(object):
 
             return True, None, None
 
-        logging.debug('API Login failed. No valid user found.',
-                      extra=log_extra)
+        logger.debug('API Login failed. No valid user found.',
+                     extra=log_extra)
         auth.logout(request)
 
         return False, None, None

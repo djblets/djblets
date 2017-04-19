@@ -54,10 +54,12 @@ class WebAPIBasicAuthBackendTests(SpyAgency, TestCase):
         """Testing Basic Auth get_credentials with malformed credentials"""
         header = 'Basic ' + base64.b64encode('Some malfomred credentials')
         self.request.META['HTTP_AUTHORIZATION'] = header
-        self.spy_on(logging.warning)
+
+        logger = logging.getLogger('djblets.webapi.auth.backends.basic')
+        self.spy_on(logger.warning)
 
         result = self.basic_auth_backend.get_credentials(self.request)
-        warning_message = logging.warning.spy.last_call.args[0]
+        warning_message = logger.warning.spy.last_call.args[0]
 
         self.assertIsNone(result)
         self.assertTrue(warning_message.startswith(

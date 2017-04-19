@@ -26,6 +26,9 @@ from django.template.loader import render_to_string
 from django.utils import six
 
 
+logger = logging.getLogger(__name__)
+
+
 class ExtensionHook(object):
     """The base class for a hook into some part of an application.
 
@@ -438,8 +441,8 @@ class SignalHook(ExtensionHook):
         try:
             self.callback(extension=self.extension, **kwargs)
         except Exception as e:
-            logging.error('Error when calling %r from SignalHook: %s',
-                          self.callback, e, exc_info=1)
+            logger.exception('Error when calling %r from SignalHook: %s',
+                             self.callback, e)
 
             if not self.sandbox_errors:
                 raise

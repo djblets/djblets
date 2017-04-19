@@ -16,6 +16,9 @@ from django.utils.translation import ugettext_lazy as _
 from djblets.webapi.errors import WebAPITokenGenerationError
 
 
+logger = logging.getLogger(__name__)
+
+
 class WebAPITokenManager(Manager):
     """Manages WebAPIToken models."""
 
@@ -80,10 +83,10 @@ class WebAPITokenManager(Manager):
                 pass
 
         # We hit our limit. The database is too full of tokens.
-        logging.error('Unable to generate unique API token for %s after '
-                      '%d attempts.',
-                      user.username,
-                      max_attempts)
+        logger.error('Unable to generate unique API token for %s after '
+                     '%d attempts.',
+                     user.username,
+                     max_attempts)
 
         raise WebAPITokenGenerationError(
             _('Could not create a unique API token. Please try again.'))

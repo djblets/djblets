@@ -59,6 +59,9 @@ except ImportError:
     fkey_descriptors = (ReverseSingleRelatedObjectDescriptor,)
 
 
+logger = logging.getLogger(__name__)
+
+
 class WebAPIResource(object):
     """A resource handling HTTP operations for part of the API.
 
@@ -1239,10 +1242,10 @@ class WebAPIResource(object):
         errors.
         """
         if request.user.is_authenticated():
-            logging.warning('%s %s: user %s does not have '
-                            'permission to access this resource.',
-                            request.method, request.path,
-                            request.user.username)
+            logger.warning('%s %s: user %s does not have '
+                           'permission to access this resource.',
+                           request.method, request.path,
+                           request.user.username)
             return PERMISSION_DENIED
         else:
             return NOT_LOGGED_IN

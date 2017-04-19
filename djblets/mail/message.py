@@ -14,6 +14,9 @@ from djblets.mail.dmarc import is_email_allowed_by_dmarc
 from djblets.mail.utils import build_email_address_via_service
 
 
+logger = logging.getLogger(__name__)
+
+
 class EmailMessage(EmailMultiAlternatives):
     """An EmailMesssage subclass with improved header and message ID support.
 
@@ -161,14 +164,14 @@ class EmailMessage(EmailMultiAlternatives):
             # The above will return ('', '') if the address couldn't be parsed,
             # so check for this.
             if not parsed_from_email:
-                logging.warning('EmailMessage: Unable to parse From address '
-                                '"%s"',
-                                from_email)
+                logger.warning('EmailMessage: Unable to parse From address '
+                               '"%s"',
+                               from_email)
 
             if not parsed_sender_email:
-                logging.warning('EmailMessage: Unable to parse Sender address '
-                                '"%s"',
-                                sender)
+                logger.warning('EmailMessage: Unable to parse Sender address '
+                               '"%s"',
+                               sender)
 
             # We may not be allowed to send on behalf of this user.
             # We actually aren't going to check for this (it may be due

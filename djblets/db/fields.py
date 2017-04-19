@@ -54,6 +54,9 @@ from djblets.util.dates import get_tz_aware_utcnow
 from djblets.util.serializers import DjbletsJSONEncoder
 
 
+logger = logging.getLogger(__name__)
+
+
 class Base64DecodedValue(str):
     """
     A subclass of string that can be identified by Base64Field, in order
@@ -245,8 +248,10 @@ class JSONField(models.TextField):
             # XXX We need to investigate why this is happening once we have
             #     a solid repro case.
             if isinstance(val, six.string_types):
-                logging.warning("JSONField decode error. Expected dictionary, "
-                                "got string for input '%s'" % val)
+                logger.warning("JSONField decode error. Expected dictionary, "
+                               "got string for input '%s'",
+                               val)
+
                 # For whatever reason, we may have gotten back
                 val = json.loads(val, encoding=settings.DEFAULT_CHARSET)
         except ValueError:
@@ -255,13 +260,14 @@ class JSONField(models.TextField):
             try:
                 val = literal_eval(val)
             except Exception as e:
-                logging.error('Failed to eval JSONField data "%r": %s'
-                              % (val, e))
+                logger.error('Failed to eval JSONField data "%r": %s',
+                             val, e)
                 val = {}
 
             if isinstance(val, six.string_types):
-                logging.warning('JSONField decode error after literal_eval: '
-                                'Expected dictionary, got string: %r' % val)
+                logger.warning('JSONField decode error after literal_eval: '
+                               'Expected dictionary, got string: %r',
+                               val)
                 val = {}
 
         return val

@@ -87,6 +87,9 @@ from djblets.util.decorators import cached_property
 from djblets.util.http import get_url_params_except
 
 
+logger = logging.getLogger(__name__)
+
+
 # Registration of all datagrid classes to columns.
 _column_registry = {}
 
@@ -447,9 +450,9 @@ class Column(object):
         try:
             rendered_data = self.render_data(state, obj)
         except Exception as e:
-            logging.error('Error when calling render_data for DataGrid Column'
-                          ' %r: %s',
-                          self, e, exc_info=1)
+            logger.exception('Error when calling render_data for DataGrid '
+                             'Column %r: %s',
+                             self, e)
             rendered_data = None
 
         if render_context:
@@ -594,9 +597,9 @@ class StatefulColumn(object):
         try:
             column.setup_state(self)
         except Exception as e:
-            logging.error('Error when calling setup_state in DataGrid Column '
-                          '%r: %s',
-                          self.column, e, exc_info=1)
+            logger.exception('Error when calling setup_state in DataGrid '
+                             'Column %r: %s',
+                             self.column, e)
 
     @property
     def toggle_url(self):
@@ -971,12 +974,10 @@ class DataGrid(object):
         obj = get_template(self.cell_template)
 
         if not obj:
-            logging.error("Unable to load template '%s' for datagrid "
-                          "cell. This may be an installation issue.",
-                          self.cell_template,
-                          extra={
-                              'request': self.request,
-                          })
+            logger.error("Unable to load template '%s' for datagrid "
+                         "cell. This may be an installation issue.",
+                         self.cell_template,
+                         request=self.request)
 
         return obj
 
@@ -989,13 +990,11 @@ class DataGrid(object):
         obj = get_template(self.column_header_template)
 
         if not obj:
-            logging.error("Unable to load template '%s' for datagrid "
-                          "column headers. This may be an installation "
-                          "issue.",
-                          self.column_header_template,
-                          extra={
-                              'request': self.request,
-                          })
+            logger.error("Unable to load template '%s' for datagrid "
+                         "column headers. This may be an installation "
+                         "issue.",
+                         self.column_header_template,
+                         request=self.request)
 
         return obj
 
@@ -1228,9 +1227,9 @@ class DataGrid(object):
             if sort_item:
                 column = self.get_column(base_sort_item)
                 if not column:
-                    logging.warning('Skipping non-existing sort column "%s" '
-                                    'for user "%s".',
-                                    base_sort_item, self.request.user.username)
+                    logger.warning('Skipping non-existing sort column "%s" '
+                                   'for user "%s".',
+                                   base_sort_item, self.request.user.username)
                     continue
 
                 stateful_column = self.get_stateful_column(column)
@@ -1239,9 +1238,9 @@ class DataGrid(object):
                     try:
                         sort_field = stateful_column.get_sort_field()
                     except Exception as e:
-                        logging.error('Error when calling get_sort_field for '
-                                      'DataGrid Column %r: %s',
-                                      column, e, exc_info=1)
+                        logger.exception('Error when calling get_sort_field '
+                                         'for DataGrid Column %r: %s',
+                                         column, e)
                         sort_field = ''
 
                     sort_list.append(prefix + sort_field)
@@ -1343,9 +1342,9 @@ class DataGrid(object):
                               for column in self.columns]
                 })
         except Exception as e:
-            logging.error('Error when calling render_cell for DataGrid '
-                          'Column %r: %s',
-                          column, e, exc_info=1)
+            logger.exception('Error when calling render_cell for DataGrid '
+                             'Column %r: %s',
+                             column, e)
 
     def post_process_queryset(self, queryset):
         """Add column-specific data to the queryset.
@@ -1367,9 +1366,9 @@ class DataGrid(object):
             try:
                 queryset = column.augment_queryset(queryset)
             except Exception as e:
-                logging.error('Error when calling augment_queryset for '
-                              'DataGrid Column %r: %s',
-                              column, e, exc_info=1)
+                logger.exception('Error when calling augment_queryset for '
+                                 'DataGrid Column %r: %s',
+                                 column, e)
 
         return queryset
 
@@ -1403,10 +1402,9 @@ class DataGrid(object):
                                               Context(context)))
         except Exception:
             trace = traceback.format_exc()
-            logging.error('Failed to render datagrid:\n%s' % trace,
-                          extra={
-                              'request': self.request,
-                          })
+            logger.exception('Failed to render datagrid:\n%s',
+                             trace,
+                             request=self.request)
             return mark_safe('<pre>%s</pre>' % trace)
 
     def render_listview_to_response(self, request=None, render_context=None):

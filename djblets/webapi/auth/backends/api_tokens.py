@@ -17,6 +17,9 @@ import logging
 from djblets.webapi.auth import WebAPIAuthBackend
 
 
+logger = logging.getLogger(__name__)
+
+
 class TokenAuthBackendMixin(object):
     """Mixin for a standard auth backend for API token authentication.
 
@@ -96,9 +99,9 @@ class WebAPITokenAuthBackend(WebAPIAuthBackend):
             return None
 
         if len(parts) != 2:
-            logging.warning('WebAPITokenAuthBackend: Missing token in '
-                            'HTTP_AUTHORIZATION header %s',
-                            http_auth, extra={'request': request})
+            logger.warning('WebAPITokenAuthBackend: Missing token in '
+                           'HTTP_AUTHORIZATION header %s',
+                           http_auth, extra={'request': request})
             return None
 
         return {

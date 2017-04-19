@@ -29,6 +29,9 @@ except ImportError:
 from djblets.log import init_logging, init_profile_logger, log_timed
 
 
+logger = logging.getLogger(__name__)
+
+
 class CursorDebugWrapper(db_backend_utils.CursorDebugWrapper):
     """Debug cursor for databases that stores tracebacks in query logs.
 
@@ -242,7 +245,7 @@ class LoggingMiddleware(object):
                 The exception that was raised.
         """
         if not isinstance(exception, self.ignored_exceptions):
-            logging.exception('Exception thrown for user %s at %s\n\n%s',
-                              request.user, request.build_absolute_uri(),
-                              exception,
-                              request=request)
+            logger.exception('Exception thrown for user %s at %s\n\n%s',
+                             request.user, request.build_absolute_uri(),
+                             exception,
+                             request=request)
