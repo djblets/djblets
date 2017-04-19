@@ -26,13 +26,16 @@
 
 from __future__ import unicode_literals
 
-from contextlib import contextmanager
 import logging
 import os
 import signal
 import sys
+from contextlib import contextmanager
 
 from django.utils.translation import ugettext as _
+
+
+logger = logging.getLogger(__name__)
 
 
 def kill_process(pid):
@@ -82,7 +85,7 @@ def controlled_subprocess(process_name, process):
     # If we haven't gotten a returncode at this point, we assume the
     # process is blocked.  Let's kill it.
     if process.returncode is None and process.poll() is None:
-        logging.warning(
+        logger.warning(
             _("The process '%(name)s' with PID '%(pid)s' did not exit "
               "cleanly and will be killed automatically.")
             % {
@@ -91,6 +94,7 @@ def controlled_subprocess(process_name, process):
             })
 
         kill_process(process.pid)
+
         # Now that we've killed the process, we'll grab the return code,
         # in order to clear the zombie.
         process.wait()

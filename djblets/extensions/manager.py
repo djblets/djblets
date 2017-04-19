@@ -81,6 +81,9 @@ from djblets.urls.resolvers import DynamicURLResolver
 from djblets.util.compat.django.core.files import locks
 
 
+logger = logging.getLogger(__name__)
+
+
 class SettingListWrapper(object):
     """Wraps list-based settings to provide management and ref counting.
 
@@ -551,8 +554,8 @@ class ExtensionManager(object):
             try:
                 ext_class = entrypoint.load()
             except Exception as e:
-                logging.exception("Error loading extension %s: %s" %
-                                  (entrypoint.name, e))
+                logger.exception('Error loading extension %s: %s',
+                                 entrypoint.name, e)
                 extension_id = '%s.%s' % (entrypoint.module_name,
                                           '.'.join(entrypoint.attrs))
                 self._store_load_error(extension_id, e)
@@ -697,8 +700,8 @@ class ExtensionManager(object):
         try:
             extension = ext_class(extension_manager=self)
         except Exception as e:
-            logging.error('Unable to initialize extension %s: %s'
-                          % (ext_class, e), exc_info=1)
+            logger.exception('Unable to initialize extension %s: %s',
+                             ext_class, e)
             error_details = self._store_load_error(extension_id, e)
             raise EnablingExtensionError(
                 _('Error initializing extension: %s') % e,
@@ -853,8 +856,8 @@ class ExtensionManager(object):
         # copy/pasted, or something went wrong. Either way, we wouldn't
         # be able to trust it.
         if force:
-            logging.debug('Forcing installation of extension media for %s',
-                          ext_class.info)
+            logger.debug('Forcing installation of extension media for %s',
+                         ext_class.info)
             old_version = None
         else:
             if (ext_class.registration.installed and
@@ -872,12 +875,12 @@ class ExtensionManager(object):
                 return
 
             if not old_version:
-                logging.debug('Installing extension media for %s',
-                              ext_class.info)
+                logger.debug('Installing extension media for %s',
+                             ext_class.info)
             else:
-                logging.debug('Reinstalling extension media for %s because '
-                              'version changed from %s',
-                              ext_class.info, old_version)
+                logger.debug('Reinstalling extension media for %s because '
+                             'version changed from %s',
+                             ext_class.info, old_version)
 
         while old_version != cur_version:
             with open(lockfile, 'w') as f:
@@ -923,10 +926,9 @@ class ExtensionManager(object):
             # another thread removing the lock file before this thread could.
             # It's safe to ignore. We want to handle all others, though.
             if e.errno != errno.ENOENT:
-                logging.error("Failed to unlock media lock file '%s' for "
-                              "extension '%s': %s",
-                              lockfile, ext_class.info, e,
-                              exc_info=1)
+                logger.exception("Failed to unlock media lock file '%s' for "
+                                 "extension '%s': %s",
+                                 lockfile, ext_class.info, e)
 
     def _install_extension_media_internal(self, ext_class):
         """Install static media for an extension.
@@ -938,11 +940,11 @@ class ExtensionManager(object):
         if pkg_resources.resource_exists(ext_class.__module__, 'htdocs'):
             # This is an older extension that doesn't use the static file
             # support. Log a deprecation notice and then install the files.
-            logging.error('The %s extension uses the deprecated "htdocs" '
-                          'directory for static files. This is no longer '
-                          'supported. It must be updated to use a "static" '
-                          'directory instead.'
-                          % ext_class.info.name)
+            logger.error('The %s extension uses the deprecated "htdocs" '
+                         'directory for static files. This is no longer '
+                         'supported. It must be updated to use a "static" '
+                         'directory instead.',
+                         ext_class.info.name)
 
         ext_static_path = ext_class.info.installed_static_path
         ext_static_path_exists = os.path.exists(ext_static_path)
@@ -1229,8 +1231,8 @@ class ExtensionManager(object):
             output = stream.getvalue()
 
             if output:
-                logging.info('Evolved extension models for %s: %s',
-                             ext_class.id, stream.read())
+                logger.info('Evolved extension models for %s: %s',
+                            ext_class.id, stream.read())
 
             stream.close()
         except CommandError as e:
@@ -1240,8 +1242,8 @@ class ExtensionManager(object):
             output = stream.getvalue()
             stream.close()
 
-            logging.error('Error evolving extension models: %s: %s',
-                          e, output, exc_info=1)
+            logger.exception('Error evolving extension models: %s: %s',
+                             e, output)
 
             load_error = self._store_load_error(ext_class.id, output)
             raise InstallExtensionError(six.text_type(e), load_error)

@@ -11,6 +11,9 @@ from publicsuffix import PublicSuffixList
 from djblets.cache.backend import DEFAULT_EXPIRATION_TIME, cache_memoize
 
 
+logger = logging.getLogger(__name__)
+
+
 class DmarcPolicy(object):
     """Types of DMARC policies.
 
@@ -263,9 +266,9 @@ def get_dmarc_record(hostname, use_cache=True,
             psl = PublicSuffixList(pkg_resources.resource_stream('djblets',
                                                                  filename))
         except IOError as e:
-            logging.error('Unable to read public domain suffix list file '
-                          '"%s" from Djblets package: %s',
-                          filename, e)
+            logger.error('Unable to read public domain suffix list file '
+                         '"%s" from Djblets package: %s',
+                         filename, e)
         else:
             new_hostname = psl.get_public_suffix(hostname)
 

@@ -7,6 +7,9 @@ import logging
 from djblets.webapi.auth.backends.base import WebAPIAuthBackend
 
 
+logger = logging.getLogger(__name__)
+
+
 class WebAPIBasicAuthBackend(WebAPIAuthBackend):
     """Handles HTTP Basic Authentication for the web API."""
 
@@ -23,10 +26,10 @@ class WebAPIBasicAuthBackend(WebAPIAuthBackend):
             encoded_auth = parts[1]
             username, password = encoded_auth.decode('base64').split(':', 1)
         except Exception:
-            logging.warning("Failed to parse HTTP_AUTHORIZATION header %s" %
-                            request.META['HTTP_AUTHORIZATION'],
-                            exc_info=1,
-                            extra={'request': request})
+            logger.warning('Failed to parse HTTP_AUTHORIZATION header %s',
+                           request.META['HTTP_AUTHORIZATION'],
+                           exc_info=True,
+                           extra={'request': request})
             return None
 
         return {

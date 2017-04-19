@@ -34,6 +34,7 @@ from django.utils.six.moves import cStringIO as StringIO
 from PIL import Image
 
 
+logger = logging.getLogger(__name__)
 register = template.Library()
 
 
@@ -69,10 +70,9 @@ def crop_image(f, x, y, width, height):
 
             save_image_to_storage(image, storage, new_name)
         except (IOError, KeyError) as e:
-            logging.error('Error cropping image file %s at %d, %d, %d, %d '
-                          'and saving as %s: %s' %
-                          (filename, x, y, width, height, new_name, e),
-                          exc_info=1)
+            logger.exception('Error cropping image file %s at %d, %d, %d, %d '
+                             'and saving as %s: %s',
+                             filename, x, y, width, height, new_name, e)
             return ""
 
     return storage.url(new_name)
@@ -130,9 +130,9 @@ def thumbnail(f, size='400x100'):
 
             save_image_to_storage(image, storage, miniature)
         except (IOError, KeyError) as e:
-            logging.error('Error thumbnailing image file %s and saving '
-                          'as %s: %s' % (filename, miniature, e),
-                          exc_info=1)
+            logger.exception('Error thumbnailing image file %s and saving '
+                             'as %s: %s',
+                             filename, miniature, e)
             return ""
 
     return storage.url(miniature)

@@ -5,6 +5,7 @@ older versions of Django.
 """
 
 from __future__ import unicode_literals
+
 import logging
 
 from django.core.cache import DEFAULT_CACHE_ALIAS, InvalidCacheBackendError
@@ -13,6 +14,9 @@ try:
     from django.core.cache import parse_backend_uri
 except ImportError:
     from djblets.util.compat.django.core.cache import parse_backend_uri
+
+
+logger = logging.getLogger(__name__)
 
 
 BACKEND_CLASSES = {
@@ -72,8 +76,9 @@ def normalize_cache_backend(cache_backend, cache_name=DEFAULT_CACHE_ALIAS):
     try:
         engine, host, params = parse_backend_uri(cache_backend)
     except InvalidCacheBackendError as e:
-        logging.error('Invalid cache backend (%s) found while loading '
-                      'siteconfig: %s' % (cache_backend, e))
+        logger.error('Invalid cache backend (%s) found while loading '
+                     'siteconfig: %s',
+                     cache_backend, e)
         return {}
 
     if engine in BACKEND_CLASSES:

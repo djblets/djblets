@@ -32,6 +32,9 @@ from django.conf import settings
 from djblets.siteconfig.models import SiteConfiguration
 
 
+logger = logging.getLogger(__name__)
+
+
 def siteconfig(request):
     """Provides variables for accessing site configuration data.
 
@@ -45,8 +48,8 @@ def siteconfig(request):
     try:
         siteconfig = SiteConfiguration.objects.get_current()
         siteconfig_settings = siteconfig.settings_wrapper
-    except Exception, e:
-        logging.error('Unable to load SiteConfiguration: %s', e, exc_info=1)
+    except Exception as e:
+        logger.exception('Unable to load SiteConfiguration: %s', e)
 
         siteconfig = None
         siteconfig_settings = None

@@ -13,6 +13,7 @@ from djblets.extensions.hooks import TemplateHook
 from djblets.extensions.manager import get_extension_managers
 
 
+logger = logging.getLogger(__name__)
 register = template.Library()
 
 
@@ -85,15 +86,15 @@ def template_hook_point(context, name):
                     try:
                         yield hook.render_to_string(request, context)
                     except Exception as e:
-                        logging.error('Error rendering TemplateHook %r: %s',
-                                      hook, e, exc_info=1)
+                        logger.exception('Error rendering TemplateHook %r: %s',
+                                         hook, e)
 
                     context.pop()
 
             except Exception as e:
-                logging.error('Error when calling applies_to for '
-                              'TemplateHook %r: %s',
-                              hook, e, exc_info=1)
+                logger.exception('Error when calling applies_to for '
+                                 'TemplateHook %r: %s',
+                                 hook, e)
 
     return ''.join(_render_hooks())
 
@@ -115,9 +116,9 @@ def _render_bundle(context, node_cls, extension, name, bundle_type):
     try:
         return node_cls('"%s"' % extension.get_bundle_id(name)).render(context)
     except:
-        logging.exception('Unable to load %s bundle "%s" for extension "%s" '
-                          '(%s)',
-                          bundle_type, name, extension.info.name, extension.id)
+        logger.exception('Unable to load %s bundle "%s" for extension "%s" '
+                         '(%s)',
+                         bundle_type, name, extension.info.name, extension.id)
         raise
 
 

@@ -101,7 +101,7 @@ _profile_log = None
 
 DEFAULT_LOG_LEVEL = "DEBUG"
 DEFAULT_LINE_FORMAT = \
-    "%(asctime)s - %(levelname)s - %(request_info)s - %(message)s"
+    "%(asctime)s - %(levelname)s - %(request_info)s - %(name)s - %(message)s"
 DEFAULT_REQUEST_FORMAT = '%(user)s - %(path)s'
 
 
