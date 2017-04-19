@@ -42,6 +42,9 @@ from djblets.extensions.settings import Settings
 from djblets.util.decorators import cached_property
 
 
+logger = logging.getLogger(__name__)
+
+
 class JSExtension(object):
     """Base class for a JavaScript extension.
 
@@ -433,10 +436,10 @@ class ExtensionInfo(object):
                 lines = dist.get_metadata_lines('PKG-INFO')
             except IOError:
                 lines = []
-                logging.error('No METADATA or PKG-INFO found for the package '
-                              'containing the %s extension. Information on '
-                              'the extension may be missing.',
-                              extension_id)
+                logger.error('No METADATA or PKG-INFO found for the package '
+                             'containing the %s extension. Information on '
+                             'the extension may be missing.',
+                             extension_id)
 
         data = '\n'.join(lines)
 
@@ -450,9 +453,8 @@ class ExtensionInfo(object):
             except UnicodeDecodeError:
                 continue
         else:
-            logging.warning(
-                'Failed decoding PKG-INFO content for extension %s',
-                entrypoint.name)
+            logger.warning('Failed decoding PKG-INFO content for extension %s',
+                           entrypoint.name)
 
         p = FeedParser()
         p.feed(data)
@@ -508,10 +510,10 @@ class ExtensionInfo(object):
                     'ExtensionInfo.create_from_entrypoint() instead.',
                     DeprecationWarning)
             else:
-                logging.error('Unexpected parameters passed to '
-                              'ExtensionInfo.__init__: ext_class=%r, '
-                              'package_name=%r, metadata=%r',
-                              ext_class, package_name, metadata)
+                logger.error('Unexpected parameters passed to '
+                             'ExtensionInfo.__init__: ext_class=%r, '
+                             'package_name=%r, metadata=%r',
+                             ext_class, package_name, metadata)
 
                 raise TypeError(
                     _('Invalid parameters passed to ExtensionInfo.__init__'))

@@ -29,6 +29,9 @@ CACHE_CHUNK_SIZE = 2 ** 20 - 1024  # almost 1M (memcached's slab limit)
 MAX_KEY_SIZE = 240
 
 
+logger = logging.getLogger(__name__)
+
+
 _default_expiration = getattr(settings, 'CACHE_EXPIRATION_TIME',
                               DEFAULT_EXPIRATION_TIME)
 
@@ -58,7 +61,7 @@ def _cache_fetch_large_data(cache, key, compress_large_data):
     # generate anything.
     if len(chunks) != chunk_count:
         missing_keys = sorted(set(chunk_keys) - set(chunks.keys()))
-        logging.debug('Cache miss for key(s): %s.' % ', '.join(missing_keys))
+        logger.debug('Cache miss for key(s): %s.' % ', '.join(missing_keys))
 
         raise MissingChunkError
 
@@ -94,7 +97,7 @@ def _cache_iter_large_data(data, key):
             except EOFError:
                 return
     except Exception as e:
-        logging.warning('Unpickle error for cache key "%s": %s.' % (key, e))
+        logger.warning('Unpickle error for cache key "%s": %s.' % (key, e))
         raise
 
 
@@ -238,11 +241,11 @@ def cache_memoize_iter(key, items_or_callable,
                 _cache_fetch_large_data(cache, key, compress_large_data),
                 key)
         except Exception as e:
-            logging.warning('Failed to fetch large data from cache for '
-                            'key %s: %s.' % (key, e))
+            logger.warning('Failed to fetch large data from cache for '
+                           'key %s: %s.' % (key, e))
             results = None
     else:
-        logging.debug('Cache miss for key %s.' % key)
+        logger.debug('Cache miss for key %s.' % key)
 
     if results is None:
         if callable(items_or_callable):
@@ -317,8 +320,8 @@ def cache_memoize(key, lookup_callable,
         #       exception type for this, it never uses it, choosing instead to
         #       fail silently. WTF.
         if len(data) >= CACHE_CHUNK_SIZE:
-            logging.warning('Cache data for key "%s" (length %s) may be too '
-                            'big for the cache.' % (key, len(data)))
+            logger.warning('Cache data for key "%s" (length %s) may be too '
+                           'big for the cache.' % (key, len(data)))
 
         try:
             cache.set(key, data, expiration)

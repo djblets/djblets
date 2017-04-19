@@ -7,11 +7,15 @@ it changes on disk.
 """
 
 from __future__ import unicode_literals
+
 import logging
 import os
 
 from django.conf import settings
 from django.utils import importlib
+
+
+logger = logging.getLogger(__name__)
 
 
 def generate_media_serial():
@@ -98,9 +102,9 @@ def generate_locale_serial(packages):
             path = os.path.join(os.path.dirname(p.__file__), 'locale')
             paths.append(path)
         except Exception as e:
-            logging.error(
-                'Failed to import package %s to compute locale serial: %s'
-                % (package, e))
+            logger.exception(
+                'Failed to import package %s to compute locale serial: %s',
+                package, e)
 
     for locale_path in paths:
         for root, dirs, files in os.walk(locale_path):

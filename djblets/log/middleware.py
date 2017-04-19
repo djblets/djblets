@@ -22,6 +22,9 @@ from django.utils.six.moves import cStringIO as StringIO
 from djblets.log import init_logging, init_profile_logger, log_timed
 
 
+logger = logging.getLogger(__name__)
+
+
 class CursorDebugWrapper(util.CursorDebugWrapper):
     """
     Replacement for CursorDebugWrapper which stores a traceback in
@@ -174,7 +177,7 @@ class LoggingMiddleware(object):
                 The exception that was raised.
         """
         if not isinstance(exception, self.ignored_exceptions):
-            logging.exception('Exception thrown for user %s at %s\n\n%s',
-                              request.user, request.build_absolute_uri(),
-                              exception,
-                              request=request)
+            logger.exception('Exception thrown for user %s at %s\n\n%s',
+                             request.user, request.build_absolute_uri(),
+                             exception,
+                             request=request)

@@ -35,6 +35,9 @@ from djblets.webapi.errors import (NOT_LOGGED_IN, PERMISSION_DENIED,
                                    INVALID_FORM_DATA)
 
 
+logger = logging.getLogger(__name__)
+
+
 SPECIAL_PARAMS = (
     'api_format', 'callback', '_method', 'expand', 'only-fields',
     'only-links',
@@ -164,10 +167,10 @@ def webapi_permission_required(perm):
             if not request.user.is_authenticated():
                 response = NOT_LOGGED_IN
             elif not request.user.has_perm(perm):
-                logging.warning('%s %s: user %s is missing required '
-                                'permission "%s".',
-                              request.method, request.path,
-                              request.user.username, perm)
+                logger.warning('%s %s: user %s is missing required '
+                               'permission "%s".',
+                               request.method, request.path,
+                               request.user.username, perm)
                 response = PERMISSION_DENIED
             else:
                 response = view_func(*args, **kwargs)

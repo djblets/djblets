@@ -7,6 +7,9 @@ import logging
 from django.utils import six
 
 
+logger = logging.getLogger(__name__)
+
+
 _model_to_resources = {}
 _name_to_resources = {}
 _class_to_resources = {}
@@ -70,8 +73,8 @@ class ResourcesRegistry(object):
                     pass
 
             if not found:
-                logging.exception('Unable to load webapi resource %s: %s',
-                                  name, e)
+                logger.exception('Unable to load webapi resource %s: %s',
+                                 name, e)
                 raise AttributeError('%s is not a valid resource name' % name)
 
         return self.__dict__[name]

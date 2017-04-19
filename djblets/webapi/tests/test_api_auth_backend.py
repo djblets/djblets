@@ -53,12 +53,13 @@ class WebAPITokenAuthBackendTests(SpyAgency, TestModelsLoaderMixin, TestCase):
     def test_get_credentials_missing_credentials(self):
         """Testing Token Auth get_credentials with missing token"""
         self.request.META['HTTP_AUTHORIZATION'] = 'token'
-        self.spy_on(logging.warning)
+        logger = logging.getLogger('djblets.webapi.auth.backends.api_tokens')
+        self.spy_on(logger.warning)
 
         result = self.api_token_auth_backend.get_credentials(self.request)
         self.assertIsNone(result)
 
-        warning_message = logging.warning.spy.last_call.args[0]
+        warning_message = logger.warning.spy.last_call.args[0]
         self.assertTrue(warning_message.startswith(
             'WebAPITokenAuthBackend: Missing token in HTTP_AUTHORIZATION '
             'header'))
