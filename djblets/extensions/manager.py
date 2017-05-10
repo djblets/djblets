@@ -826,12 +826,27 @@ class ExtensionManager(object):
                 # Also get rid of the old static contents.
                 shutil.rmtree(ext_static_path, ignore_errors=True)
 
+                if os.path.exists(ext_static_path):
+                    logging.critical('Unable to remove old extension media for '
+                                     '%s at %s. Make sure this path, its '
+                                     'parent, and everything under it is '
+                                     'writable by your web server.',
+                                     ext_class.info.name, ext_static_path)
+
             if pkg_resources.resource_exists(ext_class.__module__, 'static'):
                 extracted_path = \
                     pkg_resources.resource_filename(ext_class.__module__,
                                                     'static')
 
-                shutil.copytree(extracted_path, ext_static_path, symlinks=True)
+                try:
+                    shutil.copytree(extracted_path, ext_static_path,
+                                    symlinks=True)
+                except Exception as e:
+                    logging.critical('Unable to install extension media for %s '
+                                     'to %s: %s. The extension may not work, '
+                                     'and pages may crash.',
+                                     ext_class.info.name, ext_static_path,
+                                     exc_info=True)
 
         # Mark the extension as installed
         ext_class.registration.installed = True
