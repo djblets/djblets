@@ -783,7 +783,6 @@ class ExtensionManager(object):
                          interactive=False)
         else:
             # Django == 1.6
-            loading.cache.loaded = False
             call_command('syncdb', verbosity=0, interactive=False)
 
         # Run evolve to do any table modification.
@@ -1129,7 +1128,11 @@ class ExtensionManager(object):
             extension.apps or [extension.info.app_name])
 
         if apps:
+            # Django >= 1.7
             apps.set_installed_apps(settings.INSTALLED_APPS)
+        else:
+            # Django == 1.6
+            loading.cache.loaded = False
 
     def _remove_from_installed_apps(self, extension):
         """Remove an extension's apps from the list of installed apps.
@@ -1193,6 +1196,7 @@ class ExtensionManager(object):
             # Force get_models() to recompute models for lookups, so that
             # now-unregistered models aren't returned.
             loading.cache._get_models_cache.clear()
+            loading.cache.loaded = False
 
     def _entrypoint_iterator(self):
         return pkg_resources.iter_entry_points(self.key)
