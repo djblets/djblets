@@ -783,7 +783,6 @@ class ExtensionManager(object):
                          interactive=False)
         else:
             # Django == 1.6
-            loading.cache.loaded = False
             call_command('syncdb', verbosity=0, interactive=False)
 
         # Run evolve to do any table modification.
@@ -910,7 +909,7 @@ class ExtensionManager(object):
 
                     with open(media_version_filename, 'w') as fp:
                         fp.write('%s\n' % cur_version)
-                except IOError:
+                except IOError as e:
                     logging.error('Failed to write static media version file '
                                   '"%s" for extension "%s": %s',
                                   media_version_filename, ext_class.info, e)
@@ -953,12 +952,26 @@ class ExtensionManager(object):
             # Also get rid of the old static contents.
             shutil.rmtree(ext_static_path, ignore_errors=True)
 
+            if os.path.exists(ext_static_path):
+                logging.critical('Unable to remove old extension media for %s '
+                                 'at %s. Make sure this path, its parent, and '
+                                 'everything under it is writable by your '
+                                 'web server.',
+                                 ext_class.info.name, ext_static_path)
+
         if pkg_resources.resource_exists(ext_class.__module__, 'static'):
             extracted_path = \
                 pkg_resources.resource_filename(ext_class.__module__,
                                                 'static')
 
-            shutil.copytree(extracted_path, ext_static_path, symlinks=True)
+            try:
+                shutil.copytree(extracted_path, ext_static_path, symlinks=True)
+            except Exception as e:
+                logging.critical('Unable to install extension media for %s to '
+                                 '%s: %s. The extension may not work, and '
+                                 'pages may crash.',
+                                 ext_class.info.name, ext_static_path,
+                                 exc_info=True)
 
     def _uninstall_extension(self, extension):
         """Uninstalls extension data.
@@ -1115,7 +1128,11 @@ class ExtensionManager(object):
             extension.apps or [extension.info.app_name])
 
         if apps:
+            # Django >= 1.7
             apps.set_installed_apps(settings.INSTALLED_APPS)
+        else:
+            # Django == 1.6
+            loading.cache.loaded = False
 
     def _remove_from_installed_apps(self, extension):
         """Remove an extension's apps from the list of installed apps.
@@ -1179,6 +1196,7 @@ class ExtensionManager(object):
             # Force get_models() to recompute models for lookups, so that
             # now-unregistered models aren't returned.
             loading.cache._get_models_cache.clear()
+            loading.cache.loaded = False
 
     def _entrypoint_iterator(self):
         return pkg_resources.iter_entry_points(self.key)

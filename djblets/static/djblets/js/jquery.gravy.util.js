@@ -289,36 +289,69 @@ $.fn.delay = function(msec) {
 
 
 $.fn.proxyTouchEvents = function(events) {
-    events = events || "touchstart touchmove touchend";
+    var stateKey = 'gravy-proxy-touch-state';
 
-    return $(this).bind(events, function(event) {
-        var touches = event.originalEvent.changedTouches,
-            first = touches[0],
-            type = "",
-            mouseEvent;
+    function simulateMouseEvent(event, type, touch, relatedTarget) {
+        var mouseEvent = document.createEvent('MouseEvent');
 
-        switch (event.type) {
-        case "touchstart":
-            type = "mousedown";
-            break;
-
-        case "touchmove":
-            type = "mousemove";
-            break;
-
-        case "touchend":
-            type = "mouseup";
-            break;
-        }
-
-        mouseEvent = document.createEvent("MouseEvent");
         mouseEvent.initMouseEvent(type, true, true, window, 1,
-                                  first.screenX, first.screenY,
-                                  first.clientX, first.clientY,
-                                  false, false, false, false, 0, null);
+                                  touch.screenX, touch.screenY,
+                                  touch.clientX, touch.clientY,
+                                  false, false, false, false, 0,
+                                  relatedTarget || null);
 
         if (!event.target.dispatchEvent(mouseEvent)) {
             event.preventDefault();
+        }
+    }
+
+    events = events || 'touchstart touchmove touchend';
+
+    return $(this).bind(events, function(event) {
+        var $this = $(this),
+            touches = event.originalEvent.changedTouches,
+            firstTouch,
+            hoverEl,
+            touchState;
+
+        if (touches.length !== 1) {
+             // Ignore this event. We don't want to get in the way of gestures.
+             return;
+        }
+
+        firstTouch = event.originalEvent.changedTouches[0];
+
+        switch (event.type) {
+        case 'touchstart':
+            $this.data(stateKey, {
+                lastEl: document.elementFromPoint(firstTouch.clientX,
+                                                  firstTouch.clientY)
+            });
+            simulateMouseEvent(event, 'mousedown', firstTouch);
+            break;
+
+        case 'touchmove':
+            touchState = $this.data(stateKey);
+            hoverEl = document.elementFromPoint(firstTouch.clientX,
+                                                firstTouch.clientY);
+
+            if (touchState.lastEl !== hoverEl) {
+                simulateMouseEvent(event, 'mouseout', firstTouch,
+                                   touchState.lastEl);
+
+                touchState.lastEl = hoverEl;
+                simulateMouseEvent(event, 'mouseover', firstTouch,
+                                   hoverEl);
+            }
+
+            simulateMouseEvent(event, 'mousemove', firstTouch);
+            break;
+
+        case 'touchend':
+        case 'touchcancel':
+            simulateMouseEvent(event, 'mouseup', firstTouch);
+            $this.data(stateKey, null);
+            break;
         }
     });
 };
