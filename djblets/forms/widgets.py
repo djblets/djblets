@@ -153,7 +153,7 @@ class ConditionsWidget(widgets.Widget):
             The value from the form data.
         """
         try:
-            last_id = int(data.get('%s_last_id' % name)) + 1
+            last_id = int(data['%s_last_id' % name]) + 1
         except (KeyError, ValueError):
             last_id = 0
 
