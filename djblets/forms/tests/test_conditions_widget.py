@@ -81,6 +81,51 @@ class ConditionsWidgetTests(TestCase):
                 ],
             })
 
+    def test_value_from_datadict_with_missing_data(self):
+        """Testing ConditionsWidget.value_from_datadict with missing data"""
+        class MyChoice(BaseConditionIntegerChoice):
+            choice_id = 'my-choice'
+
+        choices = ConditionChoices([MyChoice])
+        field = ConditionsField(choices=choices)
+
+        data = MultiValueDict('')
+
+        self.assertEqual(
+            field.widget.value_from_datadict(data, MultiValueDict(''),
+                                             'my_conditions'),
+            {
+                'mode': None,
+                'conditions': [],
+            })
+
+    def test_value_from_datadict_with_missing_last_id(self):
+        """Testing ConditionsWidget.value_from_datadict with missing last_id"""
+        class MyChoice(BaseConditionIntegerChoice):
+            choice_id = 'my-choice'
+
+        choices = ConditionChoices([MyChoice])
+        field = ConditionsField(choices=choices)
+
+        data = MultiValueDict('')
+        data.update({
+            'my_conditions_mode': 'any',
+            'my_conditions_choice[0]': 'my-choice',
+            'my_conditions_operator[0]': 'is',
+            'my_conditions_value[0]': 'my-value-1',
+            'my_conditions_choice[1]': 'my-choice',
+            'my_conditions_operator[1]': 'is-not',
+            'my_conditions_value[1]': 'my-value-2',
+        })
+
+        self.assertEqual(
+            field.widget.value_from_datadict(data, MultiValueDict(''),
+                                             'my_conditions'),
+            {
+                'mode': 'any',
+                'conditions': [],
+            })
+
     def test_value_from_datadict_with_missing_choice_rows(self):
         """Testing ConditionsWidget.value_from_datadict with missing choice
         rows
