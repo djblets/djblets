@@ -7,6 +7,9 @@ import re
 
 from django.contrib import auth
 from django.utils import six
+from django.utils.translation import ugettext as _
+
+from djblets.auth.ratelimit import is_ratelimited
 
 
 logger = logging.getLogger(__name__)
@@ -78,6 +81,11 @@ class WebAPIAuthBackend(object):
         Returns:
             tuple or None
         """
+        # Check if number of failed login attempts already exceeded
+        # before authenticating.
+        if is_ratelimited(request, increment=False):
+            return False, _('Maximum number of login attempts exceeded.'), None
+
         credentials = self.get_credentials(request)
 
         if not credentials:
@@ -88,6 +96,11 @@ class WebAPIAuthBackend(object):
         else:
             assert isinstance(credentials, tuple)
             result = credentials
+
+        if not result[0]:
+            # Automatically increment when login with credentials is not
+            # successful.
+            is_ratelimited(request, increment=True)
 
         return result
 

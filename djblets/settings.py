@@ -21,6 +21,7 @@ DJBLETS_ROOT = os.path.abspath(os.path.dirname(__file__))
 HTDOCS_ROOT = os.path.join(DJBLETS_ROOT, 'htdocs')
 STATIC_ROOT = os.path.join(HTDOCS_ROOT, 'static')
 STATIC_URL = '/'
+LOGIN_LIMIT_RATE = '5/m'
 
 STATICFILES_DIRS = (
     os.path.join(DJBLETS_ROOT, 'static'),
