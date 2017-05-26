@@ -43,6 +43,7 @@ extensions = [
     'beanbag_docutils.sphinx.ext.django_utils',
     'beanbag_docutils.sphinx.ext.extlinks',
     'beanbag_docutils.sphinx.ext.http_role',
+    'beanbag_docutils.sphinx.ext.intersphinx_utils',
     'beanbag_docutils.sphinx.ext.retina_images',
     'extralinks',
 ]
@@ -230,10 +231,10 @@ django_doc_base_url = 'http://django.readthedocs.io/en'
 intersphinx_mapping = {
     'django1.6': ('%s/1.6.x/' % django_doc_base_url, None),
     'django1.10': ('%s/1.10.x/' % django_doc_base_url, None),
-    'python': ('https://docs.python.org/2.7', None),
-    'djblets-latest': ('%s/docs/djblets/0.9/' % rbwebsite_url, None),
+    'python27': ('https://docs.python.org/2.7', None),
     'djblets0.9': ('%s/docs/djblets/0.9/' % rbwebsite_url, None),
     'djblets0.10': ('%s/docs/djblets/0.10/' % rbwebsite_url, None),
+    'djblets-latest': ('%s/docs/djblets/latest/' % rbwebsite_url, None),
 }
 
 extlinks = {
