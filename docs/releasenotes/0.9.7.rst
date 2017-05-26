@@ -1,0 +1,74 @@
+.. default-intersphinx:: djblets0.9 django1.6
+
+
+===========================
+Djblets 0.9.7 Release Notes
+===========================
+
+**Release date**: May 25, 2017
+
+
+Packaging
+=========
+
+* Added a :command:`setup.py list_node_deps` command for outputting the
+  contents for :file:`package.json`.
+
+  This can be used to generate a npm :file:`package.json` that installs all
+  the node.js dependencies needed by Djblets. It's intended for use by
+  packagers.
+
+
+General
+=======
+
+* Updated all the logging statements to use per-module logger names.
+
+  This will help with identifying which part of Djblets a log statement
+  applies to.
+
+
+djblets.datagrid
+================
+
+* Fixed a performance issue in datagrids when using chained
+  :py:meth:`~django.db.models.query.QuerySet.select_related` calls.
+
+  In Django 1.6, these calls do not normally chain, and this affected the
+  performance in datagrids when using columns that attempted to select
+  related fields. Now they can chain without impacting the performance of
+  other columns.
+
+
+djblets.db.query
+================
+
+* Added :py:func:`~djblets.db.query.chainable_select_related_queryset` for
+  chaining :py:meth:`~django.db.models.query.QuerySet.select_related` calls
+  on Django 1.6.
+
+
+djblets.extensions
+==================
+
+* Failing to install extension media files no longer results in crashes.
+
+  Now, the failure is logged and can be dealt with. While pages may break due
+  to lack of appropriate media files, but site itself will not crash.
+
+
+JavaScript
+==========
+
+* Updated :js:func:`$.fn.proxyTouchEvents` to better simulate
+  mouseover/mouseout events.
+
+  This improves touch support for applications, and fixes resizing when using
+  jQuery-UI's :js:func:`$.fn.resizable` widget.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
