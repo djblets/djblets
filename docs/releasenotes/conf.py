@@ -38,7 +38,15 @@ from djblets.dependencies import django_doc_major_version
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.intersphinx', 'extralinks']
+extensions = [
+    'sphinx.ext.intersphinx',
+    'beanbag_docutils.sphinx.ext.django_utils',
+    'beanbag_docutils.sphinx.ext.extlinks',
+    'beanbag_docutils.sphinx.ext.http_role',
+    'beanbag_docutils.sphinx.ext.intersphinx_utils',
+    'beanbag_docutils.sphinx.ext.retina_images',
+    'extralinks',
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -207,12 +215,20 @@ latex_documents = [
 #latex_use_modindex = True
 
 
+# Check whether reviewboard.org intersphinx lookups should use the local
+# server.
+if os.getenv('DOCS_USE_LOCAL_RBWEBSITE') == '1':
+    rbwebsite_url = 'http://localhost:8081'
+else:
+    rbwebsite_url = 'https://www.reviewboard.org'
+
+
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'django': ('https://docs.djangoproject.com/en/%s/'
-               % django_doc_major_version,
-               'https://docs.djangoproject.com/en/%s/_objects/'
-               % django_doc_major_version),
-    'python': ('https://docs.python.org/2.7', None),
-    'djblets': ('https://www.reviewboard.org/docs/djblets/dev/', None),
+    'django1.6': ('https://django.readthedocs.io/en/%s.x/'
+                  % django_doc_major_version,
+                  None),
+    'python27': ('https://docs.python.org/2.7', None),
+    'djblets0.9': ('%s/docs/djblets/0.9/' % rbwebsite_url, None),
+    'djblets-latest': ('%s/docs/djblets/latest/' % rbwebsite_url, None),
 }
