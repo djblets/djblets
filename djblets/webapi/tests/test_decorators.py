@@ -1,9 +1,12 @@
-from __future__ import print_function, unicode_literals
+"""Unit tests for WebAPI decorators."""
+
+from __future__ import unicode_literals
 
 from django.contrib.auth.models import AnonymousUser, User
 from django.test.client import RequestFactory
 
 from djblets.testing.testcases import TestCase
+from djblets.util.decorators import augment_method_from
 from djblets.webapi.decorators import (copy_webapi_decorator_data,
                                        webapi_login_required,
                                        webapi_permission_required,
@@ -303,6 +306,40 @@ class WebAPIDecoratorTests(TestCase):
         self.assertEqual(func.optional_fields, expected_optional)
         self.assertEqual(func.response_errors,
                          set([DOES_NOT_EXIST, INVALID_FORM_DATA]))
+
+    def test_webapi_request_fields_checks_inheritance(self):
+        """Testing @webapi_request_fields properly checks inherited fields"""
+        class A(object):
+            @webapi_request_fields(required={
+                'required1': {
+                    'type': bool,
+                    'description': 'Required param',
+                },
+            })
+            def test(*args, **kwargs):
+                pass
+
+        class B(A):
+            @webapi_request_fields(required={
+                'required2': {
+                    'type': bool,
+                    'description': 'Required param',
+                },
+            })
+            @augment_method_from(A)
+            def test(*args, **kwargs):
+                pass
+
+        request = RequestFactory().post('/', data={'required2': True})
+
+        b = B()
+        error, response = b.test(request)
+
+        self.assertTrue('fields' in response)
+        self.assertTrue('required1' in response['fields'])
+        self.assertEqual(response['fields']['required1'],
+                         ['This field is required'])
+        self.assertFalse('required2' in response['fields'])
 
     def test_webapi_request_fields_call_normalizes_params(self):
         """Testing @webapi_request_fields normalizes params to function"""
