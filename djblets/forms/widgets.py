@@ -10,6 +10,7 @@ import copy
 from contextlib import contextmanager
 
 from django.forms import widgets
+from django.template.context import Context
 from django.template.loader import render_to_string
 from django.utils import six
 from django.utils.six.moves import range
@@ -566,3 +567,35 @@ class ConditionsWidget(widgets.Widget):
         obj.condition_errors = copy.deepcopy(self.condition_errors)
 
         return obj
+
+
+class CopyableTextInput(widgets.TextInput):
+    """A TextInput widget that renders a link to copy its contents."""
+
+    template_name = 'djblets_forms/copyable_text_input.html'
+
+    def render(self, name, value, attrs=None):
+        """Render the widget.
+
+        Args:
+            name (unicode):
+                The name of the widget.
+
+            value (unicode):
+                The value of the widget.
+
+            attrs (dict):
+                The attributes of the widget.
+
+        Returns:
+            django.utils.safestring.SafeText:
+            The rendered widget.
+        """
+        field = super(CopyableTextInput, self).render(name, value, attrs)
+
+        return render_to_string(
+            self.template_name,
+            Context({
+                'field': field,
+                'id': attrs['id'],
+            }))

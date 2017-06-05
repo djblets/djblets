@@ -114,6 +114,7 @@ PIPELINE_STYLESHEETS = {
     'djblets-forms': {
         'source_filenames': (
             'djblets/css/forms/conditions.less',
+            'djblets/css/forms/copyable_text_input.less',
         ),
         'output_filename': 'djblets/css/forms.min.css',
     },
