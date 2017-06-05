@@ -15,12 +15,16 @@ class MarkdownTestCase(TestCase):
     def render_markdown(self, text):
         return markdown(
             text,
-            safe_mode='escape',
             output_format='xhtml1',
             lazy_ol=False,
             extensions=[
-                'fenced_code', 'codehilite', 'sane_lists', 'smart_strong',
-                'nl2br', 'djblets.markdown.extensions.wysiwyg',
+                'markdown.extensions.fenced_code',
+                'markdown.extensions.codehilite',
+                'markdown.extensions.sane_lists',
+                'markdown.extensions.smart_strong',
+                'markdown.extensions.nl2br',
+                'djblets.markdown.extensions.escape_html',
+                'djblets.markdown.extensions.wysiwyg',
             ],
         )
 
@@ -212,6 +216,15 @@ class MarkdownUtilsTests(MarkdownTestCase):
         self.assertEqual(len(nodes), 1)
         self.assertEqual(nodes[0].toxml(),
                          '<a>\u2018\u2019\u201c\u201d\u201c\u201d</a>')
+
+
+class EscapeHtmlRenderTests(MarkdownTestCase):
+    """Unit tests for rendering with the Escape HTML Markdown extension."""
+
+    def test_render_escape(self):
+        """Testing Markdown Escape HTML rendering with HTML content"""
+        self.assertEqual(self.render_markdown('<b>Test</b>'),
+                         '<p>&lt;b&gt;Test&lt;/b&gt;</p>')
 
 
 class WysiwygRenderTests(MarkdownTestCase):

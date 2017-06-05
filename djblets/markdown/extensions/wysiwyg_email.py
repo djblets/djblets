@@ -1,3 +1,10 @@
+"""Markdown extension to render content similar to the source in e-mails.
+
+This will render Markdown such that the spacing and alignment in the source
+text and the rendered content looks roughly the same. It's meant to help ensure
+that what's typed is very close to what's viewed when rendered.
+"""
+
 from __future__ import absolute_import, unicode_literals
 
 from django import template
@@ -112,6 +119,14 @@ class WysiwygEMailExtension(Extension):
         md.treeprocessors.add('inlinestyle', InlineStyleProcessor(), '_end')
 
 
-def makeExtension(configs={}):
-    """Create a Markdown extension instance for this file."""
-    return WysiwygEMailExtension(configs=configs)
+def makeExtension(*args, **kwargs):
+    """Create and return an instance of this extension.
+
+    Args:
+        *args (tuple):
+            Positional arguments for the extension.
+
+        **kwargs (dict):
+            Keyword arguments for the extension.
+    """
+    return WysiwygEMailExtension(*args, **kwargs)
