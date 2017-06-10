@@ -10,10 +10,11 @@ import copy
 from contextlib import contextmanager
 
 from django.forms import widgets
+from django.forms.util import flatatt
 from django.template.context import Context
 from django.template.loader import render_to_string
 from django.utils import six
-from django.utils.six.moves import range
+from django.utils.six.moves import filter, range
 from django.utils.translation import ugettext as _
 
 from djblets.conditions import ConditionSet
@@ -599,3 +600,86 @@ class CopyableTextInput(widgets.TextInput):
                 'field': field,
                 'id': attrs['id'],
             }))
+
+
+class ListEditWidget(widgets.Widget):
+    """A widget for editing a list of separated values.
+
+    .. note: The ``django-forms`` CSS and JS bundles are required to use this
+             widget.
+    """
+
+    template_name = 'djblets_forms/list_edit_widget.html'
+
+    def __init__(self, attrs=None, sep=','):
+        """Initialize the widget.
+
+        Args:
+            attrs (dict, optional):
+                The attributes of the ``<input>`` elements.
+
+            sep (unicode, optional):
+                The item separator.
+        """
+        super(ListEditWidget, self).__init__(attrs)
+
+        self._sep = sep
+
+    def render(self, name, value, attrs=None):
+        """Render the widget.
+
+        Args:
+            name (unicode):
+                The field name.
+
+            value (unicode):
+                The field value.
+
+            attrs (dict, optional):
+                Additional attributes.
+
+        Returns:
+            django.utils.safestring.SafeText:
+            The rendered widget.
+        """
+        attrs = self.build_attrs(attrs)
+        id_ = attrs.pop('id')
+
+        if 'class' in attrs:
+            attrs['class'] += ' list-edit-item'
+        else:
+            attrs['class'] = 'list-edit-item'
+
+        if value:
+            value_list = list(
+                filter(len, (item.strip() for item in value.split(self._sep)))
+            )
+        else:
+            value_list = []
+
+        return render_to_string(
+            self.template_name,
+            Context({
+                'name': name,
+                'value': value,
+                'attrs': flatatt(attrs),
+                'id': id_,
+                'sep': self._sep,
+                'value_list': value_list,
+            }))
+
+    def id_for_label(self, id_):
+        """Return the main ID to use for this widget.
+
+        This intentionally returns ``None`` since there are multiple fields
+        under this widget.
+
+        Args:
+            id_ (unicode):
+                The ID of the element.
+
+        Returns:
+            unicode:
+            ``None`` so that no ``for=`` attribute is rendered on the label.
+        """
+        return None
