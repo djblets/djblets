@@ -1,7 +1,18 @@
+"""Markdown extension to render content similar to the source.
+
+This will render Markdown such that the spacing and alignment in the source
+text and the rendered content looks roughly the same. It's meant to help ensure
+that what's typed is very close to what's viewed when rendered.
+"""
+
 from __future__ import absolute_import, unicode_literals
+
+import re
+from collections import OrderedDict
 
 import markdown
 from django.utils import six
+from django.utils.six.moves import range
 from markdown.blockprocessors import BlockProcessor, OListProcessor
 from markdown.postprocessors import RawHtmlPostprocessor
 from markdown.treeprocessors import Treeprocessor
@@ -121,53 +132,85 @@ class TrimTrailingEmptyParagraphs(Treeprocessor):
             root[start_i:] = []
 
 
-class RTrimmedString(six.text_type):
-    """Keeps a string free of trailing whitespace when replacing.
-
-    This is used in TrimmedRawHtmlPostprocessor to prevent the base
-    RawHtmlPostprocessor code from adding an extra unnecessary newline when
-    replacing raw HTML placeholders.
-
-    When that code calls replace(), the replaced contents will be rstrip'd,
-    removing the newline. The result of that call is another RTrimmedString.
-
-    Note that other functions may result in a standard string being returned,
-    but in the case of RawHtmlPostprocessor, this isn't really a concern.
-    """
-
-    def replace(self, src, dest):
-        """Replace the contents of the string.
-
-        This wraps the string's replace method to return another
-        RTrimmedString instead of a standard string, rstripping any newlines
-        in the process.
-        """
-        return RTrimmedString(
-            super(RTrimmedString, self).replace(src, dest.rstrip('\n')))
-
-
 class TrimmedRawHtmlPostprocessor(RawHtmlPostprocessor):
     """Post-processes raw HTML placeholders, without adding extra newlines.
 
-    Python Markdown's RawHtmlPostprocessor had a nasty habit of adding an
+    Python-Markdown's RawHtmlPostprocessor had a nasty habit of adding an
     extra newline after replacing a placeholder with stored raw HTML. That
-    would cause extra newlines to appear in our output.
+    would cause extra newlines to appear in our output. It also (at least
+    as of Python-Markdown 2.6 -- the latest release at the time of this
+    writing) wasn't very efficient, unnecessarily comparing strings and
+    fetching results from the same functions on every loop.
 
-    This version first converts the string to a RTrimmedString, preventing
-    these newlines from being added. It then converts back to a standard
-    string.
+    This version more efficiently replaces the raw HTML placeholders and
+    ensures there are no trailing newlines in the resulting HTML. Not only does
+    it prevent the newline normally added by the original function, but it
+    strips trailing newlines from stashed HTML that may have been generated
+    by other extensions, keeping spacing consistent and predictable.
     """
 
     def run(self, text):
-        """Run the processor on the HTML."""
-        return text.__class__(
-            super(TrimmedRawHtmlPostprocessor, self).run(RTrimmedString(text)))
+        """Run the processor on the HTML.
+
+        Args:
+            text (unicode):
+                The text to process.
+
+        Returns:
+            unicode:
+            The processed text.
+        """
+        html_stash = self.markdown.htmlStash
+
+        if html_stash.html_counter == 0:
+            return text
+
+        # safeMode is only available in Python-Markdown 2.6 and lower.
+        safe_mode = getattr(self.markdown, 'safeMode', None)
+        should_escape = False
+        should_remove = False
+
+        if safe_mode:
+            safe_mode = safe_mode.lower()
+
+            if safe_mode == 'escape':
+                should_escape = True
+            elif safe_mode == 'remove':
+                should_remove = True
+
+        replacements = OrderedDict()
+
+        for i in range(html_stash.html_counter):
+            html, safe = html_stash.rawHtmlBlocks[i]
+            placeholder = html_stash.get_placeholder(i)
+
+            # Help control whitespace by getting rid of any trailing newlines
+            # we may find.
+            html = html.rstrip('\n')
+
+            if not safe:
+                if should_escape:
+                    html = self.escape(html)
+                elif should_remove:
+                    html = ''
+                else:
+                    html = self.markdown.html_replacement_text
+
+            if self.isblocklevel(html) and (safe or not safe_mode):
+                replacements['<p>%s</p>' % placeholder] = html
+
+            replacements[placeholder] = html
+
+        return re.sub(
+            '|'.join(re.escape(key) for key in replacements),
+            lambda m: replacements[m.group(0)],
+            text)
 
 
 class WysiwygFormattingExtension(markdown.Extension):
     """Provides a series of WYSIWYG formatting rules for Markdown rendering.
 
-    We have a lot of specific rendering concerns that Python Markdown doesn't
+    We have a lot of specific rendering concerns that Python-Markdown doesn't
     really address, or generally need to care about. We try very hard to match
     up newlines around various code blocks, and we have special ways we do
     ordered lists. The resulting rendered output is meant to look identical
@@ -208,6 +251,14 @@ class WysiwygFormattingExtension(markdown.Extension):
         md.postprocessors['raw_html'] = TrimmedRawHtmlPostprocessor(md)
 
 
-def makeExtension(configs={}):
-    """Create a Markdown extension instance for this file."""
-    return WysiwygFormattingExtension(configs=configs)
+def makeExtension(*args, **kwargs):
+    """Create and return an instance of this extension.
+
+    Args:
+        *args (tuple):
+            Positional arguments for the extension.
+
+        **kwargs (dict):
+            Keyword arguments for the extension.
+    """
+    return WysiwygFormattingExtension(*args, **kwargs)

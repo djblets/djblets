@@ -1,0 +1,21 @@
+{% load i18n %}
+{{field}}
+<a href="#" class="copyable-text-input-link" role="button" data-field-id="{{id}}">
+<span class="fa fa-clipboard" title="{% trans 'Copy to clipboard' %}"></span>
+</a>
+<script>
+(function($) {
+    $(document).ready(function() {
+        $('[data-field-id="{{id|escapejs}}"]').click(function onClick(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            $('#{{id|escapejs}}')
+                .focus()
+                .select();
+
+            document.execCommand('copy');
+        });
+    });
+})($ || window.jQuery || django.jQuery)
+</script>

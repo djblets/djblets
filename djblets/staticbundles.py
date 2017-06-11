@@ -54,6 +54,7 @@ PIPELINE_JAVASCRIPT = {
             'djblets/js/forms/views/baseConditionValueFieldView.es6.js',
             'djblets/js/forms/views/conditionSetView.es6.js',
             'djblets/js/forms/views/conditionValueFormFieldView.es6.js',
+            'djblets/js/forms/views/listEditView.es6.js',
         ),
         'output_filename': 'djblets/js/forms.min.js',
     },
@@ -85,6 +86,7 @@ PIPELINE_JAVASCRIPT = {
             'djblets/js/forms/models/tests/conditionSetModelTests.es6.js',
             'djblets/js/forms/views/tests/conditionSetViewTests.es6.js',
             'djblets/js/forms/views/tests/conditionValueFormFieldViewTests.es6.js',
+            'djblets/js/forms/views/tests/listEditViewTests.es6.js',
         ),
         'output_filename': 'djblets/js/tests.min.js',
     },
@@ -114,6 +116,8 @@ PIPELINE_STYLESHEETS = {
     'djblets-forms': {
         'source_filenames': (
             'djblets/css/forms/conditions.less',
+            'djblets/css/forms/copyable_text_input.less',
+            'djblets/css/forms/list_edit.less',
         ),
         'output_filename': 'djblets/css/forms.min.css',
     },

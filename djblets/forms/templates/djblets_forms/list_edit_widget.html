@@ -1,0 +1,42 @@
+{% load i18n static %}
+<div class="list-edit-widget" id="{{id}}_container">
+ <ul>
+{% if value_list %}
+{%  for value in value_list %}
+ <li class="list-edit-entry" data-list-index="{{forloop.counter0}}">
+  <input value="{{value}}" type="text"{{attrs}}>
+  <a class="list-edit-remove-item" role="button" title="{% trans 'Remove this entry' %}">
+   <img src="{% static "admin/img/icon_deletelink.gif" %}">
+  </a>
+ </li>
+{%  endfor %}
+{% else %}
+ <li class="list-edit-entry" data-list-index="0">
+  <input type="text"{{attrs}}>
+  <a href="#" class="list-edit-remove-item" role="button" title="{% trans 'Remove this entry' %}">
+   <img src="{% static "admin/img/icon_deletelink.gif" %}">
+  </a>
+ </li>
+{% endif %}
+ <li>
+  <a href="#" class="list-edit-add-item" role="button">
+   <img src="{%  static "admin/img/icon_addlink.gif" %}">
+  </a>
+  </li>
+ </ul>
+ <input name="{{name}}" id="{{id}}" value="{{value}}" type="hidden">
+</div>
+<script>
+(function($) {
+    $(document).ready(function() {
+        var view = new Djblets.Forms.ListEditView({
+                el: $('#{{id|escapejs}}_container'),
+                inputAttrs: '{{attrs|escapejs}}',
+                deleteImgUrl: '{% static "admin/img/icon_deletelink.gif" %}',
+                sep: '{{sep|escapejs}}'
+            });
+
+        view.render();
+    });
+})($ || window.jQuery || django.jQuery);
+</script>

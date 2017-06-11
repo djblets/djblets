@@ -222,6 +222,7 @@ Markdown Utilities and Extensions
    :toctree: python
 
    djblets.markdown
+   djblets.markdown.extensions.escape_html
    djblets.markdown.extensions.wysiwyg
    djblets.markdown.extensions.wysiwyg_email
 

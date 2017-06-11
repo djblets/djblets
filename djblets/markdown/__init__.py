@@ -12,15 +12,21 @@ from markdown import Markdown, markdownFromFile
 default_app_config = 'djblets.markdown.apps.MarkdownAppConfig'
 
 
-MARKDOWN_SPECIAL_CHARS = re.escape(r''.join(Markdown.ESCAPED_CHARS))
+MARKDOWN_ALL_ESCAPED_CHARS = (
+    '\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '>', '#',
+    '+', '-', '.', '!',
+)
+
+MARKDOWN_SPECIAL_CHARS = re.escape(r''.join(MARKDOWN_ALL_ESCAPED_CHARS))
 MARKDOWN_SPECIAL_CHARS_RE = re.compile(r'([%s])' % MARKDOWN_SPECIAL_CHARS)
 
 # Markdown.ESCAPED_CHARS lists several characters to escape, but it's not
 # that simple. We only want to escape certain things if they'll actually affect
 # the Markdown rendering, because otherwise it's annoying to look at the
 # source.
-MARKDOWN_ESCAPED_CHARS = set(Markdown.ESCAPED_CHARS)
-MARKDOWN_ESCAPED_CHARS -= set(['.', '#', '-', '+', '_', '(', ')', '*', '>'])
+MARKDOWN_ESCAPED_CHARS = set(MARKDOWN_ALL_ESCAPED_CHARS) - {
+    '.', '#', '-', '+', '_', '(', ')', '*', '>'
+}
 
 ESCAPE_CHARS_RE = re.compile(r"""
     (
