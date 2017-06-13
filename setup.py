@@ -411,11 +411,6 @@ setup(
     include_package_data=True,
     zip_safe=False,
     test_suite='dummy',
-    data_files=[
-        ('contrib/internal', [
-            'contrib/internal/less-imports.js',
-        ]),
-    ],
     cmdclass={
         'develop': DevelopCommand,
         'egg_info': BuildEggInfoCommand,
