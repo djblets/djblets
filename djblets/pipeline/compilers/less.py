@@ -74,8 +74,7 @@ class LessCompiler(PipelineLessCompiler):
         # Now parse out a deep list of the imported files and check those.
         tempdir = mkdtemp()
         command = (
-            os.path.join(os.path.dirname(__file__), '..', '..', '..',
-                         'contrib', 'internal', 'less-imports.js'),
+            os.path.join(os.path.dirname(__file__), 'less-imports.js'),
             pipeline_settings.LESS_ARGUMENTS,
             infile
         )
