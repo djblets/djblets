@@ -78,6 +78,15 @@ Default: ``"DEBUG"``
 
 The minimum level to log. Possible values are ``"DEBUG"``, ``"INFO"``,
 ``"WARNING"``, ``"ERROR"`` and ``"CRITICAL"``.
+
+
+LOGGING_BLACKLIST
+-----------------
+
+Default: ``['django.db.backends']``
+
+A list of logger names to exclude from the logs. Each logger with the given
+name will be filtered out, along with any descendents of those loggers.
 """
 
 from __future__ import unicode_literals
@@ -163,6 +172,42 @@ class RequestLogFormatter(logging.Formatter):
             return ''
 
 
+class BlacklistFilter(logging.Filter):
+    """Blacklists the provided loggers (and their children) from logging."""
+
+    def __init__(self, names):
+        """Initialize the filter.
+
+        Args:
+            names (list of unicode):
+                A list of logger names. Each logger (and their children) will
+                be excluded from the logs.
+        """
+        self._filters = [
+            logging.Filter(name)
+            for name in names
+        ]
+
+    def filter(self, record):
+        """Return whether this record should be logged.
+
+        The record is only logged if it's not in the list of any of the
+        loggers on the blacklist, and if it doesn't have a parent logger
+        listed.
+
+        Args:
+            record (logging.LogRecord):
+                The record to filter.
+
+        Returns:
+            bool:
+            ``True`` if the record can be logged. ``False`` if it must be
+            ignored.
+        """
+        return all(not log_filter.filter(record)
+                   for log_filter in self._filters)
+
+
 def init_logging():
     """
     Sets up the main loggers, if they haven't already been set up.
@@ -186,6 +231,9 @@ def init_logging():
                                  DEFAULT_REQUEST_FORMAT)
     format_str = getattr(settings, 'LOGGING_LINE_FORMAT',
                          DEFAULT_LINE_FORMAT)
+    log_blacklist = getattr(settings, 'LOGGING_BLACKLIST', [
+        'django.db.backends',
+    ])
 
     log_path = os.path.join(log_directory, log_name + ".log")
 
@@ -225,6 +273,9 @@ def init_logging():
 
         logging.debug("Logging to %s with a minimum level of %s",
                       log_path, log_level_name)
+
+    for handler in root.handlers:
+        handler.addFilter(BlacklistFilter(log_blacklist))
 
     _logging_setup = True
 
