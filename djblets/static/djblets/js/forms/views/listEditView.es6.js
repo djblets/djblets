@@ -4,7 +4,8 @@
 const entryTemplate = _.template(dedent`
     <li class="list-edit-entry" data-list-index="<%- index %>">
      <input type="text"<%= inputAttrs %>>
-     <a href="#" class="list-edit-remove-item">
+     <a href="#" class="list-edit-remove-item" role="button"
+        title=<%- removeText %>">
        <img src="<%- deleteImgUrl %>">
      </a>
     </li>
@@ -37,6 +38,9 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
      *     deleteImgUrl (string):
      *         The URL for the delete icon image.
      *
+     *     removeText (string):
+     *         The localized text for removing an item.
+     *
      *     sep (string):
      *         The list separator. It will be used to join the list of values
      *         into a string.
@@ -44,6 +48,7 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
     initialize(options) {
         this._inputAttrs = options.inputAttrs;
         this._deleteImgUrl = options.deleteImgUrl;
+        this._removeText = options.removeText;
         this._sep = options.sep;
         this._values = [];
     },
@@ -96,6 +101,7 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
                 index: this._values.length,
                 deleteImgUrl: this._deleteImgUrl,
                 inputAttrs: this._inputAttrs,
+                removeText: this._removeText,
             }))
             .insertBefore(this._$addBtn);
 

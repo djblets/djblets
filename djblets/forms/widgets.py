@@ -664,6 +664,7 @@ class ListEditWidget(widgets.Widget):
                 'value': value,
                 'attrs': flatatt(attrs),
                 'id': id_,
+                'remove_text': _('Remove this item.'),
                 'sep': self._sep,
                 'value_list': value_list,
             }))
