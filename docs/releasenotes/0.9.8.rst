@@ -1,0 +1,32 @@
+.. default-intersphinx:: djblets0.9 django1.6
+
+
+===========================
+Djblets 0.9.8 Release Notes
+===========================
+
+**Release date**: June 19, 2017
+
+
+djblets.util
+============
+
+* Added a compatibility backport of
+  :py:class:`~django1.8:django.core.validators.URLValidator` from Django 1.8.
+
+  Django 1.8 introduced validation support for URLs containing inline
+  credentials, along with improved support for URL validation in general.
+  This backport allows these improvements to be used on Django 1.6/1.7.
+
+  The backported version can be accessed at
+  :py:class:`djblets.util.compat.django.core.validators.URLValidator`. When
+  running on Django 1.8 or newer, the actual upstream version will be used
+  instead of the backport, ensuring that applications are always using the
+  latest version when available.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

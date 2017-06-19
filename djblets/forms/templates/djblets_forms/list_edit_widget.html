@@ -5,7 +5,7 @@
 {%  for value in value_list %}
  <li class="list-edit-entry" data-list-index="{{forloop.counter0}}">
   <input value="{{value}}" type="text"{{attrs}}>
-  <a class="list-edit-remove-item" role="button" title="{% trans 'Remove this entry' %}">
+  <a href="#" class="list-edit-remove-item" role="button" title="{% trans 'Remove this entry' %}">
    <img src="{% static "admin/img/icon_deletelink.gif" %}">
   </a>
  </li>
@@ -19,9 +19,10 @@
  </li>
 {% endif %}
  <li>
-  <a href="#" class="list-edit-add-item" role="button">
+  <button class="btn list-edit-add-item" role="button">
    <img src="{%  static "admin/img/icon_addlink.gif" %}">
-  </a>
+   {% trans "Add item" %}
+  </button>
   </li>
  </ul>
  <input name="{{name}}" id="{{id}}" value="{{value}}" type="hidden">
@@ -33,6 +34,7 @@
                 el: $('#{{id|escapejs}}_container'),
                 inputAttrs: '{{attrs|escapejs}}',
                 deleteImgUrl: '{% static "admin/img/icon_deletelink.gif" %}',
+                removeText: '{{remove_text|escapejs}}',
                 sep: '{{sep|escapejs}}'
             });
 

@@ -4,7 +4,7 @@ coverage
 django_evolution>=0.7.6
 kgb
 nose
-Markdown>=2.6.8,<2.6.999
+Markdown>=2.4.0,<2.4.999
 mock
 MySQL-python
 Pygments>=2.1.3
