@@ -146,13 +146,13 @@ class BuildStaticFiles(Command):
         if self.get_bundle_file_matches(css_bundles, '*.less'):
             dependencies.update(lesscss_npm_dependencies)
 
-            pipeline_settings.LESS_BINARY = \
+            pipeline_settings.PIPELINE_LESS_BINARY = \
                 os.path.join(node_modules_dir, 'less', 'bin', 'lessc')
 
         if self.get_bundle_file_matches(js_bundles, '*.js'):
             dependencies.update(uglifyjs_npm_dependencies)
 
-            pipeline_settings.UGLIFYJS_BINARY = \
+            pipeline_settings.PIPELINE_UGLIFYJS_BINARY = \
                 os.path.join(node_modules_dir, 'uglifyjs', 'bin', 'uglifyjs')
 
         package_file = os.path.join(build_dir, 'package.json')
@@ -315,6 +315,17 @@ class BuildStaticFiles(Command):
             # This extension doesn't define any static files.
             return
 
+        # Due to how Pipeline copies and stores its settings, we actually
+        # have to copy over some of these, as they'll be from the original
+        # loaded settings.
+        #
+        # These settings may then be altered later in this process.
+        from pipeline.conf import settings as pipeline_settings
+
+        for key in six.iterkeys(pipeline_settings.__dict__):
+            if hasattr(settings, key):
+                setattr(pipeline_settings, key, getattr(settings, key))
+
         # Install any dependencies that might be needed by the bundles.
         self.install_pipeline_deps(extension, pipeline_css, pipeline_js)
 
@@ -346,15 +357,6 @@ class BuildStaticFiles(Command):
         settings.STATIC_ROOT = \
             os.path.join(self.build_lib,
                          os.path.relpath(os.path.join(module_dir, 'static')))
-
-        # Due to how Pipeline copies and stores its settings, we actually
-        # have to copy over some of these, as they'll be from the original
-        # loaded settings.
-        from pipeline.conf import settings as pipeline_settings
-
-        for key in six.iterkeys(pipeline_settings.__dict__):
-            if hasattr(settings, key):
-                setattr(pipeline_settings, key, getattr(settings, key))
 
         # Collect and process all static media files.
         call_command('collectstatic', interactive=False, verbosity=2)
