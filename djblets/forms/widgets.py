@@ -650,12 +650,10 @@ class ListEditWidget(widgets.Widget):
         else:
             attrs['class'] = 'list-edit-item'
 
-        if value:
-            value_list = list(
-                filter(len, (item.strip() for item in value.split(self._sep)))
-            )
-        else:
-            value_list = []
+        value = value or ''
+        value_list = list(
+            filter(len, (item.strip() for item in value.split(self._sep)))
+        )
 
         return render_to_string(
             self.template_name,

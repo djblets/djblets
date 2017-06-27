@@ -126,7 +126,7 @@ class AvatarService(object):
 
                 The URLs **must** be safe, or rendering errors will occur.
                 Explicitly sanitize them and use
-                :py:math:`django.utils.html.mark_safe`.
+                :py:meth:`django.utils.html.mark_safe`.
         """
         if not hasattr(request, '_avatar_cache'):
             request._avatar_cache = {}

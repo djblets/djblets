@@ -235,16 +235,23 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
             supported_fields = required.copy()
             supported_fields.update(optional)
 
+            all_fields = _validate.required_fields.copy()
+            all_fields.update(_validate.optional_fields)
+
             for field_name, value in six.iteritems(request_fields):
                 if field_name in SPECIAL_PARAMS:
                     # These are special names and can be ignored.
                     continue
 
-                if field_name not in supported_fields:
+                if field_name not in all_fields:
                     if allow_unknown:
                         extra_fields[field_name] = value
-                    else:
-                        invalid_fields[field_name] = ['Field is not supported']
+                    elif field_name not in kwargs:
+                        # If the field is present in kwargs, it was already
+                        # processed (and therefore validated) by a
+                        # containing decorator.
+                        invalid_fields[field_name] = \
+                            ['Field is not supported']
 
             for field_name, info in six.iteritems(required):
                 temp_fields = request_fields
@@ -260,31 +267,32 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
             parsed_request_fields = {}
 
             for field_name, info in six.iteritems(supported_fields):
-                if isinstance(info['type'], file):
+                field_type = info['type']
+
+                if isinstance(field_type, file):
                     continue
 
                 value = request_fields.get(field_name, None)
 
                 if value is not None:
-                    if type(info['type']) in (list, tuple):
+                    if type(field_type) in (list, tuple):
                         # This is a multiple-choice. Make sure the value is
                         # valid.
-                        choices = info['type']
-
-                        if value not in choices:
+                        if value not in field_type:
                             invalid_fields[field_name] = [
                                 '"%s" is not a valid value. Valid values '
                                 'are: %s' % (
                                     value,
                                     ', '.join(['"%s"' % choice
-                                               for choice in choices])
+                                               for choice in field_type])
                                 )
                             ]
                     else:
                         try:
-                            if issubclass(info['type'], bool):
-                                value = value in (1, "1", True, "True", "true")
-                            elif issubclass(info['type'], int):
+                            if issubclass(field_type, bool):
+                                value = \
+                                    value in (1, '1', True, 'True', 'true')
+                            elif issubclass(field_type, int):
                                 try:
                                     value = int(value)
                                 except ValueError:
@@ -294,8 +302,9 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
                         except TypeError:
                             # The field isn't a class type. This is a
                             # coding error on the developer's side.
-                            raise TypeError('"%s" is not a valid field type' %
-                                            info['type'])
+                            raise TypeError(
+                                '%r is not a valid field type'
+                                % field_type)
 
                     parsed_request_fields[field_name] = value
 
