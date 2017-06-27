@@ -16,7 +16,7 @@ class URLAvatarService(AvatarService):
     Automation users can be configured to use this service with the following
     code:
 
-    .. code-block::
+    .. code-block:: python
 
        from djblets.avatars.services import URLAvatarService
 
@@ -33,7 +33,7 @@ class URLAvatarService(AvatarService):
            })
     """
 
-    avatar_service_id = 'integration'
+    avatar_service_id = 'url'
     name = _('URL Avatar Service')
     hidden = True
 
