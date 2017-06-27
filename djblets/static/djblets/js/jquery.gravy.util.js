@@ -165,47 +165,148 @@ $.fn.getExtents = function(types, sides) {
 };
 
 
-/*
+/**
  * Positions an element to the side of another element.
  *
  * This can take a number of options to customize how the element is
  * positioned.
  *
- * The 'side' option is a string of sides ('t', 'b', 'l', 'r') that
- * incidate the element should be positioned to the top, bottom, left,
- * or right of the other element.
+ * Args:
+ *     $el (jQuery):
+ *         The jQuery-wrapped element to position beside.
  *
- * If multiple sides are provided, then this will loop through them in
- * order, trying to find the best top and the best left that fit on the
- * screen.
+ *     options (object):
+ *         Options to control the positioning.
  *
- * If the 'distance' option is set, the element will be that many pixels
- * away from the side of the other element. Alternatively, the
- * 'xDistance' and 'yDistance' options can be set to customize that distance
- * only when positioned to the left/right of the element (for xDistance) or
- * above/below (yDistance).
+ * Option Args:
+ *     side (string):
+ *         A string of side codes in the order of priority. Each will be
+ *         checked to determine if the element can be positioned to that
+ *         side. If multiple sides are provided, then this will loop through
+ *         them in order, trying to find the best top and the best left that
+ *         fit on the screen.
  *
- * The 'xOffset' and 'yOffset' options will offset the element on that
- * axis, but only when it's not positioned relative to the other element
- * along that axis. So, if positioned to the left of the element, 'xOffset'
- * will not take affect, but 'yOffset' would. This helps with better
- * aligning horizontally/vertically with content.
+ *         The following codes are generally used to position this element
+ *         outside of ``el``:
  *
- * The 'fitOnScreen' option, if set to true, will ensure that the element
- * is not scrolled off the screen on any side. It will update the final
- * position of the element to be fully shown on-screen (provided the element
- * can fit on the screen).
+ *         ``t``:
+ *             Position the bottom of this element relative to the top of
+ *             ``el``.
+ *
+ *         ``b``:
+ *             Position the top of this element relative to the bottom of
+ *             ``el``.
+ *
+ *         ``l``:
+ *             Position the right of this element relative to the left of
+ *             ``el``.
+ *
+ *         ``r``:
+ *             Position the left of this element relative to the right of
+ *             ``el``.
+ *
+ *         The following codes are generally used to position this element
+ *         inside of ``el``:
+ *
+ *         ``T``:
+ *             Position the top of this element relative to the top of ``el``.
+ *
+ *         ``B``:
+ *             Position the bottom of this element relative to the bottom of
+ *             ``el``.
+ *
+ *         ``L``:
+ *             Position the left of this element relative to the left of
+ *             ``el``.
+ *
+ *         ``R``:
+ *             Position the right of this element relative to the right of
+ *             ``el``.
+ *
+ *         This defaults to ``b``.
+ *
+ *     distance (number):
+ *         The distance to add relative to ``$el``'s calculated anchoring
+ *         point, based on the side chosen. This will be used as the default
+ *         value for all other distance options, unless more specific distances
+ *         are provided.
+ *
+ *         This defaults to 0.
+ *
+ *     xDistance (number):
+ *         The distance to use for X-based sides (``l``, ``L``, ``r``, ``R``),
+ *         unless overridden by a more specific distance option. Defaults to
+ *         the value of ``distance``.
+ *
+ *     yDistance (number):
+ *         The distance to use for Y-based sides (``t``, ``T``, ``b``, ``B``),
+ *         unless overridden by a more specific distance options. Defaults to
+ *         the value of ``distance``.
+ *
+ *     tDistance (number):
+ *         The distance to use for the ``t`` side. Defaults to the value of
+ *         ``yDistance``.
+ *
+ *     TDistance (number):
+ *         The distance to use for the ``T`` side. Defaults to the value of
+ *         ``yDistance``.
+ *
+ *     bDistance (number):
+ *         The distance to use for the ``b`` side. Defaults to the value of
+ *         ``yDistance``.
+ *
+ *     BDistance (number):
+ *         The distance to use for the ``B`` side. Defaults to the value of
+ *         ``yDistance``.
+ *
+ *     lDistance (number):
+ *         The distance to use for the ``l`` side. Defaults to the value of
+ *         ``xDistance``.
+ *
+ *     lDistance (number):
+ *         The distance to use for the ``L`` side. Defaults to the value of
+ *         ``xDistance``.
+ *
+ *     rDistance (number):
+ *         The distance to use for the ``r`` side. Defaults to the value of
+ *         ``xDistance``.
+ *
+ *     RDistance (number):
+ *         The distance to use for the ``R`` side. Defaults to the value of
+ *         ``xDistance``.
+ *
+ *     xOffset (number):
+ *         A X offset to apply to the element when matching only a
+ *         vertical side (``t``, ``T``, ``b``, or ``B``). This will add to
+ *         or subtract from the left offset of ``$el``.
+ *
+ *         This defaults to 0.
+ *
+ *     yOffset (number):
+ *         A Y offset to apply to the element when matching only a
+ *         vertical side (``l``, ``L``, ``r``, or ``R``). This will add to
+ *         or subtract from the top offset of ``$el``.
+ *
+ *         This defaults to 0.
+ *
+ *     fitOnScreen (boolean):
+ *         If set, the element's position will be adjusted so that it is
+ *         fully viewable on screen. By default, this is not set.
+ *
+ * Returns:
+ *     jQuery:
+ *     The matching elements used for this function.
  */
-$.fn.positionToSide = function(el, options) {
-    var offset = $(el).offset(),
-        thisWidth = this.outerWidth(),
-        thisHeight = this.outerHeight(),
-        elWidth = el.width(),
-        elHeight = el.height(),
-        scrollLeft = $(document).scrollLeft(),
-        scrollTop = $(document).scrollTop(),
-        scrollWidth = $(window).width(),
-        scrollHeight = $(window).height();
+$.fn.positionToSide = function($el, options) {
+    var offset = $el.offset(),
+        elWidth = $el.width(),
+        elHeight = $el.height(),
+        $document = $(document),
+        $window = $(window),
+        scrollLeft = $document.scrollLeft(),
+        scrollTop = $document.scrollTop(),
+        scrollWidth = $window.width(),
+        scrollHeight = $window.height();
 
     options = $.extend({
         side: 'b',
@@ -217,7 +318,10 @@ $.fn.positionToSide = function(el, options) {
     }, options);
 
     return $(this).each(function() {
-        var bestLeft = null,
+        var $this = $(this),
+            thisWidth = $this.outerWidth(),
+            thisHeight = $this.outerHeight(),
+            bestLeft = null,
             bestTop = null,
             side,
             left,
@@ -229,14 +333,46 @@ $.fn.positionToSide = function(el, options) {
             left = null;
             top = null;
 
-            if (side === "t") {
-                top = offset.top - thisHeight - options.yDistance;
-            } else if (side === "b") {
-                top = offset.top + elHeight + options.yDistance;
-            } else if (side === "l") {
-                left = offset.left - thisWidth - options.xDistance;
-            } else if (side === "r") {
-                left = offset.left + elWidth + options.xDistance;
+            if (side === 't') {
+                top = offset.top - thisHeight -
+                      (options.tDistance !== undefined
+                       ? options.tDistance
+                       : options.yDistance);
+            } else if (side === 'T') {
+                top = offset.top +
+                      (options.TDistance !== undefined
+                       ? options.TDistance
+                       : options.yDistance);
+            } else if (side === 'b') {
+                top = offset.top + elHeight +
+                      (options.bDistance !== undefined
+                       ? options.bDistance
+                       : options.yDistance);
+            } else if (side === 'B') {
+                top = offset.top + elHeight - thisHeight -
+                      (options.BDistance !== undefined
+                       ? options.BDistance
+                       : options.yDistance);
+            } else if (side === 'l') {
+                left = offset.left - thisWidth -
+                       (options.lDistance !== undefined
+                        ? options.lDistance
+                        : options.xDistance);
+            } else if (side === 'L') {
+                left = offset.left +
+                       (options.LDistance !== undefined
+                        ? options.LDistance
+                        : options.xDistance);
+            } else if (side === 'r') {
+                left = offset.left + elWidth +
+                       (options.rDistance !== undefined
+                        ? options.rDistance
+                        : options.xDistance);
+            } else if (side === 'R') {
+                left = offset.left + elWidth - thisWidth -
+                       (options.RDistance !== undefined
+                        ? options.RDistance
+                        : options.xDistance);
             } else {
                 continue;
             }
