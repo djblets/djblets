@@ -231,6 +231,14 @@ def attr(context, nodelist, attrname):
     This is a handy way of adding attributes with non-empty values to an
     HTML element without requiring several `{% if %}` tags.
 
+    The contents will be stripped before being considered or rendered.
+    Whitespace should not be expected to be preserved.
+
+    .. versionchanged:: 0.10
+
+       Prior to this release, whitespace before/after the attribute value
+       was preserved.
+
     Args:
         attrname (unicode):
             The name for the HTML attribute.
@@ -247,10 +255,10 @@ def attr(context, nodelist, attrname):
 
            <div{% attr "data-description" %}{{obj.description}}{% endattr %}>
     """
-    content = nodelist.render(context)
+    content = nodelist.render(context).strip()
 
-    if content.strip() == "":
-        return ""
+    if not content:
+        return ''
 
     return ' %s="%s"' % (attrname, content)
 
