@@ -179,19 +179,34 @@ def blocktag(*args, **kwargs):
     also ensure that a proper error is raised if too many or too few
     parameters are passed.
 
-    For example:
+    Args:
+        end_prefix (unicode, optional):
+            The prefix for the end tag. This defaults to ``'end'``, but
+            template tags using underscores in the name might want to change
+            this to ``'end_'``.
 
-    .. code-block:: python
+        resolve_vars (bool, optional):
+            Whether to automatically resolve all variables provided to the
+            template tag. By default, variables are resolved. Template tags
+            can turn this off if they want to handle variable parsing
+            manually.
 
-        @register.tag
-        @blocktag
-        def divify(context, nodelist, div_id=None):
-            s = "<div"
+    Returns:
+        callable:
+        The resulting template tag function.
 
-            if div_id:
-                s += " id='%s'" % div_id
+    Example:
+        .. code-block:: python
 
-            return s + ">" + nodelist.render(context) + "</div>"
+            @register.tag
+            @blocktag
+            def divify(context, nodelist, div_id=None):
+                s = "<div"
+
+                if div_id:
+                    s += " id='%s'" % div_id
+
+                return s + ">" + nodelist.render(context) + "</div>"
     """
     class BlockTagNode(template.Node):
         def __init__(self, tag_name, tag_func, nodelist, args):
@@ -201,7 +216,11 @@ def blocktag(*args, **kwargs):
             self.args = args
 
         def render(self, context):
-            args = [Variable(var).resolve(context) for var in self.args]
+            if kwargs.get('resolve_vars', True):
+                args = [Variable(var).resolve(context) for var in self.args]
+            else:
+                args = self.args
+
             return self.tag_func(context, self.nodelist, *args)
 
     def _blocktag_func(tag_func):

@@ -28,9 +28,60 @@ class JSTagTests(TestCase):
 class UtilsTagTests(TestCase):
     """Tests for djblets_utils template tags."""
 
+    def test_attr_with_value(self):
+        """Testing attr template tag with value"""
+        t = Template('{% load djblets_utils %}'
+                     '<span{% attr "class" %}\n'
+                     '{%  if some_bool %}truthy{% endif %}\n'
+                     '{% endattr %}>')
+
+        self.assertEqual(
+            t.render(Context({
+                'some_bool': True,
+            })),
+            '<span class="truthy">')
+
+    def test_attr_without_value(self):
+        """Testing attr template tag with no value"""
+        t = Template('{% load djblets_utils %}'
+                     '<span{% attr "class" %}\n'
+                     '{%  if some_bool %}falsy{% endif %}\n'
+                     '{% endattr %}>')
+
+        self.assertEqual(
+            t.render(Context({
+                'some_bool': False,
+            })),
+            '<span>')
+
+    def test_definevar(self):
+        """Testing definevar template tag"""
+        t = Template('{% load djblets_utils %}'
+                     '{% definevar "myvar" %}test{{num}}{% enddefinevar %}'
+                     '{{myvar}}')
+
+        self.assertEqual(
+            t.render(Context({
+                'num': 123,
+            })),
+            'test123')
+
+    def test_definevar_with_stripped(self):
+        """Testing definevar template tag with stripped argument"""
+        t = Template('{% load djblets_utils %}'
+                     '{% definevar "myvar" stripped %}\n'
+                     '    test{{num}}\n'
+                     '{% enddefinevar %}'
+                     '[{{myvar}}]')
+
+        self.assertEqual(
+            t.render(Context({
+                'num': 123,
+            })),
+            '[test123]')
+
     def test_include_as_string_tag(self):
         """Testing include_as_string template tag"""
-
         t = Template('{% load djblets_utils %}'
                      '{% include_as_string template_name %}')
 
