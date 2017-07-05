@@ -29,7 +29,7 @@ import datetime
 import os
 
 from django import template
-from django.template import TemplateSyntaxError
+from django.template import TemplateSyntaxError, Variable
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
 from django.utils.html import escape
@@ -47,17 +47,27 @@ register = template.Library()
 
 
 @register.tag
-@blocktag
-def definevar(context, nodelist, varname):
+@blocktag(resolve_vars=False)
+def definevar(context, nodelist, varname, stripped=None):
     """Define a variable for later use in the template.
 
     The variable defined can be used within the same context (such as the
     same block or for loop). This is useful for caching a portion of a
     template that would otherwise be expensive to repeatedly compute.
 
+    Callers can also pass an additional ``stripped`` argument after the
+    variable name to cause the contents to be stripped before being stored.
+
+    .. versionadded: 0.10
+
+       Added the ``stripped`` argument.
+
     Args:
         varname (unicode):
             The variable name.
+
+        stripped (unicode, optional):
+            If ``stripped`` is passed, the contents will be stripped.
 
         block_content (unicode):
             The block content to set in the variable.
@@ -65,13 +75,23 @@ def definevar(context, nodelist, varname):
     Example:
         .. code-block:: html+django
 
-           {% definevar "myvar" %}{% expensive_tag %}{% enddefinevar %}
+           {% definevar "myvar1" %}{% expensive_tag %}{% enddefinevar %}
+           {% definevar "myvar2" stripped %}
+           {%  expensive_tag %}
+           {% enddefinevar %}
 
-           {{myvar}}
-           {{myvar}}
+           {{myvar1}}
+           {{myvar2}}
     """
-    context[varname] = nodelist.render(context)
-    return ""
+    varname = Variable(varname).resolve(context)
+    result = nodelist.render(context)
+
+    if stripped == 'stripped':
+        result = result.strip()
+
+    context[varname] = result
+
+    return ''
 
 
 @register.tag
