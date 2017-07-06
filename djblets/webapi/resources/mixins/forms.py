@@ -33,9 +33,18 @@ class UpdateFormMixin(object):
     will be copied over from the instance.
     """
 
-    #: The form class. This should be a subclass of
-    # :py:class:`django.forms.ModelForm`.
+    #: The form class for updating models.
+    #:  This should be a subclass of :py:class:`django.forms.ModelForm`.
     form_class = None
+
+    @property
+    def add_form_class(self):
+        """The form class for creating new models.
+
+        This should be a subclass of :py:class:`django.forms.ModelForm`. It
+        defaults to :py:attr:`form_class`.
+        """
+        return self.form_class
 
     def create_form(self, data, request, instance=None, **kwargs):
         """Create a new form and pre-fill it with data.
@@ -63,17 +72,19 @@ class UpdateFormMixin(object):
         assert self.form_class, ('%s must define a form_class attribute.'
                                  % self.__class__.__name__)
 
-        form = self.form_class(data=self._parse_form_data(data, request,
-                                                          **kwargs),
-                               instance=instance)
+        form_data = self._parse_form_data(data, request, **kwargs)
 
         if instance:
+            form = self.form_class(data=form_data, instance=instance)
+
             missing_fields = [
                 field_name for field_name in form.fields
                 if field_name not in data
             ]
 
             form.data.update(model_to_dict(instance, missing_fields))
+        else:
+            form = self.add_form_class(data=form_data)
 
         return form
 
