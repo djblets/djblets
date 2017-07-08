@@ -3,20 +3,23 @@
 from __future__ import unicode_literals
 
 
-def filter_fieldsets(admin, form, exclude=None, exclude_collapsed=True):
+def filter_fieldsets(form, admin=None, fieldsets=None, exclude=None,
+                     exclude_collapsed=True):
     """Filter fieldsets.
 
-    Django :py:class:`~django.contrib.admin.ModelAdmin` classes can define a
-    set of fieldsets, but not in a way that is generically useful on their own
-    outside of the admin site. This function yields field set information in a
-    more usable fashion.
+    This method allows us to filter fieldsets from a ModelAdmin to exclude
+    fields (or an entire fieldset).
 
     Args:
-        admin (django.contrib.admin.ModelAdmin):
-            The model admin to retrieve fieldsets from.
+        form (type or django.forms.Form):
+            The form (or form class) to retrieve fieldsets for.
 
-        form (django.forms.Form):
-            The form to retrieve fieldsets for.
+        admin (django.contrib.admin.ModelAdmin, optional):
+            The model admin to retrieve fieldsets from. If this argument is not
+            provided, ``fieldsets`` will be used instead.
+
+        fieldsets (tuple, optional):
+            The fieldsets to use.
 
         exclude (list of unicode, optional):
             An optional list of fields to exclude.
@@ -30,12 +33,22 @@ def filter_fieldsets(admin, form, exclude=None, exclude_collapsed=True):
 
         If a field set would have no rendered fields, it is not yielded.
     """
+    if admin is None and fieldsets is None:
+        raise ValueError(
+            'filter_fieldsets: either admin or fieldsets must be provided.'
+        )
+
     if exclude is None:
         exclude = []
 
     exclude.extend(list(form._meta.exclude or []))
 
-    for name, data in admin.fieldsets:
+    if fieldsets is None:
+        assert hasattr(admin, 'fieldsets'), 'admin.fieldsets is undefined.'
+        assert iter(admin.fieldsets), 'admin.fieldsets should be iterable.'
+        fieldsets = admin.fieldsets
+
+    for name, data in fieldsets:
         fieldset = data.copy()
 
         if exclude_collapsed and 'collapse' in data.get('classes', ()):

@@ -54,23 +54,66 @@ class UtilsTagTests(TestCase):
             })),
             '<span>')
 
+    def test_attr_escapes_value(self):
+        """Testing attr template tag escapes value"""
+        t = Template('{% load djblets_utils %}'
+                     '<span{% attr "data-foo" %}<hello>{% endattr %}>')
+
+        self.assertEqual(
+            t.render(Context()),
+            '<span data-foo="&lt;hello&gt;">')
+
+    def test_attr_condenses_whitespace(self):
+        """Testing attr template tag condenses/strips extra whitespace by
+        default
+        """
+        t = Template('{% load djblets_utils %}'
+                     '<span{% attr "data-foo" %}\n'
+                     'some    \n\n'
+                     'value\n'
+                     '{% endattr %}>')
+
+        self.assertEqual(
+            t.render(Context()),
+            '<span data-foo="some value">')
+
+    def test_attr_with_nocondense_preserves_whitespace(self):
+        """Testing attr template tag with "nocondense" option preserves
+        whitespace
+        """
+        t = Template('{% load djblets_utils %}'
+                     '<span{% attr "data-foo" nocondense %}\n'
+                     'some    \n\n'
+                     'value\n'
+                     '{% endattr %}>')
+
+        self.assertEqual(
+            t.render(Context()),
+            '<span data-foo="\nsome    \n\nvalue\n">')
+
     def test_definevar(self):
         """Testing definevar template tag"""
         t = Template('{% load djblets_utils %}'
-                     '{% definevar "myvar" %}test{{num}}{% enddefinevar %}'
+                     '{% definevar "myvar" %}\n'
+                     'test{{num}}\n'
+                     '{% enddefinevar %}'
                      '{{myvar}}')
 
         self.assertEqual(
             t.render(Context({
                 'num': 123,
             })),
-            'test123')
+            '\ntest123\n')
 
-    def test_definevar_with_stripped(self):
-        """Testing definevar template tag with stripped argument"""
+    def test_definevar_with_strip(self):
+        """Testing definevar template tag with strip option"""
         t = Template('{% load djblets_utils %}'
-                     '{% definevar "myvar" stripped %}\n'
-                     '    test{{num}}\n'
+                     '{% definevar "myvar" strip %}\n'
+                     '<span>\n'
+                     ' <strong>\n'
+                     '  test{{num}}\n'
+                     ' </strong>\n'
+                     '</span>\n'
                      '{% enddefinevar %}'
                      '[{{myvar}}]')
 
@@ -78,7 +121,33 @@ class UtilsTagTests(TestCase):
             t.render(Context({
                 'num': 123,
             })),
-            '[test123]')
+            '[<span>\n <strong>\n  test123\n </strong>\n</span>]')
+
+    def test_definevar_with_spaceless(self):
+        """Testing definevar template tag with spaceless option"""
+        t = Template('{% load djblets_utils %}'
+                     '{% definevar "myvar" spaceless %}\n'
+                     '<span>\n'
+                     ' <strong>\n'
+                     '  test{{num}}\n'
+                     ' </strong>\n'
+                     '</span>\n'
+                     '{% enddefinevar %}'
+                     '[{{myvar}}]')
+
+        self.assertEqual(
+            t.render(Context({
+                'num': 123,
+            })),
+            '[<span><strong>\n  test123\n </strong></span>]')
+
+    def test_definevar_with_unsafe(self):
+        """Testing definevar template tag with unsafe option"""
+        t = Template('{% load djblets_utils %}'
+                     '{% definevar "myvar" unsafe %}<hello>{% enddefinevar %}'
+                     '{{myvar}}')
+
+        self.assertEqual(t.render(Context()), '&lt;hello&gt;')
 
     def test_include_as_string_tag(self):
         """Testing include_as_string template tag"""
