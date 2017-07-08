@@ -27,12 +27,14 @@ from __future__ import unicode_literals
 
 import datetime
 import os
+import re
 
 from django import template
 from django.template import TemplateSyntaxError, Variable
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
-from django.utils.html import escape
+from django.utils import six
+from django.utils.html import escape, format_html, strip_spaces_between_tags
 from django.utils.safestring import mark_safe
 from django.utils.six.moves.urllib.parse import urlencode
 from django.utils.timezone import is_aware
@@ -46,28 +48,39 @@ from djblets.util.humanize import humanize_list
 register = template.Library()
 
 
+WS_RE = re.compile('\s+')
+
+
 @register.tag
 @blocktag(resolve_vars=False)
-def definevar(context, nodelist, varname, stripped=None):
+def definevar(context, nodelist, varname, *options):
     """Define a variable for later use in the template.
 
     The variable defined can be used within the same context (such as the
     same block or for loop). This is useful for caching a portion of a
     template that would otherwise be expensive to repeatedly compute.
 
-    Callers can also pass an additional ``stripped`` argument after the
-    variable name to cause the contents to be stripped before being stored.
+    .. versionadded:: 0.10
 
-    .. versionadded: 0.10
-
-       Added the ``stripped`` argument.
+       Added new ``strip``, ``spaceless``, and ``unsafe`` options.
 
     Args:
         varname (unicode):
             The variable name.
 
-        stripped (unicode, optional):
-            If ``stripped`` is passed, the contents will be stripped.
+        *options (list of unicode, optional):
+            A list of options passed. This supports the following:
+
+            ``strip``:
+                Strip whitespace at the beginning/end of the value.
+
+            ``spaceless``:
+                Strip whitespace at the beginning/end and remove all spaces
+                between tags. This implies ``strip``.
+
+            ``unsafe``:
+                Mark the text as unsafe. The contents will be HTML-escaped when
+                inserted into the page.
 
         block_content (unicode):
             The block content to set in the variable.
@@ -75,9 +88,14 @@ def definevar(context, nodelist, varname, stripped=None):
     Example:
         .. code-block:: html+django
 
-           {% definevar "myvar1" %}{% expensive_tag %}{% enddefinevar %}
-           {% definevar "myvar2" stripped %}
+           {% definevar "myvar1" %}
            {%  expensive_tag %}
+           {% enddefinevar %}
+
+           {% definevar "myvar2" spaceless %}
+           <div>
+            <a href="#">Click me!</a>
+           </div>
            {% enddefinevar %}
 
            {{myvar1}}
@@ -86,8 +104,16 @@ def definevar(context, nodelist, varname, stripped=None):
     varname = Variable(varname).resolve(context)
     result = nodelist.render(context)
 
-    if stripped == 'stripped':
+    if 'spaceless' in options:
+        result = strip_spaces_between_tags(result.strip())
+    elif 'strip' in options:
         result = result.strip()
+
+    if 'unsafe' in options:
+        # Unicode strings are inherently "unsafe".
+        result = six.text_type(result)
+    else:
+        result = mark_safe(result)
 
     context[varname] = result
 
@@ -224,24 +250,35 @@ def include_as_string(context, template_name):
 
 
 @register.tag
-@blocktag
-def attr(context, nodelist, attrname):
+@blocktag(resolve_vars=False)
+def attr(context, nodelist, attrname, *options):
     """Set an HTML attribute to a value if the value is not an empty string.
 
     This is a handy way of adding attributes with non-empty values to an
     HTML element without requiring several `{% if %}` tags.
 
-    The contents will be stripped before being considered or rendered.
-    Whitespace should not be expected to be preserved.
+    The contents will be stripped and all whitespace within condensed before
+    being considered or rendered. This can be turned off (restoring pre-0.10
+    behavior) by passing ``nocondense`` as an option.
 
     .. versionchanged:: 0.10
 
-       Prior to this release, whitespace before/after the attribute value
-       was preserved.
+       Prior to this release, all whitespace before/after/within the
+       attribute value was preserved. Now ``nocondense`` is required for this
+       behavior.
+
+       The value is now escaped as well. Previously the value was assumed to
+       be safe, requiring the consumer to escape the contents.
 
     Args:
         attrname (unicode):
             The name for the HTML attribute.
+
+        *options (list unicode, optional):
+            A list of options passed. This supports the following:
+
+            ``nocondense``:
+                Preserves all whitespace in the value.
 
         block_content (unicode):
             The block content to render for the attribute value.
@@ -253,14 +290,21 @@ def attr(context, nodelist, attrname):
     Example:
         .. code-block:: html+django
 
-           <div{% attr "data-description" %}{{obj.description}}{% endattr %}>
+           <div{% attr "class" %}{{obj.name}}{% endattr %}>
+           <div{% attr "data-description" nocondense %}
+           Space-sensitive     whitspace.
+           {% endattr %}>
     """
-    content = nodelist.render(context).strip()
+    attrname = Variable(attrname).resolve(context)
+    content = nodelist.render(context)
+
+    if 'nocondense' not in options:
+        content = WS_RE.sub(' ', content.strip())
 
     if not content:
         return ''
 
-    return ' %s="%s"' % (attrname, content)
+    return format_html(' {0}="{1}"', attrname, six.text_type(content))
 
 
 @register.filter

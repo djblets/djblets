@@ -229,12 +229,12 @@ def blocktag(*args, **kwargs):
             tag_name = bits[0]
             del(bits[0])
 
-            params, xx, xxx, defaults = getargspec(tag_func)
+            params, varargs, xxx, defaults = getargspec(tag_func)
             max_args = len(params) - 2  # Ignore context and nodelist
             min_args = max_args - len(defaults or [])
 
-            if not min_args <= len(bits) <= max_args:
-                if min_args == max_args:
+            if len(bits) < min_args or (not varargs and len(bits) > max_args):
+                if not varargs and min_args == max_args:
                     raise TemplateSyntaxError(
                         "%r tag takes %d arguments." % (tag_name, min_args))
                 else:
