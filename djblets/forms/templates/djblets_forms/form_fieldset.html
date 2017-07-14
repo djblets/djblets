@@ -1,0 +1,13 @@
+{% load djblets_utils %}
+
+<fieldset class="{{extra_fieldset_classes}}{% if fieldset.classes %}{% for class in fieldset.classes %} {{class}}{% endfor %}{% endif %}"{% if fieldset.id %} id="fieldset_{{fieldset.id}}"{% endif %}>
+{% if fieldset_title %}<h2>{{fieldset_title}}</h2>{% endif %}
+{% if fieldset.description %}
+ <div class="description">{{fieldset.description|paragraphs}}</div>
+{% endif %}
+{% for fieldname in fieldset.fields %}
+{%  with form|getitem:fieldname as field %}
+{%   include field_template %}
+{%  endwith %}
+{% endfor %}
+</fieldset>

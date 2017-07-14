@@ -2,10 +2,15 @@
 
 from __future__ import unicode_literals
 
+import logging
+
 from django.http import Http404, HttpResponseBadRequest, HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic.base import TemplateView
+
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigPagesView(TemplateView):
@@ -95,6 +100,8 @@ class ConfigPagesView(TemplateView):
         form_id = request.POST.get('form_target')
 
         if form_id is None:
+            logger.error('Submitted form content had no form_target.',
+                         request=request)
             return HttpResponseBadRequest()
 
         if form_id not in self.forms:
