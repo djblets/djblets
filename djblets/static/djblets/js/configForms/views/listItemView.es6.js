@@ -49,10 +49,27 @@ Djblets.Config.ListItemView = Backbone.View.extend({
     render() {
         this.$el
             .empty()
-            .append(this.template(this.model.attributes));
+            .append(this.template(_.defaults(
+                this.model.attributes,
+                this.getRenderContext()
+            )));
         this.addActions(this.getActionsParent());
 
         return this;
+    },
+
+    /**
+     * Return additional render context.
+     *
+     * By default this returns an empty object. Subclasses can use this to
+     * provide additional values to :js:attr:`template` when it is rendered.
+     *
+     * Returns:
+     *     object:
+     *     Additional rendering context for the template.
+     */
+    getRenderContext() {
+        return {};
     },
 
     /**
