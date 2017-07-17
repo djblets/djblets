@@ -1,4 +1,4 @@
-/*
+/**
  * Manages a collection of configuration pages.
  *
  * The primary job of this view is to handle sub-page navigation.
@@ -6,12 +6,12 @@
  * depending on what the user has clicked on the sidebar.
  */
 Djblets.Config.PagesView = Backbone.View.extend({
-    /*
-     * Initializes the view.
+    /**
+     * Initialize the view.
      *
      * This will set up the router for handling page navigation.
      */
-    initialize: function() {
+    initialize() {
         this.router = new Backbone.Router({
             routes: {
                 ':pageID': 'page'
@@ -24,13 +24,17 @@ Djblets.Config.PagesView = Backbone.View.extend({
         this._preserveMessages = true;
     },
 
-    /*
-     * Renders the view.
+    /**
+     * Render the view.
      *
      * This will set the default page to be shown, and instruct Backbone
      * to begin handling the routing.
+     *
+     * Returns:
+     *     Djblets.Config.PageView:
+     *     This view.
      */
-    render: function() {
+    render() {
         this._$pageNavs = this.$('.config-forms-side-nav li');
         this._$pages = this.$('.config-forms-page-content > .page');
 
@@ -44,8 +48,8 @@ Djblets.Config.PagesView = Backbone.View.extend({
         return this;
     },
 
-    /*
-     * Handler for when the page changed.
+    /**
+     * Handle when the page changes.
      *
      * The sidebar will be updated to reflect the current active page,
      * and the page will be shown.
@@ -53,12 +57,16 @@ Djblets.Config.PagesView = Backbone.View.extend({
      * If navigating pages manually, any messages provided by the backend
      * form will be removed. We don't do this the first time there's a
      * navigation, as this will be called when first rendering the view.
+     *
+     * Args:
+     *     pageID (string):
+     *         The ID of the page that is becoming active.
      */
-    _onPageChanged: function(pageID) {
+    _onPageChanged(pageID) {
         this._$activeNav.removeClass('active');
         this._$activePage.removeClass('active');
 
-        this._$activePage = $('#page_' + pageID);
+        this._$activePage = $(`#page_${pageID}`);
 
         if (this._$activePage.length === 0) {
             /*
@@ -73,7 +81,8 @@ Djblets.Config.PagesView = Backbone.View.extend({
                 });
         } else {
             this._$activeNav =
-                this._$pageNavs.filter(':has(a[href=#' + pageID + '])')
+                this._$pageNavs
+                    .filter(`:has(a[href=#${pageID}])`)
                     .addClass('active');
 
             this._$activePage.addClass('active');
@@ -84,5 +93,5 @@ Djblets.Config.PagesView = Backbone.View.extend({
 
             this._preserveMessages = false;
         }
-    }
+    },
 });
