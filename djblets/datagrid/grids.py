@@ -129,85 +129,92 @@ class Column(object):
                  image_height=None, image_alt="", shrink=False, expand=False,
                  sortable=False,
                  default_sort_dir=SORT_DESCENDING, link=False,
-                 link_func=None, cell_clickable=False, css_class=""):
+                 link_func=None, link_css_class=None, cell_clickable=False,
+                 css_class=""):
         """Initialize the column.
 
         When initializing a column as part of a :py:class:`DataGrid` subclass,
         a number of options can be provided.
 
         Args:
-            id (unicode):
+            id (unicode, optional):
                 The unique ID of the column on the datagrid.
 
-            label (unicode):
+            label (unicode, optional):
                 The label to show in the column header.
 
-            detailed_label (unicode):
+            detailed_label (unicode, optional):
                 A detailed label to display in the column customization
                 menu. Defaults to ``label``.
 
-            detailed_label_html (unicode):
+            detailed_label_html (unicode, optional):
                 A detailed label in HTML form to display in the column
                 customization menu. This takes precedence over
                 ``detailed_label``.
 
-            field_name (unicode):
+            field_name (unicode, optional):
                 The name of the field on the model containing the data to
                 render.
 
-            db_field (unicode):
+            db_field (unicode, optional):
                 The name of the database field containing the field used
                 for sorting. Defaults to ``field_name``.
 
-            image_url (unicode):
+            image_url (unicode, optional):
                 The URL to the image used in the header and navigation menu.
                 This cannot be used with ``image_class``.
 
-            image_class (unicode):
+            image_class (unicode, optional):
                 The CSS class of a spritesheet icon to use in the header
                 and navigation menu. This cannot be used with ``image_url``.
 
-            image_width (int):
+            image_width (int, optional):
                 The width of the image.
 
-            image_height (int):
+            image_height (int, optional):
                 The height of the image.
 
-            image_alt (unicode):
+            image_alt (unicode, optional):
                 The alt text for the image.
 
-            shrink (bool):
+            shrink (bool, optional):
                 If ``True``, the column's width will be calculated to its
                 minimum size.
 
-            expand (bool):
+            expand (bool, optional):
                 If ``True``, the column's width will be calculated to its
                 maximum size. If there are other expanded columns, they'll
                 share the available width equally.
 
-            sortable (bool):
+            sortable (bool, optional):
                 If ``True``, the column can be sorted. This requires a
                 ``db_field`` that allows for sorting.
 
-            default_sort_dir (int):
+            default_sort_dir (int, optional):
                 The default sorting direction when the user activates sorting.
                 Either :py:attr:`SORT_DESCENDING`
                 or :py:attr:`SORT_ASCENDING`.
 
-            link (bool):
+            link (bool, optional):
                 If ``True``, the contents will be linked to the URL
                 returned by ``link_func`` or
                 :py:meth:`DataGrid.link_to_object`.
 
-            link_func (callable):
+            link_func (callable, optional):
                 Optional function that returns a URL for the link.
 
-            cell_clickable (bool):
+            link_css_class (unicode or callable, optional):
+                The CSS class or classes to define on ``<a>`` for the link
+                for the cell, if setting ``link=True``. This can be a
+                function returning the classes.
+
+            cell_clickable (bool, optional):
                 If ``True``, clicking anywhere on the cell will navigate to
                 the URL defined, if any.
 
-            css_class (unicode):
-                The CSS class or classes to define on the cell.
+            css_class (unicode, optional):
+                The CSS class or classes to define on the cell. This can be
+                a function returning the classes.
         """
         assert not (image_class and image_url)
 
@@ -231,6 +238,7 @@ class Column(object):
         self.link_func = (
             link_func or
             (lambda state, x, y: state.datagrid.link_to_object(state, x, y)))
+        self.link_css_class = link_css_class
         self.css_class = css_class
 
         self.cell_template = None
@@ -455,18 +463,19 @@ class Column(object):
                              self, e)
             rendered_data = None
 
-        if render_context:
-            url = render_context.get('_datagrid_object_url')
-        else:
-            url = None
-
+        # We use empty strings instead of None just to keep cache keys small.
+        url = ''
         css_class = ''
+        link_css_class = ''
 
         if self.link:
-            try:
-                url = self.link_func(state, obj, rendered_data)
-            except AttributeError:
-                pass
+            if self.link_func:
+                try:
+                    url = self.link_func(state, obj, rendered_data)
+                except AttributeError:
+                    pass
+            elif render_context:
+                url = render_context.get('_datagrid_object_url')
 
         if self.css_class:
             if six.callable(self.css_class):
@@ -474,14 +483,25 @@ class Column(object):
             else:
                 css_class = self.css_class
 
-        key = "%s:%s:%s:%s" % (state.last, rendered_data, url, css_class)
+        if self.link_css_class:
+            if six.callable(self.link_css_class):
+                link_css_class = self.link_css_class(obj)
+            else:
+                link_css_class = self.link_css_class
+
+        key = '%s:%s:%s:%s:%s' % (state.last, rendered_data, url, css_class,
+                                  link_css_class)
 
         if key not in state.cell_render_cache:
+            if url:
+                css_class = '%s has-link' % css_class
+
             ctx = Context(render_context)
             ctx.update({
                 'column': self,
                 'column_state': state,
-                'css_class': css_class,
+                'css_class': css_class.strip(),
+                'link_css_class': link_css_class,
                 'url': url,
                 'data': mark_safe(rendered_data)
             })

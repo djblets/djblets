@@ -1,6 +1,6 @@
 <td{% if css_class %} class="{{css_class}}"{% endif %}{% if column_state.last %} colspan="2"{% endif %}{% if url and column.cell_clickable %} onclick="javascript:window.location = '{{url|escapejs}}'; return false;"{% endif %}>
 {% if url %}
- <a href="{{url}}"><div>{{data}}</div></a>
+<a href="{{url}}"{% if link_css_class %} class="{{link_css_class}}"{% endif %}>{{data}}</a>
 {% else %}
  {{data}}
 {% endif %}
