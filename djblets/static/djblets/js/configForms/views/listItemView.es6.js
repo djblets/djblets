@@ -1,5 +1,5 @@
-/*
- * Displays a list item for a config page.
+/**
+ * Display a list item for a config page.
  *
  * The list item will show information on the item and any actions that can
  * be invoked.
@@ -15,18 +15,18 @@ Djblets.Config.ListItemView = Backbone.View.extend({
 
     actionHandlers: {},
 
-    template: _.template([
-        '<% if (editURL) { %>',
-        '<a href="<%- editURL %>"><%- text %></a>',
-        '<% } else { %>',
-        '<%- text %>',
-        '<% } %>'
-    ].join('')),
+    template: _.template(dedent`
+        <% if (editURL) { %>
+        <a href="<%- editURL %>"><%- text %></a>
+        <% } else { %>
+        <%- text %>
+        <% } %>
+    `),
 
-    /*
-     * Initializes the view.
+    /**
+     * Initialize the view.
      */
-    initialize: function() {
+    initialize() {
         this.listenTo(this.model, 'actionsChanged', this.render);
         this.listenTo(this.model, 'request', this.showSpinner);
         this.listenTo(this.model, 'sync', this.hideSpinner);
@@ -36,52 +36,78 @@ Djblets.Config.ListItemView = Backbone.View.extend({
         this.$spinner = null;
     },
 
-    /* Renders the view.
+    /**
+     *  Render the view.
      *
      * This will be called every time the list of actions change for
      * the item.
+     *
+     * Returns:
+     *     Djblets.Config.ListItemView:
+     *     This view.
      */
-    render: function() {
+    render() {
         this.$el
             .empty()
-            .append(this.template(this.model.attributes));
+            .append(this.template(_.defaults(
+                this.model.attributes,
+                this.getRenderContext()
+            )));
         this.addActions(this.getActionsParent());
 
         return this;
     },
 
-    /*
-     * Removes the item.
+    /**
+     * Return additional render context.
+     *
+     * By default this returns an empty object. Subclasses can use this to
+     * provide additional values to :js:attr:`template` when it is rendered.
+     *
+     * Returns:
+     *     object:
+     *     Additional rendering context for the template.
+     */
+    getRenderContext() {
+        return {};
+    },
+
+    /**
+     * Remove the item.
      *
      * This will fade out the item, and then remove it from view.
      */
-    remove: function() {
+    remove() {
         this.$el.fadeOut('normal',
-                         _.bind(Backbone.View.prototype.remove, this));
+                         () => Backbone.View.prototype.remove.call(this));
     },
 
-    /*
-     * Returns the container for the actions.
+    /**
+     * Return the container for the actions.
      *
      * This defaults to being this element, but it can be overridden to
      * return a more specific element.
+     *
+     * Returns:
+     *     jQuery:
+     *     The container for the actions.
      */
-    getActionsParent: function() {
+    getActionsParent() {
         return this.$el;
     },
 
-    /*
-     * Displays a spinner on the item.
+    /**
+     * Display a spinner on the item.
      *
      * This can be used to show that the item is being loaded from the
      * server.
      */
-    showSpinner: function() {
+    showSpinner() {
         if (this.$spinner) {
             return;
         }
 
-        this.$spinner = $('<span/>')
+        this.$spinner = $('<span>')
             .addClass('fa fa-spinner fa-pulse config-forms-list-item-spinner')
             .prependTo(this.$spinnerParent)
             .hide()
@@ -89,10 +115,10 @@ Djblets.Config.ListItemView = Backbone.View.extend({
             .fadeIn();
     },
 
-    /*
-     * Hides the currently visible spinner.
+    /**
+     * Hide the currently visible spinner.
      */
-    hideSpinner: function() {
+    hideSpinner() {
         if (!this.$spinner) {
             return;
         }
@@ -108,65 +134,71 @@ Djblets.Config.ListItemView = Backbone.View.extend({
          * 2) By fading out, it doesn't look like it just simply stops.
          *    Helps provide a sense of completion.
          */
-        this.$spinner.fadeOut('slow', _.bind(function() {
+        this.$spinner.fadeOut('slow', () => {
             this.$spinner.remove();
             this.$spinner = null;
-        }, this));
+        });
     },
 
-    /*
-     * Adds all registered actions to the view.
+    /**
+     * Add all registered actions to the view.
+     *
+     * Args:
+     *     $parentEl (jQuery):
+     *         The parent element to add the actions to.
      */
-    addActions: function($parentEl) {
-        var $actions = $('<span/>')
-                .addClass('config-forms-list-item-actions');
+    addActions($parentEl) {
+        const $actions = $('<span>')
+            .addClass('config-forms-list-item-actions');
 
-        _.each(this.model.actions, function(action) {
-            var $action = this._buildActionEl(action)
-                    .appendTo($actions);
+        this.model.actions.forEach(action => {
+            const $action = this._buildActionEl(action)
+                .appendTo($actions);
 
             if (action.children) {
                 if (action.label) {
                     $action.append(' &#9662;');
                 }
 
-                $action.click(_.bind(function() {
-                    /*
-                     * Show the dropdown after we let this event propagate.
-                     */
-                    _.defer(_.bind(this._showActionDropdown, this,
-                                   action, $action));
-                }, this));
+                /*
+                 * Show the dropdown after we let this event propagate.
+                 */
+                $action.click(() => _.defer(
+                    () => this._showActionDropdown(action, $action)
+                ));
             }
-        }, this);
+        });
 
         this.$spinnerParent = $actions;
 
         $actions.prependTo($parentEl);
     },
 
-    /*
-     * Shows a dropdown for a menu action.
+    /**
+     * Show a dropdown for a menu action.
+     *
+     * Args:
+     *     action (object):
+     *         The action to show the dropdown for. See
+     *         :js:class:`Djblets.Config.ListItem`. for a list of attributes.
+     *
+     *     $action (jQuery):
+     *         The element that represents the action.
      */
-    _showActionDropdown: function(action, $action) {
-        var actionPos = $action.position(),
-            $pane = $('<ul/>')
+    _showActionDropdown(action, $action) {
+        const actionPos = $action.position();
+        const $pane = $('<ul/>')
                 .css('position', 'absolute')
                 .addClass('action-menu')
-                .click(function(e) {
-                    /* Don't let a click on the dropdown close it. */
-                    e.stopPropagation();
-                }),
-            winWidth = $(window).width(),
-            actionLeft = actionPos.left + $action.getExtents('m', 'l'),
-            paneWidth;
+                .click(e => e.stopPropagation());
+        const actionLeft = actionPos.left + $action.getExtents('m', 'l');
 
-        _.each(action.children, function(childAction) {
-            $('<li/>')
-                .addClass('config-forms-list-action-row-' + childAction.id)
+        action.children.forEach(
+            childAction => $('<li/>')
+                .addClass(`config-forms-list-action-row-${childAction.id}`)
                 .append(this._buildActionEl(childAction))
-                .appendTo($pane);
-        }, this);
+                .appendTo($pane)
+        );
 
         this.trigger('actionMenuPopUp', {
             action: action,
@@ -176,7 +208,8 @@ Djblets.Config.ListItemView = Backbone.View.extend({
 
         $pane.appendTo($action.parent());
 
-        paneWidth = $pane.width();
+        const winWidth = $(window).width();
+        const paneWidth = $pane.width();
 
         $pane.move(($action.offset().left + paneWidth > winWidth
                     ? actionLeft + $action.innerWidth() - paneWidth
@@ -185,7 +218,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                    'absolute');
 
         /* Any click outside this dropdown should close it. */
-        $(document).one('click', _.bind(function() {
+        $(document).one('click', () => {
             this.trigger('actionMenuPopDown', {
                 action: action,
                 $action: $action,
@@ -193,41 +226,44 @@ Djblets.Config.ListItemView = Backbone.View.extend({
             });
 
             $pane.remove();
-        }, this));
+        });
     },
 
-    /*
-     * Builds the element for an action.
+    /**
+     * Build the element for an action.
      *
-     * If the action's type is "checkbox", a checkbox will be shown. Otherwise,
-     * the action will be shown as a button.
+     * If the action's type is ``'checkbox'``, a checkbox will be shown.
+     * Otherwise, the action will be shown as a button.
+     *
+     * Args:
+     *     action (object):
+     *         The action to show the dropdown for. See
+     *         :js:class:`Djblets.Config.ListItem`. for a list of attributes.
      */
-    _buildActionEl: function(action) {
-        var actionHandlerName = (action.enabled !== false
-                                 ? this.actionHandlers[action.id]
-                                 : null),
-            isCheckbox = (action.type === 'checkbox'),
-            isRadio = (action.type === 'radio'),
-            actionHandler,
-            inputID,
-            $action,
-            $label,
-            $result;
+    _buildActionEl(action) {
+        const actionHandlerName = (action.enabled !== false
+                                   ? this.actionHandlers[action.id]
+                                   : null);
+        const isCheckbox = (action.type === 'checkbox');
+        const isRadio = (action.type === 'radio');
+
+        let $action;
+        let $result;
 
         if (isCheckbox || isRadio) {
-            inputID = _.uniqueId('action_' + action.type);
+            const inputID = _.uniqueId('action_' + action.type);
             $action = $('<input/>')
                 .attr({
                     name: action.name,
                     type: action.type,
                     id: inputID
                 });
-            $label = $('<label/>')
+            const $label = $('<label>')
                 .attr('for', inputID)
                 .text(action.label);
 
             if (action.id) {
-                $label.addClass('config-forms-list-action-label-' + action.id);
+                $label.addClass(`config-forms-list-action-label-${action.id}`);
             }
 
             $result = $('<span/>')
@@ -242,7 +278,8 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                     $action.bindProperty(
                         'checked', this.model, action.propName, {
                             radioValue: action.radioValue
-                        });
+                        }
+                    );
                 }
             }
 
@@ -255,9 +292,11 @@ Djblets.Config.ListItemView = Backbone.View.extend({
             }
 
             if (actionHandlerName) {
-                actionHandler = _.debounce(
+                const actionHandler = _.debounce(
                     _.bind(this[actionHandlerName], this),
-                    50, true);
+                    50,
+                    true
+                );
 
                 $action.change(actionHandler);
 
@@ -266,13 +305,13 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                 }
             }
         } else {
-            $action = $result = $('<a class="btn"/>')
+            $action = $result = $('<a class="btn">')
                 .text(action.label || '');
 
             if (action.iconName) {
-                $action.append($('<span/>')
+                $action.append($('<span>')
                     .addClass(this.iconBaseClassName)
-                    .addClass(this.iconBaseClassName + '-' + action.iconName));
+                    .addClass(`${this.iconBaseClassName}-${action.iconName}`));
             }
 
             if (actionHandlerName) {
@@ -281,7 +320,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
         }
 
         if (action.id) {
-            $action.addClass('config-forms-list-action-' + action.id);
+            $action.addClass(`config-forms-list-action-${action.id}`);
         }
 
         if (action.danger) {
@@ -294,5 +333,5 @@ Djblets.Config.ListItemView = Backbone.View.extend({
         }
 
         return $result;
-    }
+    },
 });

@@ -54,6 +54,15 @@
     line-height: 1.4em;
     padding: 4px;
 
+    &.has-link > a {
+      /*
+       * Ensure the link takes the full width of the cell. Ideally it would
+       * also take the full height, but that's a much harder problem to
+       * tackle (we could set height: 100%, but vertical alignment breaks).
+       */
+      display: block;
+    }
+
     a {
       color: black;
       text-decoration: none;
