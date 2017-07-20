@@ -157,3 +157,15 @@ DUPLICATE_ITEM = WebAPIError(
     111,
     "An entry for this item or its unique key(s) already exists",
     http_status=409)
+
+OAUTH_MISSING_SCOPE_ERROR = WebAPIError(
+    112,
+    'Your OAuth2 token lacks the necessary scopes for this request.',
+    http_status=403,  # 403 Forbidden
+)
+
+OAUTH_ACCESS_DENIED_ERROR = WebAPIError(
+    113,
+    'OAuth2 token access for this resource is prohibited.',
+    http_status=403,  # 403 Forbidden
+)

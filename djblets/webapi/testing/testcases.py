@@ -66,8 +66,8 @@ class WebAPITestCaseMixin(TestCase):
     def api_get(self, path, query={}, follow_redirects=False,
                 expected_status=200, expected_redirects=[],
                 expected_headers={}, expected_mimetype=None,
-                expected_json=True):
-        """Perform and check a HTTP GET request to an API resource.
+                expected_json=True, **extra):
+        """Perform and check a HTTP GET request, returning additional data.
 
         This will perform the request to the resource and validate that all
         the results are what the caller expects.
@@ -99,9 +99,62 @@ class WebAPITestCaseMixin(TestCase):
                 Whether the response is expected to be in JSON format.
 
         Returns:
+            dict or bytes:
             The parsed payload data as a dictionary, if ``expected_json`` is
             ``True`` and the response isn't a HTTP 302. Otherwise, the
             raw payload contents.
+        """
+        return self.api_get_with_response(path, query, follow_redirects,
+                                          expected_status, expected_redirects,
+                                          expected_headers, expected_mimetype,
+                                          expected_json, **extra)[0]
+
+    def api_get_with_response(self, path, query={}, follow_redirects=False,
+                              expected_status=200, expected_redirects=[],
+                              expected_headers={}, expected_mimetype=None,
+                              expected_json=True, **extra):
+        """Perform and check a HTTP GET request to an API resource.
+
+        This will perform the request to the resource and validate
+        that all
+        the results are what the caller expects.
+
+        Args:
+            path (unicode):
+                The path to the resource to request.
+
+            query (dict):
+                The query string.
+
+            expected_status (int):
+                The expected HTTP status.
+
+            follow_redirects (bool):
+                Whether to expect and follow redirects to another URL.
+
+            expected_redirects (list of unicode):
+                The list of expected redirects performed by the
+                resource(s),
+                in order.
+
+            expected_headers (dict):
+                Expected HTTP headers and their values from the
+                response.
+
+            expected_mimetype (unicode):
+                The expected mimetype for the response payload.
+
+            expected_json (bool):
+                Whether the response is expected to be in JSON format.
+
+        Returns:
+            tuple:
+            A 2-tuple of:
+
+            * the parsed payload (:py:class:`dict`, if ``expected_json`` is
+              ``True`` or :py:class:`bytes`)
+            * the raw response
+              (:py:class:`djblets.webapi.responses.WebAPIResponse`).
         """
         path = self._normalize_path(path)
 
@@ -111,7 +164,8 @@ class WebAPITestCaseMixin(TestCase):
         response = self._api_func_wrapper(
             self.client.get, path, query, expected_status, follow_redirects,
             expected_redirects, expected_mimetype,
-            content_type='text/html; charset=utf-8')
+            content_type='text/html; charset=utf-8',
+            extra=extra)
 
         for header, value in six.iteritems(expected_headers):
             self.assertIn(header, response)
@@ -125,10 +179,10 @@ class WebAPITestCaseMixin(TestCase):
         print('Response:')
         pprint.pprint(rsp)
 
-        return rsp
+        return rsp, response
 
     def api_post_with_response(self, path, query={}, expected_status=201,
-                               expected_mimetype=None):
+                               expected_mimetype=None, **extra):
         """Perform an HTTP POST to an API resource, returning additional data.
 
         This works like :py:meth:`api_post`, but returns the resulting payload
@@ -160,7 +214,8 @@ class WebAPITestCaseMixin(TestCase):
         print('POSTing to %s' % path)
         print("Post data: %s" % query)
         response = self.client.post(path, query,
-                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+                                    **extra)
         print("Raw response: %s" % response.content)
         self.assertEqual(response.status_code, expected_status)
 
@@ -201,7 +256,7 @@ class WebAPITestCaseMixin(TestCase):
 
     def api_put(self, path, query={}, expected_status=200,
                 follow_redirects=False, expected_redirects=[],
-                expected_mimetype=None):
+                expected_mimetype=None, **extra):
         """Perform and check an HTTP PUT to an API resource.
 
         This will perform the request to the resource and validate that all
@@ -239,11 +294,12 @@ class WebAPITestCaseMixin(TestCase):
         response = self._api_func_wrapper(
             self.client.put, path, data, expected_status, follow_redirects,
             expected_redirects, expected_mimetype,
-            content_type=MULTIPART_CONTENT)
+            content_type=MULTIPART_CONTENT,
+            extra=extra)
 
         return self._get_result(response, expected_status)
 
-    def api_delete(self, path, expected_status=204):
+    def api_delete(self, path, expected_status=204, **extra):
         """Perform and check an HTTP DELETE to an API resource.
 
         This will perform the request to the resource and validate that all
@@ -264,7 +320,7 @@ class WebAPITestCaseMixin(TestCase):
         path = self._normalize_path(path)
 
         print('DELETEing %s' % path)
-        response = self.client.delete(path)
+        response = self.client.delete(path, **extra)
         print("Raw response: %s" % response.content)
         self.assertEqual(response.status_code, expected_status)
 
@@ -344,8 +400,9 @@ class WebAPITestCaseMixin(TestCase):
             HttpResponse: The HTTP response from the API resource.
         """
         response = api_func(path, query, follow=follow_redirects,
-                            content_type=content_type, extra=extra,
-                            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                            content_type=content_type,
+                            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+                            **extra)
 
         print("Raw response: %s" % response.content)
 

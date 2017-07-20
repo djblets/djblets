@@ -343,12 +343,14 @@ Web API
    djblets.webapi.auth.backends.api_tokens
    djblets.webapi.auth.backends.base
    djblets.webapi.auth.backends.basic
+   djblets.webapi.auth.backends.oauth2_tokens
    djblets.webapi.auth.views
    djblets.webapi.decorators
    djblets.webapi.encoders
    djblets.webapi.errors
    djblets.webapi.managers
    djblets.webapi.models
+   djblets.webapi.oauth2_scopes
    djblets.webapi.resources
    djblets.webapi.resources.base
    djblets.webapi.resources.group
@@ -357,6 +359,7 @@ Web API
    djblets.webapi.resources.user
    djblets.webapi.resources.mixins.api_tokens
    djblets.webapi.resources.mixins.forms
+   djblets.webapi.resources.mixins.oauth2_tokens
    djblets.webapi.resources.mixins.queries
    djblets.webapi.responses
    djblets.webapi.testing
