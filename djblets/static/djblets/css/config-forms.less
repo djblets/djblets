@@ -6,6 +6,13 @@
 @config-forms-box-padding: 1em;
 @config-forms-box-border-radius: 6px;
 
+@config-forms-list-bg-color: #FFFFFF;
+@config-forms-list-border-color: #AAAAAA;
+@config-forms-list-item-border-color: #E9E9E9;
+@config-forms-list-item-hover-bg-color: #FAFAFA;
+@config-forms-list-item-line-height: 32px;
+@config-forms-list-item-padding: 0.3em 0.3em 0.3em 1.5em;
+
 
 .ellipsize() {
   /* Ellipsize the text contents. */
@@ -316,10 +323,32 @@
     }
 
     .config-forms-list {
-      background: #FFFFFF;
-      padding: 0;
+      background: @config-forms-list-bg-color;
+      border-bottom: 1px @config-forms-list-border-color solid;
+      border-top: 1px @config-forms-list-border-color solid;
       margin-bottom: 0;
-      border-top: 1px #AAAAAA solid;
+      padding: 0;
+
+      > :last-child {
+        border-bottom: none;
+      }
+
+      &:empty {
+        border: none;
+
+        ~ .config-forms-list-empty {
+          display: block;
+        }
+      }
+    }
+
+    .config-forms-list-empty {
+      background: @config-forms-list-bg-color;
+      border-bottom: 1px solid @config-forms-list-border-color;
+      border-top: 1px solid @config-forms-list-border-color;
+      display: none;
+      line-height: @config-forms-list-item-line-height;
+      padding: @config-forms-list-item-padding;
     }
 
     table.config-forms-list {
@@ -329,11 +358,10 @@
 
       thead th {
         background: #F0F0F3;
-        border-bottom: 1px #AAAAAA solid;
-        border-bottom: 1px #AAAAAA solid;
+        border-bottom: 1px @config-forms-list-border-color solid;
         border-right: 1px #CCCCCC solid;
         text-align: left;
-        padding: 0.3em 0.3em 0.3em 1.5em;
+        padding: @config-forms-list-item-padding;
 
         &:last-child {
           border-right: 0;
@@ -343,17 +371,17 @@
 
     .config-forms-list-item,
     table.config-forms-list td {
-      border-bottom: 1px #E9E9E9 solid;
-      padding: 0.3em 0.3em 0.3em 1.5em;
+      border-bottom: 1px @config-forms-list-item-border-color solid;
+      padding: @config-forms-list-item-padding;
       list-style: none;
-      line-height: 32px;
+      line-height: @config-forms-list-item-line-height;
       vertical-align: middle;
       .ellipsize();
     }
 
     .config-forms-list-item {
       &:hover {
-        background: #FAFAFA;
+        background: @config-forms-list-item-hover-bg-color;
       }
 
       a {
