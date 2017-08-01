@@ -102,6 +102,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.sites',
     'django.contrib.staticfiles',
+    'oauth2_provider',
 ]
 
 
@@ -117,3 +118,9 @@ for entry in os.listdir(base_path):
 
 
 INSTALLED_APPS += ['django_evolution']
+
+
+OAUTH2_PROVIDER = {
+    'DEFAULT_SCOPES': 'root:read',
+    'SCOPES': {},
+}

@@ -73,7 +73,9 @@ from djblets.extensions.errors import (EnablingExtensionError,
                                        InvalidExtensionError)
 from djblets.extensions.extension import ExtensionInfo
 from djblets.extensions.models import RegisteredExtension
-from djblets.extensions.signals import (extension_initialized,
+from djblets.extensions.signals import (extension_disabled,
+                                        extension_enabled,
+                                        extension_initialized,
                                         extension_uninitialized)
 from djblets.template.caches import (clear_template_caches,
                                      clear_template_tag_caches)
@@ -434,6 +436,8 @@ class ExtensionManager(object):
         self._bump_sync_gen()
         self._recalculate_middleware()
 
+        extension_enabled.send(sender=self, extension=extension)
+
         return extension
 
     def disable_extension(self, extension_id):
@@ -483,6 +487,8 @@ class ExtensionManager(object):
         self._bump_sync_gen()
         self._recalculate_middleware()
 
+        extension_disabled.send(sender=self, extension=extension)
+
     def install_extension(self, install_url, package_name):
         """Install an extension from a remote source.
 
@@ -492,7 +498,6 @@ class ExtensionManager(object):
         exception to be raised. It is also assumed that the extension is not
         already installed.
         """
-
         try:
             easy_install.main(["-U", install_url])
 

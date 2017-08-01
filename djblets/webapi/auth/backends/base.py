@@ -88,7 +88,7 @@ class WebAPIAuthBackend(object):
 
         credentials = self.get_credentials(request)
 
-        if not credentials:
+        if credentials is None:
             return None
 
         if isinstance(credentials, dict):
@@ -154,7 +154,7 @@ class WebAPIAuthBackend(object):
             ]),
             extra=log_extra)
 
-        user = auth.authenticate(**credentials)
+        user = auth.authenticate(request=request, **credentials)
 
         if user and user.is_active:
             auth.login(request, user)

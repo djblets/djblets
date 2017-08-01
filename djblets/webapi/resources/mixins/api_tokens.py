@@ -45,7 +45,7 @@ class ResourceAPITokenMixin(object):
         ``PERMISSION_DENIED`` error will be returned.
         """
         # This will associate the token, if any, with the request.
-        webapi_token = self._get_api_token_for_request(request)
+        webapi_token = self.__get_api_token_for_request(request)
 
         if webapi_token:
             if not self.api_token_access_allowed:
@@ -62,7 +62,8 @@ class ResourceAPITokenMixin(object):
                     # The token's policies disallow access to this resource.
                     return PERMISSION_DENIED
 
-        return view(request, *args, **kwargs)
+        return super(ResourceAPITokenMixin, self).call_method_view(
+            request, method, view, *args, **kwargs)
 
     def is_resource_method_allowed(self, resources_policy, method,
                                    resource_id):
@@ -82,7 +83,7 @@ class ResourceAPITokenMixin(object):
         resource_policy = resources_policy.get(self.policy_id)
 
         if resource_policy:
-            permission = self._check_resource_policy(
+            permission = self.__check_resource_policy(
                 resource_policy, method, [resource_id, '*'])
 
             if permission is not None:
@@ -92,7 +93,7 @@ class ResourceAPITokenMixin(object):
         # there isn't a sub-key of 'resources.*', so we'll check based on
         # resources_policy.
         if '*' in resources_policy:
-            permission = self._check_resource_policy(
+            permission = self.__check_resource_policy(
                 resources_policy, method, ['*'])
 
             if permission is not None:
@@ -100,7 +101,7 @@ class ResourceAPITokenMixin(object):
 
         return True
 
-    def _check_resource_policy(self, policy, method, keys):
+    def __check_resource_policy(self, policy, method, keys):
         """Check the policy for a specific resource and method.
 
         This will grab the resource policy for the given policy ID,
@@ -135,7 +136,7 @@ class ResourceAPITokenMixin(object):
 
         return None
 
-    def _get_api_token_for_request(self, request):
+    def __get_api_token_for_request(self, request):
         webapi_token = getattr(request, '_webapi_token', None)
 
         if not webapi_token:
@@ -170,7 +171,7 @@ class ResourceAPITokenMixin(object):
         if is_list:
             # We'll need to filter the list of results down to exclude any
             # that are blocked for GET access by the token policy.
-            webapi_token = self._get_api_token_for_request(request)
+            webapi_token = self.__get_api_token_for_request(request)
 
             if webapi_token:
                 resources_policy = webapi_token.policy.get('resources', {})
@@ -181,7 +182,7 @@ class ResourceAPITokenMixin(object):
                         resource_id
                         for resource_id in six.iterkeys(resource_policy)
                         if (resource_id != '*' and
-                            not self._check_resource_policy(
+                            not self.__check_resource_policy(
                                 resources_policy, self.policy_id, 'GET',
                                 resource_id, True))
                     ]
