@@ -1,0 +1,50 @@
+.. default-intersphinx:: djblets0.9 django1.6
+
+
+===========================
+Djblets 0.9.9 Release Notes
+===========================
+
+**Release date**: August 1, 2017
+
+
+djblets.extensions
+==================
+
+* Fixed building and packaging extensions using LessCSS or UglifyJS.
+
+  A regression had caused packages utilizing LessCSS or UglifyJS to fail to
+  build, due to some bad path information. Extensions should now properly
+  build once again.
+
+
+djblets.markdown
+================
+
+* Added new CSS rules for table styling.
+
+  Markdown tables now have a better default styling when using the
+  ``.markdown-wysiwyg()`` LessCSS mixin (available by importing
+  ``djblets/css/mixins/markdown.less``).
+
+
+djblets.webapi
+==============
+
+* Fixed combining fields in :py:func:`@webapi_request_fields
+  <djblets.webapi.decorators.webapi_request_fields>` when using
+  :py:func:`@augment_method_from
+  <djblets.util.decorators.augment_method_from>`.
+
+  When specifying fields using the decorator and augmenting other functions
+  specifying other fields, the combined list of fields would be incomplete,
+  preventing the fields from properly being validated and passed to the
+  function.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
+* David Trowbridge
