@@ -17,12 +17,36 @@ from djblets.cache.backend import make_cache_key
 logger = logging.getLogger(__name__)
 
 
+#: Available rate limit categories.
+RATE_LIMIT_LOGIN = 0
+RATE_LIMIT_API_ANONYMOUS = 1
+RATE_LIMIT_API_AUTHENTICATED = 2
+
+
 #: The default rate limit for logins.
 DEFAULT_LOGIN_LIMIT_RATE = '5/m'
 
+#: The default rate limit for anonymous API requests.
+DEFAULT_API_ANONYMOUS_LIMIT_RATE = '1000/h'
 
-#: The default login rate limit key used for preparing cache keys.
-DEFAULT_KEY = 'login-ratelimit'
+#: The default rate limit for authenticated API requests.
+DEFAULT_API_AUTHENTICATED_LIMIT_RATE = '10000/h'
+
+
+_RATE_LIMIT_DATA = {
+    RATE_LIMIT_LOGIN: (
+        'LOGIN_LIMIT_RATE',
+        DEFAULT_LOGIN_LIMIT_RATE,
+        'login-ratelimit'),
+    RATE_LIMIT_API_ANONYMOUS: (
+        'API_ANONYMOUS_LIMIT_RATE',
+        DEFAULT_API_ANONYMOUS_LIMIT_RATE,
+        'api-anonymous-ratelimit'),
+    RATE_LIMIT_API_AUTHENTICATED: (
+        'API_AUTHENTICATED_LIMIT_RATE',
+        DEFAULT_API_AUTHENTICATED_LIMIT_RATE,
+        'api-authenticated-ratelimit'),
+}
 
 
 def get_user_id_or_ip(request):
@@ -37,7 +61,7 @@ def get_user_id_or_ip(request):
         If the user is authenticated, the user ID will be returned.
         Otherwise, the IP address of the client is returned instead.
     """
-    if request.user.is_authenticated():
+    if hasattr(request, 'user') and request.user.is_authenticated():
         return six.text_type(request.user.pk)
 
     try:
@@ -71,7 +95,7 @@ def _get_window(period):
     return timestamp - (timestamp % period) + period
 
 
-def is_ratelimited(request, increment=False):
+def is_ratelimited(request, increment=False, limit_type=RATE_LIMIT_LOGIN):
     """Check whether the user or IP address has exceeded the rate limit.
 
     The parameters are used to create a new key or fetch an existing key to
@@ -85,15 +109,19 @@ def is_ratelimited(request, increment=False):
         increment (bool, optional):
             Whether the number of login attempts should be incremented.
 
+        limit_type (int, optional):
+            The type of rate limit to check.
+
     Returns:
         bool:
         Whether the current user has exceeded the rate limit of login attempts.
     """
-    usage = get_usage_count(request, increment)
-    return usage['count'] >= usage['limit']
+    usage = get_usage_count(request, increment, limit_type)
+    return (usage is not None and
+            usage['count'] > usage['limit'])
 
 
-def get_usage_count(request, increment=False):
+def get_usage_count(request, increment=False, limit_type=RATE_LIMIT_LOGIN):
     """Return rate limit status for a given user or IP address.
 
     This method performs validation checks on the input parameters
@@ -107,8 +135,11 @@ def get_usage_count(request, increment=False):
         request (django.http.HttpRequest):
             The HTTP request from the client.
 
-        increment (bool):
+        increment (bool, optional):
             Whether the number of login attempts should be incremented.
+
+        limit_type (int, optional):
+            The type of rate limit to check.
 
     Returns:
         dict:
@@ -123,10 +154,20 @@ def get_usage_count(request, increment=False):
         ``time_left`` (:py:class:`int`):
             The time left before rate limit is over.
     """
-    # Obtain specified time limit and period (e.g.: s, m, h, d).
     try:
-        limit_str = getattr(settings, 'LOGIN_LIMIT_RATE',
-                            DEFAULT_LOGIN_LIMIT_RATE)
+        try:
+            settings_key, default_value, cache_key_prefix = \
+                _RATE_LIMIT_DATA[limit_type]
+        except KeyError:
+            raise ValueError('"limit_type" argument had unexpected value "%s"'
+                             % limit_type)
+
+        limit_str = getattr(settings, settings_key, default_value)
+
+        if limit_str is None:
+            # If the setting is explicitly None, don't do any rate limiting.
+            return None
+
         rate_limit = Rate.parse(limit_str)
     except ValueError:
         raise ImproperlyConfigured('LOGIN_LIMIT_RATE setting could not '
@@ -140,9 +181,9 @@ def get_usage_count(request, increment=False):
 
     # Prepare cache key to add or update to cache and determine remaining time
     # period left.
-    cache_key = make_cache_key('%s:%d/%d%s%s' % (DEFAULT_KEY, limit, period,
-                                                 user_id_or_ip,
-                                                 _get_window(period)))
+    cache_key = make_cache_key('%s:%d/%d%s%s'
+                               % (cache_key_prefix, limit, period,
+                                  user_id_or_ip, _get_window(period)))
     time_left = _get_window(period) - int(time.time())
 
     count = None
@@ -155,6 +196,13 @@ def get_usage_count(request, increment=False):
 
     if count is None:
         count = cache.get(cache_key, 0)
+
+    if not increment:
+        # Add one to the returned value, even if we aren't incrementing the
+        # stored value. This makes it so that we're consistent in how many
+        # tries per period regardless of whether we're incrementing now or
+        # later.
+        count += 1
 
     return {
         'count': count,

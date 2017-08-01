@@ -15,6 +15,9 @@ from django.http import (HttpResponseNotAllowed, HttpResponse,
 from django.utils import six
 from django.views.decorators.vary import vary_on_headers
 
+from djblets.auth.ratelimit import (RATE_LIMIT_API_ANONYMOUS,
+                                    RATE_LIMIT_API_AUTHENTICATED,
+                                    get_usage_count)
 from djblets.util.http import (get_modified_since, encode_etag,
                                etag_if_none_match,
                                set_last_modified, set_etag,
@@ -35,6 +38,7 @@ from djblets.webapi.errors import (DOES_NOT_EXIST,
                                    LOGIN_FAILED,
                                    NOT_LOGGED_IN,
                                    PERMISSION_DENIED,
+                                   RATE_LIMIT_EXCEEDED,
                                    WebAPIError)
 
 try:
@@ -169,6 +173,29 @@ class WebAPIResource(object):
                     headers=auth_headers or {},
                     api_format=api_format,
                     mimetype=self._build_error_mimetype(request))
+
+        # Check to see if the user has been rate limited. Rate limits for
+        # authentication failures have already been handled via the auth
+        # backend, so this just checks for the API rate limits, if any.
+        if auth_result:
+            rate_limit_type = RATE_LIMIT_API_AUTHENTICATED
+        else:
+            rate_limit_type = RATE_LIMIT_API_ANONYMOUS
+
+        usage = get_usage_count(request, increment=True,
+                                limit_type=rate_limit_type)
+
+        if (usage is not None and
+            usage['count'] > usage['limit']):
+            return WebAPIResponseError(
+                request,
+                err=RATE_LIMIT_EXCEEDED,
+                headers={
+                    'Retry-After': usage['time_left'],
+                    'X-RateLimit-Limit': usage['limit'],
+                },
+                api_format=api_format,
+                mimetype=self._build_error_mimetype(request))
 
         method = request.method
 

@@ -66,4 +66,5 @@ class RateLimitTests(TestCase):
         request = self.request_factory.get('/')
         request.user = User(pk=1)
 
+        self.assertFalse(is_ratelimited(request, increment=True))
         self.assertTrue(is_ratelimited(request, increment=True))
