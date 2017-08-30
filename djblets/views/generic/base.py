@@ -3,6 +3,49 @@
 from __future__ import unicode_literals
 
 
+class CheckRequestMethodViewMixin(object):
+    """Generic view mixin to check the HTTP method before dispatching.
+
+    In a normal class-based view, it's up to the
+    :py:meth:`~django.views.generic.base.View.dispatch` method to ensure that
+    an HTTP method is valid before dispatching to the handler. However, more
+    complex views may need to perform other checks before dispatching, meaning
+    that logic is being performed before the validity checks happen, which
+    would be unnecessary and wasteful.
+
+    This mixin, when put before any other mixins or parent classes, will
+    perform the validity checks up-front and immediately bail with a
+    :http:`405` if the HTTP method is not allowed.
+    """
+
+    def dispatch(self, request, *args, **kwargs):
+        """Dispatch a HTTP request to the right handler.
+
+        This will first check if the HTTP method is allowed. If it is not,
+        then this will immediately return a :http:`405`.
+
+        Args:
+            *args (tuple):
+                Positional arguments to pass to the handler.
+
+            **kwargs (dict):
+                Keyword arguments to pass to the handler.
+
+        Returns:
+            django.http.HttpResponse:
+            The resulting HTTP response to send to the client.
+        """
+        norm_method = request.method.lower()
+
+        if (norm_method not in self.http_method_names or
+            not hasattr(self, norm_method)):
+            # The HTTP method is not allowed. We can bail early.
+            return self.http_method_not_allowed(request, *args, **kwargs)
+
+        return super(CheckRequestMethodViewMixin, self).dispatch(
+            request, *args, **kwargs)
+
+
 class PrePostDispatchViewMixin(object):
     """Generic view mixin to call methods before/after dispatching the handler.
 

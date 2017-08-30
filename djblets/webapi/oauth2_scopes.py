@@ -170,7 +170,7 @@ class WebAPIScopeDictionary(dict):
             scope_to_methods = defaultdict(set)
 
             if not isinstance(resource, ResourceOAuth2TokenMixin):
-                logging.error(
+                logging.warning(
                     'Resource %r does not inherit from '
                     'djblets.webapi.resources.mixins.oauth2_tokens.'
                     'ResourceOAuth2TokenMixin: it will not be accessible with '

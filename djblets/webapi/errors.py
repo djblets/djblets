@@ -169,3 +169,9 @@ OAUTH_ACCESS_DENIED_ERROR = WebAPIError(
     'OAuth2 token access for this resource is prohibited.',
     http_status=403,  # 403 Forbidden
 )
+
+RATE_LIMIT_EXCEEDED = WebAPIError(
+    114,
+    'API rate limit has been exceeded.',
+    http_status=429,  # 429 Too Many Requests
+)
