@@ -1,4 +1,4 @@
-{
+(function() {
 
 
 /**
@@ -410,4 +410,4 @@ Djblets.Forms.ConditionSetView = Backbone.View.extend({
 });
 
 
-}
+})();

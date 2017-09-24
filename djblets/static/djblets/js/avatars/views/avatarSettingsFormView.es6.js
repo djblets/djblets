@@ -1,4 +1,4 @@
-{
+(function() {
 
 
 const [readyPromise, resolve] = Promise.withResolver();
@@ -146,4 +146,4 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
 });
 
 
-}
+})();

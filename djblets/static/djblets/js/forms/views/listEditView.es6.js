@@ -1,4 +1,4 @@
-{
+(function() {
 
 
 const entryTemplate = _.template(dedent`
@@ -170,4 +170,4 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
 });
 
 
-}
+})();
