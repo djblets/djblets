@@ -37,7 +37,7 @@ class WebAPIRateLimitTests(TestCase):
 
         # Third one should fail
         response = self.user_resource(request)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 429)
         self.assertEqual(response['X-RateLimit-Limit'], '2')
 
         rsp = json.loads(response.content)
