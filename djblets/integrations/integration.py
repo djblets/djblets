@@ -23,7 +23,7 @@ class Integration(object):
     There's one Integration instance for each class, and it typically operates
     by responding to events and communicating with another service, making use
     of the state stored in one or more
-    :py:ref:`~djblets.integrations.models.BaseIntegrationConfig` instances,
+    :py:class:`~djblets.integrations.models.BaseIntegrationConfig` instances,
     which it can query. This allows hook registration and other logic to be
     shared across all configurations of an instance.
 

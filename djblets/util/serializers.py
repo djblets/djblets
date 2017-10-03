@@ -20,7 +20,7 @@ class DjbletsJSONEncoder(DjangoJSONEncoder):
 
     * Removes the milliseconds and microseconds
       from :py:class:`datetimes <datetime.datetime>` (unless setting
-      ``strip_datetime_ms=False` when constructing the encoder). This is
+      ``strip_datetime_ms=False`` when constructing the encoder). This is
       to help keep timestamps from appearing too new when compared against
       data coming from a MySQL database (which historically, and by default,
       chops off milliseconds).

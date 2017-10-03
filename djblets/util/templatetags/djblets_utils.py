@@ -292,7 +292,9 @@ def attr(context, nodelist, attrname, *options):
 
            <div{% attr "class" %}{{obj.name}}{% endattr %}>
            <div{% attr "data-description" nocondense %}
-           Space-sensitive     whitspace.
+               Space-sensitive
+
+               whitespace
            {% endattr %}>
     """
     attrname = Variable(attrname).resolve(context)

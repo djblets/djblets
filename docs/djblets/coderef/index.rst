@@ -21,6 +21,7 @@ Authentication
    :toctree: python
 
    djblets.auth.forms
+   djblets.auth.ratelimit
    djblets.auth.signals
    djblets.auth.util
    djblets.auth.views
@@ -33,8 +34,14 @@ Avatars
    :toctree: python
 
    djblets.avatars.errors
+   djblets.avatars.forms
    djblets.avatars.registry
+   djblets.avatars.settings
    djblets.avatars.services
+   djblets.avatars.services.base
+   djblets.avatars.services.file_upload
+   djblets.avatars.services.gravatar
+   djblets.avatars.services.url
 
 
 Caching
@@ -116,6 +123,7 @@ Integrations
    djblets.integrations.models
    djblets.integrations.urls
    djblets.integrations.views
+   djblets.integrations.templatetags.integrations
 
 
 Extensions
@@ -124,6 +132,7 @@ Extensions
 .. autosummary::
    :toctree: python
 
+   djblets.extensions.admin
    djblets.extensions.errors
    djblets.extensions.extension
    djblets.extensions.forms
@@ -152,11 +161,13 @@ Feature Checks
 
    djblets.features
    djblets.features.checkers
+   djblets.features.decorators
    djblets.features.errors
    djblets.features.feature
    djblets.features.level
    djblets.features.registry
    djblets.features.testing
+   djblets.features.templatetags.features
 
 
 Feed View for RSS
@@ -176,8 +187,10 @@ Form Utilities
    :toctree: python
 
    djblets.forms.fields
+   djblets.forms.fieldsets
    djblets.forms.forms
    djblets.forms.forms.key_value_form
+   djblets.forms.widgets
 
 
 Gravatars
@@ -330,6 +343,16 @@ Generic Utilities
    djblets.util.templatetags.djblets_images
    djblets.util.templatetags.djblets_js
    djblets.util.templatetags.djblets_utils
+
+
+View Helpers
+============
+
+.. autosummary::
+   :toctree: python
+
+   djblets.views.generic.base
+   djblets.views.generic.etag
 
 
 Web API
