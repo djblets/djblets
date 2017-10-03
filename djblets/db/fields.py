@@ -440,6 +440,15 @@ class CounterField(models.IntegerField):
         setattr(cls, 'reinit_%s' % self.name, _reinit)
         setattr(cls, self.attname, self)
 
+        # We need to prevent CounterFields (or any subclasses) from being
+        # saved by default. We'd ideally override save() or save_base(), but
+        # can't safely do that here, and we can't modify update_fields due to
+        # how it would impact the save process. So we need to go deeper,
+        # overriding _do_update(), which actually receives the values and
+        # field instances being saved. From there, we can filter out any
+        # CounterFields by default.
+        setattr(cls, '_do_update', self.__class__._model_do_update)
+
         post_init.connect(self._post_init, sender=cls)
 
     def _increment(self, model_instance, reload_object=True, increment_by=1):
@@ -524,6 +533,54 @@ class CounterField(models.IntegerField):
         if value is None:
             reinit = getattr(instance, 'reinit_%s' % self.name)
             reinit()
+
+    @staticmethod
+    def _model_do_update(model, base_qs, using, pk_val, values, update_fields,
+                         forced_update):
+        """Perform a SQL UPDATE for a table.
+
+        We override Django's default implementation to first filter out some
+        fields, allowing us to skip CounterFields (unless setting to None or
+        explicitly requested in ``update_fields``).
+
+        Args:
+            model (django.db.models.Model):
+                The model instance that this method was called on.
+
+            base_qs (django.db.models.query.QuerySet):
+                The queryset used for the update operation.
+
+            using (unicode):
+                The database connection being used.
+
+            pk_val (int):
+                The primary key value for the instance.
+
+            values (list of tuple):
+                The list of update values. Each item is a tuple in the form
+                of ``(field_instance, None, value)``.
+
+            update_fields (list of unicode):
+                The specific fields the caller wanted to update. This may be
+                ``None``.
+
+            forced_update (bool):
+                Whether the requester is specifically forcing a SQL UPDATE.
+
+        Returns:
+            bool:
+            Whether there were any updates performed.
+        """
+        values = [
+            value
+            for value in values
+            if (not isinstance(value[0], CounterField) or
+                value[2] is None or
+                (update_fields and value[0].attname in update_fields))
+        ]
+
+        return super(model.__class__, model)._do_update(
+            base_qs, using, pk_val, values, update_fields, forced_update)
 
 
 class RelationCounterField(CounterField):
