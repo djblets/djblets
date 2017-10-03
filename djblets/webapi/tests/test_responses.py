@@ -13,10 +13,14 @@ class WebAPIResponsePaginatedTests(TestCase):
     """Unit tests for djblets.webapi.responses.WebAPIResponsePaginated."""
 
     def setUp(self):
+        super(WebAPIResponsePaginatedTests, self).setUp()
+
         self.factory = RequestFactory()
         self.user_resource = UserResource()
 
     def tearDown(self):
+        super(WebAPIResponsePaginatedTests, self).tearDown()
+
         unregister_resource(self.user_resource)
 
     def test_pagination_serialization_encoding(self):

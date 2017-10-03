@@ -17,10 +17,14 @@ class WebAPIRateLimitTests(TestCase):
     """Unit tests for API rate limiting."""
 
     def setUp(self):
+        super(WebAPIRateLimitTests, self).setUp()
+
         self.factory = RequestFactory()
         self.user_resource = UserResource()
 
     def tearDown(self):
+        super(WebAPIRateLimitTests, self).tearDown()
+
         unregister_resource(self.user_resource)
 
     @override_settings(API_ANONYMOUS_LIMIT_RATE='2/h')
