@@ -39,7 +39,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import F, Q
 from django.db.models.signals import (m2m_changed, post_delete, post_init,
-                                      post_save)
+                                      post_save, pre_delete)
 from django.utils import six
 from django.utils.encoding import smart_unicode
 try:
@@ -918,8 +918,9 @@ class RelationCounterField(CounterField):
     def _reset_state(cls, instance):
         """Resets state for an instance.
 
-        This will clear away any state tied to a particular instance ID. It's
-        used to ensure that any old, removed entries (say, from a previous
+        This will clear away any state tied to a particular instance ID (or
+        any instances that no longer have an ID due to being reset by Django).
+        It's used to ensure that any old, removed entries (say, from a previous
         unit test) are cleared away before storing new state.
         """
         for key, state in list(six.iteritems(cls._instance_states)):
@@ -980,30 +981,51 @@ class RelationCounterField(CounterField):
         super(RelationCounterField, self)._do_post_init(instance)
 
         cls = instance.__class__
+        instance_id = id(instance)
+        signal_connections = []
 
         # We may not have a ID yet on the instance (as it may be a
         # newly-created instance not yet saved to the database). In this case,
         # we need to listen for the first save before storing the state.
         if instance.pk is None:
-            instance_id = id(instance)
-            dispatch_uid = '%s-%s.%s-first-save' % (
+            first_save_dispatch_uid = '%s-%s.%s-first-save' % (
                 instance_id,
                 self.__class__.__module__,
                 self.__class__.__name__)
 
             post_save.connect(
                 lambda **kwargs: self._on_first_save(
-                    instance_id, dispatch_uid=dispatch_uid, **kwargs),
+                    instance_id, dispatch_uid=first_save_dispatch_uid,
+                    **kwargs),
                 weak=False,
                 sender=cls,
-                dispatch_uid=dispatch_uid)
+                dispatch_uid=first_save_dispatch_uid)
+            signal_connections.append((post_save, first_save_dispatch_uid))
 
             self._unsaved_instances[instance_id] = weakref.ref(
                 instance,
                 lambda *args, **kwargs: self._on_unsaved_instance_destroyed(
-                    cls, instance_id, dispatch_uid))
+                    cls, instance_id, signal_connections))
         else:
             RelationCounterField._store_state(instance, self)
+
+        # Get rid of any state when this instance is deleted. The PK is going
+        # to be set to None after our handler is run, and if we don't delete
+        # the entry now, we'll keep a dummy entry around forever.
+        pre_delete_dispatch_uid = '%s-%s.%s-pre-delete' % (
+            instance_id,
+            self.__class__.__module__,
+            self.__class__.__name__)
+
+        pre_delete.connect(
+            lambda instance, **kwargs: self._on_instance_pre_delete(
+                instance_id=instance_id,
+                signal_connections=signal_connections,
+                instance=instance),
+            weak=False,
+            sender=cls,
+            dispatch_uid=pre_delete_dispatch_uid)
+        signal_connections.append((pre_delete, pre_delete_dispatch_uid))
 
         if not self._relation_tracker:
             key = (cls, self._rel_field_name)
@@ -1048,13 +1070,42 @@ class RelationCounterField(CounterField):
                 if isinstance(field, cls):
                     cls._store_state(instance, field)
 
-    def _on_unsaved_instance_destroyed(self, cls, instance_id, dispatch_uid):
+    def _on_instance_pre_delete(self, instance_id, signal_connections,
+                                instance):
+        """Handler for when an instance is about to be deleted.
+
+        This will reset the state of the instance, unregistering it from
+        lists, and removing any pending signal connections.
+
+        Args:
+            instance_id (int):
+                The unique ID of the instance.
+
+            signal_connections (list of tuple):
+                The list of signal connections to remove. Each item is a
+                tuple of ``(signal, dispatch_uid)``.
+
+            instance (django.db.models.Model):
+                The instance being deleted.
+        """
+        self.__class__._reset_state(instance)
+        self._unsaved_instances.pop(instance_id, None)
+
+        instance_cls = instance.__class__
+
+        for signal, dispatch_uid in signal_connections:
+            signal.disconnect(sender=instance_cls,
+                              dispatch_uid=dispatch_uid)
+
+    def _on_unsaved_instance_destroyed(self, cls, instance_id,
+                                       signal_connections):
         """Handler for when an unsaved instance is destroyed.
 
         An unsaved instance would still have a signal connection set.
         We need to disconnect it to keep that connection from staying in
         memory indefinitely.
         """
-        post_save.disconnect(sender=cls, dispatch_uid=dispatch_uid)
-
         del self._unsaved_instances[instance_id]
+
+        for signal, dispatch_uid in signal_connections:
+            signal.disconnect(sender=cls, dispatch_uid=dispatch_uid)
