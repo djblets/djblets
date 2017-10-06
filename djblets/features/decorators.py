@@ -14,7 +14,7 @@ def _404(*args, **kwargs):
 def feature_required(feature, not_enabled_view=None):
     """Require a feature to execute a view.
 
-    If the feature is not enabled, the ``not_enabled_view` will be called
+    If the feature is not enabled, the ``not_enabled_view`` will be called
     instead.
 
     Args:

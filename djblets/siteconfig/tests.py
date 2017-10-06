@@ -38,10 +38,14 @@ from djblets.testing.testcases import TestCase
 
 class SiteConfigTest(TestCase):
     def setUp(self):
+        super(SiteConfigTest, self).setUp()
+
         self.siteconfig = SiteConfiguration(site=Site.objects.get_current())
         self.siteconfig.save()
 
     def tearDown(self):
+        super(SiteConfigTest, self).tearDown()
+
         self.siteconfig.delete()
         SiteConfiguration.objects.clear_cache()
 

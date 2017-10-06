@@ -83,6 +83,8 @@ class ColumnsTest(TestCase):
 
 class DataGridTest(TestCase):
     def setUp(self):
+        super(DataGridTest, self).setUp()
+
         self.old_auth_profile_module = getattr(settings, "AUTH_PROFILE_MODULE",
                                                None)
         settings.AUTH_PROFILE_MODULE = None
@@ -93,6 +95,8 @@ class DataGridTest(TestCase):
         self.datagrid = GroupDataGrid(self.request)
 
     def tearDown(self):
+        super(DataGridTest, self).tearDown()
+
         settings.AUTH_PROFILE_MODULE = self.old_auth_profile_module
 
     def testRender(self):

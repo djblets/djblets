@@ -96,6 +96,42 @@ class CounterFieldTests(TestModelsLoaderMixin, TestCase):
         model.reload_counter()
         self.assertEqual(model.counter, 5)
 
+    def test_save_skips_counters_with_value(self):
+        """Testing CounterField with value is skipped during model save"""
+        model = CounterFieldTestModel.objects.create()
+        model.increment_counter()
+        model.counter = 123
+        model.save()
+
+        model = CounterFieldTestModel.objects.get(pk=model.pk)
+        self.assertEqual(model.counter, 6)
+
+    def test_save_allows_counters_with_none(self):
+        """Testing CounterField with None value is allowed during model save"""
+        model = CounterFieldTestModel.objects.create()
+
+        # Force bad data in the database.
+        CounterFieldTestModel.objects.update(counter=123)
+        model.reload_counter()
+
+        self.assertEqual(model.counter, 123)
+        model.counter = None
+        model.save()
+
+        model = CounterFieldTestModel.objects.get(pk=model.pk)
+        self.assertEqual(model.counter, 5)
+
+    def test_save_allows_counters_with_update_fields(self):
+        """Testing CounterField with value and update_fields is allowed during
+        model save
+        """
+        model = CounterFieldTestModel.objects.create()
+        model.counter = 123
+        model.save(update_fields=['counter'])
+
+        model = CounterFieldTestModel.objects.get(pk=model.pk)
+        self.assertEqual(model.counter, 123)
+
     def _test_increment(self, expected_value, expected_expr, **kwargs):
         self._test_update_value(expected_value, expected_expr,
                                 'increment_counter', **kwargs)

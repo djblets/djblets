@@ -18,10 +18,14 @@ class WebAPIResourceTests(TestCase):
     """Unit tests for djblets.webapi.resources.base."""
 
     def setUp(self):
+        super(WebAPIResourceTests, self).setUp()
+
         self.factory = RequestFactory()
         self.test_resource = None
 
     def tearDown(self):
+        super(WebAPIResourceTests, self).tearDown()
+
         if self.test_resource:
             unregister_resource(self.test_resource)
 

@@ -194,12 +194,13 @@ class TestModelsLoaderMixin(object):
         if not cls.tests_app:
             cls.tests_app = cls.__module__
 
-        tests_module = import_module(cls.tests_app)
+        models_mod_name = '%s.models' % cls.tests_app
 
-        if not module_has_submodule(tests_module, 'models'):
+        try:
+            models_mod = import_module(models_mod_name)
+        except ImportError:
             # Set up a 'models' module, containing any models local to the
             # module that this TestCase is in.
-            models_mod_name = '%s.models' % cls.tests_app
             models_mod = imp.new_module(models_mod_name)
             module_name = cls.__module__
 
@@ -215,7 +216,7 @@ class TestModelsLoaderMixin(object):
                     value.__module__ == module_name):
                     models_mod.__dict__[key] = value
 
-            cls._tests_loader_models_mod = models_mod
+        cls._tests_loader_models_mod = models_mod
 
     @classmethod
     def tearDownClass(cls):

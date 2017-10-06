@@ -1,4 +1,4 @@
-{
+(function() {
 
 
 const allowedMimeTypes = [
@@ -81,4 +81,4 @@ Djblets.Avatars.FileUploadSettingsFormView = Djblets.Avatars.ServiceSettingsForm
 });
 
 
-}
+})();

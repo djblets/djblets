@@ -149,13 +149,13 @@ class IsOneOfOperator(BaseConditionOperator):
             condition_value (list):
                 A list of possible values that the lookup value must match.
 
+            **kwargs (dict):
+                Unused extra keyword arguments.
+
         Returns:
             bool:
             ``True`` if the lookup value is present in the list of possible
             values.
-
-            **kwargs (dict):
-                Unused extra keyword arguments.
 
         Raises:
             TypeError:

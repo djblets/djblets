@@ -4,7 +4,8 @@
 {{field}}
 {% else %}
 {%  with field|form_field_has_label_first as label_first %}
-<div class="{{extra_field_classes}}{% if field|is_checkbox_row %} checkbox-row{% endif %}">
+<div class="{{extra_field_classes}}{% if field|is_checkbox_row %} checkbox-row{% endif %}{% if field.errors %} errors{% endif %}{% if field.name %} field-{{field.name}}{% endif %}"
+     {% if field.name %}id="row-{{field.name}}"{% endif %}>
  <div class="field">
   {{field.errors}}
 {%   if not label_first %}{{field}}{% endif %}

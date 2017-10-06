@@ -1,4 +1,4 @@
-{
+(function() {
 
 
 const ParentView = Djblets.Forms.BaseConditionValueFieldView;
@@ -54,4 +54,4 @@ Djblets.Forms.ConditionValueFormFieldView = ParentView.extend({
 });
 
 
-}
+})();

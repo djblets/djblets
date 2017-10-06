@@ -42,6 +42,8 @@ class ConfigPageRegistryTests(SpyAgency, TestCase):
         DynamicConfigPage.registry = cls.registry
 
     def tearDown(self):
+        super(ConfigPageRegistryTests, self).tearDown()
+
         self.registry.reset()
         TestPageOne.form_classes = [TestFormB]
         TestPageTwo.formClasses = [TestFormA, TestFormB]

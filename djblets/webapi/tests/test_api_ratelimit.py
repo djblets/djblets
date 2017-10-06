@@ -17,10 +17,14 @@ class WebAPIRateLimitTests(TestCase):
     """Unit tests for API rate limiting."""
 
     def setUp(self):
+        super(WebAPIRateLimitTests, self).setUp()
+
         self.factory = RequestFactory()
         self.user_resource = UserResource()
 
     def tearDown(self):
+        super(WebAPIRateLimitTests, self).tearDown()
+
         unregister_resource(self.user_resource)
 
     @override_settings(API_ANONYMOUS_LIMIT_RATE='2/h')
@@ -37,7 +41,7 @@ class WebAPIRateLimitTests(TestCase):
 
         # Third one should fail
         response = self.user_resource(request)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 429)
         self.assertEqual(response['X-RateLimit-Limit'], '2')
 
         rsp = json.loads(response.content)

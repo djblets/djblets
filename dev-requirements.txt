@@ -1,5 +1,5 @@
 --allow-all-external
-beanbag-docutils>=1.4
+beanbag-docutils>=1.4.1
 coverage
 django_evolution>=0.7.6
 kgb
