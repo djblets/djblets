@@ -271,11 +271,19 @@ napoleon_numpy_docstring = False
 def linkcode_resolve(domain, info):
     version = djblets.VERSION
 
-    if version[4] == 'final' or version[4] > 0:
+    if version[3] == 'final' or version[4] > 0:
+        branch = 'release-%s.%s' % (version[0], version[1])
+
+        if version[2]:
+            branch += '.%s' % version[2]
+
         if djblets.is_release():
-            branch = 'release-%s.%s.%s' % (version[0], version[1], version[2])
+            branch += version[3]
+
+            if version[4]:
+                branch += '%d' % version[4]
         else:
-            branch = 'release-%s.%s.x' % (version[0], version[1])
+            branch += '.x'
     else:
         branch = 'master'
 
