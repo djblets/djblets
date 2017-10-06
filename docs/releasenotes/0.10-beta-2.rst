@@ -4,7 +4,7 @@
 Djblets 0.10 Beta 2 Release Notes
 =================================
 
-**Release date**: TBD
+**Release date**: October 5, 2017
 
 This release contains all bug fixes and features found in Djblets version
 :doc:`0.9.9 <0.9.9>`.
@@ -16,14 +16,13 @@ Installation
 To install this release, run the following::
 
     $ sudo pip install \
-        --trusted-host downloads.reviewboard.org \
-        -f http://downloads.reviewboard.org/releases/Djblets/0.10/ \
+        -f https://downloads.reviewboard.org/releases/Djblets/0.10/ \
         --pre -U Djblets
 
 Or::
 
     $ sudo easy_install \
-        -f http://downloads.reviewboard.org/releases/Djblets/0.10/ \
+        -f https://downloads.reviewboard.org/releases/Djblets/0.10/ \
         -U Djblets
 
 We **do not** recommend upgrading a production server with this version of
