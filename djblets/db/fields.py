@@ -36,6 +36,7 @@ import weakref
 import django
 from django import forms
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Q
 from django.db.models.signals import (m2m_changed, post_delete, post_init,
@@ -171,15 +172,62 @@ class JSONFormField(forms.CharField):
     normalizing a Python data structure back into a serialized JSON
     string for editing.
     """
+
     def __init__(self, encoder=None, *args, **kwargs):
         super(JSONFormField, self).__init__(*args, **kwargs)
         self.encoder = encoder or DjbletsJSONEncoder(strip_datetime_ms=False)
 
     def prepare_value(self, value):
+        """Prepare a field's value for storage in the database.
+
+        This will encode the value to JSON (unless it's already a string).
+
+        Args:
+            value (object):
+                The JSON-serializable value to encode.
+
+        Returns:
+            unicode: The resulting JSON string.
+        """
         if isinstance(value, six.string_types):
             return value
         else:
             return self.encoder.encode(value)
+
+    def to_python(self, value):
+        """Return the Python representation of the value in the field.
+
+        This will attempt to deserialize the value and return it. If the
+        value is not a string, it will be returned directly.
+
+        Args:
+            value (object):
+                The value stored for the field. This is expected to be a
+                string representing serialized JSON data.
+
+        Returns:
+            object:
+            The deserialized JSON object, or ``None`` if it's an empty string.
+
+        Raises:
+            django.core.exceptions.ValidationError:
+                The value was not able to be deserialized as JSON content.
+        """
+        if isinstance(value, six.string_types):
+            if not value:
+                return None
+
+            try:
+                return json.loads(value)
+            except ValueError as e:
+                raise ValidationError(
+                    six.text_type(e),
+                    code='invalid',
+                    params={
+                        'value': value,
+                    })
+        else:
+            return value
 
 
 class JSONField(models.TextField):
