@@ -606,7 +606,7 @@ class RelationCounterField(CounterField):
     counters to get out of sync. They would then need to be reset using
     ``reinit_{field_name}``.
     """
-    # Stores state across all instances of a RelationCounterField.
+    # Stores state across all saved instances of a RelationCounterField.
     #
     # Django doesn't make it easy to track updates to the other side of a
     # relation, meaning we have to do it ourselves. This dictionary will
@@ -614,17 +614,15 @@ class RelationCounterField(CounterField):
     # a particular model instancee). These objects are used to look up model
     # instances and their RelationCounterFields, given a model name, model
     # instance ID, and a relation name.
-    _instance_states = weakref.WeakValueDictionary()
+    _saved_instance_states = weakref.WeakValueDictionary()
 
-    # Stores instances we're tracking that haven't yet been saved.
+    # Stores instance states we're tracking whose instances haven't yet been
+    # saved.
     #
-    # An unsaved instance may never be saved. We want to keep tabs on it
-    # so we can disconnect any signal handlers if it ever falls out of
-    # scope.
-    #
-    # Note that we're using a plain dictionary here, since we need to
-    # control the weak references ourselves.
-    _unsaved_instances = {}
+    # An unsaved instance may never be saved, but we still need to listen to
+    # events on it. To do this, we set up an InstanceState, like above,
+    # keeping track of the information and signal connections related to it.
+    _unsaved_instance_states = {}
 
     # Most of the hard work really lives in RelationTracker below. Here, we
     # store all registered instances of RelationTracker. There will be one
@@ -632,7 +630,7 @@ class RelationCounterField(CounterField):
     _relation_trackers = {}
 
     class InstanceState(object):
-        """Tracks state for a RelationCounterField assocation.
+        """Tracks state for a RelationCounterField instance assocation.
 
         State instances are bound to the lifecycle of a model instance.
         They keep track of the model instance (using a weak reference) and
@@ -640,13 +638,54 @@ class RelationCounterField(CounterField):
 
         These are used for looking up the proper instance and
         RelationCounterFields on the other end of a reverse relation, given
-        a model, relation name, and IDs, through the _instance_states
-        dictionary.
+        a model, relation name, and IDs, through the
+        :py:attr:`RelationCounterField._saved_instance_states` or
+        :py:attr:`RelationCounterField._unsaved_instance_states` or
+        dictionaries.
+
+        Instance states can either represent saved instances or unsaved
+        instances. Unsaved instance states represent instances that haven't yet
+        been saved to the database (with a primary key of None). While saved
+        instance states exist per-instance/relation name, there's only one
+        unsaved instance state per instance.
+
+        Once an unsaved instance is saved, new instance states will be stored
+        for each field associated (which many turn into multiple states, as
+        there's one per relation name). The old unsaved instance state is then
+        discarded.
         """
+
         def __init__(self, model_instance, fields):
-            self.model_instance_ref = weakref.ref(model_instance)
+            """Initialize the state.
+
+            Args:
+                model_instance (django.db.models.Model):
+                    The model instance that this state tracks.
+
+                fields (list of django.db.models.Field):
+                    The list of field instances tracked along with this state.
+                    For a saved instance state, these are all fields that have
+                    the same relation. For an unsaved instance state, these
+                    are simply all fields tracked on the instance.
+            """
             self.fields = fields
             self.to_clear = set()
+            self.dispatch_uid = '%s.%s:%s' % (self.__class__.__module__,
+                                              self.__class__.__name__,
+                                              id(model_instance))
+            self.model_instance_ref = weakref.ref(model_instance,
+                                                  self._on_instance_destroyed)
+            self.model_cls = model_instance.__class__
+            self.model_instance_id = id(model_instance)
+
+            if model_instance.pk is None:
+                post_save.connect(self._on_instance_first_save,
+                                  sender=self.model_cls,
+                                  dispatch_uid=self.dispatch_uid)
+            else:
+                pre_delete.connect(self._on_instance_pre_delete,
+                                   sender=self.model_cls,
+                                   dispatch_uid=self.dispatch_uid)
 
         @property
         def model_instance(self):
@@ -684,9 +723,101 @@ class RelationCounterField(CounterField):
                 [field.attname for field in self.fields])
 
         def __repr__(self):
-            return '<RelationCounterField.InstanceState for %s.pk=%s>' % (
-                self.model_instance.__class__.__name__,
-                self.model_instance.pk)
+            """Return a string representation of the instance state.
+
+            Returns:
+                unicode:
+                A string representation listing the instance information.
+            """
+            model_instance = self.model_instance
+
+            if model_instance:
+                return '<RelationCounterField.InstanceState for %s.pk=%s>' % (
+                    model_instance.__class__.__name__,
+                    model_instance.pk)
+            else:
+                return (
+                    '<RelationCounterField.InstanceState for %r (destroyed)>'
+                    % self.model_cls)
+
+        def _on_instance_first_save(self, instance, created=False, **kwargs):
+            """Handler for the first save on a newly created instance.
+
+            This will reset information on this instance, removing this
+            existing state, and will then add new instance states for each
+            field relation.
+
+            Args:
+                instance (django.db.models.Model):
+                    The model instance being saved.
+
+                created (bool):
+                    Whether the object was created. This must always be
+                    true for this handler.
+
+                **kwargs (dict):
+                    Extra keyword arguments passed to the handler.
+            """
+            if instance is not self.model_instance:
+                return
+
+            assert created
+            assert instance.pk is not None
+
+            instance_cls = instance.__class__
+
+            # Stop listening immediately for any new signals here.
+            # The Signal stuff deals with thread locks, so we shouldn't
+            # have to worry about reaching any of this twice.
+            post_save.disconnect(sender=instance_cls,
+                                 dispatch_uid=self.dispatch_uid)
+
+            # This is a new row in the database (that is, the model instance
+            # has been saved for the very first time), we need to flush any
+            # existing state. This will ensure the unsaved version of this
+            # state does not remain.
+            RelationCounterField._reset_state(instance_cls=instance_cls,
+                                              instance_pk=instance.pk,
+                                              instance_id=id(instance))
+
+            # Now we can register each RelationCounterField on here.
+            for field in instance_cls._meta.local_fields:
+                if isinstance(field, RelationCounterField):
+                    RelationCounterField._store_state(instance, field)
+
+        def _on_instance_destroyed(self, *args):
+            """Handler for when the instance is destroyed.
+
+            This will remove all state related to the instance. That will
+            result in the state object being destroyed.
+
+            Args:
+                *args (tuple, unused):
+                    Arguments passed to the callback.
+            """
+            RelationCounterField._reset_state(
+                instance_cls=self.model_cls,
+                instance_pk=None,
+                instance_id=self.model_instance_id)
+
+        def _on_instance_pre_delete(self, instance, **kwargs):
+            """Handler for when an instance is about to be deleted.
+
+            This will reset the state of the instance, unregistering it from
+            lists, and removing any pending signal connections.
+
+            Args:
+                instance (django.db.models.Model):
+                    The instance being deleted.
+            """
+            if instance is self.model_instance:
+                RelationCounterField._reset_state(
+                    instance_cls=instance.__class__,
+                    instance_pk=instance.pk,
+                    instance_id=id(instance))
+
+            pre_delete.disconnect(sender=self.model_cls,
+                                  dispatch_uid=self.dispatch_uid)
 
     class RelationTracker(object):
         """Tracks relations and updates state for all affected CounterFields.
@@ -972,47 +1103,95 @@ class RelationCounterField(CounterField):
                 return rel_field.model
 
     @classmethod
-    def _reset_state(cls, instance):
-        """Resets state for an instance.
+    def _reset_state(cls, instance_cls, instance_pk, instance_id):
+        """Reset state for an instance.
 
-        This will clear away any state tied to a particular instance ID (or
-        any instances that no longer have an ID due to being reset by Django).
-        It's used to ensure that any old, removed entries (say, from a previous
-        unit test) are cleared away before storing new state.
+        This will clear away any state tied to a destroyed instance, an
+        instance with a given reference ID, or an instance with a given class
+        and database ID. It's used to ensure that any old, removed entries
+        (say, from a previous unit test, or when transitioning from an unsaved
+        instance to saved) are cleared away before storing new state.
+
+        Args:
+            instance_cls (type):
+                The model class of the instance being removed.
+
+            instance_pk (int):
+                The database ID of the instance (if known and if saved).
+
+            instance_id (int):
+                The reference ID of the instance.
         """
-        for key, state in list(six.iteritems(cls._instance_states)):
-            if (state.model_instance.__class__ is instance.__class__ and
-                state.model_instance.pk == instance.pk):
-                del cls._instance_states[key]
+        for states in (cls._saved_instance_states,
+                       cls._unsaved_instance_states):
+            for key, state in list(six.iteritems(states)):
+                model_instance = state.model_instance
+
+                if (model_instance is None or
+                    id(model_instance) == instance_id or
+                    (model_instance.__class__ is instance_cls and
+                     model_instance.pk == instance_pk)):
+                    del states[key]
 
     @classmethod
     def _store_state(cls, instance, field):
-        """Stores state for a model instance and field.
+        """Store state for a model instance and field.
 
-        This constructs an InstanceState instance for the given model instance
-        and RelationCounterField. It then associates it with the model instance
-        and stores a weak reference to it in _instance_states.
+        This constructs an :py:class:`InstanceState` instance for the given
+        model instance and :py:class:`RelationCounterField`. It then associates
+        it with the model instance and stores it.
+
+        If the instance has not yet been saved, the constructed state will be
+        tied to the instance and stored in :py:attr:`_unsaved_instance_states`.
+        If the instance has been saved, the constructed state will be tied to
+        a combination of the instance and field relation name and stoerd in
+        :py:attr:`_saved_instance_states`.
+
+        Saved instances will have a :samp:`_{fieldname}_state` attribute stored
+        that points to the :py:class:`InstanceState`, keeping the state's
+        reference alive as long as the instance is alive.
         """
-        assert instance.pk is not None
-
-        key = (instance.__class__, instance.pk, field._rel_field_name)
-
-        if key in cls._instance_states:
-            cls._instance_states[key].fields.append(field)
+        if instance.pk is None:
+            states = cls._unsaved_instance_states
+            key = id(instance)
         else:
+            states = cls._saved_instance_states
+            key = (instance.__class__, instance.pk, field._rel_field_name)
+
+        try:
+            state = states[key]
+            state.fields.append(field)
+        except KeyError:
             state = cls.InstanceState(instance, [field])
+            states[key] = state
+
+        if instance.pk is not None:
             setattr(instance, '_%s_state' % field.attname, state)
-            cls._instance_states[key] = state
 
     @classmethod
-    def _get_state(cls, model_cls, instance_id, rel_field_name):
-        """Returns an InstanceState instance for the given parameters.
+    def _get_state(cls, model_cls, instance_pk, rel_field_name):
+        """Return a saved InstanceState instance for the given parameters.
 
-        If no InstanceState instance can be found that matches the
-        parameters, None will be returned.
+        This only considers state for saved instances, as those are the only
+        ones we want to consider for relation tracking updates.
+
+        Args:
+            model_cls (type):
+                The model class of the instance being removed.
+
+            instance_pk (int):
+                The database ID of the instance.
+
+            rel_field_name (unicode):
+                The name of the field relationship associated with the
+                instance.
+
+        Returns:
+            InstanceState:
+            The instance state, or ``None`` if not found.
         """
-        return cls._instance_states.get(
-            (model_cls, instance_id, rel_field_name))
+        return cls._saved_instance_states.get(
+            (model_cls, instance_pk, rel_field_name))
 
     def __init__(self, rel_field_name=None, *args, **kwargs):
         def _initializer(model_instance):
@@ -1029,140 +1208,28 @@ class RelationCounterField(CounterField):
         self._relation_tracker = None
 
     def _do_post_init(self, instance):
-        """Handles initialization of an instance of the parent model.
+        """Handle initialization of an instance of the parent model.
 
         This will begin the process of storing state about the model
         instance and listening to signals coming from the model on the
         other end of the relation.
+
+        Args:
+            instance (django.db.models.Model):
+                The model instance being initialized.
         """
         super(RelationCounterField, self)._do_post_init(instance)
 
-        cls = instance.__class__
-        instance_id = id(instance)
-        signal_connections = []
-
-        # We may not have a ID yet on the instance (as it may be a
-        # newly-created instance not yet saved to the database). In this case,
-        # we need to listen for the first save before storing the state.
-        if instance.pk is None:
-            first_save_dispatch_uid = '%s-%s.%s-first-save' % (
-                instance_id,
-                self.__class__.__module__,
-                self.__class__.__name__)
-
-            post_save.connect(
-                lambda **kwargs: self._on_first_save(
-                    instance_id, dispatch_uid=first_save_dispatch_uid,
-                    **kwargs),
-                weak=False,
-                sender=cls,
-                dispatch_uid=first_save_dispatch_uid)
-            signal_connections.append((post_save, first_save_dispatch_uid))
-
-            self._unsaved_instances[instance_id] = weakref.ref(
-                instance,
-                lambda *args, **kwargs: self._on_unsaved_instance_destroyed(
-                    cls, instance_id, signal_connections))
-        else:
-            RelationCounterField._store_state(instance, self)
-
-        # Get rid of any state when this instance is deleted. The PK is going
-        # to be set to None after our handler is run, and if we don't delete
-        # the entry now, we'll keep a dummy entry around forever.
-        pre_delete_dispatch_uid = '%s-%s.%s-pre-delete' % (
-            instance_id,
-            self.__class__.__module__,
-            self.__class__.__name__)
-
-        pre_delete.connect(
-            lambda instance, **kwargs: self._on_instance_pre_delete(
-                instance_id=instance_id,
-                signal_connections=signal_connections,
-                instance=instance),
-            weak=False,
-            sender=cls,
-            dispatch_uid=pre_delete_dispatch_uid)
-        signal_connections.append((pre_delete, pre_delete_dispatch_uid))
+        RelationCounterField._store_state(instance, self)
 
         if not self._relation_tracker:
-            key = (cls, self._rel_field_name)
+            instance_cls = instance.__class__
+            key = (instance_cls, self._rel_field_name)
             self._relation_tracker = \
                 RelationCounterField._relation_trackers.get(key)
 
             if not self._relation_tracker:
                 self._relation_tracker = \
-                    self.RelationTracker(cls, self._rel_field_name)
+                    self.RelationTracker(instance_cls, self._rel_field_name)
                 RelationCounterField._relation_trackers[key] = \
                     self._relation_tracker
-
-    def _on_first_save(self, expected_instance_id, instance, dispatch_uid,
-                       created=False, **kwargs):
-        """Handler for the first save on a newly created instance.
-
-        This will disconnect the signal and store the state on the instance.
-        """
-        if id(instance) == expected_instance_id:
-            assert created
-
-            # Stop listening immediately for any new signals here.
-            # The Signal stuff deals with thread locks, so we shouldn't
-            # have to worry about reaching any of this twice.
-            post_save.disconnect(sender=instance.__class__,
-                                 dispatch_uid=dispatch_uid)
-
-            cls = self.__class__
-
-            # This is a new row in the database (that is, the model instance
-            # has been saved for the very first time), we need to flush any
-            # existing state.
-            #
-            # The reason is that we may be running in a unit test situation, or
-            # are dealing with code that deleted an entry and then saved a new
-            # one with the old entry's PK explicitly assigned. Using the old
-            # state will just cause problems.
-            cls._reset_state(instance)
-
-            # Now we can register each RelationCounterField on here.
-            for field in instance.__class__._meta.local_fields:
-                if isinstance(field, cls):
-                    cls._store_state(instance, field)
-
-    def _on_instance_pre_delete(self, instance_id, signal_connections,
-                                instance):
-        """Handler for when an instance is about to be deleted.
-
-        This will reset the state of the instance, unregistering it from
-        lists, and removing any pending signal connections.
-
-        Args:
-            instance_id (int):
-                The unique ID of the instance.
-
-            signal_connections (list of tuple):
-                The list of signal connections to remove. Each item is a
-                tuple of ``(signal, dispatch_uid)``.
-
-            instance (django.db.models.Model):
-                The instance being deleted.
-        """
-        self.__class__._reset_state(instance)
-        self._unsaved_instances.pop(instance_id, None)
-
-        instance_cls = instance.__class__
-
-        for signal, dispatch_uid in signal_connections:
-            signal.disconnect(sender=instance_cls,
-                              dispatch_uid=dispatch_uid)
-
-    def _on_unsaved_instance_destroyed(self, cls, instance_id,
-                                       signal_connections):
-        """Handler for when an unsaved instance is destroyed.
-
-        An unsaved instance would still have a signal connection set.
-        We need to disconnect it to keep that connection from staying in
-        memory indefinitely.
-        """
-        del self._unsaved_instances[instance_id]
-
-        for signal, dispatch_uid in signal_connections:
-            signal.disconnect(sender=cls, dispatch_uid=dispatch_uid)

@@ -76,7 +76,16 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
 
         # Make sure the state is clear due to dropped references before
         # each run.
-        self.assertFalse(RelationCounterField._instance_states)
+        self.assertFalse(RelationCounterField._saved_instance_states)
+        self.assertFalse(RelationCounterField._unsaved_instance_states)
+
+    def tearDown(self):
+        super(RelationCounterFieldTests, self).tearDown()
+
+        # Make sure the state is clear due to dropped references after
+        # each run.
+        self.assertFalse(RelationCounterField._saved_instance_states)
+        self.assertFalse(RelationCounterField._unsaved_instance_states)
 
     #
     # Instance tracking tests
@@ -156,7 +165,7 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
         model = M2MRefModel()
         self.assertIsNone(model.pk)
 
-        self.assertEqual(len(pre_delete.receivers), start_pre_delete_count + 1)
+        self.assertEqual(len(pre_delete.receivers), start_pre_delete_count)
         self.assertEqual(len(post_save.receivers), start_post_save_count + 1)
 
     def test_signals_with_save(self):
