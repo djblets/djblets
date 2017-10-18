@@ -40,6 +40,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.dispatch import Signal
 from django.template import Context, Template, TemplateSyntaxError
+from django.test.utils import override_settings
 from django.utils import six
 from django.utils.six.moves import cPickle as pickle
 from kgb import SpyAgency
@@ -650,8 +651,9 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
 
         self.setup_extension(TestExtension, enable=False)
 
-        self.assertEqual(len(self.manager.get_installed_extensions()), 1)
-        self.assertIn(TestExtension, self.manager.get_installed_extensions())
+        self.assertEqual(self.manager.get_installed_extensions(),
+                         [TestExtension])
+        self.assertEqual(len(self.manager.get_enabled_extensions()), 0)
         self.assertTrue(hasattr(TestExtension, 'info'))
         self.assertEqual(TestExtension.info.name, self.test_project_name)
         self.assertTrue(hasattr(TestExtension, 'registration'))
@@ -717,6 +719,33 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertEqual(len(self.manager._uninit_extension.calls), 2)
         self.assertEqual(len(self.manager._init_extension.calls), 2)
         self.assertEqual(self.exceptions, [])
+
+    @override_settings(EXTENSIONS_ENABLED_BY_DEFAULT=[
+        'djblets.extensions.tests.TestExtension',
+    ])
+    def test_load_with_enabled_by_default(self):
+        """Testing ExtensionManager.load with
+        settings.EXTENSIONS_ENABLED_BY_DEFAULT
+        """
+        class TestExtension(Extension):
+            pass
+
+        self.setup_extension(TestExtension, enable=False)
+
+        self.assertEqual(self.manager.get_installed_extensions(),
+                         [TestExtension])
+
+        enabled_extensions = self.manager.get_enabled_extensions()
+        self.assertEqual(len(enabled_extensions), 1)
+        self.assertIsInstance(enabled_extensions[0], TestExtension)
+
+        self.assertTrue(hasattr(TestExtension, 'info'))
+        self.assertEqual(TestExtension.info.name, self.test_project_name)
+        self.assertIsNotNone(TestExtension.instance)
+        self.assertTrue(hasattr(TestExtension, 'registration'))
+        self.assertEqual(TestExtension.registration.name,
+                         self.test_project_name)
+        self.assertTrue(TestExtension.registration.enabled)
 
     def test_sync_database_with_no_settings_version(self):
         """Testing ExtensionManager synchronizes database when no version

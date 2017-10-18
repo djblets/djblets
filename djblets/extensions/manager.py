@@ -232,6 +232,13 @@ class ExtensionManager(object):
     project.
 
     Each project should have one ExtensionManager.
+
+    Projects can set ``settings.EXTENSIONS_ENABLED_BY_DEFAULT`` to a list of
+    extension IDs (class names) that should be automatically enabled when their
+    registrations are first created. This will ensure that those extensions
+    will default to being enabled. If an administrator later disables the
+    extension, it won't automatically re-renable unless the registration is
+    removed.
     """
 
     #: Whether to explicitly install static media files from packages.
@@ -741,6 +748,9 @@ class ExtensionManager(object):
                     class_name = registered_ext.class_name
                     found_registrations[class_name] = registered_ext
 
+            enabled_by_default = \
+                set(getattr(settings, 'EXTENSIONS_ENABLED_BY_DEFAULT', []))
+
             # Go through each registration we still need and couldn't find,
             # and create an entry in the database. These are going to be
             # newly discovered extensions.
@@ -749,6 +759,7 @@ class ExtensionManager(object):
                     try:
                         registered_ext = RegisteredExtension.objects.create(
                             class_name=class_name,
+                            enabled=class_name in enabled_by_default,
                             name=ext_name)
                     except IntegrityError:
                         # An entry was created since we last looked up
