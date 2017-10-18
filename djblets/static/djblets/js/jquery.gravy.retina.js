@@ -22,22 +22,26 @@
  */
 (function($) {
 
-/* Whether or not the browser supports the ``srcset`` attribute.
+
+/**
+ * Whether or not the browser supports the ``srcset`` attribute.
  *
  * All versions of IE and Edge do not support this attribute so we need to
  * polyfill for them.
  */
-var supportsSourceSet = ($('<img src="" />').get().srcset === '');
+var supportsSourceSet = ($('<img src="" />')[0].srcset === '');
 
-/*
+
+/**
  * Parse the ``srcset`` attribute.
  *
  * Args:
- *     srcset (String):
+ *     srcset (string):
  *         The source set, as a string of comma-separated URLs and descriptors.
  *
  * Returns:
- *     Object: A mapping of descriptors to URLs.
+ *     object:
+ *     A mapping of descriptors to URLs.
  */
 function parseSourceSet(srcset) {
     var urls = {},
@@ -63,24 +67,59 @@ function parseSourceSet(srcset) {
     return urls;
 }
 
-/*
- * If appropriate, reload avatar <img> tags with retina resolution equivalents.
+
+/**
+ * Enable Retina images on older browsers.
+ *
+ * This will process a list of image elements containing ``srcset``
+ * attributes and set the image's URL to the ``srcset`` value best matching
+ * the current pixel ratio.
+ *
+ * If the browser natively supports ``srcset``, or the screen's pixel ratio
+ * is 1 (non-Retina), this is a no-op.
+ *
+ * This may be called repeatedly. Images are only updated if the pixel ratio
+ * has changed since last called.
+ *
+ * Args:
+ *     $container (jQuery, optional):
+ *         The container element that contains images somewhere in its tree.
+ *         This defaults to ``document.body``.
+ *
+ *     $selector (string, optional):
+ *         The selector to match images. This defaults to ``img``.
  */
-$.fn.retinaAvatar = function() {
+Djblets.enableRetinaImages = function($container, selector) {
     var pixelRatio = window.devicePixelRatio;
 
-    if (pixelRatio > 1 && !supportsSourceSet) {
-        /*
-         * It is more useful to provide a 2x avatar on a 1.5 pixel ratio than
-         * to provide a 1x avatar.
-          */
-        pixelRatio = Math.ceil(pixelRatio);
+    if (pixelRatio === 1 || supportsSourceSet) {
+        return;
+    }
 
-        $(this).each(function() {
-            var $el = $(this),
-                urls = parseSourceSet($el.attr('srcset') || ''),
-                descriptor,
-                url;
+    /*
+     * It is more useful to provide a 2x image on a 1.5 pixel ratio than
+     * to provide a 1x image.
+      */
+    pixelRatio = Math.ceil(pixelRatio);
+
+    if (!$container) {
+        $container = $(document.body);
+    }
+
+    if (!selector) {
+        selector = 'img';
+    }
+
+    $container.find(selector).each(function() {
+        var $el = $(this),
+            srcset = $el.attr('srcset'),
+            shimmedAt = $el.data('srcset-shimmed-at'),
+            urls,
+            descriptor,
+            url;
+
+        if (srcset && shimmedAt !== pixelRatio) {
+            urls = parseSourceSet(srcset);
 
             for (descriptor = pixelRatio; descriptor > 0; descriptor--) {
                 url = urls[descriptor + 'x'];
@@ -88,20 +127,25 @@ $.fn.retinaAvatar = function() {
                 if (url !== undefined) {
                     $el
                         .attr('src', url)
-                        .addClass('avatar-at' + descriptor + 'x');
+                        .data('srcset-shimmed-at', pixelRatio);
 
-                    return;
+                    break;
                 }
             }
-        });
-    }
-
-    return this;
+        }
+    });
 };
 
-/*
- * If appropriate, reload gravatar <img> tags with retina resolution
- * equivalents.
+
+/**
+ * Enable Retina support for Gravatar image elements.
+ *
+ * This will parse the Gravatar URLs, replacing it with one using a size
+ * more applicable to the screen's pixel ratio.
+ *
+ * Returns:
+ *     jQuery:
+ *     This element, for chaining.
  */
 $.fn.retinaGravatar = function() {
     if (window.devicePixelRatio > 1) {
@@ -119,17 +163,19 @@ $.fn.retinaGravatar = function() {
 };
 
 
-/*
+/**
  * Return a Gravatar URL most appropriate for the display.
  *
  * If on a Retina or other high-DPI display, a higher-resolution Gravatar
  * will be returned.
  *
  * Args:
- *     url (String): The URL to the Gravatar.
+ *     url (string):
+ *         The URL to the Gravatar.
  *
  * Returns:
- *     String: The URL to the Gravatar best matching the current display.
+ *     string:
+ *     The URL to the Gravatar best matching the current display.
  */
 Djblets.getGravatarForDisplay = function(url) {
     if (window.devicePixelRatio > 1) {
@@ -165,5 +211,3 @@ Djblets.getGravatarForDisplay = function(url) {
 
 
 })(jQuery);
-
-// vim: set et:

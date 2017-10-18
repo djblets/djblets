@@ -1,5 +1,5 @@
 {% extends "djblets_forms/admin/base_site.html" %}
-{% load djblets_utils i18n integrations pipeline staticfiles %}
+{% load djblets_images djblets_utils i18n integrations pipeline staticfiles %}
 
 
 {% block title %}
@@ -26,12 +26,9 @@
 {%  for integration_info in integrations %}
     <li>
 {%   if integration_info.icons.1x %}
-     {# TODO: Move to the srcset filter, once it's landed. #}
      <img class="integration-icon"
           src="{{integration_info.icons.1x}}"
-{%    if integration_info.icons.2x %}
-          data-at2x="{{integration_info.icons.2x}}"
-{%    endif %}
+          srcset="{% srcset integration_info.icons %}"
           width="48" height="48" alt="" />
 {%   endif %}
      <div class="integration-details">

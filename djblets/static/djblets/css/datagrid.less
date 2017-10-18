@@ -1,4 +1,4 @@
-@import (reference) "retina.less";
+@import (reference) "mixins/retina.less";
 
 
 @media screen and (max-width: 720px),
@@ -391,8 +391,7 @@
   text-indent: -99999px;
   vertical-align: middle;
 
-  background-image: url("../images/datagrid/icons.png");
-  .at2x('../images/datagrid/icons.png', 66px, 16px);
+  .retina('../images/datagrid/icons.png', 66px 16px, @has-svg: true);
 
   // For IE7
   zoom: 1;
