@@ -529,7 +529,7 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook):
 
 
 class BaseRegistryHook(ExtensionHook):
-    """A hook for registering items with registries.
+    """A hook for registering an item with a registry.
 
     This hook should not be used directly. Instead, it should be subclassed
     with the :py:attr:`registry` attribute set.
@@ -553,3 +553,48 @@ class BaseRegistryHook(ExtensionHook):
     def shutdown(self):
         """Shut down the registry hook and unregister the item."""
         self.registry.unregister(self.item)
+
+
+class BaseRegistryMultiItemHook(ExtensionHook):
+    """A hook for registering multiple items with a registry.
+
+    This hook should not be used directly. Instead, it should be subclassed
+    with the :py:attr:`registry` attribute set.
+
+    Subclasses must use the :py:class:`ExtensionHookPoint` metaclass.
+    """
+
+    #: The registry to register items with.
+    registry = None
+
+    def initialize(self, items):
+        """Initialize the registry hook with the list of items.
+
+        Args:
+            items (list):
+                The list of items to register.
+        """
+        self.items = items
+
+        registered_items = []
+
+        for item in items:
+            try:
+                self.registry.register(item)
+            except Exception:
+                # If there's an error, first unregister all existing items and
+                # then re-raise the error.
+                for item in registered_items:
+                    try:
+                        self.registry.unregister(item)
+                    except:
+                        pass
+
+                raise
+
+            registered_items.append(item)
+
+    def shutdown(self):
+        """Shut down the registry hook and unregister the items."""
+        for item in self.items:
+            self.registry.unregister(item)
