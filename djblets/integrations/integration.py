@@ -102,6 +102,15 @@ class Integration(object):
         self.hooks = set()
         self.enabled = False
 
+    @property
+    def id(self):
+        """The ID of the integration.
+
+        This is an alias around :py:attr:`integration_id`, meant to provide
+        compatibility with an extension's ``id`` attribute.
+        """
+        return self.integration_id
+
     def enable_integration(self):
         """Enable this integration.
 
