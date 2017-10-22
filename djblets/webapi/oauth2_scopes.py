@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 import logging
+import threading
 from collections import defaultdict, deque
 from importlib import import_module
 
@@ -20,6 +21,7 @@ from djblets.webapi.resources.mixins.oauth2_tokens import (
 
 logger = logging.getLogger(__name__)
 
+_enable_lock = threading.Lock()
 _scopes = None
 
 
@@ -78,12 +80,12 @@ def get_scope_dictionary():
                 % (root_resource_path, e)
             )
 
-        _scopes = scopes_cls.from_root(root_resource)
+        _scopes = scopes_cls(root_resource)
 
     return _scopes
 
 
-class WebAPIScopeDictionary(dict):
+class WebAPIScopeDictionary(object):
     """A Web API scope dictionary.
 
     This class knows how to build a list of available scopes from the WebAPI
@@ -93,60 +95,67 @@ class WebAPIScopeDictionary(dict):
     value can be cached.
     """
 
+    def __init__(self, root_resource):
+        """Initialize the scope dictionary.
+
+        Args:
+            root_resource (djblets.webapi.resources.base.WebAPIResource):
+                The root resource to walk in order to build scopes.
+        """
+        self.resource_trees = {root_resource}
+        self._update_lock = threading.Lock()
+        self._scope_dict = {}
+
     @property
-    def scope_list(self):
-        """The list of scopes defined by this dictionary.
+    def scope_dict(self):
+        """The dictionary of scopes defined by this dictionary.
 
         The value is cached so that it will only be recomputed when the
         dictionary is updated.
         """
-        if self._dirty:
-            self._scope_list = list(self)
-            self._dirty = False
+        if not self._scope_dict:
+            with self._update_lock:
+                if not self._scope_dict:
+                    self._walk_resources(self.resource_trees)
 
-        return self._scope_list
+                    assert self._scope_dict
 
-    def __init__(self, *args, **kwargs):
-        """Initialize the scope dictionary.
+        return self._scope_dict
 
-        Args:
-            *args (tuple):
-                Positional arguments to pass to the :py:class:`dict`
-                initializer.
+    def iterkeys(self):
+        """Iterate through all keys in the dictionary.
 
-            **kwargs (dict):
-                Keyword arguments to pass to the :py:class:`dict` initializer.
+        This is used by oauth2_provider when on Python 2.x to get the list
+        of scope keys.
+
+        Yields:
+            unicode:
+            The key for each scope.
         """
-        super(WebAPIScopeDictionary, self).__init__(*args, **kwargs)
+        return self.scope_dict.iterkeys()
 
-        self._dirty = True
-        self._scope_list = None
+    def keys(self):
+        """Iterate through all keys in the dictionary.
 
-    def __setitem__(self, key, value):
-        super(WebAPIScopeDictionary, self).__setitem__(key, value)
-        self._dirty = True
+        This is used by oauth2_provider when on Python 3.x to get the list
+        of scope keys. As such, it's documented as a generator. Calling this
+        on Python 2.x will result in a list being returned instead.
 
-    def __delitem__(self, key):
-        super(WebAPIScopeDictionary, self).__delitem__(key)
-        self._dirty = True
-
-    @classmethod
-    def from_root(cls, root_resource):
-        """Build the scope dictionary from the given resource tree.
-
-        Args:
-            root_resource (djblets.webapi.resources.root.RootResource):
-                The root of the resource tree.
-
-        Returns:
-            WebAPIScopeDictionary:
-            The generated scope dictionary.
+        Yields:
+            unicode:
+            The key for each scope.
         """
-        scopes = cls()
-        scopes.walk_resources([root_resource])
-        return scopes
+        return self.scope_dict.keys()
 
-    def walk_resources(self, resources):
+    def clear(self):
+        """Clear all scopes from the dictionary.
+
+        The next attempt at fetching scopes will repopulate the dictionary
+        from scratch.
+        """
+        self._scope_dict.clear()
+
+    def _walk_resources(self, resources):
         """Traverse the given resource trees and add the appropriate scopes.
 
         Args:
@@ -158,14 +167,9 @@ class WebAPIScopeDictionary(dict):
             list of unicode:
             The list of scopes added by walking the given resources.
         """
-        to_walk = deque(resources)
-        scopes_added = []
-
-        while to_walk:
-            resource = to_walk.popleft()
-
-            to_walk.extend(resource.list_child_resources)
-            to_walk.extend(resource.item_child_resources)
+        for resource in resources:
+            self._walk_resources(resource.list_child_resources)
+            self._walk_resources(resource.item_child_resources)
 
             scope_to_methods = defaultdict(set)
 
@@ -198,8 +202,7 @@ class WebAPIScopeDictionary(dict):
             for suffix, methods in six.iteritems(scope_to_methods):
                 scope_name = '%s:%s' % (resource.scope_name, suffix)
 
-                super(WebAPIScopeDictionary, self).__setitem__(
-                    scope_name,
+                self._scope_dict[scope_name] = (
                     _('Ability to perform HTTP %(methods)s on the %(name)s '
                       'resource')
                     % {
@@ -207,12 +210,36 @@ class WebAPIScopeDictionary(dict):
                         'name': resource.name,
                     }
                 )
-                scopes_added.append(scope_name)
 
-        if scopes_added:
-            self._dirty = True
+    def __getitem__(self, key):
+        """Return the description of a given scope.
 
-        return scopes_added
+        Args:
+            key (unicode):
+                The scope's key.
+
+        Returns:
+            unicode:
+            The scope's description.
+
+        Raises:
+            KeyError:
+                The scope's key was not in the dictionary.
+        """
+        return self.scope_dict[key]
+
+    def __contains__(self, key):
+        """Return whether the dictionary has a particular scope.
+
+        Args:
+            key (unicode):
+                The scope's key.
+
+        Returns:
+            bool:
+            ``True`` if the scope is in the dictionary.
+        """
+        return key in self.scope_dict
 
     def __repr__(self):
         """Return a string representation of this object.
@@ -222,7 +249,7 @@ class WebAPIScopeDictionary(dict):
             A string representation of this object.
         """
         return '%s(%r)' % (type(self).__name__,
-                           super(WebAPIScopeDictionary, self).__repr__())
+                           list(six.iterkeys(self.scope_dict)))
 
 
 class ExtensionEnabledWebAPIScopeDictionary(WebAPIScopeDictionary):
@@ -236,20 +263,17 @@ class ExtensionEnabledWebAPIScopeDictionary(WebAPIScopeDictionary):
         """Initialize the scope dictionary.
 
         This adds signal handlers to ensure the dictionary stays up to date
-         when extensions are initialized and uninitialized.
+        when extensions are initialized and uninitialized.
 
         Args:
             *args (tuple):
-                Positional arguments to pass to the :py:class:`dict`
-                initializer.
+                Positional arguments to pass to the parent class.
 
             **kwargs (dict):
-                Keyword arguments to pass to the :py:class:`dict` initializer.
+                Keyword arguments to pass to the the parent class.
         """
         super(ExtensionEnabledWebAPIScopeDictionary, self).__init__(*args,
                                                                     **kwargs)
-
-        self._scopes_by_ext_cls = {}
 
         extension_enabled.connect(self._on_extension_enabled)
         extension_disabled.connect(self._on_extension_disabled)
@@ -257,11 +281,6 @@ class ExtensionEnabledWebAPIScopeDictionary(WebAPIScopeDictionary):
         for manager in get_extension_managers():
             for extension in manager.get_enabled_extensions():
                 self._on_extension_enabled(extension=extension)
-
-    def __del__(self):
-        """Remove all active signal handlers."""
-        extension_enabled.disconnect(self._on_extension_enabled)
-        extension_disabled.disconnect(self._on_extension_disabled)
 
     def _on_extension_enabled(self, extension, **kwargs):
         """Traverse an extensions resource trees when it is enabled.
@@ -273,10 +292,9 @@ class ExtensionEnabledWebAPIScopeDictionary(WebAPIScopeDictionary):
             **kwargs (dict):
                 Ignored keyword arguments from the signal.
         """
-        scopes_added = self.walk_resources(extension.resources)
-
-        if scopes_added:
-            self._scopes_by_ext_cls[type(extension)] = scopes_added
+        if extension.resources:
+            self.resource_trees.update(extension.resources)
+            self.clear()
 
     def _on_extension_disabled(self, extension, **kwargs):
         """Remove an extensions scopes when it is uninitialized.
@@ -288,19 +306,9 @@ class ExtensionEnabledWebAPIScopeDictionary(WebAPIScopeDictionary):
             **kwargs (dict):
                 Ignored keyword arguments from the signal.
         """
-        try:
-            scopes = self._scopes_by_ext_cls.pop(type(extension))
-        except KeyError:
-            return
-
-        for scope in scopes:
-            # This is intentionally referencing the dict.__delitem__ method.
-            super(WebAPIScopeDictionary, self).__delitem__(scope)
-
-        self._dirty = True
-
-
-_old_oauth2_methods = {}
+        if extension.resources:
+            self.resource_trees.difference_update(extension.resources)
+            self.clear()
 
 
 def enable_web_api_scopes(*args, **kwargs):
@@ -317,50 +325,7 @@ def enable_web_api_scopes(*args, **kwargs):
         **kwargs (dict):
             Ignored keyword arguments.
     """
-    if '__getattr__' in _old_oauth2_methods:
-        return
-
-    scopes = settings.OAUTH2_PROVIDER['SCOPES'] = get_scope_dictionary()
-
-    from oauth2_provider.settings import OAuth2ProviderSettings
-
-    _old_oauth2_methods['__getattr__'] = old__getattr__ = \
-        OAuth2ProviderSettings.__getattr__
-
-    def __getattr__(self, key):
-        """Get an attribute from the OAuth2 settings.
-
-        This method handles caching the ``_SCOPES`` setting. When the
-        underlying scopes dictionary is marked as dirty, we will regenerate
-        the list of scopes on-demand and cache it. The cached value will be
-        returned in future calls until the scopes dictionary becomes dirty
-        again.
-
-        Args:
-            key (unicode):
-                The key to look up.
-
-        Returns:
-            object:
-            The attribute value.
-
-        Raises:
-            AttributeError:
-                The attribute is not defined on the settings object.
-        """
-        if key == '_SCOPES':
-            return scopes.scope_list
-        else:
-            return old__getattr__(self, key)
-
-    OAuth2ProviderSettings.__getattr__ = __getattr__
-
-
-def disable_web_api_scopes(*args, **kwargs):
-    from oauth2_provider.settings import OAuth2ProviderSettings
-
-    try:
-        OAuth2ProviderSettings.__getattr__ = _old_oauth2_methods.pop(
-            '__getattr__')
-    except KeyError:
-        pass
+    with _enable_lock:
+        if not isinstance(settings.OAUTH2_PROVIDER['SCOPES'],
+                          WebAPIScopeDictionary):
+            settings.OAUTH2_PROVIDER['SCOPES'] = get_scope_dictionary()

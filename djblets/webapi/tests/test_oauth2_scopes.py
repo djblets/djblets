@@ -2,8 +2,9 @@
 
 from __future__ import unicode_literals
 
-from oauth2_provider.settings import oauth2_settings
 from django.test.utils import override_settings
+from django.utils import six
+from oauth2_provider.settings import oauth2_settings
 
 from djblets.extensions.extension import Extension
 from djblets.extensions.manager import ExtensionManager
@@ -14,7 +15,6 @@ from djblets.webapi.oauth2_scopes import (
     ExtensionEnabledWebAPIScopeDictionary,
     WebAPIScopeDictionary,
     enable_web_api_scopes,
-    disable_web_api_scopes,
     get_scope_dictionary)
 from djblets.webapi.resources.mixins.oauth2_tokens import (
     ResourceOAuth2TokenMixin)
@@ -32,26 +32,84 @@ class WebAPIScopeDictionaryTests(TestCase):
             ResourceOAuth2TokenMixin,
         ])
 
-    def test_scope_list(self):
-        """Testing WebAPIScopeDictionary.scope_list generates and caches
-        scopes
+    def test_scope_dict(self):
+        """Testing WebAPIScopeDictionary.scope_dict generates and caches scopes
         """
-        scopes = WebAPIScopeDictionary.from_root(self._resources.root_resource)
-        scope_list = scopes.scope_list
-
-        # Ensure the scope list is correctly cached.
-        self.assertIs(scopes.scope_list, scope_list)
+        scopes = WebAPIScopeDictionary(self._resources.root_resource)
 
         self.assertEqual(
-            set(scope_list),
+            scopes.scope_dict,
             {
-                'root:read',
-                'item-child:read',
-                'item-child:write',
-                'list-child:read',
-                'list-child:destroy',
-                'parent:read',
+                'root:read': ('Ability to perform HTTP GET on the root '
+                              'resource'),
+                'item-child:read': ('Ability to perform HTTP GET on the '
+                                    'item-child resource'),
+                'item-child:write': ('Ability to perform HTTP PUT, POST on '
+                                     'the item-child resource'),
+                'list-child:read': ('Ability to perform HTTP GET on the '
+                                    'list-child resource'),
+                'list-child:destroy': ('Ability to perform HTTP DELETE on the '
+                                       'list-child resource'),
+                'parent:read': ('Ability to perform HTTP GET on the parent '
+                                'resource'),
             })
+
+    def test_getitem(self):
+        """Testing WebAPIScopeDictionary.__getitem__"""
+        scopes = WebAPIScopeDictionary(self._resources.root_resource)
+
+        self.assertEqual(scopes['root:read'],
+                         'Ability to perform HTTP GET on the root resource')
+
+        with self.assertRaises(KeyError):
+            scopes['bad-key']
+
+    def test_contains(self):
+        """Testing WebAPIScopeDictionary.__contains__"""
+        scopes = WebAPIScopeDictionary(self._resources.root_resource)
+
+        self.assertIn('root:read', scopes)
+        self.assertNotIn('bad-key', scopes)
+
+    def test_iterkeys(self):
+        """Testing WebAPIScopeDictionary with six.iterkeys"""
+        # Note that we have both implemented for Python 2/3 compatibility.
+        # We'll actually be testing how this is used under the hood, with
+        # six.iterkeys().
+        scopes = WebAPIScopeDictionary(self._resources.root_resource)
+
+        self.assertEqual(set(six.iterkeys(scopes)), {
+            'root:read',
+            'item-child:read',
+            'item-child:write',
+            'list-child:read',
+            'list-child:destroy',
+            'parent:read',
+        })
+
+    def test_clear(self):
+        """Testing WebAPIScopeDictionary.clear"""
+        scopes = WebAPIScopeDictionary(self._resources.root_resource)
+
+        self.assertEqual(
+            scopes.scope_dict,
+            {
+                'root:read': ('Ability to perform HTTP GET on the root '
+                              'resource'),
+                'item-child:read': ('Ability to perform HTTP GET on the '
+                                    'item-child resource'),
+                'item-child:write': ('Ability to perform HTTP PUT, POST on '
+                                     'the item-child resource'),
+                'list-child:read': ('Ability to perform HTTP GET on the '
+                                    'list-child resource'),
+                'list-child:destroy': ('Ability to perform HTTP DELETE on the '
+                                       'list-child resource'),
+                'parent:read': ('Ability to perform HTTP GET on the parent '
+                                'resource'),
+            })
+
+        scopes.clear()
+        self.assertEqual(scopes._scope_dict, {})
 
 
 class ExtensionEnabledWebAPIScopeDictionaryTests(ExtensionTestCaseMixin,
@@ -86,58 +144,62 @@ class ExtensionEnabledWebAPIScopeDictionaryTests(ExtensionTestCaseMixin,
 
         cls.extension_class = TestExtension
 
-    def test_scope_list(self):
-        """Testing ExtensionEnabledWebAPIScopeDictionary.scope_list generates
+    def test_scope_dict(self):
+        """Testing ExtensionEnabledWebAPIScopeDictionary.scope_dict generates
         and caches scopes
         """
         self.extension_mgr.disable_extension(self.extension_class.extension_id)
-        scopes = ExtensionEnabledWebAPIScopeDictionary.from_root(
+        scopes = ExtensionEnabledWebAPIScopeDictionary(
             self._resources.root_resource)
 
-        original_scope_list = scopes.scope_list
-        self.assertIs(scopes.scope_list, original_scope_list)
+        original_scope_dict = scopes.scope_dict
 
         base_scopes = {
-            'root:read',
-            'extension:read',
-            'extension:write',
-            'item-child:read',
-            'item-child:write',
-            'list-child:read',
-            'list-child:destroy',
-            'parent:read',
+            'root:read': 'Ability to perform HTTP GET on the root resource',
+            'extension:read': ('Ability to perform HTTP GET on the '
+                               'extension resource'),
+            'extension:write': ('Ability to perform HTTP PUT on the '
+                                'extension resource'),
+            'item-child:read': ('Ability to perform HTTP GET on the '
+                                'item-child resource'),
+            'item-child:write': ('Ability to perform HTTP PUT, POST on '
+                                 'the item-child resource'),
+            'list-child:read': ('Ability to perform HTTP GET on the '
+                                'list-child resource'),
+            'list-child:destroy': ('Ability to perform HTTP DELETE on the '
+                                   'list-child resource'),
+            'parent:read': ('Ability to perform HTTP GET on the parent '
+                            'resource'),
         }
-        self.assertEqual(set(original_scope_list), base_scopes)
+        self.assertEqual(original_scope_dict, base_scopes)
 
         self.extension_mgr.enable_extension(self.extension_class.extension_id)
+        self.assertEqual(scopes._scope_dict, {})
 
-        new_scope_list = scopes.scope_list
-        self.assertIs(scopes.scope_list, new_scope_list)
-        self.assertIsNot(new_scope_list, original_scope_list)
-        self.assertEqual(
-            set(new_scope_list),
-            base_scopes | {
-                'test-ext:read',
-                'test-ext:write',
-                'test-ext:destroy',
-            }
-        )
+        new_base_scopes = dict({
+            'test-ext:read': ('Ability to perform HTTP GET on the test-ext '
+                              'resource'),
+            'test-ext:write': ('Ability to perform HTTP PUT, POST on the '
+                               'test-ext resource'),
+            'test-ext:destroy': ('Ability to perform HTTP DELETE on the '
+                                 'test-ext resource'),
+        }, **base_scopes)
+
+        new_scope_dict = scopes.scope_dict
+        self.assertIs(new_scope_dict, original_scope_dict)
+        self.assertEqual(new_scope_dict, new_base_scopes)
 
         self.extension_mgr.disable_extension(self.extension_class.extension_id)
-        newest_scope_list = scopes.scope_list
-        self.assertIs(scopes.scope_list, newest_scope_list)
-        self.assertIsNot(newest_scope_list, new_scope_list)
-        self.assertIsNot(newest_scope_list, original_scope_list)
-        self.assertEqual(set(newest_scope_list), base_scopes)
+        self.assertEqual(scopes._scope_dict, {})
+
+        newest_scope_dict = scopes.scope_dict
+        self.assertIs(newest_scope_dict, new_scope_dict)
+        self.assertIs(newest_scope_dict, original_scope_dict)
+        self.assertEqual(newest_scope_dict, base_scopes)
 
 
 class ScopeEnablingTests(TestCase):
     """Tests for enabling WebAPI scopes at runtime."""
-
-    def tearDown(self):
-        super(ScopeEnablingTests, self).tearDown()
-
-        disable_web_api_scopes()
 
     @override_settings(
         WEB_API_ROOT_RESOURCE='djblets.webapi.tests.test_oauth2_auth.'
@@ -149,4 +211,11 @@ class ScopeEnablingTests(TestCase):
         scopes = get_scope_dictionary()
 
         self.assertIs(oauth2_settings.SCOPES, scopes)
-        self.assertIs(oauth2_settings._SCOPES, scopes.scope_list)
+        self.assertEqual(set(oauth2_settings._SCOPES), {
+            'root:read',
+            'item-child:read',
+            'item-child:write',
+            'list-child:read',
+            'list-child:destroy',
+            'parent:read',
+        })
