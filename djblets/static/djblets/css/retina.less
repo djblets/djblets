@@ -1,15 +1,33 @@
-// retina.less
-// A helper mixin for applying high-resolution background images (http://www.retinajs.com)
+/**
+ * Backwards-compatibility file for retina.less.
+ *
+ * Callers should use mixins/retina.less instead.
+ *
+ * .. deprecated:: 1.0
+ */
 
-@highdpi: ~"(-webkit-min-device-pixel-ratio: 1.5), (min--moz-device-pixel-ratio: 1.5), (-o-min-device-pixel-ratio: 3/2), (min-resolution: 1.5dppx)";
+@import (reference) "mixins/retina.less";
 
+
+/*
+ * Enable support for a 2x Retina image for an element.
+ *
+ * This is a backwards-compatible mixin for supporting ``@2x`` files for
+ * an image. It will be removed in a future release. It's recommended that
+ * callers use ``.retina()`` from ``mixins/retina.less` instead.
+ *
+ * .. deprecated:: 1.0
+ *
+ * Args:
+ *     path (string):
+ *         The path to the main image file.
+ *
+ *     w (number):
+ *         The width of the main image file.
+ *
+ *     h (number):
+ *         The height of the main image file.
+ */
 .at2x(@path, @w: auto, @h: auto) {
-  background-image: url(@path);
-  @at2x_path: ~`@{path}.replace(/\.\w+$/, function(match) { return "@2x" + match; })`;
-
-  @media @highdpi {
-    background-image: url("@{at2x_path}");
-    background-size: @w @h;
-  }
+  .retina(@path, @w @h);
 }
-

@@ -27,7 +27,7 @@ lesscss_npm_dependencies = {
 
 #: Dependencies required for UglifyJS JavaScript compression.
 uglifyjs_npm_dependencies = {
-    'uglifyjs': '2.4.10',
+    'uglify-js': '2.4.10',
 }
 
 #: Dependencies required for Babel for JavaScript.

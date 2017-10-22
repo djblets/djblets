@@ -42,6 +42,10 @@ class IntegrationTests(IntegrationsTestCase):
         self.assertFalse(self.integration.enabled)
         self.assertFalse(hasattr(self.integration, 'dummy_initted'))
 
+    def test_id(self):
+        """Testing Integration.id"""
+        self.assertEqual(self.integration.id, self.integration.integration_id)
+
     def test_enable_integration(self):
         """Testing Integration.enable_integration"""
         self.integration.enable_integration()

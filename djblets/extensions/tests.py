@@ -40,6 +40,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.dispatch import Signal
 from django.template import Context, Template, TemplateSyntaxError
+from django.test.utils import override_settings
 from django.utils import six
 from django.utils.six.moves import cPickle as pickle
 from kgb import SpyAgency
@@ -58,12 +59,14 @@ from djblets.extensions.extension import Extension, ExtensionInfo
 from djblets.extensions.forms import SettingsForm
 from djblets.extensions.hooks import (DataGridColumnsHook, ExtensionHook,
                                       ExtensionHookPoint, BaseRegistryHook,
-                                      SignalHook, TemplateHook, URLHook)
+                                      BaseRegistryMultiItemHook, SignalHook,
+                                      TemplateHook, URLHook)
 from djblets.extensions.manager import (ExtensionManager, SettingListWrapper,
                                         get_extension_managers)
 from djblets.extensions.settings import Settings
 from djblets.extensions.signals import settings_saved
 from djblets.extensions.views import configure_extension
+from djblets.registries.errors import AlreadyRegisteredError
 from djblets.registries.registry import Registry
 from djblets.testing.testcases import TestCase
 
@@ -650,8 +653,9 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
 
         self.setup_extension(TestExtension, enable=False)
 
-        self.assertEqual(len(self.manager.get_installed_extensions()), 1)
-        self.assertIn(TestExtension, self.manager.get_installed_extensions())
+        self.assertEqual(self.manager.get_installed_extensions(),
+                         [TestExtension])
+        self.assertEqual(len(self.manager.get_enabled_extensions()), 0)
         self.assertTrue(hasattr(TestExtension, 'info'))
         self.assertEqual(TestExtension.info.name, self.test_project_name)
         self.assertTrue(hasattr(TestExtension, 'registration'))
@@ -717,6 +721,33 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertEqual(len(self.manager._uninit_extension.calls), 2)
         self.assertEqual(len(self.manager._init_extension.calls), 2)
         self.assertEqual(self.exceptions, [])
+
+    @override_settings(EXTENSIONS_ENABLED_BY_DEFAULT=[
+        'djblets.extensions.tests.TestExtension',
+    ])
+    def test_load_with_enabled_by_default(self):
+        """Testing ExtensionManager.load with
+        settings.EXTENSIONS_ENABLED_BY_DEFAULT
+        """
+        class TestExtension(Extension):
+            pass
+
+        self.setup_extension(TestExtension, enable=False)
+
+        self.assertEqual(self.manager.get_installed_extensions(),
+                         [TestExtension])
+
+        enabled_extensions = self.manager.get_enabled_extensions()
+        self.assertEqual(len(enabled_extensions), 1)
+        self.assertIsInstance(enabled_extensions[0], TestExtension)
+
+        self.assertTrue(hasattr(TestExtension, 'info'))
+        self.assertEqual(TestExtension.info.name, self.test_project_name)
+        self.assertIsNotNone(TestExtension.instance)
+        self.assertTrue(hasattr(TestExtension, 'registration'))
+        self.assertEqual(TestExtension.registration.name,
+                         self.test_project_name)
+        self.assertTrue(TestExtension.registration.enabled)
 
     def test_sync_database_with_no_settings_version(self):
         """Testing ExtensionManager synchronizes database when no version
@@ -1823,6 +1854,69 @@ class BaseRegistryHookTests(ExtensionTestsMixin, TestCase):
         self.assertEqual(list(self.registry), [])
         item = self.DummyItem(123)
         self.hook_cls(self.extension, item)
+
+        self.extension.shutdown()
+        self.assertEqual(list(self.registry), [])
+
+
+class BaseRegistryMultiItemHookTests(ExtensionTestsMixin, TestCase):
+    """Tests for BaseRegistryMultiItemHooks."""
+
+    class DummyRegistry(Registry):
+        lookup_attrs = ('foo_id',)
+
+    class DummyItem(object):
+        def __init__(self, foo_id):
+            self.foo_id = foo_id
+
+    def setUp(self):
+        super(BaseRegistryMultiItemHookTests, self).setUp()
+
+        self.registry = self.DummyRegistry()
+
+        @six.add_metaclass(ExtensionHookPoint)
+        class DummyRegistryHook(BaseRegistryMultiItemHook):
+            registry = self.registry
+
+        class TestExtension(Extension):
+            pass
+
+        self.hook_cls = DummyRegistryHook
+
+        self.extension = self.setup_extension(TestExtension)
+
+    def test_initialize(self):
+        """Testing BaseRegistryMultiItemHook.initialize"""
+        self.assertEqual(list(self.registry), [])
+
+        item1 = self.DummyItem(123)
+        item2 = self.DummyItem(456)
+        self.hook_cls(self.extension, [item1, item2])
+
+        self.assertIn(item1, self.registry)
+        self.assertIn(item2, self.registry)
+
+    def test_initialize_handles_errors(self):
+        """Testing BaseRegistryMultiItemHook.initialize unregisters all items
+        on registration error
+        """
+        self.assertEqual(list(self.registry), [])
+
+        item1 = self.DummyItem(123)
+        item2 = self.DummyItem(123)
+
+        with self.assertRaises(AlreadyRegisteredError):
+            self.hook_cls(self.extension, [item1, item2])
+
+        self.assertEqual(list(self.registry), [])
+
+    def test_shutdown(self):
+        """Testing BaseRegistryMultiItemHook.shutdown"""
+        self.assertEqual(list(self.registry), [])
+
+        item1 = self.DummyItem(123)
+        item2 = self.DummyItem(456)
+        self.hook_cls(self.extension, [item1, item2])
 
         self.extension.shutdown()
         self.assertEqual(list(self.registry), [])

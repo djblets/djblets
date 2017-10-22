@@ -57,7 +57,7 @@ PIPELINE = {
         '--source-map',
         '--autoprefix=> 2%, ie >= 9'
     ],
-    'UGLIFYJS_BINARY': os.path.join(NODE_PATH, 'uglifyjs', 'bin', 'uglifyjs'),
+    'UGLIFYJS_BINARY': os.path.join(NODE_PATH, 'uglify-js', 'bin', 'uglifyjs'),
 }
 
 INSTALLED_APPS = [

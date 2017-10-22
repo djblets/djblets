@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from django.core.exceptions import ValidationError
 from django.utils import six
 
-from djblets.db.fields import JSONField
+from djblets.db.fields import JSONField, JSONFormField
 from djblets.testing.testcases import TestCase
 
 
@@ -75,3 +75,59 @@ class JSONFieldTests(TestCase):
     def test_validate_with_json_dict(self):
         """Testing JSONField with validating a JSON dictionary"""
         self.field.run_validators({'a': 1, 'b': 2})
+
+
+class JSONFormFieldTests(TestCase):
+    """Unit tests for djblets.db.fields.JSONFormField."""
+
+    def test_prepare_value_with_serialized(self):
+        """Testing JSONFormField.prepare_value with serialized data"""
+        field = JSONFormField()
+        self.assertEqual(field.prepare_value('{"a": 1, "b": 2}'),
+                         '{"a": 1, "b": 2}')
+
+    def test_prepare_value_with_deserialized(self):
+        """Testing JSONFormField.prepare_value with deserialized data"""
+        field = JSONFormField()
+        self.assertEqual(field.prepare_value({'a': 1, 'b': 2}),
+                         '{"a": 1, "b": 2}')
+
+    def test_to_python_with_serialized(self):
+        """Testing JSONFormField.to_python with serialized data"""
+        field = JSONFormField()
+        self.assertEqual(field.to_python('{"a": 1, "b": 2}'),
+                         {'a': 1, 'b': 2})
+
+    def test_to_python_with_deserialized(self):
+        """Testing JSONFormField.to_python with deserialized data"""
+        field = JSONFormField()
+        self.assertEqual(field.to_python({"a": 1, "b": 2}),
+                         {'a': 1, 'b': 2})
+
+    def test_to_python_with_empty_string(self):
+        """Testing JSONFormField.to_python with empty string"""
+        field = JSONFormField()
+        self.assertIsNone(field.to_python(''))
+
+    def test_to_python_with_empty_non_string(self):
+        """Testing JSONFormField.to_python with empty non-string value"""
+        field = JSONFormField()
+        self.assertEqual(field.to_python({}), {})
+        self.assertEqual(field.to_python([]), [])
+
+    def test_to_python_with_validation_error(self):
+        """Testing JSONFormField.to_python with bad JSON data triggering
+        ValidationError
+        """
+        field = JSONFormField()
+
+        with self.assertRaises(ValidationError) as cm:
+            field.to_python('{a: 1}')
+
+        self.assertEqual(cm.exception.message,
+                         'Expecting property name enclosed in double quotes: '
+                         'line 1 column 2 (char 1)')
+        self.assertEqual(cm.exception.code, 'invalid')
+        self.assertEqual(cm.exception.params, {
+            'value': '{a: 1}',
+        })

@@ -1,27 +1,4 @@
-#
-# manager.py -- Extension management and registration.
-#
-# Copyright (c) 2010-2013  Beanbag, Inc.
-# Copyright (c) 2008-2010  Christian Hammond
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"""Extension manager class for supporting extensions to an application."""
 
 from __future__ import unicode_literals
 
@@ -84,6 +61,8 @@ from djblets.util.compat.django.core.files import locks
 
 
 logger = logging.getLogger(__name__)
+
+_extension_managers = weakref.WeakValueDictionary()
 
 
 class SettingListWrapper(object):
@@ -253,6 +232,13 @@ class ExtensionManager(object):
     project.
 
     Each project should have one ExtensionManager.
+
+    Projects can set ``settings.EXTENSIONS_ENABLED_BY_DEFAULT`` to a list of
+    extension IDs (class names) that should be automatically enabled when their
+    registrations are first created. This will ensure that those extensions
+    will default to being enabled. If an administrator later disables the
+    extension, it won't automatically re-renable unless the registration is
+    removed.
     """
 
     #: Whether to explicitly install static media files from packages.
@@ -273,6 +259,13 @@ class ExtensionManager(object):
     VERSION_SETTINGS_KEY = '_extension_installed_version'
 
     def __init__(self, key):
+        """Initialize the extension manager.
+
+        Args:
+            key (unicode):
+                A key that's unique to this extension manager instance. It
+                must also be the same key used to look up Python entry points.
+        """
         self.key = key
 
         self.pkg_resources = None
@@ -294,9 +287,8 @@ class ExtensionManager(object):
 
         # Wrap the INSTALLED_APPS and TEMPLATE_CONTEXT_PROCESSORS settings
         # to allow for ref-counted add/remove operations.
-        self._installed_apps_setting = SettingListWrapper(
-            'INSTALLED_APPS',
-            'installed app')
+        self._installed_apps_setting = SettingListWrapper('INSTALLED_APPS',
+                                                          'installed app')
 
         if hasattr(settings, 'TEMPLATES'):
             # Django >= 1.7
@@ -347,9 +339,32 @@ class ExtensionManager(object):
         self._gen_sync.clear()
 
     def get_absolute_url(self):
+        """Return an absolute URL to the view for listing extensions.
+
+        By default, this simply looks up the "extension-list" URL. Subclasses
+        can override this to provide a more specific URL.
+
+        Returns:
+            unicode:
+            The URL to the extension list view.
+        """
         return reverse('extension-list')
 
     def get_can_disable_extension(self, registered_extension):
+        """Return whether an extension can be disabled.
+
+        Extensions can only be disabled if already enabled or there's a load
+        error.
+
+        Args:
+            registered_extension (djblets.extensions.models.
+                                  RegisteredExtension):
+                The registered extension entry representing the extension.
+
+        Returns:
+            bool:
+            ``True`` if the extension can be disabled. ``False`` if it cannot.
+        """
         extension_id = registered_extension.class_name
 
         return (registered_extension.extension_class is not None and
@@ -357,62 +372,137 @@ class ExtensionManager(object):
                  extension_id in self._load_errors))
 
     def get_can_enable_extension(self, registered_extension):
-        return (registered_extension.extension_class is not None and
-                self.get_enabled_extension(
-                    registered_extension.class_name) is None)
+        """Return whether an extension can be enabled.
+
+        Extensions can only be enabled if already disabled.
+
+        Args:
+            registered_extension (djblets.extensions.models.
+                                  RegisteredExtension):
+                The registered extension entry representing the extension.
+
+        Returns:
+            bool:
+            ``True`` if the extension can be enabled. ``False`` if it cannot.
+        """
+        return (
+            registered_extension.extension_class is not None and
+            self.get_enabled_extension(registered_extension.class_name) is None
+        )
 
     def get_enabled_extension(self, extension_id):
-        """Returns an enabled extension with the given ID."""
-        if extension_id in self._extension_instances:
-            return self._extension_instances[extension_id]
+        """Return an enabled extension for the given exetnsion ID.
 
-        return None
+        Args:
+            extension_id (unicode):
+                The ID of the extension.
+
+        Returns:
+            djblets.extensions.extension.Extension:
+            The extension matching the given ID, if enabled. If disabled or
+            not found, ``None`` will be returned.
+        """
+        return self._extension_instances.get(extension_id)
 
     def get_enabled_extensions(self):
-        """Returns the list of all enabled extensions."""
+        """Return a list of all enabled extensions.
+
+        Returns:
+            list of djblets.extensions.extension.Extension:
+            All extension instances currently enabled.
+        """
         return list(self._extension_instances.values())
 
     def get_installed_extensions(self):
-        """Returns the list of all installed extensions."""
+        """Return a list of all installed extension classes.
+
+        Returns:
+            list of type:
+            All extension classes currently registered.
+        """
         return list(self._extension_classes.values())
 
     def get_installed_extension(self, extension_id):
-        """Returns the installed extension with the given ID."""
-        if extension_id not in self._extension_classes:
+        """Return the installed extension class with the given extension ID.
+
+        The extension class must be available on the system and must be
+        importable.
+
+        Args:
+            extension_id (unicode):
+                The ID of the extension.
+
+        Returns:
+            type:
+            The extension class matching the ID.
+
+        Raises:
+            djblets.extensions.errors.InvalidExtensionError:
+                The extension could not be found.
+        """
+        try:
+            return self._extension_classes[extension_id]
+        except KeyError:
             raise InvalidExtensionError(extension_id)
 
-        return self._extension_classes[extension_id]
-
     def get_dependent_extensions(self, dependency_extension_id):
-        """Returns a list of all extensions required by an extension."""
-        if dependency_extension_id not in self._extension_instances:
-            raise InvalidExtensionError(dependency_extension_id)
+        """Return a list of all extension IDs required by an extension.
 
+        Args:
+            dependency_extension_id (unicode):
+                The ID of the extension to retrieve dependencies for.
+
+        Returns:
+            list of unicode:
+            The list of extension IDs required by this extension.
+
+        Raises:
+            djblets.extensions.errors.InvalidExtensionError:
+                The extension could not be found.
+        """
+        # This will raise InvalidExtensionError if not found.
         dependency = self.get_installed_extension(dependency_extension_id)
-        result = []
+        extension_classes = six.iteritems(self._extension_classes)
 
-        for extension_id, extension in six.iteritems(self._extension_classes):
-            if extension_id == dependency_extension_id:
-                continue
-
-            for ext_requirement in extension.info.requirements:
-                if ext_requirement == dependency:
-                    result.append(extension_id)
-
-        return result
+        return [
+            extension_id
+            for extension_id, extension in extension_classes
+            if (extension_id != dependency_extension_id and
+                dependency in extension.info.requirements)
+        ]
 
     def enable_extension(self, extension_id):
-        """Enables an extension.
+        """Enable an extension.
 
         Enabling an extension will install any data files the extension
         may need, any tables in the database, perform any necessary
         database migrations, and then will start up the extension.
+
+        If the extension is already enabled, this will do nothing.
+
+        After enabling the extension, the
+        :py:data:`djblets.extensions.signals.extension_enabled` signal will be
+        emitted.
+
+        Args:
+            extension_id (unicode):
+                The ID of the extension to enable.
+
+        Raises:
+            djblets.extensions.errors.EnablingExtensionError:
+                There was an error enabling an extension. The error
+                information will be provided.
+
+            djblets.extensions.errors.InvalidExtensionError:
+                The extension could not be found.
         """
         if extension_id in self._extension_instances:
             # It's already enabled.
             return
 
-        if extension_id not in self._extension_classes:
+        try:
+            ext_class = self._extension_classes[extension_id]
+        except KeyError:
             if extension_id in self._load_errors:
                 raise EnablingExtensionError(
                     _('There was an error loading this extension'),
@@ -421,17 +511,18 @@ class ExtensionManager(object):
 
             raise InvalidExtensionError(extension_id)
 
-        ext_class = self._extension_classes[extension_id]
-
-        # Enable extension dependencies
+        # Enable the extension's dependencies.
         for requirement_id in ext_class.requirements:
             self.enable_extension(requirement_id)
 
         extension = self._init_extension(ext_class)
 
+        # Mark this extension as enabled for future threads/processes.
         ext_class.registration.enabled = True
         ext_class.registration.save()
 
+        # Begin updating the settings and synchronization information so that
+        # this process and others will update to use the extension's features.
         clear_template_caches()
         self._bump_sync_gen()
         self._recalculate_middleware()
@@ -441,12 +532,24 @@ class ExtensionManager(object):
         return extension
 
     def disable_extension(self, extension_id):
-        """Disables an extension.
+        """Disable an extension.
 
         Disabling an extension will remove any data files the extension
         installed and then shut down the extension and all of its hooks.
 
         It will not delete any data from the database.
+
+        After disabling the extension, the
+        :py:data:`djblets.extensions.signals.extension_disabled` signal will be
+        emitted.
+
+        Args:
+            extension_id (unicode):
+                The ID of the extension to disable.
+
+        Raises:
+            djblets.extensions.errors.InvalidExtensionError:
+                The extension could not be found.
         """
         has_load_error = extension_id in self._load_errors
 
@@ -455,11 +558,12 @@ class ExtensionManager(object):
                 # It's not enabled.
                 return
 
-            if extension_id not in self._extension_classes:
+            try:
+                extension = self._extension_instances[extension_id]
+            except KeyError:
                 raise InvalidExtensionError(extension_id)
 
-            extension = self._extension_instances[extension_id]
-
+            # Disable each of the extensions depended on by this extension.
             for dependent_id in self.get_dependent_extensions(extension_id):
                 self.disable_extension(dependent_id)
 
@@ -492,21 +596,35 @@ class ExtensionManager(object):
     def install_extension(self, install_url, package_name):
         """Install an extension from a remote source.
 
-        Installs an extension from a remote URL containing the
-        extension egg. Installation may fail if a malformed install_url
-        or package_name is passed, which will cause an InstallExtensionError
-        exception to be raised. It is also assumed that the extension is not
-        already installed.
+        This will attempt to install or upgrade an extension package using
+        :command:`easy_install`.
+
+        Notes:
+            This currently does not support Wheel packages, and is considered a
+            highly-experimental and unsupported feature. The functionality and
+            function signature of this package is expected to change.
+            Basically, expect breakages.
+
+        Args:
+            install_url (unicode):
+                The URL of the package to install.
+
+            package_name (unicode):
+                The name of the package being installed.
+
+        Raises:
+            djblets.extensions.errors.InstallExtensionError:
+                There was an error installing the extension.
         """
         try:
-            easy_install.main(["-U", install_url])
+            easy_install.main(['-U', install_url])
 
             # Update the entry points.
             dist = pkg_resources.get_distribution(package_name)
             dist.activate()
             pkg_resources.working_set.add(dist)
         except pkg_resources.DistributionNotFound:
-            raise InstallExtensionError(_("Invalid package name."))
+            raise InstallExtensionError(_('Invalid package name.'))
         except SystemError:
             raise InstallExtensionError(
                 _('Installation failed (probably malformed URL).'))
@@ -515,15 +633,22 @@ class ExtensionManager(object):
         self.load(True)
 
     def load(self, full_reload=False):
-        """
-        Loads all known extensions, initializing any that are recorded as
-        being enabled.
+        """Load information on all extensions on the system.
 
-        If this is called a second time, it will refresh the list of
-        extensions, adding new ones and removing deleted ones.
+        This will begin looking up all extensions on the system, adding
+        registration entries and enabling any that were previously enabled.
 
-        If full_reload is passed, all state is cleared and we reload all
-        extensions and state from scratch.
+        Calling this a second time will refresh the list of extensions, adding
+        any new ones and deleting old ones.
+
+        This method is designed to be thread-safe. Only one load across threads
+        can occur at once.
+
+        Args:
+            full_reload (bool, optional):
+                If ``True``, a full reload will be performed, disabling all
+                enabled extensions, clearing all state, and re-loading
+                all extension data.
         """
         with self._load_lock:
             self._block_sync_gen = True
@@ -531,11 +656,28 @@ class ExtensionManager(object):
             self._block_sync_gen = False
 
     def shutdown(self):
-        """Shut down the extension manager and all of its extensions."""
+        """Shut down the extension manager and all of its extensions.
+
+        This method is designed to be thread-safe. Only one shutdown across
+        threads can occur at once.
+        """
         with self._shutdown_lock:
             self._clear_extensions()
 
     def _load_extensions(self, full_reload=False):
+        """Load information on all extension on the system.
+
+        This is responsible for the bulk of the work for loading extensions,
+        storing registration information and enabling any extensions that need
+        to be enabled. It's called by :py:meth:`load` in the thread lock and
+        should not otherwise be called directly.
+
+        Args:
+            full_reload (bool, optional):
+                If ``True``, a full reload will be performed, disabling all
+                enabled extensions, clearing all state, and re-loading
+                all extension data.
+        """
         if full_reload:
             # We're reloading everything, so nuke all the cached copies.
             self._clear_extensions()
@@ -543,9 +685,10 @@ class ExtensionManager(object):
             self._load_errors = {}
 
         # Preload all the RegisteredExtension objects
-        registered_extensions = {}
-        for registered_ext in RegisteredExtension.objects.all():
-            registered_extensions[registered_ext.class_name] = registered_ext
+        registered_extensions = {
+            registered_ext.class_name: registered_ext
+            for registered_ext in RegisteredExtension.objects.all()
+        }
 
         found_extensions = {}
         found_registrations = {}
@@ -570,7 +713,7 @@ class ExtensionManager(object):
             # make this easier for users to access by giving it an 'id'
             # variable, which will be accessible both on the class and on
             # instances.
-            class_name = ext_class.id = "%s.%s" % (ext_class.__module__,
+            class_name = ext_class.id = '%s.%s' % (ext_class.__module__,
                                                    ext_class.__name__)
             self._extension_classes[class_name] = ext_class
             found_extensions[class_name] = ext_class
@@ -605,6 +748,9 @@ class ExtensionManager(object):
                     class_name = registered_ext.class_name
                     found_registrations[class_name] = registered_ext
 
+            enabled_by_default = \
+                set(getattr(settings, 'EXTENSIONS_ENABLED_BY_DEFAULT', []))
+
             # Go through each registration we still need and couldn't find,
             # and create an entry in the database. These are going to be
             # newly discovered extensions.
@@ -613,6 +759,7 @@ class ExtensionManager(object):
                     try:
                         registered_ext = RegisteredExtension.objects.create(
                             class_name=class_name,
+                            enabled=class_name in enabled_by_default,
                             name=ext_name)
                     except IntegrityError:
                         # An entry was created since we last looked up
@@ -630,7 +777,6 @@ class ExtensionManager(object):
 
             if (ext_class.registration.enabled and
                 ext_class.id not in self._extension_instances):
-
                 try:
                     self._init_extension(ext_class)
                 except EnablingExtensionError:
@@ -657,9 +803,10 @@ class ExtensionManager(object):
                 del self._extension_classes[class_name]
                 extensions_changed = True
             else:
-                ext_class.info.requirements = \
-                    [self.get_installed_extension(requirement_id)
-                     for requirement_id in ext_class.requirements]
+                ext_class.info.requirements = [
+                    self.get_installed_extension(requirement_id)
+                    for requirement_id in ext_class.requirements
+                ]
 
         # Add the sync generation if it doesn't already exist.
         self._gen_sync.refresh()
@@ -692,11 +839,15 @@ class ExtensionManager(object):
         self._extension_instances = {}
 
     def _init_extension(self, ext_class):
-        """Initializes an extension.
+        """Initialize an extension.
 
         This will register the extension, install any URLs that it may need,
         and make it available in Django's list of apps. It will then notify
         that the extension has been initialized.
+
+        Args:
+            ext_class (type):
+                The extension's class to initialize.
         """
         extension_id = ext_class.id
 
@@ -707,13 +858,16 @@ class ExtensionManager(object):
         except Exception as e:
             logger.exception('Unable to initialize extension %s: %s',
                              ext_class, e)
-            error_details = self._store_load_error(extension_id, e)
             raise EnablingExtensionError(
                 _('Error initializing extension: %s') % e,
-                error_details)
+                self._store_load_error(extension_id, e))
 
-        if extension_id in self._load_errors:
+        # If this extension previously failed to load, and has a stored error,
+        # clear it.
+        try:
             del self._load_errors[extension_id]
+        except KeyError:
+            pass
 
         self._extension_instances[extension_id] = extension
 
@@ -794,21 +948,23 @@ class ExtensionManager(object):
         self._migrate_extension_models(ext_class)
 
     def _uninit_extension(self, extension):
-        """Uninitializes the extension.
+        """Uninitialize the extension.
 
         This will shut down the extension, remove any URLs, remove it from
         Django's list of apps, and send a signal saying the extension was
         shut down.
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension instance to uninitialize.
         """
         extension.shutdown()
 
-        if hasattr(extension, "admin_urlpatterns"):
-            self.dynamic_urls.remove_patterns(
-                extension.admin_urlpatterns)
+        if hasattr(extension, 'admin_urlpatterns'):
+            self.dynamic_urls.remove_patterns(extension.admin_urlpatterns)
 
-        if hasattr(extension, "admin_site_urlpatterns"):
-            self.dynamic_urls.remove_patterns(
-                extension.admin_site_urlpatterns)
+        if hasattr(extension, 'admin_site_urlpatterns'):
+            self.dynamic_urls.remove_patterns(extension.admin_site_urlpatterns)
 
         if hasattr(extension, 'admin_site'):
             del extension.admin_site
@@ -824,22 +980,45 @@ class ExtensionManager(object):
         extension.__class__.instance = None
 
     def _store_load_error(self, extension_id, err):
-        """Stores and returns a load error for the extension ID."""
+        """Store and return a load error for the extension ID.
+
+        Arg:
+            extension_id (unicode):
+                The ID for the exetnsion.
+
+            err (unicode):
+                The error string.
+
+        Returns:
+            unicode:
+            A detailed error message indicating a load failure. This will
+            contain the provided error message and a traceback.
+        """
         error_details = '%s\n\n%s' % (err, traceback.format_exc())
         self._load_errors[extension_id] = error_details
 
         return error_details
 
     def install_extension_media(self, ext_class, force=False):
-        """Installs extension static media.
+        """Install extension static media.
 
-        This method is a wrapper around _install_extension_media_internal to
-        check whether we actually need to install extension media, and avoid
-        contention among multiple threads/processes when doing so.
+        This will check whether we actually need to install extension media,
+        based on the presence and version of the locally-stored extension
+        media. If media needs to be installed, this will pull it out of the
+        extension package and place it in the appropriate static media
+        location.
 
-        We need to install extension media if it hasn't been installed yet,
-        or if the version of the extension media that we installed is different
-        from the current version of the extension.
+        This is thread-safe. If multiple threads are attempting to install
+        extension media at the same time, only one will actually perform the
+        install and the rest will make use of that new media.
+
+        Args:
+            ext_class (type):
+                The extension class owning the static media to install.
+
+            force (bool, optional):
+                Whether to force installation of static media, regardless of
+                the media version.
         """
         # If we're not installing static media, it's assumed that media will
         # be looked up using the static media finders instead. In that case,
@@ -937,9 +1116,13 @@ class ExtensionManager(object):
     def _install_extension_media_internal(self, ext_class):
         """Install static media for an extension.
 
-        Performs any installation necessary for an extension. If the extension
-        has a modern static/ directory, they will be installed into
-        :file:`{settings.STATIC_ROOT}/ext/`.
+        This performs any installation necessary for an extension. If the
+        extension has a modern :file:`static/` directory, they will be
+        installed into :file:`{settings.STATIC_ROOT}/ext/`.
+
+        Args:
+            ext_class (type):
+                The extension class owning the static media to install.
         """
         if pkg_resources.resource_exists(ext_class.__module__, 'htdocs'):
             # This is an older extension that doesn't use the static file
@@ -966,8 +1149,7 @@ class ExtensionManager(object):
 
         if pkg_resources.resource_exists(ext_class.__module__, 'static'):
             extracted_path = \
-                pkg_resources.resource_filename(ext_class.__module__,
-                                                'static')
+                pkg_resources.resource_filename(ext_class.__module__, 'static')
 
             try:
                 shutil.copytree(extracted_path, ext_static_path, symlinks=True)
@@ -979,12 +1161,15 @@ class ExtensionManager(object):
                                  exc_info=True)
 
     def _uninstall_extension(self, extension):
-        """Uninstalls extension data.
+        """Uninstall extension data.
 
-        Performs any uninstallation necessary for an extension.
+        This performs any uninstallation necessary for an extension. That
+        includes the removal of static media, and will disable the registration
+        for the extension.
 
-        This will uninstall the contents of MEDIA_ROOT/ext/ and
-        STATIC_ROOT/ext/.
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension being uninstalled.
         """
         extension.settings.set(self.VERSION_SETTINGS_KEY, None)
         extension.settings.save()
@@ -998,10 +1183,14 @@ class ExtensionManager(object):
                 shutil.rmtree(path, ignore_errors=True)
 
     def _install_admin_urls(self, extension):
-        """Installs administration URLs.
+        """Install administration URLs.
 
         This provides URLs for configuring an extension, plus any additional
         admin urlpatterns that the extension provides.
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension being installed.
         """
         prefix = self.get_absolute_url()
 
@@ -1014,7 +1203,6 @@ class ExtensionManager(object):
         # urlconf is that everything in there gets passed an
         # extension_manager variable, and we don't want to force extensions
         # to handle this.
-
         if extension.is_configurable:
             urlconf = extension.admin_urlconf
 
@@ -1024,8 +1212,7 @@ class ExtensionManager(object):
                         include(urlconf.__name__)),
                 ]
 
-                self.dynamic_urls.add_patterns(
-                    extension.admin_urlpatterns)
+                self.dynamic_urls.add_patterns(extension.admin_urlpatterns)
 
         if getattr(extension, 'admin_site', None):
             extension.admin_site_urlpatterns = [
@@ -1033,15 +1220,18 @@ class ExtensionManager(object):
                     include(extension.admin_site.urls)),
             ]
 
-            self.dynamic_urls.add_patterns(
-                extension.admin_site_urlpatterns)
+            self.dynamic_urls.add_patterns(extension.admin_site_urlpatterns)
 
     def _register_static_bundles(self, extension):
-        """Registers the extension's static bundles with Pipeline.
+        """Register the extension's static bundles with Pipeline.
 
         Each static bundle will appear as an entry in Pipeline. The
         bundle name and filenames will be changed to include the extension
         ID for the static file lookups.
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension containing the static media bundles to register.
         """
         def _add_prefix(filename):
             return 'ext/%s/%s' % (extension.id, filename)
@@ -1068,9 +1258,16 @@ class ExtensionManager(object):
                      'js', '.js')
 
     def _unregister_static_bundles(self, extension):
-        """Unregisters the extension's static bundles from Pipeline.
+        """Unregister the extension's static bundles from Pipeline.
 
-        Every static bundle previously registered will be removed.
+        Every static bundle previously registered for this extension will be
+        removed. Further static media lookups involving the extension will
+        fail.
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension containing the static media bundles to
+                unregister.
         """
         def _remove_bundles(pipeline_bundles, extension_bundles):
             for name, bundle in six.iteritems(extension_bundles):
@@ -1087,36 +1284,41 @@ class ExtensionManager(object):
                             extension.js_bundles)
 
     def _init_admin_site(self, extension):
-        """Creates and initializes an admin site for an extension.
+        """Create and initialize an administration site for an extension.
+
+        The administration site is used for browsing extension-owned database
+        models and providing configuration or other administration-specific
+        views.
 
         This creates the admin site and imports the extensions admin
         module to register the models.
 
-        The url patterns for the admin site are generated in
-        _install_admin_urls().
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension to create the administration site for.
         """
         extension.admin_site = AdminSite(extension.info.app_name)
 
         # Import the extension's admin module.
         try:
             admin_module_name = '%s.admin' % extension.info.app_name
+
             if admin_module_name in sys.modules:
-                # If the extension has been loaded previously and
-                # we are re-enabling it, we must reload the module.
-                # Just importing again will not cause the ModelAdmins
-                # to be registered.
+                # If the extension has been loaded previously and we are
+                # re-enabling it, we must reload the module. Just importing
+                # again will not cause the ModelAdmins to be registered.
                 reload(sys.modules[admin_module_name])
             else:
                 import_module(admin_module_name)
         except ImportError:
             mod = import_module(extension.info.app_name)
 
-            # Decide whether to bubble up this error. If the app just
-            # doesn't have an admin module, we can ignore the error
-            # attempting to import it, otherwise we want it to bubble up.
+            # Decide whether to bubble up this error. If the app just doesn't
+            # have an admin module, we can ignore the error attempting to
+            # import it, otherwise we want it to bubble up.
             if module_has_submodule(mod, 'admin'):
                 raise ImportError(
-                    "Importing admin module for extension %s failed"
+                    'Importing admin module for extension "%s" failed'
                     % extension.info.app_name)
 
     def _add_to_installed_apps(self, extension):
@@ -1204,10 +1406,20 @@ class ExtensionManager(object):
             loading.cache.loaded = False
 
     def _entrypoint_iterator(self):
+        """Iterate through registered Python entry points.
+
+        This is a thin wrapper around
+        :py:func:`pkg_resources.iter_entry_points`. It's primarily here for
+        unit test purposes.
+
+        Yields:
+            pkg_resources.EntryPoint:
+            A Python entry point for the extension manager's key.
+        """
         return pkg_resources.iter_entry_points(self.key)
 
     def _bump_sync_gen(self):
-        """Bumps the synchronization generation value.
+        """Bump the synchronization generation value.
 
         If there's an existing synchronization generation in cache,
         increment it. Otherwise, start fresh with a new one.
@@ -1272,7 +1484,11 @@ class ExtensionManager(object):
             raise InstallExtensionError(six.text_type(e), load_error)
 
     def _recalculate_middleware(self):
-        """Recalculates the list of middleware."""
+        """Recalculate the list of middleware.
+
+        All middleware provided by extensions will be registered in the
+        Django settings and will be used for future requests.
+        """
         self.middleware = []
         done = set()
 
@@ -1280,12 +1496,24 @@ class ExtensionManager(object):
             self.middleware.extend(self._get_extension_middleware(e, done))
 
     def _get_extension_middleware(self, extension, done):
-        """Returns a list of middleware for 'extension' and its dependencies.
+        """Return a list of middleware for an extension and its dependencies.
 
         This is a recursive utility function initially called by
-        _recalculate_middleware() that ensures that middleware for all
-        dependencies are inserted before that of the given extension.  It
-        also ensures that each extension's middleware is inserted only once.
+        :py:meth:`_recalculate_middleware` that ensures that middleware for all
+        dependencies are inserted before that of the given extension. It also
+        ensures that each extension's middleware is inserted only once.
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension to load middleware from.
+
+            done (set):
+                A set of middleware that's already been loaded. Any middleware
+                found that exist in this set will be ignored.
+
+        Returns:
+            list of type:
+            The list of middleware classes for the extension.
         """
         middleware = []
 
@@ -1304,9 +1532,6 @@ class ExtensionManager(object):
         return middleware
 
 
-_extension_managers = weakref.WeakValueDictionary()
-
-
 def get_extension_managers():
     """Return all extension manager instances.
 
@@ -1314,7 +1539,8 @@ def get_extension_managers():
     The order is not guaranteed.
 
     Returns:
-        list: The list of ExtensionManager instances.
+        list of ExtensionManager:
+        The list of all extension manager instances currently registered.
     """
     return _extension_managers.values()
 
