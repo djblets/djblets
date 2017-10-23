@@ -83,7 +83,9 @@ class BaseIntegrationListView(NeedsIntegrationManagerMixin, TemplateView):
             if integration_id in integrations_data:
                 integrations_data[integration_id]['configs'].append(config)
 
-        context['integrations'] = list(six.itervalues(integrations_data))
+        context['integrations'] = sorted(
+            six.itervalues(integrations_data),
+            key=lambda integration: integration['name'])
 
         return context
 
