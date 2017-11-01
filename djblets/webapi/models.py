@@ -9,6 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from djblets.db.fields import JSONField
 from djblets.webapi.managers import WebAPITokenManager
+from djblets.webapi.signals import webapi_token_updated
 
 
 @python_2_unicode_compatible
@@ -47,6 +48,27 @@ class BaseWebAPIToken(models.Model):
 
     def __str__(self):
         return 'Web API token for %s' % self.user
+
+    def save(self, *args, **kwargs):
+        """Save the token.
+
+        If the token is being updated, the
+        :py:data:`~djblets.webapi.signals.webapi_token_updated` signal will be
+        emitted.
+
+        Args:
+            *args (tuple):
+                Positional arguments to pass to the superclass.
+
+            **kwargs (dict):
+                Keyword arguments to pass to the superclass.
+        """
+        is_new = self.pk is None
+
+        super(BaseWebAPIToken, self).save(*args, **kwargs)
+
+        if not is_new:
+            webapi_token_updated.send(instance=self, sender=type(self))
 
     @classmethod
     def get_root_resource(self):
