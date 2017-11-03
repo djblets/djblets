@@ -14,6 +14,7 @@ from django.utils.six.moves import range
 from django.utils.translation import ugettext_lazy as _
 
 from djblets.webapi.errors import WebAPITokenGenerationError
+from djblets.webapi.signals import webapi_token_created
 
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ class WebAPITokenManager(Manager):
     """Manages WebAPIToken models."""
 
     def generate_token(self, user, max_attempts=20, note=None, policy={},
-                       **kwargs):
+                       auto_generated=False, **kwargs):
         """Generate a WebAPIToken for a user.
 
         This will attempt to construct a unique WebAPIToken for a user.
@@ -47,6 +48,13 @@ class WebAPITokenManager(Manager):
             policy (dict, optional):
                 The policy document describing what this token can access
                 in the API. By default, this provides full access.
+
+            auto_generated (bool, optional):
+                Whether or not the token is being automatically generated.
+
+                This parameter does not affect token generation. It's value
+                will solely be used in the
+                :py:data:`~djblets.webapi.signals.webapi_token_created` signal.
 
             **kwargs (dict):
                 Additional keyword arguments representing fields in the token.
@@ -73,14 +81,21 @@ class WebAPITokenManager(Manager):
             token = sha.hexdigest()
 
             try:
-                return self.create(user=user,
-                                   token=token,
-                                   note=note or '',
-                                   policy=policy,
-                                   **kwargs)
+                token = self.create(user=user,
+                                    token=token,
+                                    note=note or '',
+                                    policy=policy,
+                                    **kwargs)
             except IntegrityError:
                 # We hit a collision with the token value. Try again.
                 pass
+            else:
+                webapi_token_created.send(
+                    instance=token,
+                    auto_generated=auto_generated,
+                    sender=type(token),
+                )
+                return token
 
         # We hit our limit. The database is too full of tokens.
         logger.error('Unable to generate unique API token for %s after '
