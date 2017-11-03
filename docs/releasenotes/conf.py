@@ -234,7 +234,8 @@ intersphinx_mapping = {
     'django1.10': ('%s/1.10.x/' % django_doc_base_url, None),
     'python27': ('https://docs.python.org/2.7', None),
     'djblets0.9': ('%s/docs/djblets/0.9/' % rbwebsite_url, None),
-    'djblets0.10': ('%s/docs/djblets/0.10/' % rbwebsite_url, None),
+    'djblets0.10': ('%s/docs/djblets/1.0/' % rbwebsite_url, None),
+    'djblets1.0': ('%s/docs/djblets/1.0/' % rbwebsite_url, None),
     'djblets-latest': ('%s/docs/djblets/latest/' % rbwebsite_url, None),
 }
 
