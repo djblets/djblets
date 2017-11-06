@@ -5,12 +5,15 @@ Djblets Release Notes
 =====================
 
 
-0.10 Releases
-=============
+1.0 Releases
+============
+
+(The 1.0 release was previously known as 0.10 in the betas.)
 
 .. toctree::
    :maxdepth: 1
 
+   1.0-rc-1
    0.10-beta-2
    0.10-beta-1
 

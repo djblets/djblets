@@ -1,0 +1,204 @@
+.. default-intersphinx:: djblets1.0 django1.6
+
+==============================
+Djblets 1.0 RC 1 Release Notes
+==============================
+
+**Release date**: TBD
+
+This release contains all bug fixes and features found in Djblets version
+:doc:`0.9.9 <0.9.9>`.
+
+
+Installation
+============
+
+To install this release, run the following::
+
+    $ sudo pip install \
+        -f https://downloads.reviewboard.org/releases/Djblets/1.0/ \
+        --pre -U Djblets
+
+Or::
+
+    $ sudo easy_install \
+        -f https://downloads.reviewboard.org/releases/Djblets/1.0/ \
+        -U Djblets
+
+We **do not** recommend upgrading a production server with this version of
+Djblets. This version is still in development, and is not guaranteed to have
+API stability.
+
+
+Packaging
+=========
+
+* The ``uglify-js`` package from NPM is now used instead of the legacy
+  ``uglifyjs``.
+
+
+djblets.datagrids
+=================
+
+* Removed dead space causing clicking issues in the datagrid's Edit Columns
+  menu.
+
+
+djblets.db
+==========
+
+* Fixed a deadlock bug in :py:class:`~djblets.db.fields.RelationCounterField`
+  in 0.10 Beta 2.
+
+* Fixed deserializing form data in
+  :py:class:`~djblets.db.fields.JSONFormField`.
+
+
+djblets.extensions
+==================
+
+* Added support for configuring certain extension IDs to auto-enable when
+  newly scanned by the extension manager.
+
+  ``settings.EXTENSIONS_ENABLED_BY_DEFAULT`` can be set to a list of extension
+  IDs that should be auto-enabled when first found by the extension manager.
+
+  Disabling these extensions will not cause them to re-enable automatically in
+  future scans.
+
+* Added a new :py:class:`~djblets.extensions.hooks.BaseRegistryMultiItemHook`
+  for hooks that need to register multiple items at once in a registry.
+
+
+djblets.integrations
+====================
+
+* Added an :py:attr:`Integration.id
+  <djblets.integrations.integration.Integration.id>` attribute.
+
+  This is an alias for :py:attr:`Integration.integration_id
+  <djblets.integrations.integration.Integration.integrationid>`, allowing
+  code (such as hooks) to more easily work with either an extension or an
+  integration.
+
+* The list of integrations are now sorted in the administration UI.
+
+
+djblets.util.json_utils (new)
+=============================
+
+* Added :py:func:`~djblets.util.json_utils.json_merge_patch` for performing a
+  `JSON Merge Patch`_.
+
+  JSON Merge Patches are used to apply a set of changes to a JSON-compatible
+  data structure. They allow for adding new values (which may be complex
+  JSON documents) to dictionaries, removing keys from dictionaries, or
+  replacing existing values of any type.
+
+  The patching operation also allows for specifying a function to govern
+  write access to keys, preventing calls from overwriting or deleting parts of
+  a JSON document.
+
+  This can be used by API resources that need to allow callers to modify
+  complex JSON documents.
+
+* Added :py:func:`~djblets.util.json_utils.json_patch` for performing a
+  `JSON Patch`_.
+
+  A JSON Patch is another method of applying a set of changes to a JSON
+  document. Unlike JSON Merge Patches, a JSON patch is specified as a list of
+  operations to perform on a target JSON document, all of which must succeed
+  for the patch to be completed. These patches allow for adding data to
+  dictionaries or within arrays, removing data from dictionaries or arrays,
+  replacing values, copying or moving data, and testing/sanity-checking
+  certain values before allowing a patch to complete.
+
+  This also allows for specifying separate functions that govern read or write
+  access to keys, helping protect data from being altered or used as a source
+  for a copy/move/test.
+
+  This is also intended for use in API resources that want to provide more
+  fine-grained modifications to JSON documents.
+
+* Added :py:func:`~djblets.util.json_utils.json_resolve_pointer` and
+  :py:func:`~djblets.util.json_utils.json_get_pointer_info` for looking up
+  data using `JSON Pointers`_.
+
+  JSON Pointers are a way of referencing data within a JSON document,
+  navigating dictionaries and arrays, based on a path.
+
+  :py:func:`~djblets.util.json_utils.json_resolve_pointer` takes a
+  fully-resolvable JSON Pointer path and returns the value at that location,
+  raising an exception if the path is not valid.
+
+  :py:func:`~djblets.util.json_utils.json_get_pointer_info` resolves as much
+  of a JSON Pointer path as possible, returning information on what it was
+  able to resolve, what was left, and what data was found.
+
+
+.. _JSON Merge Patch: https://tools.ietf.org/html/rfc7386
+.. _JSON Patch: http://jsonpatch.com/
+.. _JSON Pointers: https://tools.ietf.org/html/rfc6901
+
+
+djblets.webapi
+==============
+
+* Calculation of OAuth2 scopes from API resources is now performed on demand
+  instead of at application launch time.
+
+* Added new signals for notifying on API token creation and updating.
+
+  The new :py:data:`~djblets.webapi.signals.webapi_token_created` signal is
+  emitted whenever a new token is generated, and
+  :py:data:`~djblets.webapi.signals.webapi_token_updated` is emitted whenever
+  an existing token is updated.
+
+* Added an ``auto_generated`` flag to
+  :py:meth:`WebAPITokenManager.generate_token
+  <djblets.webapi.managers.WebAPITokenManager.generate_token>`.
+
+  This flag does not directly affect token generation, but rather is passed
+  to the signals so that consuming applications can handle the creation of
+  manually-generated tokens separately from auto-generated tokens (for
+  instance, sending an e-mail to a user only if manually-generated).
+
+
+jquery.gravy.retina
+===================
+
+* Added a :js:func:`Djblets.enableRetinaImages` function for enabling
+  ``<img srcset="...">`` support on older browsers.
+
+  JavaScript code wanting to use ``srcset`` support can call this on a
+  container after adding any new images (or after loading the whole page)
+  to process any images with ``srcset`` on browsers that don't otherwise
+  support it.
+
+  For browsers that do natively support ``srcset``, this function won't do
+  anything at all, and won't impact performance.
+
+* Removed the old :js:func:`jQuery.fn.retinaAvatar` function.
+
+  This has been replaced with :js:func:`Djblets.enableRetinaImages`.
+
+
+LessCSS
+=======
+
+* Added new mixins for high-DPI image support in stylesheets.
+
+  A new ``.retina()`` mixin in ``static/djblets/css/mixins/retina.less``
+  has been added that supports high-DPI images (at 2x and greater DPI ratios).
+  It accepts a ``@max-ratio`` parameter that specifies the highest DPI ratio
+  that there are images for, and a ``@has-svg`` boolean parameter that
+  specifies whether a :file:`.svg` file is available for higher DPIs.
+
+  The old ``.at2x()`` mixin in ``static/djblets/css/retina.less`` is still
+  available for backwards-compatibility.
+
+
+Contributors
+============
+
+* Christian Hammond
