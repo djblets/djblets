@@ -4,7 +4,7 @@
 Djblets 1.0 RC 1 Release Notes
 ==============================
 
-**Release date**: TBD
+**Release date**: November 6, 2017
 
 This release contains all bug fixes and features found in Djblets version
 :doc:`0.9.9 <0.9.9>`.
