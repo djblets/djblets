@@ -201,4 +201,5 @@ LessCSS
 Contributors
 ============
 
+* Barret Rennie
 * Christian Hammond
