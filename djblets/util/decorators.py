@@ -109,7 +109,7 @@ def basictag(takes_context=False):
         def printuser(context):
             return context['user']
 
-    .. deprecated:: 0.10.0
+    .. deprecated:: 1.0
        Use :py:func:`django.template.Library.simple_tag` instead.
     """
     class BasicTagNode(template.Node):

@@ -60,9 +60,9 @@ class ExtensionHook(object):
                def shutdown(self):
                    unregister_thing(self.thing_id)
 
-    .. versionchanged:: 0.10
+    .. versionchanged:: 1.0
 
-       Starting with Djblets 0.10, extension hooks should implement the
+       Starting with Djblets 1.0, extension hooks should implement the
        :py:meth:`initialize` method to handle any initialization. It no longer
        needs to call the parent :py:meth:`shutdown` method, either. However,
        to retain compatibility with older versions, they may still override
@@ -104,9 +104,9 @@ class ExtensionHook(object):
         Subclasses should override :py:meth:`initialize` in order to provide
         any state initialization, rather than overriding this method.
 
-        .. versionchanged:: 0.10
+        .. versionchanged:: 1.0
 
-           Prior to Djblets 0.10, initialization all happened in
+           Prior to Djblets 1.0, initialization all happened in
            :py:meth:`__init__`. Code that needs to remain compatible with
            older versions should continue to do so, but otherwise this code
            should move to :py:meth:`initialize`.
@@ -145,7 +145,7 @@ class ExtensionHook(object):
 
         By default, this does nothing.
 
-        .. versionadded:: 0.10
+        .. versionadded:: 1.0
 
         Args:
             *args (tuple):
@@ -175,10 +175,10 @@ class ExtensionHook(object):
         While in this function, :py:attr:`hook_state` will be set to
         :py:data:`HOOK_STATE_DISABLING`.
 
-        .. versionchanged:: 0.10
+        .. versionchanged:: 1.0
 
            This method used to be responsible both for internal cleanup and the
-           cleanup of the subclass. Starting in Djblets 0.10, internal cleanup
+           cleanup of the subclass. Starting in Djblets 1.0, internal cleanup
            has moved to :py:meth:`disable_hook`. Subclasses no longer
            need to call the parent method unless inheriting from a mixin or
            another :py:class:`ExtensionHook` subclass, but should continue to
@@ -200,7 +200,7 @@ class ExtensionHook(object):
             warnings.warn(
                 '%(name)s.disable_hook() should be called when manually '
                 'disabling the hook instead of %(name)s.shutdown(), starting '
-                'in Djblets 0.10.'
+                'in Djblets 1.0.'
                 % {
                     'name': self.__class__.__name__,
                 },
@@ -222,7 +222,7 @@ class ExtensionHook(object):
         implement :py:meth:`initialize` to handle initialization of the
         state of the hook.
 
-        .. versionadded:: 0.10
+        .. versionadded:: 1.0
 
         Args:
             *args (tuple):
@@ -252,7 +252,7 @@ class ExtensionHook(object):
         without reconstructing the instances later. It's also called
         internally when shutting down an extension.
 
-        .. versionadded:: 0.10
+        .. versionadded:: 1.0
 
         Args:
             call_shutdown (bool, optional):

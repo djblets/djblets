@@ -60,7 +60,7 @@ def definevar(context, nodelist, varname, *options):
     same block or for loop). This is useful for caching a portion of a
     template that would otherwise be expensive to repeatedly compute.
 
-    .. versionadded:: 0.10
+    .. versionadded:: 1.0
 
        Added new ``strip``, ``spaceless``, and ``unsafe`` options.
 
@@ -258,10 +258,10 @@ def attr(context, nodelist, attrname, *options):
     HTML element without requiring several `{% if %}` tags.
 
     The contents will be stripped and all whitespace within condensed before
-    being considered or rendered. This can be turned off (restoring pre-0.10
+    being considered or rendered. This can be turned off (restoring pre-1.0
     behavior) by passing ``nocondense`` as an option.
 
-    .. versionchanged:: 0.10
+    .. versionchanged:: 1.0
 
        Prior to this release, all whitespace before/after/within the
        attribute value was preserved. Now ``nocondense`` is required for this
