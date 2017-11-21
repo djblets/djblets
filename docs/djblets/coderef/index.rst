@@ -335,6 +335,7 @@ Generic Utilities
    djblets.util.filesystem
    djblets.util.http
    djblets.util.humanize
+   djblets.util.json_utils
    djblets.util.serializers
    djblets.util.views
    djblets.util.templatetags.djblets_deco
