@@ -25,7 +25,10 @@
 
 from __future__ import unicode_literals
 
+import warnings
+
 from djblets.forms.forms import KeyValueForm
+from djblets.util.decorators import cached_property
 
 
 class SettingsForm(KeyValueForm):
@@ -43,6 +46,16 @@ class SettingsForm(KeyValueForm):
 
         super(SettingsForm, self).__init__(instance=extension.settings,
                                            *args, **kwargs)
+
+    @cached_property
+    def siteconfig(self):
+        """An alias for the instance, for backwards-compatibility."""
+        warnings.warn(
+            'SettingsForm.siteconfig is deprecated. Update your code to '
+            'use SettingsForm.settings instead.',
+            DeprecationWarning)
+
+        return self.instance
 
     def set_key_value(self, key, value):
         """Set the value for an extension settings key.

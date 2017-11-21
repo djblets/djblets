@@ -1,0 +1,748 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+=========================
+Djblets 1.0 Release Notes
+=========================
+
+**Release date**: November 20, 2017
+
+This release contains all bug fixes and features found in Djblets version
+:doc:`0.9.9 <0.9.9>`.
+
+
+Packaging/Compatibility
+=======================
+
+* Djblets 1.0 requires Python 2.7 or higher.
+
+* Added the beginnings of experimental support for Django 1.7 and higher.
+
+  We're working toward supporting all versions of Django 1.6 and up. This is
+  not complete as of this release, but much of the work has been done.
+  For now, we still recommend Django 1.6 for greatest compatibility.
+
+* Updated to django-pipeline_ 1.6.x.
+
+  This release uses django-pipeline 1.6.x, which requires various changes in
+  your application. Specifically, you'll need to change your
+  :file:`settings.py` file to use the new ``PIPELINE`` attribute, and update
+  your templates to use ``stylesheet`` and ``javascript`` instead of
+  ``compressed_css`` and ``compressed_js``.
+
+  See django-pipeline's `upgrade guide
+  <https://django-pipeline.readthedocs.org/en/1.6.9/installation.html#upgrading-from-1-3>`_
+  for more details.
+
+* The ``uglify-js`` package from NPM is now used instead of the legacy
+  ``uglifyjs``.
+
+
+.. _django-pipeline: https://pypi.python.org/pypi/django-pipeline
+
+
+General
+=======
+
+* Switched to named loggers for all Djblets logging calls.
+
+  This will help to pinpoint which module or class a log statement corresponds
+  to, helping to provide additional context.
+
+
+Style Sheets
+============
+
+* Modernized the look of literal text and code blocks in Markdown rendered
+  text.
+
+  The text is shown as red with a red border and light grey background,
+  resembling the look used on Slack and other services.
+
+  Code blocks have improved margins and padding to help align the rendered
+  text with the source text.
+
+* Added new mixins for high-DPI image support in stylesheets.
+
+  A new ``.retina()`` mixin in ``static/djblets/css/mixins/retina.less``
+  has been added that supports high-DPI images (at 2x and greater DPI ratios).
+  It accepts a ``@max-ratio`` parameter that specifies the highest DPI ratio
+  that there are images for, and a ``@has-svg`` boolean parameter that
+  specifies whether a :file:`.svg` file is available for higher DPIs.
+
+  The old ``.at2x()`` mixin in ``static/djblets/css/retina.less`` is still
+  available for backwards-compatibility.
+
+
+djblets.auth
+============
+
+* Added optional support for login rate limiting.
+
+  Base functionality was added to support rate limiting, making it harder to
+  launch a brute-force attack on a user's account. Consumers can make use of
+  the functionality in :py:mod:`djblets.auth.ratelimit` to limit the number of
+  attempts that an IP address can make in a given time period.
+
+  The rate can be set through ``settings.LOGIN_RATE_LIMIT``. It's in the
+  form of :samp:`{numrequests}/{interval}`, where ``interval`` is ``s`` (for
+  seconds), ``m`` (minutes), ``h`` (hours), or ``d`` (days). The default is
+  ``5/m`` (5 requests per minute).
+
+  Patch by Raman Dhatt.
+
+* The account registration view can now take extra context for the template.
+
+  :py:func:`djblets.auth.views.register` now accepts an ``extra_context``
+  argument for passing custom data down to the template for rendering.
+
+
+djblets.avatars (new)
+=====================
+
+* Added support for configurable avatars.
+
+  This introduces new support for avatar display using Gravatars, uploaded
+  files, URLs, or custom backends.
+
+  Avatars can be customized on a global or per-user basis.
+
+  :ref:`Learn more <avatar-guides>`
+
+
+djblets.cache
+=============
+
+* Added a class for synchronizing generation IDs across processes and servers.
+
+  :py:class:`djblets.cache.synchronizer.GenerationSynchronizer`
+  can be used to synchronize a form of identification across multiple
+  processes or servers, helping to coordinate when state needs to be reloaded
+  from disk, database, another server, etc. When state changes, the caller
+  just needs to mark the synchronizer as updated on their end, and other
+  processes will see the state as expired on their end.
+
+
+.. _1.0-conditions:
+
+djblets.conditions (new)
+========================
+
+* Added support for user-customizable condition rules.
+
+  Conditions are a way to allow applications to give users a degree of
+  flexibility for choosing when certain actions should take place. Users
+  can define one or more conditions, consisting of a choice (a properly
+  on an object to match upon in some form), an operator ("is", "starts with",
+  etc.), and a value (depending on the type of choice and operator), along
+  with whether all or any conditions must be matched.
+
+  These can be used for extension or integration development, or for anything
+  else needed by the application. There are form fields to drop conditions
+  onto a page, and lots of support for crafting types of condition choices
+  and operators.
+
+
+djblets.configforms
+===================
+
+* Added support for dynamically-augmented configuration pages.
+
+  Configuration pages that inherit from
+  :py:class:`djblets.configforms.mixins.DynamicConfigPageMixin` can be
+  augmented by other callers (such as extensions). This makes use of the new
+  `registries <1.0-registries>`_ support.
+
+* Custom configuration pages can now pass extra context to the template.
+
+  Subclasses can override :py:meth:`ConfigPageForm.get_extra_context
+  <djblets.configforms.forms.ConfigPageForm.get_extra_context>`
+  to return extra context that the templates for the page or a form within
+  the page can use, allowing for data to be computed before rendering the
+  template.
+
+* Config Forms now support standard form fieldsets.
+
+  When defining custom fieldsets, there must be a fieldset containing a
+  ``form_target`` field in order for form processing to work.
+
+* :js:class:`Djblets.Config.ListItemView` subclasses can now provide custom
+  content for the template.
+
+  Subclasses can implement ``getRenderContext`` to return a dictionary of
+  data that should be rendered into the template.
+
+
+djblets.datagrids
+=================
+
+* Added a :py:attr:`Column.link_css_class
+  <djblets.datagrid.grids.Column.link_css_class>` for specifying CSS class
+  names for links.
+
+* Fixed and improved styling for links in datagrid cells.
+
+  Some columns had an extra ``<a>`` in the content, partly due to a bug in
+  the renderer and partly due to the inclusion of a ``<div>`` inside the
+  ``<a>`` (which isn't valid HTML). This led to some bad link styling in the
+  page.
+
+  The cells also now have a ``has-link`` CSS class, to further help with
+  styling.
+
+* Fixed ``link=False`` not being respected for datagrid columns.
+
+* Removed dead space causing clicking issues in the datagrid's Edit Columns
+  menu.
+
+
+djblets.db
+==========
+
+* Added custom object serialization for
+  :py:class:`djblets.db.fields.JSONField`.
+
+  Objects being stored can now handle their own serialization by implementing
+  a :py:meth:`to_json` method.
+
+  There is no support for custom deserialization into objects.
+
+* Counters managed by :py:class:`djblets.db.fields.CounterField` are no longer
+  saved by default when saving the model.
+
+  This prevents issues where a model with an older counter value would
+  override the correct value in the database. Now, counters are only saved if
+  explicitly requested in ``update_fields``.
+
+* Added a method for prefixing query expressions.
+
+  :py:func:`djblets.db.query.prefix_q` is used to provide a prefix to all
+  :py:class:`django.db.models.Q` objects for a query.  This can be used to
+  create a common query expression and to allow a caller to tailor it for a
+  relation on another object.
+
+* Fixed stale state issues in
+  :py:class:`djblets.db.fields.RelationCounterField` when deleting models.
+
+* Fixed deserializing form data in
+  :py:class:`djblets.db.fields.JSONFormField`.
+
+
+djblets.extensions
+==================
+
+* Simplified writing extension hooks.
+
+  :py:class:`djblets.extensions.hooks.ExtensionHook` subclasses can now
+  override :py:meth:`~djblets.extensions.hooks.ExtensionHook.initialize`
+  instead of :py:meth:`~djblets.extensions.hooks.ExtensionHook.__init__` to
+  perform setup work for a hook. These don't need to call the parent method,
+  and are simpler to use.
+
+* Add proper support for dynamically enabling/disabling extension hooks.
+
+  Extension hooks can now be safely disabled by calling
+  :py:meth:`~djblets.extensions.hooks.ExtensionHook.disable_hook` and
+  re-enabled by calling
+  :py:meth:`~djblets.extensions.hooks.ExtensionHook.enable_hook`. The current
+  state can be checked by looking at
+  :py:attr:`~djblets.extensions.hooks.ExtensionHook.hook_state` or
+  :py:attr:`~djblets.extensions.hooks.ExtensionHook.initialized`.
+
+  Extension hook instances can also be created without being enabled by
+  default by passing ``start_enabled=True`` when instantiating.
+
+* Added support for configuring certain extension IDs to auto-enable when
+  newly scanned by the extension manager.
+
+  ``settings.EXTENSIONS_ENABLED_BY_DEFAULT`` can be set to a list of extension
+  IDs that should be auto-enabled when first found by the extension manager.
+
+  Disabling these extensions will not cause them to re-enable automatically in
+  future scans.
+
+* Added a convenience method for getting the URL for an extension's static
+  media.
+
+  The new :py:meth:`Extension.get_static_url
+  <djblets.extensions.extension.Extension.get_static_url>` returns the URL for
+  a given static media file shipped by the extension.
+
+* Added base extension hooks for working with `registries <1.0-registries>`_.
+
+  :py:class:`djblets.extensions.hooks.BaseRegistryHook` can be subclassed by
+  applications to easily provide hooks that interface with registries,
+  handling registration when enabled or unregistration when disabled.
+
+  :py:class:`djblets.extensions.hooks.BaseRegistryMultiItemHook` is similar,
+  but allows for registering/unregistering multiple items at once with a
+  registry, capturing errors in the process and gracefully handling them.
+
+* Improved database synchronization and static media installation for
+  extensions in multi-deployment setups.
+
+  We previously kept a version identifier stored in the extension settings
+  to help determine when static media needed to be installed, but this didn't
+  work so well for multi-deployment setups. We also used this to determine
+  when to perform a database synchronization.
+
+  Now both of these requirements are stored separately, and media installation
+  will happen automatically as needed. This will also help when moving a
+  Review Board installation to a new server.
+
+* Failing to load an uninstalled extension now shows an appropriate error
+  message.
+
+* Errors during the installation of extension media are now logged, and no
+  longer cause a page crash.
+
+
+djblets.features (new)
+======================
+
+* Added support for light-weight feature checks.
+
+  Feature checks (also known as feature switches/toggles) are a way to allow
+  new features to be built and tested in a codebase without exposing them to
+  every user.
+
+  The feature check support in Djblets is built to make feature checks easy
+  to use and flexible to consume. Applications can implement feature checker
+  classes that determine how a feature is checked. These can check a
+  hard-coded list of features in :file:`settings.py`, a list in the site
+  configuration, a list against a user or an organization account, or anything
+  else the application needs.
+
+  :ref:`Learn more <feature-checks-guides>`
+
+
+djblets.forms
+=============
+
+* Added a new form base class for storing key/value data in a dictionary
+  or dictionary-like object.
+
+  :py:class:`djblets.forms.forms.key_value_form.KeyValueForm` makes it easy to
+  load data from a dictionary and save it back to the dictionary. It supports
+  advanced features like disabling certain fields from being edited, setting
+  text describing why the fields are disabled, and blacklisting certain fields
+  from being loaded from or written to the dictionary.
+
+  Subclasses can override this and provide smarter load/save support or
+  adapt the form to work with other types of objects that don't act exactly
+  like a dictionary.
+
+* Added form fields for working with `conditions <1.0-conditions>`_.
+
+* Added a new base template for customizable administration change forms.
+
+  The ``djblets_forms/admin/change_form_page.html`` template makes it easier
+  to have an administration page for a change form, without using the Django
+  admin model functionality. This forms the basis for extension configuration
+  and siteconfig settings pages and supports all standard features (fieldsets,
+  help text, custom widgets, and more).
+
+  Along with this, there's a ``djblets_forms/admin/form_field.html`` template
+  for form fields that live in the change form, and
+  ``djblets_forms/admin/form_fieldsets.html`` for fieldsets.
+
+* Added an input widget with a "Copy to Clipboard" link.
+
+  :py:class:`djblets.forms.widgets.CopyableTextInput` works as a standard
+  text input with a button that will copy the text into the clipboard. This
+  is useful for any field that may include data you may want in another app,
+  such as an API token.
+
+* Added a widget for editing a delimited list of values as a list of input
+  fields.
+
+  :py:class:`djblets.forms.widgets.ListEditWidget` takes a string containing
+  a delimited list of values and renders a field input for each one, allowing
+  the values to be edited individually and re-assembled into a string when
+  saving. New items can be added and existing items removed.
+
+* Added support for rendering Django administration widgets outside of the
+  administration UI.
+
+* Updated the form templates and fieldset support for better consistency
+  across admin and non-admin forms.
+
+
+djblets.integrations (new)
+==========================
+
+* Added new support for creating and consuming third-party service
+  integrations.
+
+  Integrations are similar to extensions in that they can augment a product
+  with new functionality. Unlike extensions, they have built-in support for
+  creating and using any number of distinct configurations, allowing, for
+  instance, a Slack integration to post to different channels depending on
+  different conditions.
+
+  Integrations can make use of extension hooks, just like an extension.
+  Integrations and their hooks are not enabled until there's at least one
+  enabled configuration for the integration.
+
+  :ref:`Learn more <integration-guides>`
+
+
+djblets.log
+===========
+
+* Added a setting for blacklisting unwanted loggers.
+
+  ``settings.LOGGING_BLACKLIST`` can be set to a list of logger names that
+  should be filtered from the loggers. By default, this includes
+  ``django.db.backends``, preventing all SQL statements from being logged in a
+  development environment.
+
+
+djblets.markdown
+================
+
+* Added compatibility with Python-Markdown 2.5 and 2.6.
+
+  Python-Markdown 2.4 through 2.6 is now supported. As there are behavioral
+  changes with newer versions, additional extensions have been added to retain
+  the abilities we used in 2.4. In particular, the ``safe_mode=`` argument
+  has been removed, so a new
+  :py:class:`djblets.markdown.extensions.escape_html.EscapeHTMLExtension` has
+  been added.
+
+
+djblets.pipeline
+================
+
+* Added a django-pipeline compiler for compiling :file:`*.es6.js` files as
+  ES6 JavaScript.
+
+  The :py:class:`djblets.pipeline.compilers.es6.ES6Compiler` can be used to
+  match :file:`*.es6.js` files and compile them as ES6 JavaScript. This can be
+  used by adding ``djblets.pipeline.compilers.es6.ES6Compiler`` to
+  ``settings.PIPELINE['COMPILERS']``.
+
+* Added a more efficient LessCSS compiler that only recompiles when necessary.
+
+  The :py:class:`djblets.pipeline.compilers.less.LessCompiler` is an
+  improvement over the default compiler that better inspects dependencies and
+  recompiles files when there are actual changes, rather than recompiling on
+  every page load.
+
+  This can be used by adding ``djblets.pipeline.compilers.less.LessCompiler``
+  to ``settings.PIPELINE['COMPILERS']``.
+
+
+djblets.recaptcha (new)
+=======================
+
+* Added a module for working with reCAPTCHA_.
+
+  This provides easy support for using reCAPTCHA. Forms can make use of the
+  :py:class:`djblets.recaptcha.mixins.RecaptchaFormMixin` to display and
+  process a reCAPTCHA. There are also widgets, template tags, and siteconfig
+  support, which can be used as well.
+
+  :ref:`Learn more <recaptcha-guides>`
+
+
+.. _reCAPTCHA: https://www.google.com/recaptcha/intro/
+
+
+.. _1.0-registries:
+
+djblets.registries (new)
+========================
+
+* Added registries, which are used to register and look up objects.
+
+  Registries are classes that provide registration, lookup, iteration,
+  validation, and error reporting for a type of value. These can be used to
+  provide extensibility for parts of an application. Consumers can subclass
+  the base registry class (:py:class:`djblets.registries.registry.Registry`)
+  to provide registry functionality, and then create an instance in a module
+  for callers to use.
+
+  The :py:class:`djblets.registries.registry.OrderedRegistry` subclass can be
+  used when items in a registry need to maintain their order when listed.
+
+  The :py:class:`djblets.registries.registry.EntryPointRegistry` subclass can
+  be used for registries that are backed by Python Entrypoints, helping bring
+  extensibility to applications already allowing hooks from other Python
+  packages.
+
+  :ref:`Learn more <registry-guides>`
+
+
+djblets.testing
+===============
+
+* Fixed a bug where models registered by
+  :py:class:`~djblets.testing.testcases.TestModelsLoaderMixin` could
+  contaminate other tests.
+
+
+djblets.util.decorators
+=======================
+
+* Deprecated :py:func:`djblets.util.decorators.basictag`.
+
+  :py:meth:`django.template.Library.simple_tag` in Django 1.6 and higher
+  provide all the same functionality that this provides. We will be removing
+  our version in a future release.
+
+* Added a ``resolve_vars`` option to
+  :py:func:`djblets.util.decorators.blocktag`.
+
+  This controls whether values passed in to a template tag in the template
+  will automatically be resolved (which is the default). If ``False``, the
+  tokens will be made available to the tag directly.
+
+* Added support for variable arguments to
+  :py:func:`djblets.util.decorators.blocktag`.
+
+  Block template tags can now take an ``*args``, turning off the maximum
+  argument checking and allowing the template tag to take full control over
+  the provided arguments.
+
+
+djblets.util.json_utils (new)
+=============================
+
+* Added :py:func:`~djblets.util.json_utils.json_merge_patch` for performing a
+  `JSON Merge Patch`_.
+
+  JSON Merge Patches are used to apply a set of changes to a JSON-compatible
+  data structure. They allow for adding new values (which may be complex
+  JSON documents) to dictionaries, removing keys from dictionaries, or
+  replacing existing values of any type.
+
+  The patching operation also allows for specifying a function to govern
+  write access to keys, preventing calls from overwriting or deleting parts of
+  a JSON document.
+
+  This can be used by API resources that need to allow callers to modify
+  complex JSON documents.
+
+* Added :py:func:`~djblets.util.json_utils.json_patch` for performing a
+  `JSON Patch`_.
+
+  A JSON Patch is another method of applying a set of changes to a JSON
+  document. Unlike JSON Merge Patches, a JSON patch is specified as a list of
+  operations to perform on a target JSON document, all of which must succeed
+  for the patch to be completed. These patches allow for adding data to
+  dictionaries or within arrays, removing data from dictionaries or arrays,
+  replacing values, copying or moving data, and testing/sanity-checking
+  certain values before allowing a patch to complete.
+
+  This also allows for specifying separate functions that govern read or write
+  access to keys, helping protect data from being altered or used as a source
+  for a copy/move/test.
+
+  This is also intended for use in API resources that want to provide more
+  fine-grained modifications to JSON documents.
+
+* Added :py:func:`~djblets.util.json_utils.json_resolve_pointer` and
+  :py:func:`~djblets.util.json_utils.json_get_pointer_info` for looking up
+  data using `JSON Pointers`_.
+
+  JSON Pointers are a way of referencing data within a JSON document,
+  navigating dictionaries and arrays, based on a path.
+
+  :py:func:`~djblets.util.json_utils.json_resolve_pointer` takes a
+  fully-resolvable JSON Pointer path and returns the value at that location,
+  raising an exception if the path is not valid.
+
+  :py:func:`~djblets.util.json_utils.json_get_pointer_info` resolves as much
+  of a JSON Pointer path as possible, returning information on what it was
+  able to resolve, what was left, and what data was found.
+
+
+.. _JSON Merge Patch: https://tools.ietf.org/html/rfc7386
+.. _JSON Patch: http://jsonpatch.com/
+.. _JSON Pointers: https://tools.ietf.org/html/rfc6901
+
+
+djblets.util.templatetags
+=========================
+
+* Added a template tag for iterating over fieldsets in a form.
+
+  The :py:func:`{% get_fieldsets %}
+  <djblets.util.templatetags.djblets_forms.get_fieldsets>` template tag can be
+  used to iterate over all fieldsets on a form, helping to craft custom
+  templates for building more advanced forms.
+
+* Added ``strip``, ``spaceless``, and ``unsafe`` arguments to
+  :py:func:`{% definevar %}
+  <djblets.util.templatetags.djblets_utils.definevar>`.
+
+  ``strip`` will strip all leading and trailing whitespace on the value before
+  storing. ``spaceless`` is equivalent to wrapping the value with
+  ``{% spaceless %}``. ``unsafe`` marks the value as unsafe, requiring HTML
+  escaping when used.
+
+* Changed :py:func:`{% attr %} <djblets.util.templatetags.djblets_utils.attr>`
+  to strip leading and trailing whitespace and to condense spaces.
+
+  The old behavior would keep all leading and trailing whitespace, which is
+  generally not desired. The whitespace is now stripped.
+
+  Multiple spaces within the value are also condensed down to a single space,
+  which allows conditionals or other tags within to span multiple lines
+  without causing the resulting value to also span lines. This behavior can
+  be disabled by passing the ``nocondense`` option.
+
+
+djblets.views
+=============
+
+* Added a generic class-based view mixin for working with ETags.
+
+  The new :py:class:`djblets.views.generic.etag.ETagViewMixin` allows for
+  computing an ETag for a generic view, checking if the client already has a
+  copy of the content based on that ETag, and setting the ETag in the
+  response. This supports HTTP GET and HEAD methods.
+
+* Added a generic class-based view mixins for fine-grained dispatch handling.
+
+  :py:class:`djblets.views.generic.base.PrePostDispatchViewMixin` helps with
+  more complex views that may need to perform operations prior to dispatching
+  and after dispatching to the HTTP handler. This is handy for views that need
+  to fetch data or do permission checks that are common to all HTTP methods,
+  or need to modify a response for any HTTP method (such as to add headers).
+  This can also be used as a base for other mixins that need more fine-grained
+  behavior.
+
+* Added a generic class-based view mixin for checking for valid HTTP methods.
+
+  Django's generic views check for valid HTTP methods normally, but for more
+  complex views that perform pre-dispatching, this can happen too late. To
+  ensure HTTP methods are checked properly, the new
+  :py:class:`djblets.views.generic.base.CheckRequestMethodViewMixin` mixin can
+  be used at the beginning of the inheritance list, performing the check
+  before any other dispatch methods are run.
+
+
+djblets.webapi
+==============
+
+* Added rate limiting to the API.
+
+  The API makes use of the new rate limiting support, preventing brute-force
+  login attacks via the API. Separate limits can be defined for authenticated
+  and anonymous users by setting ``settings.API_AUTHENTICATED_LIMIT_RATE``
+  and ``settings.API_ANONYMOUS_LIMIT_RATE``, respectively. Rate-limited
+  responses will come back as a :http:`429` error with an API code of 114, and
+  will include a :mailheader:`Retry-After` header (containing the number of
+  seconds until the request can be retried) and a
+  :mailheader:`X-RateLimit-Limit` header (containing the rate limit).
+
+  The foundation for this work was done by Raman Dhatt.
+
+* Added OAuth2 support for the API.
+
+  This allows consumers of the API to optionally accept an OAuth2 token for
+  authentication, allowing third-party services to invoke the API on a user's
+  behalf in a secure way. This is similar to API tokens, but these tokens can
+  be requested by a service instead of having to be created first by the user.
+
+  This is based on work by Minh Le Hoang.
+
+  :ref:`Learn more <adding-oauth2-support>`
+
+* Resources can now specify the title of serialized links.
+
+  By default, link titles are always based on the string representation of
+  the object. Now, resources can override
+  :py:meth:`WebAPIResource.get_object_title
+  <djblets.webapi.resources.base.WebAPIResource.get_object_title>` to provide
+  a custom title.
+
+* Uploading files to an API no longer returns a :mimetype:`text/plain`
+  mimetype.
+
+  This used to be sent in order to meet a requirement in older versions of
+  Review Board, but this is no longer the case. The proper mimetype for the
+  resource is now returned.
+
+* Added new signals for notifying on API token creation and updating.
+
+  The new :py:data:`djblets.webapi.signals.webapi_token_created` signal is
+  emitted whenever a new token is generated, and
+  :py:data:`djblets.webapi.signals.webapi_token_updated` is emitted whenever
+  an existing token is updated.
+
+* Added an ``auto_generated`` flag to
+  :py:meth:`WebAPITokenManager.generate_token
+  <djblets.webapi.managers.WebAPITokenManager.generate_token>`.
+
+  This flag does not directly affect token generation, but rather is passed
+  to the signals so that consuming applications can handle the creation of
+  manually-generated tokens separately from auto-generated tokens (for
+  instance, sending an e-mail to a user only if manually-generated).
+
+* Improved :py:class:`djblets.webapi.resources.mixins.forms.UpdateFormMixin`
+  to support forms used for adding new objects to the database via the API.
+
+
+jquery.gravy.retina
+===================
+
+* Added a :js:func:`Djblets.enableRetinaImages` function for enabling
+  ``<img srcset="...">`` support on older browsers.
+
+  JavaScript code wanting to use ``srcset`` support can call this on a
+  container after adding any new images (or after loading the whole page)
+  to process any images with ``srcset`` on browsers that don't otherwise
+  support it.
+
+  For browsers that do natively support ``srcset``, this function won't do
+  anything at all, and won't impact performance.
+
+* Removed the old :js:func:`jQuery.fn.retinaAvatar` function.
+
+  This has been replaced with :js:func:`Djblets.enableRetinaImages`.
+
+
+jquery.gravy.util
+=================
+
+* Updated :js:func:`$.fn.positionToSide` to accept new side anchor and
+  distance options.
+
+  This now accepts four new side anchoring codes (``T``, ``B``, ``L``, and
+  ``R``), which work like the existing anchoring codes (``t``, ``b``, ``l``,
+  and ``r``), but rather than positioning such that the element is fully
+  outside the anchor element (with distances extending the element outward),
+  these codes position so that the positions are anchored within the element
+  (with distances extending the element further inward). This allows for
+  easily positioning (for instance) the left edge of an element 20 pixels to
+  the right of the left edge of another, or the bottom of an element 20 pixels
+  above the bottom of another.
+
+  Distance can also be set per-side, instead of only setting horizontal or
+  vertical values.
+
+
+Changes Since 1.0 RC 1
+======================
+
+djblets.extensions
+------------------
+
+* Fixed a regression that broke extensions accessing
+  :py:attr:`SettingsForm.siteconfig
+  <djblets.extensions.forms.SettingsForm.siteconfig>`.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
+* David Trowbridge
+* John Larmie
+* Michael Udaltsov
+* Minh Le Hoang
+* Raman Dhatt

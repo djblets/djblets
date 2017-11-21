@@ -1,4 +1,5 @@
-.. default-intersphinx:: djblets0.10 django1.6
+.. default-intersphinx:: django1.6 djblets1.0
+
 
 =================================
 Djblets 0.10 Beta 2 Release Notes

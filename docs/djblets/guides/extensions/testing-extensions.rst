@@ -15,7 +15,7 @@ Overview
 To ensure that your extension works as expected and continues to work in the
 future, it's recommended that your extension come with some unit tests.
 
-Starting in Djblets 0.10, we make it much easier to write unit tests for your
+Starting in Djblets 1.0, we make it much easier to write unit tests for your
 extension. Your extension will need to ship with two things: A set of test
 cases, and a test runner.
 

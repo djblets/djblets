@@ -277,7 +277,7 @@ def linkcode_resolve(domain, info):
         if version[2]:
             branch += '.%s' % version[2]
 
-        if djblets.is_release():
+        if djblets.is_release() and version[3] != 'final':
             branch += version[3]
 
             if version[4]:
