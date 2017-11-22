@@ -122,10 +122,11 @@ suite('djblets/forms/views/ConditionValueFormFieldView', () => {
             expect($operator.children('select').val()).toBe('my-op-1');
 
             let $value = $row.find('.conditions-field-value');
-            expect($value.html()).toBe(
-                '<span><input type="text" name="my_conditions_value[0]">' +
-                '</span>');
-            expect($value.find('input').val()).toBe('<test>');
+            let $input = $value.find('input');
+            expect($input.parent().prop('tagName')).toBe('SPAN');
+            expect($input.attr('type')).toBe('text');
+            expect($input.attr('name')).toBe('my_conditions_value[0]');
+            expect($input.val()).toBe('<test>');
 
             /* Check the second row. */
             $row = $rows.eq(1);
@@ -148,10 +149,11 @@ suite('djblets/forms/views/ConditionValueFormFieldView', () => {
             expect($operator.children('select').val()).toBe('my-op-4');
 
             $value = $row.find('.conditions-field-value');
-            expect($value.html()).toBe(
-                '<span><input type="email" name="my_conditions_value[1]">' +
-                '</span>');
-            expect($value.find('input').val()).toBe('42');
+            $input = $value.find('input');
+            expect($input.parent().prop('tagName')).toBe('SPAN');
+            expect($input.attr('type')).toBe('email');
+            expect($input.attr('name')).toBe('my_conditions_value[1]');
+            expect($input.val()).toBe('42');
         });
 
         it('Loaded rows with errors', () => {
@@ -218,10 +220,11 @@ suite('djblets/forms/views/ConditionValueFormFieldView', () => {
             expect($operator.children('select').val()).toBe('my-op-1');
 
             const $value = $row.find('.conditions-field-value');
-            expect($value.html()).toBe(
-                '<span><input type="text" name="my_conditions_value[0]">' +
-                '</span>');
-            expect($value.find('input').val()).toBe('');
+            const $input = $value.find('input');
+            expect($input.parent().prop('tagName')).toBe('SPAN');
+            expect($input.attr('type')).toBe('text');
+            expect($input.attr('name')).toBe('my_conditions_value[0]');
+            expect($input.val()).toBe('');
         });
 
         it('Delete a condition', () => {
