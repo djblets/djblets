@@ -400,6 +400,27 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         registry.set_default_service(None)
         self.assertIsNone(registry.default_service)
 
+    def test_default_service_after_service_reregisterd(self):
+        """Testing AvatarServiceRegistry.default_service after service
+        registered after previously unregistered
+        """
+        self.siteconfig.set(AvatarServiceRegistry.ENABLED_SERVICES_KEY,
+                            [DummyAvatarService.avatar_service_id])
+        self.siteconfig.set(AvatarServiceRegistry.DEFAULT_SERVICE_KEY,
+                            DummyAvatarService.avatar_service_id)
+        self.siteconfig.save()
+
+        registry = AvatarServiceRegistry()
+        registry.populate()
+
+        self.assertEqual(registry._default_service_id,
+                         DummyAvatarService.avatar_service_id)
+        self.assertIsNone(registry.default_service)
+
+        registry.register(DummyAvatarService)
+
+        self.assertIsInstance(registry.default_service, DummyAvatarService)
+
     def test_set_default_service_invalid(self):
         """Testing AvatarServiceRegistry.set_default_service setter with an
         unregistered service
@@ -460,15 +481,19 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         self.siteconfig.save()
 
         registry = AvatarServiceRegistry()
+        registry.populate()
 
-        self.assertEqual(registry.default_service, None)
+        self.assertIsNone(registry.default_service)
         self.assertEqual(registry.enabled_services, set())
 
         self.assertTrue(logging.error.spy.called)
 
+        # Check that the old invalid default is still recorded, in case a
+        # backend (perhaps from an extension) is just temporarily disabled.
         siteconfig = SiteConfiguration.objects.get_current()
-        self.assertIsNone(
-            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY))
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY),
+            DummyAvatarService.avatar_service_id)
 
     def test_populate_disabled_default(self):
         """Testing AvatarServiceRegistry.populate with a disabled default
@@ -481,8 +506,10 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         self.siteconfig.save()
 
         registry = AvatarServiceRegistry()
+        registry.populate()
 
-        self.assertEqual(registry.default_service, None)
+        self.assertIn(GravatarService, registry)
+        self.assertIsNone(registry.default_service, None)
         self.assertEqual(registry.enabled_services, set())
 
         self.assertTrue(logging.error.spy.called)
@@ -501,16 +528,21 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         self.siteconfig.save()
 
         registry = AvatarServiceRegistry()
+        registry.populate()
 
-        self.assertEqual(registry.default_service, None)
+        self.assertIsNone(registry.default_service)
         self.assertEqual(registry.enabled_services, set())
+        self.assertEqual(registry._enabled_services,
+                         {DummyAvatarService.avatar_service_id})
 
         self.assertTrue(logging.error.spy.called)
 
+        # Check that the old enabled backend is still recorded, in case a
+        # backend (perhaps from an extension) is just temporarily disabled.
         siteconfig = SiteConfiguration.objects.get_current()
-        self.assertListEqual(
+        self.assertEqual(
             siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
-            [])
+            [DummyAvatarService.avatar_service_id])
 
     def test_populate_custom_services(self):
         """Testing AvatarServiceRegistry.populate for subclasses with custom
@@ -543,6 +575,23 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         self.assertSetEqual(registry.enabled_services, {gravatar_service})
         registry.unregister(gravatar_service)
         self.assertSetEqual(registry.enabled_services, set())
+
+    def test_unregister_register_keeps_enabled(self):
+        """Testing AvatarServiceRegistry.unregister followed by register keeps
+        enabled state
+        """
+        registry = AvatarServiceRegistry()
+        gravatar_service = registry.get('avatar_service_id',
+                                        GravatarService.avatar_service_id)
+
+        registry.enable_service(GravatarService)
+
+        self.assertSetEqual(registry.enabled_services, {gravatar_service})
+        registry.unregister(gravatar_service)
+        self.assertSetEqual(registry.enabled_services, set())
+
+        registry.register(gravatar_service)
+        self.assertSetEqual(registry.enabled_services, {gravatar_service})
 
     def test_disable_default(self):
         """Testing AvatarServiceRegistry.disable_service unsets the default
