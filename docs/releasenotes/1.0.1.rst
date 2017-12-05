@@ -1,0 +1,27 @@
+.. default-intersphinx:: djblets1.0 django1.6
+
+
+===========================
+Djblets 1.0.1 Release Notes
+===========================
+
+**Release date**: December 5, 2017
+
+
+djblets.avatars
+===============
+
+* Avatar backends provided by extensions should no longer disappear.
+
+  We had some issues were the settings used to store information on avatar
+  backends would get reset after an extension-provided backend was disabled.
+  If an extension providing a backend is disabled, the next backend in the
+  list will be used instead. Once the extension is re-enabled, its backend
+  should once again take priority.
+
+
+Contributors
+============
+
+* Christian Hammond
+* Erik Johansson
