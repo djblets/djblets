@@ -1,5 +1,8 @@
 from __future__ import unicode_literals
 
+import json
+import warnings
+
 from django.core.exceptions import ValidationError
 from django.utils import six
 
@@ -13,11 +16,53 @@ class JSONFieldTests(TestCase):
     def setUp(self):
         self.field = JSONField()
 
+    def test_init_with_custom_encoder_class(self):
+        """Testing JSONField initialization with custom encoder class"""
+        class MyEncoder(json.JSONEncoder):
+            def __init__(self, default_msg, **kwargs):
+                self.default_msg = default_msg
+
+                super(MyEncoder, self).__init__(**kwargs)
+
+            def default(self, o):
+                return self.default_msg
+
+        with warnings.catch_warnings(record=True) as w:
+            field = JSONField(
+                encoder_cls=MyEncoder,
+                encoder_kwargs={
+                    'default_msg': 'What even is this?',
+                })
+
+        self.assertEqual(field.dumps(MyEncoder), '"What even is this?"')
+        self.assertEqual(len(w), 0)
+
+    def test_init_with_custom_encoder_instance(self):
+        """Testing JSONField initialization with deprecated custom encoder
+        instance
+        """
+        class MyEncoder(json.JSONEncoder):
+            def default(self, o):
+                return 'What even is this?'
+
+        with warnings.catch_warnings(record=True) as w:
+            field = JSONField(encoder=MyEncoder())
+
+        self.assertEqual(field.dumps(MyEncoder), '"What even is this?"')
+        self.assertEqual(len(w), 1)
+
+        message = w[0].message
+        self.assertIsInstance(message, DeprecationWarning)
+        self.assertEqual(six.text_type(message),
+                         'The encoder argument to JSONField has been '
+                         'replaced by the encoder_cls and encoder_kwargs '
+                         'arguments. Support for encoder is deprecated.')
+
     def test_dumps_with_json_dict(self):
         """Testing JSONField with dumping a JSON dictionary"""
-        result = self.field.dumps({'a': 1})
+        result = self.field.dumps({'a': 1, 'b': 2})
         self.assertTrue(isinstance(result, six.string_types))
-        self.assertEqual(result, '{"a": 1}')
+        self.assertEqual(result, '{"a": 1, "b": 2}')
 
     def test_dumps_with_json_string(self):
         """Testing JSONField with dumping a JSON string"""
@@ -80,6 +125,49 @@ class JSONFieldTests(TestCase):
 class JSONFormFieldTests(TestCase):
     """Unit tests for djblets.db.fields.JSONFormField."""
 
+    def test_init_with_custom_encoder_class(self):
+        """Testing JSONFormField initialization with custom encoder class"""
+        class MyEncoder(json.JSONEncoder):
+            def __init__(self, default_msg, **kwargs):
+                self.default_msg = default_msg
+
+                super(MyEncoder, self).__init__(**kwargs)
+
+            def default(self, o):
+                return self.default_msg
+
+        field = JSONFormField(
+            encoder_cls=MyEncoder,
+            encoder_kwargs={
+                'default_msg': 'What even is this?',
+            })
+
+        self.assertEqual(
+            field.prepare_value({
+                'a': 1,
+                'b': 2,
+                'cls': MyEncoder,
+            }),
+            '{\n'
+            '  "a": 1,\n'
+            '  "b": 2,\n'
+            '  "cls": "What even is this?"\n'
+            '}')
+
+    def test_init_with_custom_encoder_instance(self):
+        """Testing JSONFormField initialization with custom encoder instance"""
+        class MyEncoder(json.JSONEncoder):
+            def default(self, o):
+                return 'What even is this?'
+
+        field = JSONFormField(encoder=MyEncoder())
+
+        self.assertEqual(
+            field.prepare_value({
+                'cls': MyEncoder,
+            }),
+            '{"cls": "What even is this?"}')
+
     def test_prepare_value_with_serialized(self):
         """Testing JSONFormField.prepare_value with serialized data"""
         field = JSONFormField()
@@ -90,7 +178,10 @@ class JSONFormFieldTests(TestCase):
         """Testing JSONFormField.prepare_value with deserialized data"""
         field = JSONFormField()
         self.assertEqual(field.prepare_value({'a': 1, 'b': 2}),
-                         '{"a": 1, "b": 2}')
+                         '{\n'
+                         '  "a": 1,\n'
+                         '  "b": 2\n'
+                         '}')
 
     def test_to_python_with_serialized(self):
         """Testing JSONFormField.to_python with serialized data"""

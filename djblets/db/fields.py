@@ -26,12 +26,13 @@
 
 from __future__ import unicode_literals
 
-from ast import literal_eval
-from datetime import datetime
 import base64
 import json
 import logging
+import warnings
 import weakref
+from ast import literal_eval
+from datetime import datetime
 
 import django
 from django import forms
@@ -52,6 +53,7 @@ except ImportError:
 
 from djblets.db.validators import validate_json
 from djblets.util.dates import get_tz_aware_utcnow
+from djblets.util.decorators import cached_property
 from djblets.util.serializers import DjbletsJSONEncoder
 
 
@@ -173,9 +175,52 @@ class JSONFormField(forms.CharField):
     string for editing.
     """
 
-    def __init__(self, encoder=None, *args, **kwargs):
+    def __init__(self, encoder=None, encoder_cls=None, encoder_kwargs=None,
+                 *args, **kwargs):
+        """Initialize the field.
+
+        Args:
+            encoder (json.JSONEncoder, optional):
+                The explicit JSON encoder instance to use. If specified, this
+                takes priority over ``encoder_cls`` and ``encoder_kwargs``,
+                and will prevent the field from nicely formatting the
+                contents for editing.
+
+                .. deprecated:: 1.0.1
+
+                   ``encoder_cls`` and ``encoder_kwargs`` should be used
+                   instead.
+
+            encoder_cls (type, optional):
+                The type of encoder to use for serializing the JSON document
+                for editing. This must be a subclass of
+                :py:class:`json.JSONEncoder`.
+
+            encoder_kwargs (dict, optional):
+                Keyword arguments to pass to the constructor for the encoder.
+
+            *args (tuple):
+                Extra positional arguments to pass to the field.
+
+            **kwargs (dict):
+                Extra keyword arguments to pass to the field.
+        """
         super(JSONFormField, self).__init__(*args, **kwargs)
-        self.encoder = encoder or DjbletsJSONEncoder(strip_datetime_ms=False)
+
+        if encoder is None:
+            if encoder_cls is None:
+                encoder_cls = DjbletsJSONEncoder
+                encoder_kwargs = {
+                    'strip_datetime_ms': False,
+                }
+
+            encoder = encoder_cls(**dict({
+                'indent': 2,
+                'separators': (',', ': '),
+                'sort_keys': True,
+            }, **encoder_kwargs))
+
+        self.encoder = encoder
 
     def prepare_value(self, value):
         """Prepare a field's value for storage in the database.
@@ -239,13 +284,67 @@ class JSONField(models.TextField):
     serialize_to_string = True
     default_validators = [validate_json]
 
-    def __init__(self, verbose_name=None, name=None,
-                 encoder=DjbletsJSONEncoder(strip_datetime_ms=False),
-                 **kwargs):
-        blank = kwargs.pop('blank', True)
-        models.TextField.__init__(self, verbose_name, name, blank=blank,
-                                  **kwargs)
-        self.encoder = encoder
+    def __init__(self, verbose_name=None, name=None, encoder=None,
+                 encoder_cls=None, encoder_kwargs=None, **kwargs):
+        """Initialize the field.
+
+        Args:
+            verbose_name (unicode, optional):
+                The verbose name shown for the field.
+
+            name (unicode, optional):
+                The attribute name of the field.
+
+            encoder (json.JSONEncoder, optional):
+                The explicit JSON encoder instance to use. If specified, this
+                takes priority over ``encoder_cls`` and ``encoder_kwargs``,
+                and will prevent the field from nicely formatting the
+                contents for editing.
+
+                .. deprecated:: 1.0.1
+
+                   ``encoder_cls`` and ``encoder_kwargs`` should be used
+                   instead. Specifying ``encoder`` will emit a warning.
+
+            encoder_cls (type, optional):
+                The type of encoder to use for serializing the JSON document
+                for storage and editing. This must be a subclass of
+                :py:class:`json.JSONEncoder`.
+
+            encoder_kwargs (dict, optional):
+                Keyword arguments to pass to the constructor for the encoder.
+                This may be modified by the field.
+
+            **kwargs (dict):
+                Additional keyword arguments for the field.
+        """
+        super(JSONField, self).__init__(verbose_name,
+                                        name,
+                                        blank=kwargs.pop('blank', True),
+                                        **kwargs)
+
+        if encoder is not None:
+            warnings.warn('The encoder argument to JSONField has been '
+                          'replaced by the encoder_cls and encoder_kwargs '
+                          'arguments. Support for encoder is deprecated.',
+                          DeprecationWarning)
+
+            # Override the encoder property to hard-code the provided instance.
+            self.encoder = encoder
+        elif encoder_cls is None:
+            encoder_cls = DjbletsJSONEncoder
+            encoder_kwargs = {
+                'strip_datetime_ms': False,
+            }
+
+        self.encoder_cls = encoder_cls
+        self.encoder_kwargs = encoder_kwargs or {}
+        self.encoder_kwargs['sort_keys'] = True
+
+    @cached_property
+    def encoder(self):
+        """An encoder instance used for this field."""
+        return self.encoder_cls(**self.encoder_kwargs)
 
     def contribute_to_class(self, cls, name):
         def get_json(model_instance):
@@ -321,10 +420,31 @@ class JSONField(models.TextField):
         return val
 
     def formfield(self, **kwargs):
-        return super(JSONField, self).formfield(
-            form_class=JSONFormField,
-            encoder=self.encoder,
-            **kwargs)
+        """Return a form field that can be used to edit this data.
+
+        Args:
+            **kwargs (dict):
+                Keyword arguments to pass to the subclass.
+
+        Returns:
+            JSONFormField:
+            The resulting form field.
+        """
+        formfield_kwargs = dict({
+            'form_class': JSONFormField,
+            'encoder': None,
+            'encoder_cls': self.encoder_cls,
+            'encoder_kwargs': self.encoder_kwargs,
+        }, **kwargs)
+
+        if self.encoder_cls is None:
+            # We're coming from a legacy caller that's providing an encoder
+            # instance instead of the class/keyword arguments. Pass that
+            # encoder to JSONFormField. It will go into legacy mode and turn
+            # off some niceties for editing content.
+            formfield_kwargs['encoder'] = self.encoder
+
+        return super(JSONField, self).formfield(**formfield_kwargs)
 
     def deconstruct(self):
         """Deconstruct the field for Django migrations.
