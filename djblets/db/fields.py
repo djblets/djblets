@@ -170,9 +170,14 @@ class ModificationTimestampField(models.DateTimeField):
 class JSONFormField(forms.CharField):
     """Provides a form field for JSON input.
 
-    This is meant to be used by JSONField, and handles the work of
-    normalizing a Python data structure back into a serialized JSON
-    string for editing.
+    This is meant to be used by :py:class:`JSONField`, and handles the work of
+    rendering JSON content in a more human-editable way for editing (by sorting
+    keys and adding indentation), and then validating and returning the
+    resulting JSON document back for storage in the field.
+
+    Attributes:
+        encoder (json.JSONEncoder):
+            The JSON encoder being used to serialize JSON data for editing.
     """
 
     def __init__(self, encoder=None, encoder_cls=None, encoder_kwargs=None,
@@ -276,11 +281,18 @@ class JSONFormField(forms.CharField):
 
 
 class JSONField(models.TextField):
+    """A field for storing JSON-encoded data.
+
+    The data is accessible as standard Python data types and is transparently
+    encoded to and decoded from a JSON string in the database.
+
+    Consumers can specify custom encoding behavior by providing an encoder
+    class and keyword arguments. By default,
+    :py:class:`~djblets.util.serializes.DjbletsJSONEncoder` is used, which
+    supports lazy strings, datetimes, and model-specified custom encoding
+    behavior.
     """
-    A field for storing JSON-encoded data. The data is accessible as standard
-    Python data types and is transparently encoded/decoded to/from a JSON
-    string in the database.
-    """
+
     serialize_to_string = True
     default_validators = [validate_json]
 
@@ -347,23 +359,65 @@ class JSONField(models.TextField):
         return self.encoder_cls(**self.encoder_kwargs)
 
     def contribute_to_class(self, cls, name):
+        """Add methods/signal handlers to the model owning this field.
+
+        This will add :samp:`get_{fieldname}_json()` and
+        :samp:`set_{fieldname}_json()` methods to the model, which will
+        allow retrieving and setting the serialized data directly.
+
+        It also listens for when an instance of the model is initialized and
+        sets the field to point to the deserialized JSON data.
+
+        Args:
+            cls (type):
+                The :py:class:`~django.db.models.Model` class to contribute to.
+
+            name (unicode):
+                The name of this field on the model.
+        """
         def get_json(model_instance):
-            return self.dumps(getattr(model_instance, self.attname, None))
+            return self.value_to_string(model_instance)
 
         def set_json(model_instance, json):
             setattr(model_instance, self.attname, self.loads(json))
 
         super(JSONField, self).contribute_to_class(cls, name)
 
-        setattr(cls, "get_%s_json" % self.name, get_json)
-        setattr(cls, "set_%s_json" % self.name, set_json)
+        setattr(cls, 'get_%s_json' % self.name, get_json)
+        setattr(cls, 'set_%s_json' % self.name, set_json)
 
         post_init.connect(self.post_init, sender=cls)
 
     def pre_save(self, model_instance, add):
+        """Return serialized field data to save on a model instance.
+
+        Args:
+            model_instance (django.db.models.Model):
+                The model instance being saved.
+
+            add (bool, unused):
+                Whether this is a new instance being added to the database.
+                This is ignored.
+
+        Returns:
+            unicode:
+            The serialized data to save.
+        """
         return self.dumps(getattr(model_instance, self.attname, None))
 
-    def post_init(self, instance=None, **kwargs):
+    def post_init(self, instance, **kwargs):
+        """Handle initialization of a model instance.
+
+        This will deserialize the stored data from the database and set it as
+        the field data on the model.
+
+        Args:
+            instance (django.db.models.Model):
+                The model instance being initialized.
+
+            **kwargs (dict):
+                Extra keyword arguments from the signal.
+        """
         value = self.value_from_object(instance)
 
         if value:
@@ -374,36 +428,92 @@ class JSONField(models.TextField):
         setattr(instance, self.attname, value)
 
     def get_db_prep_save(self, value, *args, **kwargs):
-        if not isinstance(value, six.string_types):
-            value = self.dumps(value)
+        """Return the serialized value prepared for saving to the database.
 
-        return super(JSONField, self).get_db_prep_save(value, *args, **kwargs)
+        Args:
+            value (object):
+                The JSON document being saved.
+
+            *args (tuple):
+                Additional positional arguments for the method.
+
+            **kwargs (dict):
+                Additional keyword arguments for the method.
+
+        Returns:
+            unicode:
+            The resulting serialized data that can be saved to the database.
+        """
+        return super(JSONField, self).get_db_prep_save(self.dumps(value),
+                                                       *args, **kwargs)
 
     def value_to_string(self, obj):
+        """Return the serialized JSON data from the field.
+
+        Args:
+            obj (django.db.models.Model):
+                The model instance containing the field.
+
+        Returns:
+            unicode:
+            The serialized JSON data from the field.
+        """
         return self.dumps(self.value_from_object(obj))
 
     def dumps(self, data):
+        """Return serialized version of the provided JSON document.
+
+        If the data is already a string, it will be provided directly.
+        Otherwise, it will use the field's associated JSON encoder to serialize
+        the data.
+
+        Args:
+            data (object):
+                The data to serialize.
+
+        Returns:
+            unicode:
+            The serialized JSON data.
+        """
         if isinstance(data, six.string_types):
             return data
         else:
             return self.encoder.encode(data)
 
     def loads(self, val):
+        """Return a JSON document from the serialized JSON data.
+
+        This will first attempt to deserialize the JSON data using the standard
+        JSON decoder. If it's unable to do so, or it gets back what appears
+        to be a double-encoded JSON document or a Python string representation
+        of a JSON document, it will attempt to parse the value and return a
+        proper representation.
+
+        Args:
+            val (unicode):
+                The serialized JSON data to deserialize.
+
+        Returns:
+            object:
+            The deserialized JSON document.
+        """
         try:
             val = json.loads(val, encoding=settings.DEFAULT_CHARSET)
 
-            # XXX We need to investigate why this is happening once we have
-            #     a solid repro case.
+            # Old versions of JSONField could end up double-encoding JSON
+            # data, resulting in a string being stored that then needs to be
+            # parsed again. Check for this and try to deserialize. Worst-case,
+            # the JSON decoder decides it's actually a string and returns it.
             if isinstance(val, six.string_types):
-                logger.warning("JSONField decode error. Expected dictionary, "
-                               "got string for input '%s'",
+                logger.warning('JSONField decode error. Expected dictionary, '
+                               'got string for input "%s"',
                                val)
 
-                # For whatever reason, we may have gotten back
                 val = json.loads(val, encoding=settings.DEFAULT_CHARSET)
         except ValueError:
             # There's probably embedded unicode markers (like u'foo') in the
-            # string. We have to eval it.
+            # string, due to bugs in old versions of JSONField. We have to
+            # eval it.
             try:
                 val = literal_eval(val)
             except Exception as e:

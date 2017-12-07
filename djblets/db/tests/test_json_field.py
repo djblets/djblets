@@ -4,6 +4,7 @@ import json
 import warnings
 
 from django.core.exceptions import ValidationError
+from django.db.models import Model
 from django.utils import six
 
 from djblets.db.fields import JSONField, JSONFormField
@@ -107,6 +108,35 @@ class JSONFieldTests(TestCase):
         result = self.field.loads('locals()')
         self.assertTrue(isinstance(result, dict))
         self.assertEqual(result, {})
+
+    def test_get_json(self):
+        """Testing JSONField with get_{fieldname}_json"""
+        class MyModel(Model):
+            myfield = JSONField()
+
+        model = MyModel()
+        model.myfield = {
+            'a': 1,
+            'b': 2,
+        }
+
+        self.assertEqual(model.get_myfield_json(),
+                         '{"a": 1, "b": 2}')
+
+    def test_set_json(self):
+        """Testing JSONField with set_{fieldname}_json"""
+        class MyModel(Model):
+            myfield = JSONField()
+
+        model = MyModel()
+        model.set_myfield_json('{"a": 1, "b": 2}')
+
+        self.assertEqual(
+            model.myfield,
+            {
+                'a': 1,
+                'b': 2,
+            })
 
     def test_validate_with_valid_json_string(self):
         """Testing JSONField with validating a valid JSON string"""
