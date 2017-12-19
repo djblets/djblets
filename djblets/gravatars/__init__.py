@@ -43,7 +43,7 @@ def get_gravatar_url_for_email(request=None, email=None, size=None):
 
     Args:
         request (django.http.HttpRequest):
-            Ignored. This argument will be removed in Djblets 0.11.0.
+            Ignored. This argument will be removed in Djblets 2.0.
 
         email (unicode):
             The e-mail address to get the Gravatar URL for.
@@ -58,7 +58,7 @@ def get_gravatar_url_for_email(request=None, email=None, size=None):
     if request is not None:
         warn("djblets.gravatars.get_gravatar_url_for_email's request "
              "argument is deprecated and should be None. It will be removed "
-             "in Djblets 0.11.0. Use get_gravatar_url_for_email(email=email, "
+             "in Djblets 2.0. Use get_gravatar_url_for_email(email=email, "
              "size=size) instead.",
              DeprecationWarning)
 
@@ -94,7 +94,7 @@ def get_gravatar_url(request=None, user=None, size=None):
 
     Args:
         request (django.http.HttpRequest):
-            Ignored. This argument will be removed in Djblets 0.11.0.
+            Ignored. This argument will be removed in Djblets 2.0.
 
         user (django.contrib.auth.models.User):
             The user whose Gravatar URL is to be retrieved.
@@ -113,7 +113,7 @@ def get_gravatar_url(request=None, user=None, size=None):
     if request is not None:
         warn("djblets.gravatars.get_gravatar_url's request request argument "
              "is deprecated and should be None. It will be removed in Djblets "
-             "0.11.0. Use get_gravatar_url(user=user, size=size) instead.",
+             "2.0. Use get_gravatar_url(user=user, size=size) instead.",
              DeprecationWarning)
 
     if user is None:
