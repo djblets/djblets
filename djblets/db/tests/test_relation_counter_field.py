@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import django
+import nose
 from django.db import models, transaction
 from django.db.models.signals import post_save, pre_delete
 
@@ -120,6 +122,16 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
     @transaction.atomic
     def test_reused_ids_with_delete(self):
         """Testing RelationCounterField with reused instance IDs with delete"""
+        if django.VERSION >= (1, 8):
+            # Django 1.8 introduced the usage of transaction.atomic() in
+            # the deletion code, which starts a new transaction and commits it
+            # after deletion concludes. Prior versions started a transaction
+            # that would only save if not already in another transaction.
+            # Since 1.8+ commits the transaction, the ID ends up being reserved
+            # in the database, and makes this test meaningless.
+            raise nose.SkipTest('Django 1.8+ does not allow instance IDs '
+                                'to be reused')
+
         # NOTE: The failure case would involve model.counter and
         #       model.counter_2 being 0 at the end, due to the old instance
         #       being tracked and updated.
@@ -159,38 +171,29 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
         """Testing RelationCounterField signal management with newly-created,
         unsaved instance
         """
-        start_pre_delete_count = len(pre_delete.receivers)
-        start_post_save_count = len(post_save.receivers)
-
         model = M2MRefModel()
         self.assertIsNone(model.pk)
 
-        self.assertEqual(len(pre_delete.receivers), start_pre_delete_count)
-        self.assertEqual(len(post_save.receivers), start_post_save_count + 1)
+        self.assertEqual(len(pre_delete._live_receivers(M2MRefModel)), 0)
+        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 1)
 
     def test_signals_with_save(self):
         """Testing RelationCounterField signal management after first instance
         save
         """
-        start_pre_delete_count = len(pre_delete.receivers)
-        start_post_save_count = len(post_save.receivers)
-
         model = M2MRefModel()
         model.save()
 
-        self.assertEqual(len(pre_delete.receivers), start_pre_delete_count + 1)
-        self.assertEqual(len(post_save.receivers), start_post_save_count)
+        self.assertEqual(len(pre_delete._live_receivers(M2MRefModel)), 1)
+        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 0)
 
     def test_signals_with_delete(self):
         """Testing RelationCounterField signal management after delete"""
-        start_pre_delete_count = len(pre_delete.receivers)
-        start_post_save_count = len(post_save.receivers)
-
         model = M2MRefModel.objects.create()
         model.delete()
 
-        self.assertEqual(len(pre_delete.receivers), start_pre_delete_count)
-        self.assertEqual(len(post_save.receivers), start_post_save_count)
+        self.assertEqual(len(pre_delete._live_receivers(M2MRefModel)), 0)
+        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 0)
 
     def test_unsaved_and_other_double_save(self):
         """Testing RelationCounterField with an unsaved object and a double
@@ -202,34 +205,30 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
         # signal connection from the first stuck around and saw that
         # updated=False, which it expected would be True. However, it didn't
         # check first if it was matching the expected instance.
-        base_receiver_count = len(post_save.receivers)
-
         model1 = M2MRefModel()
         model2 = M2MRefModel()
         self.assertEqual(model1.pk, None)
         self.assertEqual(model2.pk, None)
-        self.assertEqual(len(post_save.receivers), base_receiver_count + 2)
+        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 2)
 
         # Perform the first save, which will do update=True.
         model2.save()
-        self.assertEqual(len(post_save.receivers), base_receiver_count + 1)
+        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 1)
 
         # Perform the second save, which will do update=False.
         model2.save()
-        self.assertEqual(len(post_save.receivers), base_receiver_count + 1)
+        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 1)
 
     def test_disconnect_signal_on_destroy(self):
         """Testing RelationCounterField disconnects signals for an object when
         it falls out of scope
         """
-        base_receiver_count = len(post_save.receivers)
-
         model = M2MRefModel()
         self.assertEqual(model.pk, None)
-        self.assertEqual(len(post_save.receivers), base_receiver_count + 1)
+        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 1)
 
         model = None
-        self.assertEqual(len(post_save.receivers), base_receiver_count)
+        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 0)
 
 
     #

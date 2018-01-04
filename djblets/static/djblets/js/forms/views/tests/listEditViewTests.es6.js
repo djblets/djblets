@@ -1,21 +1,22 @@
 suite('djblets/forms/views/ListEditView', () => {
     const addImgUrl = '/static/admin/img/icon_addlink.gif';
     const delImgUrl = '/static/admin/img/icon_deletelink.gif';
+
     /*
      * See templates/djblets_forms/list_edit_widget.html.
      */
     const formTemplate = _.template(dedent`
         <div class="list-edit-widget" id="<%- id %>_container">
          <ul>
-         <% if (items.length) { %>
-          <% for (const [i, item] of Array.entries(items)) { %>
+         <% if (items.length > 0) { %>
+          <% items.forEach(function(item, i) { %>
            <li class="list-edit-entry" data-list-index="<%- i %>">
             <input value="<%- item %>" type="text"<%- attrs %>>
             <a href="#" class="list-edit-remove-item">
              <img src="${delImgUrl}">
             </a>
            </li>
-          <% } %>
+          <% }); %>
          <% } else { %>
            <li class="list-edit-entry" data-list-index="0">
             <input type="text">
@@ -29,7 +30,7 @@ suite('djblets/forms/views/ListEditView', () => {
           </li>
          </ul>
          <input id="<%- id %>" type="hidden"
-                value="<%- items.filter(i => i.length).join(',') %>">
+                value="<%- nonZeroItems.join(',') %>">
         </div>
     `);
 
@@ -38,6 +39,7 @@ suite('djblets/forms/views/ListEditView', () => {
 
         $testsScratch.append($(formTemplate({
             items: items,
+            nonZeroItems: items.filter(i => (i.length > 0)),
             attrs: attrs,
             id: 'list-edit',
         })));

@@ -8,19 +8,16 @@ from kgb import SpyAgency
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
 from djblets.webapi.models import BaseWebAPIToken
 from djblets.webapi.signals import webapi_token_created, webapi_token_updated
+from djblets.webapi.tests.test_api_token import WebAPIToken
 
 
-class WebAPIToken(BaseWebAPIToken):
-    pass
-
-
-class WebAPITokenISignalsTests(SpyAgency, TestModelsLoaderMixin, TestCase):
+class WebAPITokenSignalsTests(SpyAgency, TestModelsLoaderMixin, TestCase):
     """Tests for WebAPI token signals."""
 
     tests_app = 'djblets.webapi.tests'
 
     def setUp(self):
-        super(WebAPITokenISignalsTests, self).setUp()
+        super(WebAPITokenSignalsTests, self).setUp()
 
         self.user = User.objects.create_user(username='test_user',
                                              email='test@example.com')
