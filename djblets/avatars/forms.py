@@ -233,9 +233,6 @@ class AvatarSettingsForm(ConfigPageForm):
 
         This method attempts to save
         """
-        print 'AvatarSettingsForm.save'
-        import pprint
-        pprint.pprint(self.cleaned_data)
         try:
             old_avatar_service = (
                 self.avatar_service_registry

@@ -1,0 +1,76 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+===========================
+Djblets 1.0.2 Release Notes
+===========================
+
+**Release date**: January 9, 2018
+
+
+djblets.db
+==========
+
+* :py:class:`~djblets.db.fields.JSONField` now provides a better editing
+  experience in the administration page.
+
+  The content is now pretty-printed and alphabetized, making it easier to find
+  the data you're looking to change and to make those changes without
+  accidentally impacting other parts of the JSON content.
+
+* Deprecated the ``encoder`` argument to
+  :py:class:`~djblets.db.fields.JSONField` and
+  :py:class:`~djblets.db.fields.JSONFormField`.
+
+  Callers should switch to providing ``encoder_cls`` and ``encoder_kwargs``
+  instead, which will be used to build the instance, instead of providing an
+  instance directly.
+
+* Added compatibility with Django 1.9 through 1.11 for
+  :py:class:`~djblets.db.fields.RelationCounterField`.
+
+
+djblets.gravatars
+=================
+
+* Fixed a regression where e-mail addresses weren't being normalized to
+  lowercase, causing Gravatar lookups to fail.
+
+* Fixed deprecation notices to reference Djblets 2.0 instead of Djblets 0.11
+  for some functions.
+
+
+djblets.urls
+============
+
+* Added compatibility with Django 1.9 through 1.11 for
+  :py:func:`~djblets.urls.patterns.never_cache_patterns`.
+
+
+djblets.util
+============
+
+* Added the :py:func:`{% image_source_attrs %}
+  <djblets.util.templatetags.djblets_images.image_source_attrs>` template tag
+  to build values for ``<img srcset="">``.
+
+  This takes multiple lines of content, each in the form of ``<descriptor>
+  <URL>``, and builds a value for use in ``<img srcset="...">``, making it
+  easier to build pages that work with multiple DPIs.
+
+* Made the :py:func:`{% srcset %}
+  <djblets.util.templatetags.djblets_images.srcset>` template tag more robust
+  and secure.
+
+
+Style Sheets
+============
+
+* Fixed the sizing of the "missing avatar" indicator.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond

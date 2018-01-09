@@ -30,7 +30,7 @@ from warnings import warn
 
 from django.conf import settings
 from django.http import QueryDict
-
+from django.utils import six
 
 
 default_app_config = 'djblets.gravatars.apps.GravatarsAppConfig'
@@ -62,9 +62,16 @@ def get_gravatar_url_for_email(request=None, email=None, size=None):
              "size=size) instead.",
              DeprecationWarning)
 
-    if email is None:
-        raise ValueError('"email" cannot be None.')
-    email_hash = md5(email.encode('utf-8')).hexdigest()
+    if email:
+        email = email.strip().lower()
+
+    if not email:
+        raise ValueError('"email" cannot be None or empty.')
+
+    if isinstance(email, six.text_type):
+        email = email.encode('utf-8')
+
+    email_hash = md5(email).hexdigest()
 
     url = 'https://secure.gravatar.com/avatar/%s' % email_hash
     params = QueryDict('', mutable=True)
@@ -122,5 +129,4 @@ def get_gravatar_url(request=None, user=None, size=None):
     if user.is_anonymous() or not user.email:
         return ''
 
-    email = user.email.strip().lower()
-    return get_gravatar_url_for_email(email=email, size=size)
+    return get_gravatar_url_for_email(email=user.email, size=size)
