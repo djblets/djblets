@@ -33,6 +33,7 @@ from djblets.siteconfig.django_settings import (apply_django_settings,
                                                 cache_settings_map,
                                                 mail_settings_map)
 from djblets.siteconfig.models import SiteConfiguration
+from djblets.siteconfig.signals import siteconfig_reloaded
 from djblets.testing.testcases import TestCase
 
 
@@ -76,49 +77,6 @@ class SiteConfigTest(TestCase):
         import hmac
         settings.EMAIL_HOST_USER.translate(hmac.trans_5C)
         settings.EMAIL_HOST_PASSWORD.translate(hmac.trans_5C)
-
-    def testSynchronization(self):
-        """Testing synchronizing SiteConfigurations through cache"""
-        siteconfig1 = SiteConfiguration.objects.get_current()
-        self.assertFalse(siteconfig1.is_expired())
-
-        siteconfig2 = SiteConfiguration.objects.get(site=self.siteconfig.site)
-        siteconfig2.set('foobar', 123)
-
-        # Save, and prevent clearing of caches to simulate still having the
-        # stale cache around for another thread.
-        siteconfig2.save(clear_caches=False)
-
-        self.assertTrue(siteconfig1.is_expired())
-
-        SiteConfiguration.objects.check_expired()
-
-        # See if we fetch the same one again
-        siteconfig1 = SiteConfiguration.objects.get_current()
-        self.assertEqual(siteconfig1.get('foobar'), 123)
-
-    def testSynchronizationExpiredCache(self):
-        """Testing synchronizing SiteConfigurations with an expired cache"""
-        siteconfig1 = SiteConfiguration.objects.get_current()
-        self.assertFalse(siteconfig1.is_expired())
-
-        siteconfig2 = SiteConfiguration.objects.get(site=self.siteconfig.site)
-        siteconfig2.set('foobar', 123)
-
-        # Save, and prevent clearing of caches to simulate still having the
-        # stale cache around for another thread.
-        siteconfig2.save(clear_caches=False)
-
-        cache.delete('%s:siteconfig:%s:generation' %
-                     (siteconfig2.site.domain, siteconfig2.id))
-
-        self.assertTrue(siteconfig1.is_expired())
-
-        SiteConfiguration.objects.check_expired()
-
-        # See if we fetch the same one again
-        siteconfig1 = SiteConfiguration.objects.get_current()
-        self.assertEqual(siteconfig1.get('foobar'), 123)
 
     def test_cache_backend(self):
         """Testing cache backend setting with CACHES['default']"""
@@ -299,3 +257,101 @@ class SiteConfigTest(TestCase):
                 'valid_key_2': 'valid_parameter_2',
                 'valid_key_3': 'valid_parameter_3',
             })
+
+
+class SiteConfigurationManagerTests(TestCase):
+    """Unit tests for SiteConfigurationManager."""
+
+    def setUp(self):
+        super(SiteConfigurationManagerTests, self).setUp()
+
+        self.siteconfig = SiteConfiguration(site=Site.objects.get_current())
+        self.siteconfig.save()
+
+    def tearDown(self):
+        super(SiteConfigurationManagerTests, self).tearDown()
+
+        self.siteconfig.delete()
+        SiteConfiguration.objects.clear_cache()
+
+    def test_check_expired_with_stale_cache(self):
+        """Testing SiteConfigurationManager.check_expired with stale cache"""
+        siteconfig1 = SiteConfiguration.objects.get_current()
+        self.assertFalse(siteconfig1.is_expired())
+
+        siteconfig2 = SiteConfiguration.objects.get(site=self.siteconfig.site)
+        siteconfig2.set('foobar', 123)
+
+        # Save, and prevent clearing of caches to simulate still having the
+        # stale cache around for another thread.
+        siteconfig2.save(clear_caches=False)
+
+        self.assertTrue(siteconfig1.is_expired())
+
+        SiteConfiguration.objects.check_expired()
+
+        # See if we fetch the same one again
+        siteconfig1 = SiteConfiguration.objects.get_current()
+        self.assertEqual(siteconfig1.get('foobar'), 123)
+
+    def test_check_expired_with_expired_cache(self):
+        """Testing SiteConfigurationManager.check_expired with an expired
+        state in cache
+        """
+        siteconfig1 = SiteConfiguration.objects.get_current()
+        self.assertFalse(siteconfig1.is_expired())
+
+        siteconfig2 = SiteConfiguration.objects.get(site=self.siteconfig.site)
+        siteconfig2.set('foobar', 123)
+
+        # Save, and prevent clearing of caches to simulate still having the
+        # stale cache around for another thread.
+        siteconfig2.save(clear_caches=False)
+
+        cache.delete('%s:siteconfig:%s:generation' %
+                     (siteconfig2.site.domain, siteconfig2.id))
+
+        self.assertTrue(siteconfig1.is_expired())
+
+        SiteConfiguration.objects.check_expired()
+
+        # See if we fetch the same one again
+        siteconfig1 = SiteConfiguration.objects.get_current()
+        self.assertEqual(siteconfig1.get('foobar'), 123)
+
+    def test_check_expired_emits_reloaded_signal(self):
+        """Testing SiteConfigurationManager.check_expired emits
+        siteconfig_reloaded when expired
+        """
+        signal_seen = []
+
+        def _on_siteconfig_reloaded(siteconfig, old_siteconfig, **kwargs):
+            self.assertIsNot(siteconfig, siteconfig1)
+            self.assertIsNot(siteconfig, siteconfig2)
+            self.assertIs(old_siteconfig, siteconfig1)
+            self.assertEqual(old_siteconfig.settings, siteconfig1.settings)
+            self.assertEqual(siteconfig.settings, siteconfig2.settings)
+            signal_seen.append(1)
+
+        siteconfig_reloaded.connect(_on_siteconfig_reloaded)
+
+        siteconfig1 = SiteConfiguration.objects.get_current()
+        self.assertFalse(siteconfig1.is_expired())
+
+        siteconfig2 = SiteConfiguration.objects.get(site=self.siteconfig.site)
+        siteconfig2.set('foobar', 123)
+
+        # Save, and prevent clearing of caches to simulate still having the
+        # stale cache around for another thread.
+        siteconfig2.save(clear_caches=False)
+
+        self.assertTrue(siteconfig1.is_expired())
+
+        SiteConfiguration.objects.check_expired()
+
+        # See if we fetch the same one again.
+        siteconfig1 = SiteConfiguration.objects.get_current()
+        self.assertEqual(siteconfig1.get('foobar'), 123)
+
+        # See if the signal was emitted.
+        self.assertTrue(signal_seen)

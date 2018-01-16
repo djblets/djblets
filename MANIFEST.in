@@ -1,6 +1,15 @@
-recursive-include contrib *
-recursive-include djblets *.txt *.html *.css *.less *.js *.htc *.png *.jpg *.gif
-recursive-include djblets/locale *
-include djblets/mail/public_suffix_list.dat
+graft contrib
+graft djblets
+graft docs
+
+prune docs/*/_build
+prune docs/djblets/coderef/python
+
 include AUTHORS
+include COPYING
+include INSTALL
 include NEWS
+include README
+include *-requirements.txt
+
+global-exclude .*.sw[op] *.py[co] __pycache__ .DS_Store

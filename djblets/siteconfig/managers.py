@@ -1,27 +1,4 @@
-#
-# managers.py -- Model managers for siteconfig objects
-#
-# Copyright (c) 2008-2009  Christian Hammond
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
+"""Model and cache management for SiteConfiguration."""
 
 from __future__ import unicode_literals
 
@@ -29,49 +6,120 @@ from django.contrib.sites.models import Site
 from django.db import models
 from django.utils import six
 
+from djblets.siteconfig.signals import siteconfig_reloaded
+
 
 _SITECONFIG_CACHE = {}
 
 
 class SiteConfigurationManager(models.Manager):
+    """Manages cached instances of a SiteConfiguration.
+
+    This provides functions for retrieving the current
+    :py:class:`~djblets.siteconfig.models.SiteConfiguration` instance and
+    working with cache expiration. Consumers are expected to use
+    :py:meth:`get_current` to retrieve their instance, and are also expected
+    to use the :py:class:`~djblets.siteconfig.middleware.SettingsMiddleware`
+    to manage expiration between server processes.
     """
-    A Manager that provides a get_current function for retrieving the
-    SiteConfiguration for this particular running site.
-    """
+
     def get_current(self):
+        """Return the site configuration for the active site.
+
+        Multiple calls to this method for the same
+        :py:class:`~django.contrib.site.models.Site` will return the same
+        instance, as long as the old instance has not expired. Callers should
+        not store the result of this method, as it may not be valid for long.
+
+        Returns:
+            djblets.siteconfig.models.SiteConfiguration:
+            The current site configuration for the active site.
+
+        Raises:
+            django.core.exceptions.ImproperlyConfigured:
+                Site information wasn't configured in Django.
         """
-        Returns the site configuration on the active site.
+        return self.get_for_site_id(Site.objects.get_current().pk)
+
+    def get_for_site_id(self, site_id):
+        """Return the site configuration for a specific site ID.
+
+        Multiple calls to this method for the same
+        :py:class:`~django.contrib.site.models.Site` will return the same
+        instance, as long as the old instance has not expired. Callers should
+        not store the result of this method, as it may not be valid for long.
+
+        Args:
+            site (int):
+                The ID of the site to retrieve the configuration for.
+
+        Returns:
+            djblets.siteconfig.models.SiteConfiguration:
+            The current site configuration for the specified site.
         """
-        from djblets.siteconfig.models import SiteConfiguration
-        global _SITECONFIG_CACHE
+        try:
+            siteconfig = _SITECONFIG_CACHE[site_id]
+        except KeyError:
+            siteconfig = self.model.objects.get(site_id=site_id)
+            _SITECONFIG_CACHE[site_id] = siteconfig
 
-        # This will handle raising a ImproperlyConfigured if not set up
-        # properly.
-        site = Site.objects.get_current()
-
-        if site.id not in _SITECONFIG_CACHE:
-            _SITECONFIG_CACHE[site.id] = \
-                SiteConfiguration.objects.get(site=site)
-
-        return _SITECONFIG_CACHE[site.id]
+        return siteconfig
 
     def clear_cache(self):
+        """Clear the entire SiteConfiguration cache.
+
+        The next call to :py:meth:`get_current` for any
+        :py:class:`~django.contrib.site.models.Site` will query the
+        database.
+        """
         global _SITECONFIG_CACHE
+
         _SITECONFIG_CACHE = {}
 
     def check_expired(self):
-        """
-        Checks each cached SiteConfiguration to find out if its settings
-        have expired. This should be called on each request to ensure that
-        the copy of the settings is up-to-date in case another web server
-        worker process modifies the settings in the database.
-        """
-        global _SITECONFIG_CACHE
+        """Check whether any SiteConfigurations have expired.
 
-        for key, siteconfig in six.iteritems(_SITECONFIG_CACHE.copy()):
+        If a :py:class:`~djblets.siteconfig.models.SiteConfiguration` has
+        expired (another process/server has saved a more recent version),
+        this method will expire the cache for the old version.
+
+        If there are any listeners for the
+        :py:data:`~djblets.siteconfig.signals.siteconfig_reloaded` signal,
+        a new :py:class:`~djblets.siteconfig.models.SiteConfiguration`
+        instance will be immediately loaded and the signal will fire.
+        Otherwise, a new instance will not be loaded right away.
+
+        This should be called on each HTTP request. It's recommended that
+        consumers use
+        :py:class:`~djblets.siteconfig.middleware.SettingsMiddleware` to do
+        this. It can also be called manually for long-living processes that
+        aren't bound to HTTP requests.
+
+        .. versionchanged:: 1.0.3
+
+           The :py:data:`~djblets.siteconfig.signals.siteconfig_reloaded`
+           signal is now emitted with a newly-fetched instance if there are
+           any listeners.
+        """
+        send_signal = siteconfig_reloaded.has_listeners()
+
+        for site_id, siteconfig in six.iteritems(_SITECONFIG_CACHE.copy()):
             if siteconfig.is_expired():
                 try:
                     # This is stale. Get rid of it so we can load it next time.
-                    del _SITECONFIG_CACHE[key]
+                    del _SITECONFIG_CACHE[site_id]
                 except KeyError:
-                    pass
+                    # Another thread probably took care of this. We're done
+                    # with this one.
+                    continue
+
+                # If there are any listeners to the signal, then reload the
+                # SiteConfiguration now and let consumers know about it.
+                # If there aren't any listeners, we save a database query,
+                # and the instance will be loaded next time a caller
+                # requests it.
+                if send_signal:
+                    siteconfig_reloaded.send(
+                        sender=None,
+                        siteconfig=self.get_for_site_id(site_id),
+                        old_siteconfig=siteconfig)
