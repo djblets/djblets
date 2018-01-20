@@ -29,11 +29,14 @@ class GravatarService(AvatarService):
             A dictionary containing the URLs of the user's avatars at normal-
             and high-DPI.
         """
-        return {
-            '%dx' % resolution: mark_safe(get_gravatar_url_for_email(
-                email=user.email, size=(size * resolution)))
-            for resolution in (1, 2, 3)
-        }
+        if user.email:
+            return {
+                '%dx' % resolution: mark_safe(get_gravatar_url_for_email(
+                    email=user.email, size=(size * resolution)))
+                for resolution in (1, 2, 3)
+            }
+        else:
+            return {}
 
     def get_etag_data(self, user):
         """Return the ETag data for the user's avatar.

@@ -259,6 +259,15 @@ class GravatarServiceTests(TestCase):
         self.assertIn('&', urls['2x'])
         self.assertNotIn('&amp;', urls['2x'])
 
+    def test_user_without_email(self):
+        """Testing GravatarService.render with a user without an email
+        address
+        """
+        user = User(username='username', first_name='User', last_name='Name')
+        urls = self.service.get_avatar_urls(self.request, user, 48)
+
+        self.assertEqual(urls, {})
+
 
 class URLAvatarServiceTests(SpyAgency, TestCase):
     """Tests for djblets.avatars.services.url."""
