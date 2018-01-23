@@ -207,18 +207,18 @@ class SiteConfigurationTests(SiteConfigTestCase):
 
     def test_add_defaults(self):
         """Testing SiteConfiguration.add_defaults"""
-        defaults = {
+        self.siteconfig.add_defaults({
             'valid_key_1': 'valid_parameter_1',
             'valid_key_2': 'valid_parameter_2',
             'valid_key_3': 'valid_parameter_3',
-        }
+        })
 
-        self.siteconfig.add_defaults(defaults)
-
-        self.assertEqual(defaults,
-                         self.siteconfig.get_defaults())
         self.assertEqual(self.siteconfig.get('valid_key_1'),
                          'valid_parameter_1')
+        self.assertEqual(self.siteconfig.get('valid_key_2'),
+                         'valid_parameter_2')
+        self.assertEqual(self.siteconfig.get('valid_key_3'),
+                         'valid_parameter_3')
 
     def test_add_default(self):
         """Testing SiteConfiguration.add_default"""
@@ -229,22 +229,20 @@ class SiteConfigurationTests(SiteConfigTestCase):
 
     def test_get_defaults(self):
         """Testing SiteConfiguration.get_defaults"""
-        defaults = {
+        self.siteconfig.add_defaults({
             'valid_key_1': 'valid_parameter_1',
             'valid_key_2': 'valid_parameter_2',
             'valid_key_3': 'valid_parameter_3',
-        }
-
-        self.siteconfig.add_defaults(defaults)
+        })
         self.siteconfig.add_default('valid_key_1', 'valid_new_parameter_1')
 
-        self.assertEqual(
-            self.siteconfig.get_defaults(),
-            {
-                'valid_key_1': 'valid_new_parameter_1',
-                'valid_key_2': 'valid_parameter_2',
-                'valid_key_3': 'valid_parameter_3',
-            })
+        siteconfig_defaults = self.siteconfig.get_defaults()
+        self.assertEqual(siteconfig_defaults['valid_key_1'],
+                         'valid_new_parameter_1')
+        self.assertEqual(siteconfig_defaults['valid_key_2'],
+                         'valid_parameter_2')
+        self.assertEqual(siteconfig_defaults['valid_key_3'],
+                         'valid_parameter_3')
 
 
 class SiteConfigurationManagerTests(SiteConfigTestCase):
