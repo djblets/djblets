@@ -11,7 +11,7 @@
 {% endfor %}
 
 <div class="avatar-preview">
-{% if configuration.absolute_url %}
+{% if configuration.file_path %}
  <img src="{% avatar_url request.user 128 '1x' avatar_service_id %}" alt="{% trans "Current avatar" %}">
 {% else %}
  <div class="avatar-missing"></div>
