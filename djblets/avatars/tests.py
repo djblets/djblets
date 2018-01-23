@@ -777,7 +777,7 @@ class FileUploadTests(SpyAgency, TestCase):
         self.assertTrue(form.is_valid())
 
         self.spy_on(self.storage_cls.save,
-                    call_fake=lambda self, filename, data: filename)
+                    call_fake=lambda self, name, content: name)
         form.save()
 
         self.assertTrue(self.storage_cls.save.spy.called)
@@ -805,7 +805,7 @@ class FileUploadTests(SpyAgency, TestCase):
         self.assertTrue(form.is_valid())
 
         self.spy_on(self.storage_cls.save,
-                    call_fake=lambda self, filename, data: filename)
+                    call_fake=lambda self, name, content: name)
         form.save()
 
         self.assertTrue(self.storage_cls.save.spy.called)
@@ -833,7 +833,7 @@ class FileUploadTests(SpyAgency, TestCase):
         self.assertTrue(form.is_valid())
 
         self.spy_on(self.storage_cls.save,
-                    call_fake=lambda self, filename, data: filename)
+                    call_fake=lambda self, name, content: name)
         form.save()
 
         self.assertTrue(self.storage_cls.save.spy.called)
