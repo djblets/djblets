@@ -1,28 +1,8 @@
-#
-# tests.py -- Unit tests for classes in djblets.siteconfig
-#
-# Copyright (c) 2010  Christian Hammond
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"""Unit tests for djblets.siteconfig."""
 
 from __future__ import unicode_literals
+
+import hmac
 
 from django.conf import settings
 from django.contrib.sites.models import Site
@@ -37,21 +17,29 @@ from djblets.siteconfig.signals import siteconfig_reloaded
 from djblets.testing.testcases import TestCase
 
 
-class SiteConfigTest(TestCase):
+class SiteConfigTestCase(TestCase):
+    """Base class for SiteConfiguration-related unit tests."""
+
     def setUp(self):
-        super(SiteConfigTest, self).setUp()
+        super(SiteConfigTestCase, self).setUp()
 
         self.siteconfig = SiteConfiguration(site=Site.objects.get_current())
         self.siteconfig.save()
 
     def tearDown(self):
-        super(SiteConfigTest, self).tearDown()
+        super(SiteConfigTestCase, self).tearDown()
 
         self.siteconfig.delete()
         SiteConfiguration.objects.clear_cache()
 
-    def testMailAuthDeserialize(self):
-        """Testing mail authentication settings deserialization"""
+
+class DjangoSettingsTests(SiteConfigTestCase):
+    """Unit tests for django_settings.py."""
+
+    def test_mail_auth_deserialize(self):
+        """Testing Django mail siteconfig settings with deserializing mail
+        server credentials
+        """
         # This is bug 1476. We deserialized the e-mail settings to Unicode
         # strings automatically, but this broke mail sending on some setups.
         # The HMAC library is incompatible with Unicode strings in more recent
@@ -74,12 +62,13 @@ class SiteConfigTest(TestCase):
         self.assertEqual(type(settings.EMAIL_HOST_PASSWORD), bytes)
 
         # Simulate the failure point in HMAC
-        import hmac
         settings.EMAIL_HOST_USER.translate(hmac.trans_5C)
         settings.EMAIL_HOST_PASSWORD.translate(hmac.trans_5C)
 
-    def test_cache_backend(self):
-        """Testing cache backend setting with CACHES['default']"""
+    def test_cache_backend_with_legacy_uri(self):
+        """Testing Django cache backend siteconfig settings with migrating
+        stored legacy cache backend URI to settings.CACHES
+        """
         settings.CACHES = {
             'default': {
                 'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -110,7 +99,9 @@ class SiteConfigTest(TestCase):
                          'localhost:12345')
 
     def test_cache_backend_with_caches(self):
-        """Testing cache backend setting with siteconfig-stored CACHES"""
+        """Testing Django cache backend siteconfig settings with stored CACHES
+        dictionary overriding entry in settings.CACHES
+        """
         settings.CACHES['staticfiles'] = {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
             'LOCATION': 'staticfiles-cache',
@@ -141,9 +132,9 @@ class SiteConfigTest(TestCase):
         self.assertEqual(settings.CACHES['forwarded_backend']['LOCATION'],
                          'localhost:12345')
 
-    def test_cache_backend_with_caches_legacy_memcached(self):
-        """Testing cache backend setting with siteconfig-stored CACHES and
-        legacy memcached.CacheClass
+    def test_cache_backend_without_caches_in_settings_py(self):
+        """Testing Django cache backend siteconfig settings with stored
+        CACHES dictionary and no entry in settings.CACHES
         """
         settings.CACHES['staticfiles'] = {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -175,35 +166,35 @@ class SiteConfigTest(TestCase):
         self.assertEqual(settings.CACHES['forwarded_backend']['LOCATION'],
                          'localhost:12345')
 
-    def test_siteconfig_get_invalid_key_no_default(self):
-        """Testing SiteConfiguration.get with passing an invalid key without a
-        registered default
+
+class SiteConfigurationTests(SiteConfigTestCase):
+    """Unit tests for SiteConfiguration."""
+
+    def test_get(self):
+        """Testing SiteConfiguration.get"""
+        self.siteconfig.set('valid_key_2', 'valid_parameter_2')
+
+        self.assertEqual(self.siteconfig.get('valid_key_2'),
+                         'valid_parameter_2')
+
+    def test_get_with_missing_key_and_explicit_default(self):
+        """Testing SiteConfiguration.get and passing a missing key with
+        explicit default
         """
         self.assertEqual(self.siteconfig.get('invalid_key', default='default'),
                          'default')
 
-    def test_siteconfig_get_valid_key_default_not_stored(self):
-        """Testing SiteConfiguration.get with passing a valid key stored in
-        the SiteConfiguration instance but not a registered default
+    def test_get_with_missing_key_and_registered_default(self):
+        """Testing SiteConfiguration.get and passing a missing key with a
+        registered default
         """
         self.siteconfig.add_default('valid_key_1', 'valid_parameter_1')
 
         self.assertEqual(self.siteconfig.get('valid_key_1'),
                          'valid_parameter_1')
 
-    def test_siteconfig_get_valid_key_default_and_stored(self):
-        """Testing SiteConfiguration.get with passing a valid key stored in
-        the SiteConfiguration instance
-        """
-        self.siteconfig.set('valid_key_2', 'valid_parameter_2')
-
-        self.assertEqual(self.siteconfig.get('valid_key_2'),
-                         'valid_parameter_2')
-
-    def test_siteconfig_set(self):
-        """Testing SiteConfiguration.set with stored in the
-        SiteConfiguration.settings
-        """
+    def test_set(self):
+        """Testing SiteConfiguration.set"""
         self.siteconfig.set('valid_key_2', 'valid_parameter_2')
         self.siteconfig.set('valid_key_3', 'valid_parameter_3')
 
@@ -214,9 +205,8 @@ class SiteConfigTest(TestCase):
                 'valid_key_3': 'valid_parameter_3',
             })
 
-    def test_siteconfig_add_defaults(self):
-        """Testing SiteConfiguration.add_defaults with registering defaults
-        """
+    def test_add_defaults(self):
+        """Testing SiteConfiguration.add_defaults"""
         defaults = {
             'valid_key_1': 'valid_parameter_1',
             'valid_key_2': 'valid_parameter_2',
@@ -230,17 +220,15 @@ class SiteConfigTest(TestCase):
         self.assertEqual(self.siteconfig.get('valid_key_1'),
                          'valid_parameter_1')
 
-    def test_siteconfig_add_default(self):
-        """Testing SiteConfiguration.add_default with registering default
-        """
+    def test_add_default(self):
+        """Testing SiteConfiguration.add_default"""
         self.siteconfig.add_default('valid_key_1', 'valid_new_parameter_2')
 
         self.assertEqual(self.siteconfig.get('valid_key_1'),
                          'valid_new_parameter_2')
 
-    def test_siteconfig_get_defaults(self):
-        """Testing SiteConfiguration.get_defaults with compare registering value
-        """
+    def test_get_defaults(self):
+        """Testing SiteConfiguration.get_defaults"""
         defaults = {
             'valid_key_1': 'valid_parameter_1',
             'valid_key_2': 'valid_parameter_2',
@@ -259,20 +247,8 @@ class SiteConfigTest(TestCase):
             })
 
 
-class SiteConfigurationManagerTests(TestCase):
+class SiteConfigurationManagerTests(SiteConfigTestCase):
     """Unit tests for SiteConfigurationManager."""
-
-    def setUp(self):
-        super(SiteConfigurationManagerTests, self).setUp()
-
-        self.siteconfig = SiteConfiguration(site=Site.objects.get_current())
-        self.siteconfig.save()
-
-    def tearDown(self):
-        super(SiteConfigurationManagerTests, self).tearDown()
-
-        self.siteconfig.delete()
-        SiteConfiguration.objects.clear_cache()
 
     def test_check_expired_with_stale_cache(self):
         """Testing SiteConfigurationManager.check_expired with stale cache"""

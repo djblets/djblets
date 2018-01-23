@@ -1,27 +1,4 @@
-#
-# context_processors.py -- Context processors for the siteconfig app.
-#
-# Copyright (c) 2008-2009  Christian Hammond
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
+"""Template context processors for SiteConfiguration information."""
 
 from __future__ import unicode_literals
 
@@ -36,14 +13,25 @@ logger = logging.getLogger(__name__)
 
 
 def siteconfig(request):
-    """Provides variables for accessing site configuration data.
+    """Return context variables for accessing site configuration data.
 
-    This will provide templates with a 'siteconfig' variable, representing
-    the SiteConfiguration for the installation, and a 'siteconfig_settings',
-    representing all settings on the SiteConfiguration.
+    This will provide templates with a ``siteconfig`` variable, representing
+    the current :py:class:`~djblets.siteconfig.models.SiteConfiguration` for
+    the installation, and ``siteconfig_settings``, representing all settings on
+    the current configuration.
 
-    siteconfig_settings is preferred over accessing siteconfig.settings, as
-    it will properly handle returning default values.
+    ``siteconfig_settings`` is preferred over accessing
+    :py:attr:`siteconfig.settings
+    <djblets.siteconfig.models.SiteConfiguration.settings>`, as it will
+    properly handle returning default values.
+
+    Args:
+        request (django.http.HttpRequest):
+            The current HTTP request.
+
+    Returns:
+        dict:
+        A dictionary with ``siteconfig`` and ``siteconfig_settings`` keys.
     """
     try:
         siteconfig = SiteConfiguration.objects.get_current()
@@ -61,4 +49,17 @@ def siteconfig(request):
 
 
 def settings_vars(request):
+    """Return context variables for accessing Django settings.
+
+    This will provide templates with a ``settings`` variable, which represents
+    the Django settings object.
+
+    Args:
+        request (django.http.HttpRequest):
+            The current HTTP request.
+
+    Returns:
+        dict:
+        A dictionary with a ``settings`` key.
+    """
     return {'settings': settings}

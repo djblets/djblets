@@ -10,9 +10,28 @@ class SiteSettingsForm(KeyValueForm):
 
     This is meant to be subclassed for different settings pages. Any fields
     defined by the form will be loaded/saved automatically.
+
+    Attributes:
+        request (django.http.HttpRequest):
+            The HTTP request used for this form.
+
+        siteconfig (djblets.siteconfig.models.SiteConfiguration):
+            The site configuration settings are loaded from and saved to.
     """
 
     def __init__(self, siteconfig, *args, **kwargs):
+        """Initialize the form.
+
+        Args:
+            siteconfig (djblets.siteconfig.models.SiteConfiguration):
+                The site configuration to work with on the form.
+
+            *args (tuple):
+                Positional arguments to pass to the parent constructor.
+
+            **kwargs (dict):
+                Keyword arguments to pass to the parent constructor.
+        """
         self.request = kwargs.pop('request', None)
         self.siteconfig = siteconfig
 

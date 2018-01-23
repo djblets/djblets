@@ -1,27 +1,4 @@
-#
-# middleware.py -- Middleware for the siteconfig app
-#
-# Copyright (c) 2009  David Trowbridge
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
+"""Middleware for managing site configurations."""
 
 from __future__ import unicode_literals
 
@@ -29,12 +6,20 @@ from djblets.siteconfig.models import SiteConfiguration
 
 
 class SettingsMiddleware(object):
-    """
-    Middleware that performs necessary operations for siteconfig settings.
+    """Middleware for performing expiration checks for site configuration.
 
-    Right now, the primary responsibility is to check on each request if
-    the settings have expired, so that a web server worker process doesn't
-    end up with a stale view of the site settings.
+    This will check the site configuration before each request is handled in
+    order to see if it has expired, ensuring that the the request is able to
+    work with the most up-to-date settings from the database.
     """
+
     def process_request(self, request):
+        """Process the HTTP request.
+
+        This will perform an expiration check for the site configurations.
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request being processed.
+        """
         SiteConfiguration.objects.check_expired()
