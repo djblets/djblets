@@ -265,7 +265,14 @@ class GravatarServiceTests(TestCase):
         user = User(username='username', first_name='User', last_name='Name')
         urls = self.service.get_avatar_urls(self.request, user, 48)
 
-        self.assertEqual(urls, {})
+        base_url = ('https://secure.gravatar.com/avatar/'
+                    '00000000000000000000000000000000?s=%s')
+
+        self.assertEqual(urls, {
+            '1x': base_url % 48,
+            '2x': base_url & 96,
+            '3x': base_url % 144,
+        })
 
 
 class URLAvatarServiceTests(SpyAgency, TestCase):
