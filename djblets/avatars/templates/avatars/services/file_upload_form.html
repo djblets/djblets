@@ -10,15 +10,31 @@
 {%  endif %}
 {% endfor %}
 
-<div class="avatar-preview">
+<div class="avatar-file-upload-config">
+ <div class="avatar-preview{% if not configuration.file_path %} avatar-preview-unset{% endif %}">
 {% if configuration.file_path %}
- <img src="{% avatar_url request.user 128 '1x' avatar_service_id %}" alt="{% trans "Current avatar" %}">
-{% else %}
- <div class="avatar-missing"></div>
+  <img src="{% avatar_url request.user 48 '1x' avatar_service_id %}" alt="{% trans "Your current avatar" %}">
 {% endif %}
- <p class="caption">{% trans "Avatar Preview" %}</p>
+ </div>
+
+ <div class="avatar-file-upload-instructions">
+{% blocktrans %}
+  Drag an image or <a class="avatar-file-upload-browse" href="#">browse</a> to
+  set your avatar
+{% endblocktrans %}
+ </div>
+
+ <div class="avatar-file-upload-drop-instructions">
+{% blocktrans %}
+  Drop the image to set your avatar
+{% endblocktrans %}
+ </div>
+
+<div style="display: none;">
+ <label id="avatar-file-upload-browse-label"
+        for="id_file-upload-avatar_upload"></label>
+ {{form.avatar_upload}}
+</div>
 </div>
 
-{% label_tag form.avatar_upload %}
-{{form.avatar_upload}}
 {{form.avatar_upload.errors}}
