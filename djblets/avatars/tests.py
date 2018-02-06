@@ -270,7 +270,7 @@ class GravatarServiceTests(TestCase):
 
         self.assertEqual(urls, {
             '1x': base_url % 48,
-            '2x': base_url & 96,
+            '2x': base_url % 96,
             '3x': base_url % 144,
         })
 
