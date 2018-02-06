@@ -279,12 +279,14 @@ Site Configuration
 .. autosummary::
    :toctree: python
 
+   djblets.siteconfig
    djblets.siteconfig.context_processors
    djblets.siteconfig.django_settings
    djblets.siteconfig.forms
    djblets.siteconfig.managers
    djblets.siteconfig.middleware
    djblets.siteconfig.models
+   djblets.siteconfig.signals
    djblets.siteconfig.views
 
 

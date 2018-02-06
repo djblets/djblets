@@ -2,7 +2,6 @@
 
 from __future__ import unicode_literals
 
-import logging
 import uuid
 
 from django.contrib.auth.models import User
@@ -266,7 +265,14 @@ class GravatarServiceTests(TestCase):
         user = User(username='username', first_name='User', last_name='Name')
         urls = self.service.get_avatar_urls(self.request, user, 48)
 
-        self.assertEqual(urls, {})
+        base_url = ('https://secure.gravatar.com/avatar/'
+                    '00000000000000000000000000000000?s=%s')
+
+        self.assertEqual(urls, {
+            '1x': base_url % 48,
+            '2x': base_url % 96,
+            '3x': base_url % 144,
+        })
 
 
 class URLAvatarServiceTests(SpyAgency, TestCase):
@@ -311,25 +317,89 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
 
     def setUp(self):
         super(AvatarServiceRegistryTests, self).setUp()
-        site = Site.objects.get_current()
-        self.siteconfig = SiteConfiguration.objects.create(site=site)
 
-    def tearDown(self):
-        super(AvatarServiceRegistryTests, self).tearDown()
-        self.siteconfig.delete()
+        self.siteconfig = SiteConfiguration.objects.create(
+            site=Site.objects.get_current())
 
     def test_enable_service(self):
         """Testing AvatarServiceRegistry.enable_service"""
         registry = AvatarServiceRegistry()
         registry.register(DummyAvatarService)
         self.assertFalse(registry.is_enabled(DummyAvatarService))
-        self.assertSetEqual(set(registry.enabled_services), set())
+        self.assertEqual(set(registry.enabled_services), set())
 
         registry.enable_service(DummyAvatarService)
         self.assertTrue(registry.is_enabled(DummyAvatarService))
-        self.assertSetEqual(
-            registry.enabled_services,
-            {DummyAvatarService})
+        self.assertEqual(registry.enabled_services, {DummyAvatarService})
+
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [DummyAvatarService.avatar_service_id])
+
+    def test_enable_service_with_save_false(self):
+        """Testing AvatarServiceRegistry.enable_service with save=False"""
+        registry = AvatarServiceRegistry()
+        registry.register(DummyAvatarService)
+        self.assertFalse(registry.is_enabled(DummyAvatarService))
+        self.assertEqual(set(registry.enabled_services), set())
+
+        registry.enable_service(DummyAvatarService, save=False)
+        self.assertTrue(registry.is_enabled(DummyAvatarService))
+        self.assertEqual(registry.enabled_services, {DummyAvatarService})
+
+        # Make sure we've saved this in our cached siteconfig...
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [DummyAvatarService.avatar_service_id])
+
+        # ... but not in the database.
+        siteconfig = SiteConfiguration.objects.get(pk=siteconfig.pk)
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [])
+
+    def test_enable_service_by_id(self):
+        """Testing AvatarServiceRegistry.enable_service_by_id"""
+        registry = AvatarServiceRegistry()
+        registry.register(DummyAvatarService)
+        self.assertFalse(registry.is_enabled(DummyAvatarService))
+        self.assertEqual(set(registry.enabled_services), set())
+
+        registry.enable_service_by_id(DummyAvatarService.avatar_service_id)
+        self.assertTrue(registry.is_enabled(DummyAvatarService))
+        self.assertEqual(registry.enabled_services, {DummyAvatarService})
+
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [DummyAvatarService.avatar_service_id])
+
+    def test_enable_service_by_id_with_save_false(self):
+        """Testing AvatarServiceRegistry.enable_service_by_id with save=False
+        """
+        registry = AvatarServiceRegistry()
+        registry.register(DummyAvatarService)
+        self.assertFalse(registry.is_enabled(DummyAvatarService))
+        self.assertEqual(set(registry.enabled_services), set())
+
+        registry.enable_service_by_id(DummyAvatarService.avatar_service_id,
+                                      save=False)
+        self.assertTrue(registry.is_enabled(DummyAvatarService))
+        self.assertEqual(registry.enabled_services, {DummyAvatarService})
+
+        # Make sure we've saved this in our cached siteconfig...
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [DummyAvatarService.avatar_service_id])
+
+        # ... but not in the database.
+        siteconfig = SiteConfiguration.objects.get(pk=siteconfig.pk)
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [])
 
     def test_disable_service(self):
         """Testing AvatarServiceRegistry.disable_service"""
@@ -338,26 +408,130 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         registry.enable_service(GravatarService)
 
         self.assertTrue(registry.is_enabled(GravatarService))
-        self.assertSetEqual(set(registry.enabled_services),
-                            {GravatarService})
+        self.assertEqual(set(registry.enabled_services), {GravatarService})
 
         registry.disable_service(GravatarService)
         self.assertFalse(registry.is_enabled(GravatarService))
-        self.assertSetEqual(set(registry.enabled_services), set())
+        self.assertEqual(set(registry.enabled_services), set())
+
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [])
+
+    def test_disable_service_with_save_false(self):
+        """Testing AvatarServiceRegistry.disable_service with save=False"""
+        registry = AvatarServiceRegistry()
+        self.assertFalse(registry.is_enabled(GravatarService))
+        registry.enable_service(GravatarService)
+
+        self.assertTrue(registry.is_enabled(GravatarService))
+        self.assertEqual(set(registry.enabled_services), {GravatarService})
+
+        registry.disable_service(GravatarService, save=False)
+        self.assertFalse(registry.is_enabled(GravatarService))
+        self.assertEqual(set(registry.enabled_services), set())
+
+        # Make sure we've saved this in our cached siteconfig...
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [])
+
+        # ... but not in the database.
+        siteconfig = SiteConfiguration.objects.get(pk=siteconfig.pk)
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [GravatarService.avatar_service_id])
+
+    def test_disable_service_by_id(self):
+        """Testing AvatarServiceRegistry.disable_service_by_id"""
+        registry = AvatarServiceRegistry()
+        self.assertFalse(registry.is_enabled(GravatarService))
+        registry.enable_service(GravatarService)
+
+        self.assertTrue(registry.is_enabled(GravatarService))
+        self.assertEqual(set(registry.enabled_services), {GravatarService})
+
+        registry.disable_service_by_id(GravatarService.avatar_service_id)
+        self.assertFalse(registry.is_enabled(GravatarService))
+        self.assertEqual(set(registry.enabled_services), set())
+
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [])
+
+    def test_disable_service_by_id_with_save_false(self):
+        """Testing AvatarServiceRegistry.disable_service_by_id with save=False
+        """
+        registry = AvatarServiceRegistry()
+        self.assertFalse(registry.is_enabled(GravatarService))
+        registry.enable_service(GravatarService)
+
+        self.assertTrue(registry.is_enabled(GravatarService))
+        self.assertEqual(set(registry.enabled_services), {GravatarService})
+
+        registry.disable_service_by_id(GravatarService.avatar_service_id,
+                                       save=False)
+        self.assertFalse(registry.is_enabled(GravatarService))
+        self.assertEqual(set(registry.enabled_services), set())
+
+        # Make sure we've saved this in our cached siteconfig...
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [])
+
+        # ... but not in the database.
+        siteconfig = SiteConfiguration.objects.get(pk=siteconfig.pk)
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [GravatarService.avatar_service_id])
 
     def test_set_enabled_services(self):
-        """Testing AvatarServiceRegistry.enabled_services setter"""
+        """Testing AvatarServiceRegistry.set_enabled_services"""
         registry = AvatarServiceRegistry()
 
         registry.register(DummyAvatarService)
 
-        registry.enabled_services = [DummyAvatarService, GravatarService]
+        registry.set_enabled_services([DummyAvatarService, GravatarService])
 
         self.assertEqual(registry.enabled_services,
                          {DummyAvatarService, GravatarService})
 
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [DummyAvatarService.avatar_service_id,
+             GravatarService.avatar_service_id])
+
+    def test_set_enabled_services_with_save_false(self):
+        """Testing AvatarServiceRegistry.set_enabled_services with save=False
+        """
+        registry = AvatarServiceRegistry()
+        registry.register(DummyAvatarService)
+        registry.set_enabled_services([DummyAvatarService, GravatarService],
+                                      save=False)
+
+        self.assertEqual(registry.enabled_services,
+                         {DummyAvatarService, GravatarService})
+
+        # Make sure we've saved this in our cached siteconfig...
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            set(siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY)),
+            {DummyAvatarService.avatar_service_id,
+             GravatarService.avatar_service_id})
+
+        # ... but not in the database.
+        siteconfig = SiteConfiguration.objects.get(pk=siteconfig.pk)
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [])
+
     def test_get_enabled_services_populated(self):
-        """Testing AvatarServiceRegistry.enabled_services getter calls
+        """Testing AvatarServiceRegistry.enabled_services property calls
         populate()
         """
         class TestRegistry(AvatarServiceRegistry):
@@ -373,6 +547,10 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
             def get_defaults(self):
                 yield DummyAvatarService
 
+        self.siteconfig.set(AvatarServiceRegistry.ENABLED_SERVICES_KEY,
+                            [DummyAvatarService.avatar_service_id])
+        self.siteconfig.save()
+
         registry = TestRegistry()
         self.assertFalse(registry.populated)
 
@@ -381,35 +559,57 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         self.assertSetEqual(enabled_services, {DummyAvatarService})
 
     def test_set_enabled_services_invalid_service(self):
-        """Testing AvatarServiceRegistry.enabled_services setter with an
+        """Testing AvatarServiceRegistry.set_enabled_services with an
         unregistered service
         """
         registry = AvatarServiceRegistry()
 
         with self.assertRaises(ItemLookupError):
-            registry.enabled_services = [DummyAvatarService, GravatarService]
+            registry.set_enabled_services([DummyAvatarService,
+                                           GravatarService])
 
         self.assertEqual(registry.enabled_services, set())
+
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [])
 
     def test_default_service(self):
         """Testing AvatarServiceRegistry.default_service"""
         registry = AvatarServiceRegistry()
         registry.register(DummyAvatarService)
 
-        registry.enabled_services = [DummyAvatarService, GravatarService]
-
+        registry.set_enabled_services([DummyAvatarService, GravatarService])
         self.assertIsNone(registry.default_service)
 
+        # Set the default backend to the dummy backend.
         registry.set_default_service(DummyAvatarService)
         self.assertIsInstance(registry.default_service, DummyAvatarService)
 
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY),
+            DummyAvatarService.avatar_service_id)
+
+        # Set the default backend to the Gravatar backend.
         registry.set_default_service(GravatarService)
         self.assertIsInstance(registry.default_service, GravatarService)
 
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY),
+            GravatarService.avatar_service_id)
+
+        # Remove the default backend.
         registry.set_default_service(None)
         self.assertIsNone(registry.default_service)
 
-    def test_default_service_after_service_reregisterd(self):
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertIsNone(
+            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY))
+
+    def test_default_service_after_service_reregistered(self):
         """Testing AvatarServiceRegistry.default_service after service
         registered after previously unregistered
         """
@@ -422,30 +622,93 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         registry = AvatarServiceRegistry()
         registry.populate()
 
-        self.assertEqual(registry._default_service_id,
-                         DummyAvatarService.avatar_service_id)
         self.assertIsNone(registry.default_service)
+
+        # Make sure it's still saved in siteconfig. We'd only unset it if
+        # wasn't in the list of stoerd enabled service IDs, since we might be
+        # running without extensions loaded.
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY),
+            DummyAvatarService.avatar_service_id)
 
         registry.register(DummyAvatarService)
 
         self.assertIsInstance(registry.default_service, DummyAvatarService)
 
-    def test_set_default_service_invalid(self):
-        """Testing AvatarServiceRegistry.set_default_service setter with an
-        unregistered service
-        """
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY),
+            DummyAvatarService.avatar_service_id)
+
+    def test_set_default_service(self):
+        """Testing AvatarServiceRegistry.set_default_service"""
+        self.siteconfig.set(AvatarServiceRegistry.ENABLED_SERVICES_KEY,
+                            [GravatarService.avatar_service_id])
+        self.siteconfig.save()
+
         registry = AvatarServiceRegistry()
+        self.assertIsNone(registry.default_service)
+
+        registry.set_default_service(GravatarService)
+
+        self.assertIsInstance(registry.default_service, GravatarService)
+
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY),
+            GravatarService.avatar_service_id)
+
+    def test_set_default_service_with_save_false(self):
+        """Testing AvatarServiceRegistry.set_default_service with save=False"""
+        self.siteconfig.set(AvatarServiceRegistry.ENABLED_SERVICES_KEY,
+                            [GravatarService.avatar_service_id])
+        self.siteconfig.set(AvatarServiceRegistry.DEFAULT_SERVICE_KEY,
+                            GravatarService.avatar_service_id)
+        self.siteconfig.save()
+
+        registry = AvatarServiceRegistry()
+        registry.set_default_service(None, save=False)
 
         self.assertIsNone(registry.default_service)
+
+        # Make sure we've saved this in our cached siteconfig...
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertIsNone(
+            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY))
+
+        # ... but not in the database.
+        siteconfig = SiteConfiguration.objects.get(pk=siteconfig.pk)
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY),
+            GravatarService.avatar_service_id)
+
+    def test_set_default_service_invalid(self):
+        """Testing AvatarServiceRegistry.set_default_service with an
+        unregistered service
+        """
+        self.siteconfig.set(AvatarServiceRegistry.ENABLED_SERVICES_KEY,
+                            [GravatarService.avatar_service_id])
+        self.siteconfig.set(AvatarServiceRegistry.DEFAULT_SERVICE_KEY,
+                            GravatarService.avatar_service_id)
+        self.siteconfig.save()
+
+        registry = AvatarServiceRegistry()
+        self.assertIsInstance(registry.default_service, GravatarService)
 
         with self.assertRaises(ItemLookupError):
             registry.set_default_service(DummyAvatarService)
 
-        self.assertIsNone(registry.default_service)
+        self.assertIsInstance(registry.default_service, GravatarService)
+
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY),
+            GravatarService.avatar_service_id)
 
     def test_set_default_service_disabled(self):
-        """Testing AvatarServiceRegistry.set_default_service setter with a
-        disabled service
+        """Testing AvatarServiceRegistry.set_default_service with a disabled
+        service
         """
         registry = AvatarServiceRegistry()
         gravatar_service = registry.get('avatar_service_id',
@@ -458,12 +721,14 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
 
         self.assertIsNone(registry.default_service)
 
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertIsNone(
+            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY))
+
     def test_populate(self):
         """Testing AvatarServiceRegistry.populate with site configuration
         settings
         """
-        self.spy_on(logging.error)
-
         self.siteconfig.set(AvatarServiceRegistry.ENABLED_SERVICES_KEY,
                             [GravatarService.avatar_service_id])
         self.siteconfig.set(AvatarServiceRegistry.DEFAULT_SERVICE_KEY,
@@ -477,113 +742,31 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         self.assertIsInstance(registry.default_service, GravatarService)
         self.assertEqual(registry.enabled_services, {GravatarService})
 
-        self.assertFalse(logging.error.spy.called)
-
-    def test_populate_invalid_default(self):
-        """Testing AvatarServiceRegistry.populate with an invalid default
-        registry in the site configuration
-        """
-        self.spy_on(logging.error)
-
-        self.siteconfig.set(AvatarServiceRegistry.DEFAULT_SERVICE_KEY,
-                            DummyAvatarService.avatar_service_id)
-        self.siteconfig.save()
-
-        registry = AvatarServiceRegistry()
-        registry.populate()
-
-        self.assertIsNone(registry.default_service)
-        self.assertEqual(registry.enabled_services, set())
-
-        self.assertTrue(logging.error.spy.called)
-
-        # Check that the old invalid default is still recorded, in case a
-        # backend (perhaps from an extension) is just temporarily disabled.
-        siteconfig = SiteConfiguration.objects.get_current()
-        self.assertEqual(
-            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY),
-            DummyAvatarService.avatar_service_id)
-
-    def test_populate_disabled_default(self):
-        """Testing AvatarServiceRegistry.populate with a disabled default
-        registry in the site configuration
-        """
-        self.spy_on(logging.error)
-
-        self.siteconfig.set(AvatarServiceRegistry.DEFAULT_SERVICE_KEY,
-                            GravatarService.avatar_service_id)
-        self.siteconfig.save()
-
-        registry = AvatarServiceRegistry()
-        registry.populate()
-
-        self.assertIn(GravatarService, registry)
-        self.assertIsNone(registry.default_service, None)
-        self.assertEqual(registry.enabled_services, set())
-
-        self.assertTrue(logging.error.spy.called)
-
-        siteconfig = SiteConfiguration.objects.get_current()
-        self.assertIsNone(
-            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY))
-
-    def test_populate_invalid_enabled_services(self):
-        """Testing AvatarServiceRegistry.populate with an unregistered
-        service
-        """
-        self.spy_on(logging.error)
-        self.siteconfig.set(AvatarServiceRegistry.ENABLED_SERVICES_KEY,
-                            [DummyAvatarService.avatar_service_id])
-        self.siteconfig.save()
-
-        registry = AvatarServiceRegistry()
-        registry.populate()
-
-        self.assertIsNone(registry.default_service)
-        self.assertEqual(registry.enabled_services, set())
-        self.assertEqual(registry._enabled_services,
-                         {DummyAvatarService.avatar_service_id})
-
-        self.assertTrue(logging.error.spy.called)
-
-        # Check that the old enabled backend is still recorded, in case a
-        # backend (perhaps from an extension) is just temporarily disabled.
-        siteconfig = SiteConfiguration.objects.get_current()
-        self.assertEqual(
-            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
-            [DummyAvatarService.avatar_service_id])
-
-    def test_populate_custom_services(self):
-        """Testing AvatarServiceRegistry.populate for subclasses with custom
-        default registrations
-        """
-        class TestRegistry(AvatarServiceRegistry):
-            settings_manager_class = DummySettingsManager(None, {})
-            default_avatar_service_classes = [DummyAvatarService,
-                                              GravatarService]
-
-        self.spy_on(logging.error)
-        self.siteconfig.set(AvatarServiceRegistry.ENABLED_SERVICES_KEY,
-                            [DummyAvatarService.avatar_service_id])
-        self.siteconfig.set(AvatarServiceRegistry.DEFAULT_SERVICE_KEY,
-                            DummyAvatarService.avatar_service_id)
-        self.siteconfig.save()
-
-        registry = TestRegistry()
-        self.assertIsInstance(registry.default_service, DummyAvatarService)
-        self.assertFalse(logging.error.spy.called)
-
     def test_unregister(self):
         """Testing AvatarServiceRegistry.unregister"""
+        self.siteconfig.set(AvatarServiceRegistry.DEFAULT_SERVICE_KEY,
+                            GravatarService.avatar_service_id)
+        self.siteconfig.set(AvatarServiceRegistry.ENABLED_SERVICES_KEY,
+                            [GravatarService.avatar_service_id])
+        self.siteconfig.save()
+
         registry = AvatarServiceRegistry()
         gravatar_service = registry.get('avatar_service_id',
                                         GravatarService.avatar_service_id)
 
-        registry.enable_service(GravatarService)
+        self.assertEqual(registry.enabled_services, {gravatar_service})
 
-        self.assertSetEqual(registry.enabled_services, {gravatar_service})
         registry.unregister(gravatar_service)
-        self.assertSetEqual(registry.enabled_services, set())
+        self.assertEqual(registry.enabled_services, set())
+        self.assertIsNone(registry.default_service)
+
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [GravatarService.avatar_service_id])
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY),
+            GravatarService.avatar_service_id)
 
     def test_unregister_register_keeps_enabled(self):
         """Testing AvatarServiceRegistry.unregister followed by register keeps
@@ -595,12 +778,17 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
 
         registry.enable_service(GravatarService)
 
-        self.assertSetEqual(registry.enabled_services, {gravatar_service})
+        self.assertEqual(registry.enabled_services, {gravatar_service})
         registry.unregister(gravatar_service)
-        self.assertSetEqual(registry.enabled_services, set())
+        self.assertEqual(registry.enabled_services, set())
 
         registry.register(gravatar_service)
-        self.assertSetEqual(registry.enabled_services, {gravatar_service})
+        self.assertEqual(registry.enabled_services, {gravatar_service})
+
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [GravatarService.avatar_service_id])
 
     def test_disable_default(self):
         """Testing AvatarServiceRegistry.disable_service unsets the default
@@ -613,20 +801,33 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         registry.disable_service(GravatarService)
         self.assertIsNone(registry.default_service)
 
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [])
+        self.assertIsNone(
+            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY))
+
     def test_disable_default_from_setter(self):
-        """Testing AvatarServiceRegistry.enabled_services setter unsets the
-        default services
+        """Testing AvatarServiceRegistry.set_enabled_services unsets the
+        default services when removed
         """
         registry = AvatarServiceRegistry()
         registry.enable_service(GravatarService)
         registry.set_default_service(GravatarService)
 
-        registry.enabled_services = []
+        registry.set_enabled_services([])
         self.assertIsNone(registry.default_service)
+
+        siteconfig = SiteConfiguration.objects.get_current()
+        self.assertEqual(
+            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
+            [])
+        self.assertIsNone(
+            siteconfig.get(AvatarServiceRegistry.DEFAULT_SERVICE_KEY))
 
     def test_for_user(self):
         """Testing AvatarServiceRegistry.for_user"""
-
         class DummyAvatarServiceRegistry(AvatarServiceRegistry):
             settings_manager_class = DummySettingsManager('dummy', {})
             default_avatar_service_classes = [
@@ -777,7 +978,7 @@ class FileUploadTests(SpyAgency, TestCase):
         self.assertTrue(form.is_valid())
 
         self.spy_on(self.storage_cls.save,
-                    call_fake=lambda self, filename, data: filename)
+                    call_fake=lambda self, name, content: name)
         form.save()
 
         self.assertTrue(self.storage_cls.save.spy.called)
@@ -805,7 +1006,7 @@ class FileUploadTests(SpyAgency, TestCase):
         self.assertTrue(form.is_valid())
 
         self.spy_on(self.storage_cls.save,
-                    call_fake=lambda self, filename, data: filename)
+                    call_fake=lambda self, name, content: name)
         form.save()
 
         self.assertTrue(self.storage_cls.save.spy.called)
@@ -833,7 +1034,7 @@ class FileUploadTests(SpyAgency, TestCase):
         self.assertTrue(form.is_valid())
 
         self.spy_on(self.storage_cls.save,
-                    call_fake=lambda self, filename, data: filename)
+                    call_fake=lambda self, name, content: name)
         form.save()
 
         self.assertTrue(self.storage_cls.save.spy.called)

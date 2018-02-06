@@ -65,13 +65,12 @@ def get_gravatar_url_for_email(request=None, email=None, size=None):
     if email:
         email = email.strip().lower()
 
-    if not email:
-        raise ValueError('"email" cannot be None or empty.')
+        if isinstance(email, six.text_type):
+            email = email.encode('utf-8')
 
-    if isinstance(email, six.text_type):
-        email = email.encode('utf-8')
-
-    email_hash = md5(email).hexdigest()
+        email_hash = md5(email).hexdigest()
+    else:
+        email_hash = '00000000000000000000000000000000'
 
     url = 'https://secure.gravatar.com/avatar/%s' % email_hash
     params = QueryDict('', mutable=True)

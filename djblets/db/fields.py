@@ -29,6 +29,7 @@ from __future__ import unicode_literals
 import base64
 import json
 import logging
+import threading
 import warnings
 import weakref
 from ast import literal_eval
@@ -907,6 +908,10 @@ class RelationCounterField(CounterField):
     # per model_cls/relation_name pair.
     _relation_trackers = {}
 
+    # A lock for handling instance state dictionary modification, to prevent
+    # threads from stomping over each other.
+    _state_lock = threading.Lock()
+
     class InstanceState(object):
         """Tracks state for a RelationCounterField instance assocation.
 
@@ -1400,16 +1405,22 @@ class RelationCounterField(CounterField):
             instance_id (int):
                 The reference ID of the instance.
         """
-        for states in (cls._saved_instance_states,
-                       cls._unsaved_instance_states):
-            for key, state in list(six.iteritems(states)):
-                model_instance = state.model_instance
+        with cls._state_lock:
+            for states in (cls._saved_instance_states,
+                           cls._unsaved_instance_states):
+                to_remove = []
 
-                if (model_instance is None or
-                    id(model_instance) == instance_id or
-                    (model_instance.__class__ is instance_cls and
-                     model_instance.pk == instance_pk)):
-                    del states[key]
+                for key, state in six.iteritems(states):
+                    model_instance = state.model_instance
+
+                    if (model_instance is None or
+                        id(model_instance) == instance_id or
+                        (model_instance.__class__ is instance_cls and
+                         model_instance.pk == instance_pk)):
+                        to_remove.append(key)
+
+                for key in to_remove:
+                    states.pop(key, None)
 
     @classmethod
     def _store_state(cls, instance, field):
@@ -1441,7 +1452,9 @@ class RelationCounterField(CounterField):
             state.fields.append(field)
         except KeyError:
             state = cls.InstanceState(instance, [field])
-            states[key] = state
+
+            with cls._state_lock:
+                states[key] = state
 
         if instance.pk is not None:
             setattr(instance, '_%s_state' % field.attname, state)

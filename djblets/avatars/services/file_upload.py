@@ -9,7 +9,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.storage import DefaultStorage
-from django.forms import forms
+from django.forms import forms, widgets
 from django.utils.translation import ugettext_lazy as _
 
 from djblets.avatars.forms import AvatarServiceConfigForm
@@ -24,7 +24,11 @@ class FileUploadServiceForm(AvatarServiceConfigForm):
     js_view_class = 'Djblets.Avatars.FileUploadSettingsFormView'
     template_name = 'avatars/services/file_upload_form.html'
 
-    avatar_upload = forms.FileField(label=_('File'), required=True)
+    avatar_upload = forms.FileField(
+        required=True,
+        widget=widgets.FileInput(attrs={
+            'accept': 'image/png, image/jpeg, image/gif',
+        }))
 
     MAX_FILE_SIZE = 1 * 1024 * 1024
     is_multipart = True

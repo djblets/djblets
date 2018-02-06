@@ -27,7 +27,7 @@ class SiteConfigurationManager(models.Manager):
         """Return the site configuration for the active site.
 
         Multiple calls to this method for the same
-        :py:class:`~django.contrib.site.models.Site` will return the same
+        :py:class:`~django.contrib.sites.models.Site` will return the same
         instance, as long as the old instance has not expired. Callers should
         not store the result of this method, as it may not be valid for long.
 
@@ -45,7 +45,7 @@ class SiteConfigurationManager(models.Manager):
         """Return the site configuration for a specific site ID.
 
         Multiple calls to this method for the same
-        :py:class:`~django.contrib.site.models.Site` will return the same
+        :py:class:`~django.contrib.sites.models.Site` will return the same
         instance, as long as the old instance has not expired. Callers should
         not store the result of this method, as it may not be valid for long.
 
@@ -69,7 +69,7 @@ class SiteConfigurationManager(models.Manager):
         """Clear the entire SiteConfiguration cache.
 
         The next call to :py:meth:`get_current` for any
-        :py:class:`~django.contrib.site.models.Site` will query the
+        :py:class:`~django.contrib.sites.models.Site` will query the
         database.
         """
         global _SITECONFIG_CACHE

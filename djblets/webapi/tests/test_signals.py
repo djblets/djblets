@@ -74,7 +74,7 @@ class WebAPITokenSignalsTests(SpyAgency, TestModelsLoaderMixin, TestCase):
             self.assertTrue(on_webapi_token_created.spy.called)
             self.assertFalse(on_webapi_token_updated.spy.called)
 
-            on_webapi_token_created.spy.calls = []
+            on_webapi_token_created.spy.reset_calls()
 
             token.save()
 

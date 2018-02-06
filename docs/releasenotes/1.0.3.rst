@@ -1,0 +1,130 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+===========================
+Djblets 1.0.3 Release Notes
+===========================
+
+**Release date**: February 5, 2018
+
+
+Packaging
+=========
+
+* Added missing SVG icons, source maps, and development-related files to the
+  package.
+
+
+djblets.avatars
+===============
+
+* Rewrote the avatar backend code to avoid common state synchronization
+  problems.
+
+  Changes made to the avatar configuration weren't being synchronized properly
+  to other processes/servers, due to the configuration state being stored
+  locally and never being refreshed from the database. Stale state would also
+  sometimes replace the new state, undoing changes that were made. This has
+  all changed, making the Site Configuration the ultimate source of truth on
+  the configuration, and fixing a lot of the state synchronization problems
+  being hit.
+
+  If you continue to hit problems with configuring custom avatar backends,
+  please let us know.
+
+* Redesigned the File Upload avatar configuration form.
+
+  The new form makes it easy to upload avatars through drag-and-drop or by
+  navigating through a file dialog. It also correctly shows the user's current
+  avatar, which the old form did not, and in a more standard size.
+
+* Fixed a crash when computing Gravatars for a user without an e-mail address.
+
+  The default Gravatar image will now be shown for these users instead.
+
+* Replaced the :py:attr:`AvatarServiceRegistry.enabled_services
+  <djblets.avatars.registry.AvatarServiceRegistry.enabled_services>` property
+  with an :py:meth:`AvatarServiceRegistry.set_enabled_services
+  <djblets.avatars.registry.AvatarServiceRegistry.set_enabled_services>`
+  method.
+
+  The new method allows the caller to specify whether the settings should be
+  immediately saved after setting the new list of enabled services. By
+  default, they are saved.
+
+  The old property will continue to work for 1.0.x.
+
+* Default values for avatar-related site configuration keys are now registered
+  globally for site configurations.
+
+
+djblets.db
+==========
+
+* Hopefully fixed a rare crash in production with
+  :py:class:`~djblets.db.fields.RelationCounterField`.
+
+
+djblets.extensions
+==================
+
+* Fixed the LessCSS include path when packaging extensions.
+
+  This should allow extensions' LessCSS files to once again reference other
+  LessCSS files provided by the application.
+
+
+djblets.siteconfig
+==================
+
+* Added globally-registered defaults for site configuration settings.
+
+  Site configurations have historically allowed default values for settings
+  to be registered for a particular site configuration (keyed off by the
+  site configuration's ID in the database), which required having that
+  configuration available up-front.
+
+  They can now be registered globally, affecting any site configuration (of
+  which there's usually only one), without needing to perform any lookups.
+  This is managed through the following new class methods:
+
+  * :py:meth:`SiteConfiguration.add_global_defaults()
+    <djblets.siteconfig.models.SiteConfiguration.add_global_defaults>`
+  * :py:meth:`SiteConfiguration.add_global_default()
+    <djblets.siteconfig.models.SiteConfiguration.add_global_default>`
+  * :py:meth:`SiteConfiguration.remove_global_default()
+    <djblets.siteconfig.models.SiteConfiguration.remove_global_default>`
+  * :py:meth:`SiteConfiguration.clear_global_defaults()
+    <djblets.siteconfig.models.SiteConfiguration.clear_global_defaults>`
+  * :py:meth:`SiteConfiguration.get_global_defaults()
+    <djblets.siteconfig.models.SiteConfiguration.get_global_defaults>`
+
+* Added methods for removing defaults on specific site configurations.
+
+  The defaults can now be individually removed with
+  :py:meth:`SiteConfiguration.remove_default()
+  <djblets.siteconfig.models.SiteConfiguration.remove_default>` and completely
+  cleared with
+  :py:meth:`SiteConfiguration.clear_defaults()
+  <djblets.siteconfig.models.SiteConfiguration.clear_defaults>`.
+
+* Added a :py:data:`~djblets.siteconfig.signals.siteconfig_reloaded` signal
+  for determining when the site configuration has reloaded.
+
+  This can be used to refresh local state based on changes in the site
+  configuration.
+
+* Added :py:meth:`SiteConfiguration.objects.get_for_site_id()
+  <djblets.siteconfig.managers.SiteConfigurationManager.get_for_site_id>`
+  to return a site configuration for a specific Django site ID.
+
+* Changed :py:meth:`SiteConfiguration.objects.check_expired()
+  <djblets.siteconfig.managers.SiteConfigurationManager.check_expired>` to
+  immediately re-fetch the configuration if the new signal contains listeners.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge

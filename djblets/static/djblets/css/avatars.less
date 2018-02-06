@@ -1,39 +1,60 @@
-@avatar-size: 128px;
+@avatar-size: 48px;
 
-.avatar-missing::before {
-  background-color: white;
-  border: 1px solid black;
-  border-radius: 50%;
-  content: '?';
-  display: block;
-  font-family: 'monospace';
-  font-size: @avatar-size;
-  line-height: @avatar-size;
-  height: @avatar-size;
-  width: @avatar-size;
-  text-align: center;
-}
 
 .avatar-preview {
-  width: @avatar-size + 2px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  overflow: hidden;
+  height: @avatar-size;
+  width: @avatar-size;
 
-  .caption {
-    text-align: center;
+  &.avatar-preview-unset {
+    background: #FFF;
+    border: 1px #CCC dashed;
   }
 
   img {
-    height: @avatar-size;
     width: @avatar-size;
-    border: 1px solid black;
-    border-radius: 50%;
+    height: @avatar-size;
   }
 }
 
-.avatar-service-configuration {
-  display: none;
-
-}
-
+.avatar-service-configuration,
 .avatar-service-fields {
   display: none;
+}
+
+.avatar-file-upload-config {
+  border: 2px #CCC dashed;
+  display: inline-block;
+  margin: 1em 0;
+  padding: 1em;
+
+  &.drag-hover {
+    background: white;
+    border-color: #000099;
+    content: 'Drop to set your avatar';
+
+    * {
+      pointer-events: none;
+    }
+
+    .avatar-file-upload-instructions {
+      display: none;
+    }
+
+    .avatar-file-upload-drop-instructions {
+      display: block;
+    }
+  }
+
+  .avatar-file-upload-drop-instructions {
+    display: none;
+    text-align: center;
+  }
+
+  .avatar-preview {
+    cursor: pointer;
+    margin: 0 auto 1em auto;
+  }
 }

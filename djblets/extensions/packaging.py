@@ -100,13 +100,15 @@ class BuildStaticFiles(Command):
                 staticfile_dir = staticfile_dir[1]
 
             dirname = os.path.dirname(staticfile_dir)
+            less_include.add(dirname)
 
             if os.path.basename(dirname) == 'static':
-                # Static files should be living within a static/ directory,
-                # generally-speaking. That's how they'll be referenced when
-                # using @{STATIC_ROOT}. If we find a static file dir living
-                # inside a static/ directory, strip away the static/ so that
-                # lookups will work.
+                # This code is here for compatibility reasons. With a proper
+                # Babel setup, .less files should be able to reference others
+                # relative to static/ directories. However, some paths may
+                # still prefix /static/ to any paths, and we don't want those
+                # to break. So, add the parent of this static/ directory
+                # in order to allow those lookups to continue working.
                 dirname = os.path.dirname(dirname)
 
             less_include.add(dirname)

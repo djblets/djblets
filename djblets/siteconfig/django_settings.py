@@ -1,27 +1,4 @@
-#
-# djblets/siteconfig/django_settings.py
-#
-# Copyright (c) 2008  Christian Hammond
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
+"""Utilities for going between SiteConfiguration and Django settings."""
 
 from __future__ import unicode_literals
 
@@ -36,6 +13,26 @@ from djblets.cache.forwarding_backend import (DEFAULT_FORWARD_CACHE_ALIAS,
 
 
 def _set_cache_backend(settings, key, value):
+    """Set the default cache backend.
+
+    This will set the default cache backend to use Djblets's
+    :py:class:`~djblets.cache.forwarding_backend.ForwardingCacheBackend`,
+    and use that to forward on to the provided cache backend.
+
+    The new cache settings will be instantly usable by the application
+    without having to restart.
+
+    Args:
+        settings (django.conf.LazySettings):
+            The Django settings object.
+
+        key (unicode, unused):
+            The settings key (``CACHES``).
+
+        value (object):
+            The cache backend settings. This may be a legacy URI or a
+            dictionary containing cache backend information.
+    """
     settings.CACHES.update({
         DEFAULT_FORWARD_CACHE_ALIAS: (
             normalize_cache_backend(value, DEFAULT_FORWARD_CACHE_ALIAS) or
@@ -54,11 +51,35 @@ def _set_cache_backend(settings, key, value):
 
 
 def _set_static_url(settings, key, value):
+    """Set the URL for static media.
+
+    Args:
+        settings (django.conf.LazySettings):
+            The Django settings object.
+
+        key (unicode, unused):
+            The settings key (``STATIC_URL``).
+
+        value (object):
+            The new static URL.
+    """
     settings.STATIC_URL = value
     staticfiles_storage.base_url = value
 
 
 def _set_timezone(settings, key, value):
+    """Set the server's timezone.
+
+    Args:
+        settings (django.conf.LazySettings):
+            The Django settings object.
+
+        key (unicode, unused):
+            The settings key (``TIME_ZONE``).
+
+        value (object):
+            The new timezone.
+    """
     settings.TIME_ZONE = value
 
     # Internally, Django will also set os.environ['TZ'] to this value
@@ -81,13 +102,13 @@ def _set_timezone(settings, key, value):
 
 locale_settings_map = {
     'locale_timezone':             {'key': 'TIME_ZONE',
-                                    'deserialize_func': str,
+                                    'deserialize_func': six.text_type,
                                     'setter': _set_timezone},
     'locale_language_code':        'LANGUAGE_CODE',
     'locale_date_format':          'DATE_FORMAT',
     'locale_datetime_format':      'DATETIME_FORMAT',
     'locale_default_charset':      {'key': 'DEFAULT_CHARSET',
-                                    'deserialize_func': str},
+                                    'deserialize_func': six.text_type},
     'locale_language_code':        'LANGUAGE_CODE',
     'locale_month_day_format':     'MONTH_DAY_FORMAT',
     'locale_time_format':          'TIME_FORMAT',
@@ -129,9 +150,35 @@ _django_settings_map = {}
 
 
 def get_django_settings_map():
-    """
-    Returns the settings map for all Django settings that users may need
-    to customize.
+    """Return a map of customizable Django settings.
+
+    These maps are passed to other functions, like :py:func:`generate_defaults`
+    and :py:func:`apply_django_settings`. Consumers can make their own
+    settings map based on this with additional settings they want to provide.
+
+    Each entry maps a siteconfig settings key to either a Django settings key
+    or detailed information on serializing/deserializing a Django setting.
+
+    An entry with detailed information represents that as a dictionary
+    containing the following fields:
+
+    ``key`` (:py:class:`unicode`):
+        The Django settings key.
+
+    ``deserialize_func`` (callable, optional):
+        A function taking the value from the siteconfig and returning a value
+        usable in Django settings.
+
+    ``setter`` (callable, optional):
+        A function taking the Django settings object, the Django settings key,
+        and the new value from the siteconfig (after going through
+        ``deserialize_func``, if provided). This will set the value in Django's
+        settings object.
+
+    Returns:
+        dict:
+        The resulting settings map. This is generated once and cached for
+        future calls.
     """
     if not _django_settings_map:
         _django_settings_map.update(locale_settings_map)
@@ -143,8 +190,20 @@ def get_django_settings_map():
 
 
 def generate_defaults(settings_map):
-    """
-    Utility function to generate a defaults mapping.
+    """Return a dictionary of siteconfig defaults for Django settings.
+
+    This will iterate through the provided settings map and return a dictionary
+    mapping a siteconfig settings key to the value from Django's settings (if
+    one is found).
+
+    Args:
+        settings_map (dict):
+            A settings map, generated from :py:func:`get_django_settings_map`
+            or a similar function.
+
+    Returns:
+        dict:
+        A dictionary of siteconfig defaults.
     """
     defaults = {}
 
@@ -161,48 +220,88 @@ def generate_defaults(settings_map):
 
 
 def get_locale_defaults():
-    """
-    Returns the locale-related Django defaults that projects may want to
-    let users customize.
+    """Return a dictionary of siteconfig defaults for Django locale settings.
+
+    The generated defaults are specific to the values in
+    :py:data:`locale_settings_map`.
+
+    Returns:
+        dict:
+        A dictionary of siteconfig defaults.
     """
     return generate_defaults(locale_settings_map)
 
 
 def get_mail_defaults():
-    """
-    Returns the mail-related Django defaults that projects may want to
-    let users customize.
+    """Return a dictionary of siteconfig defaults for Django e-mail settings.
+
+    The generated defaults are specific to the values in
+    :py:data:`mail_settings_map`.
+
+    Returns:
+        dict:
+        A dictionary of siteconfig defaults.
     """
     return generate_defaults(mail_settings_map)
 
 
 def get_site_defaults():
-    """
-    Returns the site-related Django defaults that projects may want to
-    let users customize.
+    """Return a dictionary of siteconfig defaults for Django site settings.
+
+    The generated defaults are specific to the values in
+    :py:data:`site_settings_map`.
+
+    Returns:
+        dict:
+        A dictionary of siteconfig defaults.
     """
     return generate_defaults(site_settings_map)
 
 
 def get_cache_defaults():
-    """
-    Returns the cache-related Django defaults that projects may want to
-    let users customize.
+    """Return a dictionary of siteconfig defaults for Django caching settings.
+
+    The generated defaults are specific to the values in
+    :py:data:`cache_settings_map`.
+
+    Returns:
+        dict:
+        A dictionary of siteconfig defaults.
     """
     return generate_defaults(cache_settings_map)
 
 
 def get_django_defaults():
-    """
-    Returns all Django defaults that projects may want to let users customize.
+    """Return a dictionary of siteconfig defaults for Django settings.
+
+    The generated defaults are specific to the values returned by
+    :py:func:`get_django_settings_map`.
+
+    Returns:
+        dict:
+        A dictionary of siteconfig defaults.
     """
     return generate_defaults(get_django_settings_map())
 
 
 def apply_django_settings(siteconfig, settings_map=None):
-    """
-    Applies all settings from the site configuration to the Django settings
-    object.
+    """Apply Django settings stored in the site configuration.
+
+    This takes a siteconfiguration storing Django settings and a settings map,
+    applying each of the settings to Django. Setting will generally be stored
+    in the Django settings object, but some settings will be specially applied
+    based on their rules in the settings map.
+
+    Args:
+        siteconfig (djblets.siteconfig.models.SiteConfiguration):
+            The site configuration containing the Django settings to apply.
+
+        settings_map (dict, optional):
+            A map of siteconfig keys to Django settings information. See
+            :py:func:`get_django_settings_map` for details.
+
+            If not provided, the result of :py:func:`get_django_settings_map`
+            will be used.
     """
     if settings_map is None:
         settings_map = get_django_settings_map()

@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 import logging
+import warnings
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -65,6 +66,9 @@ AVATAR_SERVICE_DEFAULT_ERRORS.update({
 })
 
 
+logger = logging.getLogger(__name__)
+
+
 class AvatarServiceRegistry(Registry):
     """A registry for avatar services.
 
@@ -72,6 +76,16 @@ class AvatarServiceRegistry(Registry):
     :py:mod:`djblets.avatars.services.gravatar` for an example). The registries
     are saved to the database and require the use of the
     :py:mod:`djblets.siteconfig` app.
+
+    .. versionchanged:: 1.0.3
+
+       The avatar configuration is now retrieved from and immediately written
+       to the current :py:class:`~djblets.siteconfig.models.SiteConfiguration`,
+       in order to ensure that the list of enabled avatar services and the
+       default service are never stale. This differs from 1.0.0 through 1.0.2,
+       where the callers could make change to the local state without ever
+       risking it being written to the database (which is generally not the
+       desired behavior anyway).
     """
 
     #: The key name for the list of enabled services.
@@ -102,8 +116,6 @@ class AvatarServiceRegistry(Registry):
         """Initialize the avatar service registry."""
         super(AvatarServiceRegistry, self).__init__()
 
-        self._enabled_services = set()
-        self._default_service_id = None
         self._instance_cache = {}
 
     def get_avatar_service(self, avatar_service_id):
@@ -118,34 +130,40 @@ class AvatarServiceRegistry(Registry):
 
         Returns:
             djblets.avatars.services.base.AvatarService:
-            The requested avatar service.
+            The requested avatar service, or ``None`` if not found.
 
         Raises:
-            djblets.avatars.errors.AvatarServiceNotFoundError:
-                Raised if the avatar service cannot be found.
-
             djblets.avatars.errors.DisabledServiceError:
-                Raised if the requested service is disabled.
+                The requested service is disabled.
         """
-        if avatar_service_id not in self._instance_cache:
+        service = self._instance_cache.get(avatar_service_id)
+
+        if service is None:
             try:
                 service_cls = self.get('avatar_service_id', avatar_service_id)
             except self.lookup_error_class:
                 service_cls = None
 
-            if service_cls:
-                if not self.is_enabled(service_cls):
-                    raise DisabledServiceError(self.format_error(
-                        DISABLED_SERVICE,
-                        service_id=avatar_service_id))
-
-                service = self._instance_cache[avatar_service_id] = \
-                    service_cls(self.settings_manager_class)
-            else:
+            if not service_cls:
                 return None
         else:
-            service = self._instance_cache[avatar_service_id]
-            assert self.is_enabled(type(service))
+            service_cls = type(service)
+
+        # It's important to note that if the service instance was in the
+        # cache before, that doesn't mean it should be considered enabled.
+        # Another SiteConfiguration instance on another process/server
+        # may have disabled it, and our SiteConfiguration may have picked
+        # that up since this was added to the cache.
+        if not self.is_enabled(service_cls):
+            self._instance_cache.pop(avatar_service_id, None)
+
+            raise DisabledServiceError(self.format_error(
+                DISABLED_SERVICE,
+                service_id=avatar_service_id))
+
+        if service is None:
+            service = self._instance_cache[avatar_service_id] = \
+                service_cls(self.settings_manager_class)
 
         return service
 
@@ -155,10 +173,8 @@ class AvatarServiceRegistry(Registry):
 
         Yields:
             tuple:
-            djblets.avatars.forms.AvatarServiceConfigForm:
-            The enabled services that have configuration forms.
+            The enabled service instances that have configuration forms.
         """
-        self.populate()
         return (
             self.get_avatar_service(service.avatar_service_id)
             for service in self.enabled_services
@@ -174,11 +190,10 @@ class AvatarServiceRegistry(Registry):
             The set of enabled avatar services, as
             :py:class:`djblets.avatars.service.AvatarService` instances.
         """
-        self.populate()
-
+        siteconfig = SiteConfiguration.objects.get_current()
         services = set()
 
-        for service_id in self._enabled_services:
+        for service_id in siteconfig.get(self.ENABLED_SERVICES_KEY):
             try:
                 service = self.get('avatar_service_id', service_id)
             except self.lookup_error_class:
@@ -196,6 +211,9 @@ class AvatarServiceRegistry(Registry):
         If the default service would be disabled by setting the set of enabled
         services, the default service will be set to ``None``.
 
+        This is equivalent to setting :py:attr:`enabled_services` with
+        ``save=True``. It's considered deprecated in favor of that method.
+
         Args:
             services (set):
                 The set of services to set as enabled. Each element must be a
@@ -206,60 +224,100 @@ class AvatarServiceRegistry(Registry):
                 This exception is raised when an unknown avatar service is
                 enabled.
         """
-        self.populate()
+        warnings.warn('Setting AvatarServiceRegistry.enabled_services is '
+                      'deprecated in favor of calling '
+                      'AvatarServiceRegistry.set_enabled_services.',
+                      DeprecationWarning)
 
-        if not isinstance(services, set):
-            services = set(services)
+        self.set_enabled_services(services, save=True)
+
+    def set_enabled_services(self, services, save=True):
+        """Set the enabled services.
+
+        If the default service would be disabled by setting the set of enabled
+        services, the default service will be set to ``None``.
+
+        Args:
+            services (set):
+                The set of services to set as enabled. Each element must be a
+                subclass of :py:class:`~djblets.avatars.service.AvatarService`.
+
+            save (bool, optional):
+                Whether to save the settings after setting the list of
+                enabled services. The default is to immediately save.
+
+        Raises:
+            djblets.avatars.errors.AvatarServiceNotFoundError:
+                This exception is raised when an unknown avatar service is
+                enabled.
+        """
+        new_service_ids = set()
 
         for service in services:
-            if service not in self:
+            if service in self:
+                new_service_ids.add(service.avatar_service_id)
+            else:
                 raise self.lookup_error_class(self.format_error(
                     UNKNOWN_SERVICE_ENABLED,
                     service_id=service.avatar_service_id))
 
-        new_service_ids = {
-            service.avatar_service_id
-            for service in services
-        }
+        siteconfig = SiteConfiguration.objects.get_current()
+        cur_service_ids = \
+            set(siteconfig.get(self.ENABLED_SERVICES_KEY))
 
-        to_enable = new_service_ids - self._enabled_services
-        to_disable = self._enabled_services - new_service_ids
+        if new_service_ids == cur_service_ids:
+            return
+
+        to_enable = new_service_ids - cur_service_ids
+        to_disable = cur_service_ids - new_service_ids
 
         for service_id in to_disable:
-            try:
-                service = self.get('avatar_service_id', service_id)
-            except self.lookup_error_class:
-                service = None
-
-            if service is not None:
-                self.disable_service(service, save=False)
+            self.disable_service_by_id(service_id, save=False)
 
         for service_id in to_enable:
-            self.enable_service(self.get('avatar_service_id', service_id),
-                                save=False)
+            self.enable_service_by_id(service_id, save=False)
 
         default_service = self.default_service
 
         if (default_service is not None and
             not self.is_enabled(type(default_service))):
-            self.set_default_service(None)
+            self.set_default_service(None, save=False)
 
-        self.save()
+        if save:
+            self.save()
 
     @property
     def default_service(self):
-        """Return the default avatar service.
+        """The default avatar service.
 
         Returns:
             djblets.avatars.services.AvatarService:
             The default avatar service, or ``None`` if there isn't one.
         """
-        self.populate()
+        siteconfig = SiteConfiguration.objects.get_current()
+        default_service_id = siteconfig.get(self.DEFAULT_SERVICE_KEY)
 
-        if self._default_service_id is None:
+        if default_service_id is None:
             return None
 
-        return self.get_avatar_service(self._default_service_id)
+        enabled_service_ids = siteconfig.get(self.ENABLED_SERVICES_KEY)
+
+        if default_service_id not in enabled_service_ids:
+            # The settings listed a default service that was no longer in
+            # the list of enabled services. Warn about this, fix it, and
+            # save the value in settings.
+            logger.error(self.format_error(DISABLED_SERVICE_DEFAULT,
+                                           service_id=default_service_id))
+
+            # Set this manually in the SiteConfiguration instead of using
+            # disable_service_by_id, to avoid infinitely recursing into this
+            # property and that method, and also because it's just not
+            # necessary to go through everything that function does.
+            siteconfig.set(self.DEFAULT_SERVICE_KEY, None)
+
+            return None
+
+        return self.get_avatar_service(default_service_id)
 
     def set_default_service(self, service, save=True):
         """Set the default avatar service.
@@ -279,10 +337,8 @@ class AvatarServiceRegistry(Registry):
             djblets.avatars.errors.DisabledServiceError:
                 Raised if the service is not enabled.
         """
-        self.populate()
-
         if service is None:
-            self._default_service_id = None
+            default_service_id = None
         elif service not in self:
             raise self.lookup_error_class(self.format_error(
                 UNKNOWN_SERVICE_DEFAULT, service_id=service.avatar_service_id))
@@ -291,10 +347,15 @@ class AvatarServiceRegistry(Registry):
                 DISABLED_SERVICE_DEFAULT,
                 service_id=service.avatar_service_id))
         else:
-            self._default_service_id = service.avatar_service_id
+            default_service_id = service.avatar_service_id
 
-        if save:
-            self.save()
+        siteconfig = SiteConfiguration.objects.get_current()
+
+        if default_service_id != siteconfig.get(self.DEFAULT_SERVICE_KEY):
+            siteconfig.set(self.DEFAULT_SERVICE_KEY, default_service_id)
+
+            if save:
+                self.save()
 
     def has_service(self, service_id):
         """Return whether or not the avatar service ID is registered.
@@ -362,13 +423,24 @@ class AvatarServiceRegistry(Registry):
         """
         if (self.default_service is not None and
             self.default_service.avatar_service_id == service_id):
-            self.set_default_service(None)
+            self.set_default_service(None, save=save)
 
-        self._enabled_services.discard(service_id)
         self._instance_cache.pop(service_id, None)
 
-        if save:
-            self.save()
+        siteconfig = SiteConfiguration.objects.get_current()
+        enabled_service_ids = list(siteconfig.get(self.ENABLED_SERVICES_KEY))
+
+        try:
+            enabled_service_ids.remove(service_id)
+        except ValueError:
+            # This wasn't enabled in the stored site configuration, so don't
+            # try saving now. We're done.
+            pass
+        finally:
+            siteconfig.set(self.ENABLED_SERVICES_KEY, enabled_service_ids)
+
+            if save:
+                self.save()
 
     def enable_service(self, service, save=True):
         """Enable an avatar service.
@@ -390,10 +462,33 @@ class AvatarServiceRegistry(Registry):
             raise self.lookup_error_class(self.format_error(
                 UNKNOWN_SERVICE_ENABLED, service_id=service.avatar_service_id))
 
-        self._enabled_services.add(service.avatar_service_id)
+        self.enable_service_by_id(service.avatar_service_id, save=save)
 
-        if save:
-            self.save()
+    def enable_service_by_id(self, service_id, save=True):
+        """Enable an avatar service.
+
+        Args:
+            service_id (unicode):
+                The ID of the service to enable. Callers must take care to
+                ensure this matches a service stored in the registry.
+
+            save (bool, optional):
+                Whether or not the avatar service registry will be saved to the
+                database after enabling the service. This defaults to ``True``.
+
+        Raises:
+            djblets.avatars.errors.AvatarServiceNotFoundError:
+                This is raised if the service is not registered.
+        """
+        siteconfig = SiteConfiguration.objects.get_current()
+        enabled_service_ids = siteconfig.get(self.ENABLED_SERVICES_KEY)
+
+        if service_id not in enabled_service_ids:
+            siteconfig.set(self.ENABLED_SERVICES_KEY,
+                           enabled_service_ids + [service_id])
+
+            if save:
+                self.save()
 
     def is_enabled(self, service):
         """Return whether or not the given avatar service is enabled.
@@ -404,10 +499,16 @@ class AvatarServiceRegistry(Registry):
                 :py:class:`~djblets.avatars.service.AvatarService`.
 
         Returns:
-            bool: Whether or not the service ID is registered.
+            bool:
+            Whether or not the service ID is registered.
         """
-        return (service in self and
-                service.avatar_service_id in self._enabled_services)
+        if service not in self:
+            return
+
+        siteconfig = SiteConfiguration.objects.get_current()
+        enabled_service_ids = siteconfig.get(self.ENABLED_SERVICES_KEY)
+
+        return service.avatar_service_id in enabled_service_ids
 
     def unregister(self, service):
         """Unregister an avatar service.
@@ -430,56 +531,6 @@ class AvatarServiceRegistry(Registry):
 
         super(AvatarServiceRegistry, self).unregister(service)
 
-    def populate(self):
-        """Populate the avatar service registry.
-
-        The registry is populated from the site configuration in the database.
-        Both the list of enabled avatar services and the default avatar service
-        are retrieved from the database.
-
-        This method intentionally does not throw exceptions -- errors here will
-        be logged instead.
-        """
-        if self.populated:
-            return
-
-        super(AvatarServiceRegistry, self).populate()
-
-        siteconfig = SiteConfiguration.objects.get_current()
-        needs_save = False
-
-        enabled_service_ids = set(
-            siteconfig.get(self.ENABLED_SERVICES_KEY) or [])
-
-        for avatar_service_id in enabled_service_ids:
-            if not self.has_service(avatar_service_id):
-                logging.error(self.format_error(
-                    UNKNOWN_SERVICE_ENABLED, service_id=avatar_service_id))
-
-        default_service_id = siteconfig.get(self.DEFAULT_SERVICE_KEY)
-
-        if default_service_id is not None:
-            if not self.has_service(default_service_id):
-                # Warn about the service not being in the registry, but leave
-                # the default ID alone, in case it's later registered (by an
-                # extension or other code).
-                logging.error(self.format_error(UNKNOWN_SERVICE_DEFAULT,
-                                                service_id=default_service_id))
-            elif default_service_id not in enabled_service_ids:
-                # The settings listed a default service that was no longer in
-                # the list of enabled services. Warn about this, fix it, and
-                # save the value in settings.
-                logging.error(self.format_error(DISABLED_SERVICE_DEFAULT,
-                                                service_id=default_service_id))
-                default_service_id = None
-                needs_save = True
-
-        self._default_service_id = default_service_id
-        self._enabled_services = enabled_service_ids
-
-        if needs_save:
-            self.save()
-
     def get_defaults(self):
         """Yield the default avatar services.
 
@@ -491,26 +542,21 @@ class AvatarServiceRegistry(Registry):
             yield service_class
 
     def save(self):
-        """Save the list of enabled avatar services to the database."""
+        """Save the avatar configuration to the database.
+
+        As the avatar configuration is stored in the
+        :py:class:`~djblets.siteconfig.models.SiteConfiguration`, this method
+        will save any pending configuration, synchronizing it to all other
+        processes/servers.
+
+        If there are pending avatar configuration changes (due to passing
+        ``save=False`` to some methods), and there's a separate call to
+        :py:meth:`SiteConfiguration.save()
+        <djblets.siteconfig.models.SiteConfiguration.save>` without calling
+        this method, the new avatar configuration will still be saved.
+        """
         siteconfig = SiteConfiguration.objects.get_current()
-        dirty = False
-
-        enabled_services = self._enabled_services
-        default_service = self._default_service_id
-
-        stored_enabled_services = \
-            siteconfig.get(self.ENABLED_SERVICES_KEY) or []
-
-        if enabled_services != set(stored_enabled_services):
-            siteconfig.set(self.ENABLED_SERVICES_KEY, list(enabled_services))
-            dirty = True
-
-        if default_service != siteconfig.get(self.DEFAULT_SERVICE_KEY):
-            siteconfig.set(self.DEFAULT_SERVICE_KEY, default_service)
-            dirty = True
-
-        if dirty:
-            siteconfig.save()
+        siteconfig.save()
 
     def for_user(self, user, service_id=None):
         """Return the requested avatar service for the given user.
@@ -546,3 +592,9 @@ class AvatarServiceRegistry(Registry):
                 return self.get_avatar_service(sid)
 
         return self.default_service
+
+
+SiteConfiguration.add_global_defaults({
+    AvatarServiceRegistry.ENABLED_SERVICES_KEY: [],
+    AvatarServiceRegistry.DEFAULT_SERVICE_KEY: None,
+})
