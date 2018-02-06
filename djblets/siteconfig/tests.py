@@ -188,10 +188,26 @@ class SiteConfigurationTests(SiteConfigTestCase):
         """Testing SiteConfiguration.get and passing a missing key with a
         registered default
         """
+        SiteConfiguration.add_global_default('valid_key_1', 'global_default_1')
         self.siteconfig.add_default('valid_key_1', 'valid_parameter_1')
 
-        self.assertEqual(self.siteconfig.get('valid_key_1'),
-                         'valid_parameter_1')
+        try:
+            self.assertEqual(self.siteconfig.get('valid_key_1'),
+                             'valid_parameter_1')
+        finally:
+            self.siteconfig.remove_default('valid_key_1')
+
+    def test_get_with_missing_key_and_registered_global_default(self):
+        """Testing SiteConfiguration.get and passing a missing key with a
+        registered global default
+        """
+        SiteConfiguration.add_global_default('valid_key_1', 'global_default_1')
+
+        try:
+            self.assertEqual(self.siteconfig.get('valid_key_1'),
+                             'global_default_1')
+        finally:
+            SiteConfiguration.remove_global_default('valid_key_1')
 
     def test_set(self):
         """Testing SiteConfiguration.set"""
@@ -213,19 +229,43 @@ class SiteConfigurationTests(SiteConfigTestCase):
             'valid_key_3': 'valid_parameter_3',
         })
 
-        self.assertEqual(self.siteconfig.get('valid_key_1'),
-                         'valid_parameter_1')
-        self.assertEqual(self.siteconfig.get('valid_key_2'),
-                         'valid_parameter_2')
-        self.assertEqual(self.siteconfig.get('valid_key_3'),
-                         'valid_parameter_3')
+        try:
+            self.assertEqual(self.siteconfig.get('valid_key_1'),
+                             'valid_parameter_1')
+            self.assertEqual(self.siteconfig.get('valid_key_2'),
+                             'valid_parameter_2')
+            self.assertEqual(self.siteconfig.get('valid_key_3'),
+                             'valid_parameter_3')
+        finally:
+            self.siteconfig.remove_default('valid_key_1')
+            self.siteconfig.remove_default('valid_key_2')
+            self.siteconfig.remove_default('valid_key_3')
 
     def test_add_default(self):
         """Testing SiteConfiguration.add_default"""
         self.siteconfig.add_default('valid_key_1', 'valid_new_parameter_2')
 
-        self.assertEqual(self.siteconfig.get('valid_key_1'),
-                         'valid_new_parameter_2')
+        try:
+            self.assertEqual(self.siteconfig.get('valid_key_1'),
+                             'valid_new_parameter_2')
+        finally:
+            self.siteconfig.remove_default('valid_key_1')
+
+    def test_remove_default(self):
+        """Testing SiteConfiguration.remove_default"""
+        self.siteconfig.add_default('valid_key_1', 'valid_new_parameter_2')
+        self.siteconfig.remove_default('valid_key_1')
+
+        self.assertIsNone(self.siteconfig.get('valid_key_1'))
+
+    def test_clear_defaults(self):
+        """Testing SiteConfiguration.clear_defaults"""
+        self.siteconfig.add_default('valid_key_1', 'valid_new_parameter_1')
+        self.siteconfig.add_default('valid_key_2', 'valid_new_parameter_2')
+        self.siteconfig.clear_defaults()
+
+        self.assertIsNone(self.siteconfig.get('valid_key_1'))
+        self.assertIsNone(self.siteconfig.get('valid_key_2'))
 
     def test_get_defaults(self):
         """Testing SiteConfiguration.get_defaults"""
@@ -236,13 +276,103 @@ class SiteConfigurationTests(SiteConfigTestCase):
         })
         self.siteconfig.add_default('valid_key_1', 'valid_new_parameter_1')
 
-        siteconfig_defaults = self.siteconfig.get_defaults()
-        self.assertEqual(siteconfig_defaults['valid_key_1'],
-                         'valid_new_parameter_1')
-        self.assertEqual(siteconfig_defaults['valid_key_2'],
-                         'valid_parameter_2')
-        self.assertEqual(siteconfig_defaults['valid_key_3'],
-                         'valid_parameter_3')
+        try:
+            siteconfig_defaults = self.siteconfig.get_defaults()
+            self.assertEqual(siteconfig_defaults['valid_key_1'],
+                             'valid_new_parameter_1')
+            self.assertEqual(siteconfig_defaults['valid_key_2'],
+                             'valid_parameter_2')
+            self.assertEqual(siteconfig_defaults['valid_key_3'],
+                             'valid_parameter_3')
+        finally:
+            self.siteconfig.remove_default('valid_key_1')
+            self.siteconfig.remove_default('valid_key_2')
+            self.siteconfig.remove_default('valid_key_3')
+
+    def test_get_defaults_excludes_global_defaults(self):
+        """Testing SiteConfiguration.get_defaults excludes global defaults"""
+        SiteConfiguration.add_global_default('test_global_key', 123)
+
+        try:
+            self.siteconfig.add_defaults({
+                'valid_key_1': 'valid_parameter_1',
+            })
+            self.siteconfig.add_default('valid_key_1', 'valid_new_parameter_1')
+
+            siteconfig_defaults = self.siteconfig.get_defaults()
+            self.assertEqual(siteconfig_defaults['valid_key_1'],
+                             'valid_new_parameter_1')
+            self.assertNotIn('test_global_key', siteconfig_defaults)
+        finally:
+            SiteConfiguration.remove_global_default('test_global_key')
+
+    def test_add_global_defaults(self):
+        """Testing SiteConfiguration.add_global_defaults"""
+        SiteConfiguration.add_global_defaults({
+            'valid_key_1': 'global_value_1',
+            'valid_key_2': 'global_value_2',
+            'valid_key_3': 'global_value_3',
+        })
+
+        try:
+            self.assertEqual(self.siteconfig.get('valid_key_1'),
+                             'global_value_1')
+            self.assertEqual(self.siteconfig.get('valid_key_2'),
+                             'global_value_2')
+            self.assertEqual(self.siteconfig.get('valid_key_3'),
+                             'global_value_3')
+        finally:
+            SiteConfiguration.remove_global_default('valid_key_1')
+            SiteConfiguration.remove_global_default('valid_key_2')
+            SiteConfiguration.remove_global_default('valid_key_3')
+
+    def test_add_default(self):
+        """Testing SiteConfiguration.add_global_default"""
+        SiteConfiguration.add_global_default('valid_key_1', 'global_value')
+
+        try:
+            self.assertEqual(self.siteconfig.get('valid_key_1'),
+                             'global_value')
+        finally:
+            SiteConfiguration.remove_global_default('valid_key_1')
+
+    def test_remove_default(self):
+        """Testing SiteConfiguration.remove_default"""
+        SiteConfiguration.add_global_default('valid_key_1', 'global_value')
+        SiteConfiguration.remove_global_default('valid_key_1')
+
+        self.assertIsNone(self.siteconfig.get('valid_key_1'))
+
+    def test_clear_defaults(self):
+        """Testing SiteConfiguration.clear_defaults"""
+        SiteConfiguration.add_global_default('valid_key_1', 'global_default_1')
+        SiteConfiguration.add_global_default('valid_key_2', 'global_default_2')
+        SiteConfiguration.clear_global_defaults()
+
+        self.assertIsNone(self.siteconfig.get('valid_key_1'))
+        self.assertIsNone(self.siteconfig.get('valid_key_2'))
+
+    def test_get_defaults(self):
+        """Testing SiteConfiguration.get_defaults"""
+        SiteConfiguration.add_global_defaults({
+            'valid_key_1': 'global_value_1',
+            'valid_key_2': 'global_value_2',
+            'valid_key_3': 'global_value_3',
+        })
+        SiteConfiguration.add_global_default('valid_key_1', 'new_global_value')
+
+        try:
+            siteconfig_defaults = SiteConfiguration.get_global_defaults()
+            self.assertEqual(siteconfig_defaults['valid_key_1'],
+                             'new_global_value')
+            self.assertEqual(siteconfig_defaults['valid_key_2'],
+                             'global_value_2')
+            self.assertEqual(siteconfig_defaults['valid_key_3'],
+                             'global_value_3')
+        finally:
+            SiteConfiguration.remove_global_default('valid_key_1')
+            SiteConfiguration.remove_global_default('valid_key_2')
+            SiteConfiguration.remove_global_default('valid_key_3')
 
 
 class SiteConfigurationManagerTests(SiteConfigTestCase):

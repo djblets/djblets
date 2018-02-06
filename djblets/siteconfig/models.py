@@ -12,6 +12,7 @@ from djblets.db.fields import JSONField
 from djblets.siteconfig.managers import SiteConfigurationManager
 
 
+_GLOBAL_DEFAULTS = {}
 _DEFAULTS = {}
 
 
@@ -72,6 +73,67 @@ class SiteConfiguration(models.Model):
 
     objects = SiteConfigurationManager()
 
+    @classmethod
+    def add_global_defaults(cls, defaults_dict):
+        """Add a dictionary of global defaults for settings.
+
+        These defaults will be used when calling :py:meth:`get` for any setting
+        not stored. Defaults registered for a specific site configuration take
+        precedent over global defaults.
+
+        Args:
+            default_dict (dict):
+                A dictionary of defaults, mapping siteconfig settings keys to
+                JSON-serializable values.
+        """
+        _GLOBAL_DEFAULTS.update(defaults_dict)
+
+    @classmethod
+    def add_global_default(cls, key, default_value):
+        """Add a global default value for a settings key.
+
+        The default will be used when calling :py:meth:`get` for this key,
+        if a value is not stored. Defaults registered for a specific site
+        configuration take precedent over global defaults.
+
+        Args:
+            key (unicode):
+                The settings key to set the default for.
+
+            default_value (object):
+                The value to set as the default.
+        """
+        cls.add_global_defaults({key: default_value})
+
+    @classmethod
+    def remove_global_default(self, key):
+        """Remove a global default value for a settings key.
+
+        Args:
+            key (unicode):
+                The settings key to remove the default for.
+        """
+        _GLOBAL_DEFAULTS.pop(key)
+
+    @classmethod
+    def clear_global_defaults(self):
+        """Clear all default values for this site configuration.
+
+        This will clear only global defaults. This will not affect defaults
+        registered on specific site configurations.
+        """
+        _GLOBAL_DEFAULTS.clear()
+
+    @classmethod
+    def get_global_defaults(cls):
+        """Return all global defaults for settings.
+
+        Returns:
+            dict:
+            A dictionary of all registered global defaults for settings.
+        """
+        return _GLOBAL_DEFAULTS
+
     def __init__(self, *args, **kwargs):
         """Initialize the site configuration.
 
@@ -120,8 +182,11 @@ class SiteConfiguration(models.Model):
             object:
             The resulting value.
         """
-        if default is None and self.pk in _DEFAULTS:
-            default = _DEFAULTS[self.pk].get(key, None)
+        if default is None:
+            try:
+                default = _DEFAULTS[self.pk][key]
+            except KeyError:
+                default = _GLOBAL_DEFAULTS.get(key)
 
         return self.settings.get(key, default)
 
@@ -144,7 +209,8 @@ class SiteConfiguration(models.Model):
         """Add a dictionary of defaults for settings.
 
         These defaults will be used when calling :py:meth:`get` for any setting
-        not stored.
+        not stored.  These will only be registered for this site configuration,
+        and will not be registered for global defaults.
 
         Args:
             default_dict (dict):
@@ -157,7 +223,8 @@ class SiteConfiguration(models.Model):
         """Add a default value for a settings key.
 
         The default will be used when calling :py:meth:`get` for this key,
-        if a value is not stored.
+        if a value is not stored. This will only be registered for this site
+        configuration, and will not be registered for global defaults.
 
         Args:
             key (unicode):
@@ -168,8 +235,34 @@ class SiteConfiguration(models.Model):
         """
         self.add_defaults({key: default_value})
 
+    def remove_default(self, key):
+        """Remove a default value on this site configuration.
+
+        This will remove only defaults registered on this site configuration.
+        This does not affect global defaults.
+
+        Args:
+            key (unicode):
+                The settings key to remove the default for.
+        """
+        try:
+            del _DEFAULTS[self.pk][key]
+        except KeyError:
+            pass
+
+    def clear_defaults(self):
+        """Clear all default values for this site configuration.
+
+        This will clear only defaults registered on this site configuration.
+        This does not affect global defaults.
+        """
+        _DEFAULTS[self.pk] = {}
+
     def get_defaults(self):
-        """Return all defaults for settings.
+        """Return all defaults for this site configuration.
+
+        This will return only defaults registered on this site configuration.
+        The result does not include global defaults.
 
         Returns:
             dict:
