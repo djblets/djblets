@@ -2,7 +2,7 @@
 beanbag-docutils>=1.6
 coverage
 django_evolution>=0.7.6
-kgb>=1.0.0
+kgb>=2.0
 nose
 Markdown>=2.4.0,<2.4.999
 mock
