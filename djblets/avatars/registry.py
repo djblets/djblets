@@ -531,27 +531,6 @@ class AvatarServiceRegistry(Registry):
 
         super(AvatarServiceRegistry, self).unregister(service)
 
-    def populate(self):
-        """Populate the avatar service registry.
-
-        The registry is populated from the site configuration in the database.
-        Both the list of enabled avatar services and the default avatar service
-        are retrieved from the database.
-
-        This method intentionally does not throw exceptions -- errors here will
-        be logged instead.
-        """
-        if self.populated:
-            return
-
-        siteconfig = SiteConfiguration.objects.get_current()
-        siteconfig.add_defaults({
-            self.ENABLED_SERVICES_KEY: [],
-            self.DEFAULT_SERVICE_KEY: None,
-        })
-
-        super(AvatarServiceRegistry, self).populate()
-
     def get_defaults(self):
         """Yield the default avatar services.
 
@@ -613,3 +592,9 @@ class AvatarServiceRegistry(Registry):
                 return self.get_avatar_service(sid)
 
         return self.default_service
+
+
+SiteConfiguration.add_global_defaults({
+    AvatarServiceRegistry.ENABLED_SERVICES_KEY: [],
+    AvatarServiceRegistry.DEFAULT_SERVICE_KEY: None,
+})
