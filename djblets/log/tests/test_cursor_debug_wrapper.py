@@ -1,8 +1,15 @@
 from __future__ import unicode_literals
 
+from importlib import import_module
+
 from django.db import connection
 
 from djblets.testing.testcases import TestCase
+
+
+# We need to ensure that the following module is imported so that the debug
+# wrapper is replaced with our own.
+import_module('djblets.log.middleware')
 
 
 class CursorDebugWrapperTests(TestCase):
