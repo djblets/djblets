@@ -885,15 +885,17 @@ class RelationCounterField(CounterField):
     counters to get out of sync. They would then need to be reset using
     ``reinit_{field_name}``.
     """
+
     # Stores state across all saved instances of a RelationCounterField.
     #
     # Django doesn't make it easy to track updates to the other side of a
-    # relation, meaning we have to do it ourselves. This dictionary will
-    # weakly track InstanceState objects (which are tied to the lifecycle of
-    # a particular model instancee). These objects are used to look up model
-    # instances and their RelationCounterFields, given a model name, model
-    # instance ID, and a relation name.
-    _saved_instance_states = weakref.WeakValueDictionary()
+    # relation, meaning we have to do it ourselves. This dictionary is keyed
+    # off a tuple of (model_class, instance_pk, field_name) and maps to a
+    # weakref.WeakValueDictionary mapping object IDs for model instances to
+    # InstanceState objects (which are tied to the lifecycle of a particular
+    # model instancee). These objects are used to look up model instances and
+    # their RelationCounterFields.
+    _saved_instance_states = {}
 
     # Stores instance states we're tracking whose instances haven't yet been
     # saved.
@@ -901,6 +903,8 @@ class RelationCounterField(CounterField):
     # An unsaved instance may never be saved, but we still need to listen to
     # events on it. To do this, we set up an InstanceState, like above,
     # keeping track of the information and signal connections related to it.
+    # Unlike the above, there's only one level to this dictionary. It maps
+    # object IDs to InstanceState objects.
     _unsaved_instance_states = {}
 
     # Most of the hard work really lives in RelationTracker below. Here, we
@@ -985,19 +989,19 @@ class RelationCounterField(CounterField):
             """Increments all associated fields' counters."""
             RelationCounterField.increment_many(
                 self.model_instance,
-                dict([(field.attname, by) for field in self.fields]))
+                dict((field.attname, by) for field in self.fields))
 
         def decrement_fields(self, by=1):
             """Decrements all associated fields' counters."""
             RelationCounterField.decrement_many(
                 self.model_instance,
-                dict([(field.attname, by) for field in self.fields]))
+                dict((field.attname, by) for field in self.fields))
 
         def zero_fields(self):
             """Zeros out all associated fields' counters."""
             RelationCounterField._set_values(
                 self.model_instance,
-                dict([(field.attname, 0) for field in self.fields]))
+                dict((field.attname, 0) for field in self.fields))
 
         def reload_fields(self):
             """Reloads all associated fields' counters."""
@@ -1224,22 +1228,29 @@ class RelationCounterField(CounterField):
             is_post_remove = (action == 'post_remove')
 
             if is_post_clear or is_post_add or is_post_remove:
-                state = RelationCounterField._get_state(
+                states = RelationCounterField._get_saved_states(
                     instance.__class__, instance.pk, self._rel_field_name)
 
-                if state:
-                    if is_post_add:
-                        state.increment_fields(by=len(pk_set))
-                    elif is_post_remove:
-                        state.decrement_fields(by=len(pk_set))
+                if states:
+                    main_state, other_states = \
+                        self._separate_saved_states(states)
+
+                    # Perform the database modifications with only the first
+                    # instance state. The rest will get reloaded later.
+                    if pk_set and is_post_add:
+                        main_state.increment_fields(by=len(pk_set))
+                    elif pk_set and is_post_remove:
+                        main_state.decrement_fields(by=len(pk_set))
                     elif is_post_clear:
-                        state.zero_fields()
+                        main_state.zero_fields()
 
                     if not pk_set and is_post_clear:
                         # See the note below for 'pre_clear' for an explanation
                         # of why we're doing this.
-                        pk_set = state.to_clear
-                        state.to_clear = set()
+                        pk_set = main_state.to_clear
+                        main_state.to_clear = set()
+
+                    self._sync_fields_from_main_state(main_state, other_states)
 
                 if pk_set:
                     # If any of the models have their own
@@ -1256,11 +1267,18 @@ class RelationCounterField(CounterField):
                                         update_by)
 
                     for pk in pk_set:
-                        state = RelationCounterField._get_state(
+                        states = RelationCounterField._get_saved_states(
                             model, pk, self._related_name)
 
-                        if state:
-                            state.reload_fields()
+                        if not states:
+                            continue
+
+                        main_state, other_states = \
+                            self._separate_saved_states(states)
+
+                        main_state.reload_fields()
+                        self._sync_fields_from_main_state(main_state,
+                                                          other_states)
             elif action == 'pre_clear':
                 # m2m_changed doesn't provide any information on affected IDs
                 # for clear events (pre or post). We can, however, look up
@@ -1271,12 +1289,14 @@ class RelationCounterField(CounterField):
                 # We do this by fetching the IDs (without instantiating new
                 # models) and storing it in the associated InstanceState. We'll
                 # use those IDs above in the post_clear handler.
-                state = RelationCounterField._get_state(
+                states = RelationCounterField._get_saved_states(
                     instance.__class__, instance.pk, self._rel_field_name)
 
-                if state:
+                if states:
+                    main_state = next(six.itervalues(states))
                     mgr = getattr(instance, self._rel_field_name)
-                    state.to_clear.update(mgr.values_list('pk', flat=True))
+                    main_state.to_clear.update(mgr.values_list('pk',
+                                                               flat=True))
 
         def _on_related_delete(self, instance, **kwargs):
             """Handler for when a ForeignKey relation is deleted.
@@ -1286,10 +1306,12 @@ class RelationCounterField(CounterField):
             database. If so, any associated counter fields on this end will be
             decremented.
             """
-            state = self._get_reverse_foreign_key_state(instance)
+            states = self._get_reverse_foreign_key_states(instance)
 
-            if state:
-                state.decrement_fields()
+            if states:
+                main_state, other_states = self._separate_saved_states(states)
+                main_state.decrement_fields()
+                self._sync_fields_from_main_state(main_state, other_states)
             else:
                 self._update_unloaded_fkey_rel_counts(instance, -1)
 
@@ -1304,10 +1326,12 @@ class RelationCounterField(CounterField):
             if raw or not created:
                 return
 
-            state = self._get_reverse_foreign_key_state(instance)
+            states = self._get_reverse_foreign_key_states(instance)
 
-            if state:
-                state.increment_fields()
+            if states:
+                main_state, other_states = self._separate_saved_states(states)
+                main_state.increment_fields()
+                self._sync_fields_from_main_state(main_state, other_states)
             else:
                 self._update_unloaded_fkey_rel_counts(instance, 1)
 
@@ -1333,13 +1357,13 @@ class RelationCounterField(CounterField):
             of the given model in the database that are tracking the given
             relation.
             """
-            values = dict([
+            values = dict(
                 (field.attname, F(field.attname) + update_by)
                 for field in model_cls._meta.local_fields
                 if (isinstance(field, RelationCounterField) and
                     (getattr(field._relation_tracker, rel_attname) ==
                         self._rel_field_name))
-            ])
+            )
 
             if values:
                 if len(pks) == 1:
@@ -1349,14 +1373,77 @@ class RelationCounterField(CounterField):
 
                 model_cls.objects.filter(q).update(**values)
 
-        def _get_reverse_foreign_key_state(self, instance):
-            """Return an InstanceState for the other end of a ForeignKey.
+        def _separate_saved_states(self, saved_states):
+            """Return a main state separated from other states.
+
+            This takes a dictionary of saved instance states, filters it for
+            those containing non-dropped model instances, and picks one as
+            a "main" state to perform operations on, separating it out from
+            the other states.
+
+            Args:
+                saved_states (weakref.WeakValueDictionary):
+                    The dictionary of saved states.
+
+            Returns:
+                tuple:
+                A tuple of ``(main_state, [state, state, ...])``.
+            """
+            with RelationCounterField._state_lock:
+                states = (
+                    state
+                    for state in six.itervalues(saved_states)
+                    if state.model_instance is not None
+                )
+
+                return (next(states), list(states))
+
+        def _sync_fields_from_main_state(self, main_state, other_states):
+            """Synchronize field values across instances.
+
+            This will take a main instance containing up-to-date values and
+            synchronize those values to all other instances.
+
+            Args:
+                main_state (InstanceState):
+                    The main state to take values from.
+
+                other_states (list of InstanceState):
+                    The other states to synchronize values to.
+            """
+            main_instance = main_state.model_instance
+
+            if main_instance:
+                for other_state in other_states:
+                    other_instance = other_state.model_instance
+
+                    if other_instance:
+                        for field in other_state.fields:
+                            setattr(other_instance, field.attname,
+                                    getattr(main_instance, field.attname))
+            else:
+                # The instance fell out of scope. We'll have to just reload
+                # all the other instances. This should be rare.
+                for other_state in other_states:
+                    other_state.reload_fields()
+
+        def _get_reverse_foreign_key_states(self, instance):
+            """Return InstanceStates for the other end of a ForeignKey.
 
             This is used when listening to changes on models that establish a
             ForeignKey to this counter field's parent model. Given the instance
             on that end, we can get the state for this end.
+
+            Args:
+                instance (django.db.model.Model):
+                    The instance on the other end of the relation.
+
+            Returns:
+                weakref.WeakValueDictionary:
+                The dictionary of :py:class:`InstanceState`s for each instance
+                on this end of the relation.
             """
-            return RelationCounterField._get_state(
+            return RelationCounterField._get_saved_states(
                 self._get_rel_field_parent_model(self._rel_field),
                 getattr(instance, self._rel_field.field.attname),
                 self._rel_field_name)
@@ -1406,8 +1493,12 @@ class RelationCounterField(CounterField):
                 The reference ID of the instance.
         """
         with cls._state_lock:
-            for states in (cls._saved_instance_states,
-                           cls._unsaved_instance_states):
+            all_states = [cls._unsaved_instance_states] + [
+                saved_states
+                for saved_states in six.itervalues(cls._saved_instance_states)
+            ]
+
+            for states in all_states:
                 to_remove = []
 
                 for key, state in six.iteritems(states):
@@ -1421,6 +1512,10 @@ class RelationCounterField(CounterField):
 
                 for key in to_remove:
                     states.pop(key, None)
+
+            for key in list(six.iterkeys(cls._saved_instance_states)):
+                if not cls._saved_instance_states[key]:
+                    del cls._saved_instance_states[key]
 
     @classmethod
     def _store_state(cls, instance, field):
@@ -1440,49 +1535,57 @@ class RelationCounterField(CounterField):
         that points to the :py:class:`InstanceState`, keeping the state's
         reference alive as long as the instance is alive.
         """
-        if instance.pk is None:
-            states = cls._unsaved_instance_states
+        with cls._state_lock:
+            if instance.pk is None:
+                states = cls._unsaved_instance_states
+            else:
+                states = cls._saved_instance_states
+                key = (instance.__class__, instance.pk, field._rel_field_name)
+
+                try:
+                    states = cls._saved_instance_states[key]
+                except KeyError:
+                    states = weakref.WeakValueDictionary()
+                    cls._saved_instance_states[key] = states
+
             key = id(instance)
-        else:
-            states = cls._saved_instance_states
-            key = (instance.__class__, instance.pk, field._rel_field_name)
 
-        try:
-            state = states[key]
-            state.fields.append(field)
-        except KeyError:
-            state = cls.InstanceState(instance, [field])
-
-            with cls._state_lock:
+            try:
+                state = states[key]
+                state.fields.append(field)
+            except KeyError:
+                state = cls.InstanceState(instance, [field])
                 states[key] = state
 
-        if instance.pk is not None:
-            setattr(instance, '_%s_state' % field.attname, state)
+            if instance.pk is not None:
+                setattr(instance, '_%s_state' % field.attname, state)
 
     @classmethod
-    def _get_state(cls, model_cls, instance_pk, rel_field_name):
-        """Return a saved InstanceState instance for the given parameters.
+    def _get_saved_states(cls, model_cls, instance_pk, rel_field_name):
+        """Return a dictionary of instances states for the given parameters.
 
-        This only considers state for saved instances, as those are the only
-        ones we want to consider for relation tracking updates.
+        The returned dictionary will contain a mapping of object IDs for
+        each instance to the :py:class:`InstanceState` for each saved instance
+        matching the model class, primary key, and field name.
 
         Args:
             model_cls (type):
-                The model class of the instance being removed.
+                The model class of the instances to look up.
 
             instance_pk (int):
-                The database ID of the instance.
+                The database ID of the instances to look up.
 
             rel_field_name (unicode):
                 The name of the field relationship associated with the
-                instance.
+                instances.
 
         Returns:
-            InstanceState:
-            The instance state, or ``None`` if not found.
+            dict:
+            The resulting dictionary of instances. If populated, this will
+            be a :py:class:`weakref.WeakValueDictionary`.
         """
         return cls._saved_instance_states.get(
-            (model_cls, instance_pk, rel_field_name))
+            (model_cls, instance_pk, rel_field_name), {})
 
     def __init__(self, rel_field_name=None, *args, **kwargs):
         def _initializer(model_instance):
@@ -1516,10 +1619,11 @@ class RelationCounterField(CounterField):
         if not self._relation_tracker:
             instance_cls = instance.__class__
             key = (instance_cls, self._rel_field_name)
-            self._relation_tracker = \
-                RelationCounterField._relation_trackers.get(key)
 
-            if not self._relation_tracker:
+            try:
+                self._relation_tracker = \
+                    RelationCounterField._relation_trackers[key]
+            except KeyError:
                 self._relation_tracker = \
                     self.RelationTracker(instance_cls, self._rel_field_name)
                 RelationCounterField._relation_trackers[key] = \

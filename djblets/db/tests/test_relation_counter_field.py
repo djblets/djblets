@@ -289,6 +289,43 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
             self.assertEqual(rel_model_2.m2m_reffed_counter, 1)
             self.assertEqual(rel_model_2.m2m_reffed_counter_2, 1)
 
+    def test_m2m_forward_and_create_with_multiple_instances(self):
+        """Testing RelationCounterField with forward ManyToManyField relation
+        and creating object with multiple tracked instances for ID
+        """
+        with self.assertNumQueries(3):
+            model1 = M2MRefModel.objects.create()
+            model2 = M2MRefModel.objects.get(pk=model1.pk)
+            model3 = M2MRefModel.objects.get(pk=model1.pk)
+
+        with self.assertNumQueries(1 +
+                                   self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            rel_model_1 = model1.m2m.create()
+            self.assertEqual(model1.counter, 1)
+            self.assertEqual(model1.counter_2, 1)
+            self.assertEqual(model2.counter, 1)
+            self.assertEqual(model2.counter_2, 1)
+            self.assertEqual(model3.counter, 1)
+            self.assertEqual(model3.counter_2, 1)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 1)
+
+        with self.assertNumQueries(1 +
+                                   self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            rel_model_2 = model1.m2m.create()
+            self.assertEqual(model1.counter, 2)
+            self.assertEqual(model1.counter_2, 2)
+            self.assertEqual(model2.counter, 2)
+            self.assertEqual(model2.counter_2, 2)
+            self.assertEqual(model3.counter, 2)
+            self.assertEqual(model3.counter_2, 2)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 1)
+            self.assertEqual(rel_model_2.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model_2.m2m_reffed_counter_2, 1)
+
     def test_m2m_forward_and_add(self):
         """Testing RelationCounterField with forward ManyToManyField relation
         and adding object
@@ -324,6 +361,55 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
             self.assertEqual(rel_model_2.m2m_reffed_counter, 1)
             self.assertEqual(rel_model_2.m2m_reffed_counter_2, 1)
 
+    def test_m2m_forward_and_add_with_multiple_instances(self):
+        """Testing RelationCounterField with forward ManyToManyField relation
+        and adding object with multiple tracked instances for ID
+        """
+        with self.assertNumQueries(5):
+            model1 = M2MRefModel.objects.create()
+            model2 = M2MRefModel.objects.get(pk=model1.pk)
+            model3 = M2MRefModel.objects.get(pk=model1.pk)
+            rel_model_1 = ReffedModel.objects.create()
+            rel_model_2 = ReffedModel.objects.create()
+            self.assertEqual(model1.counter, 0)
+            self.assertEqual(model1.counter_2, 0)
+            self.assertEqual(model2.counter, 0)
+            self.assertEqual(model2.counter_2, 0)
+            self.assertEqual(model3.counter, 0)
+            self.assertEqual(model3.counter_2, 0)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m.add(rel_model_1)
+            self.assertEqual(model1.counter, 1)
+            self.assertEqual(model1.counter_2, 1)
+            self.assertEqual(model2.counter, 1)
+            self.assertEqual(model2.counter_2, 1)
+            self.assertEqual(model3.counter, 1)
+            self.assertEqual(model3.counter_2, 1)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 1)
+            self.assertEqual(rel_model_2.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m.add(rel_model_2)
+            self.assertEqual(model1.counter, 2)
+            self.assertEqual(model1.counter, 2)
+            self.assertEqual(model2.counter_2, 2)
+            self.assertEqual(model2.counter_2, 2)
+            self.assertEqual(model3.counter_2, 2)
+            self.assertEqual(model3.counter_2, 2)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 1)
+            self.assertEqual(rel_model_2.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model_2.m2m_reffed_counter_2, 1)
+
     def test_m2m_forward_and_add_many(self):
         """Testing RelationCounterField with forward ManyToManyField relation
         and adding multiple objects
@@ -344,6 +430,41 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
             model.m2m.add(rel_model_1, rel_model_2)
             self.assertEqual(model.counter, 2)
             self.assertEqual(model.counter_2, 2)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 1)
+            self.assertEqual(rel_model_2.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model_2.m2m_reffed_counter_2, 1)
+
+    def test_m2m_forward_and_add_many_with_multiple_instances(self):
+        """Testing RelationCounterField with forward ManyToManyField relation
+        and adding multiple objects with multiple tracked instances for ID
+        """
+        with self.assertNumQueries(5):
+            model1 = M2MRefModel.objects.create()
+            model2 = M2MRefModel.objects.get(pk=model1.pk)
+            model3 = M2MRefModel.objects.get(pk=model1.pk)
+            rel_model_1 = ReffedModel.objects.create()
+            rel_model_2 = ReffedModel.objects.create()
+            self.assertEqual(model1.counter, 0)
+            self.assertEqual(model1.counter_2, 0)
+            self.assertEqual(model2.counter, 0)
+            self.assertEqual(model2.counter_2, 0)
+            self.assertEqual(model3.counter, 0)
+            self.assertEqual(model3.counter_2, 0)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   2 * self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m.add(rel_model_1, rel_model_2)
+            self.assertEqual(model1.counter, 2)
+            self.assertEqual(model1.counter_2, 2)
+            self.assertEqual(model2.counter, 2)
+            self.assertEqual(model2.counter_2, 2)
+            self.assertEqual(model3.counter, 2)
+            self.assertEqual(model3.counter_2, 2)
             self.assertEqual(rel_model_1.m2m_reffed_counter, 1)
             self.assertEqual(rel_model_1.m2m_reffed_counter_2, 1)
             self.assertEqual(rel_model_2.m2m_reffed_counter, 1)
@@ -374,6 +495,48 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
             model.m2m.remove(rel_model)
             self.assertEqual(model.counter, 0)
             self.assertEqual(model.counter_2, 0)
+            self.assertEqual(rel_model.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model.m2m_reffed_counter_2, 0)
+
+    def test_m2m_forward_and_remove_with_multiple_instances(self):
+        """Testing RelationCounterField with forward ManyToManyField relation
+        and removing object with multiple tracked instances for ID
+        """
+        with self.assertNumQueries(4):
+            model1 = M2MRefModel.objects.create()
+            model2 = M2MRefModel.objects.get(pk=model1.pk)
+            model3 = M2MRefModel.objects.get(pk=model1.pk)
+            rel_model = ReffedModel.objects.create()
+            self.assertEqual(model1.counter, 0)
+            self.assertEqual(model1.counter_2, 0)
+            self.assertEqual(model2.counter, 0)
+            self.assertEqual(model2.counter_2, 0)
+            self.assertEqual(model3.counter, 0)
+            self.assertEqual(model3.counter_2, 0)
+            self.assertEqual(rel_model.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model.m2m_reffed_counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m.add(rel_model)
+            self.assertEqual(model1.counter, 1)
+            self.assertEqual(model1.counter_2, 1)
+            self.assertEqual(model2.counter, 1)
+            self.assertEqual(model2.counter_2, 1)
+            self.assertEqual(model3.counter, 1)
+            self.assertEqual(model3.counter_2, 1)
+            self.assertEqual(rel_model.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model.m2m_reffed_counter_2, 1)
+
+        with self.assertNumQueries(self.M2M_REMOVE_BASE_QUERY_COUNT +
+                                   self.M2M_REMOVE_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m.remove(rel_model)
+            self.assertEqual(model1.counter, 0)
+            self.assertEqual(model1.counter_2, 0)
+            self.assertEqual(model2.counter, 0)
+            self.assertEqual(model2.counter_2, 0)
+            self.assertEqual(model3.counter, 0)
+            self.assertEqual(model3.counter_2, 0)
             self.assertEqual(rel_model.m2m_reffed_counter, 0)
             self.assertEqual(rel_model.m2m_reffed_counter_2, 0)
 
@@ -417,6 +580,69 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
             model.m2m.clear()
             self.assertEqual(model.counter, 0)
             self.assertEqual(model.counter_2, 0)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter_2, 0)
+
+    def test_m2m_forward_and_clear_with_multiple_instances(self):
+        """Testing RelationCounterField with forward ManyToManyField relation
+        and clearing all objects with multiple tracked instances for ID
+        """
+        with self.assertNumQueries(5):
+            model1 = M2MRefModel.objects.create()
+            model2 = M2MRefModel.objects.get(pk=model1.pk)
+            model3 = M2MRefModel.objects.get(pk=model1.pk)
+            rel_model_1 = ReffedModel.objects.create()
+            rel_model_2 = ReffedModel.objects.create()
+            self.assertEqual(model1.counter, 0)
+            self.assertEqual(model1.counter_2, 0)
+            self.assertEqual(model2.counter, 0)
+            self.assertEqual(model2.counter_2, 0)
+            self.assertEqual(model3.counter, 0)
+            self.assertEqual(model3.counter_2, 0)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m.add(rel_model_1)
+            self.assertEqual(model1.counter, 1)
+            self.assertEqual(model1.counter_2, 1)
+            self.assertEqual(model2.counter, 1)
+            self.assertEqual(model2.counter_2, 1)
+            self.assertEqual(model3.counter, 1)
+            self.assertEqual(model3.counter_2, 1)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 1)
+            self.assertEqual(rel_model_2.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m.add(rel_model_2)
+            self.assertEqual(model1.counter, 2)
+            self.assertEqual(model1.counter_2, 2)
+            self.assertEqual(model2.counter, 2)
+            self.assertEqual(model2.counter_2, 2)
+            self.assertEqual(model3.counter, 2)
+            self.assertEqual(model3.counter_2, 2)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 1)
+            self.assertEqual(rel_model_2.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model_2.m2m_reffed_counter_2, 1)
+
+        with self.assertNumQueries(self.M2M_CLEAR_BASE_QUERY_COUNT +
+                                   2 * self.M2M_CLEAR_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m.clear()
+            self.assertEqual(model1.counter, 0)
+            self.assertEqual(model1.counter_2, 0)
+            self.assertEqual(model2.counter, 0)
+            self.assertEqual(model2.counter_2, 0)
+            self.assertEqual(model3.counter, 0)
+            self.assertEqual(model3.counter_2, 0)
             self.assertEqual(rel_model_1.m2m_reffed_counter, 0)
             self.assertEqual(rel_model_1.m2m_reffed_counter_2, 0)
             self.assertEqual(rel_model_2.m2m_reffed_counter, 0)
@@ -470,10 +696,82 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
             self.assertEqual(model.counter_2, 0)
 
         with self.assertNumQueries(2):
-            rel_model_1 = ReffedModel.objects.get(
-                pk=rel_model_id_1)
-            rel_model_2 = ReffedModel.objects.get(
-                pk=rel_model_id_2)
+            rel_model_1 = ReffedModel.objects.get(pk=rel_model_id_1)
+            rel_model_2 = ReffedModel.objects.get(pk=rel_model_id_2)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter_2, 0)
+
+    def test_m2m_forward_and_clear_unloaded_with_multiple_instances(self):
+        """Testing RelationCounterField with forward ManyToManyField relation
+        and clearing all unloaded objects with multiple tracked instances for
+        ID
+        """
+        with self.assertNumQueries(5):
+            model1 = M2MRefModel.objects.create()
+            model2 = M2MRefModel.objects.get(pk=model1.pk)
+            model3 = M2MRefModel.objects.get(pk=model1.pk)
+            rel_model_1 = ReffedModel.objects.create()
+            rel_model_2 = ReffedModel.objects.create()
+            self.assertEqual(model1.counter, 0)
+            self.assertEqual(model1.counter_2, 0)
+            self.assertEqual(model2.counter, 0)
+            self.assertEqual(model2.counter_2, 0)
+            self.assertEqual(model3.counter, 0)
+            self.assertEqual(model3.counter_2, 0)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m.add(rel_model_1)
+            self.assertEqual(model1.counter, 1)
+            self.assertEqual(model1.counter_2, 1)
+            self.assertEqual(model2.counter, 1)
+            self.assertEqual(model2.counter_2, 1)
+            self.assertEqual(model3.counter, 1)
+            self.assertEqual(model3.counter_2, 1)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 1)
+            self.assertEqual(rel_model_2.m2m_reffed_counter, 0)
+            self.assertEqual(rel_model_2.m2m_reffed_counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m.add(rel_model_2)
+            self.assertEqual(model1.counter, 2)
+            self.assertEqual(model1.counter_2, 2)
+            self.assertEqual(model2.counter, 2)
+            self.assertEqual(model2.counter_2, 2)
+            self.assertEqual(model3.counter, 2)
+            self.assertEqual(model3.counter_2, 2)
+            self.assertEqual(rel_model_1.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model_1.m2m_reffed_counter_2, 1)
+            self.assertEqual(rel_model_2.m2m_reffed_counter, 1)
+            self.assertEqual(rel_model_2.m2m_reffed_counter_2, 1)
+
+        # Get rid of these for now, so that the state will drop. This will
+        # ensure we're re-fetching on pre_clear.
+        rel_model_id_1 = rel_model_1.pk
+        rel_model_id_2 = rel_model_2.pk
+        del rel_model_1
+        del rel_model_2
+
+        with self.assertNumQueries(self.M2M_CLEAR_BASE_QUERY_COUNT):
+            model1.m2m.clear()
+            self.assertEqual(model1.counter, 0)
+            self.assertEqual(model1.counter_2, 0)
+            self.assertEqual(model2.counter, 0)
+            self.assertEqual(model2.counter_2, 0)
+            self.assertEqual(model3.counter, 0)
+            self.assertEqual(model3.counter_2, 0)
+
+        with self.assertNumQueries(2):
+            rel_model_1 = ReffedModel.objects.get(pk=rel_model_id_1)
+            rel_model_2 = ReffedModel.objects.get(pk=rel_model_id_2)
             self.assertEqual(rel_model_1.m2m_reffed_counter, 0)
             self.assertEqual(rel_model_1.m2m_reffed_counter_2, 0)
             self.assertEqual(rel_model_2.m2m_reffed_counter, 0)
@@ -537,6 +835,43 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
             self.assertEqual(rel_model_2.counter, 1)
             self.assertEqual(rel_model_2.counter_2, 1)
 
+    def test_m2m_reverse_and_create_with_multiple_instances(self):
+        """Testing RelationCounterField with reverse ManyToManyField relation
+        and creating object with multiple tracked instances for ID
+        """
+        with self.assertNumQueries(3):
+            model1 = ReffedModel.objects.create()
+            model2 = ReffedModel.objects.get(pk=model1.pk)
+            model3 = ReffedModel.objects.get(pk=model1.pk)
+
+        with self.assertNumQueries(1 +
+                                   self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            rel_model_1 = model1.m2m_reffed.create()
+            self.assertEqual(model1.m2m_reffed_counter, 1)
+            self.assertEqual(model1.m2m_reffed_counter_2, 1)
+            self.assertEqual(model2.m2m_reffed_counter, 1)
+            self.assertEqual(model2.m2m_reffed_counter_2, 1)
+            self.assertEqual(model3.m2m_reffed_counter, 1)
+            self.assertEqual(model3.m2m_reffed_counter_2, 1)
+            self.assertEqual(rel_model_1.counter, 1)
+            self.assertEqual(rel_model_1.counter_2, 1)
+
+        with self.assertNumQueries(1 +
+                                   self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            rel_model_2 = model1.m2m_reffed.create()
+            self.assertEqual(model1.m2m_reffed_counter, 2)
+            self.assertEqual(model1.m2m_reffed_counter_2, 2)
+            self.assertEqual(model2.m2m_reffed_counter, 2)
+            self.assertEqual(model2.m2m_reffed_counter_2, 2)
+            self.assertEqual(model3.m2m_reffed_counter, 2)
+            self.assertEqual(model3.m2m_reffed_counter_2, 2)
+            self.assertEqual(rel_model_1.counter, 1)
+            self.assertEqual(rel_model_1.counter_2, 1)
+            self.assertEqual(rel_model_2.counter, 1)
+            self.assertEqual(rel_model_2.counter_2, 1)
+
     def test_m2m_reverse_and_add(self):
         """Testing RelationCounterField with reverse ManyToManyField relation
         and adding object
@@ -572,6 +907,55 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
             self.assertEqual(rel_model_2.counter, 1)
             self.assertEqual(rel_model_2.counter_2, 1)
 
+    def test_m2m_reverse_and_add_with_multiple_instances(self):
+        """Testing RelationCounterField with reverse ManyToManyField relation
+        and adding object with multiple tracked instances for ID
+        """
+        with self.assertNumQueries(5):
+            model1 = ReffedModel.objects.create()
+            model2 = ReffedModel.objects.get(pk=model1.pk)
+            model3 = ReffedModel.objects.get(pk=model2.pk)
+            rel_model_1 = M2MRefModel.objects.create()
+            rel_model_2 = M2MRefModel.objects.create()
+            self.assertEqual(model1.m2m_reffed_counter, 0)
+            self.assertEqual(model1.m2m_reffed_counter_2, 0)
+            self.assertEqual(model2.m2m_reffed_counter, 0)
+            self.assertEqual(model2.m2m_reffed_counter_2, 0)
+            self.assertEqual(model3.m2m_reffed_counter, 0)
+            self.assertEqual(model3.m2m_reffed_counter_2, 0)
+            self.assertEqual(rel_model_1.counter, 0)
+            self.assertEqual(rel_model_1.counter_2, 0)
+            self.assertEqual(rel_model_2.counter, 0)
+            self.assertEqual(rel_model_2.counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m_reffed.add(rel_model_1)
+            self.assertEqual(model1.m2m_reffed_counter, 1)
+            self.assertEqual(model1.m2m_reffed_counter_2, 1)
+            self.assertEqual(model2.m2m_reffed_counter, 1)
+            self.assertEqual(model2.m2m_reffed_counter_2, 1)
+            self.assertEqual(model3.m2m_reffed_counter, 1)
+            self.assertEqual(model3.m2m_reffed_counter_2, 1)
+            self.assertEqual(rel_model_1.counter, 1)
+            self.assertEqual(rel_model_1.counter_2, 1)
+            self.assertEqual(rel_model_2.counter, 0)
+            self.assertEqual(rel_model_2.counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m_reffed.add(rel_model_2)
+            self.assertEqual(model1.m2m_reffed_counter, 2)
+            self.assertEqual(model1.m2m_reffed_counter_2, 2)
+            self.assertEqual(model2.m2m_reffed_counter, 2)
+            self.assertEqual(model2.m2m_reffed_counter_2, 2)
+            self.assertEqual(model3.m2m_reffed_counter, 2)
+            self.assertEqual(model3.m2m_reffed_counter_2, 2)
+            self.assertEqual(rel_model_1.counter, 1)
+            self.assertEqual(rel_model_1.counter_2, 1)
+            self.assertEqual(rel_model_2.counter, 1)
+            self.assertEqual(rel_model_2.counter_2, 1)
+
     def test_m2m_reverse_and_remove(self):
         """Testing RelationCounterField with reverse ManyToManyField relation
         and removing object
@@ -597,6 +981,48 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
             model.m2m_reffed.remove(rel_model)
             self.assertEqual(model.m2m_reffed_counter, 0)
             self.assertEqual(model.m2m_reffed_counter_2, 0)
+            self.assertEqual(rel_model.counter, 0)
+            self.assertEqual(rel_model.counter_2, 0)
+
+    def test_m2m_reverse_and_remove_with_multiple_instances(self):
+        """Testing RelationCounterField with reverse ManyToManyField relation
+        and removing object with multiple tracked instances
+        """
+        with self.assertNumQueries(4):
+            model1 = ReffedModel.objects.create()
+            model2 = ReffedModel.objects.get(pk=model1.pk)
+            model3 = ReffedModel.objects.get(pk=model1.pk)
+            rel_model = M2MRefModel.objects.create()
+            self.assertEqual(model1.m2m_reffed_counter, 0)
+            self.assertEqual(model1.m2m_reffed_counter_2, 0)
+            self.assertEqual(model2.m2m_reffed_counter, 0)
+            self.assertEqual(model2.m2m_reffed_counter_2, 0)
+            self.assertEqual(model3.m2m_reffed_counter, 0)
+            self.assertEqual(model3.m2m_reffed_counter_2, 0)
+            self.assertEqual(rel_model.counter, 0)
+            self.assertEqual(rel_model.counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m_reffed.add(rel_model)
+            self.assertEqual(model1.m2m_reffed_counter, 1)
+            self.assertEqual(model1.m2m_reffed_counter_2, 1)
+            self.assertEqual(model2.m2m_reffed_counter, 1)
+            self.assertEqual(model2.m2m_reffed_counter, 1)
+            self.assertEqual(model3.m2m_reffed_counter_2, 1)
+            self.assertEqual(model3.m2m_reffed_counter_2, 1)
+            self.assertEqual(rel_model.counter, 1)
+            self.assertEqual(rel_model.counter_2, 1)
+
+        with self.assertNumQueries(self.M2M_REMOVE_BASE_QUERY_COUNT +
+                                   self.M2M_REMOVE_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m_reffed.remove(rel_model)
+            self.assertEqual(model1.m2m_reffed_counter, 0)
+            self.assertEqual(model1.m2m_reffed_counter_2, 0)
+            self.assertEqual(model2.m2m_reffed_counter, 0)
+            self.assertEqual(model2.m2m_reffed_counter_2, 0)
+            self.assertEqual(model3.m2m_reffed_counter, 0)
+            self.assertEqual(model3.m2m_reffed_counter_2, 0)
             self.assertEqual(rel_model.counter, 0)
             self.assertEqual(rel_model.counter_2, 0)
 
@@ -640,6 +1066,69 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
             model.m2m_reffed.clear()
             self.assertEqual(model.m2m_reffed_counter, 0)
             self.assertEqual(model.m2m_reffed_counter_2, 0)
+            self.assertEqual(rel_model_1.counter, 0)
+            self.assertEqual(rel_model_1.counter_2, 0)
+            self.assertEqual(rel_model_2.counter, 0)
+            self.assertEqual(rel_model_2.counter_2, 0)
+
+    def test_m2m_reverse_and_clear_with_multiple_instances(self):
+        """Testing RelationCounterField with reverse ManyToManyField relation
+        and clearing all objects with multiple tracked instances for ID
+        """
+        with self.assertNumQueries(5):
+            model1 = ReffedModel.objects.create()
+            model2 = ReffedModel.objects.get(pk=model1.pk)
+            model3 = ReffedModel.objects.get(pk=model1.pk)
+            rel_model_1 = M2MRefModel.objects.create()
+            rel_model_2 = M2MRefModel.objects.create()
+            self.assertEqual(model1.m2m_reffed_counter, 0)
+            self.assertEqual(model1.m2m_reffed_counter_2, 0)
+            self.assertEqual(model2.m2m_reffed_counter, 0)
+            self.assertEqual(model2.m2m_reffed_counter_2, 0)
+            self.assertEqual(model3.m2m_reffed_counter, 0)
+            self.assertEqual(model3.m2m_reffed_counter_2, 0)
+            self.assertEqual(rel_model_1.counter, 0)
+            self.assertEqual(rel_model_1.counter_2, 0)
+            self.assertEqual(rel_model_2.counter, 0)
+            self.assertEqual(rel_model_2.counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m_reffed.add(rel_model_1)
+            self.assertEqual(model1.m2m_reffed_counter, 1)
+            self.assertEqual(model1.m2m_reffed_counter_2, 1)
+            self.assertEqual(model2.m2m_reffed_counter, 1)
+            self.assertEqual(model2.m2m_reffed_counter_2, 1)
+            self.assertEqual(model3.m2m_reffed_counter, 1)
+            self.assertEqual(model3.m2m_reffed_counter_2, 1)
+            self.assertEqual(rel_model_1.counter, 1)
+            self.assertEqual(rel_model_1.counter_2, 1)
+            self.assertEqual(rel_model_2.counter, 0)
+            self.assertEqual(rel_model_2.counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m_reffed.add(rel_model_2)
+            self.assertEqual(model1.m2m_reffed_counter, 2)
+            self.assertEqual(model1.m2m_reffed_counter_2, 2)
+            self.assertEqual(model2.m2m_reffed_counter, 2)
+            self.assertEqual(model2.m2m_reffed_counter_2, 2)
+            self.assertEqual(model3.m2m_reffed_counter, 2)
+            self.assertEqual(model3.m2m_reffed_counter_2, 2)
+            self.assertEqual(rel_model_1.counter, 1)
+            self.assertEqual(rel_model_1.counter_2, 1)
+            self.assertEqual(rel_model_2.counter, 1)
+            self.assertEqual(rel_model_2.counter_2, 1)
+
+        with self.assertNumQueries(self.M2M_CLEAR_BASE_QUERY_COUNT +
+                                   2 * self.M2M_CLEAR_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m_reffed.clear()
+            self.assertEqual(model1.m2m_reffed_counter, 0)
+            self.assertEqual(model1.m2m_reffed_counter_2, 0)
+            self.assertEqual(model2.m2m_reffed_counter, 0)
+            self.assertEqual(model2.m2m_reffed_counter_2, 0)
+            self.assertEqual(model3.m2m_reffed_counter, 0)
+            self.assertEqual(model3.m2m_reffed_counter_2, 0)
             self.assertEqual(rel_model_1.counter, 0)
             self.assertEqual(rel_model_1.counter_2, 0)
             self.assertEqual(rel_model_2.counter, 0)
@@ -693,10 +1182,82 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
             self.assertEqual(model.m2m_reffed_counter_2, 0)
 
         with self.assertNumQueries(2):
-            rel_model_1 = M2MRefModel.objects.get(
-                pk=rel_model_id_1)
-            rel_model_2 = M2MRefModel.objects.get(
-                pk=rel_model_id_2)
+            rel_model_1 = M2MRefModel.objects.get(pk=rel_model_id_1)
+            rel_model_2 = M2MRefModel.objects.get(pk=rel_model_id_2)
+            self.assertEqual(rel_model_1.counter, 0)
+            self.assertEqual(rel_model_1.counter_2, 0)
+            self.assertEqual(rel_model_2.counter, 0)
+            self.assertEqual(rel_model_2.counter_2, 0)
+
+    def test_m2m_reverse_and_clear_unloaded_with_multiple_instances(self):
+        """Testing RelationCounterField with reverse ManyToManyField relation
+        and clearing all unloaded objects with multiple tracked instances for
+        ID
+        """
+        with self.assertNumQueries(5):
+            model1 = ReffedModel.objects.create()
+            model2 = ReffedModel.objects.get(pk=model1.pk)
+            model3 = ReffedModel.objects.get(pk=model1.pk)
+            rel_model_1 = M2MRefModel.objects.create()
+            rel_model_2 = M2MRefModel.objects.create()
+            self.assertEqual(model1.m2m_reffed_counter, 0)
+            self.assertEqual(model1.m2m_reffed_counter_2, 0)
+            self.assertEqual(model2.m2m_reffed_counter, 0)
+            self.assertEqual(model2.m2m_reffed_counter_2, 0)
+            self.assertEqual(model3.m2m_reffed_counter, 0)
+            self.assertEqual(model3.m2m_reffed_counter_2, 0)
+            self.assertEqual(rel_model_1.counter, 0)
+            self.assertEqual(rel_model_1.counter_2, 0)
+            self.assertEqual(rel_model_2.counter, 0)
+            self.assertEqual(rel_model_2.counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m_reffed.add(rel_model_1)
+            self.assertEqual(model1.m2m_reffed_counter, 1)
+            self.assertEqual(model1.m2m_reffed_counter_2, 1)
+            self.assertEqual(model2.m2m_reffed_counter, 1)
+            self.assertEqual(model2.m2m_reffed_counter_2, 1)
+            self.assertEqual(model3.m2m_reffed_counter, 1)
+            self.assertEqual(model3.m2m_reffed_counter_2, 1)
+            self.assertEqual(rel_model_1.counter, 1)
+            self.assertEqual(rel_model_1.counter_2, 1)
+            self.assertEqual(rel_model_2.counter, 0)
+            self.assertEqual(rel_model_2.counter_2, 0)
+
+        with self.assertNumQueries(self.M2M_ADD_BASE_QUERY_COUNT +
+                                   self.M2M_ADD_LOADED_ITEM_QUERY_COUNT):
+            model1.m2m_reffed.add(rel_model_2)
+            self.assertEqual(model1.m2m_reffed_counter, 2)
+            self.assertEqual(model1.m2m_reffed_counter_2, 2)
+            self.assertEqual(model2.m2m_reffed_counter, 2)
+            self.assertEqual(model2.m2m_reffed_counter_2, 2)
+            self.assertEqual(model3.m2m_reffed_counter, 2)
+            self.assertEqual(model3.m2m_reffed_counter_2, 2)
+            self.assertEqual(rel_model_1.counter, 1)
+            self.assertEqual(rel_model_1.counter_2, 1)
+            self.assertEqual(rel_model_2.counter, 1)
+            self.assertEqual(rel_model_2.counter_2, 1)
+
+        # Get rid of these for now, so that the state will drop. This will
+        # ensure we're re-fetching on pre_clear.
+        rel_model_id_1 = rel_model_1.pk
+        rel_model_id_2 = rel_model_2.pk
+        del rel_model_1
+        del rel_model_2
+
+        with self.assertNumQueries(self.M2M_CLEAR_BASE_QUERY_COUNT):
+            model1.m2m_reffed.clear()
+            self.assertEqual(model1.m2m_reffed_counter, 0)
+            self.assertEqual(model1.m2m_reffed_counter_2, 0)
+            self.assertEqual(model2.m2m_reffed_counter, 0)
+            self.assertEqual(model2.m2m_reffed_counter_2, 0)
+            self.assertEqual(model3.m2m_reffed_counter, 0)
+            self.assertEqual(model3.m2m_reffed_counter_2, 0)
+
+        with self.assertNumQueries(2):
+            rel_model_1 = M2MRefModel.objects.get(pk=rel_model_id_1)
+            rel_model_2 = M2MRefModel.objects.get(pk=rel_model_id_2)
             self.assertEqual(rel_model_1.counter, 0)
             self.assertEqual(rel_model_1.counter_2, 0)
             self.assertEqual(rel_model_2.counter, 0)
@@ -765,6 +1326,39 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
             self.assertEqual(model.reffed_key_counter, 2)
             self.assertEqual(model.reffed_key_counter_2, 2)
 
+    def test_fkey_reverse_and_add_with_multiple_instances(self):
+        """Testing RelationCounterField with reverse ForeignKey relation and
+        adding object with multiple tracked instances for ID
+        """
+        with self.assertNumQueries(3):
+            model1 = ReffedModel.objects.create()
+            model2 = ReffedModel.objects.get(pk=model1.pk)
+            model3 = ReffedModel.objects.get(pk=model1.pk)
+            self.assertEqual(model1.reffed_key_counter, 0)
+            self.assertEqual(model1.reffed_key_counter_2, 0)
+            self.assertEqual(model2.reffed_key_counter, 0)
+            self.assertEqual(model2.reffed_key_counter_2, 0)
+            self.assertEqual(model3.reffed_key_counter, 0)
+            self.assertEqual(model3.reffed_key_counter_2, 0)
+
+        with self.assertNumQueries(1 + self.REINIT_QUERY_COUNT):
+            KeyRefModel.objects.create(key=model1)
+            self.assertEqual(model1.reffed_key_counter, 1)
+            self.assertEqual(model1.reffed_key_counter_2, 1)
+            self.assertEqual(model2.reffed_key_counter, 1)
+            self.assertEqual(model2.reffed_key_counter_2, 1)
+            self.assertEqual(model3.reffed_key_counter, 1)
+            self.assertEqual(model3.reffed_key_counter_2, 1)
+
+        with self.assertNumQueries(1 + self.REINIT_QUERY_COUNT):
+            KeyRefModel.objects.create(key=model1)
+            self.assertEqual(model1.reffed_key_counter, 2)
+            self.assertEqual(model1.reffed_key_counter_2, 2)
+            self.assertEqual(model2.reffed_key_counter, 2)
+            self.assertEqual(model2.reffed_key_counter_2, 2)
+            self.assertEqual(model3.reffed_key_counter, 2)
+            self.assertEqual(model3.reffed_key_counter_2, 2)
+
     def test_fkey_reverse_and_add_unloaded_by_id(self):
         """Testing RelationCounterField with reverse ForeignKey relation and
         adding unloaded object by ID
@@ -804,6 +1398,39 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
             self.assertEqual(model.reffed_key_counter, 0)
             self.assertEqual(model.reffed_key_counter_2, 0)
 
+    def test_fkey_reverse_and_delete_with_multiple_instances(self):
+        """Testing RelationCounterField with reverse ForeignKey relation and
+        deleting object with multiple tracked instances for ID
+        """
+        with self.assertNumQueries(3):
+            model1 = ReffedModel.objects.create()
+            model2 = ReffedModel.objects.get(pk=model1.pk)
+            model3 = ReffedModel.objects.get(pk=model1.pk)
+            self.assertEqual(model1.reffed_key_counter, 0)
+            self.assertEqual(model1.reffed_key_counter_2, 0)
+            self.assertEqual(model2.reffed_key_counter, 0)
+            self.assertEqual(model2.reffed_key_counter_2, 0)
+            self.assertEqual(model3.reffed_key_counter, 0)
+            self.assertEqual(model3.reffed_key_counter_2, 0)
+
+        with self.assertNumQueries(1 + self.REINIT_QUERY_COUNT):
+            rel_model = KeyRefModel.objects.create(key=model1)
+            self.assertEqual(model1.reffed_key_counter, 1)
+            self.assertEqual(model1.reffed_key_counter_2, 1)
+            self.assertEqual(model2.reffed_key_counter, 1)
+            self.assertEqual(model2.reffed_key_counter_2, 1)
+            self.assertEqual(model3.reffed_key_counter, 1)
+            self.assertEqual(model3.reffed_key_counter_2, 1)
+
+        with self.assertNumQueries(self.KEY_REMOVE_ITEM_QUERY_COUNT):
+            rel_model.delete()
+            self.assertEqual(model1.reffed_key_counter, 0)
+            self.assertEqual(model1.reffed_key_counter_2, 0)
+            self.assertEqual(model2.reffed_key_counter, 0)
+            self.assertEqual(model2.reffed_key_counter_2, 0)
+            self.assertEqual(model3.reffed_key_counter, 0)
+            self.assertEqual(model3.reffed_key_counter_2, 0)
+
     def test_fkey_reverse_and_save_existing(self):
         """Testing RelationCounterField with reverse ForeignKey relation and
         saving existing object doesn't modify counts
@@ -822,6 +1449,40 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
             rel_model.save()
             self.assertEqual(model.reffed_key_counter, 1)
             self.assertEqual(model.reffed_key_counter_2, 1)
+
+    def test_fkey_reverse_and_save_existing_with_multiple_instances(self):
+        """Testing RelationCounterField with reverse ForeignKey relation and
+        saving existing object doesn't modify counts with multiple tracked
+        instances for ID
+        """
+        with self.assertNumQueries(3):
+            model1 = ReffedModel.objects.create()
+            model2 = ReffedModel.objects.get(pk=model1.pk)
+            model3 = ReffedModel.objects.get(pk=model1.pk)
+            self.assertEqual(model1.reffed_key_counter, 0)
+            self.assertEqual(model1.reffed_key_counter_2, 0)
+            self.assertEqual(model2.reffed_key_counter, 0)
+            self.assertEqual(model2.reffed_key_counter_2, 0)
+            self.assertEqual(model3.reffed_key_counter, 0)
+            self.assertEqual(model3.reffed_key_counter_2, 0)
+
+        with self.assertNumQueries(1 + self.REINIT_QUERY_COUNT):
+            rel_model = KeyRefModel.objects.create(key=model1)
+            self.assertEqual(model1.reffed_key_counter, 1)
+            self.assertEqual(model1.reffed_key_counter_2, 1)
+            self.assertEqual(model2.reffed_key_counter, 1)
+            self.assertEqual(model2.reffed_key_counter_2, 1)
+            self.assertEqual(model3.reffed_key_counter, 1)
+            self.assertEqual(model3.reffed_key_counter_2, 1)
+
+        with self.assertNumQueries(1):
+            rel_model.save()
+            self.assertEqual(model1.reffed_key_counter, 1)
+            self.assertEqual(model1.reffed_key_counter_2, 1)
+            self.assertEqual(model2.reffed_key_counter, 1)
+            self.assertEqual(model2.reffed_key_counter_2, 1)
+            self.assertEqual(model3.reffed_key_counter, 1)
+            self.assertEqual(model3.reffed_key_counter_2, 1)
 
     def test_fkey_reverse_delete_unloaded(self):
         """Testing RelationCounterField with reverse ForeignKey relation
