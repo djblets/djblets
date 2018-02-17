@@ -942,20 +942,14 @@ class RelationCounterField(CounterField):
         discarded.
         """
 
-        def __init__(self, model_instance, fields):
-            """Initialize the state.
+        def setup(self, model_instance):
+            """Set up the state.
 
             Args:
                 model_instance (django.db.models.Model):
                     The model instance that this state tracks.
-
-                fields (list of django.db.models.Field):
-                    The list of field instances tracked along with this state.
-                    For a saved instance state, these are all fields that have
-                    the same relation. For an unsaved instance state, these
-                    are simply all fields tracked on the instance.
             """
-            self.fields = fields
+            self.fields = set()
             self.to_clear = set()
             self.dispatch_uid = '%s.%s:%s' % (self.__class__.__module__,
                                               self.__class__.__name__,
@@ -1493,12 +1487,8 @@ class RelationCounterField(CounterField):
                 The reference ID of the instance.
         """
         with cls._state_lock:
-            all_states = [cls._unsaved_instance_states] + [
-                saved_states
-                for saved_states in six.itervalues(cls._saved_instance_states)
-            ]
-
-            for states in all_states:
+            for states in ([cls._unsaved_instance_states] +
+                           list(six.itervalues(cls._saved_instance_states))):
                 to_remove = []
 
                 for key, state in six.iteritems(states):
@@ -1552,13 +1542,19 @@ class RelationCounterField(CounterField):
 
             try:
                 state = states[key]
-                state.fields.append(field)
+                state_is_new = False
             except KeyError:
-                state = cls.InstanceState(instance, [field])
+                state = cls.InstanceState()
+                state_is_new = True
                 states[key] = state
 
             if instance.pk is not None:
                 setattr(instance, '_%s_state' % field.attname, state)
+
+        if state_is_new:
+            state.setup(instance)
+
+        state.fields.add(field)
 
     @classmethod
     def _get_saved_states(cls, model_cls, instance_pk, rel_field_name):

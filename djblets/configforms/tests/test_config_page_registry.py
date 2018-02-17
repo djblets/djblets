@@ -1,3 +1,5 @@
+"""Unit tests for djblets.configforms.registry.ConfigPageRegistry."""
+
 from __future__ import unicode_literals
 
 from kgb import SpyAgency
@@ -33,7 +35,7 @@ class TestPageTwo(DynamicConfigPage):
 
 
 class ConfigPageRegistryTests(SpyAgency, TestCase):
-    """Tests for djblets.configforms.registry.ConfigPageRegistry."""
+    """Unit tests for djblets.configforms.registry.ConfigPageRegistry."""
 
     @classmethod
     def setUpClass(cls):

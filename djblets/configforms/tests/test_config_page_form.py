@@ -41,6 +41,10 @@ class ConfigPageFormTests(TestCase):
 
         self.form = TestForm(page, request, user)
 
+    def test_initial_state(self):
+        """Testing ConfigPageForm initial state"""
+        self.assertEqual(self.form.fields['form_target'].initial, 'my-form')
+
     def test_profile(self):
         """Testing ConfigPageForm.profile raises a deprecation warning"""
         with warnings.catch_warnings(record=True) as w:
@@ -61,3 +65,35 @@ class ConfigPageFormTests(TestCase):
             six.text_type(message),
             'ConfigFormPage.profile is deprecated. Update your code to '
             'fetch the profile manually instead.')
+
+    def test_set_initial(self):
+        """Testing ConfigPageForm.set_initial"""
+        self.form.set_initial({
+            'field1': 'foo',
+            'field2': 'bar',
+        })
+
+        self.assertEqual(self.form.fields['field1'].initial, 'foo')
+        self.assertEqual(self.form.fields['field2'].initial, 'bar')
+
+    def test_render(self):
+        """Testing ConfigPageForm.render"""
+        rendered = self.form.render()
+
+        self.assertHTMLEqual(
+            '<input id="id_form_target" name="form_target"'
+            ' type="hidden" value="my-form">'
+            '<div class="fields-row field-field1" id="row-field1">'
+            ' <div class="field">'
+            '  <label for="id_field1">Field 1:</label>'
+            '  <input id="id_field1" name="field1" type="text">'
+            ' </div>'
+            '</div>'
+            '<div class="fields-row field-field2" id="row-field2">'
+            ' <div class="field">'
+            '  <label for="id_field2">Field 2:</label>'
+            '  <input id="id_field2" name="field2" type="text">'
+            ' </div>'
+            '</div>'
+            '<input type="submit" class="btn" value="Save">',
+            rendered)

@@ -26,7 +26,7 @@ from __future__ import unicode_literals
 
 from django import forms, template
 from django.utils.encoding import force_unicode
-from django.utils.html import escape
+from django.utils.html import conditional_escape, format_html
 
 
 register = template.Library()
@@ -34,64 +34,128 @@ register = template.Library()
 
 @register.simple_tag
 def label_tag(field):
-    """
-    Outputs the tag for a field's label. This gives more fine-grained
-    control over the appearance of the form.
+    """Render the tag for a field's label.
 
-    This exists because a template can't access this directly from a field
-    in newforms.
+    This generates labels similar to the administration UI's own field labels,
+    providing styling for required fields and checkboxes.
+
+    Args:
+        field (django.forms.BoundField):
+            The bound field on the form to render the label for.
+
+    Returns:
+        django.utils.safestring.SafeText:
+        The resulting HTML for the label.
+
+    Example:
+        .. code-block:: html+django
+
+           {% label_for form.my_field %}
     """
     is_checkbox = is_field_checkbox(field)
 
-    s = '<label for="%s"' % form_field_id(field)
-
+    # Build the list of CSS classes to apply to the label.
     classes = []
 
     if field.field.required:
-        classes.append("required")
+        classes.append('required')
 
     if is_checkbox:
-        classes.append("vCheckboxLabel")
+        classes.append('vCheckboxLabel')
 
     if classes:
-        s += ' class="%s"' % " ".join(classes)
+        classes_html = format_html(' class="{0}"', ' '.join(classes))
+    else:
+        classes_html = ''
 
-    s += '>%s' % force_unicode(escape(field.label))
+    # Build the text for the label.
+    label = field.label
 
     if not is_checkbox:
-        s += ':'
+        label += ':'
 
-    s += '</label>'
-
-    return s
+    # Render the result.
+    return format_html('<label for="{0}"{1}>{2}</label>',
+                       form_field_id(field),
+                       classes_html,
+                       label)
 
 
 @register.filter
 def form_field_id(field):
-    """
-    Outputs the ID of a field.
+    """Render the ID of a field.
+
+    This will derive the field's ID in the form and output it, for use in
+    utility functions or custom HTML.
+
+    Args:
+        field (django.forms.BoundField):
+            The bound field on the form.
+
+    Returns:
+        django.utils.safestring.SafeText:
+        The resulting ID as safe HTML.
+
+    Example:
+        .. code-block:: html+django
+
+           <span data-field-id="{{form.my_field|form_field_id}}"></span>
     """
     widget = field.field.widget
-    id_ = widget.attrs.get('id') or field.auto_id
+    field_id = widget.attrs.get('id') or field.auto_id or ''
 
-    if id_:
-        return widget.id_for_label(id_)
+    if field_id:
+        field_id = widget.id_for_label(field_id)
 
-    return ""
+    return conditional_escape(field_id)
 
 
 @register.filter
 def is_field_checkbox(field):
-    """Return whether or not this field is a checkbox field."""
-    return isinstance(field.field, forms.BooleanField)
+    """Return whether or not this field is effectively a checkbox field.
+
+    A field is considered to be a checkbox field if its widget is a
+    :py:class:`~django.forms.CheckboxInput`.
+
+    Args:
+        field (django.forms.BoundField):
+            The bound field on the form.
+
+    Returns:
+        bool:
+        ``True`` if this is a checkbox field. ``False`` if not.
+
+    Example:
+        .. code-block:: html+django
+
+           {% if field|is_field_checkbox %}
+           ...
+           {% endif %}
+    """
+    return isinstance(field.field.widget, forms.CheckboxInput)
 
 
 @register.filter
 def is_checkbox_row(field):
-    """Returns whether the field's row is a checkbox-ish row.
+    """Return whether the field's row is a checkbox-ish row.
 
-    This will return True if rendering a checkbox, radio button, or
+    This will return ``True`` if rendering a checkbox, radio button, or
     multi-select checkbox.
+
+    Args:
+        field (django.forms.BoundField):
+            The bound field on the form.
+
+    Returns:
+        bool:
+        ``True`` if this is a checkbox-ish field. ``False`` if not.
+
+    Example:
+        .. code-block:: html+django
+
+           {% if field|is_checkbox_row %}
+           ...
+           {% endif %}
     """
     return isinstance(field.field.widget, (forms.CheckboxInput,
                                            forms.RadioSelect,
@@ -100,9 +164,27 @@ def is_checkbox_row(field):
 
 @register.filter
 def form_field_has_label_first(field):
-    """
-    Returns whether or not this field should display the label before the
-    widget. This is the case in all fields except checkboxes.
+    """Return whether a form label should be displayed before the widget.
+
+    This helps when rendering labels and widgets in the correct order.
+    Typically, non-checkbox widgets are preceded by a label, and this lets
+    templates determine if that should be the case for a given field.
+
+    Args:
+        field (django.forms.BoundField):
+            The bound field on the form.
+
+    Returns:
+        bool:
+        ``True`` if the label should appear before the widget.
+        ``False`` if the widget should appear before the label.
+
+    Example:
+        .. code-block:: html+django
+
+           {% if field|form_field_has_label_first %}
+           ...
+           {% endif %}
     """
     return not is_field_checkbox(field)
 

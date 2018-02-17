@@ -105,7 +105,7 @@ class ConfigPagesView(TemplateView):
             return HttpResponseBadRequest()
 
         if form_id not in self.forms:
-            return Http404
+            raise Http404
 
         # Replace the form in the list with a new instantiation containing
         # the form data. If we fail to save, this will ensure the error is

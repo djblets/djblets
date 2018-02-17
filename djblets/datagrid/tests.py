@@ -29,40 +29,84 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import Group, User
-from django.core.exceptions import FieldError
 from django.http import HttpRequest
 from django.test.client import RequestFactory
+from django.utils.safestring import SafeText
+from django.utils.six.moves import range
 from kgb import SpyAgency
 
-from djblets.datagrid.grids import (Column, DataGrid, DateTimeSinceColumn,
-                                    StatefulColumn)
+from djblets.datagrid.grids import (CheckboxColumn, Column, DataGrid,
+                                    DateTimeSinceColumn, StatefulColumn,
+                                    logger)
 from djblets.testing.testcases import TestCase
 from djblets.util.dates import get_tz_aware_utcnow
 
 
-def populate_groups():
-    for i in range(1, 100):
-        group = Group(name="Group %02d" % i)
-        group.save()
-
-
 class GroupDataGrid(DataGrid):
-    objid = Column("ID", link=True, sortable=True, field_name="id")
-    name = Column("Group Name", link=True, sortable=True, expand=True)
+    objid = Column('ID', link=True, sortable=True, field_name='id')
+    name = Column('Group Name', link=True, sortable=True, expand=True)
 
     def __init__(self, request):
-        DataGrid.__init__(self, request, Group.objects.all(), "All Groups")
+        super(GroupDataGrid, self).__init__(request=request,
+                                            queryset=Group.objects.all(),
+                                            title='All Groups')
         self.default_sort = []
         self.default_columns = ['objid', 'name']
 
 
-class ColumnsTest(TestCase):
-    def testDateTimeSinceColumn(self):
-        """Testing DateTimeSinceColumn"""
+class CheckboxColumnTests(TestCase):
+    """Unit tests for djblets.datagrid.grids.CheckboxColumn."""
+
+    def test_initial_state(self):
+        """Testing CheckboxColumn initial state"""
+        column = CheckboxColumn(checkbox_name='my_checkbox&',
+                                detailed_label='<Select Rows>')
+
+        self.assertHTMLEqual(
+            column.label,
+            '<input class="datagrid-header-checkbox" '
+            ' type="checkbox" data-checkbox-name="my_checkbox&amp;">')
+        self.assertHTMLEqual(
+            column.detailed_label_html,
+            '<input type="checkbox"> &lt;Select Rows&gt;')
+        self.assertEqual(column.detailed_label, '<Select Rows>')
+        self.assertEqual(column.checkbox_name, 'my_checkbox&')
+
+    def test_render_data_with_selected(self):
+        """Testing CheckboxColumn.render_data with selected object"""
+        group = Group.objects.create(name='test')
+
+        column = CheckboxColumn(checkbox_name='my_checkbox&',
+                                detailed_label='<Select Rows>')
+        column.is_selected = lambda *args, **kwargs: True
+
+        self.assertHTMLEqual(
+            column.render_data(state=None, obj=group),
+            '<input type="checkbox" data-object-id="1"'
+            ' data-checkbox-name="my_checkbox&amp;" checked="true">')
+
+    def test_render_data_with_unselected(self):
+        """Testing CheckboxColumn.render_data with unselected object"""
+        group = Group.objects.create(name='test')
+
+        column = CheckboxColumn(checkbox_name='my_checkbox&',
+                                detailed_label='<Select Rows>')
+
+        self.assertHTMLEqual(
+            column.render_data(state=None, obj=group),
+            '<input type="checkbox" data-object-id="1"'
+            ' data-checkbox-name="my_checkbox&amp;">')
+
+
+class DateTimeSinceColumnTests(TestCase):
+    """Unit tests for djblets.datagrid.grids.DateTimeSinceColumn."""
+
+    def test_render_data(self):
+        """Testing DateTimeSinceColumn.render_data"""
         class DummyObj:
             time = None
 
-        column = DateTimeSinceColumn("Test", field_name='time')
+        column = DateTimeSinceColumn('Test', field_name='time')
         state = StatefulColumn(None, column)
 
         if settings.USE_TZ:
@@ -72,79 +116,115 @@ class ColumnsTest(TestCase):
 
         obj = DummyObj()
         obj.time = now
-        self.assertEqual(column.render_data(state, obj), "0\xa0minutes ago")
+        self.assertEqual(column.render_data(state, obj), '0\xa0minutes ago')
 
         obj.time = now - timedelta(days=5)
-        self.assertEqual(column.render_data(state, obj), "5\xa0days ago")
+        self.assertEqual(column.render_data(state, obj), '5\xa0days ago')
 
         obj.time = now - timedelta(days=7)
-        self.assertEqual(column.render_data(state, obj), "1\xa0week ago")
+        self.assertEqual(column.render_data(state, obj), '1\xa0week ago')
 
 
-class DataGridTest(TestCase):
+class DataGridTests(SpyAgency, TestCase):
+    """Unit tests for djblets.datagrid.grids.DataGrid."""
+
     def setUp(self):
-        super(DataGridTest, self).setUp()
+        super(DataGridTests, self).setUp()
 
-        self.old_auth_profile_module = getattr(settings, "AUTH_PROFILE_MODULE",
-                                               None)
-        settings.AUTH_PROFILE_MODULE = None
-        populate_groups()
-        self.user = User(username="testuser")
+        Group.objects.bulk_create(
+            Group(name='Group %02d' % i)
+            for i in range(1, 100)
+        )
+
+        self.user = User(username='testuser')
         self.request = HttpRequest()
         self.request.user = self.user
         self.datagrid = GroupDataGrid(self.request)
 
-    def tearDown(self):
-        super(DataGridTest, self).tearDown()
+    def test_render_listview(self):
+        """Testing DataGrid.render_listview"""
+        result = self.datagrid.render_listview()
 
-        settings.AUTH_PROFILE_MODULE = self.old_auth_profile_module
+        self.assertIsInstance(result, SafeText)
+        self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">', result)
+        self.assertIn('<div class="datagrid-main">', result)
+        self.assertInHTML('<td colspan="2">Group 01</td>', result)
+        self.assertInHTML('<td colspan="2">Group 50</td>', result)
+        self.assertIn('<div class="paginator">', result)
+        self.assertIn('<div class="datagrid-menu', result)
 
-    def testRender(self):
-        """Testing basic datagrid rendering"""
-        self.datagrid.render_listview()
+    def test_render_listview_to_response(self):
+        """Testing DataGrid.render_listview_to_response"""
+        response = self.datagrid.render_listview_to_response()
+        self.assertEqual(response.status_code, 200)
 
-    def testRenderToResponse(self):
-        """Testing rendering datagrid to HTTPResponse"""
-        self.datagrid.render_listview_to_response()
+        content = response.content
+        self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">',
+                      content)
+        self.assertIn('<div class="datagrid-main">', content)
+        self.assertInHTML('<td colspan="2">Group 01</td>', content)
+        self.assertInHTML('<td colspan="2">Group 50</td>', content)
+        self.assertIn('<div class="paginator">', content)
+        self.assertIn('<div class="datagrid-menu', content)
 
-    def testSortAscending(self):
-        """Testing datagrids with ascending sort"""
-        self.request.GET['sort'] = "name,objid"
+    def test_render_paginator(self):
+        """Testing DataGrid.render_paginator"""
+        self.datagrid.load_state()
+        content = self.datagrid.render_paginator()
+
+        self.assertHTMLEqual(
+            content,
+            '<div class="paginator">'
+            ' <span class="current-page">1</span>'
+            ' <a href="?page=2" title="Page 2">2</a>'
+            ' <a href="?page=2" title="Next Page">&gt;</a>'
+            ' <span class="page-count">2 pages&nbsp;</span>'
+            '</div>')
+
+    def test_load_state_with_sort_ascending(self):
+        """Testing DataGrid.load_state with ascending sort"""
+        self.request.GET['sort'] = 'name,objid'
         self.datagrid.load_state()
 
-        self.assertEqual(self.datagrid.sort_list, ["name", "objid"])
+        self.assertEqual(self.datagrid.sort_list, ['name', 'objid'])
         self.assertEqual(len(self.datagrid.rows), self.datagrid.paginate_by)
-        self.assertEqual(self.datagrid.rows[0]['object'].name, "Group 01")
-        self.assertEqual(self.datagrid.rows[1]['object'].name, "Group 02")
-        self.assertEqual(self.datagrid.rows[2]['object'].name, "Group 03")
+        self.assertEqual(self.datagrid.rows[0]['object'].name, 'Group 01')
+        self.assertEqual(self.datagrid.rows[1]['object'].name, 'Group 02')
+        self.assertEqual(self.datagrid.rows[2]['object'].name, 'Group 03')
 
-        # Exercise the code paths when rendering
-        self.datagrid.render_listview()
+        # Exercise the code paths when rendering.
+        result = self.datagrid.render_listview()
+        self.assertIsInstance(result, SafeText)
+        self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">', result)
 
-    def testSortDescending(self):
-        """Testing datagrids with descending sort"""
-        self.request.GET['sort'] = "-name"
+    def test_load_state_with_sort_descending(self):
+        """Testing DataGrid.load_state with descending sort"""
+        self.request.GET['sort'] = '-name'
         self.datagrid.load_state()
 
-        self.assertEqual(self.datagrid.sort_list, ["-name"])
+        self.assertEqual(self.datagrid.sort_list, ['-name'])
         self.assertEqual(len(self.datagrid.rows), self.datagrid.paginate_by)
-        self.assertEqual(self.datagrid.rows[0]['object'].name, "Group 99")
-        self.assertEqual(self.datagrid.rows[1]['object'].name, "Group 98")
-        self.assertEqual(self.datagrid.rows[2]['object'].name, "Group 97")
+        self.assertEqual(self.datagrid.rows[0]['object'].name, 'Group 99')
+        self.assertEqual(self.datagrid.rows[1]['object'].name, 'Group 98')
+        self.assertEqual(self.datagrid.rows[2]['object'].name, 'Group 97')
 
-        # Exercise the code paths when rendering
-        self.datagrid.render_listview()
+        # Exercise the code paths when rendering.
+        result = self.datagrid.render_listview()
+        self.assertIsInstance(result, SafeText)
+        self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">', result)
 
-    def testCustomColumns(self):
-        """Testing datagrids with custom column orders"""
-        self.request.GET['columns'] = "objid"
+    def test_load_state_with_custom_column_orders(self):
+        """Testing DataGrid.load_state with custom column orders"""
+        self.request.GET['columns'] = 'objid'
         self.datagrid.load_state()
 
         self.assertEqual(len(self.datagrid.rows), self.datagrid.paginate_by)
         self.assertEqual(len(self.datagrid.rows[0]['cells']), 1)
 
-        # Exercise the code paths when rendering
-        self.datagrid.render_listview()
+        # Exercise the code paths when rendering.
+        result = self.datagrid.render_listview()
+        self.assertIsInstance(result, SafeText)
+        self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">', result)
 
     def test_post_process_queryset_with_select_related(self):
         """Testing DataGrid.post_process_queryset with chained select_related
@@ -195,78 +275,107 @@ class DataGridTest(TestCase):
                 'baz': {},
             })
 
+    def test_post_process_queryset_sandboxes_errors(self):
+        """Testing DataGrid.post_process_queryset with column.augment_queryset
+        raises exception
+        """
+        class BadColumn(Column):
+            def augment_queryset(self, state, queryset):
+                raise Exception
 
-class SandboxColumn(Column):
-    def setup_state(self, state):
-        raise Exception
+        column = BadColumn(id='test')
+        self.datagrid.add_column(column)
 
-    def get_sort_field(self, state):
-        raise Exception
+        self.spy_on(column.augment_queryset)
+        self.spy_on(logger.exception)
 
-    def render_data(self, state, obj):
-        raise Exception
+        try:
+            self.datagrid.columns = [
+                self.datagrid.get_stateful_column(column),
+            ]
+            self.datagrid.post_process_queryset(queryset=Group.objects.all())
+        finally:
+            self.datagrid.remove_column(column)
 
-    def augment_queryset(self, state, queryset):
-        raise Exception
+        self.assertTrue(column.augment_queryset.called)
+        self.assertIn('Error when calling augment_queryset for DataGrid '
+                      'Column',
+                      logger.exception.last_call.args[0])
 
+    def test_get_stateful_column_sandboxes_errors(self):
+        """Testing DataGrid.get_stateful_column when column.setup_state
+        raises exception
+        """
+        class BadColumn(Column):
+            def setup_state(self, state):
+                raise Exception
 
-class SandboxTests(SpyAgency, TestCase):
-    """Testing extension sandboxing."""
-    def setUp(self):
-        super(SandboxTests, self).setUp()
+        column = BadColumn(id='test')
+        self.datagrid.add_column(column)
 
-        self.column = SandboxColumn(id='test')
-        DataGrid.add_column(self.column)
+        self.spy_on(column.setup_state)
+        self.spy_on(logger.exception)
 
-        self.factory = RequestFactory()
-        self.request = self.factory.get('test', {'columns': 'objid'})
-        self.request.user = User(username='reviewboard', email='',
-                                 password='password')
-        self.datagrid = DataGrid(request=self.request,
-                                 queryset=Group.objects.all())
+        try:
+            self.datagrid.get_stateful_column(column=column)
+        finally:
+            self.datagrid.remove_column(column)
 
-    def tearDown(self):
-        super(SandboxTests, self).tearDown()
+        self.assertTrue(column.setup_state.called)
+        self.assertIn('Error when calling setup_state for DataGrid Column',
+                      logger.exception.last_call.args[0])
 
-        DataGrid.remove_column(self.column)
+    def test_get_ssort_field_columns_sandboxes_errors(self):
+        """Testing DataGrid.get_sort_field_columns when column.get_sort_field
+        raises exception
+        """
+        class BadColumn(Column):
+            def get_sort_field(self, state):
+                raise Exception
 
-    def test_setup_state_columns(self):
-        """Testing DataGrid column sandboxing for setup_state"""
-        self.spy_on(SandboxColumn.setup_state)
+        column = BadColumn(id='test')
+        self.datagrid.add_column(column)
 
-        self.datagrid.get_stateful_column(column=self.column)
-        self.assertTrue(SandboxColumn.setup_state.called)
-
-    def test_get_sort_field_columns(self):
-        """Testing DataGrid column sandboxing for get_sort_field"""
         self.datagrid.sort_list = ['test']
         self.datagrid.default_columns = ['objid', 'test']
 
-        self.spy_on(SandboxColumn.get_sort_field)
+        self.spy_on(column.get_sort_field)
+        self.spy_on(logger.exception)
 
-        self.assertRaisesMessage(
-            FieldError,
-            "Invalid order_by arguments: [u'']",
-            lambda: self.datagrid.precompute_objects())
-        self.assertTrue(SandboxColumn.get_sort_field.called)
+        try:
+            self.datagrid.precompute_objects()
+        finally:
+            self.datagrid.remove_column(column)
 
-    def test_render_data_columns(self):
-        """Testing DataGrid column sandboxing for render_data"""
-        stateful_column = self.datagrid.get_stateful_column(column=self.column)
+        self.assertTrue(column.get_sort_field.called)
+        self.assertIn('Error when calling get_sort_field for DataGrid Column',
+                      logger.exception.last_call.args[0])
 
-        self.spy_on(SandboxColumn.render_data)
 
-        super(SandboxColumn, self.column).render_cell(state=stateful_column,
-                                                      obj=None,
-                                                      render_context=None)
-        self.assertTrue(SandboxColumn.render_data.called)
+class ColumnTests(SpyAgency, TestCase):
+    """Unit tests for djblets.datagrid.grids.Column."""
 
-    def test_augment_queryset_columns(self):
-        """Testing DataGrid column sandboxing for augment_queryset"""
-        stateful_column = self.datagrid.get_stateful_column(column=self.column)
-        self.datagrid.columns.append(stateful_column)
+    def test_render_cell_sandboxes_errors(self):
+        """Testing Column.render_cell when column.render_data raises exception
+        """
+        class BadColumn(Column):
+            def render_data(self, state, obj):
+                raise Exception
 
-        self.spy_on(SandboxColumn.augment_queryset)
+        request = RequestFactory().request()
+        datagrid = DataGrid(request=request,
+                            queryset=Group.objects.all())
 
-        self.datagrid.post_process_queryset(queryset=Group.objects.all())
-        self.assertTrue(SandboxColumn.augment_queryset.called)
+        column = BadColumn(id='test')
+        self.spy_on(column.render_data)
+        self.spy_on(logger.exception)
+
+        rendered = column.render_cell(state=StatefulColumn(datagrid=datagrid,
+                                                           column=column),
+                                      obj=None,
+                                      render_context=None)
+        self.assertHTMLEqual(rendered, '<td></td>')
+
+        self.assertTrue(column.render_data.called)
+        self.assertIn('Error when calling render_data for DataGrid Column',
+                      logger.exception.last_call.args[0])
