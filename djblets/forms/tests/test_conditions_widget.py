@@ -588,3 +588,49 @@ class ConditionsWidgetTests(TestCase):
                 'value': 'my-value-1',
                 'error': 'This is an error.',
             }])
+
+    def test_render(self):
+        """Testing ConditionsWidget.render"""
+        class MyOperator(BaseConditionOperator):
+            operator_id = 'my-op'
+            name = 'My Op'
+            value_field = ConditionValueIntegerField()
+
+        class MyChoice(BaseConditionChoice):
+            choice_id = 'my-choice'
+            name = 'My Choice'
+            operators = ConditionOperators([MyOperator])
+
+        choices = ConditionChoices([MyChoice])
+        field = ConditionsField(choices=choices)
+
+        rendered = field.widget.render(
+            'my_conditions',
+            {
+                'mode': 'any',
+                'conditions': [
+                    {
+                        'choice': 'my-choice',
+                        'op': 'my-op',
+                        'value': 'my-value-1',
+                    },
+                ],
+            },
+            {
+                'id': 'my-conditions',
+            })
+
+        self.assertIn('<div class="conditions-field" id="my-conditions">',
+                      rendered)
+        self.assertIn('<input type="hidden" name="my_conditions_last_id"'
+                      ' value="1">',
+                      rendered)
+        self.assertRegexpMatches(
+            rendered,
+            '<option value="my-choice" selected(="selected")?>My Choice'
+            '</option>')
+        self.assertRegexpMatches(
+            rendered,
+            '<option value="my-op" selected(="selected")?>My Op</option>')
+        self.assertIn('<span class="conditions-field-value"></span>',
+                      rendered)
