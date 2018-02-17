@@ -16,8 +16,8 @@
   <div class="datagrid-icon datagrid-icon-{{sort_image}}" title="{% if sort_ascending %}{% trans "Ascending" %}{% else %}{% trans "Descending" %}{% endif %}"></div>
  <a class="datagrid-unsort" href="{{unsort_url}}">
   <div class="datagrid-icon datagrid-icon-unsort" title="{% trans "Unsort" %}"></div>
-{%  endif %}
  </a>
+{%  endif %}
 </th>
 {% else %}
 <th class="datagrid-header{% if column.label and not column.show_checkbox_header %} has-label{% endif %}">

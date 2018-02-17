@@ -461,7 +461,7 @@ class Column(object):
             logger.exception('Error when calling render_data for DataGrid '
                              'Column %r: %s',
                              self, e)
-            rendered_data = None
+            rendered_data = ''
 
         # We use empty strings instead of None just to keep cache keys small.
         url = ''
@@ -617,7 +617,7 @@ class StatefulColumn(object):
         try:
             column.setup_state(self)
         except Exception as e:
-            logger.exception('Error when calling setup_state in DataGrid '
+            logger.exception('Error when calling setup_state for DataGrid '
                              'Column %r: %s',
                              self.column, e)
 
@@ -1261,7 +1261,7 @@ class DataGrid(object):
                         logger.exception('Error when calling get_sort_field '
                                          'for DataGrid Column %r: %s',
                                          column, e)
-                        sort_field = ''
+                        continue
 
                     sort_list.append(prefix + sort_field)
 
