@@ -65,7 +65,7 @@ from django.template.defaultfilters import date, timesince
 from django.template.loader import render_to_string, get_template
 from django.utils import six
 from django.utils.cache import patch_cache_control
-from django.utils.html import escape
+from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
@@ -700,14 +700,14 @@ class CheckboxColumn(Column):
         """
         super(CheckboxColumn, self).__init__(
             shrink=shrink,
-            label=mark_safe(
+            label=format_html(
                 '<input class="datagrid-header-checkbox"'
-                ' type="checkbox" data-checkbox-name="%s" />'
-                % checkbox_name),
+                ' type="checkbox" data-checkbox-name="{0}" />',
+                checkbox_name),
             detailed_label=detailed_label,
-            detailed_label_html=mark_safe(
-                '<input type="checkbox" /> %s'
-                % detailed_label),
+            detailed_label_html=format_html(
+                '<input type="checkbox" /> {0}',
+                detailed_label),
             *args, **kwargs)
 
         self.show_checkbox_header = show_checkbox_header
@@ -719,11 +719,11 @@ class CheckboxColumn(Column):
             checked = ''
 
             if self.is_selected(state, obj):
-                checked = 'checked="true"'
+                checked = mark_safe('checked="true"')
 
-            return ('<input type="checkbox" data-object-id="%s" '
-                    'data-checkbox-name="%s" %s />'
-                    % (obj.pk, escape(self.checkbox_name), checked))
+            return format_html('<input type="checkbox" data-object-id="{0}" '
+                               'data-checkbox-name="{1}" {2} />',
+                               obj.pk, self.checkbox_name, checked)
         else:
             return ''
 
@@ -1425,7 +1425,7 @@ class DataGrid(object):
             logger.exception('Failed to render datagrid:\n%s',
                              trace,
                              request=self.request)
-            return mark_safe('<pre>%s</pre>' % trace)
+            return format_html('<pre>{0}</pre>', trace)
 
     def render_listview_to_response(self, request=None, render_context=None):
         """Render the listview to a response.

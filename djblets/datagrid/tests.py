@@ -35,8 +35,9 @@ from django.utils.safestring import SafeText
 from django.utils.six.moves import range
 from kgb import SpyAgency
 
-from djblets.datagrid.grids import (Column, DataGrid, DateTimeSinceColumn,
-                                    StatefulColumn, logger)
+from djblets.datagrid.grids import (CheckboxColumn, Column, DataGrid,
+                                    DateTimeSinceColumn, StatefulColumn,
+                                    logger)
 from djblets.testing.testcases import TestCase
 from djblets.util.dates import get_tz_aware_utcnow
 
@@ -53,9 +54,55 @@ class GroupDataGrid(DataGrid):
         self.default_columns = ['objid', 'name']
 
 
-class ColumnsTest(TestCase):
-    def testDateTimeSinceColumn(self):
-        """Testing DateTimeSinceColumn"""
+class CheckboxColumnTests(TestCase):
+    """Unit tests for djblets.datagrid.grids.CheckboxColumn."""
+
+    def test_initial_state(self):
+        """Testing CheckboxColumn initial state"""
+        column = CheckboxColumn(checkbox_name='my_checkbox&',
+                                detailed_label='<Select Rows>')
+
+        self.assertHTMLEqual(
+            column.label,
+            '<input class="datagrid-header-checkbox" '
+            ' type="checkbox" data-checkbox-name="my_checkbox&amp;">')
+        self.assertHTMLEqual(
+            column.detailed_label_html,
+            '<input type="checkbox"> &lt;Select Rows&gt;')
+        self.assertEqual(column.detailed_label, '<Select Rows>')
+        self.assertEqual(column.checkbox_name, 'my_checkbox&')
+
+    def test_render_data_with_selected(self):
+        """Testing CheckboxColumn.render_data with selected object"""
+        group = Group.objects.create(name='test')
+
+        column = CheckboxColumn(checkbox_name='my_checkbox&',
+                                detailed_label='<Select Rows>')
+        column.is_selected = lambda *args, **kwargs: True
+
+        self.assertHTMLEqual(
+            column.render_data(state=None, obj=group),
+            '<input type="checkbox" data-object-id="1"'
+            ' data-checkbox-name="my_checkbox&amp;" checked="true">')
+
+    def test_render_data_with_unselected(self):
+        """Testing CheckboxColumn.render_data with unselected object"""
+        group = Group.objects.create(name='test')
+
+        column = CheckboxColumn(checkbox_name='my_checkbox&',
+                                detailed_label='<Select Rows>')
+
+        self.assertHTMLEqual(
+            column.render_data(state=None, obj=group),
+            '<input type="checkbox" data-object-id="1"'
+            ' data-checkbox-name="my_checkbox&amp;">')
+
+
+class DateTimeSinceColumnTests(TestCase):
+    """Unit tests for djblets.datagrid.grids.DateTimeSinceColumn."""
+
+    def test_render_data(self):
+        """Testing DateTimeSinceColumn.render_data"""
         class DummyObj:
             time = None
 
