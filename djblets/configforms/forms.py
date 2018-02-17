@@ -2,6 +2,8 @@
 
 from __future__ import unicode_literals
 
+import warnings
+
 from django import forms
 from django.template.context import RequestContext
 from django.template.loader import render_to_string
@@ -74,10 +76,25 @@ class ConfigPageForm(forms.Form):
         self.page = page
         self.request = request
         self.user = user
-        self.profile = user.get_profile()
 
         self.fields['form_target'].initial = self.form_id
         self.load()
+
+    @property
+    def profile(self):
+        """The current user's profile.
+
+        .. deprecated:: 1.0.4
+
+           Callers should not depend on this being around. Instead, they
+           should query for the profile and set it themselves if they need
+           one.
+        """
+        warnings.warn('ConfigFormPage.profile is deprecated. Update your code '
+                      'to fetch the profile manually instead.',
+                      DeprecationWarning)
+
+        return self.user.get_profile()
 
     def set_initial(self, field_values):
         """Set the initial fields for the form based on provided data.
