@@ -28,9 +28,9 @@ from __future__ import unicode_literals
 import re
 
 from django import template
-from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
+from djblets.util.compat.django.template.loader import render_to_string
 from djblets.util.decorators import blocktag
 
 

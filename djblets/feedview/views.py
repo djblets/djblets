@@ -1,14 +1,14 @@
 from __future__ import unicode_literals
 
 from django.http import HttpResponse
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.template.context import RequestContext
-from django.template.loader import render_to_string
 from django.utils.six.moves import http_client
 from django.utils.six.moves.urllib.error import URLError
 from django.utils.six.moves.urllib.request import urlopen
 
 from djblets.cache.backend import cache_memoize
+from djblets.util.compat.django.template.loader import render_to_string
 
 
 DEFAULT_EXPIRATION = 2 * 24 * 60 * 60  # 2 days
@@ -32,8 +32,7 @@ def view_feed(request, url, template_name="feedview/feed-page.html",
         }
         context.update(extra_context)
 
-        return render_to_string(template_name,
-                                RequestContext(request, context))
+        return render_to_string(template_name, context, request)
 
     try:
         return HttpResponse(cache_memoize("feed-%s" % url, fetch_feed,
@@ -45,5 +44,4 @@ def view_feed(request, url, template_name="feedview/feed-page.html",
         }
         context.update(extra_context)
 
-        return render_to_response(template_name,
-                                  RequestContext(request, context))
+        return render(request, template_name, context)

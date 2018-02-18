@@ -34,7 +34,7 @@ from __future__ import unicode_literals
 
 from django.contrib import auth
 from django.http import HttpResponseRedirect
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.template.context import RequestContext
 from django.views.decorators.csrf import csrf_protect
 
@@ -126,4 +126,4 @@ def register(request, next_page, form_class=RegistrationForm,
     if extra_context:
         context.update(extra_context)
 
-    return render_to_response(template_name, RequestContext(request, context))
+    return render(request, template_name, context)

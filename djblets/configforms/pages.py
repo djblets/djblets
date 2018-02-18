@@ -3,7 +3,8 @@
 from __future__ import unicode_literals
 
 from django.template.context import RequestContext
-from django.template.loader import render_to_string
+
+from djblets.util.compat.django.template.loader import render_to_string
 
 
 class ConfigPage(object):
@@ -87,8 +88,9 @@ class ConfigPage(object):
             unicode: The rendered page as HTML.
         """
         return render_to_string(
-            self.template_name,
-            RequestContext(self.request, {
+            template_name=self.template_name,
+            context={
                 'page': self,
                 'forms': self.forms,
-            }))
+            },
+            request=self.request)

@@ -6,9 +6,10 @@ import warnings
 
 from django import forms
 from django.template.context import RequestContext
-from django.template.loader import render_to_string
 from django.utils import six
 from django.utils.translation import ugettext_lazy as _
+
+from djblets.util.compat.django.template.loader import render_to_string
 
 
 class ConfigPageForm(forms.Form):
@@ -163,8 +164,9 @@ class ConfigPageForm(forms.Form):
             'page': self.page,
         }, **self.get_extra_context())
 
-        return render_to_string(self.template_name,
-                                RequestContext(self.request, context))
+        return render_to_string(template_name=self.template_name,
+                                context=context,
+                                request=self.request)
 
     def get_extra_context(self):
         """Return extra rendering context.

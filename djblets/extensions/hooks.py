@@ -22,8 +22,9 @@ import uuid
 import warnings
 
 from django.template import RequestContext
-from django.template.loader import render_to_string
 from django.utils import six
+
+from djblets.util.compat.django.template.loader import render_to_string
 
 
 logger = logging.getLogger(__name__)
@@ -506,8 +507,9 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook):
         # Note that context.update implies a push().
         context.update(context_data)
 
-        s = render_to_string(self.template_name,
-                             RequestContext(request, context))
+        s = render_to_string(template_name=self.template_name,
+                             context=context,
+                             request=request)
 
         context.pop()
 

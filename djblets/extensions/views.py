@@ -27,7 +27,7 @@ from __future__ import unicode_literals
 
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404, HttpResponseRedirect
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.template.context import RequestContext
 from django.views.decorators.csrf import csrf_protect
 
@@ -45,7 +45,7 @@ def extension_list(request, extension_manager,
         # Refresh the extension list.
         extension_manager.load()
 
-        return render_to_response(template_name, RequestContext(request))
+        return render(request, template_name)
 
 
 @csrf_protect
@@ -67,8 +67,8 @@ def configure_extension(request, ext_class, form_class, extension_manager,
     else:
         form = form_class(extension)
 
-    return render_to_response(template_name, RequestContext(request, {
+    return render(request, template_name, {
         'extension': extension,
         'form': form,
         'saved': request.GET.get('saved', 0),
-    }))
+    })
