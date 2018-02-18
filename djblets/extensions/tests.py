@@ -39,7 +39,9 @@ from django.conf.urls import include, url
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.dispatch import Signal
-from django.template import Context, Template, TemplateSyntaxError
+from django.template import (Context, RequestContext, Template,
+                             TemplateSyntaxError)
+from django.test.client import RequestFactory
 from django.test.utils import override_settings
 from django.utils import six
 from django.utils.six.moves import cPickle as pickle
@@ -1652,7 +1654,9 @@ class URLHookTest(ExtensionTestsMixin, TestCase):
         self.assertIn(self.extension.url_hook, self.extension.hooks)
 
 
-class TemplateHookTest(SpyAgency, ExtensionTestsMixin, TestCase):
+class TemplateHookTests(SpyAgency, ExtensionTestsMixin, TestCase):
+    """Unit tests for djblets.extensions.hooks.TemplateHook."""
+
     def setUp(self):
         class TestExtension(Extension):
             def initialize(self):
@@ -1675,7 +1679,7 @@ class TemplateHookTest(SpyAgency, ExtensionTestsMixin, TestCase):
                     ]
                 )
 
-        super(TemplateHookTest, self).setUp()
+        super(TemplateHookTests, self).setUp()
 
         self.extension = self.setup_extension(TestExtension)
 
@@ -1723,6 +1727,31 @@ class TemplateHookTest(SpyAgency, ExtensionTestsMixin, TestCase):
         self.request.resolver_match.url_name = 'test-url-name'
         self.assertTrue(
             self.extension.template_hook_with_applies.applies_to(self.request))
+
+    def test_render_to_string(self):
+        """Testing TemplateHook.render_to_string"""
+        hook = TemplateHook(
+            self.extension,
+            name='test',
+            template_name='deco/box.html',
+            extra_context={
+                'content': 'Hello world',
+            })
+
+        request = RequestFactory().request()
+        result = hook.render_to_string(request, RequestContext(request, {
+            'classname': 'test',
+        }))
+
+        self.assertHTMLEqual(
+            result,
+            '<div class="box-container">'
+            ' <div class="box test">'
+            '  <div class="box-inner">'
+            '   Hello world'
+            '  </div>'
+            ' </div>'
+            '</div>')
 
     def test_context_doesnt_leak(self):
         """Testing TemplateHook's context won't leak state"""
