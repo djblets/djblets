@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function, unicode_literals
+
 import json
 import os
 import subprocess
@@ -269,13 +271,13 @@ class FetchPublicSuffixListCommand(Command):
         """Run the commands to fetch the DNS public suffix list."""
         from publicsuffix import fetch as fetch_public_suffix
 
-        print 'Fetching DNS public suffix list...'
+        print('Fetching DNS public suffix list...')
         filename = os.path.join('djblets', 'mail', 'public_suffix_list.dat')
 
         with open(filename, 'w') as fp:
             fp.write(fetch_public_suffix().read().encode('utf-8'))
 
-        print 'Public suffix list stored at %s' % filename
+        print('Public suffix list stored at %s' % filename)
 
 
 class ListNodeDependenciesCommand(Command):
@@ -377,7 +379,7 @@ class InstallNodeDependenciesCommand(Command):
 
         self.run_command('list_node_deps')
 
-        print 'Installing node.js modules...'
+        print('Installing node.js modules...')
         result = os.system('%s install' % npm_command)
 
         os.unlink('package.json')
