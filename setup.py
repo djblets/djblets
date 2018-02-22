@@ -69,15 +69,20 @@ class DevelopCommand(develop):
     """
 
     user_options = develop.user_options + [
-        ('no-npm', None, "Don't install packages from npm"),
-        ('use-npm-cache', None, 'Use npm-cache to install packages'),
-        ('with-doc-deps', None, 'Install documentation-related dependencies'),
+        (str('no-npm'), None,
+         "Don't install packages from npm"),
+        (str('use-npm-cache'),
+         None,
+         'Use npm-cache to install packages'),
+        (str('with-doc-deps'),
+         None,
+         'Install documentation-related dependencies'),
     ]
 
     boolean_options = develop.boolean_options + [
-        'no-npm',
-        'use-npm-cache',
-        'with-doc-deps',
+        str('no-npm'),
+        str('use-npm-cache'),
+        str('with-doc-deps'),
     ]
 
     def initialize_options(self):
