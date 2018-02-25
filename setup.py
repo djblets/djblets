@@ -346,10 +346,10 @@ class InstallNodeDependenciesCommand(Command):
         'Install the node packages required for building static media.'
 
     user_options = [
-        ('use-npm-cache', None, 'Use npm-cache to install packages'),
+        (str('use-npm-cache'), None, 'Use npm-cache to install packages'),
     ]
 
-    boolean_options = ['use-npm-cache']
+    boolean_options = [str('use-npm-cache')]
 
     def initialize_options(self):
         """Initialize options for the command."""
