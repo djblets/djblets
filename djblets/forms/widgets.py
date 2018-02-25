@@ -10,10 +10,10 @@ import copy
 from contextlib import contextmanager
 
 from django.forms import widgets
-from django.forms.util import flatatt
 from django.template.context import Context
 from django.template.loader import render_to_string
 from django.utils import six
+from django.utils.html import format_html_join
 from django.utils.six.moves import filter, range
 from django.utils.translation import ugettext as _
 
@@ -239,8 +239,8 @@ class ConditionsWidget(widgets.Widget):
                 Additional HTML element attributes for the fields.
 
         Returns:
-            django.utils.safestring.SafeText:
-            The rendered HTML for the widget.
+            dict:
+            The context data for the widget.
         """
         widget_attrs = self.build_attrs(attrs)
         widget_id = widget_attrs.get('id')
@@ -596,10 +596,10 @@ class CopyableTextInput(widgets.TextInput):
 
         return render_to_string(
             self.template_name,
-            Context({
+            {
                 'field': field,
                 'id': attrs['id'],
-            }))
+            })
 
 
 class ListEditWidget(widgets.Widget):
@@ -657,15 +657,16 @@ class ListEditWidget(widgets.Widget):
 
         return render_to_string(
             self.template_name,
-            Context({
+            {
                 'name': name,
                 'value': value,
-                'attrs': flatatt(attrs),
+                'attrs': format_html_join('', ' {0}="{1}"',
+                                          sorted(six.iteritems(attrs))),
                 'id': id_,
                 'remove_text': _('Remove this item.'),
                 'sep': self._sep,
                 'value_list': value_list,
-            }))
+            })
 
     def id_for_label(self, id_):
         """Return the main ID to use for this widget.

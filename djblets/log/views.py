@@ -36,7 +36,7 @@ import time
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.template.context import RequestContext
 from django.utils import six
 from django.utils.six.moves.urllib.parse import urlencode
@@ -271,11 +271,9 @@ def server_log(request, template_name='log/log.html'):
         reverse_sort_type = 'asc'
         log_lines = reversed(list(log_lines))
 
-    response = render_to_response(template_name, RequestContext(request, {
+    return render(request, template_name, {
         'log_lines': log_lines,
         'filtersets': filtersets,
         'sort_url': build_query_string(request, {'sort': reverse_sort_type}),
         'sort_type': sort_type,
-    }))
-
-    return response
+    })

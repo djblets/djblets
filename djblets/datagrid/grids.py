@@ -62,7 +62,7 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext, Context
 from django.template.defaultfilters import date, timesince
-from django.template.loader import render_to_string, get_template
+from django.template.loader import get_template
 from django.utils import six
 from django.utils.cache import patch_cache_control
 from django.utils.html import escape, format_html
@@ -76,13 +76,10 @@ except ImportError:
     class SiteProfileNotAvailable(Exception):
         pass
 
-try:
-    from django.template import engines as template_engines
-except ImportError:
-    # Django < 1.8
-    template_engines = None
-
+from djblets.template.context import get_default_template_context_processors
 from djblets.db.query import chainable_select_related_queryset
+from djblets.util.compat.django.template.loader import (render_template,
+                                                        render_to_string)
 from djblets.util.decorators import cached_property
 from djblets.util.http import get_url_params_except
 
@@ -384,7 +381,7 @@ class Column(object):
             unsort_url = url_prefix + ','.join(sort_list[1:])
             sort_url = url_prefix + ','.join(sort_list)
 
-        ctx = Context({
+        return render_template(datagrid.column_header_template_obj, {
             'column': self,
             'column_state': state,
             'in_sort': in_sort,
@@ -393,8 +390,6 @@ class Column(object):
             'sort_url': sort_url,
             'unsort_url': unsort_url,
         })
-
-        return mark_safe(datagrid.column_header_template_obj.render(ctx))
 
     def collect_objects(self, state, object_list):
         """Iterate through the objects and builds a cache of data to display.
@@ -496,7 +491,11 @@ class Column(object):
             if url:
                 css_class = '%s has-link' % css_class
 
-            ctx = Context(render_context)
+            ctx = {}
+
+            if render_context:
+                ctx.update(render_context)
+
             ctx.update({
                 'column': self,
                 'column_state': state,
@@ -511,7 +510,7 @@ class Column(object):
             if template is None:
                 template = state.datagrid.cell_template_obj
 
-            state.cell_render_cache[key] = mark_safe(template.render(ctx))
+            state.cell_render_cache[key] = render_template(template, ctx)
 
         return state.cell_render_cache[key]
 
@@ -1418,8 +1417,7 @@ class DataGrid(object):
             context.update(self.extra_context)
             context.update(render_context)
 
-            return mark_safe(render_to_string(self.listview_template,
-                                              Context(context)))
+            return render_to_string(self.listview_template, context)
         except Exception:
             trace = traceback.format_exc()
             logger.exception('Failed to render datagrid:\n%s',
@@ -1534,8 +1532,7 @@ class DataGrid(object):
 
         context.update(self.extra_context)
 
-        return mark_safe(render_to_string(self.paginator_template,
-                                          Context(context)))
+        return render_to_string(self.paginator_template, context)
 
     def build_paginator(self, queryset):
         """Build the paginator for the datagrid.
@@ -1561,34 +1558,11 @@ class DataGrid(object):
         RequestContext, but it's possible to build one and then pull out
         the contents into a dictionary.
         """
-        request_context = RequestContext(self.request)
+        request = self.request
         render_context = {}
 
-        if template_engines:
-            # Django >= 1.8
-            #
-            # RequestContext is no longer populated when created, but rather
-            # during template render. It's bound to a template during
-            # the render, at which point all the context processors will load.
-            # We need to simulate this.
-            #
-            # This depends on the 'django' template engine being loaded. Not
-            # all projects will have that, but most will. For now, it's just
-            # a hard requirement.
-            try:
-                template = template_engines['django'].from_string('')
-            except KeyError:
-                raise ImproperlyConfigured(
-                    'The "django" template engine must be defined in order '
-                    'to render datagrids.')
-
-            with request_context.bind_template(template.template):
-                for d in request_context:
-                    render_context.update(d)
-        else:
-            # Django < 1.8
-            for d in request_context:
-                render_context.update(d)
+        for context_processor in get_default_template_context_processors():
+            render_context.update(context_processor(request))
 
         return render_context
 
