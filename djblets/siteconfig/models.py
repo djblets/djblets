@@ -65,7 +65,9 @@ class SiteConfiguration(models.Model):
     look up and use site configuration.
     """
 
-    site = models.ForeignKey(Site, related_name='config')
+    site = models.ForeignKey(Site,
+                             related_name='config',
+                             on_delete=models.CASCADE)
     version = models.CharField(max_length=20)
 
     #: A JSON dictionary field of settings stored for a site.

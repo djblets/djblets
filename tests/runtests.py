@@ -31,7 +31,7 @@ def run_tests(verbosity=1, interactive=False):
 
     for path in (settings.MEDIA_ROOT, settings.STATIC_ROOT):
         if not os.path.exists(path):
-            os.mkdir(path, 0755)
+            os.mkdir(path, 0o755)
 
     old_db_name = 'default'
     connection.creation.create_test_db(verbosity, autoclobber=not interactive)

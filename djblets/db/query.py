@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import functools
 import re
 
 import django
@@ -114,22 +115,26 @@ class LocalDataQuerySet(object):
             for attr in attrs:
                 match = self.PROPERTY_REGEX.search(attr)
                 attr = match.group(2)
-                direction = 1
 
+                # Set the default result based on whether this is in ascending
+                # or descending order.
                 if match.group(1):
                     direction = -1
+                else:
+                    direction = 1
 
                 attr_a = getattr(element_a, attr)
                 attr_b = getattr(element_b, attr)
-                direction *= cmp(attr_a, attr_b)
 
-                if direction:
+                if attr_a < attr_b:
+                    return -direction
+                elif attr_a > attr_b:
                     return direction
 
             return 0
 
         copy = self.clone()
-        copy._data.sort(cmp=compare)
+        copy._data.sort(key=functools.cmp_to_key(compare))
         return copy
 
     def prefetch_related(self, *args, **kwargs):
@@ -338,7 +343,7 @@ def prefix_q(prefix, q, clone=True):
                bar = models.IntegerField()
 
            class B(models.Model):
-               fk = models.ForeignKey(A)
+               fk = models.ForeignKey(A, on_delete=models.CASCADE)
                baz = models.IntegerField()
 
            # And the following query expressions:

@@ -19,6 +19,7 @@ from djblets.webapi.errors import (DOES_NOT_EXIST,
                                    ENABLE_EXTENSION_FAILED,
                                    DISABLE_EXTENSION_FAILED,
                                    PERMISSION_DENIED)
+from djblets.webapi.fields import BooleanFieldType, StringFieldType
 from djblets.webapi.resources.base import WebAPIResource
 
 
@@ -27,54 +28,54 @@ class ExtensionResource(WebAPIResource):
     model = RegisteredExtension
     fields = {
         'author': {
-            'type': str,
+            'type': StringFieldType,
             'description': 'The author of the extension.',
         },
         'author_url': {
-            'type': str,
+            'type': StringFieldType,
             'description': "The author's website.",
         },
         'can_disable': {
-            'type': bool,
+            'type': BooleanFieldType,
             'description': 'Whether or not the extension can be disabled.',
         },
         'can_enable': {
-            'type': bool,
+            'type': BooleanFieldType,
             'description': 'Whether or not the extension can be enabled.',
         },
         'class_name': {
-            'type': str,
+            'type': StringFieldType,
             'description': 'The class name for the extension.',
         },
         'enabled': {
-            'type': bool,
+            'type': BooleanFieldType,
             'description': 'Whether or not the extension is enabled.',
         },
         'installed': {
-            'type': bool,
+            'type': BooleanFieldType,
             'description': 'Whether or not the extension is installed.',
         },
         'loadable': {
-            'type': bool,
+            'type': BooleanFieldType,
             'description': 'Whether or not the extension is currently '
                            'loadable. An extension may be installed but '
                            'missing or may be broken due to a bug.',
         },
         'load_error': {
-            'type': str,
+            'type': StringFieldType,
             'description': 'If the extension could not be loaded, this will '
                            'contain any errors captured while trying to load.',
         },
         'name': {
-            'type': str,
+            'type': StringFieldType,
             'description': 'The name of the extension.',
         },
         'summary': {
-            'type': str,
+            'type': StringFieldType,
             'description': "A summary of the extension's functionality.",
         },
         'version': {
-            'type': str,
+            'type': StringFieldType,
             'description': 'The installed version of the extension.',
         },
     }
@@ -200,7 +201,7 @@ class ExtensionResource(WebAPIResource):
     @webapi_request_fields(
         required={
             'enabled': {
-                'type': bool,
+                'type': BooleanFieldType,
                 'description': 'Whether or not to make the extension active.'
             },
         },

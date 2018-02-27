@@ -36,6 +36,8 @@ import nose
 from django import forms
 from django.conf import settings
 from django.conf.urls import include, url
+from django.contrib import admin
+from django.contrib.auth.models import User
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.dispatch import Signal
@@ -868,7 +870,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
 
         # Re-create the directories.
         shutil.rmtree(extension.info.installed_static_path)
-        os.mkdir(extension.info.installed_static_path, 0755)
+        os.mkdir(extension.info.installed_static_path, 0o755)
 
         self.manager.should_install_static_media = True
 
@@ -907,7 +909,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
 
         # Re-create the directories.
         shutil.rmtree(extension.info.installed_static_path)
-        os.mkdir(extension.info.installed_static_path, 0755)
+        os.mkdir(extension.info.installed_static_path, 0o755)
 
         self.manager.should_install_static_media = True
 
@@ -948,7 +950,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
 
         # Re-create the directories.
         shutil.rmtree(extension.info.installed_static_path)
-        os.mkdir(extension.info.installed_static_path, 0755)
+        os.mkdir(extension.info.installed_static_path, 0o755)
 
         self.manager.should_install_static_media = True
 
@@ -1032,7 +1034,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
 
         # Re-create the directories.
         shutil.rmtree(extension.info.installed_static_path)
-        os.mkdir(extension.info.installed_static_path, 0755)
+        os.mkdir(extension.info.installed_static_path, 0o755)
 
         self.manager.should_install_static_media = True
 
@@ -1956,7 +1958,8 @@ class ViewTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
     def setUp(self):
         class TestExtension(Extension):
-            pass
+            admin_urlconf = []
+            is_configurable = True
 
         super(ViewTests, self).setUp()
 
@@ -1967,26 +1970,41 @@ class ViewTests(SpyAgency, ExtensionTestsMixin, TestCase):
         class TestSettingsForm(SettingsForm):
             mykey = forms.CharField(max_length=100)
 
-        self.extension.is_configurable = True
         self.spy_on(self.manager.get_enabled_extension,
                     call_fake=lambda *args: self.extension)
 
-        request = Mock()
-        request.path = '/config'
-        request.method = 'POST'
-        request.META = {
-            'CSRF_COOKIE': 'abc123',
-        }
-        request.POST = {
-            'mykey': 'myvalue',
-        }
-        request.FILES = {}
+        urlpatterns[:] = [
+            url('^config/$', configure_extension,
+                {
+                    'ext_class': type(self.extension),
+                    'form_class': TestSettingsForm,
+                    'extension_manager': self.manager,
+                }),
+            url('', include(admin.site.urls)),
+        ]
 
-        configure_extension(request, self.extension.__class__,
-                            TestSettingsForm, self.manager)
+        User.objects.create_superuser(username='admin',
+                                      password='admin',
+                                      email='admin@example.com')
+
+        with override_settings(ROOT_URLCONF='djblets.extensions.tests'):
+            self.client.login(username='admin', password='admin')
+
+            # Fetch once for the CSRF token.
+            response = self.client.get('/config/')
+            self.assertEqual(response.status_code, 200)
+
+            # Save new settings in the form.
+            response = self.client.post('/config/', data={
+                'mykey': 'myvalue',
+            })
+            self.assertEqual(response.status_code, 302)
 
         self.assertEqual(self.extension.settings.get('mykey'), 'myvalue')
 
 
 # A dummy function that acts as a View method
 test_view_method = Mock()
+
+# A placeholder for any urlpatterns that need to be set for tests.
+urlpatterns = []

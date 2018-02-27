@@ -26,22 +26,29 @@
 
 from __future__ import unicode_literals
 
+import inspect
 import logging
 
+from django.core.exceptions import ValidationError
 from django.http import HttpRequest
 from django.utils import six
 
 from djblets.webapi.errors import (NOT_LOGGED_IN, PERMISSION_DENIED,
                                    INVALID_FORM_DATA)
+from djblets.webapi.fields import (BooleanFieldType,
+                                   ChoiceFieldType,
+                                   FileFieldType,
+                                   IntFieldType,
+                                   StringFieldType)
 
 
 logger = logging.getLogger(__name__)
 
 
-SPECIAL_PARAMS = (
+SPECIAL_PARAMS = {
     'api_format', 'callback', '_method', 'expand', 'only-fields',
     'only-links',
-)
+}
 
 
 def _find_httprequest(args):
@@ -54,6 +61,57 @@ def _find_httprequest(args):
         assert isinstance(request, HttpRequest)
 
     return request
+
+
+def _convert_legacy_field_type(legacy_type, field_info):
+    """Update field information for a legacy field type.
+
+    This takes a legacy field type (which in most cases are only compatible
+    with Python 2.x) and updates the provided field information dictionary
+    with modern information for the type of field.
+
+    It's important to be clear that the provided field information dictionary
+    *will* be modified. This avoids having to repeatedly convert the
+    information in the cases where this is used.
+
+    Args:
+        legacy_type (object or type):
+            The legacy field type. This can be one of :py:class:`unicode`,
+            :py:class:`bytes`, :py:class:`bool`, :py:class:`int`,
+            :py:class:`file`, :py:class:`list`, or :py:calss:`tuple`.
+
+        field_info (dict):
+            The field information dictionary to update.
+
+    Returns:
+        type:
+        The new subclass of :py:class:`BaseAPIFieldType` stored in the
+        dictionary.
+    """
+    new_type = None
+
+    if inspect.isclass(legacy_type):
+        if issubclass(legacy_type, six.string_types):
+            new_type = StringFieldType
+        elif issubclass(legacy_type, bool):
+            new_type = BooleanFieldType
+        elif issubclass(legacy_type, int):
+            new_type = IntFieldType
+        elif legacy_type.__name__ == 'file':
+            # `file` doesn't exist in Python 3, so no module using that as a
+            # type will actually get far enough to define it. We're checking
+            # using the class name, which will help us mock this as well.
+            new_type = FileFieldType
+    elif type(legacy_type) in (list, tuple):
+        field_info['choices'] = tuple(legacy_type)
+        new_type = ChoiceFieldType
+
+    if new_type is None:
+        raise TypeError('%r is not a valid field type' % (legacy_type,))
+
+    field_info['type'] = new_type
+
+    return new_type
 
 
 def copy_webapi_decorator_data(from_func, to_func):
@@ -212,9 +270,13 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
 
     .. code-block:: python
 
+        from djblets.webapi.decorators import webapi_request_fields
+        from djblets.webapi.fields import StringFieldType
+
+
         @webapi_request_fields(required={
             'name': {
-                'type': str,
+                'type': StringFieldType,
                 'description': 'The name of the object',
             }
         })
@@ -232,89 +294,57 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
 
             extra_fields = {}
             invalid_fields = {}
-            supported_fields = required.copy()
-            supported_fields.update(optional)
 
-            all_fields = _validate.required_fields.copy()
-            all_fields.update(_validate.optional_fields)
-
-            for field_name, value in six.iteritems(request_fields):
+            for field_name, field_value in six.iteritems(request_fields):
                 if field_name in SPECIAL_PARAMS:
                     # These are special names and can be ignored.
                     continue
 
-                if field_name not in all_fields:
+                if (field_name not in _validate.required_fields and
+                    field_name not in _validate.optional_fields):
                     if allow_unknown:
-                        extra_fields[field_name] = value
+                        extra_fields[field_name] = field_value
                     elif field_name not in kwargs:
                         # If the field is present in kwargs, it was already
-                        # processed (and therefore validated) by a
-                        # containing decorator.
-                        invalid_fields[field_name] = \
-                            ['Field is not supported']
+                        # processed (and therefore validated) by a containing
+                        # decorator.
+                        invalid_fields[field_name] = ['Field is not supported']
 
-            for field_name, info in six.iteritems(required):
-                temp_fields = request_fields
-
-                if info['type'] == file:
-                    temp_fields = request.FILES
-
-                if temp_fields.get(field_name, None) is None:
-                    invalid_fields[field_name] = ['This field is required']
-
-            new_kwargs = kwargs.copy()
-            new_kwargs['extra_fields'] = extra_fields
             parsed_request_fields = {}
 
-            for field_name, info in six.iteritems(supported_fields):
-                field_type = info['type']
+            for fields_dict, is_required in ((required, True),
+                                             (optional, False)):
+                for field_name, field_info in six.iteritems(fields_dict):
+                    field_type_cls = field_info['type']
 
-                if isinstance(field_type, file):
-                    continue
+                    if not hasattr(field_type_cls, 'clean_value'):
+                        field_type_cls = _convert_legacy_field_type(
+                            field_type_cls, field_info)
 
-                value = request_fields.get(field_name, None)
+                    field_type = field_type_cls(field_info)
+                    field_value = field_type.get_value_from_data(
+                        name=field_name,
+                        fields_data=request_fields,
+                        files_data=request.FILES)
 
-                if value is not None:
-                    if type(field_type) in (list, tuple):
-                        # This is a multiple-choice. Make sure the value is
-                        # valid.
-                        if value not in field_type:
-                            invalid_fields[field_name] = [
-                                '"%s" is not a valid value. Valid values '
-                                'are: %s' % (
-                                    value,
-                                    ', '.join(['"%s"' % choice
-                                               for choice in field_type])
-                                )
-                            ]
-                    else:
+                    if field_value is not None:
                         try:
-                            if issubclass(field_type, bool):
-                                value = \
-                                    value in (1, '1', True, 'True', 'true')
-                            elif issubclass(field_type, int):
-                                try:
-                                    value = int(value)
-                                except ValueError:
-                                    invalid_fields[field_name] = [
-                                        '"%s" is not an integer' % value
-                                    ]
-                        except TypeError:
-                            # The field isn't a class type. This is a
-                            # coding error on the developer's side.
-                            raise TypeError(
-                                '%r is not a valid field type'
-                                % field_type)
-
-                    parsed_request_fields[field_name] = value
+                            parsed_request_fields[field_name] = \
+                                field_type.clean_value(field_value)
+                        except ValidationError as e:
+                            invalid_fields[field_name] = e.messages
+                    elif is_required:
+                        invalid_fields[field_name] = ['This field is required']
 
             if invalid_fields:
                 return INVALID_FORM_DATA, {
                     'fields': invalid_fields,
                 }
 
-            new_kwargs.update(parsed_request_fields)
+            new_kwargs = kwargs.copy()
+            new_kwargs['extra_fields'] = extra_fields
             new_kwargs['parsed_request_fields'] = parsed_request_fields
+            new_kwargs.update(parsed_request_fields)
 
             return view_func(*args, **new_kwargs)
 

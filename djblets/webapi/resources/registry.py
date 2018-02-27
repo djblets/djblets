@@ -54,6 +54,12 @@ class ResourcesRegistry(object):
             WebAPIResource:
             The resource instance matching the name.
         """
+        if name.startswith('__'):
+            # Don't attempt to look up any special function/operator names
+            # as modules. This was first noticed as a series of errors caused
+            # by Sphinx's autodoc introspection code.
+            return super(ResourcesRegistry, self).__getattr__(name)
+
         if not self._loaded:
             self._loaded = True
             self.register_resources()
@@ -61,6 +67,7 @@ class ResourcesRegistry(object):
         if name not in self.__dict__:
             instance_name = '%s_resource' % name
             found = False
+            error = None
 
             for search_path in self.resource_search_path:
                 try:
@@ -70,11 +77,11 @@ class ResourcesRegistry(object):
                     found = True
                     break
                 except (ImportError, AttributeError) as e:
-                    pass
+                    error = e
 
             if not found:
                 logger.exception('Unable to load webapi resource %s: %s',
-                                 name, e)
+                                 name, error)
                 raise AttributeError('%s is not a valid resource name' % name)
 
         return self.__dict__[name]

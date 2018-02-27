@@ -8,6 +8,7 @@ from django.test.client import RequestFactory
 from django.utils import six
 
 from djblets.testing.testcases import TestCase
+from djblets.webapi.fields import StringFieldType
 from djblets.webapi.resources.base import WebAPIResource
 from djblets.webapi.resources.registry import (register_resource_for_model,
                                                unregister_resource_for_model,
@@ -310,13 +311,13 @@ class WebAPIResourceTests(TestCase):
         class TestResource(WebAPIResource):
             fields = {
                 'field1': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 },
                 'field2': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 },
                 'field3': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 },
             }
 
@@ -346,13 +347,13 @@ class WebAPIResourceTests(TestCase):
         class TestResource(WebAPIResource):
             fields = {
                 'field1': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 },
                 'field2': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 },
                 'field3': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 },
             }
 
@@ -396,7 +397,7 @@ class WebAPIResourceTests(TestCase):
         class TestResource1(WebAPIResource):
             fields = {
                 'field': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 },
             }
 
@@ -406,7 +407,7 @@ class WebAPIResourceTests(TestCase):
         class TestResource2(WebAPIResource):
             fields = {
                 'field1': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 },
                 'field2': {
                     'type': TestModel,
@@ -465,13 +466,13 @@ class WebAPIResourceTests(TestCase):
             allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
             fields = {
                 'field1': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 },
                 'field2': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 },
                 'field3': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 },
             }
 
@@ -506,13 +507,13 @@ class WebAPIResourceTests(TestCase):
             allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
             fields = {
                 'field1': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 },
                 'field2': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 },
                 'field3': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 },
             }
 
@@ -539,7 +540,7 @@ class WebAPIResourceTests(TestCase):
         resource = WebAPIResource()
         resource.fields = {
             'my_field': {
-                'type': six.text_type,
+                'type': StringFieldType,
             }
         }
 
@@ -605,7 +606,7 @@ class WebAPIResourceTests(TestCase):
                     'type': [TestObject],
                 },
                 'name': {
-                    'type': six.text_type,
+                    'type': StringFieldType,
                 }
             }
 

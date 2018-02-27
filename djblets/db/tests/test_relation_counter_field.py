@@ -26,12 +26,16 @@ class M2MRefModel(models.Model):
 
 
 class KeyRefModel(models.Model):
-    key = models.ForeignKey(ReffedModel, related_name='key_reffed',
-                            null=True)
+    key = models.ForeignKey(ReffedModel,
+                            related_name='key_reffed',
+                            null=True,
+                            on_delete=models.CASCADE)
 
 
 class BadKeyRefModel(models.Model):
-    key = models.ForeignKey(ReffedModel, related_name='bad_key_reffed')
+    key = models.ForeignKey(ReffedModel,
+                            related_name='bad_key_reffed',
+                            on_delete=models.CASCADE)
     counter = RelationCounterField('key')
     counter_2 = RelationCounterField('key')
 

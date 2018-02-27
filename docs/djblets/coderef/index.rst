@@ -374,6 +374,7 @@ Web API
    djblets.webapi.decorators
    djblets.webapi.encoders
    djblets.webapi.errors
+   djblets.webapi.fields
    djblets.webapi.managers
    djblets.webapi.models
    djblets.webapi.oauth2_scopes
