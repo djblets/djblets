@@ -38,10 +38,10 @@ from djblets.webapi.errors import (NOT_LOGGED_IN, PERMISSION_DENIED,
 logger = logging.getLogger(__name__)
 
 
-SPECIAL_PARAMS = (
+SPECIAL_PARAMS = {
     'api_format', 'callback', '_method', 'expand', 'only-fields',
     'only-links',
-)
+}
 
 
 def _find_httprequest(args):
@@ -232,89 +232,81 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
 
             extra_fields = {}
             invalid_fields = {}
-            supported_fields = required.copy()
-            supported_fields.update(optional)
 
-            all_fields = _validate.required_fields.copy()
-            all_fields.update(_validate.optional_fields)
-
-            for field_name, value in six.iteritems(request_fields):
+            for field_name, field_value in six.iteritems(request_fields):
                 if field_name in SPECIAL_PARAMS:
                     # These are special names and can be ignored.
                     continue
 
-                if field_name not in all_fields:
+                if (field_name not in _validate.required_fields and
+                    field_name not in _validate.optional_fields):
                     if allow_unknown:
-                        extra_fields[field_name] = value
+                        extra_fields[field_name] = field_value
                     elif field_name not in kwargs:
                         # If the field is present in kwargs, it was already
-                        # processed (and therefore validated) by a
-                        # containing decorator.
-                        invalid_fields[field_name] = \
-                            ['Field is not supported']
+                        # processed (and therefore validated) by a containing
+                        # decorator.
+                        invalid_fields[field_name] = ['Field is not supported']
 
-            for field_name, info in six.iteritems(required):
-                temp_fields = request_fields
-
-                if info['type'] == file:
-                    temp_fields = request.FILES
-
-                if temp_fields.get(field_name, None) is None:
-                    invalid_fields[field_name] = ['This field is required']
-
-            new_kwargs = kwargs.copy()
-            new_kwargs['extra_fields'] = extra_fields
             parsed_request_fields = {}
 
-            for field_name, info in six.iteritems(supported_fields):
-                field_type = info['type']
+            for fields_dict, is_required in ((required, True),
+                                             (optional, False)):
+                for field_name, info in six.iteritems(fields_dict):
+                    field_type = info['type']
 
-                if isinstance(field_type, file):
-                    continue
-
-                value = request_fields.get(field_name, None)
-
-                if value is not None:
-                    if type(field_type) in (list, tuple):
-                        # This is a multiple-choice. Make sure the value is
-                        # valid.
-                        if value not in field_type:
-                            invalid_fields[field_name] = [
-                                '"%s" is not a valid value. Valid values '
-                                'are: %s' % (
-                                    value,
-                                    ', '.join(['"%s"' % choice
-                                               for choice in field_type])
-                                )
-                            ]
+                    if field_type is file:
+                        temp_fields = request.FILES
                     else:
-                        try:
-                            if issubclass(field_type, bool):
-                                value = \
-                                    value in (1, '1', True, 'True', 'true')
-                            elif issubclass(field_type, int):
-                                try:
-                                    value = int(value)
-                                except ValueError:
-                                    invalid_fields[field_name] = [
-                                        '"%s" is not an integer' % value
-                                    ]
-                        except TypeError:
-                            # The field isn't a class type. This is a
-                            # coding error on the developer's side.
-                            raise TypeError(
-                                '%r is not a valid field type'
-                                % field_type)
+                        temp_fields = request_fields
 
-                    parsed_request_fields[field_name] = value
+                    value = temp_fields.get(field_name)
+
+                    if value is not None:
+                        if type(field_type) in (list, tuple):
+                            # This is a multiple-choice. Make sure the value is
+                            # valid.
+                            if value not in field_type:
+                                invalid_fields[field_name] = [
+                                    '"%s" is not a valid value. Valid values '
+                                    'are: %s' % (
+                                        value,
+                                        ', '.join(['"%s"' % choice
+                                                   for choice in field_type])
+                                    )
+                                ]
+                        else:
+                            try:
+                                if issubclass(field_type, bool):
+                                    value = \
+                                        value in (1, '1', True, 'True', 'true')
+                                elif issubclass(field_type, int):
+                                    try:
+                                        value = int(value)
+                                    except ValueError:
+                                        invalid_fields[field_name] = [
+                                            '"%s" is not an integer' % value
+                                        ]
+                            except TypeError:
+                                # The field isn't a class type. This is a
+                                # coding error on the developer's side.
+                                raise TypeError(
+                                    '%r is not a valid field type'
+                                    % field_type)
+
+                        parsed_request_fields[field_name] = value
+                    elif is_required:
+                        invalid_fields[field_name] = ['This field is required']
 
             if invalid_fields:
                 return INVALID_FORM_DATA, {
                     'fields': invalid_fields,
                 }
 
-            new_kwargs.update(parsed_request_fields)
+            new_kwargs = kwargs.copy()
+            new_kwargs['extra_fields'] = extra_fields
             new_kwargs['parsed_request_fields'] = parsed_request_fields
+            new_kwargs.update(parsed_request_fields)
 
             return view_func(*args, **new_kwargs)
 
