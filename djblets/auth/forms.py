@@ -61,7 +61,9 @@ class RegistrationForm(forms.Form):
     username = forms.RegexField(
         r"^[a-zA-Z0-9_\-\.]*$",
         max_length=30,
-        error_message='Only A-Z, 0-9, "_", "-", and "." allowed.')
+        error_messages={
+            'invalid': _('Only A-Z, 0-9, "_", "-", and "." are allowed.'),
+        })
     password1 = forms.CharField(label=_('Password'),
                                 min_length=5,
                                 widget=forms.PasswordInput)
