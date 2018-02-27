@@ -6,6 +6,6 @@ kgb>=2.0
 nose
 Markdown>=2.6.8,<2.6.999
 mock
-MySQL-python
+mysqlclient
 Pygments>=2.1.3
 django_oauth_toolkit>=0.9.0,<0.10.0
