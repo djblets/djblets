@@ -303,17 +303,6 @@ class WebAPIResource(object):
         else:
             return HttpResponseNotAllowed(self.allowed_methods)
 
-    def call_method_view(self, request, method, view, *args, **kwargs):
-        """Calls the given method view.
-
-        This will just call the given view by default, passing in all
-        args and kwargs.
-
-        This can be overridden by subclasses to perform additional
-        checks or pass additional data to the view.
-        """
-        return view(request, *args, **kwargs)
-
     @property
     def __name__(self):
         return self.__class__.__name__
@@ -368,32 +357,16 @@ class WebAPIResource(object):
         """
         return self.name_plural
 
-    def _build_resource_mimetype(self, mimetype, is_list):
-        if is_list:
-            resource_name = (self.mimetype_list_resource_name or
-                             self.name_plural.replace('_', '-'))
-        else:
-            resource_name = (self.mimetype_item_resource_name or
-                             self.name.replace('_', '-'))
+    def call_method_view(self, request, method, view, *args, **kwargs):
+        """Calls the given method view.
 
-        return self._build_vendor_mimetype(mimetype, resource_name)
+        This will just call the given view by default, passing in all
+        args and kwargs.
 
-    def _build_error_mimetype(self, request):
-        mimetype = get_http_requested_mimetype(
-            request, WebAPIResponse.supported_mimetypes)
-
-        if self.mimetype_vendor:
-            mimetype = self._build_vendor_mimetype(mimetype, 'error')
-
-        return mimetype
-
-    def _build_vendor_mimetype(self, mimetype, name):
-        parts = mimetype.split('/')
-
-        return '%s/vnd.%s.%s+%s' % (parts[0],
-                                    self.mimetype_vendor,
-                                    name,
-                                    parts[1])
+        This can be overridden by subclasses to perform additional
+        checks or pass additional data to the view.
+        """
+        return view(request, *args, **kwargs)
 
     def build_response_args(self, request):
         is_list = (request._djblets_webapi_method == 'GET' and
@@ -965,19 +938,6 @@ class WebAPIResource(object):
         """
         return self._get_only_items(request, 'only-links', 'only_links')
 
-    def _get_only_items(self, request, query_param_name, post_field_name):
-        if request:
-            only = request.GET.get(query_param_name,
-                                   request.POST.get(post_field_name, None))
-
-            if only is not None:
-                if only:
-                    return only.split(',')
-                else:
-                    return []
-
-        return None
-
     def get_serializer_for_object(self, obj):
         """Returns the serializer used to serialize an object.
 
@@ -1278,9 +1238,49 @@ class WebAPIResource(object):
         else:
             return NOT_LOGGED_IN
 
+    def _build_resource_mimetype(self, mimetype, is_list):
+        if is_list:
+            resource_name = (self.mimetype_list_resource_name or
+                             self.name_plural.replace('_', '-'))
+        else:
+            resource_name = (self.mimetype_item_resource_name or
+                             self.name.replace('_', '-'))
+
+        return self._build_vendor_mimetype(mimetype, resource_name)
+
+    def _build_error_mimetype(self, request):
+        mimetype = get_http_requested_mimetype(
+            request, WebAPIResponse.supported_mimetypes)
+
+        if self.mimetype_vendor:
+            mimetype = self._build_vendor_mimetype(mimetype, 'error')
+
+        return mimetype
+
+    def _build_vendor_mimetype(self, mimetype, name):
+        parts = mimetype.split('/')
+
+        return '%s/vnd.%s.%s+%s' % (parts[0],
+                                    self.mimetype_vendor,
+                                    name,
+                                    parts[1])
+
     def _build_named_url(self, name):
         """Builds a Django URL name from the provided name."""
         return '%s-resource' % name.replace('_', '-')
+
+    def _get_only_items(self, request, query_param_name, post_field_name):
+        if request:
+            only = request.GET.get(query_param_name,
+                                   request.POST.get(post_field_name, None))
+
+            if only is not None:
+                if only:
+                    return only.split(',')
+                else:
+                    return []
+
+        return None
 
     def _get_queryset(self, request, is_list=False, *args, **kwargs):
         """Returns an optimized queryset.
