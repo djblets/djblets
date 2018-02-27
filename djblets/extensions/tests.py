@@ -868,7 +868,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
 
         # Re-create the directories.
         shutil.rmtree(extension.info.installed_static_path)
-        os.mkdir(extension.info.installed_static_path, 0755)
+        os.mkdir(extension.info.installed_static_path, 0o755)
 
         self.manager.should_install_static_media = True
 
@@ -907,7 +907,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
 
         # Re-create the directories.
         shutil.rmtree(extension.info.installed_static_path)
-        os.mkdir(extension.info.installed_static_path, 0755)
+        os.mkdir(extension.info.installed_static_path, 0o755)
 
         self.manager.should_install_static_media = True
 
@@ -948,7 +948,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
 
         # Re-create the directories.
         shutil.rmtree(extension.info.installed_static_path)
-        os.mkdir(extension.info.installed_static_path, 0755)
+        os.mkdir(extension.info.installed_static_path, 0o755)
 
         self.manager.should_install_static_media = True
 
@@ -1032,7 +1032,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
 
         # Re-create the directories.
         shutil.rmtree(extension.info.installed_static_path)
-        os.mkdir(extension.info.installed_static_path, 0755)
+        os.mkdir(extension.info.installed_static_path, 0o755)
 
         self.manager.should_install_static_media = True
 

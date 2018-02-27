@@ -1089,7 +1089,7 @@ class ExtensionManager(object):
 
                 try:
                     if not os.path.exists(media_version_dir):
-                        os.makedirs(media_version_dir, 0755)
+                        os.makedirs(media_version_dir, 0o755)
 
                     with open(media_version_filename, 'w') as fp:
                         fp.write('%s\n' % cur_version)
