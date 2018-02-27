@@ -21,7 +21,9 @@ from djblets.webapi.auth.backends.api_tokens import (TokenAuthBackendMixin,
 class TestWebAPITokenModel(models.Model):
     """Mock WebAPI Token Model for testing purposes."""
 
-    user = models.ForeignKey(User, related_name='webapi_tokens')
+    user = models.ForeignKey(User,
+                             related_name='webapi_tokens',
+                             on_delete=models.CASCADE)
     token = models.CharField(max_length=40, unique=True)
 
 

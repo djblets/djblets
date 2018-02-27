@@ -338,7 +338,7 @@ def prefix_q(prefix, q, clone=True):
                bar = models.IntegerField()
 
            class B(models.Model):
-               fk = models.ForeignKey(A)
+               fk = models.ForeignKey(A, on_delete=models.CASCADE)
                baz = models.IntegerField()
 
            # And the following query expressions:

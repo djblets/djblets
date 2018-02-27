@@ -24,7 +24,9 @@ class BaseWebAPIToken(models.Model):
     restricting access to the API.
     """
 
-    user = models.ForeignKey(User, related_name='webapi_tokens')
+    user = models.ForeignKey(User,
+                             related_name='webapi_tokens',
+                             on_delete=models.CASCADE)
 
     token = models.CharField(max_length=40, unique=True)
     time_added = models.DateTimeField(default=timezone.now)
