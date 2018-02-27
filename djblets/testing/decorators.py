@@ -54,7 +54,7 @@ def requires_user_profile(f):
                 # We have to un-spy for KGB-added spies because they will end
                 # up re-adding User.get_profile in test tear down after this
                 # decorator exits otherwise.
-                if hasattr(User.get_profile, 'orig_func'):
+                if hasattr(User.get_profile, 'unspy'):
                     User.get_profile.unspy()
 
                 if User.get_profile.im_func is get_profile:
