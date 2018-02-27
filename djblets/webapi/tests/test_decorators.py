@@ -3,7 +3,9 @@
 from __future__ import unicode_literals
 
 from django.contrib.auth.models import AnonymousUser, User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
+from django.utils import six
 
 from djblets.testing.testcases import TestCase
 from djblets.util.decorators import augment_method_from
@@ -14,6 +16,11 @@ from djblets.webapi.decorators import (copy_webapi_decorator_data,
                                        webapi_response_errors)
 from djblets.webapi.errors import (DOES_NOT_EXIST, INVALID_FORM_DATA,
                                    NOT_LOGGED_IN, PERMISSION_DENIED)
+from djblets.webapi.fields import (BooleanFieldType,
+                                   ChoiceFieldType,
+                                   IntFieldType,
+                                   FileFieldType,
+                                   StringFieldType)
 
 
 class WebAPIDecoratorTests(TestCase):
@@ -224,14 +231,14 @@ class WebAPIDecoratorTests(TestCase):
 
         required = {
             'required_param': {
-                'type': bool,
+                'type': BooleanFieldType,
                 'description': 'Required param'
             },
         }
 
         optional = {
             'optional_param': {
-                'type': bool,
+                'type': BooleanFieldType,
                 'description': 'Optional param'
             },
         }
@@ -255,14 +262,14 @@ class WebAPIDecoratorTests(TestCase):
         """Testing @webapi_request_fields preserves decorator state"""
         required1 = {
             'required1': {
-                'type': bool,
+                'type': BooleanFieldType,
                 'description': 'Required param'
             },
         }
 
         optional1 = {
             'optional1': {
-                'type': bool,
+                'type': BooleanFieldType,
                 'description': 'Optional param'
             },
         }
@@ -274,14 +281,14 @@ class WebAPIDecoratorTests(TestCase):
 
         required2 = {
             'required2': {
-                'type': bool,
+                'type': BooleanFieldType,
                 'description': 'Required param'
             },
         }
 
         optional2 = {
             'optional2': {
-                'type': bool,
+                'type': BooleanFieldType,
                 'description': 'Optional param'
             },
         }
@@ -312,7 +319,7 @@ class WebAPIDecoratorTests(TestCase):
         class A(object):
             @webapi_request_fields(required={
                 'required1': {
-                    'type': bool,
+                    'type': BooleanFieldType,
                     'description': 'Required param',
                 },
             })
@@ -322,7 +329,7 @@ class WebAPIDecoratorTests(TestCase):
         class B(A):
             @webapi_request_fields(required={
                 'required2': {
-                    'type': bool,
+                    'type': BooleanFieldType,
                     'description': 'Required param',
                 },
             })
@@ -343,11 +350,107 @@ class WebAPIDecoratorTests(TestCase):
 
     def test_webapi_request_fields_call_normalizes_params(self):
         """Testing @webapi_request_fields normalizes params to function"""
+        if not hasattr(__builtins__, 'file'):
+            # Python 3.x doesn't have `file`, so define our own for the test.
+            class file(object):
+                pass
+
         @webapi_request_fields(
             required={
-                'required_param': {
-                    'type': int,
+                'required_int': {
+                    'type': IntFieldType,
+                },
+                'required_string': {
+                    'type': StringFieldType,
+                },
+                'required_choice': {
+                    'type': ChoiceFieldType,
+                    'choices': ['a', 'b', 'c'],
+                },
+                'required_bool': {
+                    'type': BooleanFieldType,
+                },
+                'required_file': {
+                    'type': FileFieldType,
+                },
+            },
+            optional={
+                'optional_param': {
+                    'type': BooleanFieldType,
                 }
+            },
+        )
+        def func(request, required_int=None, required_string=None,
+                 required_choice=None, required_file=None, required_bool=None,
+                 optional_param=None, parsed_request_fields=None,
+                 extra_fields={}):
+            func.seen = True
+            self.assertEqual(required_int, 42)
+            self.assertEqual(required_string, 'test')
+            self.assertEqual(required_choice, 'a')
+            self.assertEqual(required_file.read(), b'content')
+            self.assertTrue(required_bool)
+            self.assertTrue(optional_param)
+            self.assertFalse(extra_fields)
+            self.assertEqual(
+                parsed_request_fields,
+                {
+                    'required_int': required_int,
+                    'required_string': required_string,
+                    'required_choice': required_choice,
+                    'required_bool': required_bool,
+                    'required_file': required_file,
+                    'optional_param': optional_param,
+                })
+
+        result = func(RequestFactory().post(
+            path='/',
+            data={
+                'required_int': '42',
+                'required_string': 'test',
+                'required_choice': 'a',
+                'required_bool': 'true',
+                'required_file': SimpleUploadedFile(name='test',
+                                                    content=b'content'),
+                'optional_param': '1',
+            },
+        ))
+
+        self.assertTrue(hasattr(func, 'seen'))
+        self.assertIsNone(result)
+
+    def test_webapi_request_fields_call_normalizes_params_legacy_types(self):
+        """Testing @webapi_request_fields normalizes params to function when
+        using legacy types
+        """
+        if not hasattr(__builtins__, 'file'):
+            # Python 3.x doesn't have `file`, so define our own for the test.
+            class file(object):
+                pass
+
+        @webapi_request_fields(
+            required={
+                'required_int': {
+                    'type': int,
+                },
+                'required_string': {
+                    'type': six.text_type,
+                },
+                'required_bytes': {
+                    'type': bytes,
+                },
+                'required_choice_list': {
+                    'type': ['a', 'b', 'c'],
+                },
+                'required_choice_tuple': {
+                    'type': ('a', 'b', 'c'),
+                },
+                'required_bool': {
+                    'type': bool,
+                },
+                'required_file': {
+                    'type': file,
+                },
             },
             optional={
                 'optional_param': {
@@ -355,37 +458,86 @@ class WebAPIDecoratorTests(TestCase):
                 }
             },
         )
-        def func(request, required_param=None, optional_param=None,
+        def func(request, required_int=None, required_string=None,
+                 required_bytes=None, required_choice_list=None,
+                 required_choice_tuple=None, required_file=None,
+                 required_bool=None, optional_param=None,
                  parsed_request_fields=None, extra_fields={}):
             func.seen = True
-            self.assertTrue(isinstance(required_param, int))
-            self.assertTrue(isinstance(optional_param, bool))
-            self.assertEqual(required_param, 42)
+            self.assertEqual(required_int, 42)
+            self.assertEqual(required_string, 'test')
+            self.assertEqual(required_bytes, 'test')
+            self.assertEqual(required_choice_list, 'a')
+            self.assertEqual(required_choice_tuple, 'c')
+            self.assertEqual(required_file.read(), b'content')
+            self.assertTrue(required_bool)
             self.assertTrue(optional_param)
             self.assertFalse(extra_fields)
-            self.assertEqual(parsed_request_fields,
-                             {
-                                 'required_param': required_param,
-                                 'optional_param': optional_param,
-                             })
+            self.assertEqual(
+                parsed_request_fields,
+                {
+                    'required_int': required_int,
+                    'required_string': required_string,
+                    'required_bytes': required_bytes,
+                    'required_choice_list': required_choice_list,
+                    'required_choice_tuple': required_choice_tuple,
+                    'required_bool': required_bool,
+                    'required_file': required_file,
+                    'optional_param': optional_param,
+                })
 
-        result = func(RequestFactory().get(
+        result = func(RequestFactory().post(
             path='/',
             data={
-                'required_param': '42',
+                'required_int': '42',
+                'required_string': 'test',
+                'required_bytes': bytes('test'),
+                'required_choice_list': 'a',
+                'required_choice_tuple': 'c',
+                'required_bool': 'true',
+                'required_file': SimpleUploadedFile(name='test',
+                                                    content=b'content'),
                 'optional_param': '1',
-            }
+            },
         ))
 
         self.assertTrue(hasattr(func, 'seen'))
-        self.assertEqual(result, None)
+        self.assertIsNone(result)
+
+        self.assertEqual(
+            func.required_fields,
+            {
+                'required_int': {
+                    'type': IntFieldType,
+                },
+                'required_string': {
+                    'type': StringFieldType,
+                },
+                'required_bytes': {
+                    'type': StringFieldType,
+                },
+                'required_choice_list': {
+                    'type': ChoiceFieldType,
+                    'choices': ('a', 'b', 'c'),
+                },
+                'required_choice_tuple': {
+                    'type': ChoiceFieldType,
+                    'choices': ('a', 'b', 'c'),
+                },
+                'required_bool': {
+                    'type': BooleanFieldType,
+                },
+                'required_file': {
+                    'type': FileFieldType,
+                },
+            })
 
     def test_webapi_request_fields_call_with_unexpected_arg(self):
         """Testing @webapi_request_fields with unexpected argument"""
         @webapi_request_fields(
             required={
                 'required_param': {
-                    'type': int,
+                    'type': IntFieldType,
                 }
             },
         )
@@ -410,7 +562,7 @@ class WebAPIDecoratorTests(TestCase):
         @webapi_request_fields(
             required={
                 'required_param': {
-                    'type': int,
+                    'type': IntFieldType,
                 }
             },
             allow_unknown=True
@@ -440,7 +592,7 @@ class WebAPIDecoratorTests(TestCase):
         @webapi_request_fields(
             required={
                 'required_param': {
-                    'type': int,
+                    'type': IntFieldType,
                 }
             },
         )
@@ -469,7 +621,7 @@ class WebAPIDecoratorTests(TestCase):
         @webapi_request_fields(
             required={
                 'myint': {
-                    'type': int,
+                    'type': IntFieldType,
                 }
             }
         )

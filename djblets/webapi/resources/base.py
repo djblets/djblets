@@ -40,6 +40,7 @@ from djblets.webapi.errors import (DOES_NOT_EXIST,
                                    PERMISSION_DENIED,
                                    RATE_LIMIT_EXCEEDED,
                                    WebAPIError)
+from djblets.webapi.fields import IntFieldType
 
 try:
     # Django >= 1.9
@@ -561,14 +562,14 @@ class WebAPIResource(object):
     @webapi_request_fields(
         optional={
             'start': {
-                'type': int,
+                'type': IntFieldType,
                 'description': 'The 0-based index of the first result in '
                                'the list. The start index is usually the '
                                'previous start index plus the number of '
                                'previous results. By default, this is 0.',
             },
             'max-results': {
-                'type': int,
+                'type': IntFieldType,
                 'description': 'The maximum number of results to return in '
                                'this list. By default, this is 25. There is '
                                'a hard limit of 200; if you need more than '

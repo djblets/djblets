@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 from django.contrib.auth.models import User
 
 from djblets.util.decorators import augment_method_from
+from djblets.webapi.fields import IntFieldType, StringFieldType
 from djblets.webapi.resources.base import WebAPIResource
 from djblets.webapi.resources.registry import register_resource_for_model
 
@@ -15,31 +16,31 @@ class UserResource(WebAPIResource):
     model = User
     fields = {
         'id': {
-            'type': int,
+            'type': IntFieldType,
             'description': 'The numeric ID of the user.',
         },
         'username': {
-            'type': str,
+            'type': StringFieldType,
             'description': "The user's username.",
         },
         'first_name': {
-            'type': str,
+            'type': StringFieldType,
             'description': "The user's first name.",
         },
         'last_name': {
-            'type': str,
+            'type': StringFieldType,
             'description': "The user's last name.",
         },
         'fullname': {
-            'type': str,
+            'type': StringFieldType,
             'description': "The user's full name (first and last).",
         },
         'email': {
-            'type': str,
+            'type': StringFieldType,
             'description': "The user's e-mail address",
         },
         'url': {
-            'type': str,
+            'type': StringFieldType,
             'description': "The URL to the user's page on the site. "
                            "This is deprecated and will be removed in a "
                            "future version.",
