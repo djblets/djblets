@@ -52,8 +52,8 @@ class ConditionValueFormFieldTests(TestCase):
         """Testing ConditionValueFormField.render_html"""
         field = ConditionValueFormField(forms.CharField())
 
-        self.assertEqual(field.render_html(),
-                         '<input name="XXX" type="text" />')
+        self.assertHTMLEqual(field.render_html(),
+                             '<input name="XXX" type="text" />')
 
     def test_field_with_callable(self):
         """Testing ConditionValueFormField.field with callable field"""
