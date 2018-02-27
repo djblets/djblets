@@ -158,17 +158,6 @@ def _build_srcset(sources):
         unicode:
         The returned ``srcset`` attribute value.
     """
-    def _compare_sources(a, b):
-        a_descriptor_type = a[0][-1]
-        b_descriptor_type = b[0][-1]
-
-        if a_descriptor_type == b_descriptor_type:
-            return cmp(a[1], b[1])
-        elif a_descriptor_type == 'x':
-            return -1
-        else:
-            return 1
-
     sources_info = []
 
     for descriptor, url in six.iteritems(sources):
@@ -190,7 +179,16 @@ def _build_srcset(sources):
             raise ValueError(_('"%s" is not a valid srcset size descriptor.')
                              % descriptor)
 
-    sources_info = sorted(sources_info, cmp=_compare_sources)
+    # Sort the sources such that 'x' descriptors are always before 'w'
+    # descriptors, and in numerical order.
+    descriptor_sort_values = {
+        'x': -1,
+        'w': 1,
+    }
+
+    sources_info = sorted(
+        sources_info,
+        key=lambda source: (descriptor_sort_values[source[0][-1]], source[1]))
 
     return format_html_join(
         ', ',
