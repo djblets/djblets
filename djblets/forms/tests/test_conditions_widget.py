@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import copy
 
+from django.utils import six
 from django.utils.datastructures import MultiValueDict
 
 from djblets.conditions.choices import (BaseConditionChoice,
@@ -235,105 +236,118 @@ class ConditionsWidgetTests(TestCase):
 
         rendered_rows = result['rendered_rows']
         self.assertEqual(len(rendered_rows), 2)
-        self.assertEqual(
-            rendered_rows[0],
-            {
-                'choice': (
-                    '<select id="my-conditions_choice_0"'
-                    ' name="my_conditions_choice[0]">\n'
-                    '<option value="my-choice-1" selected="selected">'
-                    'My Choice 1</option>\n'
-                    '<option value="my-choice-2">'
-                    'My Choice 2</option>\n'
-                    '</select>'
-                ),
-                'operator': (
-                    '<select id="my-conditions_operator_0"'
-                    ' name="my_conditions_operator[0]">\n'
-                    '<option value="my-op-1" selected="selected">'
-                    'My Op 1</option>\n'
-                    '<option value="my-op-2">My Op 2</option>\n'
-                    '</select>'
-                ),
-                'error': None,
-            })
-        self.assertEqual(
-            rendered_rows[1],
-            {
-                'choice': (
-                    '<select id="my-conditions_choice_1"'
-                    ' name="my_conditions_choice[1]">\n'
-                    '<option value="my-choice-1">'
-                    'My Choice 1</option>\n'
-                    '<option value="my-choice-2" selected="selected">'
-                    'My Choice 2</option>\n'
-                    '</select>'
-                ),
-                'operator': (
-                    '<select id="my-conditions_operator_1"'
-                    ' name="my_conditions_operator[1]">\n'
-                    '<option value="my-op-3" selected="selected">'
-                    'My Op 3</option>\n'
-                    '</select>'
-                ),
-                'error': None,
-            })
+
+        # Check the first rendered row.
+        rendered_row = rendered_rows[0]
+        self.assertEqual(set(six.iterkeys(rendered_row)),
+                         {'choice', 'operator', 'error'})
+
+        self.assertHTMLEqual(
+            rendered_row['choice'],
+            '<select id="my-conditions_choice_0"'
+            ' name="my_conditions_choice[0]">\n'
+            '<option value="my-choice-1" selected="selected">'
+            'My Choice 1</option>\n'
+            '<option value="my-choice-2">'
+            'My Choice 2</option>\n'
+            '</select>')
+
+        self.assertHTMLEqual(
+            rendered_row['operator'],
+            '<select id="my-conditions_operator_0"'
+            ' name="my_conditions_operator[0]">\n'
+            '<option value="my-op-1" selected="selected">'
+            'My Op 1</option>\n'
+            '<option value="my-op-2">My Op 2</option>\n'
+            '</select>')
+
+        self.assertIsNone(rendered_row['error'])
+
+        # Check the second rendered row.
+        rendered_row = rendered_rows[1]
+        self.assertEqual(set(six.iterkeys(rendered_row)),
+                         {'choice', 'operator', 'error'})
+
+        self.assertHTMLEqual(
+            rendered_row['choice'],
+            '<select id="my-conditions_choice_1"'
+            ' name="my_conditions_choice[1]">\n'
+            '<option value="my-choice-1">'
+            'My Choice 1</option>\n'
+            '<option value="my-choice-2" selected="selected">'
+            'My Choice 2</option>\n'
+            '</select>')
+
+        self.assertHTMLEqual(
+            rendered_row['operator'],
+            '<select id="my-conditions_operator_1"'
+            ' name="my_conditions_operator[1]">\n'
+            '<option value="my-op-3" selected="selected">'
+            'My Op 3</option>\n'
+            '</select>')
+
+        self.assertIsNone(rendered_row['error'])
 
         serialized_choices = result['serialized_choices']
         self.assertEqual(len(serialized_choices), 2)
-        self.assertEqual(
-            serialized_choices[0],
-            {
-                'id': 'my-choice-1',
-                'name': 'My Choice 1',
-                'valueField': {},
-                'operators': [
-                    {
-                        'id': 'my-op-1',
-                        'name': 'My Op 1',
-                        'useValue': True,
-                        'valueField': {
-                            'model': {
-                                'className':
-                                    'Djblets.Forms.ConditionValueField',
-                                'data': {
-                                    'fieldHTML':
-                                        '<input name="XXX" type="number" />',
-                                },
-                            },
-                            'view': {
-                                'className': (
-                                    'Djblets.Forms.'
-                                    'ConditionValueFormFieldView'
-                                ),
-                                'data': {},
-                            },
-                        }
-                    },
-                    {
-                        'id': 'my-op-2',
-                        'name': 'My Op 2',
-                        'useValue': True,
-                        'valueField': {
-                            'model': {
-                                'className':
-                                    'Djblets.Forms.ConditionValueField',
-                                'data': {
-                                    'fieldHTML':
-                                        '<input name="XXX" type="text" />',
-                                },
-                            },
-                            'view': {
-                                'className': (
-                                    'Djblets.Forms.'
-                                    'ConditionValueFormFieldView'
-                                ),
-                                'data': {},
-                            },
-                        }
-                    },
-                ],
-            })
+
+        # Check the first serialized choice.
+        serialized_choice = serialized_choices[0]
+        self.assertEqual(set(six.iterkeys(serialized_choice)),
+                         {'id', 'name', 'valueField', 'operators'})
+        self.assertEqual(serialized_choice['id'], 'my-choice-1')
+        self.assertEqual(serialized_choice['name'], 'My Choice 1')
+        self.assertEqual(serialized_choice['valueField'], {})
+        self.assertEqual(serialized_choice['valueField'], {})
+
+        serialized_operators = serialized_choice['operators']
+        self.assertEqual(len(serialized_operators), 2)
+
+        # Check the first operator in the first serialized choice.
+        serialized_operator = serialized_operators[0]
+        self.assertEqual(set(six.iterkeys(serialized_operator)),
+                         {'id', 'name', 'useValue', 'valueField'})
+        self.assertEqual(serialized_operator['id'], 'my-op-1')
+        self.assertEqual(serialized_operator['name'], 'My Op 1')
+        self.assertTrue(serialized_operator['useValue'])
+
+        serialized_value_field = serialized_operator['valueField']
+        self.assertEqual(set(six.iterkeys(serialized_value_field)),
+                         {'model', 'view'})
+
+        serialized_value_model = serialized_value_field['model']
+        self.assertEqual(serialized_value_model['className'],
+                         'Djblets.Forms.ConditionValueField')
+        self.assertHTMLEqual(serialized_value_model['data']['fieldHTML'],
+                             '<input name="XXX" type="number" />')
+
+        serialized_value_view = serialized_value_field['view']
+        self.assertEqual(serialized_value_view['className'],
+                         'Djblets.Forms.ConditionValueFormFieldView')
+        self.assertEqual(serialized_value_view['data'], {})
+
+        # Check the second operator in the first serialized choice.
+        serialized_operator = serialized_operators[1]
+        self.assertEqual(set(six.iterkeys(serialized_operator)),
+                         {'id', 'name', 'useValue', 'valueField'})
+        self.assertEqual(serialized_operator['id'], 'my-op-2')
+        self.assertEqual(serialized_operator['name'], 'My Op 2')
+        self.assertTrue(serialized_operator['useValue'])
+
+        serialized_value_field = serialized_operator['valueField']
+        self.assertEqual(set(six.iterkeys(serialized_value_field)),
+                         {'model', 'view'})
+
+        serialized_value_model = serialized_value_field['model']
+        self.assertEqual(serialized_value_model['className'],
+                         'Djblets.Forms.ConditionValueField')
+        self.assertHTMLEqual(serialized_value_model['data']['fieldHTML'],
+                             '<input name="XXX" type="text" />')
+
+        serialized_value_view = serialized_value_field['view']
+        self.assertEqual(serialized_value_view['className'],
+                         'Djblets.Forms.ConditionValueFormFieldView')
+        self.assertEqual(serialized_value_view['data'], {})
 
         self.assertEqual(
             serialized_choices[1],
@@ -406,31 +420,36 @@ class ConditionsWidgetTests(TestCase):
             })
 
         rendered_rows = result['rendered_rows']
+        self.assertEqual(len(rendered_rows), 1)
+
+        rendered_row = rendered_rows[0]
+        self.assertEqual(set(six.iterkeys(rendered_row)),
+                         {'choice', 'operator', 'error'})
+        self.assertHTMLEqual(
+            rendered_row['choice'],
+            '<select disabled="disabled" id="my-conditions_choice_0"'
+            ' name="my_conditions_choice[0]">\n'
+            '<option value="my-choice-1">My Choice 1</option>\n'
+            '<option value="invalid-choice" selected="selected">'
+            'invalid-choice</option>\n'
+            '</select>'
+            '<input name="my_conditions_choice[0]" type="hidden"'
+            ' value="invalid-choice" />')
+
+        self.assertHTMLEqual(
+            rendered_row['operator'],
+            '<select disabled="disabled" id="my-conditions_operator_0"'
+            ' name="my_conditions_operator[0]">\n'
+            '<option value="my-op-1" selected="selected">'
+            'my-op-1</option>\n'
+            '</select>'
+            '<input name="my_conditions_operator[0]" type="hidden"'
+            ' value="my-op-1" />')
+
         self.assertEqual(
-            rendered_rows,
-            [{
-                'choice': (
-                    '<select disabled="disabled" id="my-conditions_choice_0"'
-                    ' name="my_conditions_choice[0]">\n'
-                    '<option value="my-choice-1">My Choice 1</option>\n'
-                    '<option value="invalid-choice" selected="selected">'
-                    'invalid-choice</option>\n'
-                    '</select>'
-                    '<input name="my_conditions_choice[0]" type="hidden"'
-                    ' value="invalid-choice" />'
-                ),
-                'operator': (
-                    '<select disabled="disabled" id="my-conditions_operator_0"'
-                    ' name="my_conditions_operator[0]">\n'
-                    '<option value="my-op-1" selected="selected">'
-                    'my-op-1</option>\n'
-                    '</select>'
-                    '<input name="my_conditions_operator[0]" type="hidden"'
-                    ' value="my-op-1" />'
-                ),
-                'error': ('This choice no longer exists. You will need to '
-                          'delete the condition in order to make changes.'),
-            }])
+            rendered_row['error'],
+            'This choice no longer exists. You will need to '
+            'delete the condition in order to make changes.')
 
         serialized_choices = result['serialized_choices']
         self.assertEqual(len(serialized_choices), 1)
@@ -480,30 +499,35 @@ class ConditionsWidgetTests(TestCase):
             })
 
         rendered_rows = result['rendered_rows']
+        self.assertEqual(len(rendered_rows), 1)
+
+        rendered_row = rendered_rows[0]
+        self.assertEqual(set(six.iterkeys(rendered_row)),
+                         {'choice', 'operator', 'error'})
+        self.assertHTMLEqual(
+            rendered_row['choice'],
+            '<select disabled="disabled" id="my-conditions_choice_0"'
+            ' name="my_conditions_choice[0]">\n'
+            '<option value="my-choice" selected="selected">'
+            'My Choice</option>\n'
+            '</select>'
+            '<input name="my_conditions_choice[0]" type="hidden"'
+            ' value="my-choice" />')
+
+        self.assertHTMLEqual(
+            rendered_row['operator'],
+            '<select disabled="disabled" id="my-conditions_operator_0"'
+            ' name="my_conditions_operator[0]">\n'
+            '<option value="invalid-op" selected="selected">'
+            'invalid-op</option>\n'
+            '</select>'
+            '<input name="my_conditions_operator[0]" type="hidden"'
+            ' value="invalid-op" />')
+
         self.assertEqual(
-            rendered_rows,
-            [{
-                'choice': (
-                    '<select disabled="disabled" id="my-conditions_choice_0"'
-                    ' name="my_conditions_choice[0]">\n'
-                    '<option value="my-choice" selected="selected">'
-                    'My Choice</option>\n'
-                    '</select>'
-                    '<input name="my_conditions_choice[0]" type="hidden"'
-                    ' value="my-choice" />'
-                ),
-                'operator': (
-                    '<select disabled="disabled" id="my-conditions_operator_0"'
-                    ' name="my_conditions_operator[0]">\n'
-                    '<option value="invalid-op" selected="selected">'
-                    'invalid-op</option>\n'
-                    '</select>'
-                    '<input name="my_conditions_operator[0]" type="hidden"'
-                    ' value="invalid-op" />'
-                ),
-                'error': ('This operator no longer exists. You will need to '
-                          'delete the condition in order to make changes.'),
-            }])
+            rendered_row['error'],
+            'This operator no longer exists. You will need to '
+            'delete the condition in order to make changes.')
 
         serialized_choices = result['serialized_choices']
         self.assertEqual(len(serialized_choices), 1)
@@ -554,25 +578,28 @@ class ConditionsWidgetTests(TestCase):
             })
 
         rendered_rows = result['rendered_rows']
-        self.assertEqual(
-            rendered_rows,
-            [{
-                'choice': (
-                    '<select id="my-conditions_choice_0"'
-                    ' name="my_conditions_choice[0]">\n'
-                    '<option value="my-choice" selected="selected">'
-                    'My Choice</option>\n'
-                    '</select>'
-                ),
-                'operator': (
-                    '<select id="my-conditions_operator_0"'
-                    ' name="my_conditions_operator[0]">\n'
-                    '<option value="my-op-1" selected="selected">'
-                    'My Op 1</option>\n'
-                    '</select>'
-                ),
-                'error': 'This is an error.',
-            }])
+        self.assertEqual(len(rendered_rows), 1)
+
+        rendered_row = rendered_rows[0]
+        self.assertEqual(set(six.iterkeys(rendered_row)),
+                         {'choice', 'operator', 'error'})
+        self.assertHTMLEqual(
+            rendered_row['choice'],
+            '<select id="my-conditions_choice_0"'
+            ' name="my_conditions_choice[0]">\n'
+            '<option value="my-choice" selected="selected">'
+            'My Choice</option>\n'
+            '</select>')
+
+        self.assertHTMLEqual(
+            rendered_row['operator'],
+            '<select id="my-conditions_operator_0"'
+            ' name="my_conditions_operator[0]">\n'
+            '<option value="my-op-1" selected="selected">'
+            'My Op 1</option>\n'
+            '</select>')
+
+        self.assertEqual(rendered_row['error'], 'This is an error.')
 
         serialized_choices = result['serialized_choices']
         self.assertEqual(len(serialized_choices), 1)

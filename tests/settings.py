@@ -103,6 +103,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django.contrib.staticfiles',
     'oauth2_provider',
+    'pipeline',
 ]
 
 
