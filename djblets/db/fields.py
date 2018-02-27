@@ -914,7 +914,11 @@ class RelationCounterField(CounterField):
 
     # A lock for handling instance state dictionary modification, to prevent
     # threads from stomping over each other.
-    _state_lock = threading.Lock()
+    #
+    # We use a reentrant lock here so that state updates that end up freeing
+    # an InstanceState and then need a new lock during state resets won't
+    # end up blocking.
+    _state_lock = threading.RLock()
 
     class InstanceState(object):
         """Tracks state for a RelationCounterField instance assocation.
@@ -1076,10 +1080,17 @@ class RelationCounterField(CounterField):
                 *args (tuple, unused):
                     Arguments passed to the callback.
             """
-            RelationCounterField._reset_state(
-                instance_cls=self.model_cls,
-                instance_pk=None,
-                instance_id=self.model_instance_id)
+            try:
+                RelationCounterField._reset_state(
+                    instance_cls=self.model_cls,
+                    instance_pk=None,
+                    instance_id=self.model_instance_id)
+            except AttributeError:
+                # Ignore any attribute errors when this fails. It is most
+                # likely occurring while a thread/process is shutting down,
+                # and some state no longer exists. We've seen this manifest
+                # as two separate AttributeErrors so far.
+                pass
 
         def _on_instance_pre_delete(self, instance, **kwargs):
             """Handler for when an instance is about to be deleted.
