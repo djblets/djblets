@@ -23,15 +23,15 @@
 (function($) {
 
 
-$.widget("ui.modalBox", {
+$.widget('ui.modalBox', {
     options: {
         buttons: [$('<input type="button" />').val(gettext('Close'))],
         container: 'body',
         discardOnClose: true,
         fadeBackground: true,
-        modalBoxButtonsClass: "modalbox-buttons",
-        modalBoxContentsClass: "modalbox-contents",
-        modalBoxTitleClass: "modalbox-title",
+        modalBoxButtonsClass: 'modalbox-buttons',
+        modalBoxContentsClass: 'modalbox-contents',
+        modalBoxTitleClass: 'modalbox-title',
         stretchX: false,
         stretchY: false,
         title: null
@@ -41,39 +41,39 @@ $.widget("ui.modalBox", {
         var self = this;
 
         if (this.options.fadeBackground) {
-            this.bgbox = $("<div/>")
-                .addClass("modalbox-bg")
+            this.bgbox = $('<div/>')
+                .addClass('modalbox-bg')
                 .appendTo(this.options.container)
                 .css({
-                    "background-color": "#000",
+                    'background-color': '#000',
                     opacity: 0
                 })
-                .move(0, 0, "fixed")
-                .width("100%")
-                .height("100%")
+                .move(0, 0, 'fixed')
+                .width('100%')
+                .height('100%')
                 .keydown(function(e) { e.stopPropagation(); });
         }
 
-        this.box = $("<div/>")
-            .addClass("modalbox")
-            .move(0, 0, "absolute")
+        this.box = $('<div/>')
+            .addClass('modalbox')
+            .move(0, 0, 'absolute')
             .keydown(function(e) { e.stopPropagation(); });
 
         if (this.options.boxID) {
             this.box.attr('id', this.options.boxID);
         }
 
-        this.inner = $("<div/>")
+        this.inner = $('<div/>')
             .appendTo(this.box)
-            .addClass("modalbox-inner")
+            .addClass('modalbox-inner')
             .css({
-                position: "relative",
-                width: "100%",
-                height: "100%"
+                position: 'relative',
+                width: '100%',
+                height: '100%'
             });
 
         if (this.options.title) {
-            this.titleBox = $("<h1/>")
+            this.titleBox = $('<h1/>')
                 .appendTo(this.inner)
                 .addClass(this.options.modalBoxTitleClass)
                 .text(this.options.title);
@@ -81,18 +81,23 @@ $.widget("ui.modalBox", {
 
         this.element
             .appendTo(this.inner)
-            .addClass(this.options.modalBoxContentsClass)
-            .bind("DOMSubtreeModified", function() {
-                self.resize();
-            });
+            .addClass(this.options.modalBoxContentsClass);
 
-        this._buttons = $("<div/>")
+        this.observer = new MutationObserver(function() {
+            self.resize();
+        });
+        this.observer.observe(this.element[0], {
+            childList: true,
+            subtree: true
+        });
+
+        this._buttons = $('<div/>')
             .appendTo(this.inner)
             .addClass(this.options.modalBoxButtonsClass)
             .click(function(e) {
                 /* Check here so that buttons can call stopPropagation(). */
-                if (e.target.tagName === "INPUT" && !e.target.disabled) {
-                    self.element.modalBox("destroy");
+                if (e.target.tagName === 'INPUT' && !e.target.disabled) {
+                    self.element.modalBox('destroy');
                 }
             });
 
@@ -106,7 +111,7 @@ $.widget("ui.modalBox", {
             this.bgbox.fadeTo(350, 0.85);
         }
 
-        $(window).bind("resize.modalbox", function() {
+        $(window).on('resize.modalbox', function() {
             self.resize();
         });
 
@@ -116,14 +121,16 @@ $.widget("ui.modalBox", {
     destroy: function() {
         var self = this;
 
-        if (!this.element.data("modalBox")) {
+        if (!this.element.data('uiModalBox')) {
             return;
         }
 
         this.element
-            .removeData("modalBox")
-            .unbind("resize.modalbox")
-            .css("position", "static");
+            .removeData('uiModalBox')
+            .off('resize.modalbox')
+            .css('position', 'static');
+
+        this.observer.disconnect();
 
         if (this.options.fadeBackground) {
             this.bgbox.fadeOut(350, function() {
@@ -143,25 +150,25 @@ $.widget("ui.modalBox", {
     },
 
     resize: function() {
-        var marginHoriz = $("body").getExtents("m", "lr"),
-            marginVert = $("body").getExtents("m", "tb"),
+        var marginHoriz = $('body').getExtents('m', 'lr'),
+            marginVert = $('body').getExtents('m', 'tb'),
             winWidth = $(window).width()  - marginHoriz,
             winHeight = $(window).height() - marginVert;
 
         if (this.options.stretchX) {
             this.box.width(winWidth -
-                           this.box.getExtents("bmp", "lr") -
+                           this.box.getExtents('bmp', 'lr') -
                            marginHoriz);
         }
 
         if (this.options.stretchY) {
             this.box.height(winHeight -
-                            this.box.getExtents("bmp", "tb") -
+                            this.box.getExtents('bmp', 'tb') -
                             marginVert);
 
             this.element.height(this._buttons.position().top -
                                 this.element.position().top -
-                                this.element.getExtents("m", "tb"));
+                                this.element.getExtents('m', 'tb'));
         } else {
             this.box.height(this.element.position().top +
                             this.element.outerHeight(true) +
@@ -170,13 +177,13 @@ $.widget("ui.modalBox", {
 
         this.box.move(Math.ceil((winWidth  - this.box.outerWidth(true))  / 2),
                       Math.ceil((winHeight - this.box.outerHeight(true)) / 2),
-                      "fixed");
+                      'fixed');
 
-        this.element.triggerHandler("resize");
+        this.element.triggerHandler('resize');
     }
 });
 
-$.ui.modalBox.getter = "buttons";
+$.ui.modalBox.getter = 'buttons';
 
 
 })(jQuery);

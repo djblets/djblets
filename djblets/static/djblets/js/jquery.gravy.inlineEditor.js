@@ -208,7 +208,7 @@ $.widget("ui.inlineEditor", {
                     });
                 })
                 .mouseup(function() {
-                    $(this).unbind("mousemove");
+                    $(this).off("mousemove");
                 });
         }
 
