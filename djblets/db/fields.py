@@ -44,7 +44,7 @@ from django.db.models import F, Q
 from django.db.models.signals import (m2m_changed, post_delete, post_init,
                                       post_save, pre_delete)
 from django.utils import six
-from django.utils.encoding import smart_unicode
+from django.utils.encoding import smart_text
 try:
     from django.db.models.expressions import Combinable
     QueryExpressionType = Combinable
@@ -75,7 +75,7 @@ class Base64FieldCreator(object):
 
     def __set__(self, obj, value):
         pk_val = obj._get_pk_val(obj.__class__._meta)
-        pk_set = pk_val is not None and smart_unicode(pk_val) != ''
+        pk_set = pk_val is not None and smart_text(pk_val) != ''
 
         if (isinstance(value, Base64DecodedValue) or not pk_set):
             obj.__dict__[self.field.name] = base64.encodestring(value)
