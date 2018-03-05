@@ -22,7 +22,7 @@ class GravatarTests(TestCase):
                          get_gravatar_url_for_email(email='foo@example.com'))
         self.assertEqual(
             get_gravatar_url_for_email(email='foo@example.com'),
-            '%s%s' % (self._URL_BASE, md5('foo@example.com').hexdigest()))
+            '%s%s' % (self._URL_BASE, md5(b'foo@example.com').hexdigest()))
 
     def test_get_gravatar_url_for_email_whitespace(self):
         """Testing get_gravatar_url_for_email with whitespace characters"""

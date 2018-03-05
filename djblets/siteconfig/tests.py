@@ -58,8 +58,8 @@ class DjangoSettingsTests(SiteConfigTestCase):
 
         self.assertEqual(settings.EMAIL_HOST_USER, username)
         self.assertEqual(settings.EMAIL_HOST_PASSWORD, password)
-        self.assertEqual(type(settings.EMAIL_HOST_USER), bytes)
-        self.assertEqual(type(settings.EMAIL_HOST_PASSWORD), bytes)
+        self.assertEqual(type(settings.EMAIL_HOST_USER), str)
+        self.assertEqual(type(settings.EMAIL_HOST_PASSWORD), str)
 
         # Simulate the failure point in HMAC
         settings.EMAIL_HOST_USER.translate(hmac.trans_5C)

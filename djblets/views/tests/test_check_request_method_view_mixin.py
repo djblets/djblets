@@ -32,7 +32,7 @@ class CheckRequestMethodViewMixinTests(TestCase):
         response = view(RequestFactory().request())
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content, 'ok')
+        self.assertEqual(response.content, b'ok')
 
     def test_dispatch_with_not_allowed(self):
         """Testing CheckRequestMethodViewMixin.dispatch with HTTP method
@@ -46,4 +46,4 @@ class CheckRequestMethodViewMixinTests(TestCase):
         response = view(RequestFactory().request(REQUEST_METHOD='POST'))
 
         self.assertEqual(response.status_code, 405)
-        self.assertNotEqual(response.content, 'ok')
+        self.assertNotEqual(response.content, b'ok')

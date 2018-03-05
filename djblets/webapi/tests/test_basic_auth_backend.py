@@ -37,23 +37,23 @@ class WebAPIBasicAuthBackendTests(SpyAgency, TestCase):
 
     def test_get_credentials_valid_credentials(self):
         """Testing Basic Auth get_credentials with credentials"""
-        username = 'username'
-        password = 'password'
-        encoded_credentials = base64.b64encode('%s:%s' % (username, password))
-        header = 'Basic ' + encoded_credentials
+        encoded_credentials = base64.b64encode(b'my-username:my-password')
+        header = 'Basic %s' % encoded_credentials.decode('utf-8')
         self.request.META['HTTP_AUTHORIZATION'] = header
 
         result = self.basic_auth_backend.get_credentials(self.request)
 
         self.assertEqual(result, {
-            'username': username,
-            'password': password,
+            'username': 'my-username',
+            'password': 'my-password',
         })
 
     def test_get_credentials_malformed_credentials(self):
         """Testing Basic Auth get_credentials with malformed credentials"""
-        header = 'Basic ' + base64.b64encode('Some malfomred credentials')
-        self.request.META['HTTP_AUTHORIZATION'] = header
+        self.request.META['HTTP_AUTHORIZATION'] = (
+            'Basic %s'
+            % base64.b64encode(b'Some malfomred credentials').decode('utf-8')
+        )
 
         logger = logging.getLogger('djblets.webapi.auth.backends.basic')
         self.spy_on(logger.warning)
@@ -67,8 +67,8 @@ class WebAPIBasicAuthBackendTests(SpyAgency, TestCase):
 
     def test_authenticate_valid_credentials(self):
         """Testing Basic Auth authenicate with valid credentials"""
-        credentials = '%s:%s' % ('testuser', 'testpassword')
-        header = 'Basic ' + base64.b64encode(credentials)
+        header = ('Basic %s'
+                  % base64.b64encode(b'testuser:testpassword').decode('utf-8'))
         self.request.META['HTTP_AUTHORIZATION'] = header
 
         result = self.basic_auth_backend.authenticate(self.request)
@@ -77,8 +77,8 @@ class WebAPIBasicAuthBackendTests(SpyAgency, TestCase):
 
     def test_authenticate_wrong_header(self):
         """Testing Basic Auth authenicate with wrong header"""
-        credentials = '%s:%s' % ('testuser', 'testpassword')
-        header = 'Token ' + base64.b64encode(credentials)
+        header = ('Token %s'
+                  % base64.b64encode(b'testuser:testpassword').decode('utf-8'))
         self.request.META['HTTP_AUTHORIZATION'] = header
 
         result = self.basic_auth_backend.authenticate(self.request)
@@ -87,8 +87,9 @@ class WebAPIBasicAuthBackendTests(SpyAgency, TestCase):
 
     def test_authenticate_wrong_password(self):
         """Testing Basic Auth authenicate with invalid credentials"""
-        credentials = '%s:%s' % ('testuser', 'wrongpassword')
-        header = 'Basic ' + base64.b64encode(credentials)
+        header = (
+            'Basic %s'
+            % base64.b64encode(b'testuser:wrongpassword').decode('utf-8'))
         self.request.META['HTTP_AUTHORIZATION'] = header
 
         result = self.basic_auth_backend.authenticate(self.request)
@@ -97,56 +98,57 @@ class WebAPIBasicAuthBackendTests(SpyAgency, TestCase):
 
     def test_login_with_credentials_valid_credentials(self):
         """Testing Basic Auth login_with_credentials with valid credentials"""
-        username = 'testuser'
-        password = 'testpassword'
-        encoded_credentials = base64.b64encode('%s:%s' % (username, password))
-        header = 'Basic ' + encoded_credentials
+        encoded_credentials = base64.b64encode(b'testuser:testpassword')
+        header = 'Basic %s' % encoded_credentials.decode('utf-8')
         self.request.META['HTTP_AUTHORIZATION'] = header
 
         result = self.basic_auth_backend.login_with_credentials(
-            self.request, username=username, password=password)
+            self.request,
+            username='testuser',
+            password='testpassword')
 
         self.assertEqual(result, (True, None, None))
 
     def test_login_bypass_authentication(self):
         """Testing Basic Auth login_with_credentials with currently logged in
-        user"""
-        username = 'testuser'
-        password = 'testpassword'
-        encoded_credentials = base64.b64encode('%s:%s' % (username, password))
-        header = 'Basic ' + encoded_credentials
+        user
+        """
+        encoded_credentials = base64.b64encode(b'testuser:testpassword')
+        header = 'Basic %s' % encoded_credentials.decode('utf-8')
         self.request.META['HTTP_AUTHORIZATION'] = header
         self.request.user = self.user
 
         result = self.basic_auth_backend.login_with_credentials(
-            self.request, username=username, password=password)
+            self.request,
+            username='testuser',
+            password='testpassword')
 
         self.assertEqual(result, (True, None, None))
 
     def test_login_with_credentials_incorrect_pass(self):
         """Testing Basic Auth login_with_credentials with incorrect password"""
-        username = 'testuser'
-        password = 'wrongpassword'
-        encoded_credentials = base64.b64encode('%s:%s' % (username, password))
-        header = 'Basic ' + encoded_credentials
+        encoded_credentials = base64.b64encode(b'testuser:wrongpassword')
+        header = 'Basic %s' % encoded_credentials.decode('utf-8')
         self.request.META['HTTP_AUTHORIZATION'] = header
 
         result = self.basic_auth_backend.login_with_credentials(
-            self.request, username=username, password=password)
+            self.request,
+            username='testuser',
+            password='wrongpassword')
 
         self.assertEqual(result, (False, None, None))
 
     def test_login_with_credentials_incorrect_user(self):
         """Testing Basic Auth login_with_credentials with invalid user"""
-        username = 'wronguser'
-        password = 'testpassword'
-        encoded_credentials = base64.b64encode('%s:%s' % (username, password))
-        header = 'Basic ' + encoded_credentials
+        encoded_credentials = base64.b64encode(b'wronguser:testpassword')
+        header = 'Basic %s' % encoded_credentials.decode('utf-8')
         self.request.META['HTTP_AUTHORIZATION'] = header
         self.request.user = self.user
 
         result = self.basic_auth_backend.login_with_credentials(
-            self.request, username=username, password=password)
+            self.request,
+            username='wronguser',
+            password='testpassword')
 
         self.assertEqual(result, (False, None, None))
 
@@ -154,14 +156,18 @@ class WebAPIBasicAuthBackendTests(SpyAgency, TestCase):
         """Testing Basic Auth validate_credentials with valid credentials"""
         self.request.user = self.user
         result = self.basic_auth_backend.validate_credentials(
-            self.request, username='testuser', password='testpassword')
+            self.request,
+            username='testuser',
+            password='testpassword')
 
         self.assertEqual(result, (True, None, None))
 
     def test_validate_credentials_invalid_user(self):
         """Testing Basic Auth validate_credentials with invalid user"""
         result = self.basic_auth_backend.validate_credentials(
-            self.request, username='testuser', password='testpassword')
+            self.request,
+            username='testuser',
+            password='testpassword')
 
         self.assertIsNone(result)
 
@@ -169,7 +175,9 @@ class WebAPIBasicAuthBackendTests(SpyAgency, TestCase):
         """Testing Basic Auth validate_credentials with invalid credentials"""
         self.request.user = self.user
         result = self.basic_auth_backend.validate_credentials(
-            self.request, username='differentuser', password='testpassword')
+            self.request,
+            username='differentuser',
+            password='testpassword')
 
         self.assertIsNone(result)
 

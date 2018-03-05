@@ -102,7 +102,7 @@ class BaseConditionOperatorTests(TestCase):
             name='Custom Op',
             value_field=ConditionValueIntegerField())
 
-        self.assertEqual(CustomOperator.__name__, b'CustomMyOperator')
+        self.assertEqual(CustomOperator.__name__, 'CustomMyOperator')
         self.assertEqual(CustomOperator.name, 'Custom Op')
         self.assertIs(CustomOperator.value_field.__class__,
                       ConditionValueIntegerField)

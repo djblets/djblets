@@ -249,7 +249,10 @@ class EmailMessage(EmailMultiAlternatives):
 
         for name, value_list in self._headers.iterlists():
             for value in value_list:
-                msg.add_header(six.binary_type(name), value)
+                # Use the native string on each version of Python. These
+                # are headers, so they'll be convertible without encoding
+                # issues.
+                msg.add_header(str(name), value)
 
         return msg
 

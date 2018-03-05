@@ -55,7 +55,7 @@ class BaseConditionOperator(object):
             type:
             A new subclass with the overridden attributes.
         """
-        return type(b'Custom%s' % cls.__name__, (cls,), attrs)
+        return type(str('Custom%s') % cls.__name__, (cls,), attrs)
 
     def __init__(self, choice):
         """Initialize the operator.
