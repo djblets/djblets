@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import re
 import uuid
+from collections import OrderedDict
 
 from django.core.urlresolvers import ResolverMatch
 from django.http import HttpRequest
@@ -31,18 +32,18 @@ class TemplateTagTests(ExtensionTestsMixin, TestCase):
     """Tests for djblets.extensions.templatetags."""
 
     class TestExtension(Extension):
-        css_bundles = {
-            'default': {},
-            'optional': {
-                'apply_to': ['foo'],
-            },
+        # While normally these would be plain dictionaries, we want to ensure
+        # order for testing, so we'll be doing this a bit differently.
+        css_bundles = OrderedDict()
+        css_bundles['default'] = {}
+        css_bundles['optional'] = {
+            'apply_to': ['foo'],
         }
 
-        js_bundles = {
-            'default': {},
-            'optional': {
-                'apply_to': ['foo'],
-            },
+        js_bundles = OrderedDict()
+        js_bundles['default'] = {}
+        js_bundles['optional'] = {
+            'apply_to': ['foo'],
         }
 
         js_extensions = [TestJSExtension, TestJSExtensionDeprecated]

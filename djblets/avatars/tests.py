@@ -502,9 +502,11 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
 
         siteconfig = SiteConfiguration.objects.get_current()
         self.assertEqual(
-            siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY),
-            [DummyAvatarService.avatar_service_id,
-             GravatarService.avatar_service_id])
+            set(siteconfig.get(AvatarServiceRegistry.ENABLED_SERVICES_KEY)),
+            {
+                DummyAvatarService.avatar_service_id,
+                GravatarService.avatar_service_id,
+            })
 
     def test_set_enabled_services_with_save_false(self):
         """Testing AvatarServiceRegistry.set_enabled_services with save=False

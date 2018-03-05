@@ -44,7 +44,7 @@ class WebAPIScopeDictionaryTests(TestCase):
                               'resource'),
                 'item-child:read': ('Ability to perform HTTP GET on the '
                                     'item-child resource'),
-                'item-child:write': ('Ability to perform HTTP PUT, POST on '
+                'item-child:write': ('Ability to perform HTTP POST, PUT on '
                                      'the item-child resource'),
                 'list-child:read': ('Ability to perform HTTP GET on the '
                                     'list-child resource'),
@@ -98,7 +98,7 @@ class WebAPIScopeDictionaryTests(TestCase):
                               'resource'),
                 'item-child:read': ('Ability to perform HTTP GET on the '
                                     'item-child resource'),
-                'item-child:write': ('Ability to perform HTTP PUT, POST on '
+                'item-child:write': ('Ability to perform HTTP POST, PUT on '
                                      'the item-child resource'),
                 'list-child:read': ('Ability to perform HTTP GET on the '
                                     'list-child resource'),
@@ -162,7 +162,7 @@ class ExtensionEnabledWebAPIScopeDictionaryTests(ExtensionTestCaseMixin,
                                 'extension resource'),
             'item-child:read': ('Ability to perform HTTP GET on the '
                                 'item-child resource'),
-            'item-child:write': ('Ability to perform HTTP PUT, POST on '
+            'item-child:write': ('Ability to perform HTTP POST, PUT on '
                                  'the item-child resource'),
             'list-child:read': ('Ability to perform HTTP GET on the '
                                 'list-child resource'),
@@ -179,7 +179,7 @@ class ExtensionEnabledWebAPIScopeDictionaryTests(ExtensionTestCaseMixin,
         new_base_scopes = dict({
             'test-ext:read': ('Ability to perform HTTP GET on the test-ext '
                               'resource'),
-            'test-ext:write': ('Ability to perform HTTP PUT, POST on the '
+            'test-ext:write': ('Ability to perform HTTP POST, PUT on the '
                                'test-ext resource'),
             'test-ext:destroy': ('Ability to perform HTTP DELETE on the '
                                  'test-ext resource'),
