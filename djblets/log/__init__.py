@@ -156,7 +156,7 @@ class TimedLogInfo(object):
 
 class RequestLogFormatter(logging.Formatter):
     def __init__(self, request_fmt, *args, **kwargs):
-        super(logging.Formatter, self).__init__(*args, **kwargs)
+        super(RequestLogFormatter, self).__init__(*args, **kwargs)
         self.request_fmt = request_fmt
 
     def format(self, record):
