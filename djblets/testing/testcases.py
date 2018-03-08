@@ -27,14 +27,30 @@
 from __future__ import print_function, unicode_literals
 
 import copy
-import imp
+import importlib
 import inspect
 import os
 import re
 import socket
 import sys
 import threading
+import types
 from importlib import import_module
+
+try:
+    # Python >= 3.4
+    from importlib.machinery import ModuleSpec
+
+    try:
+        # Python >= 3.5
+        from importlib.util import module_from_spec
+    except ImportError:
+        # Python < 3.5
+        module_from_spec = None
+except ImportError:
+    # Python < 3.4
+    ModuleSpec = None
+    module_from_spec = None
 
 from django.conf import settings
 from django.core import serializers
@@ -201,14 +217,37 @@ class TestModelsLoaderMixin(object):
         except ImportError:
             # Set up a 'models' module, containing any models local to the
             # module that this TestCase is in.
-            models_mod = imp.new_module(models_mod_name)
-            module_name = cls.__module__
+            if ModuleSpec:
+                # Python >= 3.4
+                #
+                # It's not enough to simply create a module type. We need to
+                # create a basic spec, and then we need to have the module
+                # system create a module from it. There's a handy public
+                # function to do this on Python 3.5, but Python 3.4 lacks a
+                # public function. Fortunately, it's easy to call a private
+                # one.
+                spec = ModuleSpec(name=models_mod_name,
+                                  loader=None)
 
-            # Django needs a value here. Doesn't matter what it is.
-            models_mod.__file__ = ''
+                if module_from_spec:
+                    # Python >= 3.5
+                    models_mod = module_from_spec(spec)
+                else:
+                    # Python == 3.4
+                    models_mod = \
+                        importlib._bootstrap._SpecMethods(spec).create()
+
+                assert models_mod
+            else:
+                # Python < 3.4
+                models_mod = types.ModuleType(str(models_mod_name))
+
+                # Django needs a value here. Doesn't matter what it is.
+                models_mod.__file__ = ''
 
             # Transfer all the models over into this new module.
-            test_module = sys.modules[cls.__module__]
+            module_name = cls.__module__
+            test_module = sys.modules[module_name]
 
             for key, value in six.iteritems(test_module.__dict__):
                 if (inspect.isclass(value) and
