@@ -91,7 +91,7 @@ def _convert_legacy_field_type(legacy_type, field_info):
     new_type = None
 
     if inspect.isclass(legacy_type):
-        if issubclass(legacy_type, six.string_types):
+        if issubclass(legacy_type, (six.binary_type, six.text_type)):
             new_type = StringFieldType
         elif issubclass(legacy_type, bool):
             new_type = BooleanFieldType

@@ -433,11 +433,11 @@ class WebAPIDecoratorTests(TestCase):
                 'required_int': {
                     'type': int,
                 },
-                'required_string': {
+                'required_unicode_str': {
                     'type': six.text_type,
                 },
-                'required_bytes': {
-                    'type': bytes,
+                'required_native_str': {
+                    'type': str,
                 },
                 'required_choice_list': {
                     'type': ['a', 'b', 'c'],
@@ -458,15 +458,15 @@ class WebAPIDecoratorTests(TestCase):
                 }
             },
         )
-        def func(request, required_int=None, required_string=None,
-                 required_bytes=None, required_choice_list=None,
+        def func(request, required_int=None, required_unicode_str=None,
+                 required_native_str=None, required_choice_list=None,
                  required_choice_tuple=None, required_file=None,
                  required_bool=None, optional_param=None,
                  parsed_request_fields=None, extra_fields={}):
             func.seen = True
             self.assertEqual(required_int, 42)
-            self.assertEqual(required_string, 'test')
-            self.assertEqual(required_bytes, 'test')
+            self.assertEqual(required_unicode_str, 'test')
+            self.assertEqual(required_native_str, str('test'))
             self.assertEqual(required_choice_list, 'a')
             self.assertEqual(required_choice_tuple, 'c')
             self.assertEqual(required_file.read(), b'content')
@@ -477,8 +477,8 @@ class WebAPIDecoratorTests(TestCase):
                 parsed_request_fields,
                 {
                     'required_int': required_int,
-                    'required_string': required_string,
-                    'required_bytes': required_bytes,
+                    'required_unicode_str': required_unicode_str,
+                    'required_native_str': required_native_str,
                     'required_choice_list': required_choice_list,
                     'required_choice_tuple': required_choice_tuple,
                     'required_bool': required_bool,
@@ -490,8 +490,8 @@ class WebAPIDecoratorTests(TestCase):
             path='/',
             data={
                 'required_int': '42',
-                'required_string': 'test',
-                'required_bytes': bytes('test'),
+                'required_unicode_str': 'test',
+                'required_native_str': str('test'),
                 'required_choice_list': 'a',
                 'required_choice_tuple': 'c',
                 'required_bool': 'true',
@@ -510,10 +510,10 @@ class WebAPIDecoratorTests(TestCase):
                 'required_int': {
                     'type': IntFieldType,
                 },
-                'required_string': {
+                'required_unicode_str': {
                     'type': StringFieldType,
                 },
-                'required_bytes': {
+                'required_native_str': {
                     'type': StringFieldType,
                 },
                 'required_choice_list': {

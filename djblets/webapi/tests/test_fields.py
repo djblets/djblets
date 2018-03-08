@@ -480,9 +480,12 @@ class ResourceFieldTypeTests(TestCase):
         """Testing ResourceFieldType.__init__ with resource path string and
         resource not found
         """
+        # Note that we're not checking the entirety of the string here,
+        # since Python 2 and 3 differ in how they represent the module that
+        # failed to import.
         expected_error = (
             'Unable to load resource "foo.bar.my_resource": No module '
-            'named foo.bar'
+            'named'
         )
 
         with self.assertRaisesMessage(ImportError, expected_error):
@@ -547,9 +550,12 @@ class ResourceListFieldTypeTests(TestCase):
         """Testing ResourceListFieldType.__init__ with resource path string and
         resource not found
         """
+        # Note that we're not checking the entirety of the string here,
+        # since Python 2 and 3 differ in how they represent the module that
+        # failed to import.
         expected_error = (
             'Unable to load resource "foo.bar.my_resource": No module '
-            'named foo.bar'
+            'named'
         )
 
         with self.assertRaisesMessage(ImportError, expected_error):

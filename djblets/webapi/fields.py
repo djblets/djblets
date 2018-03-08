@@ -557,4 +557,7 @@ class StringFieldType(BaseAPIFieldType):
             unicode:
             A string version of the value.
         """
-        return six.text_type(value)
+        if isinstance(value, six.binary_type):
+            return value.decode('utf-8')
+        else:
+            return six.text_type(value)
