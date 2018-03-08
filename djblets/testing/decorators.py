@@ -25,7 +25,7 @@ def requires_user_profile(f):
     parts of Djblets require this method to exist in Django or be added by the
     consuming app. To fix this requirement for unit testing on Django 1.7+, we
     attach a method that raises :py:exc:`NotImplementedError` when the method
-    does not exist. After the text exits the method will be removed.
+    does not exist. After the test exits the method will be removed.
 
     Args:
         f (callable):
@@ -57,7 +57,16 @@ def requires_user_profile(f):
                 if hasattr(User.get_profile, 'unspy'):
                     User.get_profile.unspy()
 
-                if User.get_profile.im_func is get_profile:
+                # On Python 3.x, unbound methods are just plain functions,
+                # so they don't have __func__.
+                if hasattr(User.get_profile, '__func__'):
+                    # Python 2.x
+                    user_get_profile = User.get_profile.__func__
+                else:
+                    # Python 3.x
+                    user_get_profile = User.get_profile
+
+                if user_get_profile is get_profile:
                     delattr(User, 'get_profile')
 
     return decorated
