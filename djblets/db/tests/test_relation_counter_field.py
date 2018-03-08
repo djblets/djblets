@@ -18,11 +18,20 @@ class ReffedModel(models.Model):
     m2m_reffed_counter_2 = RelationCounterField('m2m_reffed')
     reffed_key_counter_2 = RelationCounterField('key_reffed')
 
+    # Here, and in following classes, we're forcing a boolean check on this
+    # instance to return False so that we can make sure we're testing the
+    # results correctly from weak references.
+    def __nonzero__(self):
+        return False
+
 
 class M2MRefModel(models.Model):
     m2m = models.ManyToManyField(ReffedModel, related_name='m2m_reffed')
     counter = RelationCounterField('m2m')
     counter_2 = RelationCounterField('m2m')
+
+    def __nonzero__(self):
+        return False
 
 
 class KeyRefModel(models.Model):
@@ -31,6 +40,9 @@ class KeyRefModel(models.Model):
                             null=True,
                             on_delete=models.CASCADE)
 
+    def __nonzero__(self):
+        return False
+
 
 class BadKeyRefModel(models.Model):
     key = models.ForeignKey(ReffedModel,
@@ -38,6 +50,9 @@ class BadKeyRefModel(models.Model):
                             on_delete=models.CASCADE)
     counter = RelationCounterField('key')
     counter_2 = RelationCounterField('key')
+
+    def __nonzero__(self):
+        return False
 
 
 class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):

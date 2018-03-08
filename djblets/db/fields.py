@@ -800,7 +800,7 @@ class CounterField(models.IntegerField):
         # same CounterField on this same instance tries to initialize
         # more than once. In this case, this will have the updated
         # value shortly.
-        if instance:
+        if instance is not None:
             instance_id = id(instance)
 
             if instance_id not in self._locks:
@@ -976,36 +976,51 @@ class RelationCounterField(CounterField):
         def model_instance(self):
             return self.model_instance_ref()
 
-        def reinit_fields(self):
-            """Reinitializes all associated fields' counters."""
+        def increment_fields(self, by=1):
+            """Increment all associated fields' counters.
+
+            Args:
+                by (int):
+                    The value to increment by.
+            """
             model_instance = self.model_instance
 
-            for field in self.fields:
-                field._reinit(model_instance)
-
-        def increment_fields(self, by=1):
-            """Increments all associated fields' counters."""
-            RelationCounterField.increment_many(
-                self.model_instance,
-                dict((field.attname, by) for field in self.fields))
+            if model_instance is not None:
+                RelationCounterField.increment_many(
+                    model_instance,
+                    dict((field.attname, by) for field in self.fields))
 
         def decrement_fields(self, by=1):
-            """Decrements all associated fields' counters."""
-            RelationCounterField.decrement_many(
-                self.model_instance,
-                dict((field.attname, by) for field in self.fields))
+            """Decrement all associated fields' counters.
+
+            Args:
+                by (int):
+                    The value to decrement by.
+            """
+            model_instance = self.model_instance
+
+            if model_instance is not None:
+                RelationCounterField.decrement_many(
+                    model_instance,
+                    dict((field.attname, by) for field in self.fields))
 
         def zero_fields(self):
-            """Zeros out all associated fields' counters."""
-            RelationCounterField._set_values(
-                self.model_instance,
-                dict((field.attname, 0) for field in self.fields))
+            """Zero out all associated fields' counters."""
+            model_instance = self.model_instance
+
+            if model_instance is not None:
+                RelationCounterField._set_values(
+                    model_instance,
+                    dict((field.attname, 0) for field in self.fields))
 
         def reload_fields(self):
-            """Reloads all associated fields' counters."""
-            RelationCounterField._reload_model_instance(
-                self.model_instance,
-                [field.attname for field in self.fields])
+            """Reload all associated fields' counters."""
+            model_instance = self.model_instance
+
+            if model_instance is not None:
+                RelationCounterField._reload_model_instance(
+                    model_instance,
+                    [field.attname for field in self.fields])
 
         def __repr__(self):
             """Return a string representation of the instance state.
@@ -1016,7 +1031,7 @@ class RelationCounterField(CounterField):
             """
             model_instance = self.model_instance
 
-            if model_instance:
+            if model_instance is not None:
                 return '<RelationCounterField.InstanceState for %s.pk=%s>' % (
                     model_instance.__class__.__name__,
                     model_instance.pk)
@@ -1043,7 +1058,9 @@ class RelationCounterField(CounterField):
                 **kwargs (dict):
                     Extra keyword arguments passed to the handler.
             """
-            if instance is not self.model_instance:
+            model_instance = self.model_instance
+
+            if model_instance is None or instance is not model_instance:
                 return
 
             assert created
@@ -1102,7 +1119,9 @@ class RelationCounterField(CounterField):
                 instance (django.db.models.Model):
                     The instance being deleted.
             """
-            if instance is self.model_instance:
+            model_instance = self.model_instance
+
+            if model_instance is not None and instance is model_instance:
                 RelationCounterField._reset_state(
                     instance_cls=instance.__class__,
                     instance_pk=instance.pk,
@@ -1418,11 +1437,11 @@ class RelationCounterField(CounterField):
             """
             main_instance = main_state.model_instance
 
-            if main_instance:
+            if main_instance is not None:
                 for other_state in other_states:
                     other_instance = other_state.model_instance
 
-                    if other_instance:
+                    if other_instance is not None:
                         for field in other_state.fields:
                             setattr(other_instance, field.attname,
                                     getattr(main_instance, field.attname))
