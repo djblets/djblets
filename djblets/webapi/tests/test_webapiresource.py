@@ -1,5 +1,6 @@
 from __future__ import print_function, unicode_literals
 
+import json
 import warnings
 
 from django.contrib.auth.models import User
@@ -233,7 +234,7 @@ class WebAPIResourceTests(TestCase):
             self.assertIn('generate_etag will stop generating',
                           six.text_type(w[0].message))
 
-        self.assertEqual(etag, '416c0aecaf0b1e8ec64104349ba549c7534861f2')
+        self.assertEqual(etag, '42dedc7a30319599b8e9df8ea08c32ef246ae442')
 
     def test_generate_etag_with_encode_etag_false(self):
         """Testing WebAPIResource.generate_etag with encode_etag=False"""
@@ -253,7 +254,8 @@ class WebAPIResourceTests(TestCase):
 
         self.assertEqual(
             etag,
-            repr(resource.serialize_object(obj, request=request)))
+            json.dumps(resource.serialize_object(obj, request=request),
+                       sort_keys=True))
 
     def test_are_cache_headers_current_with_old_last_modified(self):
         """Testing WebAPIResource.are_cache_headers_current with old last

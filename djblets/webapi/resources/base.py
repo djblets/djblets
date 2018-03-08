@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 
+import json
 import logging
 import warnings
 
@@ -1189,7 +1190,9 @@ class WebAPIResource(object):
         In a future version, the encode_etag parameter will go away, and
         this function's behavior will change to not return encoded ETags.
         """
-        etag = repr(self.serialize_object(obj, request=request, **kwargs))
+        etag = json.dumps(
+            self.serialize_object(obj, request=request, **kwargs),
+            sort_keys=True)
 
         # In Djblets 0.8.15, the responsibility for encoding moved to
         # get_etag(). However, legacy callers may end up calling
