@@ -180,8 +180,8 @@ class LocalDataQuerySetTests(TestCase):
         queryset = LocalDataQuerySet(values)
         gen = iter(queryset)
 
-        self.assertEqual(gen.next(), 1)
-        self.assertEqual(gen.next(), 2)
+        self.assertEqual(next(gen), 1)
+        self.assertEqual(next(gen), 2)
 
     def test_len(self):
         """Testing LocalDataQuerySet.__len__"""

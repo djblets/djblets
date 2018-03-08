@@ -31,6 +31,9 @@ class Item(object):
         )
         return '<Item(%s)>' % ', '.join(attrs)
 
+    def __hash__(self):
+        return id(self)
+
     def __eq__(self, other):
         return (type(self) is type(other) and
                 self._attrs == other._attrs and

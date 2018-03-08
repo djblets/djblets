@@ -25,7 +25,7 @@ from django.core.urlresolvers import reverse
 from django.db import IntegrityError
 from django.utils import six
 from django.utils.module_loading import module_has_submodule
-from django.utils.six.moves import cStringIO as StringIO
+from django.utils.six.moves import cStringIO as StringIO, reload_module
 from django.utils.translation import ugettext as _
 from pipeline.conf import settings as pipeline_settings
 from setuptools.command import easy_install
@@ -1307,7 +1307,7 @@ class ExtensionManager(object):
                 # If the extension has been loaded previously and we are
                 # re-enabling it, we must reload the module. Just importing
                 # again will not cause the ModelAdmins to be registered.
-                reload(sys.modules[admin_module_name])
+                reload_module(sys.modules[admin_module_name])
             else:
                 import_module(admin_module_name)
         except ImportError:
