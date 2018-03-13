@@ -14,6 +14,7 @@ import zlib
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib.sites.models import Site
+from django.utils import six
 from django.utils.six.moves import (range,
                                     cPickle as pickle,
                                     cStringIO as StringIO)
@@ -60,7 +61,7 @@ def _cache_fetch_large_data(cache, key, compress_large_data):
     # pass an error about missing keys to the caller up-front before we
     # generate anything.
     if len(chunks) != chunk_count:
-        missing_keys = sorted(set(chunk_keys) - set(chunks.keys()))
+        missing_keys = sorted(set(chunk_keys) - set(six.iterkeys(chunks)))
         logger.debug('Cache miss for key(s): %s.' % ', '.join(missing_keys))
 
         raise MissingChunkError

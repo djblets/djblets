@@ -455,6 +455,8 @@ class ExtensionInfo(object):
         p.feed(data)
         pkg_info = p.close()
 
+        # Convert from a Message to a dictionary. Note that items() is correct
+        # here. six.iteritems() will not work.
         return dict(pkg_info.items())
 
     def __init__(self, ext_class, package_name, metadata={}):

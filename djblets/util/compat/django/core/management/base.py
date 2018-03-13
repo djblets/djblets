@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 from optparse import OptionParser
 
 from django.core.management.base import BaseCommand as DjangoBaseCommand
+from django.utils import six
 
 
 class OptionParserWrapper(object):
@@ -46,7 +47,7 @@ class OptionParserWrapper(object):
         arg_type = kwargs.get('type')
 
         if arg_type is not None:
-            kwargs['type'] = unicode(arg_type.__name__)
+            kwargs['type'] = six.text_type(arg_type.__name__)
 
         self.parser.add_option(*args, **kwargs)
 

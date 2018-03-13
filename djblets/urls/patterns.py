@@ -4,6 +4,7 @@ import warnings
 
 from django.conf.urls import url
 from django.core.urlresolvers import RegexURLPattern
+from django.utils import six
 from django.views.decorators.cache import never_cache
 
 
@@ -26,7 +27,7 @@ def never_cache_patterns(*args):
         list:
         A list of URL patterns.
     """
-    if isinstance(args[0], basestring):
+    if isinstance(args[0], six.string_types):
         prefix = args[0]
         args = args[1:]
     else:

@@ -247,7 +247,7 @@ class EmailMessage(EmailMultiAlternatives):
         msg = super(EmailMessage, self).message()
         self.message_id = msg['Message-ID']
 
-        for name, value_list in self._headers.iterlists():
+        for name, value_list in six.iterlists(self._headers):
             for value in value_list:
                 msg.add_header(six.binary_type(name), value)
 
