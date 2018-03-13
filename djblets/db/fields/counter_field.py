@@ -1,3 +1,5 @@
+"""Field for atomically incrementing and decrementing counters in models."""
+
 from __future__ import unicode_literals
 
 from django.db import models
@@ -27,75 +29,139 @@ class CounterField(models.IntegerField):
     be used to auto-populate the field the first time the model instance is
     loaded, perhaps based on querying a number of related objects. The value
     passed to ``initializer`` must be a function taking the model instance
-    as a parameter, and must return an integer or None. If it returns None,
-    the counter will not be updated or saved.
+    as a parameter, and must return an integer or ``None``. If it returns
+    ``None``, the counter will not be updated or saved.
 
     The model instance will gain four new functions:
 
-        * ``increment_{field_name}`` - Atomically increment by one.
-        * ``decrement_{field_name}`` - Atomically decrement by one.
-        * ``reload_{field_name}`` - Reload the value in this instance from the
-                                    database.
-        * ``reinit_{field_name}`` - Re-initializes the stored field using the
-                                    initializer function.
+    :samp:`increment_{field_name}`
+        Atomically increment the field by one.
+
+    :samp:`decrement_{field_name}`
+        Atomically decrement the field by one.
+
+    :samp:`reload_{field_name}`
+        Reload the value in this instance from the database.
+
+    :samp:`reinit_{field_name}`
+        Re-initializes the stored field using the initializer function.
 
     The field on the class (not the instance) provides two functions for
     batch-updating models:
 
-        * ``increment`` - Takes a queryset and increments this field for
-                          each object.
-        * ``decrement`` - Takes a queryset and decrements this field for
-                          each object.
+    ``increment``
+        Takes a queryset and increments this field for each object.
+
+    ``decrement``
+        Takes a queryset and decrements this field for each object.
     """
+
     @classmethod
     def increment_many(cls, model_instance, values, reload_object=True):
-        """Increments several fields on a model instance at once.
+        """Increment several fields on a model instance at once.
 
-        This takes a model instance and dictionary of fields to values,
-        and will increment each of those fields by that value.
+        Args:
+            model_instance (django.db.models.Model):
+                The model instance containing the fields to increment.
 
-        If reload_object is True, then the fields on the instance will
-        be reloaded to reflect the current values.
+            values (dict):
+                A dictionary mapping field names to delta values to increment
+                by.
+
+            reload_object (bool, optional):
+                Whether to reload the field values in ``model_instance`` to
+                reflect the current values in the database after incrementing.
         """
-        cls._update_values(model_instance, values, reload_object, 1)
+        cls._update_values(model_instance, values, reload_object, multiplier=1)
 
     @classmethod
     def decrement_many(cls, model_instance, values, reload_object=True):
-        """Decrements several fields on a model instance at once.
+        """Decrement several fields on a model instance at once.
 
-        This takes a model instance and dictionary of fields to values,
-        and will decrement each of those fields by that value.
+        Args:
+            model_instance (django.db.models.Model):
+                The model instance containing the fields to decrement.
 
-        If reload_object is True, then the fields on the instance will
-        be reloaded to reflect the current values.
+            values (dict):
+                A dictionary mapping field names to delta values to decrement
+                by.
+
+            reload_object (bool, optional):
+                Whether to reload the field values in ``model_instance`` to
+                reflect the current values in the database after decrementing.
         """
-        cls._update_values(model_instance, values, reload_object, -1)
+        cls._update_values(model_instance, values, reload_object,
+                           multiplier=-1)
 
     @classmethod
     def _update_values(cls, model_instance, values, reload_object, multiplier):
-        update_values = {}
+        """Update several fields on a model instance at once.
 
-        for attname, value in six.iteritems(values):
-            if value != 0:
-                update_values[attname] = F(attname) + value * multiplier
+        This does the hard work of updating fields for a model instance,
+        updating existing values based on multiplying those provided with
+        ``multiplier``.
 
-        cls._set_values(model_instance, update_values, reload_object)
+        Args:
+            model_instance (django.db.models.Model):
+                The model instance containing the fields to update.
+
+            values (dict):
+                A dictionary mapping field names to delta values.
+
+            reload_object (bool):
+                Whether to reload the field values in ``model_instance`` to
+                reflect the current values in the database after updating.
+
+            multiplier (int):
+                The value to multiply each of the provided values with.
+        """
+        cls._set_values(
+            model_instance=model_instance,
+            values={
+                attname: F(attname) + value * multiplier
+                for attname, value in six.iteritems(values)
+                if value != 0
+            },
+            reload_object=reload_object)
 
     @classmethod
     def _set_values(cls, model_instance, values, reload_object=True):
-        if values:
-            queryset = model_instance.__class__.objects.filter(
-                pk=model_instance.pk)
-            queryset.update(**values)
+        """Set values for several fields on a model instance at once.
 
-            if reload_object:
-                cls._reload_model_instance(model_instance,
-                                           six.iterkeys(values))
+        Args:
+            model_instance (django.db.models.Model):
+                The model instance containing the fields to update.
+
+            values (dict):
+                A dictionary mapping field names to values. Each value can be
+                anything allowed in a model update, including a
+                :py:class:`query expression <django.db.models.F>`.
+
+            reload_object (bool):
+                Whether to reload the field values in ``model_instance`` to
+                reflect the current values in the database after updating.
+        """
+        if not values:
+            return
+
+        model_cls = type(model_instance)
+        model_cls.objects.filter(pk=model_instance.pk).update(**values)
+
+        if reload_object:
+            cls._reload_model_instance(model_instance, six.iterkeys(values))
 
     @classmethod
     def _reload_model_instance(cls, model_instance, attnames):
-        """Reloads the value in this instance from the database."""
-        q = model_instance.__class__.objects.filter(pk=model_instance.pk)
+        """Reload the value in this instance from the database.
+
+        Args:
+            model_instance (django.db.models.Model):
+                The model instance containing fields to reload.
+
+            attnames (list of str):
+                The list of field attribute names to reload.
+        """
+        q = type(model_instance).objects.filter(pk=model_instance.pk)
         values = q.values(*attnames)[0]
 
         for attname, value in six.iteritems(values):
@@ -103,6 +169,31 @@ class CounterField(models.IntegerField):
 
     def __init__(self, verbose_name=None, name=None,
                  initializer=None, default=None, **kwargs):
+        """Initialize the field.
+
+        This can take a default value for the counter, or an initializer
+        function that can compute a value (based on database queries or
+        anything else needed).
+
+        Args:
+            verbose_name (unicode, optional):
+                The verbose name to show users in forms. This defaults to a
+                variation of the field name.
+
+            name (str, optional):
+                The name of the field. This defaults to the attribute name
+                on the model.
+
+            initializer (callable, optional):
+                A function to call to compute an initial value for the field
+                if ``None`` or when re-initializing.
+
+            default (int, optional):
+                An explicit default value for the field.
+
+            **kwargs (dict):
+                Additional keyword arguments for the field.
+        """
         kwargs.update({
             'blank': True,
             'null': True,
@@ -115,14 +206,48 @@ class CounterField(models.IntegerField):
         self._locks = {}
 
     def increment(self, queryset, increment_by=1):
-        """Increments this field on every object in the provided queryset."""
+        """Increment this field on every object in the provided queryset.
+
+        By default, this increments by 1, but a custom delta value can be
+        provided.
+
+        Args:
+            queryset (django.db.models.query.QuerySet):
+                The queryset for the update.
+
+            increment_by (int, optional):
+                The value to increment by. Defaults to 1.
+        """
         queryset.update(**{self.attname: F(self.attname) + increment_by})
 
     def decrement(self, queryset, decrement_by=1):
-        """Decrements this field on every object in the provided queryset."""
+        """Decrement this field on every object in the provided queryset.
+
+        By default, this increments by 1, but a custom delta value can be
+        provided.
+
+        Args:
+            queryset (django.db.models.query.QuerySet):
+                The queryset for the update.
+
+            decrement_by (int, optional):
+                The value to decrement by. Defaults to 1.
+        """
         queryset.update(**{self.attname: F(self.attname) - decrement_by})
 
     def contribute_to_class(self, cls, name):
+        """Add methods to the model class.
+
+        This introduces the methods for incrementing, decrementing,
+        reloading, and re-initializing the fields.
+
+        Args:
+            cls (type):
+                The model class.
+
+            name (str):
+                The name of the field on the model.
+        """
         def _increment(model_instance, *args, **kwargs):
             self._increment(model_instance, *args, **kwargs)
 
@@ -150,14 +275,27 @@ class CounterField(models.IntegerField):
         # overriding _do_update(), which actually receives the values and
         # field instances being saved. From there, we can filter out any
         # CounterFields by default.
-        setattr(cls, '_do_update', self.__class__._model_do_update)
+        setattr(cls, '_do_update', type(self)._model_do_update)
 
         post_init.connect(self._post_init, sender=cls)
 
     def _increment(self, model_instance, reload_object=True, increment_by=1):
-        """Increments this field by one."""
+        """Increment this field by a value.
+
+        By default, this increments by 1.
+
+        Args:
+            model_instance (django.db.models.Model):
+                The model instance containing the field to increment.
+
+            reload_object (bool, optional):
+                Whether to reload the field value after incrementing.
+
+            increment_by (int, optional):
+                The value to increment by. Defaults to 1.
+        """
         if increment_by != 0:
-            cls = model_instance.__class__
+            cls = type(model_instance)
             self.increment(cls.objects.filter(pk=model_instance.pk),
                            increment_by)
 
@@ -165,9 +303,22 @@ class CounterField(models.IntegerField):
                 self._reload(model_instance)
 
     def _decrement(self, model_instance, reload_object=True, decrement_by=1):
-        """Decrements this field by one."""
+        """Decrement this field by one.
+
+        By default, this decrements by 1.
+
+        Args:
+            model_instance (django.db.models.Model):
+                The model instance containing the field to decrement.
+
+            reload_object (bool, optional):
+                Whether to reload the field value after decrementing.
+
+            increment_by (int, optional):
+                The value to decrement by. Defaults to 1.
+        """
         if decrement_by != 0:
-            cls = model_instance.__class__
+            cls = type(model_instance)
             self.decrement(cls.objects.filter(pk=model_instance.pk),
                            decrement_by)
 
@@ -175,11 +326,21 @@ class CounterField(models.IntegerField):
                 self._reload(model_instance)
 
     def _reload(self, model_instance):
-        """Reloads the value in this instance from the database."""
+        """Reload the value in this instance from the database.
+
+        Args:
+            model_instance (django.db.models.Model):
+                The model instance containing the field to reload.
+        """
         self._reload_model_instance(model_instance, [self.attname])
 
     def _reinit(self, model_instance):
-        """Re-initializes the value in the database from the initializer."""
+        """Re-initialize the value in the database from the initializer.
+
+        Args:
+            model_instance (django.db.models.Model):
+                The model instance containing the field to re-initialize.
+        """
         if not (model_instance.pk or self._initializer or
                 six.callable(self._initializer)):
             # We don't want to end up defaulting this to 0 if creating a
@@ -219,7 +380,21 @@ class CounterField(models.IntegerField):
                 if model_instance.pk:
                     model_instance.save(update_fields=[self.attname])
 
-    def _post_init(self, instance=None, **kwargs):
+    def _post_init(self, instance, **kwargs):
+        """Initialize the field when a model instance is created.
+
+        This will begin the process of initializing the default value for
+        the field. It checks to make sure there's not another initialization
+        happening due to a second counter field on the same instance modifying
+        the state.
+
+        Args:
+            instance (django.db.models.Model):
+                The instance being initialized.
+
+            **kwargs (dict):
+                Extra keyword arguments for the signal handler.
+        """
         # Prevent the possibility of recursive lookups where this
         # same CounterField on this same instance tries to initialize
         # more than once. In this case, this will have the updated
@@ -231,6 +406,15 @@ class CounterField(models.IntegerField):
                 self._do_post_init(instance)
 
     def _do_post_init(self, instance):
+        """Initialize the value for the field when a model instance is created.
+
+        If a value doesn't already exist on the counter, and an initializer
+        is provided, it will be called to set a new value for the counter.
+
+        Args:
+            instance (django.db.models.Model):
+                The instance being initialized.
+        """
         value = self.value_from_object(instance)
 
         if value is None:
