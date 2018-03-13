@@ -24,7 +24,7 @@ class BaseFeatureChecker(object):
     def min_enabled_level(self):
         """The minimum feature level to enable by default.
 
-        If ``settings.MIN_ENABLED_FEATURE_LEVEL` is set, that value will be
+        If ``settings.MIN_ENABLED_FEATURE_LEVEL`` is set, that value will be
         used.
 
         If ``settings.DEBUG`` is ``True``, then anything
