@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 
+import codecs
 import logging
 
 import pkg_resources
@@ -263,8 +264,9 @@ def get_dmarc_record(hostname, use_cache=True,
         filename = 'mail/public_suffix_list.dat'
 
         try:
-            psl = PublicSuffixList(pkg_resources.resource_stream('djblets',
-                                                                 filename))
+            stream = pkg_resources.resource_stream('djblets', filename)
+            reader = codecs.getreader('utf-8')
+            psl = PublicSuffixList(reader(stream))
         except IOError as e:
             logger.error('Unable to read public domain suffix list file '
                          '"%s" from Djblets package: %s',

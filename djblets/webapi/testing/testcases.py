@@ -13,6 +13,7 @@ import pprint
 
 from django.test.client import BOUNDARY, MULTIPART_CONTENT, encode_multipart
 from django.utils import six
+from django.utils.encoding import force_text
 
 from djblets.testing.testcases import TestCase
 
@@ -172,7 +173,7 @@ class WebAPITestCaseMixin(TestCase):
             self.assertEqual(response[header], value)
 
         if expected_status != 302 and expected_json:
-            rsp = json.loads(response.content)
+            rsp = json.loads(force_text(response.content))
         else:
             rsp = response.content
 
