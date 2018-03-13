@@ -21,7 +21,9 @@ from djblets.dependencies import (build_dependency_list, npm_dependencies,
 # Make sure this is a version of Python we are compatible with. This should
 # prevent people on older versions from unintentionally trying to install
 # the source tarball, and failing.
-if sys.hexversion < 0x02060000:
+pyver = sys.version_info[:2]
+
+if pyver < (2, 7) or pyver >= (3, 0):
     sys.stderr.write('This version of Djblets is incompatible with your '
                      'version of Python.\n')
     sys.exit(1)
@@ -428,7 +430,7 @@ setup(
         'list_node_deps': ListNodeDependenciesCommand,
     },
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
         'Framework :: Django',
         'Intended Audience :: Developers',
