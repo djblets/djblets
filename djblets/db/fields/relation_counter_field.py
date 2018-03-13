@@ -123,9 +123,9 @@ class InstanceState(object):
         # has been saved for the very first time), we need to flush any
         # existing state. This will ensure the unsaved version of this
         # state does not remain.
-        RelationCounterField._reset_state(instance_cls=instance_cls,
-                                          instance_pk=instance.pk,
-                                          instance_id=id(instance))
+        RelationCounterField._cleanup_state(instance_cls=instance_cls,
+                                            instance_pk=instance.pk,
+                                            instance_id=id(instance))
 
         # Now we can register each RelationCounterField on here.
         for field in instance_cls._meta.local_fields:
@@ -143,7 +143,7 @@ class InstanceState(object):
                 Arguments passed to the callback.
         """
         try:
-            RelationCounterField._reset_state(
+            RelationCounterField._cleanup_state(
                 instance_cls=self.model_cls,
                 instance_pk=None,
                 instance_id=self.model_instance_id)
@@ -167,7 +167,7 @@ class InstanceState(object):
         model_instance = self.model_instance
 
         if model_instance is not None and instance is model_instance:
-            RelationCounterField._reset_state(
+            RelationCounterField._cleanup_state(
                 instance_cls=instance.__class__,
                 instance_pk=instance.pk,
                 instance_id=id(instance))
@@ -658,8 +658,9 @@ class RelationCounterField(CounterField):
     _state_lock = threading.RLock()
 
     @classmethod
-    def _reset_state(cls, instance_cls, instance_pk, instance_id):
-        """Reset state for an instance.
+    def _cleanup_state(cls, instance_cls=None, instance_pk=None,
+                       instance_id=None):
+        """Clean up state for one or more instances.
 
         This will clear away any state tied to a destroyed instance, an
         instance with a given reference ID, or an instance with a given class
@@ -668,35 +669,76 @@ class RelationCounterField(CounterField):
         instance to saved) are cleared away before storing new state.
 
         Args:
-            instance_cls (type):
+            instance_cls (type, optional):
                 The model class of the instance being removed.
 
-            instance_pk (int):
+            instance_pk (int, optional):
                 The database ID of the instance (if known and if saved).
 
-            instance_id (int):
+            instance_id (int, optional):
                 The reference ID of the instance.
         """
         with cls._state_lock:
-            for states in ([cls._unsaved_instance_states] +
-                           list(six.itervalues(cls._saved_instance_states))):
-                to_remove = []
+            cls._cleanup_state_for_dict(cls._unsaved_instance_states,
+                                        instance_cls=instance_cls,
+                                        instance_pk=instance_pk,
+                                        instance_id=instance_id)
 
-                for key, state in six.iteritems(states):
-                    model_instance = state.model_instance
+            # The saved instances dictionary is a dictionary full of
+            # dictionaries, so we'll want to iterate through and see if
+            # there's any keys in the outer dictionary that we need to
+            # remove by the end.
+            to_remove = []
 
-                    if (model_instance is None or
-                        id(model_instance) == instance_id or
-                        (model_instance.__class__ is instance_cls and
-                         model_instance.pk == instance_pk)):
-                        to_remove.append(key)
+            for key, states in six.iteritems(cls._saved_instance_states):
+                cls._cleanup_state_for_dict(states,
+                                            instance_cls=instance_cls,
+                                            instance_pk=instance_pk,
+                                            instance_id=instance_id)
 
-                for key in to_remove:
-                    states.pop(key, None)
+                if not states:
+                    # The states dictionary is now empty. Schedule it for
+                    # removal.
+                    to_remove.append(key)
 
-            for key in list(six.iterkeys(cls._saved_instance_states)):
-                if not cls._saved_instance_states[key]:
-                    del cls._saved_instance_states[key]
+            for key in to_remove:
+                cls._saved_instance_states.pop(key, None)
+
+    @classmethod
+    def _cleanup_state_for_dict(cls, states, instance_cls, instance_pk,
+                                instance_id):
+        """Clean up state in a states dictionary.
+
+        This is a utility function used by :py:meth:`_cleanup_state` for
+        clearing out any state entries matching the given instance information
+        or for those states that are no longer active.
+
+        Args:
+            states (list of InstanceState):
+                The list of instance states to clean up.
+
+            instance_cls (type, optional):
+                The model class of the instance being removed.
+
+            instance_pk (int, optional):
+                The database ID of the instance (if known and if saved).
+
+            instance_id (int, optional):
+                The reference ID of the instance.
+        """
+        to_remove = []
+
+        for key, state in six.iteritems(states):
+            model_instance = state.model_instance
+
+            if (model_instance is None or
+                id(model_instance) == instance_id or
+                (type(model_instance) is instance_cls and
+                 model_instance.pk == instance_pk)):
+                to_remove.append(key)
+
+        for key in to_remove:
+            states.pop(key, None)
 
     @classmethod
     def _store_state(cls, instance, field):
