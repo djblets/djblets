@@ -247,7 +247,7 @@ class EmailMessage(EmailMultiAlternatives):
         msg = super(EmailMessage, self).message()
         self.message_id = msg['Message-ID']
 
-        for name, value_list in self._headers.iterlists():
+        for name, value_list in six.iterlists(self._headers):
             for value in value_list:
                 # Use the native string on each version of Python. These
                 # are headers, so they'll be convertible without encoding

@@ -1542,7 +1542,7 @@ def get_extension_managers():
         list of ExtensionManager:
         The list of all extension manager instances currently registered.
     """
-    return _extension_managers.values()
+    return list(six.itervalues(_extension_managers))
 
 
 def shutdown_extension_managers():

@@ -138,14 +138,13 @@ class WebAPIScopeDictionary(object):
         """Iterate through all keys in the dictionary.
 
         This is used by oauth2_provider when on Python 3.x to get the list
-        of scope keys. As such, it's documented as a generator. Calling this
-        on Python 2.x will result in a list being returned instead.
+        of scope keys.
 
         Yields:
             unicode:
             The key for each scope.
         """
-        return self.scope_dict.keys()
+        return six.iterkeys(self.scope_dict)
 
     def clear(self):
         """Clear all scopes from the dictionary.
