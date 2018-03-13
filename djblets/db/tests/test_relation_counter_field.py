@@ -1,9 +1,12 @@
 from __future__ import unicode_literals
 
+import gc
+
 import django
 import nose
 from django.db import models, transaction
 from django.db.models.signals import post_save, pre_delete
+from kgb import SpyAgency
 
 from djblets.db.fields import RelationCounterField
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
@@ -55,7 +58,7 @@ class BadKeyRefModel(models.Model):
         return False
 
 
-class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
+class RelationCounterFieldTests(SpyAgency, TestModelsLoaderMixin, TestCase):
     """Tests for djblets.db.fields.RelationCounterField."""
     tests_app = 'djblets.db.tests'
 
@@ -97,16 +100,16 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
 
         # Make sure the state is clear due to dropped references before
         # each run.
-        self.assertFalse(RelationCounterField._saved_instance_states)
-        self.assertFalse(RelationCounterField._unsaved_instance_states)
+        gc.collect()
+        self.assertFalse(RelationCounterField.has_tracked_states())
 
     def tearDown(self):
         super(RelationCounterFieldTests, self).tearDown()
 
         # Make sure the state is clear due to dropped references after
         # each run.
-        self.assertFalse(RelationCounterField._saved_instance_states)
-        self.assertFalse(RelationCounterField._unsaved_instance_states)
+        gc.collect()
+        self.assertFalse(RelationCounterField.has_tracked_states())
 
     #
     # Instance tracking tests
@@ -176,6 +179,8 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
 
         # Adding a reference again should result in these counters being
         # increased, rather than the old ones.
+        assert reffed.pk
+        assert new_model.pk
         new_model.m2m.add(reffed)
         self.assertEqual(new_model.counter, 1)
         self.assertEqual(new_model.counter_2, 1)
@@ -186,33 +191,32 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(model.counter, 1)
         self.assertEqual(model.counter_2, 1)
 
-    def test_signals_with_create(self):
-        """Testing RelationCounterField signal management with newly-created,
-        unsaved instance
+    def test_save_calls_on_instance_first_save(self):
+        """Testing RelationCounterField._on_instance_first_save called on
+        first model.save()
         """
-        model = M2MRefModel()
-        self.assertIsNone(model.pk)
+        self.spy_on(RelationCounterField._on_instance_first_save)
+        save_func = RelationCounterField._on_instance_first_save
 
-        self.assertEqual(len(pre_delete._live_receivers(M2MRefModel)), 0)
-        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 1)
-
-    def test_signals_with_save(self):
-        """Testing RelationCounterField signal management after first instance
-        save
-        """
         model = M2MRefModel()
         model.save()
 
-        self.assertEqual(len(pre_delete._live_receivers(M2MRefModel)), 1)
-        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 0)
+        self.assertTrue(save_func.last_called_with(instance=model,
+                                                   created=True))
+        self.assertTrue(save_func.last_returned(True))
 
-    def test_signals_with_delete(self):
-        """Testing RelationCounterField signal management after delete"""
+    def test_delete_calls_on_instance_pre_delete(self):
+        """Testing RelationCounterField._on_instance_pre_delete called on
+        model.delete()
+        """
+        self.spy_on(RelationCounterField._on_instance_pre_delete)
+        delete_func = RelationCounterField._on_instance_pre_delete
+
         model = M2MRefModel.objects.create()
         model.delete()
 
-        self.assertEqual(len(pre_delete._live_receivers(M2MRefModel)), 0)
-        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 0)
+        self.assertTrue(delete_func.last_called_with(instance=model))
+        self.assertTrue(delete_func.last_returned(True))
 
     def test_unsaved_and_other_double_save(self):
         """Testing RelationCounterField with an unsaved object and a double
@@ -224,30 +228,29 @@ class RelationCounterFieldTests(TestModelsLoaderMixin, TestCase):
         # signal connection from the first stuck around and saw that
         # updated=False, which it expected would be True. However, it didn't
         # check first if it was matching the expected instance.
+        self.spy_on(RelationCounterField._on_instance_first_save)
+        save_func = RelationCounterField._on_instance_first_save
+
         model1 = M2MRefModel()
         model2 = M2MRefModel()
-        self.assertEqual(model1.pk, None)
-        self.assertEqual(model2.pk, None)
-        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 2)
+        self.assertIsNone(model1.pk)
+        self.assertIsNone(model2.pk)
+
+        self.assertEqual(len(save_func.calls), 0)
 
         # Perform the first save, which will do update=True.
         model2.save()
-        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 1)
+        self.assertEqual(len(save_func.calls), 1)
+        self.assertTrue(save_func.last_called_with(instance=model2,
+                                                   created=True))
+        self.assertTrue(save_func.last_returned(True))
 
         # Perform the second save, which will do update=False.
         model2.save()
-        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 1)
-
-    def test_disconnect_signal_on_destroy(self):
-        """Testing RelationCounterField disconnects signals for an object when
-        it falls out of scope
-        """
-        model = M2MRefModel()
-        self.assertEqual(model.pk, None)
-        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 1)
-
-        model = None
-        self.assertEqual(len(post_save._live_receivers(M2MRefModel)), 0)
+        self.assertEqual(len(save_func.calls), 2)
+        self.assertTrue(save_func.last_called_with(instance=model2,
+                                                   created=False))
+        self.assertTrue(save_func.last_returned(False))
 
 
     #
