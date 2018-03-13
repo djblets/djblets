@@ -19,10 +19,13 @@ from django.views.decorators.vary import vary_on_headers
 from djblets.auth.ratelimit import (RATE_LIMIT_API_ANONYMOUS,
                                     RATE_LIMIT_API_AUTHENTICATED,
                                     get_usage_count)
-from djblets.util.http import (get_modified_since, encode_etag,
+from djblets.util.http import (build_not_modified_from_response,
+                               encode_etag,
                                etag_if_none_match,
-                               set_last_modified, set_etag,
-                               get_http_requested_mimetype)
+                               get_http_requested_mimetype,
+                               get_modified_since,
+                               set_etag,
+                               set_last_modified)
 from djblets.urls.patterns import never_cache_patterns
 from djblets.webapi.auth.backends import check_login
 from djblets.webapi.resources.registry import (get_resource_for_object,
@@ -245,9 +248,9 @@ class WebAPIResource(object):
                 request, method, view, api_format=api_format, *args, **kwargs)
 
             if isinstance(result, WebAPIResponse):
-                return result
+                response = result
             elif isinstance(result, WebAPIError):
-                return WebAPIResponseError(
+                response = WebAPIResponseError(
                     request,
                     err=result,
                     api_format=api_format,
@@ -277,7 +280,7 @@ class WebAPIResource(object):
                             headers['Location'] += '?' + extra_querystr
 
                 if isinstance(result[0], WebAPIError):
-                    return WebAPIResponseError(
+                    response = WebAPIResponseError(
                         request,
                         err=result[0],
                         headers=headers,
@@ -287,7 +290,8 @@ class WebAPIResource(object):
                 else:
                     response_args = self.build_response_args(request)
                     headers.update(response_args.pop('headers', {}))
-                    return WebAPIResponse(
+
+                    response = WebAPIResponse(
                         request,
                         status=result[0],
                         obj=result[1],
@@ -298,11 +302,31 @@ class WebAPIResource(object):
                         }, **kwargs),
                         **response_args)
             elif isinstance(result, HttpResponse):
-                return result
+                response = result
             else:
                 raise AssertionError(result)
+
+            if 200 <= response.status_code < 300:
+                # Check if there's no explicit ETag in a GET/HEAD request and
+                # the resource is told to generate missing ETags automatically.
+                #
+                # Starting in Djblets 2.0, we do this after a response payload
+                # is generated instead of up-front, so that we don't serialize
+                # the resource payload twice.
+                if (self.autogenerate_etags and
+                    method in ('GET', 'HEAD') and
+                    'ETag' not in response):
+                    # There's no ETag, so we'll build one based on the payload
+                    # content and check to see if the client already has it.
+                    etag = encode_etag(response.content)
+                    set_etag(response, etag)
+
+                    if self.are_cache_headers_current(request, etag=etag):
+                        response = build_not_modified_from_response(response)
         else:
-            return HttpResponseNotAllowed(self.allowed_methods)
+            response = HttpResponseNotAllowed(self.allowed_methods)
+
+        return response
 
     @property
     def __name__(self):
@@ -511,18 +535,19 @@ class WebAPIResource(object):
 
         if self.are_cache_headers_current(request, last_modified_timestamp,
                                           etag):
-            return HttpResponseNotModified()
+            response = HttpResponseNotModified()
+        else:
+            data = {
+                self.item_result_key: self.serialize_object(obj,
+                                                            request=request,
+                                                            *args, **kwargs),
+            }
 
-        data = {
-            self.item_result_key: self.serialize_object(obj, request=request,
-                                                        *args, **kwargs),
-        }
-
-        response = WebAPIResponse(request,
-                                  status=200,
-                                  obj=data,
-                                  api_format=api_format,
-                                  **self.build_response_args(request))
+            response = WebAPIResponse(request,
+                                      status=200,
+                                      obj=data,
+                                      api_format=api_format,
+                                      **self.build_response_args(request))
 
         if last_modified_timestamp:
             set_last_modified(response, last_modified_timestamp)
@@ -1159,17 +1184,11 @@ class WebAPIResource(object):
         ``encode_etag`` before returning a value.
         """
         if self.etag_field:
-            etag = six.text_type(getattr(obj, self.etag_field))
-        elif self.autogenerate_etags:
-            etag = self.generate_etag(obj, self.fields, request=request,
-                                      encode_etag=False, **kwargs)
-        else:
-            etag = None
+            return self.encode_etag(
+                request,
+                six.text_type(getattr(obj, self.etag_field)))
 
-        if etag:
-            etag = self.encode_etag(request, etag)
-
-        return etag
+        return None
 
     def encode_etag(self, request, etag, *args, **kwargs):
         """Encodes an ETag for usage in a header.
@@ -1180,32 +1199,45 @@ class WebAPIResource(object):
         return encode_etag('%s:%s' % (request.user.username, etag))
 
     def generate_etag(self, obj, fields, request, encode_etag=True, **kwargs):
-        """Generates an ETag from the serialized values of all given fields.
+        """Generate an ETag from the serialized values of all given fields.
 
-        When called by legacy code, the resulting ETag will be encoded.
-        All consumers are expected to update their get_etag() methods to
-        call encode_etag() directly, and to pass encode_etag=False to this
-        function.
+        .. deprecated:: 2.0
 
-        In a future version, the encode_etag parameter will go away, and
-        this function's behavior will change to not return encoded ETags.
+           This method is no longer called internally, as the auto-generation
+           logic for ETags has changed. It's left here for any resources that
+           may still call it, and is scheduled to be removed in a future
+           release.
+
+        Args:
+            obj (object):
+                The object being serialized.
+
+            fields (list of unicode, unused):
+                An unused list of field names. You can provide any value here.
+                It will be ignored.
+
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
+
+            encode_etag (bool, optional):
+                Whether to encode the ETag to a SHA.
+
+            **kwargs (dict):
+                Extra keyword arguments for :py:meth:`serialize_object`.
+
+        Returns:
+            unicode:
+            The generated ETag.
         """
-        etag = json.dumps(
-            self.serialize_object(obj, request=request, **kwargs),
-            sort_keys=True)
+        warnings.warn(
+            'WebAPIResource.generate_etag is deprecated and no longer called '
+            'by default. Please provide your own ETag generation in '
+            'get_etag().',
+            DeprecationWarning)
 
-        # In Djblets 0.8.15, the responsibility for encoding moved to
-        # get_etag(). However, legacy callers may end up calling
-        # generate_etag, expecting the result to be encoded. In this case,
-        # we want to perform the encoding and warn about deprecation.
-        #
-        # Future versions of Djblets will remove the encode_etag argument.
+        etag = repr(self.serialize_object(obj, request=request, **kwargs))
+
         if encode_etag:
-            warnings.warn('WebAPIResource.generate_etag will stop generating '
-                          'encoded ETags in 0.9.x. Update your get_etag() '
-                          'method to pass encode_etag=False to this function '
-                          'and to call encode_etag() on the result instead.',
-                          DeprecationWarning)
             etag = self.encode_etag(request, etag)
 
         return etag

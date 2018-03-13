@@ -27,7 +27,7 @@ from __future__ import unicode_literals
 
 import hashlib
 
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseNotModified
 from django.utils import six
 from django.utils.six.moves.urllib.parse import urlencode
 
@@ -95,6 +95,35 @@ def etag_if_match(request, etag):
     if the specified ETag matches the header.
     """
     return etag == request.META.get('HTTP_IF_MATCH', None)
+
+
+def build_not_modified_from_response(response):
+    """Build a Not Modified response from an existing response.
+
+    This will create a new :py:class:`~django.http.HttpResponseNotModified`
+    containing headers from an original response. It should be used in
+    conjunction with functions like :py:func:`etag_if_none_match` when
+    checking against an otherwise valid response that's been built.
+
+    Args:
+        response (django.http.HttpResponse):
+            The HTTP response to build the Not Modified response from.
+
+    Returns:
+        django.http.HttpResponseNotModified:
+        The new Not Modified response.
+    """
+    new_response = HttpResponseNotModified()
+
+    # Copy cache-related headers from the original response into the new one.
+    for header_name in ('Cache-Control', 'Content-Location', 'Date', 'ETag',
+                        'Expires', 'Vary'):
+        try:
+            new_response[header_name] = response[header_name]
+        except KeyError:
+            pass
+
+    return new_response
 
 
 def get_http_accept_lists(request):
