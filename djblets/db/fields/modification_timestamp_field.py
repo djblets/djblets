@@ -1,41 +1,55 @@
+"""Field for managing modification timestamps for a model."""
+
 from __future__ import unicode_literals
 
-from datetime import datetime
-
-from django.conf import settings
 from django.db import models
-
-from djblets.util.dates import get_tz_aware_utcnow
+from django.utils import timezone
 
 
 class ModificationTimestampField(models.DateTimeField):
+    """A timestamp field that only updates existing objects or when None.
+
+    This is a subclass of :py:class:`~django.db.models.DateTimeField` that only
+    auto-updates the timestamp when updating an existing object or when the
+    value of the field is None. It's similar to using ``auto_now=True``, but
+    custom timestamp values on new instances will not be replaced.
     """
-    A subclass of DateTimeField that only auto-updates the timestamp when
-    updating an existing object or when the value of the field is None. This
-    specialized field is equivalent to DateTimeField's auto_now=True, except
-    it allows for custom timestamp values (needed for
-    serialization/deserialization).
-    """
-    def __init__(self, verbose_name=None, name=None, **kwargs):
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the field.
+
+        Args:
+            *args (tuple):
+                Positional arguments for the field.
+
+            **kwargs (dict):
+                Additional keyword arguments for the field.
+        """
         kwargs.update({
             'editable': False,
             'blank': True,
         })
-        models.DateTimeField.__init__(self, verbose_name, name, **kwargs)
+        super(ModificationTimestampField, self).__init__(*args, **kwargs)
 
-    def pre_save(self, model, add):
-        if not add or getattr(model, self.attname) is None:
+    def pre_save(self, model_instance, add):
+        """Return the value of the field just before saving.
 
-            if settings.USE_TZ:
-                value = get_tz_aware_utcnow()
-            else:
-                value = datetime.now()
+        Args:
+            model_instance (django.db.models.Model):
+                The model instance being saved.
 
-            setattr(model, self.attname, value)
-            return value
+            add (bool):
+                Whether this is being saved to the database for the first time.
 
-        return super(ModificationTimestampField, self).pre_save(model, add)
+        Returns:
+            datetime.datetime:
+            The date/time value being saved.
+        """
+        if not add or self.value_from_object(model_instance) is None:
+            value = timezone.now()
+            setattr(model_instance, self.attname, value)
+        else:
+            value = super(ModificationTimestampField, self).pre_save(
+                model_instance, add)
 
-    def get_internal_type(self):
-        return "DateTimeField"
-
+        return value
