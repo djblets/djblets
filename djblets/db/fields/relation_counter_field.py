@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import threading
 import weakref
+from contextlib import contextmanager
 
 import django
 from django.db.models import F, Q
@@ -67,52 +68,6 @@ class InstanceState(object):
     @property
     def model_instance(self):
         return self.model_instance_ref()
-
-    def increment_fields(self, by=1):
-        """Increment all associated fields' counters.
-
-        Args:
-            by (int):
-                The value to increment by.
-        """
-        model_instance = self.model_instance
-
-        if model_instance is not None:
-            RelationCounterField.increment_many(
-                model_instance,
-                dict((field.attname, by) for field in self.fields))
-
-    def decrement_fields(self, by=1):
-        """Decrement all associated fields' counters.
-
-        Args:
-            by (int):
-                The value to decrement by.
-        """
-        model_instance = self.model_instance
-
-        if model_instance is not None:
-            RelationCounterField.decrement_many(
-                model_instance,
-                dict((field.attname, by) for field in self.fields))
-
-    def zero_fields(self):
-        """Zero out all associated fields' counters."""
-        model_instance = self.model_instance
-
-        if model_instance is not None:
-            RelationCounterField._set_values(
-                model_instance,
-                dict((field.attname, 0) for field in self.fields))
-
-    def reload_fields(self):
-        """Reload all associated fields' counters."""
-        model_instance = self.model_instance
-
-        if model_instance is not None:
-            RelationCounterField._reload_model_instance(
-                model_instance,
-                [field.attname for field in self.fields])
 
     def __repr__(self):
         """Return a string representation of the instance state.
@@ -317,6 +272,103 @@ class RelationTracker(object):
                 sender=model,
                 dispatch_uid=dispatch_uid)
 
+    def _increment_fields(self, states, by=1):
+        """Increment all associated fields' counters on instance states.
+
+        Args:
+            states (list of InstanceState):
+                The instance states containing the model instance fields to
+                increment.
+
+            by (int, optional):
+                The value to increment by.
+        """
+        with self._update_sync_fields(states) as (model_instance, field_names):
+            RelationCounterField.increment_many(
+                model_instance,
+                {
+                    field_name: by
+                    for field_name in field_names
+                })
+
+    def _decrement_fields(self, states, by=1):
+        """Decrement all associated fields' counters on instance states.
+
+        Args:
+            states (list of InstanceState):
+                The instance states containing the model instance fields to
+                decrement.
+
+            by (int, optional):
+                The value to decrement by.
+        """
+        with self._update_sync_fields(states) as (model_instance, field_names):
+            RelationCounterField.decrement_many(
+                model_instance,
+                {
+                    field_name: by
+                    for field_name in field_names
+                })
+
+    def _zero_fields(self, states):
+        """Zero out all associated fields' counters on instance states.
+
+        Args:
+            states (list of InstanceState):
+                The instance states containing the model instance fields to
+                zero out.
+        """
+        with self._update_sync_fields(states) as (model_instance, field_names):
+            RelationCounterField._set_values(
+                model_instance,
+                {
+                    field_name: 0
+                    for field_name in field_names
+                })
+
+    def _reload_fields(self, states):
+        """Reload all associated fields' counters on instance states.
+
+        Args:
+            states (list of InstanceState):
+                The instance states containing the model instance fields to
+                reload.
+        """
+        with self._update_sync_fields(states) as (model_instance, field_names):
+            RelationCounterField._reload_model_instance(model_instance,
+                                                        field_names)
+
+    @contextmanager
+    def _update_sync_fields(self, states):
+        """Update field values and synchronize them to other model instances.
+
+        This calculates a main state from the list of instance states,
+        gathering the model instance and field names and yielding them as
+        context to the calling method. After that method makes the field
+        changes needed, this will synchronize those values to all other model
+        instances from the other states passed.
+
+        Args:
+            states (list of InstanceState):
+                The list of states to update.
+
+        Yields:
+            tuple of (InstanceState, list of unicode):
+            The main model instance to work on, and the list of field names
+            to update.
+        """
+        main_state = states[0]
+        model_instance = main_state.model_instance
+
+        if model_instance is not None:
+            yield (
+                model_instance,
+                [field.attname for field in main_state.fields]
+            )
+
+            if len(states) > 1:
+                self._sync_fields_from_main_state(main_state, states[1:])
+
     def _on_m2m_changed(self, instance, action, reverse, model, pk_set,
                         **kwargs):
         """Handler for when a M2M relation has been updated.
@@ -344,28 +396,24 @@ class RelationTracker(object):
 
         if is_post_clear or is_post_add or is_post_remove:
             states = RelationCounterField._get_saved_states(
-                instance.__class__, instance.pk, self._rel_field_name)
+                type(instance), instance.pk, self._rel_field_name)
 
             if states:
-                main_state, other_states = \
-                    self._separate_saved_states(states)
-
                 # Perform the database modifications with only the first
                 # instance state. The rest will get reloaded later.
                 if pk_set and is_post_add:
-                    main_state.increment_fields(by=len(pk_set))
+                    self._increment_fields(states, by=len(pk_set))
                 elif pk_set and is_post_remove:
-                    main_state.decrement_fields(by=len(pk_set))
+                    self._decrement_fields(states, by=len(pk_set))
                 elif is_post_clear:
-                    main_state.zero_fields()
+                    self._zero_fields(states)
 
                 if not pk_set and is_post_clear:
                     # See the note below for 'pre_clear' for an explanation
                     # of why we're doing this.
+                    main_state = states[0]
                     pk_set = main_state.to_clear
                     main_state.to_clear = set()
-
-                self._sync_fields_from_main_state(main_state, other_states)
 
             if pk_set:
                 # If any of the models have their own
@@ -385,15 +433,8 @@ class RelationTracker(object):
                     states = RelationCounterField._get_saved_states(
                         model, pk, self._related_name)
 
-                    if not states:
-                        continue
-
-                    main_state, other_states = \
-                        self._separate_saved_states(states)
-
-                    main_state.reload_fields()
-                    self._sync_fields_from_main_state(main_state,
-                                                      other_states)
+                    if states:
+                        self._reload_fields(states)
         elif action == 'pre_clear':
             # m2m_changed doesn't provide any information on affected IDs
             # for clear events (pre or post). We can, however, look up
@@ -408,10 +449,9 @@ class RelationTracker(object):
                 instance.__class__, instance.pk, self._rel_field_name)
 
             if states:
-                main_state = next(six.itervalues(states))
+                main_state = states[0]
                 mgr = getattr(instance, self._rel_field_name)
-                main_state.to_clear.update(mgr.values_list('pk',
-                                                           flat=True))
+                main_state.to_clear.update(mgr.values_list('pk', flat=True))
 
     def _on_related_delete(self, instance, **kwargs):
         """Handler for when a ForeignKey relation is deleted.
@@ -424,9 +464,7 @@ class RelationTracker(object):
         states = self._get_reverse_foreign_key_states(instance)
 
         if states:
-            main_state, other_states = self._separate_saved_states(states)
-            main_state.decrement_fields()
-            self._sync_fields_from_main_state(main_state, other_states)
+            self._decrement_fields(states)
         else:
             self._update_unloaded_fkey_rel_counts(instance, -1)
 
@@ -444,9 +482,7 @@ class RelationTracker(object):
         states = self._get_reverse_foreign_key_states(instance)
 
         if states:
-            main_state, other_states = self._separate_saved_states(states)
-            main_state.increment_fields()
-            self._sync_fields_from_main_state(main_state, other_states)
+            self._increment_fields(states)
         else:
             self._update_unloaded_fkey_rel_counts(instance, 1)
 
@@ -488,31 +524,6 @@ class RelationTracker(object):
 
             model_cls.objects.filter(q).update(**values)
 
-    def _separate_saved_states(self, saved_states):
-        """Return a main state separated from other states.
-
-        This takes a dictionary of saved instance states, filters it for
-        those containing non-dropped model instances, and picks one as
-        a "main" state to perform operations on, separating it out from
-        the other states.
-
-        Args:
-            saved_states (weakref.WeakValueDictionary):
-                The dictionary of saved states.
-
-        Returns:
-            tuple:
-            A tuple of ``(main_state, [state, state, ...])``.
-        """
-        with RelationCounterField._state_lock:
-            states = (
-                state
-                for state in six.itervalues(saved_states)
-                if state.model_instance is not None
-            )
-
-            return (next(states), list(states))
-
     def _sync_fields_from_main_state(self, main_state, other_states):
         """Synchronize field values across instances.
 
@@ -540,7 +551,7 @@ class RelationTracker(object):
             # The instance fell out of scope. We'll have to just reload
             # all the other instances. This should be rare.
             for other_state in other_states:
-                other_state.reload_fields()
+                self._reload_fields(other_state)
 
     def _get_reverse_foreign_key_states(self, instance):
         """Return InstanceStates for the other end of a ForeignKey.
@@ -554,9 +565,9 @@ class RelationTracker(object):
                 The instance on the other end of the relation.
 
         Returns:
-            weakref.WeakValueDictionary:
-            The dictionary of :py:class:`InstanceState`s for each instance
-            on this end of the relation.
+            list of InstanceState:
+            The list of :py:class:`InstanceState`s for each instance on this
+            end of the relation.
         """
         return RelationCounterField._get_saved_states(
             self._get_rel_field_parent_model(self._rel_field),
@@ -738,7 +749,7 @@ class RelationCounterField(CounterField):
 
     @classmethod
     def _get_saved_states(cls, model_cls, instance_pk, rel_field_name):
-        """Return a dictionary of instances states for the given parameters.
+        """Return instance states for the given parameters.
 
         The returned dictionary will contain a mapping of object IDs for
         each instance to the :py:class:`InstanceState` for each saved instance
@@ -756,12 +767,25 @@ class RelationCounterField(CounterField):
                 instances.
 
         Returns:
-            dict:
-            The resulting dictionary of instances. If populated, this will
-            be a :py:class:`weakref.WeakValueDictionary`.
+            list of InstanceState:
+            A list of all alive instance states for the given criteria. The
+            first is considered the "main" state for an operation.
+
+            If no suitable instances are found, this will return ``None``.
         """
-        return cls._saved_instance_states.get(
-            (model_cls, instance_pk, rel_field_name), {})
+        key = (model_cls, instance_pk, rel_field_name)
+
+        with cls._state_lock:
+            states = cls._saved_instance_states.get(key)
+
+            if states is not None:
+                return [
+                    state
+                    for state in six.itervalues(states)
+                    if state.model_instance is not None
+                ]
+
+        return None
 
     def __init__(self, rel_field_name=None, *args, **kwargs):
         def _initializer(model_instance):
