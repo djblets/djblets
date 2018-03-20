@@ -87,12 +87,14 @@ PIPELINE_JAVASCRIPT = {
             'djblets/js/forms/views/tests/conditionSetViewTests.es6.js',
             'djblets/js/forms/views/tests/conditionValueFormFieldViewTests.es6.js',
             'djblets/js/forms/views/tests/listEditViewTests.es6.js',
+            'djblets/js/utils/tests/urlsTests.es6.js',
         ),
         'output_filename': 'djblets/js/tests.min.js',
     },
     'djblets-utils': {
         'source_filenames': (
             'djblets/js/utils/promise.es6.js',
+            'djblets/js/utils/urls.es6.js',
         ),
         'output_filename': 'djblets/js/utils.min.js',
     },

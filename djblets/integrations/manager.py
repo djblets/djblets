@@ -446,7 +446,7 @@ def get_integration_managers():
     Returns:
         list: The list of :py:class:`IntegrationManager` instances.
     """
-    return _integration_managers.values()
+    return list(six.itervalues(_integration_managers))
 
 
 def shutdown_integration_managers():

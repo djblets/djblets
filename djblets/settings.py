@@ -61,6 +61,9 @@ PIPELINE = {
 }
 
 INSTALLED_APPS = [
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sites',
     'django.contrib.staticfiles',
     'djblets.auth',
     'djblets.datagrid',

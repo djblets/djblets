@@ -424,11 +424,11 @@ class ExtensionInfo(object):
 
         try:
             # Wheel, or other modern package.
-            lines = dist.get_metadata_lines('METADATA')
+            lines = list(dist.get_metadata_lines('METADATA'))
         except IOError:
             try:
                 # Egg, or other legacy package.
-                lines = dist.get_metadata_lines('PKG-INFO')
+                lines = list(dist.get_metadata_lines('PKG-INFO'))
             except IOError:
                 lines = []
                 logger.error('No METADATA or PKG-INFO found for the package '
@@ -436,25 +436,33 @@ class ExtensionInfo(object):
                              'the extension may be missing.',
                              extension_id)
 
-        data = '\n'.join(lines)
+        # pkg_resources on Python 3 will always give us back Unicode strings,
+        # but Python 2 may give us back either Unicode or byte strings.
+        if lines and isinstance(lines[0], bytes):
+            data = b'\n'.join(lines)
 
-        # Try to decode the PKG-INFO content. If no decoding method is
-        # successful then the PKG-INFO content will remain unchanged and
-        # processing will continue with the parsing.
-        for enc in cls.encodings:
-            try:
-                data = data.decode(enc)
-                break
-            except UnicodeDecodeError:
-                continue
+            # Try to decode the PKG-INFO content. If no decoding method is
+            # successful then the PKG-INFO content will remain unchanged and
+            # processing will continue with the parsing.
+            for enc in cls.encodings:
+                try:
+                    data = data.decode(enc)
+                    break
+                except UnicodeDecodeError:
+                    continue
+            else:
+                logger.warning('Failed decoding PKG-INFO content for '
+                               'extension %s',
+                               entrypoint.name)
         else:
-            logger.warning('Failed decoding PKG-INFO content for extension %s',
-                           entrypoint.name)
+            data = '\n'.join(lines)
 
         p = FeedParser()
         p.feed(data)
         pkg_info = p.close()
 
+        # Convert from a Message to a dictionary. Note that items() is correct
+        # here. six.iteritems() will not work.
         return dict(pkg_info.items())
 
     def __init__(self, ext_class, package_name, metadata={}):

@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 
+from collections import OrderedDict
 from datetime import datetime, timedelta
 
 from django.http import HttpRequest
@@ -286,10 +287,10 @@ class QuerystringWithTagTests(TestCase):
                      '{% querystring_with "foo" "bar" %}')
 
         request = HttpRequest()
-        request.GET = {
-            'a': '1',
-            'b': '2',
-        }
+        request.GET = OrderedDict([
+            ('a', '1'),
+            ('b', '2'),
+        ])
 
         self.assertEqual(
             t.render(Context({

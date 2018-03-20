@@ -138,14 +138,13 @@ class WebAPIScopeDictionary(object):
         """Iterate through all keys in the dictionary.
 
         This is used by oauth2_provider when on Python 3.x to get the list
-        of scope keys. As such, it's documented as a generator. Calling this
-        on Python 2.x will result in a list being returned instead.
+        of scope keys.
 
         Yields:
             unicode:
             The key for each scope.
         """
-        return self.scope_dict.keys()
+        return six.iterkeys(self.scope_dict)
 
     def clear(self):
         """Clear all scopes from the dictionary.
@@ -171,7 +170,7 @@ class WebAPIScopeDictionary(object):
             self._walk_resources(resource.list_child_resources)
             self._walk_resources(resource.item_child_resources)
 
-            scope_to_methods = defaultdict(set)
+            scope_to_methods = defaultdict(list)
 
             if not isinstance(resource, ResourceOAuth2TokenMixin):
                 logging.warning(
@@ -197,7 +196,7 @@ class WebAPIScopeDictionary(object):
                                  method)
                     continue
 
-                scope_to_methods[suffix].add(method)
+                scope_to_methods[suffix].append(method)
 
             for suffix, methods in six.iteritems(scope_to_methods):
                 scope_name = '%s:%s' % (resource.scope_name, suffix)
@@ -206,7 +205,7 @@ class WebAPIScopeDictionary(object):
                     _('Ability to perform HTTP %(methods)s on the %(name)s '
                       'resource')
                     % {
-                        'methods': ', '.join(methods),
+                        'methods': ', '.join(sorted(methods)),
                         'name': resource.name,
                     }
                 )

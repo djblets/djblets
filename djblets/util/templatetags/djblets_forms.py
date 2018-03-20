@@ -25,7 +25,6 @@
 from __future__ import unicode_literals
 
 from django import forms, template
-from django.utils.encoding import force_unicode
 from django.utils.html import conditional_escape, format_html
 
 

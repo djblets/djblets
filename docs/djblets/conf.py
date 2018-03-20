@@ -27,6 +27,11 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'djblets.settings')
 
 from beanbag_docutils.sphinx.ext.github import github_linkcode_resolve
 
+import django
+
+if hasattr(django, 'setup'):
+    django.setup()
+
 import djblets
 from djblets.dependencies import django_doc_major_version
 

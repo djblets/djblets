@@ -368,9 +368,10 @@ def prefix_q(prefix, q, clone=True):
 
             key, value = q.children[i]
 
-            q.children[i] = (
-                b'%s__%s' % (prefix.encode('utf-8'), key),
-                value)
+            # This is going to be pure ASCII data (it's basically keyword
+            # argument names). We'll use the native string type on Python.
+            q.children[i] = (str('%s__%s' % (prefix, key)),
+                             value)
 
     return q
 

@@ -443,7 +443,7 @@ $.fn.proxyTouchEvents = function(events) {
 
     events = events || 'touchstart touchmove touchend';
 
-    return $(this).bind(events, function(event) {
+    return $(this).on(events, function(event) {
         var $this = $(this),
             touches = event.originalEvent.changedTouches,
             firstTouch,

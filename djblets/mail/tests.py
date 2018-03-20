@@ -580,7 +580,7 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
 
     def test_send_with_unicode_subject(self):
         """Testing EmailMessage.send with a Unicode subject"""
-        email = EmailMessage(subject='\ud83d\ude04',
+        email = EmailMessage(subject='\U0001f604',
                              text_body='This is a test',
                              html_body='<p>This is a test</p>',
                              from_email='doc@example.com',
@@ -593,8 +593,8 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
     def test_send_with_unicode_body(self):
         """Testing EmailMessage.send with a Unicode body"""
         email = EmailMessage(subject='Test email',
-                             text_body='\ud83d\ude04',
-                             html_body='<p>\ud83d\ude04</p>',
+                             text_body='\U0001f604',
+                             html_body='<p>\U0001f604</p>',
                              from_email='doc@example.com',
                              to=['sleepy@example.com'],
                              sender='noreply@example.com')

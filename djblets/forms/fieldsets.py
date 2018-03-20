@@ -1,4 +1,4 @@
-"""Utilities related to :py:mod:`django.contrib.admin` fieldsets."""
+"""Utilities related to django.contrib.admin fieldsets."""
 
 from __future__ import unicode_literals
 

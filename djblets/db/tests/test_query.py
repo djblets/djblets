@@ -54,19 +54,17 @@ class PrefixTests(TestCase):
     def test_simple(self):
         """Testing prefix_q prefixes simple expressions"""
         self.assertEqual(
-            six.text_type(prefix_q('fk', Q(hello='goodbye'))),
-            six.text_type(Q(fk__hello='goodbye')))
+            str(prefix_q('fk', Q(hello='goodbye'))),
+            str(Q(fk__hello='goodbye')))
 
     def test_nested(self):
         """Testing prefix_q prefixes nested expressions"""
         self.assertEqual(
-            six.text_type(prefix_q(
-                'fk',
-                Q(foo='foo') |
-                (Q(bar='bar') &
-                 Q(baz='baz')))),
-            six.text_type(
-                Q(fk__foo='foo') |
+            str(prefix_q('fk',
+                         Q(foo='foo') |
+                         (Q(bar='bar') &
+                          Q(baz='baz')))),
+            str(Q(fk__foo='foo') |
                 (Q(fk__bar='bar') &
                  Q(fk__baz='baz'))))
 
@@ -75,4 +73,4 @@ class PrefixTests(TestCase):
         q = prefix_q('fk', Q(foo='bar'))
         self.assertEqual(len(q.children), 1)
         self.assertIs(type(q.children[0]), tuple)
-        self.assertIsInstance(q.children[0][0], six.binary_type)
+        self.assertIsInstance(q.children[0][0], str)

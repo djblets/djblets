@@ -7,6 +7,8 @@ request.
 
 from __future__ import unicode_literals
 
+from importlib import import_module
+
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import six
@@ -36,13 +38,13 @@ def get_auth_backends():
         _auth_backends = []
 
         for class_path in class_paths:
-            class_path = class_path.encode('utf-8')
+            class_path = str(class_path)
 
-            i = class_path.rfind(b'.')
+            i = class_path.rfind(str('.'))
             module, attr = class_path[:i], class_path[i + 1:]
 
             try:
-                mod = __import__(module, {}, {}, [attr])
+                mod = import_module(module)
             except ImportError as e:
                 raise ImproperlyConfigured(
                     'Error importing web API auth backend %s: %s'

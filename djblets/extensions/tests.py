@@ -33,6 +33,7 @@ import time
 import warnings
 
 import nose
+import pkg_resources
 from django import forms
 from django.conf import settings
 from django.conf.urls import include, url
@@ -81,19 +82,28 @@ class FakeEntryPoint(object):
     This is modelled after :py:class:`pkg_resources.EntryPoint`.
     """
 
-    def __init__(self, value, **metadata_kwargs):
+    def __init__(self, value, project_name, version='1.0', **metadata_kwargs):
         """Initialize the FakeEntryPoint.
 
         Args:
             value (object):
                 The value to be returned when the entry point is loaded.
 
+            project_name (unicode):
+                The project name. This will be set in the metadata and as
+                the distribution's name.
+
             **metadata_kwargs (dict):
                 Keyword arguments to pass to the associated
-                :py:class:`FakeDistribution` constructor.
+                :py:class:`FakeProvider` constructor.
         """
         self._value = value
-        self.dist = FakeDistribution(**metadata_kwargs)
+        self.dist = pkg_resources.Distribution(
+            project_name=project_name,
+            version=version,
+            metadata=FakeProvider(project_name=project_name,
+                                  version=version,
+                                  **metadata_kwargs))
 
     def load(self):
         """Load the entry point.
@@ -104,11 +114,10 @@ class FakeEntryPoint(object):
         return self._value
 
 
-class FakeDistribution(object):
-    """A fake distribution.
+class FakeProvider(pkg_resources.DefaultProvider):
+    """A fake provider for a distribution."""
 
-    This is modelled after :py:class`pkg_resources.Distribution`.
-    """
+    egg_info = '/fake/path'
 
     def __init__(self, author='Example Author',
                  author_email='author@example.com',
@@ -151,38 +160,22 @@ class FakeDistribution(object):
             'Version': version,
         }
 
-    def get_metadata_lines(self, *args):
-        """Return the metadata lines.
+    def _get(self, path):
+        """Return the metadata content.
+
+        This is the method that package resource providers must override to
+        return metadata content for the package. It's expected to return
+        byte strings, which will then be handled through the normal metadata
+        functions.
 
         Returns:
-            list:
-            A list of the package metadata lines, as :py:class:`unicode`
-            objects.
+            bytes:
+            The package metadata content.
         """
-        return [
-            '%s: %s' % (field_name, value)
+        return ''.join(
+            '%s: %s\n' % (field_name, value)
             for field_name, value in six.iteritems(self.metadata)
-        ]
-
-    @property
-    def project_name(self):
-        """The project name.
-
-        Returns:
-            unicode:
-            The project name.
-        """
-        return self.metadata['Name']
-
-    @property
-    def version(self):
-        """The project version.
-
-        Returns:
-            unicode:
-            The project version.
-        """
-        return self.metadata['version']
+        ).encode('utf-8')
 
 
 class TestExtensionManager(ExtensionManager):
@@ -1980,7 +1973,7 @@ class ViewTests(SpyAgency, ExtensionTestsMixin, TestCase):
                     'form_class': TestSettingsForm,
                     'extension_manager': self.manager,
                 }),
-            url('', include(admin.site.urls)),
+            url('', admin.site.urls),
         ]
 
         User.objects.create_superuser(username='admin',

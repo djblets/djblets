@@ -204,10 +204,7 @@ def get_markdown_element_tree(markdown_html):
     """
     markdown_html = sanitize_illegal_chars_for_xml(markdown_html)
 
-    if isinstance(markdown_html, six.text_type):
-        markdown_html = markdown_html.encode('utf-8')
-
-    doc = parseString(b'<html>%s</html>' % markdown_html)
+    doc = parseString(('<html>%s</html>' % markdown_html).encode('utf-8'))
     return doc.childNodes[0].childNodes
 
 
@@ -239,7 +236,7 @@ def sanitize_illegal_chars_for_xml(s):
             ]
 
         ILLEGAL_XML_CHARS_RE = re.compile('[%s]' % ''.join([
-            '%s-%s' % (unichr(low), unichr(high))
+            '%s-%s' % (six.unichr(low), six.unichr(high))
             for low, high in _illegal_unichrs
         ]))
 

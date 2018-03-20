@@ -8,15 +8,15 @@ iterators and large data normally too big for the cache).
 
 from __future__ import unicode_literals
 from hashlib import md5
+import io
 import logging
 import zlib
 
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib.sites.models import Site
-from django.utils.six.moves import (range,
-                                    cPickle as pickle,
-                                    cStringIO as StringIO)
+from django.utils import six
+from django.utils.six.moves import range, cPickle as pickle
 
 from djblets.cache.errors import MissingChunkError
 
@@ -60,7 +60,7 @@ def _cache_fetch_large_data(cache, key, compress_large_data):
     # pass an error about missing keys to the caller up-front before we
     # generate anything.
     if len(chunks) != chunk_count:
-        missing_keys = sorted(set(chunk_keys) - set(chunks.keys()))
+        missing_keys = sorted(set(chunk_keys) - set(six.iterkeys(chunks)))
         logger.debug('Cache miss for key(s): %s.' % ', '.join(missing_keys))
 
         raise MissingChunkError
@@ -85,7 +85,7 @@ def _cache_iter_large_data(data, key):
     This will unpickle the large data previously fetched through
     _cache_fetch_large_data, and yield each object to the caller.
     """
-    fp = StringIO(data)
+    fp = io.BytesIO(data)
 
     try:
         # Unpickle all the items we're expecting from the cached data.
@@ -126,7 +126,7 @@ def _cache_store_chunks(items, key, expiration):
     cache as efficiently as possible. Each item in the list will be
     yielded to the caller as it's fetched from the list or generator.
     """
-    chunks_data = StringIO()
+    chunks_data = io.BytesIO()
     chunks_data_len = 0
     read_start = 0
     item_count = 0
@@ -186,8 +186,10 @@ def _cache_store_items(cache, key, items, expiration, compress_large_data):
 
     A main cache key will be set that contains information on the other keys.
     """
+    # Note that we want to use pickle protocol 0 in order to be compatible
+    # across both Python 2 and 3. On Python 2, 0 is the default.
     results = (
-        (pickle.dumps(item), True, item)
+        (pickle.dumps(item, protocol=0), True, item)
         for item in items
     )
 

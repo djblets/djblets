@@ -94,5 +94,5 @@ class ETagViewMixinTests(TestCase):
 
         response = view(request)
         self.assertNotIsInstance(response, HttpResponseNotModified)
-        self.assertEqual(response.content, 'hi there')
+        self.assertEqual(response.content, b'hi there')
         self.assertFalse(response.has_header('ETag'))

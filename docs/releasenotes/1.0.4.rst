@@ -1,0 +1,90 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+===========================
+Djblets 1.0.4 Release Notes
+===========================
+
+**Release date**: March 19, 2018
+
+
+Packaging
+=========
+
+* django-pipeline_ 1.6.14 is now the minimum required version.
+
+* The package can no longer be installed on Python 2.6 or on 3.x.
+
+  Djblets 2.0 will support Python 3.x, and will be coming later this year.
+
+
+.. _django-pipeline: https://pypi.python.org/pypi/django-pipeline
+
+
+djblets.configforms
+===================
+
+* :py:attr:`ConfigPageForm.profile
+  <djblets.configforms.forms.ConfigPageForm.profile>` is now deprecated.
+
+  Subclasses that want this should set it explicitly if needed.
+
+
+djblets.datagrid
+================
+
+* Column rendering is now more careful to ensure labels are HTML-safe.
+
+  This is not a security issue, as user-provided labels are not allowed,
+  but it does prevent having to work around the issue when crafting labels
+  using HTML-unsafe characters or when localizing content.
+
+
+djblets.db
+==========
+
+* Fixed deadlock issues with
+  :py:class:`~djblets.db.fields.relation_counter_field.RelationCounterField`.
+
+* Fixed
+  :py:class:`~djblets.db.fields.relation_counter_field.RelationCounterField`
+  not updating counters on all instances of the same model.
+
+* Fixed a problem tracking instances that could evaluate to ``False`` in
+  :py:class:`~djblets.db.fields.relation_counter_field.RelationCounterField`.
+
+  This would impact instances that defined a ``__len__`` or ``__nonzero__``
+  and could result in ``bool(instance)`` returning ``False``.
+
+* Split :py:mod:`djblets.db.fields` into submodules.
+
+  Imports from :py:mod:`djblets.db.fields` will still work as they always
+  have, but imports can also be made from the specific submodules.
+
+* Added bullet-proofing of values going into
+  :py:class:`~djblets.db.fields.base64_field.Base64Field`.
+
+
+djblets.webapi
+==============
+
+* Improved performance of :py:func:`@webapi_request_fields
+  <djblets.webapi.decorators.webapi_request_fields>`.
+
+
+JavaScript
+==========
+
+* Added :js:func:`Djblets.parseQueryString` for parsing query strings in
+  URLs.
+
+* Added :js:func:`Djblets.buildURL` for building URLs based on a path,
+  query string data, and anchors.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
+* David Trowbridge

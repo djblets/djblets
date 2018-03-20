@@ -156,7 +156,7 @@ class TimedLogInfo(object):
 
 class RequestLogFormatter(logging.Formatter):
     def __init__(self, request_fmt, *args, **kwargs):
-        logging.Formatter.__init__(self, *args, **kwargs)
+        super(RequestLogFormatter, self).__init__(*args, **kwargs)
         self.request_fmt = request_fmt
 
     def format(self, record):
@@ -370,7 +370,16 @@ if _old_log is not _Logger_log:
 # On some versions of Python (2.6.x, 2.7.0-2.7.5, 3.0.x, and 3.1.x),
 # Logger.exception/logging.exception doesn't support keyword arguments,
 # which impacts not only request= but also extra=. We need to patch these.
-if inspect.getargspec(logging.exception).keywords is None:
+def _has_keywords(func):
+    if hasattr(inspect, 'getfullargspec'):
+        argspec = inspect.getfullargspec(func)
+
+        return (argspec.varkw is not None or
+                argspec.kwonlyargs is not None)
+    else:
+        return inspect.getargspec(func).keywords is not None
+
+if not _has_keywords(logging.exception):
     def _logging_exception(msg, *args, **kwargs):
         kwargs['exc_info'] = 1
         logging.error(msg, *args, **kwargs)
@@ -378,7 +387,7 @@ if inspect.getargspec(logging.exception).keywords is None:
     update_wrapper(_logging_exception, logging.exception)
     logging.exception = _logging_exception
 
-if inspect.getargspec(logging.Logger.exception).keywords is None:
+if not _has_keywords(logging.Logger.exception):
     def _Logger_exception(self, msg, *args, **kwargs):
         kwargs['exc_info'] = 1
         self.error(msg, *args, **kwargs)

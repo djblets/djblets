@@ -10,6 +10,8 @@ from djblets.extensions.errors import (DisablingExtensionError,
                                        EnablingExtensionError,
                                        InvalidExtensionError)
 from djblets.extensions.models import RegisteredExtension
+from djblets.extensions.signals import (extension_initialized,
+                                        extension_uninitialized)
 from djblets.urls.resolvers import DynamicURLResolver
 from djblets.webapi.decorators import (webapi_login_required,
                                        webapi_permission_required,
@@ -356,3 +358,80 @@ class ExtensionResource(WebAPIResource):
         has been uninitialized.
         """
         self._unattach_extension_resources(ext_class)
+
+
+class ExtensionRootResourceMixin(object):
+    """Mixin for Root Resources making use of Extension Resources.
+
+    As extensions are able to provide their own API resources, this mixin
+    allows a root resource to generate URI templates for non built-in
+    resources.
+
+    See Also:
+        :py:class:`~djblets.webapi.resources.root.RootResource`
+    """
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the extension resource mixin to listen for changes.
+
+        Args:
+            *args (tuple):
+                Additional positional arguments.
+
+            **kwargs (dict):
+                Additional keyword arguments.
+        """
+        super(ExtensionRootResourceMixin, self).__init__(*args, **kwargs)
+
+        extension_initialized.connect(
+            self._generate_extension_uris_for_template)
+        extension_uninitialized.connect(
+            self._remove_extension_uris_from_template)
+
+    def get_extension_resource(self):
+        """Return the associated extension resource.
+
+        Subclasses using this mixin must implement this method.
+
+        Returns:
+            djblets.extensions.resources.ExtensionResource:
+            The extension resource associated with the root resource.
+        """
+        raise NotImplementedError
+
+    def _generate_extension_uris_for_template(self, ext_class, **kwargs):
+        """Generate URI templates for a newly enabled extension.
+
+        Args:
+            ext_class djblets.extensions.extension.Extension:
+                The extension being added to the URI templates.
+
+            **kwargs (dict):
+                Additional keyword arguments.
+        """
+        ext_resource = self.get_extension_resource()
+
+        for resource in ext_class.resources:
+            partial_href = '%s/%s/' % (ext_class.id, resource.uri_name)
+
+            for entry in self.walk_resources(resource, partial_href):
+                self.register_uri_template(entry.name, entry.list_href,
+                                           ext_resource)
+
+    def _remove_extension_uris_from_template(self, ext_class, **kwargs):
+        """Remove the URI templates of an extension when disabled.
+
+        Args:
+            ext_class djblets.extensions.extension.Extension:
+                The extension being removed from the URI templates.
+
+            **kwargs (dict):
+                Additional keyword arguments.
+        """
+        ext_resource = self.get_extension_resource()
+
+        for resource in ext_class.resources:
+            partial_href = '%s/%s/' % (ext_class.id, resource.uri_name)
+
+            for entry in self.walk_resources(resource, partial_href):
+                self.unregister_uri_template(entry.name, ext_resource)

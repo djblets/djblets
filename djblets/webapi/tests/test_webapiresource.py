@@ -1,18 +1,22 @@
 from __future__ import print_function, unicode_literals
 
+import json
 import warnings
 
 from django.contrib.auth.models import User
 from django.db.models import Model
+from django.http import HttpResponseNotModified
 from django.test.client import RequestFactory
 from django.utils import six
 
 from djblets.testing.testcases import TestCase
+from djblets.util.http import encode_etag
 from djblets.webapi.fields import StringFieldType
 from djblets.webapi.resources.base import WebAPIResource
 from djblets.webapi.resources.registry import (register_resource_for_model,
                                                unregister_resource_for_model,
                                                unregister_resource)
+from djblets.webapi.responses import WebAPIResponse
 
 
 class WebAPIResourceTests(TestCase):
@@ -216,6 +220,59 @@ class WebAPIResourceTests(TestCase):
             view_kwargs={'id': 1},
             method='delete')
 
+    def test_get_with_autogenerate_etags_and_not_modified(self):
+        """Testing WebAPIResource with GET and autogenerate_etags and requested
+        ETag is a match
+        """
+        class TestResource(WebAPIResource):
+            allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
+            mimetype_vendor = 'djblets'
+            uri_object_key = 'id'
+            autogenerate_etags = True
+
+            def get(self, *args, **kwargs):
+                return 200, {
+                    'abc': True,
+                }
+
+        resource = TestResource()
+        etag = '397e66e45ae703fad95aacbff68669fb57bf6fc3'
+
+        request = self.factory.get('/api/tests/',
+                                   HTTP_ACCEPT='application/json',
+                                   HTTP_IF_NONE_MATCH=etag)
+        response = resource(request)
+
+        self.assertIsInstance(response, HttpResponseNotModified)
+        self.assertEqual(response.status_code, 304)
+        self.assertEqual(response['ETag'], etag)
+
+    def test_get_with_autogenerate_etags_and_modified(self):
+        """Testing WebAPIResource with GET and autogenerate_etags and
+        requested ETag is not a match
+        """
+        class TestResource(WebAPIResource):
+            allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
+            mimetype_vendor = 'djblets'
+            uri_object_key = 'id'
+            autogenerate_etags = True
+
+            def get(self, *args, **kwargs):
+                return 200, {
+                    'abc': True,
+                }
+
+        resource = TestResource()
+        request = self.factory.get('/api/tests/',
+                                   HTTP_ACCEPT='application/json',
+                                   HTTP_IF_NONE_MATCH='adfjhslfa')
+        response = resource(request)
+
+        self.assertIsInstance(response, WebAPIResponse)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['ETag'],
+                         '397e66e45ae703fad95aacbff68669fb57bf6fc3')
+
     def test_generate_etag_with_encode_etag_true(self):
         """Testing WebAPIResource.generate_etag with encode_etag=True"""
         class TestObject(object):
@@ -225,15 +282,21 @@ class WebAPIResourceTests(TestCase):
         request.user = User()
 
         resource = WebAPIResource()
+        obj = TestObject()
 
         with warnings.catch_warnings(record=True) as w:
-            etag = resource.generate_etag(TestObject(), ['my_field'], request,
+            warnings.simplefilter('always')
+            etag = resource.generate_etag(obj, ['my_field'], request,
                                           encode_etag=True)
-            self.assertEqual(len(w), 1)
-            self.assertIn('generate_etag will stop generating',
-                          six.text_type(w[0].message))
 
-        self.assertEqual(etag, '416c0aecaf0b1e8ec64104349ba549c7534861f2')
+        self.assertEqual(len(w), 1)
+        self.assertIn('generate_etag is deprecated',
+                      six.text_type(w[0].message))
+
+        self.assertEqual(
+            etag,
+            encode_etag(
+                ':%s' % repr(resource.serialize_object(obj, request=request))))
 
     def test_generate_etag_with_encode_etag_false(self):
         """Testing WebAPIResource.generate_etag with encode_etag=False"""
@@ -247,9 +310,13 @@ class WebAPIResourceTests(TestCase):
         obj = TestObject()
 
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             etag = resource.generate_etag(obj, None, request,
                                           encode_etag=False)
-            self.assertEqual(len(w), 0)
+
+        self.assertEqual(len(w), 1)
+        self.assertIn('generate_etag is deprecated',
+                      six.text_type(w[0].message))
 
         self.assertEqual(
             etag,

@@ -51,8 +51,6 @@ def run_tests(verbosity=1, interactive=False):
         '-v',
         '--match=^test',
         '--with-id',
-        '--with-doctest',
-        '--doctest-extension=.txt',
     ]
 
     if '--with-coverage' in sys.argv:

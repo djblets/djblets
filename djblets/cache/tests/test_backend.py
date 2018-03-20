@@ -1,3 +1,4 @@
+# coding: utf-8
 from __future__ import unicode_literals
 
 import inspect
@@ -35,6 +36,23 @@ class CacheTests(SpyAgency, TestCase):
         # Call a second time. We should only call cacheFunc once.
         result = cache_memoize(cacheKey, cacheFunc)
         self.assertEqual(result, testStr)
+
+    def test_cache_memoize_with_unicode_data(self):
+        """Testing cache_memoize with Unicode data"""
+        cache_key = 'abc123'
+        test_str = '🙃' * 5
+
+        def cache_func(cache_called=[]):
+            self.assertFalse(cache_called)
+            cache_called.append(True)
+            return test_str
+
+        result = cache_memoize(cache_key, cache_func)
+        self.assertEqual(result, test_str)
+
+        # Call a second time. We should only call cacheFunc once.
+        result = cache_memoize(cache_key, cache_func)
+        self.assertEqual(result, test_str)
 
     def test_cache_memoize_large_files_uncompressed(self):
         """Testing cache_memoize with large files without compression"""
@@ -82,7 +100,7 @@ class CacheTests(SpyAgency, TestCase):
         # This takes into account the size of the pickle data, and will
         # get us to just barely 3 chunks of data in cache.
         data = self._build_test_chunk_data(num_chunks=2)[0] + 'x'
-        pickled_data = pickle.dumps(data)
+        pickled_data = pickle.dumps(data, protocol=0)
 
         def cache_func():
             return data
@@ -365,8 +383,9 @@ class CacheTests(SpyAgency, TestCase):
         get us to exactly the specified number of chunks of data in the cache.
         """
         data = 'x' * (CACHE_CHUNK_SIZE * num_chunks - 3 * num_chunks)
-        pickled_data = pickle.dumps(data)
+        pickled_data = pickle.dumps(data, protocol=0)
 
+        self.assertTrue(pickled_data.startswith(b'Vxxxxxxxx'))
         self.assertEqual(len(pickled_data), CACHE_CHUNK_SIZE * num_chunks)
 
         return data, pickled_data

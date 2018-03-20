@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from django.http import HttpResponse
 from django.utils import six
-from django.utils.encoding import force_unicode
+from django.utils.encoding import force_text
 from djblets.util.http import (get_http_requested_mimetype,
                                get_url_params_except,
                                is_mimetype_a)
@@ -297,7 +297,7 @@ class WebAPIResponseFormError(WebAPIResponseError):
         fields = {}
 
         for field in form.errors:
-            fields[field] = [force_unicode(e) for e in form.errors[field]]
+            fields[field] = [force_text(e) for e in form.errors[field]]
 
         super(WebAPIResponseFormError, self).__init__(
             request, INVALID_FORM_DATA,

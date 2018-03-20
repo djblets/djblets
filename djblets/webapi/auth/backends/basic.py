@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 
+import base64
 import logging
 
 from djblets.webapi.auth.backends.base import WebAPIAuthBackend
@@ -23,8 +24,9 @@ class WebAPIBasicAuthBackend(WebAPIAuthBackend):
             return None
 
         try:
-            encoded_auth = parts[1]
-            username, password = encoded_auth.decode('base64').split(':', 1)
+            encoded_auth = parts[1].encode('utf-8')
+            username, password = \
+                base64.b64decode(encoded_auth).decode('utf-8').split(':', 1)
         except Exception:
             logger.warning('Failed to parse HTTP_AUTHORIZATION header %s',
                            request.META['HTTP_AUTHORIZATION'],

@@ -2,6 +2,8 @@
 
 from __future__ import unicode_literals
 
+from django.utils import six
+
 from djblets.testing.testcases import TestCase
 from djblets.util.json_utils import (JSONPatchError,
                                      JSONPatchPathError,
@@ -705,8 +707,9 @@ class JSONPatchTests(TestCase):
         }]
 
         message = (
-            'Syntax error in path "/a/bad" for patch entry 0: u\'bad\' is '
-            'not a valid list index in "/a"'
+            'Syntax error in path "/a/bad" for patch entry 0: %r is not a '
+            'valid list index in "/a"'
+            % 'bad'
         )
 
         with self.assertRaisesMessage(JSONPatchPathError, message) as cm:
@@ -2883,7 +2886,8 @@ class JSONGetPointerInfoTests(TestCase):
                 'unresolved_tokens': ['c'],
                 'lookup_error': (
                     'Cannot resolve path within unsupported type '
-                    '"unicode" at "/a/b"'
+                    '"%s" at "/a/b"'
+                    % six.text_type.__name__
                 ),
             })
 
@@ -2927,7 +2931,7 @@ class JSONGetPointerInfoTests(TestCase):
             },
         }
 
-        message = 'u\'c\' is not a valid list index in "/a/b"'
+        message = '%r is not a valid list index in "/a/b"' % 'c'
 
         with self.assertRaisesMessage(JSONPointerSyntaxError, message):
             json_get_pointer_info(obj, '/a/b/c')
@@ -3055,8 +3059,10 @@ class JSONResolvePointerTests(TestCase):
             },
         }
 
-        message = \
-            'Cannot resolve path within unsupported type "unicode" at "/a/b"'
+        message = (
+            'Cannot resolve path within unsupported type "%s" at "/a/b"'
+            % six.text_type.__name__
+        )
 
         with self.assertRaisesMessage(JSONPointerLookupError, message):
             json_resolve_pointer(obj, '/a/b/c')
@@ -3101,7 +3107,7 @@ class JSONResolvePointerTests(TestCase):
             },
         }
 
-        message = 'u\'c\' is not a valid list index in "/a/b"'
+        message = '%r is not a valid list index in "/a/b"' % 'c'
 
         with self.assertRaisesMessage(JSONPointerSyntaxError, message):
             json_resolve_pointer(obj, '/a/b/c')

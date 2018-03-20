@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import json
+from collections import OrderedDict
 
 from djblets.testing.testcases import TestCase
 from djblets.webapi.encoders import (JSONEncoderAdapter, WebAPIEncoder,
@@ -9,16 +10,22 @@ from djblets.webapi.encoders import (JSONEncoderAdapter, WebAPIEncoder,
 
 class EncoderAdapterTests(TestCase):
     """Tests encoding correctness of WebAPIEncoder adapters"""
-    data = {
-        'dict_val': {'foo': 'bar'},
-        'list_val': [10, 'baz'],
-        'string_val': 'foobar',
-        'int_val': 42,
-        'float_val': 3.14159,
-        'scientific_val': 2.75e-15,
-        'bool_val': True,
-        "none_val": None
-    }
+
+    @classmethod
+    def setUpClass(cls):
+        super(EncoderAdapterTests, cls).setUpClass()
+
+        data = OrderedDict()
+        data['string_val'] = 'foobar'
+        data['none_val'] = None
+        data['dict_val'] = {'foo': 'bar'}
+        data['bool_val'] = True
+        data['scientific_val'] = 2.75e-15
+        data['int_val'] = 42
+        data['float_val'] = 3.14159
+        data['list_val'] = [10, 'baz']
+
+        cls.data = data
 
     def test_json_encoder_adapter(self):
         """Testing JSONEncoderAdapter.encode"""
