@@ -274,14 +274,15 @@ def linkcode_resolve(domain, info):
     if version[3] == 'final' or version[4] > 0:
         branch = 'release-%s.%s' % (version[0], version[1])
 
-        if version[2]:
-            branch += '.%s' % version[2]
+        if djblets.is_release():
+            if version[2]:
+                branch += '.%s' % version[2]
 
-        if djblets.is_release() and version[3] != 'final':
-            branch += version[3]
+            if version[3] != 'final':
+                branch += version[3]
 
-            if version[4]:
-                branch += '%d' % version[4]
+                if version[4]:
+                    branch += '%d' % version[4]
         else:
             branch += '.x'
     else:
