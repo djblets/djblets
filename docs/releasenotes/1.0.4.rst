@@ -5,7 +5,7 @@
 Djblets 1.0.4 Release Notes
 ===========================
 
-**Release date**: TBD
+**Release date**: March 19, 2018
 
 
 Packaging
