@@ -42,7 +42,7 @@ Djblets.Config.PagesView = Backbone.View.extend({
         this._$activePage = this._$pages.eq(0).addClass('active');
 
         Backbone.history.start({
-            root: window.location
+            root: window.location.pathname,
         });
 
         return this;
@@ -82,7 +82,7 @@ Djblets.Config.PagesView = Backbone.View.extend({
         } else {
             this._$activeNav =
                 this._$pageNavs
-                    .filter(`:has(a[href=#${pageID}])`)
+                    .filter(`:has(a[href="#${pageID}"])`)
                     .addClass('active');
 
             this._$activePage.addClass('active');
