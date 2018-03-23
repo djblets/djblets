@@ -8,11 +8,10 @@ Djblets Release Notes
 1.0 Releases
 ============
 
-(The 1.0 release was previously known as 0.10 in the betas.)
-
 .. toctree::
    :maxdepth: 1
 
+   1.0.5
    1.0.4
    1.0.3
    1.0.2
