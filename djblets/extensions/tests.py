@@ -67,7 +67,8 @@ from djblets.extensions.hooks import (DataGridColumnsHook, ExtensionHook,
                                       BaseRegistryMultiItemHook, SignalHook,
                                       TemplateHook, URLHook)
 from djblets.extensions.manager import (ExtensionManager, SettingListWrapper,
-                                        get_extension_managers)
+                                        get_extension_managers,
+                                        logger as manager_logger)
 from djblets.extensions.settings import Settings
 from djblets.extensions.signals import settings_saved
 from djblets.extensions.views import configure_extension
@@ -836,7 +837,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         extension.settings.save()
 
         self.spy_on(self.manager._sync_database, call_original=False)
-        self.spy_on(logging.warning)
+        self.spy_on(manager_logger.warning)
 
         extension = self.manager.enable_extension(TestExtension.id)
 
@@ -846,7 +847,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertEqual(extension.settings[self.manager.VERSION_SETTINGS_KEY],
                          '100.0')
         self.assertIn('is older than the version recorded',
-                      logging.warning.spy.calls[-1].args[0])
+                      manager_logger.warning.spy.calls[-1].args[0])
 
     def test_install_extension_media_with_no_version_file(self):
         """Testing ExtensionManager installs media when no version file exists
