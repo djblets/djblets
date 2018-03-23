@@ -1,0 +1,21 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+===========================
+Djblets 1.0.5 Release Notes
+===========================
+
+**Release date**: March 23, 2018
+
+
+djblets.extensions
+==================
+
+* Fixed an error attempting to log problems with extension media installation.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
