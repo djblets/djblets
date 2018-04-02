@@ -165,9 +165,8 @@ Djblets.ExtensionManager = Backbone.Model.extend({
     },
 
     initialize: function() {
-        this.installedExtensions = new InstalledExtensionCollection([], {
-            url: this.get('apiRoot')
-        })
+        this.installedExtensions = new InstalledExtensionCollection();
+        this.installedExtensions.url = this.get('apiRoot');
     },
 
     load: function() {
