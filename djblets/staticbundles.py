@@ -29,17 +29,17 @@ PIPELINE_JAVASCRIPT = {
     },
     'djblets-extensions-admin': {
         'source_filenames': (
-            'djblets/js/extensions/models/extensionManagerModel.js',
-            'djblets/js/extensions/views/extensionManagerView.js',
+            'djblets/js/extensions/models/extensionManagerModel.es6.js',
+            'djblets/js/extensions/views/extensionManagerView.es6.js',
         ),
         'output_filename': 'djblets/js/extensions-admin.min.js',
     },
     'djblets-extensions': {
         'source_filenames': (
             'djblets/js/extensions/base.js',
-            'djblets/js/extensions/models/extensionModel.js',
-            'djblets/js/extensions/models/extensionHookModel.js',
-            'djblets/js/extensions/models/extensionHookPointModel.js',
+            'djblets/js/extensions/models/extensionModel.es6.js',
+            'djblets/js/extensions/models/extensionHookModel.es6.js',
+            'djblets/js/extensions/models/extensionHookPointModel.es6.js',
         ),
         'output_filename': 'djblets/js/extensions.min.js',
     },

@@ -1,4 +1,4 @@
-/*
+/**
  * Base class for an extension.
  *
  * Extensions that deal with JavaScript should subclass this to provide any
@@ -11,15 +11,15 @@ Djblets.Extension = Backbone.Model.extend({
     defaults: {
         id: null,
         name: null,
-        settings: {}
+        settings: {},
     },
 
-    /*
-     * Initializes the extension.
+    /**
+     * Initialize the extension.
      *
-     * Subclasses are expected to call the parent initialize.
+     * Subclasses that override this are expected to call this method.
      */
-    initialize: function() {
+    initialize() {
         this.hooks = [];
-    }
+    },
 });

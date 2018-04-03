@@ -1,4 +1,4 @@
-/*
+/**
  * Base class for hooks that an extension can use to augment functionality.
  *
  * Each type of hook represents a point in the codebase that an extension
@@ -15,7 +15,7 @@
  * use the subclass's each() method to loop over all registered hooks.
  */
 Djblets.ExtensionHook = Backbone.Model.extend({
-    /*
+    /**
      * An ExtensionHookPoint instance.
      *
      * This must be defined and instantiated by a subclass of ExtensionHook,
@@ -24,11 +24,11 @@ Djblets.ExtensionHook = Backbone.Model.extend({
     hookPoint: null,
 
     defaults: {
-        extension: null
+        extension: null,
     },
 
-    /*
-     * Initializes the hook.
+    /**
+     * Initialize the hook.
      *
      * This will add the instance of the hook to the extension's list of
      * hooks, and to the list of known hook instances for this hook point.
@@ -36,8 +36,8 @@ Djblets.ExtensionHook = Backbone.Model.extend({
      * After initialization, setUpHook will be called, which a subclass
      * can use to provide additional setup.
      */
-    initialize: function() {
-        var extension = this.get('extension');
+    initialize() {
+        const extension = this.get('extension');
 
         console.assert(this.hookPoint,
                        'This ExtensionHook subclass must define hookPoint');
@@ -50,20 +50,26 @@ Djblets.ExtensionHook = Backbone.Model.extend({
         this.setUpHook();
     },
 
-    /*
-     * Sets up additional state for the hook.
+    /**
+     * Set up additional state for the hook.
      *
      * This can be overridden by subclasses to provide additional
      * functionality.
      */
-    setUpHook: function() {
-    }
+    setUpHook() {
+    },
 }, {
-    /*
-     * Loops through each registered hook instance and calls the given
-     * callback.
+    /**
+     * Loop through each registered hook instance and call the given callback.
+     *
+     * Args:
+     *     cb (function):
+     *         The callback to call.
+     *
+     *     context (object, optional):
+     *         Optional context to use when calling the callback.
      */
-    each: function(cb, context) {
+    each(cb, context) {
         _.each(this.prototype.hookPoint.hooks, cb, context);
-    }
+    },
 });

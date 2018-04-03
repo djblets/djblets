@@ -1,18 +1,25 @@
-/*
+/**
  * Defines a point where extension hooks can plug into.
  *
  * This is meant to be instantiated and provided as a 'hookPoint' field on
  * an ExtensionHook subclass, in order to provide a place to hook into.
  */
 Djblets.ExtensionHookPoint = Backbone.Model.extend({
-    initialize: function() {
+    /**
+     * Initialize the hook point.
+     */
+    initialize() {
         this.hooks = [];
     },
 
-    /*
-     * Adds a hook instance to the list of known hooks.
+    /**
+     * Add a hook instance to the list of known hooks.
+     *
+     * Args:
+     *     hook (Djblets.ExtensionHook):
+     *         The hook instance.
      */
-    addHook: function(hook) {
+    addHook(hook) {
         this.hooks.push(hook);
-    }
+    },
 });
