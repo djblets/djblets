@@ -1,17 +1,13 @@
 (function() {
 
 
-var InstalledExtension,
-    InstalledExtensionCollection;
-
-
-/*
+/**
  * Represents an installed extension listed in the Manage Extensions list.
  *
  * This stores the various information about the extension that we'll display
  * to the user, and offers actions for enabling or disabling the extension.
  */
-InstalledExtension = Backbone.Model.extend({
+const InstalledExtension = Backbone.Model.extend({
     defaults: {
         author: null,
         authorURL: null,
@@ -22,68 +18,83 @@ InstalledExtension = Backbone.Model.extend({
         loadError: null,
         name: null,
         summary: null,
-        version: null
+        version: null,
     },
 
-    url: function() {
+    /**
+     * Return the URL to the API endpoint representing this extension.
+     *
+     * Returns:
+     *     string:
+     *     The URL to use for making changes to this extension.
+     */
+    url() {
         return Backbone.Model.prototype.url.call(this) + '/';
     },
 
-    /*
-     * Enables the extension.
+    /**
+     * Enable the extension.
      */
-    enable: function() {
+    enable() {
         this.save({
             enabled: true
         }, {
             wait: true,
-            error: _.bind(function(model, xhr) {
+            error: (model, xhr) => {
                 this.set({
                     loadable: false,
                     loadError: xhr.errorRsp.load_error,
-                    canEnable: !xhr.errorRsp.needs_reload
+                    canEnable: !xhr.errorRsp.needs_reload,
                 });
-            }, this)
+            },
         });
     },
 
-    /*
-     * Disables the extension.
+    /**
+     * Disable the extension.
      */
-    disable: function() {
+    disable() {
         this.save({
-            enabled: false
+            enabled: false,
         }, {
             wait: true,
-            error: function(model, xhr) {
-                alert(gettext('Failed to disable extension. ') +
-                      xhr.errorText + '.');
-            }
+            error: (model, xhr) => alert(
+                gettext('Failed to disable extension. ') +
+                xhr.errorText + '.'),
         });
     },
 
-    /*
-     * Returns a JSON payload for requests sent to the server.
+    /**
+     * Return a JSON payload for requests sent to the server.
+     *
+     * Returns:
+     *     object:
+     *     A payload that will be serialized for making the API request.
      */
-    toJSON: function() {
+    toJSON() {
         return {
-            enabled: this.get('enabled')
+            enabled: this.get('enabled'),
         };
     },
 
-    /*
-     * Parses a JSON payload from the server.
+    /**
+     * Parse a JSON payload from the server.
+     *
+     * Args:
+     *     rsp (object):
+     *         The payload from the server.
+     *
+     * Returns:
+     *     object:
+     *     The parsed response.
      */
-    parse: function(rsp) {
-        var configLink,
-            dbLink;
-
+    parse(rsp) {
         if (rsp.stat !== undefined) {
             rsp = rsp.extension;
         }
 
-        configLink = rsp.links['admin-configure'];
-        dbLink = rsp.links['admin-database'];
+        const configLink = rsp.links['admin-configure'];
+        const dbLink = rsp.links['admin-database'];
 
         return {
             author: rsp.author,
@@ -98,27 +109,35 @@ InstalledExtension = Backbone.Model.extend({
             id: rsp.class_name,
             name: rsp.name,
             summary: rsp.summary,
-            version: rsp.version
+            version: rsp.version,
         };
     },
 
-    /*
-     * Performs AJAX requests against the server-side API.
+    /**
+     * Perform AJAX requests against the server-side API.
+     *
+     * Args:
+     *     method (string):
+     *         The HTTP method to use.
+     *
+     *     model (InstalledExtension):
+     *         The extension object being synced.
+     *
+     *     options (object):
+     *         Options for the sync operation.
      */
-    sync: function(method, model, options) {
+    sync(method, model, options) {
         Backbone.sync.call(this, method, model, _.defaults({
             contentType: 'application/x-www-form-urlencoded',
             data: model.toJSON(options),
             processData: true,
-            error: _.bind(function(xhr) {
-                var rsp = null,
-                    loadError,
-                    text;
+            error: xhr => {
+                let rsp = null;
+                let text;
 
                 try {
                     rsp = $.parseJSON(xhr.responseText);
                     text = rsp.err.msg;
-                    loadError = rsp.load_error;
                 } catch (e) {
                     text = 'HTTP ' + xhr.status + ' ' + xhr.statusText;
                 }
@@ -128,28 +147,39 @@ InstalledExtension = Backbone.Model.extend({
                     xhr.errorRsp = rsp;
                     options.error(xhr, options);
                 }
-            }, this)
+            },
         }, options));
-    }
+    },
 });
 
 
-/*
+/**
  * A collection of installed extensions.
  *
  * This stores the list of installed extensions, and allows fetching from
  * the API.
  */
-InstalledExtensionCollection = Backbone.Collection.extend({
+const InstalledExtensionCollection = Backbone.Collection.extend({
     model: InstalledExtension,
 
-    parse: function(rsp) {
+    /**
+     * Parse the response from the server.
+     *
+     * Args:
+     *     rsp (object):
+     *         The response from the server.
+     *
+     * Returns:
+     *     object:
+     *     The parsed data from the response.
+     */
+    parse(rsp) {
         return rsp.extensions;
-    }
+    },
 });
 
 
-/*
+/**
  * Manages installed extensions.
  *
  * This stores a collection of installed extensions, and provides
@@ -161,22 +191,25 @@ InstalledExtensionCollection = Backbone.Collection.extend({
  */
 Djblets.ExtensionManager = Backbone.Model.extend({
     defaults: {
-        apiRoot: null
+        apiRoot: null,
     },
 
-    initialize: function() {
-        this.installedExtensions = new InstalledExtensionCollection([], {
-            url: this.get('apiRoot')
-        })
+    /**
+     * Initialize the manager.
+     */
+    initialize() {
+        this.installedExtensions = new InstalledExtensionCollection();
+        this.installedExtensions.url = this.get('apiRoot');
     },
 
-    load: function() {
+    /**
+     * Load the extensions list.
+     */
+    load() {
         this.installedExtensions.fetch({
-            success: _.bind(function() {
-                this.trigger('loaded');
-            }, this)
+            success: () => this.trigger('loaded'),
         });
-    }
+    },
 });
 
 
