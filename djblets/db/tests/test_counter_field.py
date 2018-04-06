@@ -7,6 +7,17 @@ from djblets.db.fields import CounterField
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
 
 
+class CounterFieldMixin(models.Model):
+    mixin_counter = CounterField(initializer=lambda o: 0)
+
+    class Meta:
+        abstract = True
+
+
+class CounterFieldModelWithMixin(CounterFieldMixin, models.Model):
+    counter = CounterField(initializer=lambda o: 1)
+
+
 class CounterFieldTestModel(models.Model):
     counter = CounterField(initializer=lambda o: 5)
 
@@ -131,6 +142,14 @@ class CounterFieldTests(TestModelsLoaderMixin, TestCase):
 
         model = CounterFieldTestModel.objects.get(pk=model.pk)
         self.assertEqual(model.counter, 123)
+
+    def test_save_with_mixin_counter_field(self):
+        """Testing Model.save when the model has a CounterField and inherits
+        from an abstract model that has a CounterField
+        """
+        # This test fails by blowing the stack during ``model.save()``.
+        model = CounterFieldModelWithMixin.objects.create()
+        model.save()
 
     def _test_increment(self, expected_value, expected_expr, **kwargs):
         self._test_update_value(expected_value, expected_expr,
