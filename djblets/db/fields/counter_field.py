@@ -466,5 +466,14 @@ class CounterField(models.IntegerField):
                 (update_fields and value[0].attname in update_fields))
         ]
 
-        return super(model.__class__, model)._do_update(
-            base_qs, using, pk_val, values, update_fields, forced_update)
+        # We explicitly need to use ``models.Model._do_update`` here instead of
+        # calling ``super(type(model), model)._do_update``.
+        #
+        # If ``type(model)`` defines a counter field **and** inherits from an
+        # abstract model that does the same, then
+        # ``super(type(model), model)._do_update`` is **this method**. We will
+        # infinitely recurse and blow the stack in this case. Hence we have to
+        # skip right to ``models.Model``.
+        return models.Model._do_update(
+            model, base_qs, using, pk_val, values, update_fields,
+            forced_update)
