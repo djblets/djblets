@@ -49,10 +49,12 @@ class WebAPIAuthBackend(object):
         """Return extra authentication headers for the response.
 
         Args:
-            request (HttpRequest): The HTTP request from the client.
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
 
         Returns:
-            dict: The authentication headers (defaults to empty).
+            dict:
+            The authentication headers (defaults to empty).
         """
         return {}
 
@@ -66,20 +68,22 @@ class WebAPIAuthBackend(object):
         and another backend should be tried, or a tuple indicating the
         success/failure and additional details for the client.
 
-        The tuple is in the form of::
-
-            (is_successful, error_message, headers)
-
-        The error message and headers can be None to use the default error
-        message and headers from the :py:data:`LOGIN_FAILED` error. In most
-        cases, they should be ``None``, unless there are more specific
-        instructions needed for authenticating.
-
         Args:
-            request (HttpRequest): The HTTP request from the client.
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
 
         Returns:
-            tuple or None
+            tuple or None:
+            The tuple is in the form of::
+
+                (is_successful, error_message, headers)
+
+            The error message and headers can be None to use the default error
+            message and headers from the :py:data:`LOGIN_FAILED` error. In most
+            cases, they should be ``None``, unless there are more specific
+            instructions needed for authenticating.
+
+            If the backend should be skipped, this will return ``None``.
         """
         # Check if number of failed login attempts already exceeded
         # before authenticating.
@@ -115,7 +119,12 @@ class WebAPIAuthBackend(object):
         This function must be implemented by the subclass.
 
         Args:
-            request (HttpRequest): The HTTP request from the client.
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
+
+        Returns:
+            dict:
+            A dictionary of credential information.
         """
         raise NotImplementedError
 
@@ -127,14 +136,15 @@ class WebAPIAuthBackend(object):
         authentication backends used by Django.
 
         Args:
-            request (HttpRequest):
+            request (django.http.HttpRequest):
                 The HTTP request from the client.
 
-            credentials:
+            credentials (dict):
                 All credentials provided by :py:meth:`get_credentials`.
 
         Returns:
-            tuple or None: See the return type in :py:meth:`authenticate`.
+            tuple or None:
+            See the return type in :py:meth:`authenticate`.
         """
         result = self.validate_credentials(request, **credentials)
 
@@ -183,14 +193,15 @@ class WebAPIAuthBackend(object):
         their sets of credentials, or to disable this entirely.
 
         Args:
-            request (HttpRequest):
+            request (django.http.HttpRequest):
                 The HTTP request from the client.
 
-            credentials:
+            credentials (dict):
                 All credentials provided by :py:meth:`get_credentials`.
 
         Returns:
-            tuple or None: See the return type in :py:meth:`authenticate`.
+            tuple or None:
+            See the return type in :py:meth:`authenticate`.
         """
         # Don't authenticate if a user is already logged in and the
         # username matches.
@@ -216,7 +227,8 @@ class WebAPIAuthBackend(object):
                 A dictionary of credentials provided for authentication.
 
         Returns:
-            dict: A sanitized dictionary of credentials, for display purposes.
+            dict:
+            A sanitized dictionary of credentials, for display purposes.
         """
         clean_credentials = {}
 

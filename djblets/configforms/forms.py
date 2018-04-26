@@ -104,7 +104,8 @@ class ConfigPageForm(forms.Form):
         data from the database or another source.
 
         Args:
-            field_values (dict): The initial field data to set on the form.
+            field_values (dict):
+                The initial field data to set on the form.
         """
         for field, value in six.iteritems(field_values):
             self.fields[field].initial = value
@@ -116,8 +117,8 @@ class ConfigPageForm(forms.Form):
 
         Returns:
             bool:
-                ``True`` if the form should be rendered on the page (default),
-                or ``False`` otherwise.
+            ``True`` if the form should be rendered on the page (default),
+            or ``False`` otherwise.
         """
         return True
 

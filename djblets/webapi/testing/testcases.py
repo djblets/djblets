@@ -51,7 +51,8 @@ class WebAPITestCaseMixin(TestCase):
         the contents of :py:attr:`sample_api_url`.
 
         Returns:
-            unicode: The description of the test.
+            unicode:
+            The description of the test.
         """
         desc = super(WebAPITestCaseMixin, self).shortDescription()
 
@@ -250,6 +251,7 @@ class WebAPITestCaseMixin(TestCase):
                 The expected mimetype for the response payload.
 
         Returns:
+            bytes:
             The parsed payload data.
         """
         return self.api_post_with_response(*args, **kwargs)[0]
@@ -283,6 +285,7 @@ class WebAPITestCaseMixin(TestCase):
                 The expected mimetype for the response payload.
 
         Returns:
+            bytes:
             The parsed payload data.
         """
         path = self._normalize_path(path)
@@ -313,7 +316,7 @@ class WebAPITestCaseMixin(TestCase):
                 The expected HTTP status.
 
         Returns:
-            HttpResponse:
+            django.http.HttpResponse:
             The HTTP respons of the payload. This won't have any content if
             the delete was successful.
         """
@@ -331,7 +334,7 @@ class WebAPITestCaseMixin(TestCase):
         """Assert that a response was OK and optionally has caching headers.
 
         Args:
-            response (HttpResponse):
+            response (django.http.HttpResponse):
                 The HTTP response from the API.
 
             check_last_modified (bool):
@@ -354,7 +357,8 @@ class WebAPITestCaseMixin(TestCase):
         """Assert that the response was HTTP 304 Not Modified.
 
         Args:
-            response (HttpResponse): The HTTP response from the API.
+            response (django.http.HttpResponse):
+                The HTTP response from the API.
         """
         self.assertEquals(response.status_code, 304)
         self.assertEquals(response.content, '')
@@ -397,7 +401,8 @@ class WebAPITestCaseMixin(TestCase):
                 Extra data to pass to the function.
 
         Returns:
-            HttpResponse: The HTTP response from the API resource.
+            django.http.HttpResponse:
+            The HTTP response from the API resource.
         """
         response = api_func(path, query, follow=follow_redirects,
                             content_type=content_type,
@@ -431,10 +436,12 @@ class WebAPITestCaseMixin(TestCase):
         """Normalize a path, removing the base URL if found.
 
         Args:
-            path (unicode): The path or full URL.
+            path (unicode):
+                The path or full URL.
 
         Returns:
-            unicode: The path without the base server URL.
+            unicode:
+            The path without the base server URL.
         """
         if path.startswith(self.base_url):
             return path[len(self.base_url):]
@@ -450,13 +457,14 @@ class WebAPITestCaseMixin(TestCase):
         returned.
 
         Args:
-            response (HttpResponse):
+            response (django.http.HttpResponse):
                 The HTTP response from the API.
 
             expected_status (int):
                 The expected HTTP status.
 
         Returns:
+            dict:
             The parsed JSON response from the payload, or ``None``.
         """
         if expected_status in (204, 405):

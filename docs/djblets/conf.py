@@ -264,7 +264,8 @@ autodoc_excludes = {
 
 autosummary_generate = True
 
-napoleon_google_docstring = True
+napoleon_beanbag_docstring = True
+napoleon_google_docstring = False
 napoleon_numpy_docstring = False
 
 
