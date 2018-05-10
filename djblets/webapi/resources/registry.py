@@ -48,10 +48,11 @@ class ResourcesRegistry(object):
         this resource will be returned from the cache.
 
         Args:
-            name (unicode): The name of the resource to look up.
+            name (unicode):
+                The name of the resource to look up.
 
         Returns:
-            WebAPIResource:
+            djblets.webapi.resources.base.WebAPIResource:
             The resource instance matching the name.
         """
         if name.startswith('__'):
@@ -98,10 +99,10 @@ def register_resource_for_model(model, resource):
     """Register a resource as the official location for a model.
 
     Args:
-        model (Model):
+        model (djagno.db.models.Model):
             The model associated with the resource.
 
-        resource (WebAPIResource or callable):
+        resource (djblets.webapi.resources.base.WebAPIResource or callable):
             Either a WebAPIResource, or a function that takes an instance of
             ``model`` and returns a WebAPIResource.
     """
@@ -112,7 +113,8 @@ def unregister_resource_for_model(model):
     """Remove the official location for a model.
 
     Args:
-        model (Model): The model associated with the resource to remove.
+        model (django.db.models.Model):
+            The model associated with the resource to remove.
     """
     del _model_to_resources[model]
 
@@ -121,10 +123,11 @@ def get_resource_for_object(obj):
     """Return the resource for an object.
 
     Args:
-        obj: The object whose model has a resource associated.
+        obj (object):
+            The object whose model has a resource associated.
 
     Returns:
-        WebAPIResource:
+        djblets.webapi.resources.base.WebAPIResource:
         The resource associated with the object, or ``None`` if not found.
     """
     from djblets.webapi.resources.base import WebAPIResource
@@ -148,10 +151,12 @@ def get_resource_from_name(name):
     """Return the resource of the specified name.
 
     Args:
-        name (unicode): The name of the resource.
+        name (unicode):
+            The name of the resource.
 
     Returns:
-        WebAPIResource: The resource instance, or ``None`` if not found.
+        djblets.webapi.resources.base.WebAPIResource:
+        The resource instance, or ``None`` if not found.
     """
     return _name_to_resources.get(name, None)
 
@@ -160,10 +165,13 @@ def get_resource_from_class(klass):
     """Return the resource with the specified resource class.
 
     Args:
-        klass (class): The WebAPIResource subclass.
+        klass (type):
+            The :py:class:`~djblets.webapi.resources.base.WebAPIResource`
+            subclass.
 
     Returns:
-        WebAPIResource: The resource instance, or ``None`` if not found.
+        djblets.webapi.resources.base.WebAPIResource:
+        The resource instance, or ``None`` if not found.
     """
     return _class_to_resources.get(klass, None)
 
@@ -172,7 +180,8 @@ def unregister_resource(resource):
     """Unregister a resource from the caches.
 
     Args:
-        resource (WebAPIResource): The resource instance to unregister.
+        resource (djblets.webapi.resources.base.WebAPIResource):
+            The resource instance to unregister.
     """
     del _name_to_resources[resource.name]
     del _name_to_resources[resource.name_plural]

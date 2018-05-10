@@ -46,7 +46,7 @@
            (min--moz-device-pixel-ratio: 1.5),
            (-o-min-device-pixel-ratio: 3/2),
            (min-resolution: 1.5dppx) {
-      background: url(@retina-path);
+      background-image: url(@retina-path);
       background-size: @size;
     }
   }
@@ -54,7 +54,7 @@
   .higher-dpi-queries(@retina-path, @ratio) {
     @media (-webkit-min-device-pixel-ratio: @ratio),
            (min-resolution: (@ratio * 96dpi)) {
-      background: url(@retina-path);
+      background-image: url(@retina-path);
       background-size: @size;
     }
   }

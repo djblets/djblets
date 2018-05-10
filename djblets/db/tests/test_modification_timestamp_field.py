@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 from datetime import datetime
 
 from django.db import models
+from django.utils import timezone
 
 from djblets.db.fields.modification_timestamp_field import \
     ModificationTimestampField
@@ -34,7 +35,7 @@ class ModificationTimestampFieldTests(TestModelsLoaderMixin, TestCase):
         """Testing ModificationTimestampField.pre_save with new model instance
         and custom value
         """
-        timestamp = datetime(2018, 3, 6, 23, 31, 30)
+        timestamp = datetime(2018, 3, 6, 23, 31, 30, tzinfo=timezone.utc)
 
         obj = ModificationTimestampFieldTestModel(field=timestamp)
         self.assertIsNotNone(obj.field)
@@ -47,7 +48,7 @@ class ModificationTimestampFieldTests(TestModelsLoaderMixin, TestCase):
         """Testing ModificationTimestampField.pre_save with existing model
         instance
         """
-        timestamp = datetime(2018, 3, 6, 23, 31, 30)
+        timestamp = datetime(2018, 3, 6, 23, 31, 30, tzinfo=timezone.utc)
 
         obj = ModificationTimestampFieldTestModel.objects.create(
             field=timestamp)

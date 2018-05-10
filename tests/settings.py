@@ -34,6 +34,8 @@ SITE_ID = 1
 # to load the internationalization machinery.
 USE_I18N = True
 
+USE_TZ = True
+
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
 STATIC_ROOT = 'tests/static'

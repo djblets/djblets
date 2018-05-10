@@ -12,5 +12,6 @@ from django.dispatch import Signal
 #: implementations, if useful to the application.
 #:
 #: Args:
-#:     user (User): The user that was newly registered.
+#:     user (django.contrib.auth.models.User):
+#:         The user that was newly registered.
 user_registered = Signal(providing_args=["user"])
