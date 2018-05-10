@@ -1088,7 +1088,7 @@ class DataGrid(object):
         # Figure out the columns we're going to display
         # We're also going to calculate the column widths based on the
         # shrink and expand values.
-        colnames = self.request.GET.get('columns', profile_columns_list)
+        colnames = self.request.GET.get('columns', profile_columns_list) or ''
 
         columns = filter(None, [
             self.get_column(colname)
