@@ -162,7 +162,7 @@ class Integration(object):
 
         By default, this is called when calling :py:meth:`shutdown`.
         """
-        for hook in self.hooks:
+        for hook in self.hooks.copy():
             if hook.initialized:
                 hook.disable_hook()
 
