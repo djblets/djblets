@@ -314,3 +314,18 @@ class LabelTagTests(TestCase):
             })),
             '<label for="id_my_checkbox" class="vCheckboxLabel">'
             'My checkbox</label>')
+
+    def test_with_empty_label(self):
+        """Testing {% label_tag %} with empty label"""
+        class MyForm(forms.Form):
+            my_checkbox = forms.BooleanField(label='')
+
+        form = MyForm()
+        t = Template('{% load djblets_forms %}'
+                     '{% label_tag field %}')
+
+        self.assertEqual(
+            t.render(Context({
+                'field': form['my_checkbox'],
+            })),
+            '')

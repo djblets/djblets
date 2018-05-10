@@ -39,6 +39,9 @@ def label_tag(field):
     This generates labels similar to the administration UI's own field labels,
     providing styling for required fields and checkboxes.
 
+    If the label is explicitly set to an empty string on the field, no label
+    will be rendered, matching Django's default behavior.
+
     Args:
         field (django.forms.BoundField):
             The bound field on the form to render the label for.
@@ -52,6 +55,9 @@ def label_tag(field):
 
            {% label_for form.my_field %}
     """
+    if not field.label:
+        return ''
+
     is_checkbox = is_field_checkbox(field)
 
     # Build the list of CSS classes to apply to the label.
