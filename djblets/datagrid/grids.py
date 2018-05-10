@@ -1088,24 +1088,24 @@ class DataGrid(object):
         # Figure out the columns we're going to display
         # We're also going to calculate the column widths based on the
         # shrink and expand values.
-        colnames_str = self.request.GET.get('columns', profile_columns_list)
+        colnames = self.request.GET.get('columns', profile_columns_list)
 
-        if colnames_str:
-            colnames = colnames_str.split(',')
-        else:
-            colnames = self.default_columns
-            colnames_str = ",".join(colnames)
+        columns = filter(None, [
+            self.get_column(colname)
+            for colname in colnames.split(',')
+        ])
+
+        if not columns:
+            colnames = ','.join(self.default_columns)
+            columns = [
+                self.get_column(colname)
+                for colname in self.default_columns
+            ]
 
         expand_columns = []
         normal_columns = []
 
-        for colname in colnames:
-            column_def = self.get_column(colname)
-
-            if not column_def:
-                # The user specified a column that doesn't exist. Skip it.
-                continue
-
+        for column_def in columns:
             column = self.get_stateful_column(column_def)
             self.columns.append(column)
             column.active = True
@@ -1168,8 +1168,8 @@ class DataGrid(object):
         # settings back to the profile.
         if profile:
             if (self.profile_columns_field and
-                    colnames_str != profile_columns_list):
-                setattr(profile, self.profile_columns_field, colnames_str)
+                colnames != profile_columns_list):
+                setattr(profile, self.profile_columns_field, colnames)
                 profile_dirty = True
 
             if self.profile_sort_field and sort_str != profile_sort_list:
