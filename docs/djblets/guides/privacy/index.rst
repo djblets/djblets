@@ -8,3 +8,4 @@ Privacy Compliance Guides
    :maxdepth: 2
 
    consent
+   pii

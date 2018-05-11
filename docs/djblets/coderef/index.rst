@@ -267,6 +267,8 @@ Privacy Protection
    djblets.privacy.consent.registry
    djblets.privacy.consent.tracker
    djblets.privacy.models
+   djblets.privacy.pii
+   djblets.privacy.templatetags.djblets_privacy
 
 
 reCAPTCHA
