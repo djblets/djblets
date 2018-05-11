@@ -51,7 +51,7 @@ package_dependencies = {
     'feedparser': '>=5.1.2',
     'pillowfight': '',
     'publicsuffix': '>=1.1',
-    'python-dateutil': '>=1.5',
+    'python-dateutil': '>=2.7',
     'pytz': '',
 }
 
