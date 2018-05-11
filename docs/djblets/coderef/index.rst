@@ -255,6 +255,22 @@ Django Pipeline Additions
    djblets.pipeline.compilers.less.LessCompiler
 
 
+Privacy Protection
+==================
+
+.. autosummary::
+   :toctree: python
+
+   djblets.privacy.consent
+   djblets.privacy.consent.base
+   djblets.privacy.consent.errors
+   djblets.privacy.consent.registry
+   djblets.privacy.consent.tracker
+   djblets.privacy.models
+   djblets.privacy.pii
+   djblets.privacy.templatetags.djblets_privacy
+
+
 reCAPTCHA
 =========
 

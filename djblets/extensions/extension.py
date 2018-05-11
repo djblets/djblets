@@ -312,7 +312,7 @@ class Extension(object):
 
     def shutdown_hooks(self):
         """Shut down all hooks for the extension."""
-        for hook in self.hooks:
+        for hook in self.hooks.copy():
             if hook.initialized:
                 hook.disable_hook()
 
