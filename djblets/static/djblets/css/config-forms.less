@@ -13,6 +13,11 @@
 @config-forms-list-item-line-height: 32px;
 @config-forms-list-item-padding: 0.3em 0.3em 0.3em 1.5em;
 
+@config-forms-side-nav-width: 17em;
+@config-forms-forms-width: 60em;
+@config-forms-container-padding: 1em;
+@config-forms-gap: 2em;
+
 
 .ellipsize() {
   /* Ellipsize the text contents. */
@@ -22,471 +27,464 @@
 }
 
 
+/****************************************************************************
+ * Base styling for config forms
+ ****************************************************************************/
 .config-forms-container {
-  @side-nav-width: 17em;
-  @forms-width: 60em;
-  @container-padding: 1em;
-  @gap: 2em;
-
   font-size: 9pt;
-  padding: @container-padding;
-  width: (@side-nav-width + @forms-width + @gap + (2 * @container-padding));
+  padding: @config-forms-container-padding;
+  width: (@config-forms-side-nav-width +
+          @config-forms-forms-width +
+          @config-forms-gap +
+          (2 * @config-forms-container-padding));
   margin: 0 auto;
+
+  .box {
+    background: @config-forms-box-bg;
+    margin: 0 0 2em 0;
+  }
 
   .box-container {
     margin: 0;
     width: auto;
   }
 
-  .box {
-    background: @config-forms-box-bg;
-    margin: 0 0 2em 0;
+  .box-inner {
+    background: transparent;
+  }
 
-    .box-inner {
-      background: transparent;
+  .box-main {
+    padding: @config-forms-box-padding;
+  }
+
+  .box-recessed {
+    margin: 0 -@config-forms-box-padding;
+  }
+}
+
+.config-forms-side-nav {
+  float: left;
+  margin-top: 2;
+  width: @config-forms-side-nav-width;
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    border-bottom: 1px #D9D9D9 solid;
+
+    &:first-child {
+      border-top: 1px #D9D9D9 solid;
     }
 
-    .box-recessed {
-      margin: 0 -@config-forms-box-padding;
+    &:last-child {
+      &.active, &:hover {
+        border-radius: 0 0 @config-forms-box-border-radius
+                       @config-forms-box-border-radius;
+      }
     }
 
-    .box-main {
-      padding: @config-forms-box-padding;
+    &:hover {
+      background-color: darken(@config-forms-box-bg, 5%);
+    }
+
+    &.active {
+      background: #FEFEFE;
+
+      &:hover {
+        background: #FEFEFE;
+      }
+
+      a {
+        cursor: default;
+      }
+    }
+
+    a {
+      color: black;
+      display: block;
+      font-weight: normal;
+      outline: none;
+      padding: 0.5em 1em;
+      text-decoration: none;
     }
   }
 
-  .config-forms-side-nav {
-    float: left;
-    margin-top: 2;
-    width: @side-nav-width;
+  .box-main {
+    padding: 0;
+  }
+}
 
-    .box-main {
-      padding: 0;
+.config-forms-page-content {
+  float: left;
+  margin-top: 0;
+  margin-left: @config-forms-gap;
+  width: @config-forms-forms-width;
+
+  fieldset {
+    border: 0;
+    margin-bottom: 1rem;
+    padding: 0;
+
+    h2 {
+      font-size: 120%;
+      margin-top: 0;
+    }
+  }
+
+  form {
+    margin: 0 auto;
+  }
+
+  input[type=text],
+  input[type=password],
+  input[type=email] {
+    width: 30em;
+    max-width: 30em;
+    font-size: inherit;
+    padding: 0.3em 0.6em;
+  }
+
+  label, p {
+    color: #666666;
+  }
+
+  label {
+    display: block;
+    margin: 0.25em 0;
+  }
+
+  p {
+    font-size: inherit;
+    margin: 1em 0;
+  }
+
+  select {
+    font-size: inherit;
+  }
+
+  #messages {
+    @msg-bg-color: #FFC;
+    @msg-border-color: darken(@msg-bg-color, 50%);
+
+    margin: 0 0 1em 0;
+    padding: 0;
+
+    li {
+      background: @msg-bg-color url('@{img-base}/icon_success.gif') 5px .3em no-repeat;
+      border: 1px solid @msg-border-color;
+      color: #666;
+      display: block;
+      font-size: 12px;
+      margin: 0 0 3px 0;
+      padding: 4px 5px 4px 25px;
+
+      &.error {
+        background-image: url('@{img-base}/icon_error.gif');
+      }
+
+      &.warning {
+        background-image: url('@{img-base}/icon_alert.gif');
+      }
+    }
+  }
+
+  .box-main {
+    p {
+      &:first-child {
+        margin-top: 0;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .description {
+      margin: 0 0 1em 0;
+    }
+  }
+
+  .buttons {
+    input[type=submit] {
+      text-align: center;
+      margin: 0 auto;
+    }
+  }
+
+  .fields-row {
+    margin: 0 0 1em 0;
+    position: relative;
+
+    &:after {
+      clear: both;
+      display: table;
+      content: "";
+      line-height: 0;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &.checkbox-row {
+      .field {
+        width: 100%;
+
+        input, label {
+          display: inline;
+          width: auto;
+        }
+
+        label {
+          margin-left: 0;
+        }
+
+        ul {
+          margin: 0 0 0 1em;
+        }
+      }
+    }
+  }
+
+  .field {
+    display: block;
+    float: left;
+    margin-right: 1em;
+
+    &:last-child {
+      margin-right: 0;
+    }
+
+    input {
+      width: 21em;
+
+      &[type=checkbox] {
+        width: auto;
+      }
+    }
+
+    li {
+      margin: 0.5em 0;
+
+      &:last-child {
+        label {
+          margin-bottom: 0;
+        }
+      }
+
+      label {
+        color: inherit;
+      }
     }
 
     ul {
       list-style: none;
-      margin: 0;
+      margin: 1em 0;
       padding: 0;
 
-      li {
-        border-bottom: 1px #D9D9D9 solid;
-
-        &:first-child {
-          border-top: 1px #D9D9D9 solid;
-        }
-
-        &:last-child {
-          &.active, &:hover {
-            border-radius: 0 0 @config-forms-box-border-radius
-                           @config-forms-box-border-radius;
-          }
-        }
-
-        &:hover {
-          background-color: darken(@config-forms-box-bg, 5%);
-        }
-
-        &.active {
-          background: #FEFEFE;
-
-          &:hover {
-            background: #FEFEFE;
-          }
-
-          a {
-            cursor: default;
-          }
-        }
-
-        a {
-          color: black;
-          display: block;
-          font-weight: normal;
-          outline: none;
-          padding: 0.5em 1em;
-          text-decoration: none;
-        }
+      &:last-child {
+        margin-bottom: 0;
       }
+    }
+
+    .hint {
+      display: block;
+      margin: 0.5em 0 0 0.5em;
+      font-size: 90%;
     }
   }
 
-  .config-forms-page-content {
-    float: left;
-    margin-top: 0;
-    margin-left: @gap;
-    width: @forms-width;
+  .page {
+    display: none;
 
-    form {
-      margin: 0 auto;
-
-      fieldset {
-        border: 0;
-        margin-bottom: 1rem;
-        padding: 0;
-
-        h2 {
-          font-size: 120%;
-          margin-top: 0;
-        }
-      }
-
-      input[type=text],
-      input[type=password],
-      input[type=email] {
-        width: 30em;
-        max-width: 30em;
-        font-size: inherit;
-        padding: 0.3em 0.6em;
-      }
-
-      label, p {
-        color: #666666;
-      }
-
-      label {
-        display: block;
-        margin: 0.25em 0;
-      }
-
-      p {
-        font-size: inherit;
-        margin: 1em 0;
-      }
-
-      select {
-        font-size: inherit;
-      }
-
-      .buttons {
-        input[type=submit] {
-          text-align: center;
-          margin: 0 auto;
-        }
-      }
-
-      .fields-row {
-        margin: 0 0 1em 0;
-        position: relative;
-
-        &:after {
-          clear: both;
-          display: table;
-          content: "";
-          line-height: 0;
-        }
-
-        &:last-child {
-          margin-bottom: 0;
-        }
-
-        &.checkbox-row {
-          .field {
-            width: 100%;
-
-            input, label {
-              display: inline;
-              width: auto;
-            }
-
-            label {
-              margin-left: 0;
-            }
-
-            ul {
-              margin: 0 0 0 1em;
-            }
-          }
-        }
-
-        .field {
-          display: block;
-          float: left;
-          margin-right: 1em;
-
-          &:last-child {
-            margin-right: 0;
-          }
-
-          input {
-            width: 21em;
-
-            &[type=checkbox] {
-              width: auto;
-            }
-          }
-
-          ul {
-            list-style: none;
-            margin: 1em 0;
-            padding: 0;
-
-            &:last-child {
-              margin-bottom: 0;
-            }
-
-            li {
-              margin: 0.5em 0;
-
-              &:last-child {
-                label {
-                  margin-bottom: 0;
-                }
-              }
-
-              label {
-                color: inherit;
-              }
-            }
-          }
-
-          .hint {
-            display: block;
-            margin: 0.5em 0 0 0.5em;
-            font-size: 90%;
-          }
-        }
-      }
-
-      .search {
-        padding: 0;
-        margin: 0 0 @config-forms-box-padding 0;
-
-        input {
-          margin-left: 0.5em;
-          width: @forms-width - 7em;
-          max-width: 100%;
-        }
-      }
+    &.active {
+      display: block;
     }
+  }
 
-    #messages {
-      @msg-bg-color: #FFC;
-      @msg-border-color: darken(@msg-bg-color, 50%);
+  .search {
+    padding: 0;
+    margin: 0 0 @config-forms-box-padding 0;
 
-      margin: 0 0 1em 0;
-      padding: 0;
-
-      li {
-        background: @msg-bg-color url('@{img-base}/icon_success.gif') 5px .3em no-repeat;
-        border: 1px solid @msg-border-color;
-        color: #666;
-        display: block;
-        font-size: 12px;
-        margin: 0 0 3px 0;
-        padding: 4px 5px 4px 25px;
-
-        &.error {
-          background-image: url('@{img-base}/icon_error.gif');
-        }
-
-        &.warning {
-          background-image: url('@{img-base}/icon_alert.gif');
-        }
-      }
+    input {
+      margin-left: 0.5em;
+      width: @config-forms-forms-width - 7em;
+      max-width: 100%;
     }
+  }
+}
 
-    .page {
-      display: none;
 
-      &.active {
-        display: block;
-      }
+/****************************************************************************
+ * Lists and tables of actionable items
+ ****************************************************************************/
+.config-forms-list {
+  background: @config-forms-list-bg-color;
+  border-bottom: 1px @config-forms-list-border-color solid;
+  border-top: 1px @config-forms-list-border-color solid;
+  margin-bottom: 0;
+  padding: 0;
+
+  > :last-child {
+    border-bottom: none;
+  }
+
+  &:empty {
+    border: none;
+
+    ~ .config-forms-list-empty {
+      display: block;
     }
+  }
+}
 
-    .box {
-      .box-main {
-        .box-title {
-          margin: 0;
-          padding: 0.5em 0.3em 0.3em 0.5em;
-          font-size: 10pt;
+.config-forms-list-empty {
+  background: @config-forms-list-bg-color;
+  border-bottom: 1px solid @config-forms-list-border-color;
+  border-top: 1px solid @config-forms-list-border-color;
+  display: none;
+  line-height: @config-forms-list-item-line-height;
+  padding: @config-forms-list-item-padding;
+}
 
-          &.first {
-            margin-top: 0;
-          }
-        }
+table.config-forms-list {
+  border-collapse: collapse;
+  border-top: 0;
+  width: 100%;
 
-        p {
-          &:first-child {
-            margin-top: 0;
-          }
+  thead th {
+    background: #F0F0F3;
+    border-bottom: 1px @config-forms-list-border-color solid;
+    border-right: 1px #CCCCCC solid;
+    text-align: left;
+    padding: @config-forms-list-item-padding;
 
-          &:last-child {
-            margin-bottom: 0;
-          }
-        }
-
-        .description {
-          margin: 0 0 1em 0;
-        }
-      }
+    &:last-child {
+      border-right: 0;
     }
+  }
+}
 
-    .config-forms-list {
-      background: @config-forms-list-bg-color;
-      border-bottom: 1px @config-forms-list-border-color solid;
-      border-top: 1px @config-forms-list-border-color solid;
-      margin-bottom: 0;
-      padding: 0;
+.config-forms-list-item,
+table.config-forms-list td {
+  border-bottom: 1px @config-forms-list-item-border-color solid;
+  padding: @config-forms-list-item-padding;
+  list-style: none;
+  line-height: @config-forms-list-item-line-height;
+  vertical-align: middle;
+  .ellipsize();
+}
 
-      > :last-child {
-        border-bottom: none;
-      }
+.config-forms-list-item {
+  &:hover {
+    background: @config-forms-list-item-hover-bg-color;
+  }
 
-      &:empty {
-        border: none;
+  a {
+    font-weight: normal;
+    text-decoration: none;
+  }
 
-        ~ .config-forms-list-empty {
-          display: block;
-        }
-      }
-    }
+  .rb-icon {
+    vertical-align: top;
+    margin-right: 0.5em;
+  }
 
-    .config-forms-list-empty {
-      background: @config-forms-list-bg-color;
-      border-bottom: 1px solid @config-forms-list-border-color;
-      border-top: 1px solid @config-forms-list-border-color;
-      display: none;
-      line-height: @config-forms-list-item-line-height;
-      padding: @config-forms-list-item-padding;
-    }
+  .btn {
+    font-size: 12px;
+    height: 28px;
+    line-height: 28px;
+    margin: 1px 1px 1px 5px;
+    padding: 0 1em;
+    text-align: center;
 
-    table.config-forms-list {
-      border-collapse: collapse;
-      border-top: 0;
-      width: 100%;
-
-      thead th {
-        background: #F0F0F3;
-        border-bottom: 1px @config-forms-list-border-color solid;
-        border-right: 1px #CCCCCC solid;
-        text-align: left;
-        padding: @config-forms-list-item-padding;
-
-        &:last-child {
-          border-right: 0;
-        }
-      }
-    }
-
-    .config-forms-list-item,
-    table.config-forms-list td {
-      border-bottom: 1px @config-forms-list-item-border-color solid;
-      padding: @config-forms-list-item-padding;
-      list-style: none;
-      line-height: @config-forms-list-item-line-height;
+    .rb-icon {
       vertical-align: middle;
-      .ellipsize();
+      margin-right: 0;
     }
+  }
 
-    .config-forms-list-item {
-      &:hover {
-        background: @config-forms-list-item-hover-bg-color;
-      }
+  ul {
+    background: #FFFFF0;
+    border: 1px #BBBBB0 solid;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    white-space: nowrap;
 
-      a {
-        font-weight: normal;
-        text-decoration: none;
-      }
-
-      .rb-icon {
-        vertical-align: top;
-        margin-right: 0.5em;
-      }
-
-      .btn {
-        font-size: 12px;
-        height: 28px;
-        line-height: 28px;
-        margin: 1px 1px 1px 5px;
-        padding: 0 1em;
-        text-align: center;
-
-        .rb-icon {
-          vertical-align: middle;
-          margin-right: 0;
-        }
-      }
-
-      ul {
-        background: #FFFFF0;
-        border: 1px #BBBBB0 solid;
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        white-space: nowrap;
-
-        label {
-          display: inline;
-          margin-left: 0.2em;
-          vertical-align: middle;
-        }
-
-        li {
-          padding: 0 0.5em;
-        }
-      }
-
-      &.disabled label {
-        color: #C0C0C0;
-      }
-    }
-
-    .config-forms-list-item-actions {
-      float: right;
-    }
-
-    .config-forms-list-item-spinner {
-      width: 16px;
-      height: 16px;
-      font-size: 16px;
-      display: inline-block;
-      margin: 1px;
+    label {
+      display: inline;
+      margin-left: 0.2em;
       vertical-align: middle;
-      visibility: hidden;
     }
 
-    .config-forms-list-action-edit.btn {
-      padding-left: 0.5em;
-      padding-right: 0.5em;
+    li {
+      padding: 0 0.5em;
     }
+  }
 
-    .config-forms-list-add {
-      border: 0;
-      vertical-align: bottom;
-    }
+  &.disabled label {
+    color: #C0C0C0;
+  }
+}
 
-    .config-forms-list-actions {
-      margin: 1em 0 0 0em;
+.config-forms-list-item-actions {
+  float: right;
+}
 
-      input {
-        margin-right: 0.5em;
-        width: 230px;
-      }
-    }
+.config-forms-list-item-spinner {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  display: inline-block;
+  margin: 1px;
+  vertical-align: middle;
+  visibility: hidden;
+}
 
-    .config-forms-list-header-actions {
-      margin: 0 0 1em 0;
-    }
+.config-forms-list-action-edit.btn {
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+}
 
-    .config-forms-list-full {
-      margin-top: 1em;
+.config-forms-list-add {
+  border: 0;
+  vertical-align: bottom;
+}
 
-      p {
-        margin: 0;
-      }
-    }
+.config-forms-list-actions {
+  margin: 1em 0 0 0em;
 
-    .config-forms-subsection {
-      margin: 2em 0;
+  input {
+    margin-right: 0.5em;
+    width: 230px;
+  }
+}
 
-      h3 {
-        border-bottom: 1px #D0D0D0 solid;
-        font-size: 100%;
-        padding: 0 0 0 0.4em;
-        margin-bottom: 1em;
-      }
-    }
+.config-forms-list-header-actions {
+  margin: 0 0 1em 0;
+}
+
+.config-forms-list-full {
+  margin-top: 1em;
+
+  p {
+    margin: 0;
+  }
+}
+
+.config-forms-subsection {
+  margin: 2em 0;
+
+  h3 {
+    border-bottom: 1px #D0D0D0 solid;
+    font-size: 100%;
+    padding: 0 0 0 0.4em;
+    margin-bottom: 1em;
   }
 }
 
