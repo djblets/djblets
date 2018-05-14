@@ -13,6 +13,8 @@ justification (such as :ref:`consent <privacy-consent>`).
 Djblets provides utilities for safely working with PII.
 
 
+.. _privacy-pii-safe-urls:
+
 PII-Safe URLs
 =============
 
