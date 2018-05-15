@@ -8,10 +8,10 @@ from django.core.exceptions import ValidationError
 from djblets.privacy.consent import (Consent, ConsentRequirement,
                                      get_consent_tracker)
 from djblets.privacy.consent.forms import ConsentRequirementField
-from djblets.testing.testcases import TestCase
+from djblets.privacy.tests.testcases import ConsentTestCase
 
 
-class ConsentRequirementFieldTests(TestCase):
+class ConsentRequirementFieldTests(ConsentTestCase):
     """Unit tests for ConsentRequirementField."""
 
     def setUp(self):

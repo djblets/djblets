@@ -5,23 +5,24 @@ from __future__ import unicode_literals
 from datetime import datetime
 
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.test.utils import override_settings
 from django.utils import timezone
 from kgb import SpyAgency
 
+from djblets.cache.backend import make_cache_key
 from djblets.privacy.consent import (BaseConsentTracker, Consent, ConsentData,
                                      DatabaseConsentTracker,
                                      get_consent_tracker)
-from djblets.privacy.consent.tracker import clear_consent_tracker
 from djblets.privacy.models import StoredConsentData
-from djblets.testing.testcases import TestCase
+from djblets.privacy.tests.testcases import ConsentTestCase
 
 
 class CustomConsentTracker(BaseConsentTracker):
     pass
 
 
-class DatabaseConsentTrackerTests(SpyAgency, TestCase):
+class DatabaseConsentTrackerTests(SpyAgency, ConsentTestCase):
     """Unit tests for DatabaseConsentTracker."""
 
     def setUp(self):
@@ -132,6 +133,24 @@ class DatabaseConsentTrackerTests(SpyAgency, TestCase):
                 }],
             })
 
+    def test_record_consent_data_list_clears_cache(self):
+        """Testing DatabaseConsentTracker.record_consent_data_list clears cache
+        """
+        consent_data_1 = ConsentData(requirement_id='test-requirement-1',
+                                     granted=True)
+        consent_data_2 = ConsentData(requirement_id='test-requirement-2',
+                                     granted=False)
+
+        cache_key = make_cache_key('privacy-consent:%s' % self.user.pk)
+        cache.add(cache_key, ['test-requirement-1'])
+
+        self.assertEqual(cache.get(cache_key), ['test-requirement-1'])
+
+        self.tracker.record_consent_data_list(self.user,
+                                              [consent_data_1, consent_data_2])
+
+        self.assertIsNone(cache.get(cache_key))
+
     def test_get_consent(self):
         """Testing DatabaseConsentTracker.get_consent"""
         # Populate some data we can fetch.
@@ -149,12 +168,23 @@ class DatabaseConsentTrackerTests(SpyAgency, TestCase):
             self.tracker.get_consent(self.user, 'test-requirement-3'),
             Consent.UNSET)
 
+        self.assertEqual(
+            cache.get(make_cache_key('privacy-consent:%s' % self.user.pk)),
+            {
+                'test-requirement-1': Consent.GRANTED,
+                'test-requirement-2': Consent.DENIED,
+            })
+
     def test_get_consent_with_no_user_data(self):
         """Testing DatabaseConsentTracker.get_consent with user without any
         consent data
         """
         self.assertEqual(self.tracker.get_consent(self.user, 'test'),
                          Consent.UNSET)
+
+        self.assertEqual(
+            cache.get(make_cache_key('privacy-consent:%s' % self.user.pk)),
+            {})
 
     def test_get_all_consent(self):
         """Testing DatabaseConsentTracker.get_all_consent"""
@@ -168,25 +198,26 @@ class DatabaseConsentTrackerTests(SpyAgency, TestCase):
                 'test-requirement-2': Consent.DENIED,
             })
 
+        self.assertEqual(
+            cache.get(make_cache_key('privacy-consent:%s' % self.user.pk)),
+            {
+                'test-requirement-1': Consent.GRANTED,
+                'test-requirement-2': Consent.DENIED,
+            })
+
     def test_get_all_consent_with_no_user_data(self):
         """Testing DatabaseConsentTracker.get_all_consent with user without any
         consent data
         """
         self.assertEqual(self.tracker.get_all_consent(self.user), {})
 
+        self.assertEqual(
+            cache.get(make_cache_key('privacy-consent:%s' % self.user.pk)),
+            {})
 
-class ConsentTrackerInstanceTests(TestCase):
+
+class ConsentTrackerInstanceTests(ConsentTestCase):
     """Unit tests for consent tracker instance management."""
-
-    def setUp(self):
-        super(ConsentTrackerInstanceTests, self).setUp()
-
-        clear_consent_tracker()
-
-    def tearDown(self):
-        super(ConsentTrackerInstanceTests, self).tearDown()
-
-        clear_consent_tracker()
 
     def test_get_consent_tracker_with_default(self):
         """Testing get_consent_tracker with default tracker"""

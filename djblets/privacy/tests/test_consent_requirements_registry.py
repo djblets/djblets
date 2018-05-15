@@ -5,10 +5,10 @@ from __future__ import unicode_literals
 from djblets.privacy.consent import ConsentRequirement
 from djblets.privacy.consent.errors import ConsentRequirementConflictError
 from djblets.privacy.consent.registry import ConsentRequirementsRegistry
-from djblets.testing.testcases import TestCase
+from djblets.privacy.tests.testcases import ConsentTestCase
 
 
-class ConsentRequirementsRegistryTests(TestCase):
+class ConsentRequirementsRegistryTests(ConsentTestCase):
     """Unit tests for ConsentRequirementsRegistry."""
 
     def setUp(self):

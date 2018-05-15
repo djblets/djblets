@@ -8,7 +8,7 @@ from django.forms import Form
 from djblets.privacy.consent import (Consent, ConsentRequirement,
                                      get_consent_requirements_registry)
 from djblets.privacy.consent.forms import ConsentFormMixin
-from djblets.testing.testcases import TestCase
+from djblets.privacy.tests.testcases import ConsentTestCase
 
 
 class MyForm(ConsentFormMixin, Form):
@@ -29,7 +29,7 @@ class MyForm(ConsentFormMixin, Form):
         }
 
 
-class ConsentFormMixinTests(TestCase):
+class ConsentFormMixinTests(ConsentTestCase):
     """Unit tests for ConsentFormMixinTests."""
 
     def setUp(self):
@@ -58,12 +58,6 @@ class ConsentFormMixinTests(TestCase):
         self.registry.register(self.consent_requirement_2)
 
         self.user = User.objects.create(username='test-user')
-
-    def tearDown(self):
-        super(ConsentFormMixinTests, self).tearDown()
-
-        self.registry.unregister(self.consent_requirement_1)
-        self.registry.unregister(self.consent_requirement_2)
 
     def test_init(self):
         """Testing ConsentFormMixin.__init__ defines field"""

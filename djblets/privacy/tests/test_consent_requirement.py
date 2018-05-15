@@ -9,10 +9,10 @@ from django.utils import timezone
 
 from djblets.privacy.consent import (Consent, ConsentData, ConsentRequirement,
                                      get_consent_tracker)
-from djblets.testing.testcases import TestCase
+from djblets.privacy.tests.testcases import ConsentTestCase
 
 
-class ConsentRequirementTests(TestCase):
+class ConsentRequirementTests(ConsentTestCase):
     """Unit tests for djblets.privacy.consent.base.ConsentRequirement."""
 
     def test_build_consent_data(self):

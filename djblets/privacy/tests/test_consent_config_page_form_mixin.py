@@ -15,7 +15,7 @@ from djblets.privacy.consent import (Consent, ConsentRequirement,
                                      get_consent_tracker,
                                      get_consent_requirements_registry)
 from djblets.privacy.consent.forms import ConsentConfigPageFormMixin
-from djblets.testing.testcases import TestCase
+from djblets.privacy.tests.testcases import ConsentTestCase
 
 
 class MyForm(ConsentConfigPageFormMixin, ConfigPageForm):
@@ -29,7 +29,7 @@ class MyPage(ConfigPage):
     form_classes = [MyForm]
 
 
-class ConsentConfigPageFormMixinTests(TestCase):
+class ConsentConfigPageFormMixinTests(ConsentTestCase):
     """Unit tests for ConsentConfigPageFormMixinTests."""
 
     def setUp(self):
@@ -69,12 +69,6 @@ class ConsentConfigPageFormMixinTests(TestCase):
         self.page = MyPage(config_view=ConfigPagesView(),
                            request=self.request,
                            user=self.user)
-
-    def tearDown(self):
-        super(ConsentConfigPageFormMixinTests, self).tearDown()
-
-        self.registry.unregister(self.consent_requirement_1)
-        self.registry.unregister(self.consent_requirement_2)
 
     def test_init(self):
         """Testing ConsentConfigPageFormMixin.__init__ defines field"""

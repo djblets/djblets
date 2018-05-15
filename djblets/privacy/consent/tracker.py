@@ -6,9 +6,11 @@ import hashlib
 from importlib import import_module
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import six
 
+from djblets.cache.backend import cache_memoize, make_cache_key
 from djblets.db.query import get_object_or_none
 from djblets.privacy.consent.base import Consent
 from djblets.privacy.models import StoredConsentData
@@ -92,7 +94,8 @@ class BaseConsentTracker(object):
                                djblets.privacy.consent.base.ConsentData):
                 A list of consent data to record.
         """
-        raise NotImplementedError
+        self.store_recorded_consent_data_list(user, consent_data_list)
+        cache.delete(make_cache_key(self._get_user_cache_key(user)))
 
     def get_all_consent(self, user):
         """Return all consent decisions made by a given user.
@@ -111,7 +114,52 @@ class BaseConsentTracker(object):
             :py:class:`~djblets.privacy.consent.base.ConsentRequirement`
             IDs to :py:class:`~djblets.privacy.consent.base.Consent` values.
         """
+        return cache_memoize(self._get_user_cache_key(user),
+                             lambda: self.get_all_consent_uncached(user))
+
+    def store_recorded_consent_data_list(self, user, consent_data_list):
+        """Record a list of all consent data made by a user.
+
+        Args:
+            user (django.contrib.auth.models.User):
+                The user to record the consent data for.
+
+            consent_data_list (list of
+                               djblets.privacy.consent.base.ConsentData):
+                A list of consent data to record.
+        """
         raise NotImplementedError
+
+    def get_all_consent_uncached(self, user):
+        """Return all consent decisions made by a given user from the backend.
+
+        This is used by :py:meth:`get_all_consent` to return data directly
+        from the backend, bypassing the cache.
+
+        Args:
+            user (django.contrib.auth.models.User):
+                The user to return all consent information for.
+
+        Returns:
+            dict:
+            A dictionary of
+            :py:class:`~djblets.privacy.consent.base.ConsentRequirement`
+            IDs to :py:class:`~djblets.privacy.consent.base.Consent` values.
+        """
+        raise NotImplementedError
+
+    def _get_user_cache_key(self, user):
+        """Return a consent cache key for the provided user.
+
+        Args:
+            user (django.contrib.auth.models.User):
+                The user to generate the cache key for.
+
+        Returns:
+            unicode:
+            The resulting cache key.
+        """
+        return 'privacy-consent:%s' % user.pk
 
 
 class DatabaseConsentTracker(BaseConsentTracker):
@@ -125,8 +173,8 @@ class DatabaseConsentTracker(BaseConsentTracker):
     #: The model used to store consent data in the database.
     model = StoredConsentData
 
-    def record_consent_data_list(self, user, consent_data_list):
-        """Record a list of all consent data made by a user.
+    def store_recorded_consent_data_list(self, user, consent_data_list):
+        """Store a recorded list of all consent data made by a user.
 
         Args:
             user (django.contrib.auth.models.User):
@@ -157,7 +205,7 @@ class DatabaseConsentTracker(BaseConsentTracker):
 
         user._djblets_stored_consent = stored_consent
 
-    def get_all_consent(self, user):
+    def get_all_consent_uncached(self, user):
         """Return all consent decisions made by a given user.
 
         It's important to note that a user may not have made a decision on
