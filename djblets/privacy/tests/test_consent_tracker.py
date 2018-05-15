@@ -12,7 +12,9 @@ from kgb import SpyAgency
 
 from djblets.cache.backend import make_cache_key
 from djblets.privacy.consent import (BaseConsentTracker, Consent, ConsentData,
+                                     ConsentRequirement,
                                      DatabaseConsentTracker,
+                                     get_consent_requirements_registry,
                                      get_consent_tracker)
 from djblets.privacy.models import StoredConsentData
 from djblets.privacy.tests.testcases import ConsentTestCase
@@ -211,9 +213,53 @@ class DatabaseConsentTrackerTests(SpyAgency, ConsentTestCase):
         """
         self.assertEqual(self.tracker.get_all_consent(self.user), {})
 
+
         self.assertEqual(
             cache.get(make_cache_key('privacy-consent:%s' % self.user.pk)),
             {})
+
+    def test_get_pending_consent_requirements(self):
+        """Testing DatabaseConsentTracker.get_pending_consent_requirements"""
+        requirement1 = ConsentRequirement(
+            requirement_id='test-requirement-1',
+            name='Test Requirement 1',
+            summary='We want this.',
+            intent_description='Test.',
+            data_use_description='All.')
+
+        requirement2 = ConsentRequirement(
+            requirement_id='test-requirement-2',
+            name='Test Requirement 2',
+            summary='We want this too.',
+            intent_description='Test.',
+            data_use_description='All.')
+
+        registry = get_consent_requirements_registry()
+
+        try:
+            registry.register(requirement1)
+            registry.register(requirement2)
+
+            self.assertEqual(
+                self.tracker.get_pending_consent_requirements(self.user),
+                [requirement1, requirement2])
+
+            consent_data_1 = requirement1.build_consent_data(granted=True)
+            self.tracker.record_consent_data_list(self.user, [consent_data_1])
+
+            self.assertEqual(
+                self.tracker.get_pending_consent_requirements(self.user),
+                [requirement2])
+
+            consent_data_2 = requirement2.build_consent_data(granted=True)
+            self.tracker.record_consent_data_list(self.user, [consent_data_2])
+
+            self.assertEqual(
+                self.tracker.get_pending_consent_requirements(self.user),
+                [])
+        finally:
+            registry.unregister(requirement1)
+            registry.unregister(requirement2)
 
 
 class ConsentTrackerInstanceTests(ConsentTestCase):

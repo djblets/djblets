@@ -13,6 +13,7 @@ from django.utils import six
 from djblets.cache.backend import cache_memoize, make_cache_key
 from djblets.db.query import get_object_or_none
 from djblets.privacy.consent.base import Consent
+from djblets.privacy.consent.registry import get_consent_requirements_registry
 from djblets.privacy.models import StoredConsentData
 
 
@@ -82,6 +83,28 @@ class BaseConsentTracker(object):
         consents = self.get_all_consent(user) or {}
 
         return consents.get(requirement_id, Consent.UNSET)
+
+    def get_pending_consent_requirements(self, user):
+        """Return a list of consent requirements that are pending decisions.
+
+        This can be used to determine whether a user needs to be immediately
+        shown a UI for deciding on consent.
+
+        Args:
+            user (django.contrib.auth.models.User):
+                The user to check consent decisions for.
+
+        Returns:
+            list of djblets.privacy.consent.base.ConsentRequirement:
+            The list of consent requirements pending decisions.
+        """
+        all_consent = self.get_all_consent(user)
+
+        return [
+            consent_requirement
+            for consent_requirement in get_consent_requirements_registry()
+            if consent_requirement.requirement_id not in all_consent
+        ]
 
     def record_consent_data_list(self, user, consent_data_list):
         """Record a list of all consent data made by a user.
