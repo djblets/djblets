@@ -1,4 +1,4 @@
-"""Unit tests for djblets.privacy.consent.base.ConsentRequirement."""
+"""Unit tests for djblets.privacy.consent.base.BaseConsentRequirement."""
 
 from __future__ import unicode_literals
 
@@ -7,23 +7,25 @@ from datetime import datetime
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from djblets.privacy.consent import (Consent, ConsentData, ConsentRequirement,
-                                     get_consent_tracker)
+from djblets.privacy.consent import (BaseConsentRequirement, Consent,
+                                     ConsentData, get_consent_tracker)
 from djblets.privacy.tests.testcases import ConsentTestCase
 
 
-class ConsentRequirementTests(ConsentTestCase):
-    """Unit tests for djblets.privacy.consent.base.ConsentRequirement."""
+class MyConsentRequirement(BaseConsentRequirement):
+    requirement_id = 'my-requirement'
+    name = 'My Requirement'
+    summary = 'We would like to use this thing'
+    intent_description = 'We need this for testing.'
+    data_use_description = 'Sending all the things.'
+
+
+class BaseConsentRequirementTests(ConsentTestCase):
+    """Unit tests for djblets.privacy.consent.base.BaseConsentRequirement."""
 
     def test_build_consent_data(self):
-        """Testing ConsentRequirement.build_consent_data"""
-        requirement = ConsentRequirement(
-            requirement_id='my-requirement',
-            name='My Requirement',
-            summary='We would like to use this thing',
-            intent_description='We need this for testing.',
-            data_use_description='Sending all the things.')
-
+        """Testing BaseConsentRequirement.build_consent_data"""
+        requirement = MyConsentRequirement()
         timestamp = datetime(2018, 1, 2, 13, 14, 15, tzinfo=timezone.utc)
 
         consent_data = requirement.build_consent_data(
@@ -46,14 +48,8 @@ class ConsentRequirementTests(ConsentTestCase):
             })
 
     def test_get_consent(self):
-        """Testing ConsentRequirement.get_consent"""
-        requirement = ConsentRequirement(
-            requirement_id='my-requirement',
-            name='My Requirement',
-            summary='We would like to use this thing',
-            intent_description='We need this for testing.',
-            data_use_description='Sending all the things.')
-
+        """Testing BaseConsentRequirement.get_consent"""
+        requirement = MyConsentRequirement()
         timestamp = datetime(2018, 1, 2, 13, 14, 15, tzinfo=timezone.utc)
         user = User.objects.create(username='test-user')
 

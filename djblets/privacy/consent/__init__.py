@@ -5,9 +5,9 @@ This provides convenience imports for the following:
 .. autosummary::
    :nosignatures:
 
+   ~djblets.privacy.consent.base.BaseConsentRequirement
    ~djblets.privacy.consent.base.Consent
    ~djblets.privacy.consent.base.ConsentData
-   ~djblets.privacy.consent.base.ConsentRequirement
    ~djblets.privacy.consent.registry.get_consent_requirements_registry
    ~djblets.privacy.consent.tracker.BaseConsentTracker
    ~djblets.privacy.consent.tracker.DatabaseConsentTracker
@@ -16,8 +16,8 @@ This provides convenience imports for the following:
 
 from __future__ import unicode_literals
 
-from djblets.privacy.consent.base import (Consent, ConsentData,
-                                          ConsentRequirement)
+from djblets.privacy.consent.base import (BaseConsentRequirement, Consent,
+                                          ConsentData)
 from djblets.privacy.consent.registry import get_consent_requirements_registry
 from djblets.privacy.consent.tracker import (BaseConsentTracker,
                                              DatabaseConsentTracker,
@@ -25,10 +25,10 @@ from djblets.privacy.consent.tracker import (BaseConsentTracker,
 
 
 __all__ = (
+    'BaseConsentRequirement',
     'BaseConsentTracker',
     'Consent',
     'ConsentData',
-    'ConsentRequirement',
     'DatabaseConsentTracker',
     'get_consent_requirements_registry',
     'get_consent_tracker',

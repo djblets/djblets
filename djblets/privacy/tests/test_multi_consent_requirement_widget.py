@@ -3,9 +3,29 @@
 
 from __future__ import unicode_literals
 
-from djblets.privacy.consent import ConsentRequirement
+from djblets.privacy.consent import BaseConsentRequirement
 from djblets.privacy.consent.forms import MultiConsentRequirementsWidget
 from djblets.testing.testcases import TestCase
+
+
+class MyConsentRequirement1(BaseConsentRequirement):
+    requirement_id = 'my-requirement-1'
+    name = 'My Requirement 1'
+    summary = 'We would like to use this thing'
+    intent_description = 'We need this for testing.'
+    data_use_description = 'Sending all the things.'
+    icons = {
+        '1x': '/static/consent.png',
+        '2x': '/static/consent@2x.png',
+    }
+
+
+class MyConsentRequirement2(BaseConsentRequirement):
+    requirement_id = 'my-requirement-2'
+    name = 'My Requirement 2'
+    summary = 'We would also like this'
+    intent_description = 'We need this for dancing.'
+    data_use_description = 'Dancing all the things.'
 
 
 class MultiConsentRequirementsWidgetTests(TestCase):
@@ -15,22 +35,8 @@ class MultiConsentRequirementsWidgetTests(TestCase):
         super(MultiConsentRequirementsWidgetTests, self).setUp()
 
         self.widget = MultiConsentRequirementsWidget(consent_requirements=[
-            ConsentRequirement(
-                requirement_id='my-requirement-1',
-                name='My Requirement 1',
-                summary='We would like to use this thing',
-                intent_description='We need this for testing.',
-                data_use_description='Sending all the things.',
-                icons={
-                    '1x': '/static/consent.png',
-                    '2x': '/static/consent@2x.png',
-                }),
-            ConsentRequirement(
-                requirement_id='my-requirement-2',
-                name='My Requirement 2',
-                summary='We would also like this',
-                intent_description='We need this for dancing.',
-                data_use_description='Dancing all the things.'),
+            MyConsentRequirement1(),
+            MyConsentRequirement2(),
         ])
 
     def test_render(self):

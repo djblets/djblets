@@ -5,10 +5,22 @@ from __future__ import unicode_literals
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
-from djblets.privacy.consent import (Consent, ConsentRequirement,
+from djblets.privacy.consent import (BaseConsentRequirement, Consent,
                                      get_consent_tracker)
 from djblets.privacy.consent.forms import ConsentRequirementField
 from djblets.privacy.tests.testcases import ConsentTestCase
+
+
+class MyConsentRequirement(BaseConsentRequirement):
+    requirement_id = 'my-requirement'
+    name = 'My Requirement'
+    summary = 'We would like to use this thing'
+    intent_description = 'We need this for testing.'
+    data_use_description = 'Sending all the things.'
+    icons = {
+        '1x': '/static/consent.png',
+        '2x': '/static/consent@2x.png',
+    }
 
 
 class ConsentRequirementFieldTests(ConsentTestCase):
@@ -17,16 +29,7 @@ class ConsentRequirementFieldTests(ConsentTestCase):
     def setUp(self):
         super(ConsentRequirementFieldTests, self).setUp()
 
-        self.consent_requirement = ConsentRequirement(
-            requirement_id='my-requirement',
-            name='My Requirement',
-            summary='We would like to use this thing',
-            intent_description='We need this for testing.',
-            data_use_description='Sending all the things.',
-            icons={
-                '1x': '/static/consent.png',
-                '2x': '/static/consent@2x.png',
-            })
+        self.consent_requirement = MyConsentRequirement()
 
         self.field = ConsentRequirementField(
             consent_requirement=self.consent_requirement,

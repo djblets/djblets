@@ -11,7 +11,7 @@ from django.test.client import RequestFactory
 from djblets.configforms.forms import ConfigPageForm
 from djblets.configforms.pages import ConfigPage
 from djblets.configforms.views import ConfigPagesView
-from djblets.privacy.consent import (Consent, ConsentRequirement,
+from djblets.privacy.consent import (BaseConsentRequirement, Consent,
                                      get_consent_tracker,
                                      get_consent_requirements_registry)
 from djblets.privacy.consent.forms import ConsentConfigPageFormMixin
@@ -29,6 +29,26 @@ class MyPage(ConfigPage):
     form_classes = [MyForm]
 
 
+class MyConsentRequirement1(BaseConsentRequirement):
+    requirement_id = 'my-requirement-1'
+    name = 'My Requirement 1'
+    summary = 'We would like to use this thing'
+    intent_description = 'We need this for testing.'
+    data_use_description = 'Sending all the things.'
+    icons = {
+        '1x': '/static/consent.png',
+        '2x': '/static/consent@2x.png',
+    }
+
+
+class MyConsentRequirement2(BaseConsentRequirement):
+    requirement_id = 'my-requirement-2'
+    name = 'My Requirement 2'
+    summary = 'We would also like this'
+    intent_description = 'We need this for dancing.'
+    data_use_description = 'Dancing all the things.'
+
+
 class ConsentConfigPageFormMixinTests(ConsentTestCase):
     """Unit tests for ConsentConfigPageFormMixinTests."""
 
@@ -37,24 +57,10 @@ class ConsentConfigPageFormMixinTests(ConsentTestCase):
 
         self.registry = get_consent_requirements_registry()
 
-        self.consent_requirement_1 = ConsentRequirement(
-            requirement_id='my-requirement-1',
-            name='My Requirement',
-            summary='We would like to use this thing',
-            intent_description='We need this for testing.',
-            data_use_description='Sending all the things.',
-            icons={
-                '1x': '/static/consent.png',
-                '2x': '/static/consent@2x.png',
-            })
+        self.consent_requirement_1 = MyConsentRequirement1()
         self.registry.register(self.consent_requirement_1)
 
-        self.consent_requirement_2 = ConsentRequirement(
-            requirement_id='my-requirement-2',
-            name='My Requirement 2',
-            summary='We would also like this',
-            intent_description='We need this for dancing.',
-            data_use_description='Dancing all the things.')
+        self.consent_requirement_2 = MyConsentRequirement2()
         self.registry.register(self.consent_requirement_2)
 
         self.user = User.objects.create(username='test-user')

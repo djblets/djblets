@@ -6,10 +6,26 @@ from __future__ import unicode_literals
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
-from djblets.privacy.consent import (Consent, ConsentRequirement,
+from djblets.privacy.consent import (BaseConsentRequirement, Consent,
                                      get_consent_tracker)
 from djblets.privacy.consent.forms import MultiConsentRequirementsField
 from djblets.privacy.tests.testcases import ConsentTestCase
+
+
+class MyConsentRequirement1(BaseConsentRequirement):
+    requirement_id = 'my-requirement-1'
+    name = 'My Requirement 1'
+    summary = 'We would like to use this thing'
+    intent_description = 'We need this for testing.'
+    data_use_description = 'Sending all the things.'
+
+
+class MyConsentRequirement2(BaseConsentRequirement):
+    requirement_id = 'my-requirement-2'
+    name = 'My Requirement 2'
+    summary = 'We would also like this'
+    intent_description = 'We need this for dancing.'
+    data_use_description = 'Dancing all the things.'
 
 
 class MultiConsentRequirementsFieldTests(ConsentTestCase):
@@ -18,19 +34,8 @@ class MultiConsentRequirementsFieldTests(ConsentTestCase):
     def setUp(self):
         super(MultiConsentRequirementsFieldTests, self).setUp()
 
-        self.consent_requirement_1 = ConsentRequirement(
-            requirement_id='my-requirement-1',
-            name='My Requirement 1',
-            summary='We would like to use this thing',
-            intent_description='We need this for testing.',
-            data_use_description='Sending all the things.')
-
-        self.consent_requirement_2 = ConsentRequirement(
-            requirement_id='my-requirement-2',
-            name='My Requirement 2',
-            summary='We would also like this',
-            intent_description='We need this for dancing.',
-            data_use_description='Dancing all the things.')
+        self.consent_requirement_1 = MyConsentRequirement1()
+        self.consent_requirement_2 = MyConsentRequirement2()
 
         self.field = MultiConsentRequirementsField(
             consent_requirements=[

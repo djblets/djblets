@@ -2,9 +2,21 @@
 
 from __future__ import unicode_literals
 
-from djblets.privacy.consent import ConsentRequirement
+from djblets.privacy.consent import BaseConsentRequirement
 from djblets.privacy.consent.forms import ConsentRequirementWidget
 from djblets.privacy.tests.testcases import ConsentTestCase
+
+
+class MyConsentRequirement(BaseConsentRequirement):
+    requirement_id = 'my-requirement'
+    name = 'My Requirement'
+    summary = 'We would like to use this thing'
+    intent_description = 'We need this for testing.'
+    data_use_description = 'Sending all the things.'
+    icons = {
+        '1x': '/static/consent.png',
+        '2x': '/static/consent@2x.png',
+    }
 
 
 class ConsentRequirementWidgetTests(ConsentTestCase):
@@ -14,16 +26,7 @@ class ConsentRequirementWidgetTests(ConsentTestCase):
         super(ConsentRequirementWidgetTests, self).setUp()
 
         self.widget = ConsentRequirementWidget(
-            consent_requirement=ConsentRequirement(
-                requirement_id='my-requirement',
-                name='My Requirement',
-                summary='We would like to use this thing',
-                intent_description='We need this for testing.',
-                data_use_description='Sending all the things.',
-                icons={
-                    '1x': '/static/consent.png',
-                    '2x': '/static/consent@2x.png',
-                }))
+            consent_requirement=MyConsentRequirement())
 
     def test_render(self):
         """Testing ConsentRequirementWidget.render with value=None"""

@@ -144,7 +144,7 @@ class ConsentData(object):
         return result
 
 
-class ConsentRequirement(object):
+class BaseConsentRequirement(object):
     """Represents an aspect of the product requiring consent.
 
     For every piece of a product that requires consent (sending data to a
@@ -160,43 +160,26 @@ class ConsentRequirement(object):
     consent data for this requirement.
     """
 
-    def __init__(self, requirement_id, name, summary, intent_description,
-                 data_use_description, icons={}, learn_more_url=None):
-        """Initialize the requirement.
+    #: The unique ID of the requirement.
+    requirement_id = None
 
-        Args:
-            requirement_id (unicode):
-                The unique ID of the requirement.
+    #: The name of the requirement.
+    name = None
 
-            name (unicode):
-                The name of the requirement, for display purposes.
+    #: A brief summary of the requirement.
+    summary = None
 
-            summary (unicode):
-                A brief summary of the requirement, for display purposes.
+    #: A short description of why the requirement is needed.
+    intent_description = None
 
-            intent_description (unicode):
-                A short description of why the requirement is needed,
-                for display purposes.
+    #: A short description of what data will be sent and how it will be used.
+    data_use_description = None
 
-            data_use_description (unicode):
-                A short description of what data will be sent and how it
-                will be used, for display purposes.
-
-            icons (dict, optional):
-                The icons used to represent this service or topic. This is
-                in the form of a dictionary of icon resolution indicators (for
-                ``srcset`` values) to URLs or relative static media paths.
-
-            learn_more_url (unicode, optional):
-                An optional URL to learn more about the requirement.
-        """
-        self.requirement_id = requirement_id
-        self.name = name
-        self.summary = summary
-        self.intent_description = intent_description
-        self.data_use_description = data_use_description
-        self.icons = icons
-        self.learn_more_url = learn_more_url
+    #: The icons used to represent this service or topic.
+    #:
+    #: This is in the form of a dictionary of icon resolution indicators (for
+    #: ``srcset`` values) to URLs or relative static media paths.
+    icons = {}
 
     def get_consent(self, user):
         """Return the user's consent decision for this requirement.

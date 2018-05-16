@@ -134,7 +134,7 @@ class BaseConsentTracker(object):
         Returns:
             dict:
             A dictionary of
-            :py:class:`~djblets.privacy.consent.base.ConsentRequirement`
+            :py:class:`~djblets.privacy.consent.base.BaseConsentRequirement`
             IDs to :py:class:`~djblets.privacy.consent.base.Consent` values.
         """
         return cache_memoize(self._get_user_cache_key(user),
@@ -166,7 +166,7 @@ class BaseConsentTracker(object):
         Returns:
             dict:
             A dictionary of
-            :py:class:`~djblets.privacy.consent.base.ConsentRequirement`
+            :py:class:`~djblets.privacy.consent.base.BaseConsentRequirement`
             IDs to :py:class:`~djblets.privacy.consent.base.Consent` values.
         """
         raise NotImplementedError
@@ -242,7 +242,7 @@ class DatabaseConsentTracker(BaseConsentTracker):
         Returns:
             dict:
             A dictionary of
-            :py:class:`~djblets.privacy.consent.base.ConsentRequirement`
+            :py:class:`~djblets.privacy.consent.base.BaseConsentRequirement`
             IDs to :py:class:`~djblets.privacy.consent.base.Consent` values.
         """
         stored_consent = self._get_stored_consent_for_user(user)
