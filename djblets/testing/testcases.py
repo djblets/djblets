@@ -34,6 +34,7 @@ import re
 import socket
 import sys
 import threading
+from contextlib import contextmanager
 from importlib import import_module
 
 from django.conf import settings
@@ -58,6 +59,8 @@ except ImportError:
     from django.db.models.loading import cache as app_cache, load_app
 
     apps = None
+
+from djblets.siteconfig.models import SiteConfiguration
 
 
 class StubNodeList(Node):
@@ -116,6 +119,40 @@ class TestCase(testcases.TestCase):
             doc = self.ws_re.sub(' ', doc).strip()
 
         return doc
+
+    @contextmanager
+    def siteconfig_settings(self, settings):
+        """Temporarily sets siteconfig settings for a test.
+
+        Subclasses should override this if they want to run a method like
+        :py:func:`~djblets.siteconfig.django_settings.apply_django_settings`
+        before and after each test.
+
+        Args:
+            settings (dict):
+                The new siteconfig settings to set.
+
+        Context:
+            The current site configuration will contain the new settings for
+            this test.
+        """
+        siteconfig = SiteConfiguration.objects.get_current()
+
+        old_settings = {}
+
+        for key, value in six.iteritems(settings):
+            old_settings[key] = siteconfig.get(key)
+            siteconfig.set(key, value)
+
+        siteconfig.save()
+
+        try:
+            yield
+        finally:
+            for key, value in six.iteritems(old_settings):
+                siteconfig.set(key, value)
+
+            siteconfig.save()
 
     def assertRaisesValidationError(self, expected_messages, *args, **kwargs):
         """Assert that a ValidationError is raised with the given message(s).
