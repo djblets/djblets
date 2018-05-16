@@ -263,6 +263,7 @@ Privacy Protection
 
    djblets.privacy.consent
    djblets.privacy.consent.base
+   djblets.privacy.consent.common
    djblets.privacy.consent.errors
    djblets.privacy.consent.forms
    djblets.privacy.consent.registry
