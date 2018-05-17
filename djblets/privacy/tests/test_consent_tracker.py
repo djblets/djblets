@@ -11,8 +11,8 @@ from django.utils import timezone
 from kgb import SpyAgency
 
 from djblets.cache.backend import make_cache_key
-from djblets.privacy.consent import (BaseConsentTracker, Consent, ConsentData,
-                                     ConsentRequirement,
+from djblets.privacy.consent import (BaseConsentRequirement,
+                                     BaseConsentTracker, Consent, ConsentData,
                                      DatabaseConsentTracker,
                                      get_consent_requirements_registry,
                                      get_consent_tracker)
@@ -22,6 +22,26 @@ from djblets.privacy.tests.testcases import ConsentTestCase
 
 class CustomConsentTracker(BaseConsentTracker):
     pass
+
+
+class MyConsentRequirement1(BaseConsentRequirement):
+    requirement_id = 'my-requirement-1'
+    name = 'My Requirement 1'
+    summary = 'We would like to use this thing'
+    intent_description = 'We need this for testing.'
+    data_use_description = 'Sending all the things.'
+    icons = {
+        '1x': '/static/consent.png',
+        '2x': '/static/consent@2x.png',
+    }
+
+
+class MyConsentRequirement2(BaseConsentRequirement):
+    requirement_id = 'my-requirement-2'
+    name = 'My Requirement 2'
+    summary = 'We would also like this'
+    intent_description = 'We need this for dancing.'
+    data_use_description = 'Dancing all the things.'
 
 
 class DatabaseConsentTrackerTests(SpyAgency, ConsentTestCase):
@@ -213,26 +233,14 @@ class DatabaseConsentTrackerTests(SpyAgency, ConsentTestCase):
         """
         self.assertEqual(self.tracker.get_all_consent(self.user), {})
 
-
         self.assertEqual(
             cache.get(make_cache_key('privacy-consent:%s' % self.user.pk)),
             {})
 
     def test_get_pending_consent_requirements(self):
         """Testing DatabaseConsentTracker.get_pending_consent_requirements"""
-        requirement1 = ConsentRequirement(
-            requirement_id='test-requirement-1',
-            name='Test Requirement 1',
-            summary='We want this.',
-            intent_description='Test.',
-            data_use_description='All.')
-
-        requirement2 = ConsentRequirement(
-            requirement_id='test-requirement-2',
-            name='Test Requirement 2',
-            summary='We want this too.',
-            intent_description='Test.',
-            data_use_description='All.')
+        requirement1 = MyConsentRequirement1()
+        requirement2 = MyConsentRequirement2()
 
         registry = get_consent_requirements_registry()
 
