@@ -41,6 +41,10 @@ def get_gravatar_url_for_email(request=None, email=None, size=None):
 
     The returned URL will always use HTTPS.
 
+    Note that callers adhering to the GDPR should check for a user's consent
+    before displaying a Gravatar on their behalf. This is checked automatically
+    if using :py:mod:`djblets.avatars`.
+
     Args:
         request (django.http.HttpRequest):
             Ignored. This argument will be removed in Djblets 2.0.
@@ -97,6 +101,10 @@ def get_gravatar_url(request=None, user=None, size=None):
     """Return the Gravatar URL for a user.
 
     The returned URL will always use HTTPS.
+
+    Note that callers adhering to the GDPR should check for a user's consent
+    before displaying a Gravatar on their behalf. This is checked automatically
+    if using :py:mod:`djblets.avatars`.
 
     Args:
         request (django.http.HttpRequest):

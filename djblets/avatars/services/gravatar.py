@@ -6,6 +6,7 @@ from django.utils.html import mark_safe
 
 from djblets.avatars.services.base import AvatarService
 from djblets.gravatars import get_gravatar_url_for_email
+from djblets.privacy.consent.common import BaseGravatarConsentRequirement
 
 
 class GravatarService(AvatarService):
@@ -13,6 +14,8 @@ class GravatarService(AvatarService):
 
     avatar_service_id = 'gravatar'
     name = 'Gravatar'
+
+    consent_requirement_id = BaseGravatarConsentRequirement.requirement_id
 
     def get_avatar_urls_uncached(self, user, size):
         """Return the Gravatar URLs for the requested user.

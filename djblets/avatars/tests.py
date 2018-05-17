@@ -6,6 +6,7 @@ import uuid
 
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -23,6 +24,7 @@ from djblets.avatars.services import (AvatarService,
                                       URLAvatarService)
 from djblets.configforms.pages import ConfigPage
 from djblets.gravatars import get_gravatar_url_for_email
+from djblets.privacy.consent import ConsentData, get_consent_tracker
 from djblets.registries.errors import ItemLookupError
 from djblets.siteconfig.models import SiteConfiguration
 from djblets.testing.decorators import requires_user_profile
@@ -320,6 +322,11 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
 
         self.siteconfig = SiteConfiguration.objects.create(
             site=Site.objects.get_current())
+        cache.clear()
+
+    def tearDown(self):
+        super(AvatarServiceRegistryTests, self).tearDown()
+        cache.clear()
 
     def test_enable_service(self):
         """Testing AvatarServiceRegistry.enable_service"""
@@ -854,6 +861,144 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         # Case 3: The default avatar service
         registry.settings_manager_class._avatar_service_id = None
         self.assertIsInstance(registry.for_user(None), GravatarService)
+
+    def test_for_user_with_consent_checks_and_no_consent_needed(self):
+        """Testing AvatarServiceRegistry.for_user with consent checks enabled
+        and no consent needed by service
+        """
+        class DummyAvatarServiceRegistry(AvatarServiceRegistry):
+            settings_manager_class = DummySettingsManager(
+                DummyAvatarService.avatar_service_id, {})
+            default_avatar_service_classes = [
+                GravatarService,
+                DummyAvatarService,
+            ]
+
+        registry = DummyAvatarServiceRegistry()
+        registry.enable_service(GravatarService, save=False)
+        registry.enable_service(DummyAvatarService, save=False)
+        registry.set_default_service(DummyAvatarService, save=False)
+
+        user = User.objects.create(username='test-user')
+
+        settings = {
+            AvatarServiceRegistry.ENABLE_CONSENT_CHECKS: True,
+        }
+
+        with self.siteconfig_settings(settings):
+            self.assertIsInstance(registry.for_user(user), DummyAvatarService)
+
+    def test_for_user_with_consent_checks_and_consent_unset(self):
+        """Testing AvatarServiceRegistry.for_user with consent checks enabled
+        and consent unset
+        """
+        class DummyAvatarServiceRegistry(AvatarServiceRegistry):
+            settings_manager_class = DummySettingsManager(
+                GravatarService.avatar_service_id, {})
+            default_avatar_service_classes = [
+                GravatarService,
+                DummyAvatarService,
+            ]
+
+        registry = DummyAvatarServiceRegistry()
+        registry.enable_service(GravatarService, save=False)
+        registry.enable_service(DummyAvatarService, save=False)
+        registry.set_default_service(DummyAvatarService, save=False)
+
+        user = User.objects.create(username='test-user')
+
+        settings = {
+            AvatarServiceRegistry.ENABLE_CONSENT_CHECKS: True,
+        }
+
+        with self.siteconfig_settings(settings):
+            self.assertIsInstance(registry.for_user(user), DummyAvatarService)
+
+    def test_for_user_with_consent_checks_and_consent_denied(self):
+        """Testing AvatarServiceRegistry.for_user with consent checks enabled
+        and consent denied
+        """
+        class DummyAvatarServiceRegistry(AvatarServiceRegistry):
+            settings_manager_class = DummySettingsManager(
+                GravatarService.avatar_service_id, {})
+            default_avatar_service_classes = [
+                GravatarService,
+                DummyAvatarService,
+            ]
+
+        registry = DummyAvatarServiceRegistry()
+        registry.enable_service(GravatarService, save=False)
+        registry.enable_service(DummyAvatarService, save=False)
+        registry.set_default_service(DummyAvatarService, save=False)
+
+        user = User.objects.create(username='test-user')
+
+        settings = {
+            AvatarServiceRegistry.ENABLE_CONSENT_CHECKS: True,
+        }
+
+        get_consent_tracker().record_consent_data(
+            user,
+            ConsentData(requirement_id=GravatarService.consent_requirement_id,
+                        granted=False))
+
+        with self.siteconfig_settings(settings):
+            self.assertIsInstance(registry.for_user(user), DummyAvatarService)
+
+    def test_for_user_with_consent_checks_and_consent_granted(self):
+        """Testing AvatarServiceRegistry.for_user with consent checks enabled
+        and consent granted
+        """
+        class DummyAvatarServiceRegistry(AvatarServiceRegistry):
+            settings_manager_class = DummySettingsManager(
+                GravatarService.avatar_service_id, {})
+            default_avatar_service_classes = [
+                GravatarService,
+                DummyAvatarService,
+            ]
+
+        registry = DummyAvatarServiceRegistry()
+        registry.enable_service(GravatarService, save=False)
+        registry.enable_service(DummyAvatarService, save=False)
+        registry.set_default_service(DummyAvatarService, save=False)
+
+        user = User.objects.create(username='test-user')
+
+        settings = {
+            AvatarServiceRegistry.ENABLE_CONSENT_CHECKS: True,
+        }
+
+        get_consent_tracker().record_consent_data(
+            user,
+            ConsentData(requirement_id=GravatarService.consent_requirement_id,
+                        granted=True))
+
+        with self.siteconfig_settings(settings):
+            self.assertIsInstance(registry.for_user(user), GravatarService)
+
+    def test_for_user_with_consent_checks_and_no_allowed_services(self):
+        """Testing AvatarServiceRegistry.for_user with consent checks enabled
+        and no resulting consented services
+        """
+        class DummyAvatarServiceRegistry(AvatarServiceRegistry):
+            settings_manager_class = DummySettingsManager(
+                GravatarService.avatar_service_id, {})
+            default_avatar_service_classes = [
+                GravatarService,
+            ]
+
+        registry = DummyAvatarServiceRegistry()
+        registry.enable_service(GravatarService, save=False)
+        registry.set_default_service(GravatarService, save=False)
+
+        user = User.objects.create(username='test-user')
+
+        settings = {
+            AvatarServiceRegistry.ENABLE_CONSENT_CHECKS: True,
+        }
+
+        with self.siteconfig_settings(settings):
+            self.assertIsNone(registry.for_user(user))
 
 
 class AvatarSettingsFormTests(SpyAgency, TestCase):

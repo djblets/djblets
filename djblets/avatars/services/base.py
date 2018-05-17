@@ -30,6 +30,13 @@ class AvatarService(object):
     # :py:class:`djblets.avatars.forms.AvatarServiceConfigForm`.
     config_form_class = None
 
+    #: The ID of a consent requirement governing use of this avatar service.
+    #:
+    #: If provided, and if consent requirements are enforced by the
+    #: application, then the service will only be used for a user if consent
+    #: has been granted.
+    consent_requirement_id = None
+
     #: Whether or not the avatar service is hidden from users.
     #:
     #: Hidden avatar services are not exposed to users and are intended to be
