@@ -12,10 +12,12 @@
   <div class="privacy-consent-field-intent">
    <p>{{consent_requirement.intent_description}}</p>
   </div>
+{% if consent_requirement.data_use_description %}
   <div class="privacy-consent-field-data-use">
    <span class="fa fa-vcard-o privacy-consent-field-data-use-icon"></span>
    <p>{{consent_requirement.data_use_description}}</p>
   </div>
+{% endif %}
 
   <div class="privacy-consent-field-choices">
    <span class="privacy-consent-field-choice-allow">
@@ -35,7 +37,11 @@
 <script>
 $(document).ready(function() {
     var view = new Djblets.Forms.PrivacyConsentFieldView({
-        el: $('#{{id}}')
+        el: $('#{{id}}'),
+        allowText: '{{consent_requirement.allow_text|escapejs}}',
+        allowedText: '{{consent_requirement.allowed_text|escapejs}}',
+        blockText: '{{consent_requirement.block_text|escapejs}}',
+        blockedText: '{{consent_requirement.blocked_text|escapejs}}'
     });
     view.render();
 });

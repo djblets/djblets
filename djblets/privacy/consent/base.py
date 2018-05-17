@@ -11,6 +11,7 @@ except ImportError:
 
 import dateutil.parser
 from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 
 class Consent(Enum):
@@ -174,6 +175,18 @@ class BaseConsentRequirement(object):
 
     #: A short description of what data will be sent and how it will be used.
     data_use_description = None
+
+    #: Text to use for the allow action.
+    allow_text = _('Allow')
+
+    #: Text to use for when the allow action is selected.
+    allowed_text = _('Allowed')
+
+    #: Text to use for the block action.
+    block_text = _('Block')
+
+    #: Text to use for when the block action is selected.
+    blocked_text = _('Blocked')
 
     #: The icons used to represent this service or topic.
     #:

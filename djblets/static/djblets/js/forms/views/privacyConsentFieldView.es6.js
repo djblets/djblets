@@ -12,8 +12,27 @@ Djblets.Forms.PrivacyConsentFieldView = Backbone.View.extend({
 
     /**
      * Initialize the view.
+     *
+     * Args:
+     *     options (object):
+     *         Options for the view.
+     *
+     * Option Args:
+     *     allowText (string):
+     *         Text to use for the allow action.
+     *
+     *     allowedText (string):
+     *         Text to use when the allow action is selected.
+     *
+     *     blockText (string):
+     *         Text to use for the block action.
+     *
+     *     blockedText (string):
+     *         Text to use when the block action is selected.
      */
-    initialize() {
+    initialize(options) {
+        this.options = options;
+
         const $choices = this.$('.privacy-consent-field-choices');
         const $allowChoice =
             $choices.find('.privacy-consent-field-choice-allow');
@@ -53,10 +72,10 @@ Djblets.Forms.PrivacyConsentFieldView = Backbone.View.extend({
         this.$el.toggleClass('privacy-consent-field-block', blocked);
 
         this._$allowLabel.text(allowed
-                               ? gettext('Allowed')
-                               : gettext('Allow'));
+                               ? this.options.allowedText
+                               : this.options.allowText);
         this._$blockLabel.text(blocked
-                               ? gettext('Blocked')
-                               : gettext('Block'));
+                               ? this.options.blockedText
+                               : this.options.blockText);
     },
 });
