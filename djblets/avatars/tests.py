@@ -193,7 +193,7 @@ class AvatarServiceTests(SpyAgency, TestCase):
         service = DummyAvatarService(DummySettingsManager)
         self.assertHTMLEqual(
             service.render(self.request, self.user, 24),
-            '<img src="http://example.com/avatar.png" alt="User Name"'
+            '<img src="http://example.com/avatar.png" alt="username"'
             ' width="24" height="24"'
             ' srcset="http://example.com/avatar.png 1x" class="avatar">\n')
 
@@ -202,7 +202,7 @@ class AvatarServiceTests(SpyAgency, TestCase):
         service = DummyHighDPIAvatarService(DummySettingsManager)
         self.assertHTMLEqual(
             service.render(self.request, self.user, 24),
-            '<img src="http://example.com/avatar.png" alt="User Name"'
+            '<img src="http://example.com/avatar.png" alt="username"'
             ' width="24" height="24"'
             ' srcset="http://example.com/avatar.png 1x,'
             ' http://example.com/avatar@2x.png 2x" class="avatar">\n')

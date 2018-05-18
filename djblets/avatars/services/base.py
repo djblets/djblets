@@ -181,7 +181,7 @@ class AvatarService(object):
             % type(self)
         )
 
-    def render(self, request, user, size):
+    def render(self, request, user, size, template_name=None):
         """Render a user's avatar to HTML.
 
         By default, this is rendered with the template specified by the
@@ -198,12 +198,18 @@ class AvatarService(object):
             size (int):
                 The requested avatar size (height and width) in pixels.
 
+            template_name (unicode, optional):
+                The name of the template to use for rendering.
+
         Returns:
             unicode: The rendered avatar HTML.
         """
-        return render_to_string(self.template_name, {
+        if template_name is None:
+            template_name = self.template_name
+
+        return render_to_string(template_name, {
             'urls': self.get_avatar_urls(request, user, size),
-            'username': user.get_full_name() or user.username,
+            'user': user,
             'size': size,
         })
 
