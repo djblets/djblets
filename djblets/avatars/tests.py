@@ -1001,6 +1001,7 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
             self.assertIsNone(registry.for_user(user))
 
 
+@requires_user_profile
 class AvatarSettingsFormTests(SpyAgency, TestCase):
     """Tests for djblets.avatars.forms.AvatarSettingsForm."""
 
@@ -1018,7 +1019,6 @@ class AvatarSettingsFormTests(SpyAgency, TestCase):
         super(AvatarSettingsFormTests, self).tearDown()
         self.siteconfig.delete()
 
-    @requires_user_profile
     def test_instantiate_form_no_default_service(self):
         """Testing AvatarSettingsForm instantiation when there is no
         default avatar service
@@ -1043,7 +1043,6 @@ class AvatarSettingsFormTests(SpyAgency, TestCase):
         page = TestPage(None, request, user)
         TestSettingsForm(page, request, user)
 
-    @requires_user_profile
     def test_ensure_valid_subform_config(self):
         """Testing AvatarSettingsForm.is_valid ensures avatar service
         configuration form is also valid
@@ -1084,6 +1083,7 @@ class AvatarSettingsFormTests(SpyAgency, TestCase):
         self.assertFalse(form.is_valid())
 
 
+@requires_user_profile
 class FileUploadTests(SpyAgency, TestCase):
     """Unit tests for FileUploadService and FileUploadServiceForm."""
 
@@ -1102,7 +1102,6 @@ class FileUploadTests(SpyAgency, TestCase):
 
         self.storage_cls = get_storage_class()
 
-    @requires_user_profile
     def test_filename_generation(self):
         """Testing FileUploadServiceForm.save puts files in the correct
         location
@@ -1130,7 +1129,6 @@ class FileUploadTests(SpyAgency, TestCase):
         self.assertEqual(self.storage_cls.save.spy.last_call.args[0],
                          'uploaded/avatars/d/do/doc__%s.png' % self.uuid)
 
-    @requires_user_profile
     def test_filename_generation_no_ext(self):
         """Testing FileUploadServiceForm.save puts files in the correct
         location when there is no file extension
@@ -1158,7 +1156,6 @@ class FileUploadTests(SpyAgency, TestCase):
         self.assertEqual(self.storage_cls.save.spy.last_call.args[0],
                          'uploaded/avatars/d/do/doc__%s' % self.uuid)
 
-    @requires_user_profile
     def test_filename_generation_improper_ext(self):
         """Testing FileUploadServiceForm.save puts files in the correct
         location when the extension is improper
