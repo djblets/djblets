@@ -54,16 +54,17 @@ def build_pii_safe_page_url(url, url_kwargs=None, query_dict=None,
         unsafe_keys = set()
 
         for key, value in six.iteritems(d):
-            if '@' in value:
-                # This might be an e-mail address. Redact it.
-                unsafe_keys.add(key)
-            else:
-                # Check for any keyword arguments that contain any unsafe
-                # keyword names as part of the key.
-                for unsafe_key in unsafe_keywords:
-                    if unsafe_key in key:
-                        unsafe_keys.add(key)
-                        break
+            if isinstance(value, six.text_type):
+                if '@' in value:
+                    # This might be an e-mail address. Redact it.
+                    unsafe_keys.add(key)
+                else:
+                    # Check for any keyword arguments that contain any unsafe
+                    # keyword names as part of the key.
+                    for unsafe_key in unsafe_keywords:
+                        if unsafe_key in key:
+                            unsafe_keys.add(key)
+                            break
 
         return unsafe_keys
 
