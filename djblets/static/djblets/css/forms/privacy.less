@@ -1,0 +1,142 @@
+@privacy-consent-field-icon-size: 24px;
+@privacy-consent-field-spacing: 1.5em;
+@privacy-consent-field-allow-color: #008800;
+@privacy-consent-field-block-color: #CC0000;
+
+
+/**
+ * Defines visual states for the consent field.
+ *
+ * This will set the color of the field's border and data use icon, along with
+ * setting the selected label's font style, depending on the currently-selected
+ * state.
+ *
+ * Args:
+ *     state (String):
+ *         One of ``allow`` or ``block``.
+ */
+.privacy-consent-field-state(@state) {
+  @state-color-var: "privacy-consent-field-@{state}-color";
+
+  &.privacy-consent-field-@{state} {
+    background: white;
+    border-color: @@state-color-var;
+    box-shadow: none;
+
+    .privacy-consent-field-choice-@{state} label {
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .privacy-consent-field-data-use-icon {
+      color: @@state-color-var;
+    }
+
+    .privacy-consent-field-header h2 {
+      color: @@state-color-var;
+    }
+  }
+}
+
+.privacy-consent-field {
+  background: #FFFCEA;
+  border: 1px #AB952E Solid;
+  border-radius: 6px;
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);
+
+  .privacy-consent-field-state(allow);
+  .privacy-consent-field-state(block);
+
+  &.privacy-consent-field-has-icon {
+    .privacy-consent-field-header {
+      padding-left: @privacy-consent-field-icon-size;
+    }
+  }
+
+  & ~ & {
+    /*
+     * Space out the consent fields when using the AllConsentRequirementFields
+     * form field. 1em is a default, and may need to be overridden if consumers
+     * have a different standard spacing between fields.
+     */
+    margin-top: 1em;
+  }
+
+  .privacy-consent-field-body {
+    padding: @privacy-consent-field-spacing;
+  }
+
+  .privacy-consent-field-choices {
+    font-size: 120%;
+    list-style: none;
+    margin: @privacy-consent-field-spacing 0 0 0;
+    padding: 0;
+    text-align: center;
+
+    > span {
+      display: inline-block;
+      margin: 0;
+      padding: 0;
+      width: 45%;
+
+      &.privacy-consent-field-choice-allow label {
+        color: @privacy-consent-field-allow-color;
+      }
+
+      &.privacy-consent-field-choice-block label {
+        color: @privacy-consent-field-block-color;
+      }
+
+      label {
+        cursor: pointer;
+        text-decoration: underline;
+      }
+    }
+
+    input {
+      /*
+       * Hide the radio buttons. We'll be showing the selected state using the
+       * labels.
+       */
+      display: none;
+    }
+  }
+
+  .privacy-consent-field-data-use,
+  .privacy-consent-field-intent {
+    margin: @privacy-consent-field-spacing 0;
+    text-align: justify;
+  }
+
+  .privacy-consent-field-data-use {
+    margin: @privacy-consent-field-spacing;
+
+    p {
+      overflow: hidden;
+    }
+  }
+
+  .privacy-consent-field-data-use-icon {
+    color: #444;
+    float: left;
+    font-size: 150%;
+    margin: 0 0.4em 0.4em 0;
+  }
+
+  .privacy-consent-field-header {
+    line-height: @privacy-consent-field-icon-size;
+    text-align: center;
+    vertical-align: middle;
+
+    h2 {
+      display: inline;
+      font-size: 120%;
+      margin: 0;
+      padding: 0;
+    }
+
+    img {
+      float: right;
+    }
+  }
+}

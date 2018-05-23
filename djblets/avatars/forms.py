@@ -282,7 +282,9 @@ class AvatarSettingsForm(ConfigPageForm):
             dict:
             A dictionary of the model data for the form.
         """
-        service = self.avatar_service_registry.for_user(self.user)
+        service = self.avatar_service_registry.for_user(
+            self.user,
+            allow_consent_checks=False)
 
         return {
             'configuration': self.settings_manager.configuration,

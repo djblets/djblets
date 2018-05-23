@@ -43,6 +43,7 @@
 {% block css %}
 {{block.super}}
 {%  include "css/fontawesome.html" %}
+{%  stylesheet 'djblets-forms' %}
 {%  stylesheet 'djblets-config-forms' %}
 {%  for bundle_name in css_bundle_names %}
 {%   stylesheet bundle_name %}
@@ -56,6 +57,7 @@
 
 {% block scripts-post %}
 {{block.super}}
+{%  javascript 'djblets-forms' %}
 {%  javascript 'djblets-config-forms' %}
 {%  for bundle_name in js_bundle_names %}
 {%   javascript bundle_name %}

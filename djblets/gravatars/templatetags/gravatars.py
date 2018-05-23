@@ -53,6 +53,10 @@ def gravatar(user, size=None):
 
     See https://gravatar.com for more information.
 
+    Note that callers adhering to the GDPR should check for a user's consent
+    before displaying a Gravatar on their behalf. This is checked automatically
+    if using :py:mod:`djblets.avatars`.
+
     Args:
         user (django.contrib.auth.models.User):
             The user whose gravatar is to be displayed.
@@ -94,6 +98,10 @@ def gravatar_url(email, size=None):
         of ``identicon``, ``monsterid``, or ``wavatar``).
 
     See https://gravatar.com for more information.
+
+    Note that callers adhering to the GDPR should check for a user's consent
+    before displaying a Gravatar on their behalf. This is checked automatically
+    if using :py:mod:`djblets.avatars`.
 
     Args:
         email (unicode):

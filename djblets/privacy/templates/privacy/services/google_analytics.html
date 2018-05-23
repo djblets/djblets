@@ -1,0 +1,21 @@
+{# A Google Analytics configuration that enforces privacy guidelines. #}
+{% load djblets_privacy %}
+
+{% if settings.GOOGLE_ANALYTICS_ENABLED %}
+<script async src="https://www.googletagmanager.com/gtag/js?id={{settings.GOOGLE_ANALYTICS_TRACKING_CODE}}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+
+{%  block configure_analytics %}
+  gtag('js', new Date());
+  gtag('config', '{{settings.GOOGLE_ANALYTICS_TRACKING_CODE}}', {
+{%   if pii_safe_title %}
+      'page_title': '{{pii_safe_title}}',
+{%   endif %}
+      'page_path': '{% pii_safe_page_url %}',
+      'anonymize_ip': true
+  });
+{%  endblock configure_analytics %}
+</script>
+{% endif %}

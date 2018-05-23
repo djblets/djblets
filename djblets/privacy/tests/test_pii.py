@@ -92,6 +92,16 @@ class BuildPIISafePageURLTests(TestCase):
                 query_dict=QueryDict('foo=a@b.com')),
             '/?foo=<REDACTED>')
 
+    def test_with_non_string_in_path(self):
+        """Testing build_pii_safe_page_url with non-string value in URL path"""
+        self.assertEqual(
+            build_pii_safe_page_url(
+                url='/test/',
+                url_kwargs={
+                    'type': object,
+                }),
+            '/test/')
+
     def test_with_no_pii(self):
         """Testing build_pii_safe_page_url with no PII"""
         self.assertEqual(

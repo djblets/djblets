@@ -7,10 +7,10 @@ from datetime import datetime
 from django.utils import timezone
 
 from djblets.privacy.consent import ConsentData
-from djblets.testing.testcases import TestCase
+from djblets.privacy.tests.testcases import ConsentTestCase
 
 
-class ConsentDataTests(TestCase):
+class ConsentDataTests(ConsentTestCase):
     """Unit tests for djblets.privacy.consent.base.ConsentData."""
 
     def test_parse_audit_info_with_all_data(self):
