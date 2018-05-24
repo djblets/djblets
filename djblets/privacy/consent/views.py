@@ -9,7 +9,10 @@ from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponseRedirect
 from django.utils.decorators import method_decorator
 
-from djblets.privacy.consent.tracker import get_consent_tracker
+from djblets.privacy.consent import (Consent,
+                                     get_consent_requirements_registry,
+                                     get_consent_tracker)
+from djblets.privacy.consent.common import PolicyConsentRequirement
 
 
 _CONSENT_REDIRECT_SETTING = 'DJBLETS_PRIVACY_PENDING_CONSENT_REDIRECT_URL'
@@ -31,21 +34,31 @@ def check_pending_consent(view):
     """
     @wraps(view)
     def decorated(request, *args, **kwargs):
-        tracker = get_consent_tracker()
+        user = request.user
 
-        if (request.user.is_authenticated() and
-            len(tracker.get_pending_consent_requirements(request.user))):
-            redirect_url = getattr(settings, _CONSENT_REDIRECT_SETTING, None)
+        if user.is_authenticated():
+            pending_requirements = \
+                get_consent_tracker().get_pending_consent_requirements(user)
+            policy_requirement = \
+                get_consent_requirements_registry().get_consent_requirement(
+                    PolicyConsentRequirement.requirement_id)
 
-            if redirect_url is None:
-                raise ImproperlyConfigured(
-                    'settings.%s must be set.' % _CONSENT_REDIRECT_SETTING
-                )
+            if (pending_requirements or
+                (policy_requirement is not None and
+                 (policy_requirement.get_consent(user) !=
+                  Consent.GRANTED))):
+                redirect_url = getattr(settings, _CONSENT_REDIRECT_SETTING,
+                                       None)
 
-            if callable(redirect_url):
-                redirect_url = redirect_url(request)
+                if redirect_url is None:
+                    raise ImproperlyConfigured(
+                        'settings.%s must be set.' % _CONSENT_REDIRECT_SETTING
+                    )
 
-            return HttpResponseRedirect(redirect_url)
+                if callable(redirect_url):
+                    redirect_url = redirect_url(request)
+
+                return HttpResponseRedirect(redirect_url)
 
         return view(request, *args, **kwargs)
 

@@ -14,6 +14,7 @@ from djblets.privacy.consent import (BaseConsentRequirement,
                                      ConsentData,
                                      get_consent_requirements_registry,
                                      get_consent_tracker)
+from djblets.privacy.consent.common import PolicyConsentRequirement
 from djblets.privacy.consent.tracker import clear_consent_tracker
 from djblets.privacy.consent.views import (CheckPendingConsentMixin,
                                            check_pending_consent)
@@ -160,6 +161,36 @@ class CheckPendingConsentTests(TestCase):
         self.assertIsInstance(rsp, HttpResponseRedirect)
         self.assertEqual(rsp.url, '/consent?next=/foo/')
 
+    def test_decorator_reject_policy(self):
+        """Testing @check_pending_consent when the user has rejected the policy
+        requirement
+        """
+        policy_requirement = PolicyConsentRequirement(
+            'https://example.com/',
+            'https://example.com/',
+            reject_instructions='Obey.')
+
+        self.registry.register(policy_requirement)
+
+        request = self.request_factory.get('/')
+        request.user = User.objects.create_user(username='user',
+                                                email='user@example.com')
+
+        get_consent_tracker().record_consent_data_list(
+            request.user,
+            [
+                ConsentData(BenevolentConsentRequirement.requirement_id,
+                            granted=True),
+                ConsentData(NefariousConsentRequirement.requirement_id,
+                            granted=False),
+                policy_requirement.build_consent_data(granted=False),
+            ])
+
+        rsp = decorated_view(request)
+
+        self.assertIsInstance(rsp, HttpResponseRedirect)
+        self.assertEqual(rsp.url, '/consent')
+
     def test_mixin_anonymous(self):
         """Testing CheckPendingConsentMixin when the user is anonymous"""
         request = self.request_factory.get('/')
@@ -242,3 +273,33 @@ class CheckPendingConsentTests(TestCase):
 
         self.assertIsInstance(rsp, HttpResponseRedirect)
         self.assertEqual(rsp.url, '/consent?next=/foo/')
+
+    def test_mixin_reject_policy(self):
+        """Testing CheckPendingConsentMixin when the user has rejected the
+        policy requirement
+        """
+        policy_requirement = PolicyConsentRequirement(
+            'https://example.com/',
+            'https://example.com/',
+            reject_instructions='Obey.')
+
+        self.registry.register(policy_requirement)
+
+        request = self.request_factory.get('/')
+        request.user = User.objects.create_user(username='user',
+                                                email='user@example.com')
+
+        get_consent_tracker().record_consent_data_list(
+            request.user,
+            [
+                ConsentData(BenevolentConsentRequirement.requirement_id,
+                            granted=True),
+                ConsentData(NefariousConsentRequirement.requirement_id,
+                            granted=False),
+                policy_requirement.build_consent_data(granted=False),
+            ])
+
+        rsp = MixinView.as_view()(request)
+
+        self.assertIsInstance(rsp, HttpResponseRedirect)
+        self.assertEqual(rsp.url, '/consent')
