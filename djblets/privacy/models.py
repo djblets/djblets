@@ -36,7 +36,6 @@ class StoredConsentData(models.Model):
     audit_identifier = models.CharField(
         max_length=255,
         db_index=True,
-        unique=True,
         blank=True,
         null=True,
         help_text=_('An identifier for locating the audit record as needed. '

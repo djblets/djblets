@@ -131,7 +131,12 @@ def build_pii_safe_page_url_for_request(request, unsafe_keywords=None):
         unicode:
         The safe URL stripped of identifying information.
     """
+    if request.resolver_match is None:
+        url_kwargs = {}
+    else:
+        url_kwargs = request.resolver_match.kwargs
+
     return build_pii_safe_page_url(url=request.path,
-                                   url_kwargs=request.resolver_match.kwargs,
+                                   url_kwargs=url_kwargs,
                                    query_dict=request.GET,
                                    unsafe_keywords=unsafe_keywords)

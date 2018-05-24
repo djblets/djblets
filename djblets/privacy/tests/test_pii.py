@@ -206,6 +206,14 @@ class BuildPIISafePageURLForRequestTests(TestCase):
                 self._build_request('/groups/test/')),
             '/groups/test/')
 
+    def test_with_no_resolver_match(self):
+        """Testing build_pii_safe_page_url_for_request with no resolver match
+        """
+        self.assertEqual(
+            build_pii_safe_page_url_for_request(
+                RequestFactory().get('/groups/test/')),
+            '/groups/test/')
+
     def _build_request(self, path, kwargs={}):
         request = RequestFactory().get(path)
         request.resolver_match = ResolverMatch(func=lambda: None,
