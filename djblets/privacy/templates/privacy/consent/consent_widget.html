@@ -1,0 +1,48 @@
+{% load djblets_images djblets_privacy djblets_utils i18n %}
+
+<div id="{{id}}" class="privacy-consent-field{% if icons %} privacy-consent-field-has-icon{% endif %}">
+ <div class="privacy-consent-field-body">
+  <div class="privacy-consent-field-header">
+   <h2>{{consent_requirement.summary}}</h2>
+{% if icons %}
+   <img src="{{icons.1x}}" srcset="{% srcset icons %}" width="24" height="24"
+        class="privacy-consent-field-icon">
+{% endif %}
+  </div>
+  <div class="privacy-consent-field-intent">
+   <p>{{consent_requirement.intent_description}}</p>
+  </div>
+{% if consent_requirement.data_use_description %}
+  <div class="privacy-consent-field-data-use">
+   <span class="fa fa-vcard-o privacy-consent-field-data-use-icon"></span>
+   <p>{{consent_requirement.data_use_description}}</p>
+  </div>
+{% endif %}
+
+  <div class="privacy-consent-field-choices">
+   <span class="privacy-consent-field-choice-allow">
+    <input type="radio" id="{{id}}_choice_allow" name="{{name}}_choice"
+           value="{{ALLOW}}"{% if value == ALLOW %} checked{% endif %}>
+    <label for="{{id}}_choice_allow"></label>
+   </span>
+
+   <span class="privacy-consent-field-choice-block">
+    <input type="radio" id="{{id}}_choice_block" name="{{name}}_choice"
+           value="{{BLOCK}}"{% if value == BLOCK %} checked{% endif %}>
+    <label for="{{id}}_choice_block"></label>
+   </span>
+  </div>
+ </div>
+</div>
+<script>
+$(document).ready(function() {
+    var view = new Djblets.Forms.PrivacyConsentFieldView({
+        el: $('#{{id}}'),
+        allowText: '{{consent_requirement.allow_text|escapejs}}',
+        allowedText: '{{consent_requirement.allowed_text|escapejs}}',
+        blockText: '{{consent_requirement.block_text|escapejs}}',
+        blockedText: '{{consent_requirement.blocked_text|escapejs}}'
+    });
+    view.render();
+});
+</script>

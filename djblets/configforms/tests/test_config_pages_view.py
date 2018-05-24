@@ -121,6 +121,7 @@ class ConfigPagesViewTests(TestCase):
                     'my-option': 'value',
                 },
                 'forms': list(six.itervalues(view.forms)),
+                'render_sidebar': True,
             })
 
     def test_post_without_form_target(self):

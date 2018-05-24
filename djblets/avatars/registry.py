@@ -12,6 +12,7 @@ from djblets.avatars.errors import (AvatarServiceNotFoundError,
 from djblets.avatars.services.gravatar import GravatarService
 from djblets.avatars.services.url import URLAvatarService
 from djblets.avatars.settings import AvatarSettingsManager
+from djblets.privacy.consent import Consent, get_consent_tracker
 from djblets.registries.registry import (ALREADY_REGISTERED,
                                          ATTRIBUTE_REGISTERED, DEFAULT_ERRORS,
                                          NOT_REGISTERED, Registry, UNREGISTER)
@@ -90,6 +91,9 @@ class AvatarServiceRegistry(Registry):
 
     #: The key name for the list of enabled services.
     ENABLED_SERVICES_KEY = 'avatars_enabled_services'
+
+    #: The key name for specifying whether consent must be checked.
+    ENABLE_CONSENT_CHECKS = 'avatars_enable_consent_checks'
 
     #: The key name for the default service.
     DEFAULT_SERVICE_KEY = 'avatars_default_service'
@@ -558,7 +562,7 @@ class AvatarServiceRegistry(Registry):
         siteconfig = SiteConfiguration.objects.get_current()
         siteconfig.save()
 
-    def for_user(self, user, service_id=None):
+    def for_user(self, user, service_id=None, allow_consent_checks=True):
         """Return the requested avatar service for the given user.
 
         The following options will be tried:
@@ -575,26 +579,53 @@ class AvatarServiceRegistry(Registry):
                 The unique identifier of the service that is to be retrieved.
                 If this is ``None``, the default service will be used.
 
+            allow_consent_checks (bool, optional):
+                Whether to allow consent checks to take place, if required
+                by the application settings and avatar backends. This should
+                only be disabled if presenting configuration options or
+                similar.
+
         Returns:
             djblets.avatars.services.base.AvatarService:
             An avatar service, or ``None`` if one could not be found.
         """
         settings_manager = self.settings_manager_class(user)
         user_service_id = settings_manager.avatar_service_id
+        siteconfig = SiteConfiguration.objects.get_current()
+        services = []
 
         for sid in (service_id, user_service_id):
             if sid is None or not self.has_service(sid):
                 continue
 
-            service = self.get('avatar_service_id', sid)
+            if self.is_enabled(self.get('avatar_service_id', sid)):
+                services.append(self.get_avatar_service(sid))
 
-            if self.is_enabled(service):
-                return self.get_avatar_service(sid)
+        services.append(self.default_service)
 
-        return self.default_service
+        if (allow_consent_checks and
+            siteconfig.get(AvatarServiceRegistry.ENABLE_CONSENT_CHECKS)):
+            # Filter out any services requiring consent that the user has not
+            # consented to.
+            consent_tracker = get_consent_tracker()
+
+            services = [
+                service
+                for service in services
+                if (not service.consent_requirement_id or
+                    consent_tracker.get_consent(
+                        user,
+                        service.consent_requirement_id) == Consent.GRANTED)
+            ]
+
+        if services:
+            return services[0]
+
+        return None
 
 
 SiteConfiguration.add_global_defaults({
     AvatarServiceRegistry.ENABLED_SERVICES_KEY: [],
+    AvatarServiceRegistry.ENABLE_CONSENT_CHECKS: False,
     AvatarServiceRegistry.DEFAULT_SERVICE_KEY: None,
 })

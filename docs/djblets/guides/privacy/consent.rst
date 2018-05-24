@@ -21,9 +21,9 @@ by the user over time in a safe and secure way.
 Consent Requirements
 ====================
 
-:py:class:`~.base.ConsentRequirement` is the main class that everything else
-centers around. It defines a requirement with a unique ID and information
-about what requires consent, primarily for display purposes.
+:py:class:`~.base.BaseConsentRequirement` is the main class that everything
+else centers around. Subclasses define a requirement with a unique ID and
+information about what requires consent, primarily for display purposes.
 
 Any part of a codebase requiring consent will construct an instance of this
 class (or a subclass of it) and register it in the
@@ -34,23 +34,30 @@ This looks like:
 
 .. code-block:: python
 
-   from djblets.privacy.consent import (ConsentRequirement,
+   from djblets.privacy.consent import (BaseConsentRequirement,
                                         get_consent_requirements_registry)
 
 
-   my_requirement = ConsentRequirement(
-       requirement_id='my-requirement-id',
-       name='My Requirement',
-       intent_description='A description about the requirement, presented '
-                          'to the user clearly and informatively.',
-       data_use_description='A brief summary of what data gets sent to the '
-                            'data processor service.',
-       learn_more_url='https://example.com/privacy#my-requirement',
-       icons={
+   class MyConsentRequirement(BaseConsentRequirement):
+       requirement_id = 'my-requirement-id'
+       name = 'My Requirement'
+
+       intent_description = (
+           'A description about the requirement, presented to the user '
+           'clearly and informatively.'
+       )
+
+       data_use_description = (
+           'A brief summary of what data gets sent to the data processor '
+           'service.'
+       )
+
+       icons = {
            '1x': '/path/to/logo.png',
            '2x': '/path/to/logo@2x.png',
-       })
+       }
 
+   my_requirement = MyConsentRequirement()
    get_consent_requirements_registry().register(my_requirement)
 
 These requirements can be checked for consent to determine if consent was
@@ -80,7 +87,7 @@ A decision made on a consent requirement is represented as a
 :py:class:`~.tracker.BaseConsentTracker`.
 
 :py:class:`~.base.ConsentData` stores whether a given
-:py:class:`~.base.ConsentRequirement` ID has been
+:py:class:`~.base.BaseConsentRequirement` ID has been
 granted or denied, along with additional data for audit purposes: The consent
 decision's timestamp, source location (which can be a URL or some other
 identifier), and custom application-provided metadata.
@@ -138,7 +145,41 @@ for example), use :py:meth:`~.tracker.BaseConsentTracker.get_all_consent`.
    all_consent = get_consent_tracker().get_all_consent(user)
 
    if my_requirement_1.requirement_id in all_consent:
-       if my_requirement_1.requirement_id] == Consent.GRANTED:
+       if all_consent[my_requirement_1.requirement_id] == Consent.GRANTED:
           ...
-       elif my_requirement_1.requirement_id] == Consent.DENIED:
+       elif all_consent[my_requirement_1.requirement_id] == Consent.DENIED:
           ...
+
+
+.. _requiring-consent-decisions:
+
+Requiring Consent Decisions
+===========================
+
+If you are using consent tracking, you will likely want to gate certain views
+that require the user to have made consent decisions. We provide a decorator
+for functional views and a mixin for class-style views. If the viewing user is
+authenticated and has any pending consent requirements, they will be redirected
+to the URL specified in
+``settings.DJBLETS_PRIVACY_PENDING_CONSENT_REDIRECT_URL``.
+
+This setting can also be a function, in which case it accepts the current
+:py:class:`~django.http.HttpRequest`.
+
+.. code-block:: python
+
+   from django.http import HttpResponse
+   from django.views.generic.base import View
+   from djblets.privacy.consent.views import (CheckPendingConsentMixin,
+                                              check_pending_consent)
+   from djblets.views.generic.base import PrePostDispatchViewMixin
+
+
+   class SimpleView(CheckPendingConsentMixin, PrePostDispatchViewMixin, View):
+       def get(self, request, **kwargs):
+           return HttpResponse('You have no pending consent requirements.')
+
+
+   @check_pending_consent
+   def simple_view(request):
+        return HttpResponse('You have no pending consent requirements.')

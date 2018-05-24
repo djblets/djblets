@@ -5,20 +5,22 @@
 
 {% block content %}
 <div class="config-forms-container"{% if pages_id %} id="{{pages_id}}"{% endif %}>
-{%  box "nav config-forms-side-nav" %}
+{%  if render_sidebar %}
+{%   box "nav config-forms-side-nav" %}
  <div class="box-head">
   <h1 class="box-title">{{nav_title}}</h1>
  </div>
  <div class="box-main box-foot">
   <ul>
-{%   for page in pages %}
-{%    if page.is_visible %}
+{%    for page in pages %}
+{%     if page.is_visible %}
    <li><a href="#{{page.page_id}}">{{page.page_title}}</a></li>
-{%    endif %}
-{%   endfor %}
+{%     endif %}
+{%    endfor %}
   </ul>
  </div>
-{%  endbox %}
+{%   endbox %}
+{%  endif %}
 
  <div class="config-forms-page-content">
 {%  if messages %}
@@ -43,6 +45,7 @@
 {% block css %}
 {{block.super}}
 {%  include "css/fontawesome.html" %}
+{%  stylesheet 'djblets-forms' %}
 {%  stylesheet 'djblets-config-forms' %}
 {%  for bundle_name in css_bundle_names %}
 {%   stylesheet bundle_name %}
@@ -56,6 +59,7 @@
 
 {% block scripts-post %}
 {{block.super}}
+{%  javascript 'djblets-forms' %}
 {%  javascript 'djblets-config-forms' %}
 {%  for bundle_name in js_bundle_names %}
 {%   javascript bundle_name %}

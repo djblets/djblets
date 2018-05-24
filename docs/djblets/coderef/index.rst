@@ -263,7 +263,10 @@ Privacy Protection
 
    djblets.privacy.consent
    djblets.privacy.consent.base
+   djblets.privacy.consent.common
    djblets.privacy.consent.errors
+   djblets.privacy.consent.forms
+   djblets.privacy.consent.hooks
    djblets.privacy.consent.registry
    djblets.privacy.consent.tracker
    djblets.privacy.models
@@ -356,6 +359,7 @@ Generic Utilities
    djblets.util.dates
    djblets.util.decorators
    djblets.util.filesystem
+   djblets.util.html
    djblets.util.http
    djblets.util.humanize
    djblets.util.json_utils

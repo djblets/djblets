@@ -52,7 +52,7 @@ class ConsentRequirementsRegistry(OrderedRegistry):
                 The consent requirement ID to look up.
 
         Returns:
-            djblets.privacy.consent.base.ConsentRequirement:
+            djblets.privacy.consent.base.BaseConsentRequirement:
             The resulting consent requirement, if found. If a requirement
             with this ID could not be found, this will return ``None``.
         """
