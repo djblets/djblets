@@ -4,7 +4,8 @@ from __future__ import unicode_literals
 
 import logging
 
-from django.http import Http404, HttpResponseBadRequest, HttpResponseRedirect
+from django.http import (Http404, HttpResponse, HttpResponseBadRequest,
+                         HttpResponseRedirect)
 from django.utils import six
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
@@ -124,7 +125,10 @@ class ConfigPagesView(TemplateView):
                 break
 
         if form.is_valid():
-            form.save()
+            rsp = form.save()
+
+            if rsp and isinstance(rsp, HttpResponse):
+                return rsp
 
             return HttpResponseRedirect(request.path)
 
