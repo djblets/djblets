@@ -208,6 +208,7 @@ class AvatarService(object):
             template_name = self.template_name
 
         return render_to_string(template_name, {
+            'request': request,
             'urls': self.get_avatar_urls(request, user, size),
             'user': user,
             'size': size,

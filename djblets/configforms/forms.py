@@ -194,5 +194,11 @@ class ConfigPageForm(forms.Form):
 
         Subclasses must override this to save data from the fields into
         the database.
+
+        Returns:
+            django.http.HttpResponse:
+            An HTTP response to return from the view after saving, or ``None``
+            to be returned to the
+            :py:class:`~djblets.configforms.views.ConfigPagesView`.
         """
         raise NotImplementedError

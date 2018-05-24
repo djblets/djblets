@@ -149,3 +149,37 @@ for example), use :py:meth:`~.tracker.BaseConsentTracker.get_all_consent`.
           ...
        elif all_consent[my_requirement_1.requirement_id] == Consent.DENIED:
           ...
+
+
+.. _requiring-consent-decisions:
+
+Requiring Consent Decisions
+===========================
+
+If you are using consent tracking, you will likely want to gate certain views
+that require the user to have made consent decisions. We provide a decorator
+for functional views and a mixin for class-style views. If the viewing user is
+authenticated and has any pending consent requirements, they will be redirected
+to the URL specified in
+``settings.DJBLETS_PRIVACY_PENDING_CONSENT_REDIRECT_URL``.
+
+This setting can also be a function, in which case it accepts the current
+:py:class:`~django.http.HttpRequest`.
+
+.. code-block:: python
+
+   from django.http import HttpResponse
+   from django.views.generic.base import View
+   from djblets.privacy.consent.views import (CheckPendingConsentMixin,
+                                              check_pending_consent)
+   from djblets.views.generic.base import PrePostDispatchViewMixin
+
+
+   class SimpleView(CheckPendingConsentMixin, PrePostDispatchViewMixin, View):
+       def get(self, request, **kwargs):
+           return HttpResponse('You have no pending consent requirements.')
+
+
+   @check_pending_consent
+   def simple_view(request):
+        return HttpResponse('You have no pending consent requirements.')
