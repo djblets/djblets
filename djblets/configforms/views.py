@@ -61,6 +61,9 @@ class ConfigPagesView(TemplateView):
     #: The HTTP methods that this view will respond to.
     http_method_names = ['get', 'post']
 
+    #: Whether or not to render the sidebar.
+    render_sidebar = True
+
     @method_decorator(csrf_protect)
     def dispatch(self, request, *args, **kwargs):
         self.pages = [
@@ -155,6 +158,7 @@ class ConfigPagesView(TemplateView):
             'js_model_data': self.get_js_model_data(),
             'js_view_data': self.get_js_view_data(),
             'forms': list(six.itervalues(self.forms)),
+            'render_sidebar': self.render_sidebar,
         }
 
     def get_js_view_data(self):
