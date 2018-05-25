@@ -4,7 +4,7 @@
 {% block title %}{{page_title}}{% endblock %}
 
 {% block content %}
-<div class="config-forms-container"{% if pages_id %} id="{{pages_id}}"{% endif %}>
+<div class="config-forms-container{% if render_sidebar %} config-forms-has-sidebar{% endif %}"{% if pages_id %} id="{{pages_id}}"{% endif %}>
 {%  if render_sidebar %}
 {%   box "nav config-forms-side-nav" %}
  <div class="box-head">
