@@ -26,7 +26,7 @@
 #
 
 from __future__ import unicode_literals
-from functools import update_wrapper
+from functools import update_wrapper, wraps
 from inspect import getargspec
 import warnings
 
@@ -303,3 +303,61 @@ def root_url(url_func):
                   DeprecationWarning)
 
     return _add_root
+
+
+def optional_decorator(decorator, predicate):
+    """Optionally apply a decorator given a predicate function.
+
+    Args:
+        decorator (callable):
+            The decorator to conditionally apply.
+
+        predicate (callable):
+            The predicate used to determine when ``decorator`` should be used.
+            The arguments provided to the decorated function will be passed to
+            this function.
+
+    Returns:
+        callable:
+        A decorator that, when applied to a function, will call the function
+        decorated with ``decorator`` when ``predicate()`` returns ``True``.
+        Otherwise it will call the original function.
+
+    Example:
+        .. code-block:: python
+
+           from djblets.util.decorators import (optional_decorator,
+                                                simple_decorator)
+
+           def predicate(verbose)
+               return verbose
+
+           @simple_decorator
+           def decorator(f):
+               def decorated(verbose):
+                   print('Hello from the decorator')
+                   return f(verbose)
+
+           @optional_decorator(decorator, predicate)
+           def f(x):
+                print('Hello from f()')
+
+           # Prints "Hello from the decorator" and "Hello from f()"
+           f(verbose=True)
+
+           # Prints "Hello from f()"
+           f(verbose=False)
+    """
+    def _decorator(view):
+        with_decorator = decorator(view)
+
+        @wraps(view)
+        def decorated(*args, **kwargs):
+            if predicate(*args, **kwargs):
+                return with_decorator(*args, **kwargs)
+
+            return view(*args, **kwargs)
+
+        return decorated
+
+    return _decorator

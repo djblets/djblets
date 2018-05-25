@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 from djblets.testing.testcases import TestCase
-from djblets.util.decorators import cached_property
+from djblets.util.decorators import cached_property, optional_decorator
 
 
 class DecoratorTests(TestCase):
@@ -44,3 +44,22 @@ class DecoratorTests(TestCase):
         self.assertEqual(prop2_instance.__name__, 'my_prop2')
         self.assertEqual(prop2_instance.__doc__, 'Another one!')
         self.assertFalse(hasattr(prop2_instance, 'some_attr'))
+
+    def test_optional_decorator(self):
+        """Testing @optional_decorator"""
+        def predicate(x):
+            return x != 42
+
+        def decorator(f):
+            def decorated(x):
+                return f(x) + 1
+
+            return decorated
+
+        @optional_decorator(decorator, predicate)
+        def f(x):
+            return x
+
+        self.assertEqual(f(0), 1)
+        self.assertEqual(f(1), 2)
+        self.assertEqual(f(42), 42)
