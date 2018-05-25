@@ -67,8 +67,11 @@ class ConfigPagesView(TemplateView):
     @method_decorator(csrf_protect)
     def dispatch(self, request, *args, **kwargs):
         self.pages = [
-            page_cls(self, request, request.user)
-            for page_cls in self.page_classes
+            page for page in (
+                page_cls(self, request, request.user)
+                for page_cls in self.page_classes
+            )
+            if page.is_visible()
         ]
 
         self.forms = {}

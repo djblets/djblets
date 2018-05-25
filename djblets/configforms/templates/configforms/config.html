@@ -13,9 +13,7 @@
  <div class="box-main box-foot">
   <ul>
 {%    for page in pages %}
-{%     if page.is_visible %}
    <li><a href="#{{page.page_id}}">{{page.page_title}}</a></li>
-{%     endif %}
 {%    endfor %}
   </ul>
  </div>
@@ -32,11 +30,9 @@
 {%  endif %}
 
 {%  for page in pages %}
-{%   if page.is_visible %}
   <div class="page" id="page_{{page.page_id}}">
 {{page.render|safe}}
   </div>
-{%   endif %}
 {%  endfor %}
  </div>
 </div>
