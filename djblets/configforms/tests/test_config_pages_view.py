@@ -85,10 +85,9 @@ class ConfigPagesViewTests(TestCase):
         response = view.dispatch(view.request)
         self.assertEqual(response.status_code, 200)
 
-        self.assertEqual(len(view.pages), 3)
+        self.assertEqual(len(view.pages), 2)
         self.assertIsInstance(view.pages[0], TestPage1)
         self.assertIsInstance(view.pages[1], TestPage2)
-        self.assertIsInstance(view.pages[2], TestPage3)
         self.assertEqual(set(six.iterkeys(view.forms)),
                          {'my-form-1', 'my-form-2'})
 

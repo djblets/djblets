@@ -4,7 +4,7 @@
 {% block title %}{{page_title}}{% endblock %}
 
 {% block content %}
-<div class="config-forms-container"{% if pages_id %} id="{{pages_id}}"{% endif %}>
+<div class="config-forms-container{% if render_sidebar %} config-forms-has-sidebar{% endif %}"{% if pages_id %} id="{{pages_id}}"{% endif %}>
 {%  if render_sidebar %}
 {%   box "nav config-forms-side-nav" %}
  <div class="box-head">
@@ -13,9 +13,7 @@
  <div class="box-main box-foot">
   <ul>
 {%    for page in pages %}
-{%     if page.is_visible %}
    <li><a href="#{{page.page_id}}">{{page.page_title}}</a></li>
-{%     endif %}
 {%    endfor %}
   </ul>
  </div>
@@ -32,11 +30,9 @@
 {%  endif %}
 
 {%  for page in pages %}
-{%   if page.is_visible %}
   <div class="page" id="page_{{page.page_id}}">
 {{page.render|safe}}
   </div>
-{%   endif %}
 {%  endfor %}
  </div>
 </div>

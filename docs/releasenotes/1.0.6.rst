@@ -1,0 +1,157 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+===========================
+Djblets 1.0.6 Release Notes
+===========================
+
+**Release date**: June 5, 2018
+
+
+Packaging
+=========
+
+* Added a dependency on python-dateutil_ >= 1.5.
+
+
+.. _python-dateutil: https://pypi.org/project/python-dateutil/
+
+
+djblets.avatars
+===============
+
+* Added optional support for requiring a user's consent to load Gravatars
+  on their behalf.
+
+  If the ``avatars_enable_consent_checks`` siteconfig setting is set to
+  ``True``, then users will have to grant consent in order to load a
+  Gravatar using their e-mail address.
+
+  See the section below on :ref:`djblets.privacy <1.0.6-djblets-privacy>` for
+  more information on consent.
+
+* The alt text for avatars now displays the username and not the full name
+  of users, reducing the amount of personal information shown to users.
+
+* Avatar templates now have access to the current HTTP request through the
+  ``request`` context variable.
+
+
+djblets.configforms
+===================
+
+* :py:meth:`ConfigPageForm.save
+  <djblets.configforms.forms.ConfigPageForm.save>` can now return a
+  :py:class:`~django.http.HttpResponse` to return a custom response to send
+  to the client.
+
+* :py:attr:`ConfigPagesView.render_sidebar
+  <djblets.configforms.views.ConfigPagesView.render_sidebar>` can now be set
+  to ``False`` to disable the sidebar.
+
+  This can be set on the class or in an instance to render a particular page
+  without allowing the user to switch to another page.
+
+
+djblets.datagrid
+================
+
+* Fixed a crash that would sometimes occur when loading DataGrid columns
+  with only invalid names.
+
+
+djblets.extensions
+==================
+
+* Fixed crashes that could occur when shutting down extension hooks when
+  extensions shut down.
+
+
+djblets.integrations
+====================
+
+* Fixed crashes that could occur when shutting down integration hooks when
+  integrations shut down.
+
+
+.. _1.0.6-djblets-privacy:
+
+djblets.privacy (new)
+=====================
+
+Added the new :py:mod:`djblets.privacy` module, designed to help ensure
+privacy of user data.
+
+This module helps applications be compatible with the :term:`GDPR` legislation
+in the EU. It contains:
+
+* Support for requesting and tracking consent for the usage of personally
+  identifiable information (":term:`PII`" -- usernames, full names, e-mail
+  addresses, and other such information), which should especially be used when
+  that data might be sent to a third-party.
+
+* Functions and template tags for filtering personally identifiable
+  information from URLs.
+
+* A privacy-enhanced template and settings for working with Google Analytics,
+  featuring anonymized IPs and titles and URLs safe of PII.
+
+* An extension hook
+  (:py:class:`~djblets.privacy.consent.hooks.ConsentRequirementHook`) for
+  registering consent requirements.
+
+* Decorators for redirecting to a page if consent choices are still pending.
+
+See :ref:`privacy-guides` for more information.
+
+
+djblets.testing
+===============
+
+* Added :py:meth:`TestCase.siteconfig_settings()
+  <djblets.testing.testcases.TestCase.siteconfig_settings>` for temporarily
+  overriding siteconfig settings for a unit test.
+
+* The :py:func:`@requires_user_profile
+  <djblets.testing.decorators.requires_user_profile>` decorator now works on
+  classes as well as methods.
+
+
+djblets.util
+============
+
+* Added :py:func:`djblets.util.html.mark_safe_lazy` for lazily marking a
+  string as HTML.
+
+  This is useful when used alongside
+  :py:func:`~django.utils.translation.ugettext_lazy` or other functions that
+  lazily generate content, in order to prevent the strings from being resolved
+  too soon.
+
+* Added :py:func:`@optional_decorator
+  <djblets.util.decorators.optional_decorator>` for applying a decorator only
+  if a condition is met.
+
+  This is useful for applying a decorator only if a particular setting or
+  feature flag is enabled.
+
+* The :py:func:`{% label_tag %}
+  <djblets.util.templatetags.djblets_forms.label_tag>` template tag no longer
+  renders label tags if the label text is an empty string.
+
+
+Style Sheets
+============
+
+* The ``.retina()`` LessCSS macro no longer overrides other background
+  attributes.
+
+* Flattened the CSS rules for Config Forms, helping to override styling.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
+* David Trowbridge
