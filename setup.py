@@ -400,6 +400,10 @@ class InstallNodeDependenciesCommand(Command):
 test.run_tests = lambda *args, **kwargs: os.system('tests/runtests.py')
 
 
+with open('README.rst', 'r') as fp:
+    long_description = fp.read()
+
+
 PACKAGE_NAME = 'Djblets'
 
 setup(
@@ -410,6 +414,7 @@ setup(
         'A collection of useful classes and functions for developing '
         'large-scale Django-based web applications.'
     ),
+    long_description=long_description,
     author='Beanbag, Inc.',
     author_email='reviewboard@googlegroups.com',
     url='https://www.reviewboard.org/downloads/djblets/',
