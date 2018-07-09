@@ -18,6 +18,7 @@ from pkg_resources import iter_entry_points
 from djblets.registries.errors import (AlreadyRegisteredError,
                                        ItemLookupError,
                                        RegistrationError)
+from djblets.registries.signals import registry_populating
 
 
 ALREADY_REGISTERED = 'already_registered'
@@ -278,6 +279,9 @@ class Registry(object):
 
         for item in self.get_defaults():
             self.register(item)
+
+        registry_populating.send(sender=type(self),
+                                 registry=self)
 
     def get_defaults(self):
         """Return the default items for the registry.

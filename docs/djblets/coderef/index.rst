@@ -339,6 +339,7 @@ Registries
    djblets.registries.errors
    djblets.registries.mixins
    djblets.registries.registry
+   djblets.registries.signals
 
 
 .. _coderef-djblets-siteconfig:
