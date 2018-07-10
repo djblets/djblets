@@ -5,6 +5,8 @@ Module and Class References
 ===========================
 
 
+.. _coderef-djblets:
+
 Top-Level Modules
 =================
 
@@ -13,6 +15,8 @@ Top-Level Modules
 
    djblets
 
+
+.. _coderef-djblets-auth:
 
 Authentication
 ==============
@@ -27,6 +31,8 @@ Authentication
    djblets.auth.views
 
 
+.. _coderef-djblets-avatars:
+
 Avatars
 =======
 
@@ -36,13 +42,15 @@ Avatars
    djblets.avatars.errors
    djblets.avatars.forms
    djblets.avatars.registry
-   djblets.avatars.settings
    djblets.avatars.services
    djblets.avatars.services.base
    djblets.avatars.services.file_upload
    djblets.avatars.services.gravatar
    djblets.avatars.services.url
+   djblets.avatars.settings
 
+
+.. _coderef-djblets-cache:
 
 Caching
 =======
@@ -59,6 +67,8 @@ Caching
    djblets.cache.synchronizer
 
 
+.. _coderef-djblets-conditions:
+
 Conditions
 ==========
 
@@ -73,6 +83,8 @@ Conditions
    djblets.conditions.values
 
 
+.. _coderef-djblets-configforms:
+
 Config Forms
 ============
 
@@ -86,6 +98,8 @@ Config Forms
    djblets.configforms.views
 
 
+.. _coderef-djblets-datagrids:
+
 Datagrids
 =========
 
@@ -93,7 +107,10 @@ Datagrids
    :toctree: python
 
    djblets.datagrid.grids
+   djblets.datagrid.templatetags.datagrid
 
+
+.. _coderef-djblets-db:
 
 Database Utilities
 ==================
@@ -113,23 +130,7 @@ Database Utilities
    djblets.db.validators
 
 
-Integrations
-============
-
-.. autosummary::
-   :toctree: python
-
-   djblets.integrations.errors
-   djblets.integrations.forms
-   djblets.integrations.hooks
-   djblets.integrations.integration
-   djblets.integrations.manager
-   djblets.integrations.mixins
-   djblets.integrations.models
-   djblets.integrations.urls
-   djblets.integrations.views
-   djblets.integrations.templatetags.integrations
-
+.. _coderef-djblets-extensions:
 
 Extensions
 ==========
@@ -158,6 +159,8 @@ Extensions
    djblets.extensions.templatetags.djblets_extensions
 
 
+.. _coderef-djblets-features:
+
 Feature Checks
 ==============
 
@@ -175,6 +178,8 @@ Feature Checks
    djblets.features.templatetags.features
 
 
+.. _coderef-djblets-feedview:
+
 Feed View for RSS
 =================
 
@@ -184,6 +189,8 @@ Feed View for RSS
    djblets.feedview.views
    djblets.feedview.templatetags.feedtags
 
+
+.. _coderef-djblets-forms:
 
 Form Utilities
 ==============
@@ -198,6 +205,8 @@ Form Utilities
    djblets.forms.widgets
 
 
+.. _coderef-djblets-gravatars:
+
 Gravatars
 =========
 
@@ -207,6 +216,28 @@ Gravatars
    djblets.gravatars
    djblets.gravatars.templatetags.gravatars
 
+
+.. _coderef-djblets-integrations:
+
+Integrations
+============
+
+.. autosummary::
+   :toctree: python
+
+   djblets.integrations.errors
+   djblets.integrations.forms
+   djblets.integrations.hooks
+   djblets.integrations.integration
+   djblets.integrations.manager
+   djblets.integrations.mixins
+   djblets.integrations.models
+   djblets.integrations.templatetags.integrations
+   djblets.integrations.urls
+   djblets.integrations.views
+
+
+.. _coderef-djblets-log:
 
 Log Handlers and Viewer
 =======================
@@ -221,6 +252,8 @@ Log Handlers and Viewer
    djblets.log.views
 
 
+.. _coderef-djblets-mail:
+
 Mail Sending
 ============
 
@@ -232,6 +265,8 @@ Mail Sending
    djblets.mail.testing
    djblets.mail.utils
 
+
+.. _coderef-djblets-markdown:
 
 Markdown Utilities and Extensions
 =================================
@@ -245,6 +280,8 @@ Markdown Utilities and Extensions
    djblets.markdown.extensions.wysiwyg_email
 
 
+.. _coderef-djblets-pipeline:
+
 Django Pipeline Additions
 =========================
 
@@ -254,6 +291,8 @@ Django Pipeline Additions
    djblets.pipeline.compilers.es6.ES6Compiler
    djblets.pipeline.compilers.less.LessCompiler
 
+
+.. _coderef-djblets-privacy:
 
 Privacy Protection
 ==================
@@ -274,6 +313,8 @@ Privacy Protection
    djblets.privacy.templatetags.djblets_privacy
 
 
+.. _coderef-djblets-recaptcha:
+
 reCAPTCHA
 =========
 
@@ -281,9 +322,12 @@ reCAPTCHA
    :toctree: python
 
    djblets.recaptcha.mixins
+   djblets.recaptcha.siteconfig
    djblets.recaptcha.templatetags.djblets_recaptcha
    djblets.recaptcha.widgets
 
+
+.. _coderef-djblets-registries:
 
 Registries
 ==========
@@ -295,7 +339,10 @@ Registries
    djblets.registries.errors
    djblets.registries.mixins
    djblets.registries.registry
+   djblets.registries.signals
 
+
+.. _coderef-djblets-siteconfig:
 
 Site Configuration
 ==================
@@ -304,6 +351,7 @@ Site Configuration
    :toctree: python
 
    djblets.siteconfig
+   djblets.siteconfig.admin
    djblets.siteconfig.context_processors
    djblets.siteconfig.django_settings
    djblets.siteconfig.forms
@@ -314,15 +362,21 @@ Site Configuration
    djblets.siteconfig.views
 
 
+.. _coderef-djblets-template:
+
 Template Utilities
 ==================
 
 .. autosummary::
    :toctree: python
 
+   djblets.template.caches
+   djblets.template.context
    djblets.template.loaders.conditional_cached
    djblets.template.loaders.namespaced_app_dirs
 
+
+.. _coderef-djblets-testing:
 
 Testing Helpers
 ===============
@@ -334,6 +388,8 @@ Testing Helpers
    djblets.testing.testcases
    djblets.testing.testrunners
 
+
+.. _coderef-djblets-urls:
 
 URL Utilities
 =============
@@ -349,12 +405,18 @@ URL Utilities
    djblets.urls.staticfiles
 
 
+.. _coderef-djblets-utils:
+
 Generic Utilities
 =================
 
 .. autosummary::
    :toctree: python
 
+   djblets.util.compat.django.core.cache
+   djblets.util.compat.django.core.files.locks
+   djblets.util.compat.django.core.management.base
+   djblets.util.compat.django.core.validators
    djblets.util.contextmanagers
    djblets.util.dates
    djblets.util.decorators
@@ -364,14 +426,16 @@ Generic Utilities
    djblets.util.humanize
    djblets.util.json_utils
    djblets.util.serializers
-   djblets.util.views
    djblets.util.templatetags.djblets_deco
    djblets.util.templatetags.djblets_email
    djblets.util.templatetags.djblets_forms
    djblets.util.templatetags.djblets_images
    djblets.util.templatetags.djblets_js
    djblets.util.templatetags.djblets_utils
+   djblets.util.views
 
+
+.. _coderef-djblets-views:
 
 View Helpers
 ============
@@ -382,6 +446,8 @@ View Helpers
    djblets.views.generic.base
    djblets.views.generic.etag
 
+
+.. _coderef-djblets-webapi:
 
 Web API
 =======
@@ -414,6 +480,7 @@ Web API
    djblets.webapi.resources.mixins.oauth2_tokens
    djblets.webapi.resources.mixins.queries
    djblets.webapi.responses
+   djblets.webapi.signals
    djblets.webapi.testing
    djblets.webapi.testing.decorators
    djblets.webapi.testing.testcases

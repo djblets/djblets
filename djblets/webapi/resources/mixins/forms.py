@@ -46,7 +46,8 @@ class UpdateFormMixin(object):
         """
         return self.form_class
 
-    def create_form(self, data, request, instance=None, **kwargs):
+    def create_form(self, data, request, instance=None, form_kwargs={},
+                    **kwargs):
         """Create a new form and pre-fill it with data.
 
         Args:
@@ -56,11 +57,15 @@ class UpdateFormMixin(object):
             request (django.http.HttpRequest):
                 The HTTP request.
 
-            instance (django.db.models.Model):
+            instance (django.db.models.Model, optional):
                 The instance model, if it exists. If this is not ``None``,
                 fields that appear in the form class's ``fields`` attribute
                 that do not appear in the ``data`` dict as keys will be copied
                 from the instance.
+
+            form_kwargs (dict, optional):
+                Additional keyword arguments to provide to the form's
+                constructor.
 
             **kwargs (dict):
                 Additional arguments. These will be passed to the resource's
@@ -75,7 +80,8 @@ class UpdateFormMixin(object):
         form_data = self._parse_form_data(data, request, **kwargs)
 
         if instance:
-            form = self.form_class(data=form_data, instance=instance)
+            form = self.form_class(data=form_data, instance=instance,
+                                   **form_kwargs)
 
             missing_fields = [
                 field_name for field_name in form.fields
@@ -84,7 +90,7 @@ class UpdateFormMixin(object):
 
             form.data.update(model_to_dict(instance, missing_fields))
         else:
-            form = self.add_form_class(data=form_data)
+            form = self.add_form_class(data=form_data, **form_kwargs)
 
         return form
 
