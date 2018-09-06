@@ -436,7 +436,8 @@ class ExtensionInfo(object):
                              'the extension may be missing.',
                              extension_id)
 
-        data = '\n'.join(lines)
+        # Both Python 2 and 3 will use byte strings here.
+        data = b'\n'.join(lines)
 
         # Try to decode the PKG-INFO content. If no decoding method is
         # successful then the PKG-INFO content will remain unchanged and

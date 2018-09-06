@@ -113,7 +113,7 @@ class FakeDistribution(object):
 
     def __init__(self, author='Example Author',
                  author_email='author@example.com',
-                 description='Test description',
+                 description='Test description\u2049',
                  home_page='http://example.com',
                  project_name='ExampleProject', license_name='Drivers',
                  summary='Test summary', version='1.0'):
@@ -161,7 +161,7 @@ class FakeDistribution(object):
             objects.
         """
         return [
-            '%s: %s' % (field_name, value)
+            b'%s: %s' % (field_name.encode('utf-8'), value.encode('utf-8'))
             for field_name, value in six.iteritems(self.metadata)
         ]
 
