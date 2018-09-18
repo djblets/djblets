@@ -293,11 +293,11 @@ class ListNodeDependenciesCommand(Command):
     description = 'Generate a package.json that lists node.js dependencies'
 
     user_options = [
-        ('to-stdout', None,
+        (str('to-stdout'), None,
          'Write to standard output instead of a package.json file.')
     ]
 
-    boolean_options = ['to-file']
+    boolean_options = [str('to-stdout')]
 
     def initialize_options(self):
         """Set the command's option defaults."""
