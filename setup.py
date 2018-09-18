@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function, unicode_literals
+
 import json
 import os
 import subprocess
@@ -19,7 +21,9 @@ from djblets.dependencies import (build_dependency_list, npm_dependencies,
 # Make sure this is a version of Python we are compatible with. This should
 # prevent people on older versions from unintentionally trying to install
 # the source tarball, and failing.
-if sys.hexversion < 0x02060000:
+pyver = sys.version_info[:2]
+
+if pyver < (2, 6):
     sys.stderr.write('This version of Djblets is incompatible with your '
                      'version of Python.\n')
     sys.exit(1)
@@ -67,15 +71,20 @@ class DevelopCommand(develop):
     """
 
     user_options = develop.user_options + [
-        ('no-npm', None, "Don't install packages from npm"),
-        ('use-npm-cache', None, 'Use npm-cache to install packages'),
-        ('with-doc-deps', None, 'Install documentation-related dependencies'),
+        (str('no-npm'), None,
+         "Don't install packages from npm"),
+        (str('use-npm-cache'),
+         None,
+         'Use npm-cache to install packages'),
+        (str('with-doc-deps'),
+         None,
+         'Install documentation-related dependencies'),
     ]
 
     boolean_options = develop.boolean_options + [
-        'no-npm',
-        'use-npm-cache',
-        'with-doc-deps',
+        str('no-npm'),
+        str('use-npm-cache'),
+        str('with-doc-deps'),
     ]
 
     def initialize_options(self):
@@ -272,13 +281,13 @@ class FetchPublicSuffixListCommand(Command):
         """Run the commands to fetch the DNS public suffix list."""
         from publicsuffix import fetch as fetch_public_suffix
 
-        print 'Fetching DNS public suffix list...'
+        print('Fetching DNS public suffix list...')
         filename = os.path.join('djblets', 'mail', 'public_suffix_list.dat')
 
         with open(filename, 'w') as fp:
             fp.write(fetch_public_suffix().read().encode('utf-8'))
 
-        print 'Public suffix list stored at %s' % filename
+        print('Public suffix list stored at %s' % filename)
 
 
 class ListNodeDependenciesCommand(Command):
@@ -287,11 +296,11 @@ class ListNodeDependenciesCommand(Command):
     description = 'Generate a package.json that lists node.js dependencies'
 
     user_options = [
-        ('to-stdout', None,
+        (str('to-stdout'), None,
          'Write to standard output instead of a package.json file.')
     ]
 
-    boolean_options = ['to-file']
+    boolean_options = [str('to-stdout')]
 
     def initialize_options(self):
         """Set the command's option defaults."""
@@ -342,10 +351,10 @@ class InstallNodeDependenciesCommand(Command):
         'Install the node packages required for building static media.'
 
     user_options = [
-        ('use-npm-cache', None, 'Use npm-cache to install packages'),
+        (str('use-npm-cache'), None, 'Use npm-cache to install packages'),
     ]
 
-    boolean_options = ['use-npm-cache']
+    boolean_options = [str('use-npm-cache')]
 
     def initialize_options(self):
         """Initialize options for the command."""
@@ -380,7 +389,7 @@ class InstallNodeDependenciesCommand(Command):
 
         self.run_command('list_node_deps')
 
-        print 'Installing node.js modules...'
+        print('Installing node.js modules...')
         result = os.system('%s install' % npm_command)
 
         os.unlink('package.json')
@@ -424,7 +433,7 @@ setup(
         'list_node_deps': ListNodeDependenciesCommand,
     },
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
         'Framework :: Django',
         'Intended Audience :: Developers',
