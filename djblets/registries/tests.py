@@ -1,11 +1,13 @@
 from __future__ import unicode_literals
 
 from django.utils import six
+from kgb import SpyAgency
 
-from djblets.registries.registry import Registry, OrderedRegistry, UNREGISTER
 from djblets.registries.errors import (AlreadyRegisteredError,
                                        ItemLookupError,
                                        RegistrationError)
+from djblets.registries.registry import Registry, OrderedRegistry, UNREGISTER
+from djblets.registries.signals import registry_populating
 from djblets.testing.testcases import TestCase
 
 
@@ -41,7 +43,7 @@ class Item(object):
                     for attr_name in self._attrs))
 
 
-class RegistryTests(TestCase):
+class RegistryTests(SpyAgency, TestCase):
     """Tests for djblets.registries.Registry."""
 
     def test_empty_by_default(self):
@@ -113,6 +115,8 @@ class RegistryTests(TestCase):
             def get_defaults(self):
                 yield original_item
 
+        self.spy_on(registry_populating.send)
+
         r = TestRegistry()
 
         with self.assertRaises(AlreadyRegisteredError):
@@ -120,6 +124,9 @@ class RegistryTests(TestCase):
 
         self.assertIs(r.get('id', original_item.id),
                       original_item)
+        self.assertTrue(registry_populating.send.called_with(
+            sender=TestRegistry,
+            registry=r))
 
     def test_population_on_unregister(self):
         """Testing Registry.unregister_item triggers population before
@@ -133,9 +140,15 @@ class RegistryTests(TestCase):
             def get_defaults(self):
                 yield item
 
+        self.spy_on(registry_populating.send)
+
         r = TestRegistry()
         r.unregister(item)
         self.assertEqual(len(r), 0)
+
+        self.assertTrue(registry_populating.send.called_with(
+            sender=TestRegistry,
+            registry=r))
 
     def test_registering_duplicate(self):
         """Testing Registry.register_item with duplicate items"""
