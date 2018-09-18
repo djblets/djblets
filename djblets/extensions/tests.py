@@ -122,7 +122,7 @@ class FakeProvider(pkg_resources.DefaultProvider):
 
     def __init__(self, author='Example Author',
                  author_email='author@example.com',
-                 description='Test description',
+                 description='Test description\u2049',
                  home_page='http://example.com',
                  project_name='ExampleProject', license_name='Drivers',
                  summary='Test summary', version='1.0'):
