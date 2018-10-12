@@ -1,0 +1,56 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+===========================
+Djblets 1.0.7 Release Notes
+===========================
+
+**Release date**: October 12, 2018
+
+
+djblets.db
+==========
+
+* Fixed timestamps being overwritten on save when using
+  :py:class:`~djblets.db.fields.modification_timestamp_field.
+  ModificationTimestampField`.
+
+  If code manually sets a timestamp for the field, saving it will no longer
+  override that timestamp.
+
+
+djblets.extensions
+==================
+
+* Fixed parsing of extension metadata containing Unicode characters.
+
+
+djblets.registries
+==================
+
+* Added a signal for notifying when a registry is populating.
+
+  The new :py:data:`~djblets.registries.signals.registry_populating` signal
+  is now emitted when a registry is populating, right after all built-in
+  items are added. This allows code outside the registry to populate it with
+  new items before the registry is otherwise used.
+
+
+djblets.webapi
+==============
+
+* Added form construction customization to
+  :py:class:`~djblets.webapi.resources.mixins.forms.UpdateFormMixin`.
+
+  :py:meth:`UpdateFormMixin.create_form()
+  <djblets.webapi.resources.mixins.forms.UpdateFormMixin.create_form>` now
+  accepts a ``form_kwargs`` argument for passing custom parameters to the
+  form's constructor. This allows for more customization and specialized usage
+  of forms in the API.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
