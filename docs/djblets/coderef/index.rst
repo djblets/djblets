@@ -217,6 +217,17 @@ Gravatars
    djblets.gravatars.templatetags.gravatars
 
 
+.. _coderef-djblets-http:
+
+HTTP Utilities
+==============
+
+.. autosummary::
+   :toctree: python
+
+   djblets.http.middleware
+
+
 .. _coderef-djblets-integrations:
 
 Integrations
