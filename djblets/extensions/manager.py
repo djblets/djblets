@@ -23,6 +23,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError
+from django.db.utils import DEFAULT_DB_ALIAS
 from django.utils import six
 from django.utils.module_loading import module_has_submodule
 from django.utils.six.moves import cStringIO as StringIO
@@ -31,9 +32,9 @@ from pipeline.conf import settings as pipeline_settings
 from setuptools.command import easy_install
 
 try:
-    import django_evolution
+    from django_evolution.evolve import get_unapplied_evolutions
 except ImportError:
-    django_evolution = None
+    get_unapplied_evolutions = None
 
 try:
     # Django >= 1.7
@@ -882,7 +883,7 @@ class ExtensionManager(object):
 
         extension.info.installed = extension.registration.installed
         extension.info.enabled = True
-        self._add_to_installed_apps(extension)
+        new_installed_apps = self._add_to_installed_apps(extension)
         self._context_processors_setting.add_list(extension.context_processors)
         clear_template_tag_caches()
         ext_class.instance = extension
@@ -904,8 +905,9 @@ class ExtensionManager(object):
         if (not old_version or
             pkg_resources.parse_version(old_version) <
             pkg_resources.parse_version(cur_version)):
-            # We may need to update the database.
-            self._sync_database(ext_class)
+            # If any models are introduced by this extension, we may need to
+            # update the database.
+            self._sync_database(ext_class, new_installed_apps)
 
             # Record this version so we don't update the database again.
             extension.settings.set(self.VERSION_SETTINGS_KEY, cur_version)
@@ -926,7 +928,7 @@ class ExtensionManager(object):
 
         return extension
 
-    def _sync_database(self, ext_class):
+    def _sync_database(self, ext_class, new_installed_app_names):
         """Synchronize extension-provided models to the database.
 
         This will create any database tables that need to be created and
@@ -935,7 +937,17 @@ class ExtensionManager(object):
         Args:
             ext_class (type):
                 The extension class owning the database models.
+
+            new_installed_app_names (list of unicode):
+                The list of new Django app names that are installed by an
+                extension.
         """
+        installed_apps = self._get_app_modules_with_models(
+            new_installed_app_names)
+
+        if not installed_apps:
+            return
+
         if apps:
             # Django >= 1.7
             call_command('migrate', run_syncdb=True, verbosity=0,
@@ -945,7 +957,48 @@ class ExtensionManager(object):
             call_command('syncdb', verbosity=0, interactive=False)
 
         # Run evolve to do any table modification.
-        self._migrate_extension_models(ext_class)
+        self._migrate_extension_models(ext_class, installed_apps)
+
+    def _get_app_modules_with_models(self, app_names):
+        """Return app modules containing models for each app name.
+
+        This will iterate through the list of app names for an extension and
+        return the app module for each app that contains models.
+
+        Args:
+            app_names (list of unicode):
+                The list of Django app names.
+
+        Returns:
+            list of module:
+            The list of modules for each app that contains models.
+        """
+        results = []
+
+        if apps:
+            # Django >= 1.7
+
+            # There's no way of looking up an AppConfig based on the app
+            # name, so we'll need to start by building our own map.
+            all_app_configs = {
+                app_config.name: app_config
+                for app_config in apps.get_app_configs()
+            }
+
+            for app_name in app_names:
+                app_config = all_app_configs[app_name]
+
+                if app_config.models and app_config.models_module:
+                    results.append(app_config.models_module)
+        else:
+            # Django == 1.6
+            for app_name in app_names:
+                app = loading.load_app(app_name)
+
+                if app is not None:
+                    results.append(app)
+
+        return results
 
     def _uninit_extension(self, extension):
         """Uninitialize the extension.
@@ -1331,8 +1384,8 @@ class ExtensionManager(object):
             extension (djblets.extensions.extension.Extension):
                 The extension whose apps are being added.
         """
-        self._installed_apps_setting.add_list(
-            extension.apps or [extension.info.app_name])
+        new_installed_apps = extension.apps or [extension.info.app_name]
+        self._installed_apps_setting.add_list(new_installed_apps)
 
         if apps:
             # Django >= 1.7
@@ -1340,6 +1393,8 @@ class ExtensionManager(object):
         else:
             # Django == 1.6
             loading.cache.loaded = False
+
+        return new_installed_apps
 
     def _remove_from_installed_apps(self, extension):
         """Remove an extension's apps from the list of installed apps.
@@ -1359,6 +1414,8 @@ class ExtensionManager(object):
         if apps:
             apps.unset_installed_apps()
         else:
+            had_models = False
+
             for app_name in removed_apps:
                 # In Django 1.6, the only apps that are registered are those
                 # with models. If this particular app does not have models, we
@@ -1400,10 +1457,13 @@ class ExtensionManager(object):
                 for module in model_modules:
                     loading.cache.app_store.pop(module, None)
 
-            # Force get_models() to recompute models for lookups, so that
-            # now-unregistered models aren't returned.
-            loading.cache._get_models_cache.clear()
-            loading.cache.loaded = False
+                had_models = True
+
+            if had_models:
+                # Force get_models() to recompute models for lookups, so that
+                # now-unregistered models aren't returned.
+                loading.cache._get_models_cache.clear()
+                loading.cache.loaded = False
 
     def _entrypoint_iterator(self):
         """Iterate through registered Python entry points.
@@ -1441,7 +1501,7 @@ class ExtensionManager(object):
         self._gen_sync.mark_updated()
         settings.AJAX_SERIAL = self._gen_sync.sync_gen
 
-    def _migrate_extension_models(self, ext_class):
+    def _migrate_extension_models(self, ext_class, installed_apps):
         """Perform database migrations for an extension's models.
 
         This will call out to Django Evolution to handle the migrations.
@@ -1449,10 +1509,24 @@ class ExtensionManager(object):
         Args:
             ext_class (djblets.extensions.extension.Extension):
                 The class for the extension to migrate.
+
+            installed_apps (list of module):
+                The list of app modules (technically :file:`models.py`-like
+                modules -- this is a legacy Django definition) to migrate.
         """
-        if django_evolution is None:
+        if get_unapplied_evolutions is None:
             # Django Evolution isn't installed. Extensions with evolutions
             # are not supported.
+            return
+
+        needs_evolution = any(
+            get_unapplied_evolutions(installed_app, DEFAULT_DB_ALIAS)
+            for installed_app in installed_apps
+        )
+
+        if not needs_evolution:
+            # This extension either doesn't use evolutions, or doesn't have
+            # any that need to be applied.
             return
 
         try:
