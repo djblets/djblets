@@ -11,7 +11,6 @@ from contextlib import contextmanager
 
 from django.forms import widgets
 from django.template.context import Context
-from django.template.loader import render_to_string
 from django.utils import six
 from django.utils.html import format_html_join
 from django.utils.six.moves import filter, range
@@ -20,6 +19,7 @@ from django.utils.translation import ugettext as _
 from djblets.conditions import ConditionSet
 from djblets.conditions.errors import (ConditionChoiceNotFoundError,
                                        ConditionOperatorNotFoundError)
+from djblets.util.compat.django.template.loader import render_to_string
 
 
 class ConditionsWidget(widgets.Widget):
