@@ -29,6 +29,7 @@ import hashlib
 
 from django.http import HttpResponse, HttpResponseNotModified
 from django.utils import six
+from django.utils.encoding import force_bytes
 from django.utils.six.moves.urllib.parse import urlencode
 
 from djblets.util.dates import http_date
@@ -75,8 +76,17 @@ def set_etag(response, etag):
 
 
 def encode_etag(etag):
-    """Encode a string as a SHA1 value, for use in an ETag."""
-    return hashlib.sha1(etag.encode('utf-8')).hexdigest()
+    """Encode a string as a SHA1 value, for use in an ETag.
+
+    Args:
+        etag (bytes or unicode):
+            The ETag to encode.
+
+    Returns:
+        bytes:
+        The encoded ETag.
+    """
+    return hashlib.sha1(force_bytes(etag)).hexdigest()
 
 
 def etag_if_none_match(request, etag):

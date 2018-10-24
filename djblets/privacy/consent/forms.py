@@ -172,7 +172,7 @@ class MultiConsentRequirementsWidget(MultiWidget):
                                         widget_value,
                                         final_attrs))
 
-        return mark_safe(self.format_output(output))
+        return mark_safe(''.join(output))
 
     def value_from_datadict(self, data, files, name):
         """Return the field values from the submitted form data.

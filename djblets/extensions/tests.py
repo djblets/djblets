@@ -1283,7 +1283,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
             TestExtensionModel
 
         latest_version = Version.objects.current_version()
-        sig = pickle.loads(bytes(latest_version.signature))
+        sig = pickle.loads(latest_version.signature.encode('latin1'))
 
         model_sig = create_model_sig(TestExtensionModel)
         model_sig['meta']['db_table'] = 'evolve_tests_testevolveextensionmodel'
@@ -1292,7 +1292,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
             'TestEvolveExtensionModel': model_sig,
         }
 
-        Version.objects.create(signature=pickle.dumps(sig))
+        Version.objects.create(signature=pickle.dumps(sig, protocol=0))
 
         # We can now enable the extension, which will perform an evolution.
         extension = self.setup_extension(TestExtension)
