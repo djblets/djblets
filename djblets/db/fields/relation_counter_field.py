@@ -139,14 +139,24 @@ class RelationTracker(object):
             # This is going to be one end or the other of a ManyToManyField
             # relation.
             if is_rel_direct:
-                # This is a ManyToManyField, and we can get the 'rel'
-                # attribute through it.
+                # This is a ManyToManyField, and we can get the 'remote_field'
+                # or 'rel' attribute (depending on Django version) through it
+                # below.
                 m2m_field = self._rel_field
-                self._related_name = m2m_field.rel.related_name
             else:
                 # This is a RelatedObject. We need to get the field through
                 # this.
                 m2m_field = self._rel_field.field
+
+            if hasattr(m2m_field, 'remote_field'):
+                # Django >= 1.7
+                remote_field = m2m_field.remote_field
+            else:
+                remote_field = m2m_field.rel
+
+            if is_rel_direct:
+                self._related_name = remote_field.related_name
+            else:
                 self._related_name = m2m_field.attname
 
             # Listen for all M2M updates on the through table for this
@@ -156,7 +166,7 @@ class RelationTracker(object):
             m2m_changed.connect(
                 self._on_m2m_changed,
                 weak=False,
-                sender=m2m_field.rel.through,
+                sender=remote_field.through,
                 dispatch_uid=dispatch_uid)
         else:
             # This is a ForeignKey or similar. It must be the reverse end.
