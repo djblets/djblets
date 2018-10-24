@@ -18,6 +18,7 @@ from django.views.decorators.vary import vary_on_headers
 from djblets.auth.ratelimit import (RATE_LIMIT_API_ANONYMOUS,
                                     RATE_LIMIT_API_AUTHENTICATED,
                                     get_usage_count)
+from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.util.http import (get_modified_since, encode_etag,
                                etag_if_none_match,
                                set_last_modified, set_etag,
@@ -1198,10 +1199,10 @@ class WebAPIResource(object):
         # Future versions of Djblets will remove the encode_etag argument.
         if encode_etag:
             warnings.warn('WebAPIResource.generate_etag will stop generating '
-                          'encoded ETags in 0.9.x. Update your get_etag() '
+                          'encoded ETags in 2.0.x. Update your get_etag() '
                           'method to pass encode_etag=False to this function '
                           'and to call encode_etag() on the result instead.',
-                          DeprecationWarning)
+                          RemovedInDjblets20Warning)
             etag = self.encode_etag(request, etag)
 
         return etag

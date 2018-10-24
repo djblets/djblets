@@ -28,6 +28,7 @@ from __future__ import unicode_literals
 
 import warnings
 
+from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.webapi.decorators import SPECIAL_PARAMS
 from djblets.webapi.encoders import (BasicAPIEncoder, JSONEncoderAdapter,
                                      WebAPIEncoder, XMLEncoderAdapter,
@@ -37,7 +38,7 @@ from djblets.webapi.responses import (WebAPIResponse, WebAPIResponseError,
                                       WebAPIResponsePaginated)
 
 
-warnings.warn('djblets.webapi.core is deprecated', DeprecationWarning)
+warnings.warn('djblets.webapi.core is deprecated', RemovedInDjblets20Warning)
 
 
 __all__ = [

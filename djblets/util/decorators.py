@@ -35,6 +35,8 @@ from django.conf import settings
 from django.template import TemplateSyntaxError, Variable
 from django.utils.functional import cached_property as django_cached_property
 
+from djblets.deprecation import RemovedInDjblets20Warning
+
 
 # The decorator decorator.  This is copyright unknown, verbatim from
 # http://wiki.python.org/moin/PythonDecoratorLibrary
@@ -300,7 +302,7 @@ def root_url(url_func):
             return url
 
     warnings.warn('djblets.util.decorators.root_url is deprecated.',
-                  DeprecationWarning)
+                  RemovedInDjblets20Warning)
 
     return _add_root
 

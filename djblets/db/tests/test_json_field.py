@@ -8,6 +8,7 @@ from django.db.models import Model
 from django.utils import six
 
 from djblets.db.fields import JSONField, JSONFormField
+from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.testing.testcases import TestCase
 
 
@@ -53,7 +54,7 @@ class JSONFieldTests(TestCase):
         self.assertEqual(len(w), 1)
 
         message = w[0].message
-        self.assertIsInstance(message, DeprecationWarning)
+        self.assertIsInstance(message, RemovedInDjblets20Warning)
         self.assertEqual(six.text_type(message),
                          'The encoder argument to JSONField has been '
                          'replaced by the encoder_cls and encoder_kwargs '
