@@ -79,9 +79,16 @@ class ForwardingCacheBackend(object):
 
         with self._load_lock:
             if self._load_gen == cur_load_gen:
-                from django.core.cache import get_cache
+                try:
+                    # Django >= 1.7
+                    from django.core.cache import caches
 
-                self._backend = get_cache(self._cache_name)
+                    self._backend = caches[self._cache_name]
+                except ImportError:
+                    # Django < 1.7
+                    from django.core.cache import get_cache
+
+                    self._backend = get_cache(self._cache_name)
 
                 # get_cache will attempt to connect to 'close', which we don't
                 # want. Instead, go and disconnect this.
