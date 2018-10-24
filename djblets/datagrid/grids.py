@@ -1090,10 +1090,10 @@ class DataGrid(object):
         # shrink and expand values.
         colnames = self.request.GET.get('columns', profile_columns_list) or ''
 
-        columns = filter(None, [
+        columns = list(filter(None, [
             self.get_column(colname)
             for colname in colnames.split(',')
-        ])
+        ]))
 
         if not columns:
             colnames = ','.join(self.default_columns)

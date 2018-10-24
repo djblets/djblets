@@ -25,6 +25,7 @@
 
 from __future__ import division, unicode_literals
 
+import io
 import logging
 import re
 
@@ -32,7 +33,6 @@ from django import template
 from django.template import TemplateSyntaxError
 from django.utils import six
 from django.utils.html import format_html, format_html_join
-from django.utils.six.moves import cStringIO as StringIO
 from django.utils.translation import ugettext as _
 from PIL import Image
 
@@ -67,7 +67,7 @@ def crop_image(f, x, y, width, height):
     if not storage.exists(new_name):
         try:
             f = storage.open(filename)
-            data = StringIO(f.read())
+            data = io.BytesIO(f.read())
             f.close()
 
             image = Image.open(data)
@@ -120,7 +120,7 @@ def thumbnail(f, size='400x100'):
     if not storage.exists(miniature):
         try:
             f = storage.open(filename, 'rb')
-            data = StringIO(f.read())
+            data = io.BytesIO(f.read())
             f.close()
 
             image = Image.open(data)
