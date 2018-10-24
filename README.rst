@@ -48,6 +48,9 @@ template tags, templates, etc. that can be used by your own codebase.
 * djblets.gravatars_ -
   Low-level functions and template tags for injecting Gravatars_ into pages
 
+* djblets.http_ -
+  Utilities for working with HTTP requests and responses.
+
 * djblets.integrations_ -
   Framework for integrating with third-party services and offering unlimited
   numbers of user-defined configurations
@@ -142,6 +145,8 @@ Djblets.
    https://www.reviewboard.org/docs/djblets/latest/coderef/#coderef-djblets-forms
 .. _djblets.gravatars:
    https://www.reviewboard.org/docs/djblets/latest/coderef/#coderef-djblets-gravatars
+.. _djblets.http:
+   https://www.reviewboard.org/docs/djblets/latest/coderef/#coderef-djblets-http
 .. _djblets.integrations:
    https://www.reviewboard.org/docs/djblets/latest/coderef/#coderef-djblets-integrations
 .. _djblets.log:

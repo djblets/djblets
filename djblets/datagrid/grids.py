@@ -56,11 +56,10 @@ import traceback
 
 import pytz
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import InvalidPage, QuerySetPaginator
 from django.http import Http404, HttpResponse
-from django.shortcuts import render_to_response
-from django.template.context import RequestContext, Context
+from django.template.context import Context
 from django.template.defaultfilters import date, timesince
 from django.template.loader import get_template
 from django.utils import six
@@ -78,6 +77,7 @@ except ImportError:
 
 from djblets.template.context import get_default_template_context_processors
 from djblets.db.query import chainable_select_related_queryset
+from djblets.util.compat.django.shortcuts import render
 from djblets.util.compat.django.template.loader import (render_template,
                                                         render_to_string)
 from djblets.util.decorators import cached_property
@@ -1479,7 +1479,8 @@ class DataGrid(object):
         context.update(extra_context)
         context.update(render_context)
 
-        return render_to_response(template_name, Context(context))
+        return render(self.request, template_name, context,
+                      context_instance=Context())
 
     def render_paginator(self, adjacent_pages=3):
         """Render the paginator for the datagrid.

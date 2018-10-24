@@ -236,7 +236,7 @@ class WebAPIResourceTests(TestCase):
                 }
 
         resource = TestResource()
-        etag = '397e66e45ae703fad95aacbff68669fb57bf6fc3'
+        etag = '790fc95c3f89afe28403c272553e790274ea1d3e'
 
         request = self.factory.get('/api/tests/',
                                    HTTP_ACCEPT='application/json',
@@ -271,7 +271,7 @@ class WebAPIResourceTests(TestCase):
         self.assertIsInstance(response, WebAPIResponse)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['ETag'],
-                         '397e66e45ae703fad95aacbff68669fb57bf6fc3')
+                         '790fc95c3f89afe28403c272553e790274ea1d3e')
 
     def test_generate_etag_with_encode_etag_true(self):
         """Testing WebAPIResource.generate_etag with encode_etag=True"""

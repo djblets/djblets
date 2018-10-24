@@ -103,7 +103,9 @@ class JSONEncoderAdapter(json.JSONEncoder):
     purposes as well.
     """
     def __init__(self, encoder, *args, **kwargs):
-        json.JSONEncoder.__init__(self, *args, **kwargs)
+        super(JSONEncoderAdapter, self).__init__(
+            sort_keys=kwargs.pop('sort_keys', True),
+            *args, **kwargs)
         self.encoder = encoder
 
     def encode(self, o, *args, **kwargs):

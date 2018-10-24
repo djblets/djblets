@@ -33,7 +33,7 @@ class EncoderAdapterTests(TestCase):
         adapter = JSONEncoderAdapter(encoder)
 
         content = adapter.encode(self.data)
-        self.assertEqual(content, json.dumps(self.data))
+        self.assertEqual(content, json.dumps(self.data, sort_keys=True))
 
     def test_xml_encoder_adapter(self):
         """Testing XMLEncoderAdapter.encode"""

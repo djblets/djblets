@@ -33,10 +33,11 @@ from djblets.cache.serials import (generate_ajax_serial,
                                    generate_locale_serial,
                                    generate_media_serial)
 from djblets.db.query import get_object_or_none
+from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.urls.patterns import never_cache_patterns
 
 
-warnings.warn('djblets.util.misc is deprecated', DeprecationWarning)
+warnings.warn('djblets.util.misc is deprecated', RemovedInDjblets20Warning)
 
 
 __all__ = [

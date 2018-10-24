@@ -27,14 +27,15 @@
 from __future__ import unicode_literals
 import warnings
 
-from djblets.siteconfig.context_processors import settings_vars as settingsVars
-from djblets.urls.context_processors import site_root as siteRoot
 from djblets.cache.context_processors import (ajax_serial as ajaxSerial,
                                               media_serial as mediaSerial)
+from djblets.deprecation import RemovedInDjblets20Warning
+from djblets.siteconfig.context_processors import settings_vars as settingsVars
+from djblets.urls.context_processors import site_root as siteRoot
 
 
 warnings.warn('djblets.util.context_processors is deprecated',
-              DeprecationWarning)
+              RemovedInDjblets20Warning)
 
 
 __all__ = [

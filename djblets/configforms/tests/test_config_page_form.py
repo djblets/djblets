@@ -12,6 +12,7 @@ from django.utils import six
 from djblets.configforms.forms import ConfigPageForm
 from djblets.configforms.pages import ConfigPage
 from djblets.configforms.views import ConfigPagesView
+from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.testing.testcases import TestCase
 
 
@@ -60,7 +61,7 @@ class ConfigPageFormTests(TestCase):
         # Django 1.6, the other about our own deprecation. Ours will be first.
         message = w[0].message
 
-        self.assertIsInstance(message, DeprecationWarning)
+        self.assertIsInstance(message, RemovedInDjblets20Warning)
         self.assertEqual(
             six.text_type(message),
             'ConfigFormPage.profile is deprecated. Update your code to '

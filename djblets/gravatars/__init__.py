@@ -32,6 +32,8 @@ from django.conf import settings
 from django.http import QueryDict
 from django.utils import six
 
+from djblets.deprecation import RemovedInDjblets20Warning
+
 
 default_app_config = 'djblets.gravatars.apps.GravatarsAppConfig'
 
@@ -64,7 +66,7 @@ def get_gravatar_url_for_email(request=None, email=None, size=None):
              "argument is deprecated and should be None. It will be removed "
              "in Djblets 2.0. Use get_gravatar_url_for_email(email=email, "
              "size=size) instead.",
-             DeprecationWarning)
+             RemovedInDjblets20Warning)
 
     if email:
         email = email.strip().lower()
@@ -128,7 +130,7 @@ def get_gravatar_url(request=None, user=None, size=None):
         warn("djblets.gravatars.get_gravatar_url's request request argument "
              "is deprecated and should be None. It will be removed in Djblets "
              "2.0. Use get_gravatar_url(user=user, size=size) instead.",
-             DeprecationWarning)
+             RemovedInDjblets20Warning)
 
     if user is None:
         raise ValueError('"user" cannot be None.')

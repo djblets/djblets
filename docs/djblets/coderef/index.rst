@@ -217,6 +217,17 @@ Gravatars
    djblets.gravatars.templatetags.gravatars
 
 
+.. _coderef-djblets-http:
+
+HTTP Utilities
+==============
+
+.. autosummary::
+   :toctree: python
+
+   djblets.http.middleware
+
+
 .. _coderef-djblets-integrations:
 
 Integrations
@@ -417,6 +428,11 @@ Generic Utilities
    djblets.util.compat.django.core.files.locks
    djblets.util.compat.django.core.management.base
    djblets.util.compat.django.core.validators
+   djblets.util.compat.django.shortcuts
+   djblets.util.compat.django.templates.context
+   djblets.util.compat.django.templates.loader
+   djblets.util.compat.django.utils.functional
+   djblets.util.compat.python.past
    djblets.util.contextmanagers
    djblets.util.dates
    djblets.util.decorators

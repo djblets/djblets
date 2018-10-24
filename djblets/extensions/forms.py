@@ -27,6 +27,7 @@ from __future__ import unicode_literals
 
 import warnings
 
+from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.forms.forms import KeyValueForm
 from djblets.util.decorators import cached_property
 
@@ -53,7 +54,7 @@ class SettingsForm(KeyValueForm):
         warnings.warn(
             'SettingsForm.siteconfig is deprecated. Update your code to '
             'use SettingsForm.settings instead.',
-            DeprecationWarning)
+            RemovedInDjblets20Warning)
 
         return self.instance
 

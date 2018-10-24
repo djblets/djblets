@@ -12,6 +12,7 @@ except ImportError:
     # Django < 1.8
     from django.template.loader import BaseLoader
 
+from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.extensions.manager import get_extension_managers
 
 
@@ -62,7 +63,7 @@ def load_template_source(template_name, template_dirs=None):
     warnings.warn(
         "'djblets.extensions.loaders.load_template_source' is deprecated; "
         "use 'djblets.extensions.loaders.Loader' instead.",
-        DeprecationWarning)
+        RemovedInDjblets20Warning)
 
     if _loader is None:
         _loader = Loader()
