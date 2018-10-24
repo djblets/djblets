@@ -24,6 +24,7 @@ import warnings
 from django.template import RequestContext
 from django.utils import six
 
+from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.util.compat.django.template.loader import render_to_string
 
 
@@ -205,7 +206,7 @@ class ExtensionHook(object):
                 % {
                     'name': self.__class__.__name__,
                 },
-                DeprecationWarning)
+                RemovedInDjblets20Warning)
 
             # Don't call shutdown() again, as the subclass might have already
             # dealt with state cleanup.

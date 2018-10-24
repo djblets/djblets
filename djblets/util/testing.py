@@ -27,12 +27,13 @@
 from __future__ import unicode_literals
 import warnings
 
+from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.testing.testcases import (StubNodeList, StubParser,
                                        TagTest, TestCase)
 
 
 warnings.warn('djblets.util.testing is deprecated. Use '
-              'djblets.testing.testcases instead.', DeprecationWarning)
+              'djblets.testing.testcases instead.', RemovedInDjblets20Warning)
 
 
 __all__ = ['StubNodeList', 'StubParser', 'TagTest', 'TestCase']

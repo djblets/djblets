@@ -30,6 +30,8 @@ import warnings
 
 from django import template
 
+from djblets.deprecation import RemovedInDjblets20Warning
+
 
 register = template.Library()
 
@@ -41,7 +43,8 @@ def paginator(context, adjacent_pages=3):
     """Renders a paginator used for jumping between pages of results."""
 
     warnings.warn('djblets.datagrid.templatetags datagrid is deprecated,'
-                  ' Use DataGrid.render_paginator', DeprecationWarning)
+                  ' Use DataGrid.render_paginator',
+                  RemovedInDjblets20Warning)
 
     page_nums = range(max(1, context['page'] - adjacent_pages),
                       min(context['pages'], context['page'] + adjacent_pages)

@@ -12,6 +12,7 @@ from djblets.avatars.errors import (AvatarServiceNotFoundError,
 from djblets.avatars.services.gravatar import GravatarService
 from djblets.avatars.services.url import URLAvatarService
 from djblets.avatars.settings import AvatarSettingsManager
+from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.privacy.consent import Consent, get_consent_tracker
 from djblets.registries.registry import (ALREADY_REGISTERED,
                                          ATTRIBUTE_REGISTERED, DEFAULT_ERRORS,
@@ -231,7 +232,7 @@ class AvatarServiceRegistry(Registry):
         warnings.warn('Setting AvatarServiceRegistry.enabled_services is '
                       'deprecated in favor of calling '
                       'AvatarServiceRegistry.set_enabled_services.',
-                      DeprecationWarning)
+                      RemovedInDjblets20Warning)
 
         self.set_enabled_services(services, save=True)
 

@@ -9,6 +9,7 @@ from django.template.context import RequestContext
 from django.utils import six
 from django.utils.translation import ugettext_lazy as _
 
+from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.util.compat.django.template.loader import render_to_string
 
 
@@ -93,7 +94,7 @@ class ConfigPageForm(forms.Form):
         """
         warnings.warn('ConfigFormPage.profile is deprecated. Update your code '
                       'to fetch the profile manually instead.',
-                      DeprecationWarning)
+                      RemovedInDjblets20Warning)
 
         return self.user.get_profile()
 

@@ -32,6 +32,7 @@ import threading
 import time
 import warnings
 
+import django
 import nose
 import pkg_resources
 from django import forms
@@ -40,6 +41,7 @@ from django.conf.urls import include, url
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.core.exceptions import ImproperlyConfigured
+from django.core.management import call_command
 from django.db import connection
 from django.dispatch import Signal
 from django.template import (Context, RequestContext, Template,
@@ -58,6 +60,11 @@ try:
 except ImportError:
     # Django >= 1.9
     get_templatetags_modules = None
+
+try:
+    import django_evolution
+except ImportError:
+    django_evolution = None
 
 from djblets.datagrid.grids import Column, DataGrid
 from djblets.extensions.extension import Extension, ExtensionInfo
@@ -1198,16 +1205,27 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         Template('{% load djblets_js djblets_extensions %}').render(
             Context({}))
 
-    def test_enable_syncs_models(self):
+    def test_enable_extension_syncdb_with_models(self):
         """Testing ExtensionManager.enable_extension synchronizes database
         models
         """
+        self.spy_on(call_command)
+
         class TestExtension(Extension):
             apps = [
                 'djblets.extensions.test.model_tests',
             ]
 
         extension = self.setup_extension(TestExtension)
+
+        # There should be a call to call_command for either syncdb or
+        # migrate (depending on Django version). Note that syncdb at least
+        # will perform its own calls, so we don't want to expect a certain
+        # number of calls.
+        if django.VERSION[:2] >= (1, 7):
+            self.assertTrue(call_command.called_with('migrate'))
+        else:
+            self.assertTrue(call_command.called_with('syncdb'))
 
         from djblets.extensions.test.model_tests.models import \
             TestExtensionModel
@@ -1221,13 +1239,32 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         self.manager.enable_extension(extension.id)
         self.assertEqual(TestExtensionModel.objects.count(), 1)
 
-    def test_enable_extension_evolves_models(self):
-        """Testing ExtensionManager.enable_extension evolves database models"""
-        try:
-            from django_evolution.models import Version
-            from django_evolution.signature import create_model_sig
-        except ImportError:
+    def test_enable_extension_syncdb_without_models(self):
+        """Testing ExtensionManager.enable_extension does not synchronize
+        database models if extension does not have any
+        """
+        self.spy_on(call_command)
+
+        class TestExtension(Extension):
+            apps = [
+                'djblets.extensions.test',
+            ]
+
+        self.setup_extension(TestExtension)
+
+        self.assertFalse(call_command.called)
+
+    def test_enable_extension_evolve_with_pending_evolutions(self):
+        """Testing ExtensionManager.enable_extension evolves database models
+        when pending evolutions found
+        """
+        if django_evolution is None:
             raise nose.SkipTest()
+
+        from django_evolution.models import Version
+        from django_evolution.signature import create_model_sig
+
+        self.spy_on(call_command)
 
         class TestExtension(Extension):
             apps = [
@@ -1260,6 +1297,8 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         # We can now enable the extension, which will perform an evolution.
         extension = self.setup_extension(TestExtension)
 
+        self.assertTrue(call_command.called_with('evolve'))
+
         from djblets.extensions.test.evolve_tests.models import \
             TestEvolveExtensionModel
 
@@ -1280,6 +1319,71 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         obj = TestEvolveExtensionModel.objects.get(pk=2)
         self.assertEqual(obj.new_field, 100)
 
+    def test_enable_extension_evolve_with_applied_evolutions(self):
+        """Testing ExtensionManager.enable_extension evolves database models
+        when all evolutions are already applied
+        """
+        if django_evolution is None:
+            raise nose.SkipTest()
+
+        from django_evolution.models import Evolution, Version
+        from django_evolution.signature import create_model_sig
+
+        self.spy_on(call_command)
+
+        class TestExtension(Extension):
+            apps = [
+                'djblets.extensions.test.evolve_tests',
+            ]
+
+        # We need to set some initial state in the database for the model and
+        # for the evolution history.
+        connection.cursor().execute(
+            'CREATE TABLE evolve_tests_testextensionmodel ('
+            '    id INTEGER PRIMARY KEY AUTOINCREMENT,'
+            '    test_field VARCHAR(16) NOT NULL'
+            ')')
+
+        from djblets.extensions.test.model_tests.models import \
+            TestExtensionModel
+
+        latest_version = Version.objects.current_version()
+        sig = pickle.loads(bytes(latest_version.signature))
+
+        model_sig = create_model_sig(TestExtensionModel)
+        model_sig['meta']['db_table'] = 'evolve_tests_testevolveextensionmodel'
+
+        sig['evolve_tests'] = {
+            'TestEvolveExtensionModel': model_sig,
+        }
+
+        version = Version.objects.create(signature=pickle.dumps(sig))
+        Evolution.objects.create(version=version,
+                                 app_label='evolve_tests',
+                                 label='add_new_field')
+
+        # We can now enable the extension, which will perform an evolution.
+        self.setup_extension(TestExtension)
+
+        self.assertFalse(call_command.called_with('evolve'))
+
+    def test_enable_extension_evolve_without_evolutions(self):
+        """Testing ExtensionManager.enable_extension does not evolve database
+        models if extension does not have evolutions
+        """
+        if django_evolution is None:
+            raise nose.SkipTest()
+
+        self.spy_on(call_command)
+
+        class TestExtension(Extension):
+            apps = [
+                'djblets.extensions.test.model_tests',
+            ]
+
+        self.setup_extension(TestExtension)
+
+        self.assertFalse(call_command.called_with('evolve'))
 
     def test_disable_unregisters_static_bundles(self):
         """Testing ExtensionManager unregisters static bundles when disabling

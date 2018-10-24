@@ -16,6 +16,7 @@ from django.core.urlresolvers import get_mod_func
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
 
+from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.extensions.settings import Settings
 from djblets.util.decorators import cached_property
 
@@ -511,7 +512,7 @@ class ExtensionInfo(object):
                     'ExtensionInfo.__init__() no longer accepts an '
                     'EntryPoint. Please update your code to call '
                     'ExtensionInfo.create_from_entrypoint() instead.',
-                    DeprecationWarning)
+                    RemovedInDjblets20Warning)
             else:
                 logger.error('Unexpected parameters passed to '
                              'ExtensionInfo.__init__: ext_class=%r, '

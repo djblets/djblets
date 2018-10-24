@@ -13,6 +13,7 @@ from django.db.models.signals import post_init
 from django.utils import six
 
 from djblets.db.validators import validate_json
+from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.util.decorators import cached_property
 from djblets.util.serializers import DjbletsJSONEncoder
 
@@ -192,7 +193,7 @@ class JSONField(models.TextField):
             warnings.warn('The encoder argument to JSONField has been '
                           'replaced by the encoder_cls and encoder_kwargs '
                           'arguments. Support for encoder is deprecated.',
-                          DeprecationWarning)
+                          RemovedInDjblets20Warning)
 
             # Override the encoder property to hard-code the provided instance.
             self.encoder = encoder

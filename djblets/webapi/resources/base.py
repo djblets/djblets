@@ -19,6 +19,8 @@ from django.views.decorators.vary import vary_on_headers
 from djblets.auth.ratelimit import (RATE_LIMIT_API_ANONYMOUS,
                                     RATE_LIMIT_API_AUTHENTICATED,
                                     get_usage_count)
+from djblets.deprecation import RemovedInDjblets20Warning
+from djblets.util.http import (get_modified_since, encode_etag,
 from djblets.util.http import (build_not_modified_from_response,
                                encode_etag,
                                etag_if_none_match,

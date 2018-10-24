@@ -7,6 +7,8 @@ from django.core.urlresolvers import RegexURLPattern
 from django.utils import six
 from django.views.decorators.cache import never_cache
 
+from djblets.deprecation import RemovedInDjblets20Warning
+
 
 def never_cache_patterns(*args):
     """Prevent any included URLs from being cached by the browser.
@@ -38,7 +40,7 @@ def never_cache_patterns(*args):
                'deprecated, and will not work on Django 1.10 or higher.')
 
         if hasattr(RegexURLPattern, 'add_prefix'):
-            warnings.warn(msg, DeprecationWarning)
+            warnings.warn(msg, RemovedInDjblets20Warning)
         else:
             raise ValueError(msg)
 
