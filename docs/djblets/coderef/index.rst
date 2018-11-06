@@ -14,6 +14,7 @@ Top-Level Modules
    :toctree: python
 
    djblets
+   djblets.deprecation
 
 
 .. _coderef-djblets-auth:
