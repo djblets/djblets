@@ -1,0 +1,41 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+===========================
+Djblets 1.0.8 Release Notes
+===========================
+
+**Release date**: November 6, 2018
+
+
+General
+=======
+
+* Updated all deprecation warnings to use version-specific classes.
+
+  Deprecated functionality now warns with a version-specific class, such as
+  :py:class:`djblets.deprecation.RemovedInDjblets20Warning`. This helps
+  developers have a better sense of when deprecated functions, classes, and
+  modules are scheduled to go away.
+
+  All existing deprecation warnings, including those intended for removal by
+  Djblets 1.0 that haven't been removed yet, have all been re-scheduled for
+  removal in Djblets 2.0. Please make sure to update code accordingly.
+
+
+djblets.extensions
+==================
+
+* Enabling an extension will no longer trigger database
+  synchronization/evolution unless there are model changes.
+
+  This improves performance when enabling extensions, when starting up web
+  server threads, and when running unit tests for extensions without models.
+  It also helps prevents premature database changes for models in other Django
+  apps when loading the extension manager.
+
+
+Contributors
+============
+
+* Christian Hammond
