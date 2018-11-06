@@ -5,7 +5,7 @@
 Djblets 1.0.8 Release Notes
 ===========================
 
-**Release date**: TBD
+**Release date**: November 6, 2018
 
 
 General
