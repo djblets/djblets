@@ -1148,11 +1148,19 @@ class DataGrid(object):
         sort_str = self.request.GET.get('sort', profile_sort_list)
 
         if sort_str:
-            self.sort_list = [
-                sort_column
-                for sort_column in sort_str.split(',')
-                if sort_column
-            ]
+            self.sort_list = []
+
+            for sort_item in sort_str.split(','):
+                if sort_item[0] == '-':
+                    base_sort_item = sort_item[1:]
+                else:
+                    base_sort_item = sort_item
+
+                column = self.get_column(base_sort_item)
+
+                if column and column.sortable:
+                    self.sort_list.append(sort_item)
+
         else:
             self.sort_list = self.default_sort
             sort_str = ",".join(self.sort_list)
@@ -1233,20 +1241,28 @@ class DataGrid(object):
 
         # Generate the actual list of fields we'll be sorting by
         sort_list = []
+
         for sort_item in self.sort_list:
-            if sort_item[0] == "-":
+            if sort_item[0] == '-':
                 base_sort_item = sort_item[1:]
-                prefix = "-"
+                prefix = '-'
             else:
                 base_sort_item = sort_item
-                prefix = ""
+                prefix = ''
 
             if sort_item:
                 column = self.get_column(base_sort_item)
                 if not column:
-                    logger.warning('Skipping non-existing sort column "%s" '
-                                   'for user "%s".',
-                                   base_sort_item, self.request.user.username)
+                    logger.warning('Skipping non-existing sort column "%s"',
+                                   base_sort_item,
+                                   request=self.request)
+                    continue
+
+                elif not column.sortable:
+                    logger.warning('Skipping column "%s" which is not '
+                                   'sortable',
+                                   base_sort_item,
+                                   request=self.request.user.username)
                     continue
 
                 stateful_column = self.get_stateful_column(column)
@@ -1257,10 +1273,12 @@ class DataGrid(object):
                     except Exception as e:
                         logger.exception('Error when calling get_sort_field '
                                          'for DataGrid Column %r: %s',
-                                         column, e)
+                                         column, e,
+                                         request=self.request)
                         continue
 
-                    sort_list.append(prefix + sort_field)
+                    if sort_field:
+                        sort_list.append(prefix + sort_field)
 
                     # Lookups spanning tables require that we query from those
                     # tables. In order to keep things simple, we'll just use
