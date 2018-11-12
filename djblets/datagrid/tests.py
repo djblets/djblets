@@ -226,6 +226,46 @@ class DataGridTests(SpyAgency, TestCase):
         self.assertIsInstance(result, SafeText)
         self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">', result)
 
+    def test_precompute_objects_with_unsortable_column_ascending(self):
+        """Testing DataGrid.precompute_objects with improper sort key
+        in ascending order
+        """
+        self.request.GET['sort'] = 'garbagetrash'
+        self.datagrid.load_state()
+        self.datagrid.precompute_objects()
+
+        self.assertEqual(self.datagrid.sort_list, [])
+
+    def test_precompute_objects_with_unsortable_column_descending(self):
+        """Testing DataGrid.load_state with improper sort key in
+        descending order
+        """
+        self.request.GET['sort'] = '-garbagetrash'
+        self.datagrid.load_state()
+        self.datagrid.precompute_objects()
+
+        self.assertEqual(self.datagrid.sort_list, [])
+
+    def test_precompute_objects_with_mixed_column_ascending(self):
+        """Testing DataGrid.load_state with one proper and one improper sort
+        key in ascending order
+        """
+        self.request.GET['sort'] = 'garbagetrash,name'
+        self.datagrid.load_state()
+        self.datagrid.precompute_objects()
+
+        self.assertEqual(self.datagrid.sort_list, ['name'])
+
+    def test_precompute_objects_with_mixed_column_descending(self):
+        """Testing DataGrid.load_state with one proper and one improper sort
+        key in descending order
+        """
+        self.request.GET['sort'] = '-garbagetrash,-name'
+        self.datagrid.load_state()
+        self.datagrid.precompute_objects()
+
+        self.assertEqual(self.datagrid.sort_list, ['-name'])
+
     def test_post_process_queryset_with_select_related(self):
         """Testing DataGrid.post_process_queryset with chained select_related
         calls
@@ -325,7 +365,7 @@ class DataGridTests(SpyAgency, TestCase):
         self.assertIn('Error when calling setup_state for DataGrid Column',
                       logger.exception.last_call.args[0])
 
-    def test_get_ssort_field_columns_sandboxes_errors(self):
+    def test_get_sort_field_columns_sandboxes_errors(self):
         """Testing DataGrid.get_sort_field_columns when column.get_sort_field
         raises exception
         """
@@ -333,7 +373,7 @@ class DataGridTests(SpyAgency, TestCase):
             def get_sort_field(self, state):
                 raise Exception
 
-        column = BadColumn(id='test')
+        column = BadColumn(id='test', sortable=True)
         self.datagrid.add_column(column)
 
         self.datagrid.sort_list = ['test']
