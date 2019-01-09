@@ -49,13 +49,14 @@ PIPELINE = {
     'JAVASCRIPT': PIPELINE_JAVASCRIPT,
     'STYLESHEETS': PIPELINE_STYLESHEETS,
     'BABEL_BINARY': os.path.join(NODE_PATH, 'babel-cli', 'bin', 'babel.js'),
-    'BABEL_ARGUMENTS': ['--presets', 'es2015', '--plugins', 'dedent',
+    'BABEL_ARGUMENTS': ['--presets', 'env', '--plugins', 'dedent',
                         '-s', 'true'],
     'LESS_BINARY': os.path.join(NODE_PATH, 'less', 'bin', 'lessc'),
     'LESS_ARGUMENTS': [
         '--no-color',
         '--source-map',
-        '--autoprefix=> 2%, ie >= 9'
+        '--js',
+        '--autoprefix',
     ],
     'UGLIFYJS_BINARY': os.path.join(NODE_PATH, 'uglify-js', 'bin', 'uglifyjs'),
 }
