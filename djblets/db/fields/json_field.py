@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import copy
 import json
 import logging
 import warnings
@@ -11,6 +12,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_init
 from django.utils import six
+from django.utils.translation import ugettext_lazy as _
 
 from djblets.db.validators import validate_json
 from djblets.deprecation import RemovedInDjblets20Warning
@@ -149,6 +151,9 @@ class JSONField(models.TextField):
 
     serialize_to_string = True
     default_validators = [validate_json]
+    default_error_messages = {
+        'invalid_type': _('%(type)s is not a supported value type.'),
+    }
 
     def __init__(self, verbose_name=None, name=None, encoder=None,
                  encoder_cls=None, encoder_kwargs=None, **kwargs):
@@ -274,10 +279,19 @@ class JSONField(models.TextField):
         """
         value = self.value_from_object(instance)
 
-        if value:
+        if isinstance(value, (dict, list)):
+            value = copy.deepcopy(value)
+        elif isinstance(value, six.string_types):
             value = self.loads(value)
-        else:
+        elif value is None:
             value = {}
+        else:
+            raise ValidationError(
+                self.error_messages['invalid_type'],
+                code='invalid',
+                params={
+                    'type': type(value),
+                })
 
         setattr(instance, self.attname, value)
 
@@ -351,6 +365,9 @@ class JSONField(models.TextField):
             object:
             The deserialized JSON document.
         """
+        if not val:
+            return {}
+
         try:
             val = json.loads(val, encoding=settings.DEFAULT_CHARSET)
 
