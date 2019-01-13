@@ -921,8 +921,9 @@ class ExtensionManager(object):
                            ext_class)
 
         # Mark the extension as installed.
-        ext_class.registration.installed = True
-        ext_class.registration.save()
+        if not ext_class.registration.installed:
+            ext_class.registration.installed = True
+            ext_class.registration.save(update_fields=('installed',))
 
         extension_initialized.send(self, ext_class=extension)
 
