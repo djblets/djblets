@@ -26,7 +26,6 @@
 
 from __future__ import print_function, unicode_literals
 
-import copy
 import imp
 import inspect
 import os
@@ -34,6 +33,7 @@ import re
 import socket
 import sys
 import threading
+from collections import OrderedDict
 from contextlib import contextmanager
 from importlib import import_module
 
@@ -475,34 +475,90 @@ class FixturesCompilerMixin(object):
             db (unicode):
                 The database name to load fixture data on.
         """
-        models = set()
+        table_names = set()
         connection = connections[db]
 
         with connection.constraint_checks_disabled():
             for fixture in fixtures:
                 assert db in self._precompiled_fixtures
                 assert fixture in self._precompiled_fixtures[db]
-                objects = self._precompiled_fixtures[db][fixture]
+                deserialized_objs = self._precompiled_fixtures[db][fixture]
 
-                for obj in objects:
-                    models.add(obj.object.__class__)
+                to_save = OrderedDict()
+                to_save_m2m = []
 
+                # Start off by going through the list of deserialized object
+                # information from the fixtures and group them into categories
+                # that we'll further filter down later.
+                for deserialized_obj in deserialized_objs:
+                    obj = deserialized_obj.object
+
+                    table_names.add(obj._meta.db_table)
+                    to_save.setdefault(type(obj), []).append(obj)
+
+                    if deserialized_obj.m2m_data:
+                        to_save_m2m.append((obj, deserialized_obj.m2m_data))
+
+                # Now we'll break this down into objects we can batch-create
+                # and ones we have to update.
+                #
+                # The database may already have entries for some of these
+                # models, particularly if they're being shared across multiple
+                # tests for the same suite. In that case, when doing a save()
+                # on an object, Django will perform a update-or-create
+                # operation, involving an UPDATE statement followed by an
+                # INSERT If the UPDATE returned 0 rows.
+                #
+                # That's wasteful. Instead, we're going to just delete
+                # everything matching the deserialized objects' IDs and then
+                # bulk-create new entries.
+                try:
+                    for model_cls, objs in six.iteritems(to_save):
+                        obj_ids = [
+                            _obj.pk
+                            for _obj in objs
+                            if _obj.pk
+                        ]
+
+                        if obj_ids:
+                            model_cls.objects.filter(pk__in=obj_ids).delete()
+
+                        model_cls.objects.using(db).bulk_create(objs)
+                except (DatabaseError, IntegrityError) as e:
+                    meta = model_cls._meta
+                    sys.stderr.write(
+                        'Could not load %s.%s from fixture "%s": %s\n'
+                        % (meta.app_label,
+                           meta.object_name,
+                           fixture,
+                           e))
+                    raise
+
+                # Now save any Many-to-Many field relations.
+                #
+                # Note that we're not assigning the values to the
+                # ManyToManyField attribute. Instead, we're getting the add()
+                # method and calling that. We can trust that the relations are
+                # empty (since we've newly-created the object), so we don't
+                # need to clear the old list first.
+                for obj, m2m_data in to_save_m2m:
                     try:
-                        obj = copy.copy(obj)
-                        obj.save(using=db)
+                        for m2m_attr, m2m_objs in six.iteritems(m2m_data):
+                            getattr(obj, m2m_attr).add(*m2m_objs)
                     except (DatabaseError, IntegrityError) as e:
-                        sys.stderr.write('Could not load %s.%s(pk=%s): %s\n'
-                                         % (obj.object._meta.app_label,
-                                            obj.object._meta.object_name,
-                                            obj.object.pk,
-                                            e))
+                        meta = obj._meta
+                        sys.stderr.write(
+                            'Could not load Many-to-Many entries for %s.%s '
+                            '(pk=%s) in fixture "%s": %s\n'
+                            % (meta.app_label,
+                               meta.object_name,
+                               obj.pk,
+                               fixture,
+                               e))
                         raise
 
         # We disabled constraints above, so check now.
-        connection.check_constraints(table_names=[
-            model._meta.db_table
-            for model in models
-        ])
+        connection.check_constraints(table_names=sorted(table_names))
 
     def _get_app_model_modules(self):
         """Return the entire list of registered Django app models modules.
