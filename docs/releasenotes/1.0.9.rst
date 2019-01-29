@@ -1,0 +1,68 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+===========================
+Djblets 1.0.9 Release Notes
+===========================
+
+**Release date**: January 29, 2019
+
+
+djblets.datagrid
+================
+
+* Attempting to sort using a non-sortable column no longer results in a
+  crash. (:bug:`4607`)
+
+  Patch by Jeff Cho.
+
+
+djblets.db
+==========
+
+* :py:class:`~djblets.db.fields.json_field.JSONField` now accepts an initial
+  dictionary or list value.
+
+  This allows default data to be passed when using
+  :py:meth:`Model.objects.create() <django.db.models.query.QuerySet.create>`
+  and other similar methods without having to first serialize to a JSON
+  string.
+
+
+djblets.extensions
+==================
+
+* Removed an unnecessary database write when enabling an extension.
+
+
+djblets.testing
+===============
+
+* Optimized the loading of fixtures when using
+  :py:class:`~djblets.testing.testcases.TestCase`.
+
+
+djblets.webapi
+==============
+
+* Enhanced the capabilities of
+  :py:class:`~djblets.webapi.resources.mixins.forms.UpdateFormMixin`.
+
+  The mixin can now perform more of the heavy lifting of handling an API
+  request, while also giving resources a large amount of control.
+
+  It introduces :py:meth:`handle_form_request()
+  <djblets.webapi.resources.mixins.forms.UpdateFormMixin
+  .handle_form_request>`, which takes in the request data, instantiates a
+  form, validates and saves it, and returns a success or error response,
+  removing the need for resources to perform those steps.
+
+  Several additional methods have been introduced to give resources control
+  over this process. See the documentation for the mixin for details.
+
+
+Contributors
+============
+
+* Christian Hammond
+* Jeff Cho
