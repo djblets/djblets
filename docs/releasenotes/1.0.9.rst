@@ -5,7 +5,7 @@
 Djblets 1.0.9 Release Notes
 ===========================
 
-**Release date**: TBD
+**Release date**: January 29, 2019
 
 
 djblets.datagrid
