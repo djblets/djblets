@@ -22,6 +22,7 @@ from djblets.avatars.services import (AvatarService,
                                       FileUploadService,
                                       GravatarService,
                                       URLAvatarService)
+from djblets.avatars.services.base import logger
 from djblets.configforms.pages import ConfigPage
 from djblets.gravatars import get_gravatar_url_for_email
 from djblets.privacy.consent import ConsentData, get_consent_tracker
@@ -185,8 +186,25 @@ class AvatarServiceTests(SpyAgency, TestCase):
         """Testing AvatarService.get_avatar_urls default implementation"""
         service = AvatarService(DummySettingsManager)
 
-        with self.assertRaises(NotImplementedError):
-            service.get_avatar_urls(self.request, self.user, 32)
+        self.spy_on(logger.error)
+
+        self.assertEqual(
+            service.get_avatar_urls(self.request, self.user, 32),
+            {
+                '1x': '',
+                '2x': '',
+                '3x': '',
+            }
+        )
+
+        self.assertTrue(logger.error.spy.called)
+
+    def test_default_etag_data(self):
+        """Testing AvatarService.get_etag_dagta default implementation"""
+        service = DummyAvatarService(DummySettingsManager)
+
+        self.assertEqual(
+            service.get_etag_data(self.user), ['dummy', None])
 
     def test_render(self):
         """Testing AvatarService.render at 1x resolution."""

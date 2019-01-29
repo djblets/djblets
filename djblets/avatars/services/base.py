@@ -2,15 +2,26 @@
 
 from __future__ import unicode_literals
 
+import logging
+
 from django.template.loader import render_to_string
+
+
+logger = logging.getLogger(__name__)
 
 
 class AvatarService(object):
     """A service that provides avatar support.
 
-    At the very least, subclasses must set the :py:attr:`avatar_service_id` and
-    :py:attr:`name` attributes, as well as override the
-    :py:meth:`get_avatar_urls` method.
+    At the very least, subclasses must set:
+
+    * :py:attr:`avatar_service_id`
+    * :py:attr:`name`
+
+    as well as override the :py:meth:`get_avatar_urls_uncached` method.
+
+    :py:meth:`get_etag_data` has a default implementation but it should be
+    overridden for caching.
     """
 
     #: The avatar service's ID.
@@ -176,10 +187,12 @@ class AvatarService(object):
                 sanitized. They should be marked safe explicitly via
                 :py:meth:`django.utils.html.mark_safe`.
         """
-        raise NotImplementedError(
-            '%r must implement get_avatar_urls_uncached().'
-            % type(self)
-        )
+        logger.error('get_avatar_urls_uncached was not implemented\n')
+        return {
+            '1x': '',
+            '2x': '',
+            '3x': '',
+        }
 
     def render(self, request, user, size, template_name=None):
         """Render a user's avatar to HTML.
@@ -244,6 +257,4 @@ class AvatarService(object):
             list of unicode:
             The uniquely identifying information for the user's avatar.
         """
-        raise NotImplementedError(
-            '%s must implement get_etag_data' % type(self).__name__
-        )
+        return [self.avatar_service_id, user.pk]
