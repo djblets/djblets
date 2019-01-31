@@ -10,6 +10,7 @@ import copy
 from contextlib import contextmanager
 
 from django.forms import widgets
+from django.forms.widgets import HiddenInput
 from django.template.context import Context
 from django.utils import six
 from django.utils.html import format_html_join
@@ -683,3 +684,36 @@ class ListEditWidget(widgets.Widget):
             ``None`` so that no ``for=`` attribute is rendered on the label.
         """
         return None
+
+
+class RelatedObjectWidget(HiddenInput):
+    """A base class form widget that lets people select one or more objects.
+
+    This is a base class. Extended classes must define their own render()
+    method, to render their own widget with their own data.
+
+    This should be used with relatedObjectSelectorView.es6.js, which extends
+    a Backbone view to display data.
+    """
+
+    # We inherit from HiddenInput in order for the superclass to render a
+    # hidden <input> element, but the Djblets siteconfig field template we use
+    # doesn't display labels, help text, errors etc. when ``is_hidden`` is
+    # True. Setting it to False still gives us the rendering and data handling
+    # we want but renders fieldset fields correctly.
+    is_hidden = False
+
+    def __init__(self, multivalued=True):
+        """Initialize the RelatedObjectWidget.
+
+        Args:
+            local_site_name (unicode, optional):
+                The name of the LocalSite where the widget is being rendered.
+
+            multivalued (bool, optional):
+                Whether or not the widget should allow selecting multiple
+                values.
+        """
+        super(RelatedObjectWidget, self).__init__()
+
+        self.multivalued = multivalued
