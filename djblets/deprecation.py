@@ -31,8 +31,18 @@ class RemovedInDjblets20Warning(BaseRemovedInDjbletsVersionWarning):
     """
 
 
+class RemovedInDjblets30Warning(BaseRemovedInDjbletsVersionWarning):
+    """Deprecations for features removed in Djblets 3.0.
+
+    Note that this class will itself be removed in Djblets 3.0. If you need to
+    check against Djblets deprecation warnings, please see
+    :py:class:`BaseRemovedInDjbletsVersionWarning`. Alternatively, you can use
+    the alias for this class, :py:data:`RemovedInNextDjbletsVersionWarning`.
+    """
+
+
 #: An alias for the next release of Djblets where features would be removed.
-RemovedInNextDjbletsVersionWarning = RemovedInDjblets20Warning
+RemovedInNextDjbletsVersionWarning = RemovedInDjblets30Warning
 
 
 def deprecated_arg_value(owner_name, value, old_arg_name, new_arg_name=None,
