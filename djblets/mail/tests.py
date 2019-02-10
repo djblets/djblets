@@ -317,14 +317,18 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertIn('X-Sender', email._headers)
         self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
-        self.assertEqual(email.extra_headers['From'], 'doc@example.com')
+        self.assertEqual(
+            email.extra_headers['From'],
+            '"doc via example.com" <%s>' % settings.DEFAULT_FROM_EMAIL)
         self.assertEqual(email._headers['Reply-To'], 'doc@example.com')
         self.assertEqual(email._headers['Sender'], settings.DEFAULT_FROM_EMAIL)
         self.assertEqual(email._headers['X-Sender'],
                          settings.DEFAULT_FROM_EMAIL)
 
         msg = email.message()
-        self.assertEqual(msg['From'], 'doc@example.com')
+        self.assertEqual(
+            msg['From'],
+            '"doc via example.com" <%s>' % settings.DEFAULT_FROM_EMAIL)
         self.assertEqual(msg['Reply-To'], 'doc@example.com')
 
     def test_message_with_sender(self):
@@ -343,12 +347,14 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
-        self.assertEqual(email.extra_headers['From'], 'doc@example.com')
+        self.assertEqual(email.extra_headers['From'],
+                         '"doc via example.com" <noreply@example.com>')
         self.assertEqual(email._headers['Sender'], 'noreply@example.com')
         self.assertEqual(email._headers['X-Sender'], 'noreply@example.com')
 
         msg = email.message()
-        self.assertEqual(msg['From'], 'doc@example.com')
+        self.assertEqual(msg['From'],
+                         '"doc via example.com" <noreply@example.com>')
         self.assertEqual(msg['Sender'], 'noreply@example.com')
         self.assertEqual(msg['X-Sender'], 'noreply@example.com')
 
@@ -404,6 +410,39 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
                              sender='noreply@mail.example.com',
                              to=['sleepy@example.com'],
                              enable_smart_spoofing=True)
+
+        self.assertNotIn('From', email._headers)
+        self.assertNotIn('Sender', email.extra_headers)
+        self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertIn('From', email.extra_headers)
+        self.assertIn('Sender', email._headers)
+        self.assertIn('X-Sender', email._headers)
+        self.assertIn('Reply-To', email._headers)
+        self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.extra_headers['From'],
+                         'Doc Dwarf via My Service <noreply@mail.example.com>')
+        self.assertEqual(email._headers['Reply-To'],
+                         'Doc Dwarf <doc@corp.example.com>')
+        self.assertEqual(email._headers['Sender'],
+                         'noreply@mail.example.com')
+        self.assertEqual(email._headers['X-Sender'],
+                         'noreply@mail.example.com')
+
+        msg = email.message()
+        self.assertEqual(msg['From'],
+                         'Doc Dwarf via My Service <noreply@mail.example.com>')
+        self.assertEqual(msg['Reply-To'],
+                         'Doc Dwarf <doc@corp.example.com>')
+
+    @override_settings(EMAIL_DEFAULT_SENDER_SERVICE_NAME='My Service')
+    def test_message_with_smart_spoofing_disabled(self):
+        """Testing EmailMessage.message with enable_smart_spoofing=False"""
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             from_email='Doc Dwarf <doc@corp.example.com>',
+                             sender='noreply@mail.example.com',
+                             to=['sleepy@example.com'],
+                             enable_smart_spoofing=False)
 
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
