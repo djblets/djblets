@@ -28,16 +28,20 @@ from __future__ import unicode_literals
 import datetime
 import os
 import re
+import warnings
 
 from django import template
+from django.http import QueryDict
 from django.template import TemplateSyntaxError, Variable
 from django.template.defaultfilters import stringfilter
 from django.utils import six
 from django.utils.html import escape, format_html, strip_spaces_between_tags
 from django.utils.safestring import mark_safe
+from django.utils.six.moves import range
 from django.utils.six.moves.urllib.parse import urlencode
 from django.utils.timezone import is_aware
 
+from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.util.compat.django.template.loader import render_to_string
 from djblets.util.decorators import blocktag
 from djblets.util.dates import get_tz_aware_utcnow
@@ -741,6 +745,9 @@ def querystring_with(context, attr, value):
     replaced.
 
     Args:
+        context (django.template.context.RequestContext):
+            The Django template rendering context.
+
         attr (unicode):
             The name of the attribute for the new query string argument.
 
@@ -756,6 +763,16 @@ def querystring_with(context, attr, value):
 
            <a href="{% querystring_with "sorted" "1" %}">Sort</a>
     """
+    warnings.warn(
+        '{%% querystring_with "%(attr)s" "%(value)s" %%} is deprecated and '
+        'will be removed in a future version of Djblets. Please use '
+        '{%% querystring "mode" "%(attr)s=%(value)s" %%} instead.'
+        % {
+            'attr': attr,
+            'value': value,
+        },
+        RemovedInDjblets30Warning)
+
     existing_query = get_url_params_except(context['request'].GET, attr)
     new_query = urlencode({attr.encode('utf-8'): value.encode('utf-8')})
 
@@ -765,3 +782,84 @@ def querystring_with(context, attr, value):
         result = '?%s' % new_query
 
     return escape(result)
+
+
+@register.simple_tag(takes_context=True)
+def querystring(context, mode, *args):
+    """Return current page URL with new query string containing multiple
+    parameters.
+
+    Args:
+        context (django.template.context.RequestContext):
+            The Django template rendering context.
+
+        mode (unicode):
+            How the querystring will be modified. This should be one of the
+            following values:
+
+            ``'update'``:
+                Replace the values for the specified key(s) in the query
+                string.
+
+            ``'append'``:
+                Add new values for the specified key(s) to the query string.
+
+            ``'remove'``:
+                Remove the specified key(s) from the query string.
+
+                If no value is provided, all instances of the key will be
+                removed.
+
+        *args (tuple):
+            Multiple querystring fragments (e.g., ``foo=1``) that will be used
+            to update the initial querystring.
+
+    Returns:
+        unicode:
+        The new URL with the modified query string.
+
+    Example:
+        .. code-block:: html+django
+
+           <a href="{% querystring "update" 'a=1' 'b=2' %}">Sort</a>
+
+           <a href="{% querystring "append" 'a=1' 'b=2' %}">Sort</a>
+
+           <a href="{% querystring "append" 'a=1&a=2' %}">Sort</a>
+
+           <a href="{% querystring "remove" 'a' %}">Sort</a>
+    """
+    query = QueryDict('', mutable=True)
+    query.update(context['request'].GET)
+
+    if mode == 'update':
+        for arg in args:
+            parsed = QueryDict(arg)
+
+            for attr in parsed:
+                query.setlist(attr, parsed.getlist(attr))
+    elif mode == 'remove':
+        for arg in args:
+            parsed = QueryDict(arg)
+
+            for attr in parsed:
+                to_remove = parsed.getlist(attr)
+
+                if to_remove == ['']:
+                    query.pop(attr, None)
+                else:
+                    values = query.getlist(attr)
+
+                    for value in to_remove:
+                        try:
+                            values.remove(value)
+                        except ValueError:
+                            pass
+    elif mode == 'append':
+        for arg in args:
+            query.update(QueryDict(arg))
+    else:
+        raise TemplateSyntaxError('Invalid mode for {%% querystring %%}: %s'
+                                  % mode)
+
+    return escape('?%s' % query.urlencode())

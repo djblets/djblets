@@ -21,17 +21,23 @@ Subclassing Avatar Services
 Avatar services are intended to be subclassed. They have two attributes that
 subclasses must override:
 
-* :py:attr:`~base.AvatarService.avatar_service_id`, which is the service's
-  unique identifier. This must be unique across all avatar services.
+:py:attr:`~base.AvatarService.avatar_service_id`: The service's
+    unique identifier. This must be unique across all avatar services.
 
-* :py:attr:`~base.AvatarService.name`, which is the service's human-readable
-  name.
+:py:attr:`~base.AvatarService.name`: The service's human-readable name.
 
 
-Subclasses must also override the
-:py:meth:`~base.AvatarService.get_avatar_urls_uncached` method. This method
-computes and returns the avatar URLs for the given user at a requested size
-in different resolutions.
+Subclasses must also override:
+
+:py:meth:`~base.AvatarService.get_avatar_urls_uncached`:
+    This method computes and returns the avatar URLs for the given user at a
+    requested size at different resolutions.
+
+:py:meth:`~base.AvatarService.get_etag_data`:
+     This method returns a list of unicode strings that uniquely identify the
+     avatar services and its configuration. For caching, this method needs to be
+     overridden.
+
 
 For example
 
