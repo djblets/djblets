@@ -31,10 +31,9 @@ class EmailMessage(EmailMultiAlternatives):
 
     In order to prevent issues when sending on behalf of users whose e-mail
     domains are controlled by DMARC, callers can specify
-    ``enable_smart_spoofing=True`` (or set
-    ``settings.EMAIL_ENABLE_SMART_SPOOFING``). If set, then the e-mail address
-    used for the :mailheader:`From` header will only be used if there aren't
-    any DMARC rules that may prevent the e-mail from being sent/received.
+    ``enable_smart_spoofing``. When set, the e-mail address used for the
+    :mailheader:`From` header will only be used if there aren't any DMARC rules
+    that may prevent the e-mail from being sent/received.
 
     In the event that a DMARC rule would prevent sending on behalf of that
     user, the ``sender`` address will be used instead, with the full name
@@ -51,7 +50,7 @@ class EmailMessage(EmailMultiAlternatives):
     def __init__(self, subject='', text_body='', html_body='', from_email=None,
                  to=None, cc=None, bcc=None, sender=None, in_reply_to=None,
                  headers=None, auto_generated=False,
-                 prevent_auto_responses=False, enable_smart_spoofing=None):
+                 prevent_auto_responses=False, enable_smart_spoofing=True):
         """Create a new EmailMessage.
 
         Args:
@@ -139,10 +138,6 @@ class EmailMessage(EmailMultiAlternatives):
 
         headers['Reply-To'] = from_email
 
-        if enable_smart_spoofing is None:
-            enable_smart_spoofing = \
-                getattr(settings, 'EMAIL_ENABLE_SMART_SPOOFING', False)
-
         # Figure out the From/Sender we'll be wanting to use.
         if not sender:
             sender = settings.DEFAULT_FROM_EMAIL
@@ -152,12 +147,14 @@ class EmailMessage(EmailMultiAlternatives):
             # if the two are not equal. We also know that we're not spoofing,
             # so e-mail sending should work fine here.
             sender = None
-        elif enable_smart_spoofing:
-            # We will be checking the DMARC record from the e-mail address
-            # we'd be ideally sending on behalf of. If the record indicates
-            # that the message has any likelihood of being quarantined or
-            # rejected, we'll alter the From field to send using our Sender
-            # address instead.
+        else:
+            # If enable_smart_spoofing is enabled, we will be checking the
+            # DMARC record from the e-mail address we'd be ideally sending on
+            # behalf of. If the record indicates that the message has any
+            # likelihood of being quarantined or rejected, we'll alter the From
+            # field to send using our Sender address instead. If
+            # enable_smart_spoofing is disabled, we will be changing the
+            # from_email to avoid spoofing.
             parsed_from_name, parsed_from_email = parseaddr(from_email)
             parsed_sender_name, parsed_sender_email = parseaddr(sender)
 
@@ -177,13 +174,15 @@ class EmailMessage(EmailMultiAlternatives):
             # We actually aren't going to check for this (it may be due
             # to SPF, which is too complex for us to want to check, or
             # it may be due to another ruleset somewhere). Instead, just
-            # check if this e-mail could get lost due to the DMARC rules.
-            if (parsed_from_email != parsed_sender_email and
+            # check if this e-mail could get lost due to the DMARC rules
+            # or if enable_smart_spoofing is disabled.
+            if (not enable_smart_spoofing or
+                parsed_from_email != parsed_sender_email and
                 not is_email_allowed_by_dmarc(parsed_from_email)):
-                # We can't spoof the e-mail address, so instead, we'll keep
-                # the e-mail in Reply To and create a From address we own,
-                # which will also indicate what service is sending on behalf
-                # of the user.
+                # Spoofing is disabled or we can't spoof the e-mail address,
+                # so instead, we'll keep the e-mail in Reply To and create a
+                # From address we own, which will also indicate what service
+                # is sending on behalf of the user.
                 from_email = build_email_address_via_service(
                     full_name=parsed_from_name,
                     email=parsed_from_email,
