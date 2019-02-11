@@ -307,7 +307,8 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         email = EmailMessage(subject='Test email',
                              text_body='This is a test.',
                              from_email='doc@example.com',
-                             to=['sleepy@example.com'])
+                             to=['sleepy@example.com'],
+                             enable_smart_spoofing=False)
 
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
@@ -338,7 +339,8 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
                              html_body='<p>This is a test.</p>',
                              from_email='doc@example.com',
                              to=['sleepy@example.com'],
-                             sender='noreply@example.com')
+                             sender='noreply@example.com',
+                             enable_smart_spoofing=False)
 
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
@@ -467,8 +469,7 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertEqual(msg['Reply-To'],
                          'Doc Dwarf <doc@corp.example.com>')
 
-    @override_settings(EMAIL_DEFAULT_SENDER_SERVICE_NAME='My Service',
-                       EMAIL_ENABLE_SMART_SPOOFING=True)
+    @override_settings(EMAIL_DEFAULT_SENDER_SERVICE_NAME='My Service')
     def test_message_with_smart_spoofing_setting_and_not_allowed(self):
         """Testing EmailMessage.message with
         settings.EMAIL_ENABLE_SMART_SPOOFING=True and
