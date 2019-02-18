@@ -562,10 +562,11 @@ class ConditionsWidget(widgets.Widget):
             A deep copy of this widget's instance.
         """
         obj = super(ConditionsWidget, self).__deepcopy__(memo)
-        obj.mode_widget = copy.deepcopy(self.mode_widget)
-        obj.choice_widget = copy.deepcopy(self.choice_widget)
-        obj.operator_widget = copy.deepcopy(self.operator_widget)
-        obj.condition_errors = copy.deepcopy(self.condition_errors)
+        obj.mode_widget = copy.deepcopy(self.mode_widget, memo)
+        obj.choice_widget = copy.deepcopy(self.choice_widget, memo)
+        obj.operator_widget = copy.deepcopy(self.operator_widget, memo)
+        obj.condition_errors = copy.deepcopy(self.condition_errors, memo)
+        obj.choice_kwargs = self.choice_kwargs.copy()
 
         return obj
 
