@@ -5,7 +5,7 @@
 Djblets 1.0.10 Release Notes
 ============================
 
-**Release date**: TBD
+**Release date**: February 19, 2019
 
 
 djblets.avatars
