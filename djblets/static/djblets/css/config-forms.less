@@ -2,7 +2,7 @@
 
 @img-base: '../images/config-forms';
 
-@config-forms-box-bg: #EEEEEE;
+@config-forms-box-bg: #F3F3F3;
 @config-forms-box-padding: 1em;
 @config-forms-box-border-radius: 6px;
 
@@ -18,12 +18,43 @@
 @config-forms-container-padding: 1em;
 @config-forms-gap: 2em;
 
+@config-forms-text-field-border-color: #AAA;
+@config-forms-text-field-border-radius: 4px;
+@config-forms-text-field-border-size: 1px;
+@config-forms-text-field-padding-horiz: 8px;
+@config-forms-text-field-padding-vert: 4px;
+
 
 .ellipsize() {
   /* Ellipsize the text contents. */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+
+#djblets-ns-config-forms() {
+  /**
+   * Set the widths for the navigation and forms content.
+   *
+   * Args:
+   *     nav-width (number, optional):
+   *         The width of the navigation menu.
+   *
+   *     forms-width (number, optional):
+   *         The width of the forms section.
+   */
+  .set-page-widths(@nav-width: @config-forms-side-nav-width,
+                   @forms-width: @config-forms-forms-width) {
+    .config-forms-container {
+      width: (@nav-width + @forms-width + @config-forms-gap +
+              (2 * @config-forms-container-padding));
+    }
+
+    .config-forms-page-content {
+      width: @forms-width;
+    }
+  }
 }
 
 
@@ -71,7 +102,6 @@
 
 .config-forms-side-nav {
   float: left;
-  margin-top: 2;
   width: @config-forms-side-nav-width;
 
   ul {
@@ -83,8 +113,8 @@
   li {
     border-bottom: 1px #D9D9D9 solid;
 
-    &:first-child {
-      border-top: 1px #D9D9D9 solid;
+    &:last-child {
+      border-bottom: 0;
     }
 
     &:last-child {
@@ -133,7 +163,7 @@
 
   fieldset {
     border: 0;
-    margin-bottom: 1rem;
+    margin-bottom: 2rem;
     padding: 0;
 
     h2 {
@@ -146,17 +176,21 @@
     margin: 0 auto;
   }
 
-  input[type=text],
+  input[type=email],
+  input[type=number],
   input[type=password],
-  input[type=email] {
+  input[type=search],
+  input[type=text],
+  input[type=url] {
+    border: @config-forms-text-field-border-size
+            @config-forms-text-field-border-color solid;
+    border-radius: @config-forms-text-field-border-radius;
+    box-sizing: border-box;
     width: 30em;
     max-width: 30em;
     font-size: inherit;
-    padding: 0.3em 0.6em;
-  }
-
-  label, p {
-    color: #666666;
+    padding: @config-forms-text-field-padding-vert
+             @config-forms-text-field-padding-horiz;
   }
 
   label {
@@ -166,6 +200,7 @@
 
   p {
     font-size: inherit;
+    line-height: 1.5;
     margin: 1em 0;
   }
 
@@ -181,7 +216,8 @@
     padding: 0;
 
     li {
-      background: @msg-bg-color url('@{img-base}/icon_success.gif') 5px .3em no-repeat;
+      background: @msg-bg-color url('@{img-base}/icon_success.gif')
+                  5px .3em no-repeat;
       border: 1px solid @msg-border-color;
       color: #666;
       display: block;
@@ -215,10 +251,55 @@
     }
   }
 
+  .btn {
+    padding: 5px 14px 6px;
+  }
+
   .buttons {
+    input[type=reset],
     input[type=submit] {
       text-align: center;
       margin: 0 auto;
+    }
+  }
+
+  .checkbox-row {
+    .field {
+      width: 100%;
+
+      input, label {
+        display: inline;
+        width: auto;
+      }
+
+      label {
+        text-align: left;
+        margin-left: 0;
+        vertical-align: middle;
+      }
+
+      ul {
+        list-style: none;
+        margin: 0 0 0 1em;
+        overflow: hidden;
+      }
+
+      .help {
+        margin-left: 2em;
+      }
+    }
+  }
+
+  .errorlist {
+    clear: both;
+    display: block;
+    padding: 0;
+    margin: 0.5em;
+    list-style: none;
+
+    li {
+      display: list-item;
+      color: darkred;
     }
   }
 
@@ -236,25 +317,6 @@
     &:last-child {
       margin-bottom: 0;
     }
-
-    &.checkbox-row {
-      .field {
-        width: 100%;
-
-        input, label {
-          display: inline;
-          width: auto;
-        }
-
-        label {
-          margin-left: 0;
-        }
-
-        ul {
-          margin: 0 0 0 1em;
-        }
-      }
-    }
   }
 
   .field {
@@ -269,7 +331,8 @@
     input {
       width: 21em;
 
-      &[type=checkbox] {
+      &[type=checkbox],
+      &[type=radio] {
         width: auto;
       }
     }
@@ -298,6 +361,12 @@
       }
     }
 
+    p.help {
+      color: #666666;
+      font-size: 90%;
+      margin: 1em 0;
+    }
+
     .hint {
       display: block;
       margin: 0.5em 0 0 0.5em;
@@ -324,6 +393,9 @@
     }
   }
 }
+
+/* Set the default widths for the page. */
+#djblets-ns-config-forms.set-page-widths();
 
 
 /****************************************************************************
@@ -392,6 +464,7 @@ table.config-forms-list td {
   }
 
   a {
+    color: blue;
     font-weight: normal;
     text-decoration: none;
   }
@@ -402,6 +475,7 @@ table.config-forms-list td {
   }
 
   .btn {
+    color: black;
     font-size: 12px;
     height: 28px;
     line-height: 28px;

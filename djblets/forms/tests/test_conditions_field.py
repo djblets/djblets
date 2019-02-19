@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from django.forms import ValidationError
+from django.forms import Form, ValidationError
 
 from djblets.conditions.choices import (BaseConditionChoice,
                                         BaseConditionIntegerChoice,
@@ -49,6 +49,23 @@ class ConditionsFieldTests(TestCase):
 
         with self.assertRaisesMessage(ValueError, msg):
             ConditionsField(choices=choices)
+
+    def test_choice_kwargs_with_multiple_instances(self):
+        """Testing ConditionsField.choice_kwargs works with multiple instances
+        """
+        # This tests for a bug that existed prior to Djblets 1.0.10, where
+        # data set in choice_kwargs in one instance of a form would get shared
+        # amongst other instances.
+        class MyForm(Form):
+            conditions = ConditionsField(
+                choices=ConditionChoices([BaseConditionStringChoice]))
+
+        form1 = MyForm()
+        form2 = MyForm()
+
+        form1.fields['conditions'].choice_kwargs['a'] = 1
+
+        self.assertNotIn('a', form2.fields['conditions'].choice_kwargs)
 
     def test_prepare_value_with_condition_set(self):
         """Testing ConditionsField.prepare_value with ConditionSet"""

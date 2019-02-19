@@ -99,7 +99,6 @@ class ConditionsField(forms.Field):
         widget_cls = kwargs.get('widget', self.widget)
 
         self.choices = choices
-        self.choice_kwargs = choice_kwargs or {}
 
         self.mode_field = forms.ChoiceField(
             required=True,
@@ -127,8 +126,23 @@ class ConditionsField(forms.Field):
                               mode_widget=self.mode_field.widget,
                               choice_widget=self.choice_field.widget,
                               operator_widget=self.operator_field.widget,
-                              choice_kwargs=self.choice_kwargs),
+                              choice_kwargs=choice_kwargs or {}),
             *args, **kwargs)
+
+    @property
+    def choice_kwargs(self):
+        """The keyword arguments passed to ConditionChoice functions."""
+        return self.widget.choice_kwargs
+
+    @choice_kwargs.setter
+    def choice_kwargs(self, value):
+        """The keyword arguments passed to ConditionChoice functions.
+
+        Args:
+            value (dict):
+                The new condition choices value to set.
+        """
+        self.widget.choice_kwargs = value
 
     def prepare_value(self, data):
         """Prepare the value for loading into the field.
@@ -190,7 +204,7 @@ class ConditionsField(forms.Field):
             condition_set = ConditionSet.deserialize(
                 self.choices,
                 value,
-                choice_kwargs=self.choice_kwargs)
+                choice_kwargs=self.widget.choice_kwargs)
         except InvalidConditionModeError as e:
             raise forms.ValidationError(six.text_type(e),
                                         code='invalid_mode')
