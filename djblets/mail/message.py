@@ -31,9 +31,16 @@ class EmailMessage(EmailMultiAlternatives):
 
     In order to prevent issues when sending on behalf of users whose e-mail
     domains are controlled by DMARC, callers can specify
-    ``enable_smart_spoofing``. When set, the e-mail address used for the
-    :mailheader:`From` header will only be used if there aren't any DMARC rules
-    that may prevent the e-mail from being sent/received.
+    ``from_spoofing`` (or set ``settings.DJBLETS_EMAIL_FROM_SPOOFING``). When
+    set, the e-mail address used for the :mailheader:`From` header will only be
+    used if there aren't any DMARC rules that may prevent the e-mail from being
+    sent/received.
+
+    .. note::
+
+       Releases prior to Djblets 1.0.10 required using
+       ``enable_smart_spoofing`` or ``settings.EMAIL_ENABLE_SMART_SPOOFING``,
+       which didn't allow From spoofing to be completely disabled.)
 
     In the event that a DMARC rule would prevent sending on behalf of that
     user, the ``sender`` address will be used instead, with the full name
@@ -45,12 +52,28 @@ class EmailMessage(EmailMultiAlternatives):
     Otherwise, the domain on the sender e-mail will be used instead.
 
     This class also supports repeated headers.
+
+    Version Changed:
+        1.0.10:
+        Added the ``from_spoofing`` parameter and
+        ``settings.DJBLETS_EMAIL_FROM_SPOOFING`` to replace
+        ``enable_smart_spoofing`` and ``settings.EMAIL_ENABLE_SMART_SPOOFING``.
     """
+
+    #: Always spoof the From address for a user.
+    FROM_SPOOFING_ALWAYS = 'always'
+
+    #: Only spoof the From address for a user if allowed by DMARC rules.
+    FROM_SPOOFING_SMART = 'smart'
+
+    #: Never spoof the From address for a user.
+    FROM_SPOOFING_NEVER = 'never'
 
     def __init__(self, subject='', text_body='', html_body='', from_email=None,
                  to=None, cc=None, bcc=None, sender=None, in_reply_to=None,
                  headers=None, auto_generated=False,
-                 prevent_auto_responses=False, enable_smart_spoofing=True):
+                 prevent_auto_responses=False, from_spoofing=None,
+                 enable_smart_spoofing=None):
         """Create a new EmailMessage.
 
         Args:
@@ -114,12 +137,25 @@ class EmailMessage(EmailMultiAlternatives):
                 replies for delivery reports, read receipts, out of office
                 e-mails, and other auto-generated e-mails from Exchange.
 
+            from_spoofing (int, optional):
+                Whether to spoof the :mailheader:`From` header for the user.
+                This can be one of :py:attr:`FROM_SPOOFING_ALWAYS`,
+                :py:attr:`FROM_SPOOFING_SMART`, or
+                :py:attr:`FROM_SPOOFING_NEVER`.
+
+                This defaults to ``None``, in which case the
+                ``enable_smart_spoofing`` will be checked (for legacy reasons),
+                falling back to ``settings.DJBLETS_EMAIL_FROM_SPOOFING`` (which
+                defaults to :py:attr:`FROM_SPOOFING_ALWAYS`, also for legacy
+                reasons).
+
             enable_smart_spoofing (bool, optional):
                 Whether to enable smart spoofing of any e-mail addresses for
-                the :mailheader:`From` header.
+                the :mailheader:`From` header (if ``from_spoofing`` is
+                ``None``). This defaults to
+                ``settings.EMAIL_ENABLE_SMART_SPOOFING``.
 
-                This defaults to ``settings.EMAIL_ENABLE_SMART_SPOOFING``
-                (which itself defaults to ``False``).
+                This is deprecated in favor of ``from_spoofing``.
         """
         headers = headers or MultiValueDict()
 
@@ -138,6 +174,24 @@ class EmailMessage(EmailMultiAlternatives):
 
         headers['Reply-To'] = from_email
 
+        if from_spoofing is None:
+            if enable_smart_spoofing is None:
+                enable_smart_spoofing = \
+                    getattr(settings, 'EMAIL_ENABLE_SMART_SPOOFING', None)
+
+            if enable_smart_spoofing is not None:
+                if enable_smart_spoofing:
+                    from_spoofing = self.FROM_SPOOFING_SMART
+                else:
+                    # This was the original behavior when the setting was
+                    # False.
+                    from_spoofing = self.FROM_SPOOFING_ALWAYS
+
+            if from_spoofing is None:
+                from_spoofing = getattr(settings,
+                                        'DJBLETS_EMAIL_FROM_SPOOFING',
+                                        self.FROM_SPOOFING_ALWAYS)
+
         # Figure out the From/Sender we'll be wanting to use.
         if not sender:
             sender = settings.DEFAULT_FROM_EMAIL
@@ -147,14 +201,15 @@ class EmailMessage(EmailMultiAlternatives):
             # if the two are not equal. We also know that we're not spoofing,
             # so e-mail sending should work fine here.
             sender = None
-        else:
-            # If enable_smart_spoofing is enabled, we will be checking the
+        elif from_spoofing != self.FROM_SPOOFING_ALWAYS:
+            # If from_spoofing is in smart mode, we will be checking the
             # DMARC record from the e-mail address we'd be ideally sending on
             # behalf of. If the record indicates that the message has any
             # likelihood of being quarantined or rejected, we'll alter the From
-            # field to send using our Sender address instead. If
-            # enable_smart_spoofing is disabled, we will be changing the
-            # from_email to avoid spoofing.
+            # field to send using our Sender address instead.
+            #
+            # If from_spoofing is disabled, we will be changing the from_email
+            # to avoid spoofing.
             parsed_from_name, parsed_from_email = parseaddr(from_email)
             parsed_sender_name, parsed_sender_email = parseaddr(sender)
 
@@ -175,10 +230,10 @@ class EmailMessage(EmailMultiAlternatives):
             # to SPF, which is too complex for us to want to check, or
             # it may be due to another ruleset somewhere). Instead, just
             # check if this e-mail could get lost due to the DMARC rules
-            # or if enable_smart_spoofing is disabled.
-            if (not enable_smart_spoofing or
-                parsed_from_email != parsed_sender_email and
-                not is_email_allowed_by_dmarc(parsed_from_email)):
+            # or if from_spoofing is disabled.
+            if (from_spoofing == self.FROM_SPOOFING_NEVER or
+                (parsed_from_email != parsed_sender_email and
+                 not is_email_allowed_by_dmarc(parsed_from_email))):
                 # Spoofing is disabled or we can't spoof the e-mail address,
                 # so instead, we'll keep the e-mail in Reply To and create a
                 # From address we own, which will also indicate what service
