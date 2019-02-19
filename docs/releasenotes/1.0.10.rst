@@ -1,0 +1,90 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+============================
+Djblets 1.0.10 Release Notes
+============================
+
+**Release date**: February 19, 2019
+
+
+djblets.avatars
+===============
+
+* Changed some avatar backend behavior to no longer raise exceptions for
+  unimplemented methods. (:bug:`4634`, :bug:`4635`)
+
+  Now, when :py:meth:`AvatarService.get_avatar_urls_uncached()
+  <djblets.avatars.services.base.AvatarService.get_avatar_urls_uncached>` is
+  not implemented, it will just return empty string values and log a warning.
+
+  :py:meth:`AvatarService.get_etag_data()
+  <djblets.avatars.services.base.AvatarService.get_etag_data>` is also no
+  longer required, and will return a default ETag based on the avatar
+  backend's ID and user ID.
+
+  Patch by Florie Cai.
+
+
+djblets.forms
+=============
+
+* Fixed a state sharing bug with
+  :py:class:`~djblets.forms.fields.ConditionsField`.
+
+  If the :py:attr:`ConditionsField.choice_kwargs
+  <djblets.forms.fields.ConditionsField.choice_kwargs>` attribute on one
+  instance of a field for a form was modified, that modification would apply
+  to that field on any other instance of the form. This could impact other
+  viewers to the page, depending on the consumer's use of this attribute.
+
+
+djblets.mail
+============
+
+* Added better control over :mailheader:`From` header spoofing. (:bug:`4578`)
+
+  :py:class:`~djblets.mail.message.EmailMessage` now has the ability to
+  completely disable spoofing of the :mailheader:`From` header, instead using
+  the server's predefined e-mail address for all outgoing e-mail messages.
+  This is done through the new ``from_spoofing`` argument, which is the
+  successor to the now-deprecated ``enable_smart_spoofing``. This argument
+  allows consumers to smart-spoof when safe (equivalent to
+  ``enable_smart_spoofing=True``), always spoof
+  (``enable_smart_spoofing=False``) or to never spoof.
+
+  Consumers should move to this and the new equivalent Django setting,
+  ``settings.DJBLETS_EMAIL_FROM_SPOOFING``.
+
+  Based on work by Brian LeBlanc.
+
+
+djblets.webapi
+==============
+
+* Improved the capabilities for API test suites.
+
+  :py:class:`~djblets.webapi.testing.testcases.WebAPITestCaseMixin` now has
+  a better, more standardized, documented set of arguments for the various API
+  testing methods, helping to create test suites for API resources.
+
+  Each testing method has gained an ``expected_num_queries`` parameter for
+  checking that the API handler made a specific number of SQL queries, helping
+  keep APIs lean.
+
+  All the testing methods now wrap
+  :py:meth:`~djblets.webapi.testing.testcases.WebAPITestCaseMixin.api_call`,
+  which can be used to test other HTTP methods. It can also be overridden to
+  provide custom behavior.
+
+  Note that this deprecates the ``query=`` argument to these methods.
+  ``data=`` should be used in its place.
+
+
+Contributors
+============
+
+* Brian LeBlanc
+* Christian Hammond
+* David Trowbridge
+* Florie Cai
