@@ -55,6 +55,7 @@ PIPELINE = {
     'LESS_ARGUMENTS': [
         '--no-color',
         '--source-map',
+        '--js',
         '--autoprefix=> 2%, ie >= 9'
     ],
     'UGLIFYJS_BINARY': os.path.join(NODE_PATH, 'uglify-js', 'bin', 'uglifyjs'),

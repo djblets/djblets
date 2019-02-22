@@ -97,6 +97,7 @@ function parseArgs() {
             case 'no-color':
             case 'source-map':
             case 'autoprefix':
+            case 'js':
                 // These don't matter for the imports check. No-op.
                 break;
 
