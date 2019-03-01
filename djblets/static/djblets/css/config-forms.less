@@ -31,7 +31,12 @@
 @config-forms-list-item-border-color: #E9E9E9;
 @config-forms-list-item-hover-bg-color: #FAFAFA;
 @config-forms-list-item-line-height: 32px;
-@config-forms-list-item-padding: 0.3em 0.3em 0.3em 1.5em;
+@config-forms-list-item-padding-horiz: 1.5em;
+@config-forms-list-item-padding-horiz-small: 0.5em;
+@config-forms-list-item-padding-vert: 0.5em;
+@config-forms-list-item-padding:
+  @config-forms-list-item-padding-vert
+  @config-forms-list-item-padding-horiz;
 
 @config-forms-side-nav-width: 17em;
 @config-forms-forms-width: 60em;
@@ -75,6 +80,33 @@
     .config-forms-page-content,  /* Deprecated */
     .djblets-c-config-forms-page__content {
       width: @forms-width;
+    }
+  }
+
+  .list() {
+    /**
+     * Define a color state for an item.
+     *
+     * This adds a modifier class to a ``.djblets-c-config-forms-list``
+     * element that, when set, will provide a colored border on the
+     * left-hand side of the item. This can be used to differentiate between
+     * item states, such as enabled, disabled, errors, etc.
+     *
+     * This should be called within a selector for a variant on the list.
+     *
+     * Args:
+     *     modifier (string):
+     *         The name of the new modifier. This must not have the leading
+     *         ``-``.
+     *
+     *     color (string):
+     *         The border color to define for the modifier.
+     */
+    .add-item-state(@modifier, @color) {
+      .djblets-c-config-forms-list__item.-@{modifier},
+      tr.djblets-c-config-forms-list__item.-@{modifier} > td:first-child {
+        border-left: 8px @color solid !important;
+      }
     }
   }
 }
@@ -514,6 +546,15 @@
  * The items may have actions associated with it, which can include buttons
  * and dropdown menus.
  *
+ * Modifiers:
+ *     -all-items-have-actions:
+ *         All list items have actions shown on the right-hand side. This
+ *         is short-hand for adding ``-has-actions`` to all list items.
+ *
+ *     -all-items-have-icons:
+ *         All list items have icons shown on the left-hand side. This
+ *         is short-hand for adding ``-has-icons`` to all list items.
+ *
  * Structure:
  *     <ul class="djblets-c-config-forms-list">
  *      <li class="djblets-c-config-forms-list__item">...</li>
@@ -560,7 +601,15 @@ table.djblets-c-config-forms-list {
   border-collapse: collapse;
   border-spacing: 0;
   border-top: 0;
+  border-bottom: 0;
   width: 100%;
+
+  > tbody > tr:last-child {
+    td,
+    th {
+      border-bottom: 0;
+    }
+  }
 }
 
 
@@ -586,12 +635,48 @@ table.djblets-c-config-forms-list {
 /**
  * An item in a single or multi-column list.
  *
+ * Items may be single-column (found in ``ul.djblets-c-config-forms-list``
+ * elements) or multi-column (found in ``table.djblets-c-config-forms-list``
+ * elements). They may have an icon docked on the left, and actions docked
+ * on the right.
+ *
+ * By default, items support two modifiers that add a visual indicator as to
+ * the item's state, showing a colored border on the left-hand side of the
+ * item. These are ``-is-enabled`` and ``-is-disabled``. Additional state
+ * modifiers can be defined through
+ * ``#djblets-ns-config-forms.list.add-item-state()`.
+ *
+ * Modifiers:
+ *     -has-actions:
+ *         The list item has actions shown on the right-hand side. This is
+ *         not needed if the parent list has the ``-all-items-have-actions``
+ *         modifier.
+ *
+ *     -has-icon:
+ *         The list item has an icon shown on the left-hand side. This is
+ *         not needed if the parent list has the ``-all-items-have-icons``
+ *         modifier.
+ *
+ *     -is-disabled:
+ *         The list item has a disabled state. This will show a thick grey
+ *         border on the left.
+ *
+ *     -is-enabled:
+ *         The list item has an enabled state. This will show a thick green
+ *         border on the left.
+ *
  * Structure:
  *     <li class="djblets-c-config-forms-list__item">...</li>
+ *     <li class="djblets-c-config-forms-list__item -has-actions">...</li>
+ *     <li class="djblets-c-config-forms-list__item -is-enabled">...</li>
+ *     ...
  *
  *     Or:
  *
  *     <tr class="djblets-c-config-forms-list__item">...</tr>
+ *     <tr class="djblets-c-config-forms-list__item -has-actions">...</tr>
+ *     <tr class="djblets-c-config-forms-list__item -is-enabled">...</tr>
+ *     ...
  */
 .djblets-c-config-forms-list__item {
   &,
@@ -603,16 +688,44 @@ table.djblets-c-config-forms-list {
     line-height: @config-forms-list-item-line-height;
     vertical-align: middle;
     .ellipsize();
+
+    &:last-child {
+      border-bottom: 0;
+    }
   }
 
   &:hover {
     background: @config-forms-list-item-hover-bg-color;
   }
 
+  .djblets-c-config-forms-list.-all-items-have-actions &,
+  &.-has-actions {
+    &,
+    > td:last-child,
+    > th:last-child {
+      padding-right: @config-forms-list-item-padding-horiz-small;
+    }
+  }
+
+  .djblets-c-config-forms-list.-all-items-have-icons &,
+  &.-has-icon {
+    &,
+    > td:first-child,
+    > th:first-child {
+      padding-left: @config-forms-list-item-padding-horiz-small;
+    }
+  }
+
   a {
     color: blue;
     font-weight: normal;
     text-decoration: none;
+  }
+
+  img {
+    display: inline-block;
+    margin-right: @config-forms-list-item-padding-horiz-small;
+    vertical-align: middle;
   }
 }
 
@@ -641,6 +754,12 @@ table.djblets-c-config-forms-list {
     text-align: center;
   }
 }
+
+
+#djblets-ns-config-forms.list.add-item-state(@modifier: is-disabled,
+                                             @color: #DDDDDD);
+#djblets-ns-config-forms.list.add-item-state(@modifier: is-enabled,
+                                             @color: #53CC53);
 
 
 /****************************************************************************
