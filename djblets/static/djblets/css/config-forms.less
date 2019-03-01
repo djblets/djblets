@@ -107,7 +107,6 @@
  */
 .djblets-c-config-forms-page {
   font-size: 9pt;
-  padding: @config-forms-container-padding;
   width: (@config-forms-side-nav-width +
           @config-forms-forms-width +
           @config-forms-gap +
@@ -143,11 +142,7 @@
   }
 
   .box-main {
-    padding: @config-forms-box-padding;
-  }
-
-  .box-recessed {
-    margin: 0 -@config-forms-box-padding;
+    padding: 0;
   }
 }
 
@@ -710,6 +705,54 @@ table.djblets-c-config-forms-list {
 
 
 /****************************************************************************
+ * Standard layout containers
+ ****************************************************************************/
+
+/**
+ * A container within a config form, containing margins and content.
+ *
+ * Containers are meant to contain other content within a config form, such
+ * as form elements, text descriptions, images, or more complex components.
+ *
+ * It's recommended to use containers for any margins rather than applying
+ * padding to the parent, so that margins can be better controlled in a
+ * consistent way.
+ *
+ * By default, containers have a consistent margin on all sides, separating
+ * it from other containers and from its parent. However, they can also be
+ * set in a recessed mode, which removes the left/right margins in order to
+ * make the contents flush with the parent container.
+ *
+ * Modifiers:
+ *     -is-recessed:
+ *         Recesses the container, removing the left and right margins.
+ *
+ * Structure:
+ *     <div class="djblets-l-config-forms-container -is-recessed">
+ *      ...
+ *     </div>
+ */
+.djblets-l-config-forms-container {
+  margin: @config-forms-container-padding;
+
+  &:first-child {
+    margin-top: 0;
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &.-is-recessed {
+    margin-left: 0;
+    margin-right: 0;
+    border-top: 1px @config-forms-list-border-color solid;
+    border-bottom: 1px @config-forms-list-border-color solid;
+  }
+}
+
+
+/****************************************************************************
  * Utility objects
  ****************************************************************************/
 
@@ -740,9 +783,15 @@ table.djblets-c-config-forms-list {
 .config-forms-container {
   &:extend(.djblets-c-config-forms-page all);
 
+  padding: @config-forms-container-padding;
+
   &.config-forms-has-sidebar .config-forms-page-content {
     &:extend(.djblets-c-config-forms-page.-has-sidebar
              .djblets-c-config-forms-page__content);
+  }
+
+  .djblets-l-config-forms-container {
+    padding: 0;
   }
 }
 
@@ -776,6 +825,7 @@ table.config-forms-list thead th {
 
 .config-forms-list-item {
   &:extend(.djblets-c-config-forms-list__item all);
+  &:extend(.djblets-c-config-forms-list__item.-has-actions all);
 
   &.disabled label {
     color: #C0C0C0;
@@ -810,6 +860,24 @@ table.config-forms-list thead th {
 
 .config-forms-page-content {
   &:extend(.djblets-c-config-forms-page__content all);
+
+  .box-main {
+    padding: @config-forms-box-padding;
+  }
+
+  .box-recessed {
+    margin: 0 -@config-forms-box-padding;
+  }
+
+  .djblets-l-config-forms-container {
+    margin-left: 0;
+    margin-right: 0;
+
+    &.-is-recessed {
+      margin-left: -@config-forms-box-padding;
+      margin-right: -@config-forms-box-padding;
+    }
+  }
 
   .page {
     &:extend(.djblets-c-config-forms-subpage);
