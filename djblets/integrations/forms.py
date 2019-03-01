@@ -179,4 +179,5 @@ class IntegrationConfigForm(KeyValueForm):
         This is used internally by the parent class, and is not meant to be
         called by consumers of the form.
         """
+        self.instance.integration_id = self.integration.integration_id
         self.instance.save()
