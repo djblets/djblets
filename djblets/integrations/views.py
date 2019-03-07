@@ -13,7 +13,69 @@ from django.views.generic.edit import FormView
 from djblets.integrations.mixins import NeedsIntegrationManagerMixin
 
 
-class BaseIntegrationListView(NeedsIntegrationManagerMixin, TemplateView):
+class IntegrationListContextViewMixin(NeedsIntegrationManagerMixin):
+    """A mixin for views that display lists of integrations.
+
+    This allows for custom views that display details on the available
+    integrations and all configurations.
+    """
+
+    def get_integration_list_context_data(self):
+        """Return context data for a page.
+
+        This will include the list of available integrations, sorted by name,
+        and each integration's list of configurations.
+
+        Subclasses may want to replace the values in ``add_config_url_name``
+        and ``edit_config_url_name`` if using custom URLs for the integration
+        pages.
+
+        Returns:
+            dict:
+            The context data for the page.
+        """
+        integration_manager = self.get_integration_manager()
+        integrations_data = {}
+
+        for integration in integration_manager.get_integrations():
+            integrations_data[integration.integration_id] = {
+                'configs': [],
+                'description': integration.description,
+                'icons': integration.icon_static_urls,
+                'id': integration.integration_id,
+                'instance': integration,
+                'name': integration.name,
+            }
+
+        for config in self.get_configs_queryset():
+            integration_id = config.integration_id
+
+            if integration_id in integrations_data:
+                integrations_data[integration_id]['configs'].append(config)
+
+        return {
+            'add_config_url_name': 'integration-add-config',
+            'edit_config_url_name': 'integration-change-config',
+            'integrations': sorted(
+                six.itervalues(integrations_data),
+                key=lambda integration: integration['name']),
+        }
+
+    def get_configs_queryset(self):
+        """Return a queryset for integration configs.
+
+        Subclasses can override this to provide a more strict query to filter
+        down the configurations.
+
+        Returns:
+            django.db.models.query.QuerySet:
+            A queryset for fetching integration configurations.
+        """
+        return self.get_integration_manager().config_model.objects.all()
+
+
+class BaseIntegrationListView(IntegrationListContextViewMixin,
+                              TemplateView):
     """Base class for a view that lists available integrations.
 
     This view handles the display of all available integrations, along with
@@ -25,7 +87,9 @@ class BaseIntegrationListView(NeedsIntegrationManagerMixin, TemplateView):
     """
 
     #: The name of the template used for the page.
-    template_name = 'integrations/integration_list.html'
+    #:
+    #: This must be provided if subclassing this yourself.
+    template_name = None
 
     @method_decorator(login_required)
     def dispatch(self, *args, **kwargs):
@@ -63,43 +127,9 @@ class BaseIntegrationListView(NeedsIntegrationManagerMixin, TemplateView):
         """
         context = super(BaseIntegrationListView, self).get_context_data(
             **kwargs)
-
-        integration_manager = self.get_integration_manager()
-        integrations_data = {}
-
-        for integration in integration_manager.get_integrations():
-            integrations_data[integration.integration_id] = {
-                'configs': [],
-                'description': integration.description,
-                'icons': integration.icon_static_urls,
-                'id': integration.integration_id,
-                'instance': integration,
-                'name': integration.name,
-            }
-
-        for config in self.get_configs_queryset():
-            integration_id = config.integration_id
-
-            if integration_id in integrations_data:
-                integrations_data[integration_id]['configs'].append(config)
-
-        context['integrations'] = sorted(
-            six.itervalues(integrations_data),
-            key=lambda integration: integration['name'])
+        context.update(self.get_integration_list_context_data())
 
         return context
-
-    def get_configs_queryset(self):
-        """Return a queryset for integration configs.
-
-        Subclasses can override this to provide a more strict query to filter
-        down the configurations.
-
-        Returns:
-            django.db.models.query.QuerySet:
-            A queryset for fetching integration configurations.
-        """
-        return self.get_integration_manager().config_model.objects.all()
 
 
 class BaseAdminIntegrationListView(BaseIntegrationListView):
@@ -108,6 +138,8 @@ class BaseAdminIntegrationListView(BaseIntegrationListView):
     This builds upon :py:class:`BaseIntegrationListView`, adding access
     checks to ensure that only administrators can access it.
     """
+
+    template_name = 'integrations/admin/integration_list.html'
 
     @method_decorator(staff_member_required)
     def dispatch(self, *args, **kwargs):
@@ -131,7 +163,8 @@ class BaseAdminIntegrationListView(BaseIntegrationListView):
             *args, **kwargs)
 
 
-class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin, FormView):
+class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin,
+                                    FormView):
     """Base class for a view that manages an integration configuration.
 
     This view handles the display of a form for either creating a new
@@ -143,7 +176,9 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin, FormView):
     """
 
     #: The name of the template used for the page.
-    template_name = 'integrations/configure_integration.html'
+    #:
+    #: This must be provided if subclassing this yourself.
+    template_name = None
 
     @method_decorator(login_required)
     @method_decorator(csrf_protect)
@@ -172,7 +207,6 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin, FormView):
         """
         integration_mgr = self.get_integration_manager()
 
-        self.request = request
         self.integration = integration_mgr.get_integration(
             kwargs['integration_id'])
 
@@ -329,6 +363,8 @@ class BaseAdminIntegrationConfigFormView(BaseIntegrationConfigFormView):
     This builds upon :py:class:`BaseIntegrationConfigFormView`, adding access
     checks to ensure that only administrators can access it.
     """
+
+    template_name = 'integrations/admin/configure_integration.html'
 
     @method_decorator(staff_member_required)
     def dispatch(self, *args, **kwargs):
