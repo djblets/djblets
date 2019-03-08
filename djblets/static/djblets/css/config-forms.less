@@ -825,8 +825,16 @@ table.djblets-c-config-forms-list {
  * make the contents flush with the parent container.
  *
  * Modifiers:
+ *     -is-bottom-flush:
+ *         Removes the bottom margin (and border, if using ``-is-recessed``) in
+ *         order to make the container flush with the bottom of the parent.
+ *
  *     -is-recessed:
  *         Recesses the container, removing the left and right margins.
+ *
+ *     -is-top-flush:
+ *         Removes the top margin (and border, if using ``-is-recessed``) in
+ *         order to make the container flush with the top of the parent.
  *
  * Structure:
  *     <div class="djblets-l-config-forms-container -is-recessed">
@@ -836,12 +844,12 @@ table.djblets-c-config-forms-list {
 .djblets-l-config-forms-container {
   margin: @config-forms-container-padding;
 
-  &:first-child {
-    margin-top: 0;
+  &.-is-bottom-flush {
+    margin-bottom: 0;
   }
 
-  &:last-child {
-    margin-bottom: 0;
+  &.-is-top-flush {
+    margin-top: 0;
   }
 
   &.-is-recessed {
@@ -849,6 +857,14 @@ table.djblets-c-config-forms-list {
     margin-right: 0;
     border-top: 1px @config-forms-list-border-color solid;
     border-bottom: 1px @config-forms-list-border-color solid;
+
+    &.-is-bottom-flush {
+      border-bottom: 0;
+    }
+
+    &.-is-top-flush {
+      border-top: 0;
+    }
   }
 }
 
