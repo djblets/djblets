@@ -59,6 +59,13 @@ PIPELINE_JAVASCRIPT = {
         ),
         'output_filename': 'djblets/js/forms.min.js',
     },
+    'djblets-integrations': {
+        'source_filenames': (
+            'djblets/js/integrations/base.js',
+            'djblets/js/integrations/views/integrationConfigListView.es6.js',
+        ),
+        'output_filename': 'djblets/js/extensions.min.js',
+    },
     'djblets-gravy': {
         'source_filenames': (
             # These are in dependency order
