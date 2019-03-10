@@ -138,6 +138,7 @@ Djblets.IntegrationConfigListView = Backbone.View.extend({
         'click .djblets-c-integration-configs__add': '_onAddIntegrationClicked',
     },
 
+    addIntegrationPopupViewType: Djblets.AddIntegrationPopupView,
     listItemsCollectionType: Djblets.Config.ListItems,
     listItemType: IntegrationConfigItem,
     listViewType: Djblets.Config.TableView,
@@ -176,6 +177,8 @@ Djblets.IntegrationConfigListView = Backbone.View.extend({
                     }
                 ),
             });
+
+        this._popup = null;
     },
 
     /**
@@ -186,8 +189,6 @@ Djblets.IntegrationConfigListView = Backbone.View.extend({
      *     This view, for chaining.
      */
     render() {
-        this._$popup = this.$('.djblets-c-integrations-popup');
-
         this.listView = new this.listViewType({
             el: this.$('.djblets-c-config-forms-list'),
             model: this.list,
@@ -219,19 +220,6 @@ Djblets.IntegrationConfigListView = Backbone.View.extend({
     },
 
     /**
-     * Hide the integrations list popup.
-     *
-     * This will hide the popup from the screen and disconnect all related
-     * events.
-     */
-    _hidePopup() {
-        this._$popup.hide();
-
-        $(document).off('click.djblets-integrations-popup');
-        $(window).off('resize.djblets-integrations-popup');
-    },
-
-    /**
      * Handler for the Add Integration button.
      *
      * This will show the integrations list popup, allowing the user to choose
@@ -250,98 +238,22 @@ Djblets.IntegrationConfigListView = Backbone.View.extend({
         e.preventDefault();
         e.stopPropagation();
 
-        const $window = $(window);
-        const $popup = this._$popup;
-        const popupEl = $popup[0];
-        const $button = $(e.target);
-        const buttonPos = $button.position();
+        if (!this._popup) {
+            const integrationIDs = this._integrationIDs;
+            const integrationsMap = this._integrationsMap;
+            const integrations = [];
 
-        /*
-         * First, position the popup and set it to a small size to trigger
-         * scrolling behavior, so we can perform calculations. It does need
-         * to be big enough to fit the scrollbar, though, hence the width.
-         */
-        $popup
-            .move(buttonPos.left,
-                  buttonPos.top + $button.outerHeight(),
-                  'absolute')
-            .width(100)
-            .height(1)
-            .show();
-
-        const popupBorderWidths = $popup.getExtents('b', 'lr');
-        const scrollbarWidth = popupEl.offsetWidth - popupEl.clientWidth -
-                               popupBorderWidths;
-
-        const popupOffset = $popup.offset();
-        const popupHeight = Math.floor(
-            $window.height() - popupOffset.top -
-            $popup.getExtents('bm', 'tb'));
-
-        /*
-         * Set the new width and height.
-         *
-         * We're resetting the height back to "auto" so it's not forced to be
-         * too big, but cap around the screen boundary so it can't grow too
-         * large.
-         */
-        $popup.css({
-            'height': 'auto',
-            'max-height': popupHeight,
-        });
-
-        if ($popup.hasClass('-is-empty')) {
-            $popup.css('width', 'auto');
-        } else {
-            /*
-             * Get the width of one of the integration tiles in the popup, so
-             * we can start to figure out how many we can fit on screen.
-             */
-            const tileWidth = $popup
-                .find('.djblets-c-integration')
-                .filter(':first')
-                .outerWidth(true);
-            const winWidth = $window.width();
-            const availWidth = winWidth - popupOffset.left - scrollbarWidth -
-                               $popup.getExtents('m', 'r');
-
-            let popupWidth = Math.max(Math.floor(availWidth / tileWidth), 1) *
-                             tileWidth + scrollbarWidth + popupBorderWidths;
-
-            $popup.outerWidth(popupWidth);
-
-            /*
-             * Now that we have a width and height set, we might not actually
-             * be showing a scrollbar anymore. Find out how much extra space we
-             * now have here, and if it's not what we had before for the scroll
-             * bar, we can strip that out.
-             */
-            const newScrollbarWidth = popupEl.offsetWidth -
-                                      popupEl.clientWidth -
-                                      popupBorderWidths;
-
-            if (newScrollbarWidth === 0) {
-                popupWidth -= scrollbarWidth;
-                $popup.outerWidth(popupWidth);
+            for (let i = 0; i < integrationIDs.length; i++) {
+                integrations.push(integrationsMap[integrationIDs[i]]);
             }
 
-            /*
-             * If the menu is off-screen (which might be due to a very small
-             * screen width), we'll need to shift the popup over a bit.
-             */
-            if (popupOffset.left + popupWidth > winWidth) {
-                $popup.css('left', winWidth - popupWidth);
-            }
+            this._popup = new this.addIntegrationPopupViewType({
+                integrations: integrations,
+            });
+            this._popup.render().$el.appendTo(this.$el);
         }
 
-        /*
-         * Wire up events to hide the popup when the document is clicked or
-         * the window resized.
-         */
-        $(document).one('click.djblets-integrations-popup',
-                        () => this._hidePopup());
-        $(window).one('resize.djblets-integrations-popup',
-                      () => this._hidePopup());
+        this._popup.show($(e.target));
     },
 });
 

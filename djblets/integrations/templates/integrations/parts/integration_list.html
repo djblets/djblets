@@ -1,35 +1,11 @@
 {% load djblets_images i18n %}
 
 <div class="djblets-c-integration-configs">
- <div class="djblets-c-integrations-popup{% if not integrations %} -is-empty{% endif %}" style="display: none">
-{% if integrations %}
-  <ul>{% spaceless %}
-{%  for integration_info in integrations %}
-   <li class="djblets-c-integration">
-    <a href="{% url add_config_url_name integration_id=integration_info.id %}">
-{%  if integration_info.icons.1x %}
-    <img class="djblets-c-integration__icon"
-         src="{{integration_info.icons.1x}}"
-         srcset="{% srcset integration_info.icons %}"
-         width="48" height="48" alt="" />
-{%  endif %}
-    <div class="djblets-c-integration__details">
-     <div class="djblets-c-integration__name">{{integration_info.name}}</div>
-     <div class="djblets-c-integration__description">{{integration_info.description}}</div>
-    </div>
-    </a>
-   </li>
-{%  endfor %}
- {% endspaceless %}</ul>
-{% else %}
-  <p class="djblets-c-integrations-popup__empty">
-   {% trans "There are no integrations currently installed." %}
-  </p>
-{% endif %}
- </div>
-
  <div class="djblets-l-config-forms-container">
-  <button class="djblets-c-integration-configs__add btn">{% trans "Add Integration" %}</button>
+  <button class="djblets-c-integration-configs__add btn">
+   <span class="djblets-o-config-forms-icon-add"></span>
+   {% trans "Add Integration" %}
+  </button>
  </div>
 
  <div class="djblets-l-config-forms-container -is-recessed">
