@@ -1,5 +1,5 @@
 {% extends "djblets_forms/admin/base_site.html" %}
-{% load i18n pipeline %}
+{% load djblets_js i18n pipeline %}
 
 
 {% block title %}
@@ -9,11 +9,13 @@
 
 
 {% block admin_css %}
+{%  stylesheet "djblets-config-forms" %}
 {%  stylesheet "djblets-integrations" %}
 {% endblock admin_css %}
 
 
 {% block admin_scripts_post %}
+{%  javascript "djblets-config-forms" %}
 {%  javascript "djblets-integrations" %}
 {% endblock admin_scripts_post %}
 
@@ -34,7 +36,8 @@
 
 $(document).ready(function() {
     var view = new Djblets.IntegrationConfigListView({
-        el: $('#integration_manager')
+        el: $('#integration_manager'),
+        {{integrationViewData|json_dumps_items:', '}}
     });
     view.render();
 });

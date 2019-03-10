@@ -33,28 +33,13 @@
  </div>
 
  <div class="djblets-l-config-forms-container -is-recessed">
-  <table class="djblets-c-config-forms-list -all-items-have-icons">
-{% for integration_info in integrations %}
-{%  for config in integration_info.configs %}
-   <tr class="djblets-c-integration-config djblets-c-config-forms-list__item -is-{{config.enabled|yesno:"enabled,disabled"}}">
-    <td class="djblets-c-integration-config__name">
-     <img src="{{integration_info.icons.1x}}"
-          srcset="{% srcset integration_info.icons %}"
-          width="32" height="32" alt="" />
-     <a href="{% url edit_config_url_name integration_id=integration_info.id config_id=config.pk %}">{{config.name}}</a></td>
-    <td class="djblets-c-integration-config__integration-name">
-     {{integration_info.name}}
-    </td>
-    <td class="djblets-c-integration-config__status">
-{%   if config.enabled %}
-     <span class="fa fa-check"></span> {% trans "Enabled" %}
-{%   else %}
-     <span class="fa fa-close"></span> {% trans "Disabled" %}
-{%   endif %}
+  <table class="djblets-c-config-forms-list -all-items-have-icons -all-items-have-actions">
+   <tr class="djblets-c-config-forms-list__item">
+    <td>
+     <span class="fa fa-spinner fa-pulse djblets-o-config-forms-spinner"></span>
+     {% trans "Loading integrations..." %}
     </td>
    </tr>
-{%  endfor %}
-{% endfor %}
   </table>
  </div>
 </div>
