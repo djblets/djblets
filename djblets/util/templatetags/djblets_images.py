@@ -143,7 +143,7 @@ def thumbnail(f, size='400x100'):
     return storage.url(miniature)
 
 
-def _build_srcset(sources):
+def build_srcset(sources):
     """Return the source set attribute value for the given sources.
 
     The resulting sources will be sorted by value, with the pixel density
@@ -216,7 +216,7 @@ def srcset(sources):
         The rendered ``srcset`` attribute value.
     """
     try:
-        return _build_srcset(sources)
+        return build_srcset(sources)
     except ValueError as e:
         raise TemplateSyntaxError(six.text_type(e))
 
@@ -279,4 +279,4 @@ def image_source_attrs(context, nodelist, *options):
             'contain a "1x" descriptor.'))
 
     return format_html('src="{0}" srcset="{1}"', src_value,
-                       _build_srcset(sources))
+                       build_srcset(sources))

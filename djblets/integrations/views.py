@@ -11,6 +11,7 @@ from django.views.generic.base import TemplateView
 from django.views.generic.edit import FormView
 
 from djblets.integrations.mixins import NeedsIntegrationManagerMixin
+from djblets.util.templatetags.djblets_images import build_srcset
 
 
 class IntegrationListContextViewMixin(NeedsIntegrationManagerMixin):
@@ -20,46 +21,102 @@ class IntegrationListContextViewMixin(NeedsIntegrationManagerMixin):
     integrations and all configurations.
     """
 
-    def get_integration_list_context_data(self):
-        """Return context data for a page.
+    def get_integration_js_view_data(self):
+        """Return data for a JavaScript view for the page.
 
-        This will include the list of available integrations, sorted by name,
-        and each integration's list of configurations.
-
-        Subclasses may want to replace the values in ``add_config_url_name``
-        and ``edit_config_url_name`` if using custom URLs for the integration
-        pages.
+        This will include the list of available integrations IDs, a mapping of
+        integration IDs to details, and a list of all configurations.
 
         Returns:
             dict:
-            The context data for the page.
+            The data for the JavaScript view.
         """
         integration_manager = self.get_integration_manager()
-        integrations_data = {}
+        integrations_map = {}
+        integration_ids = []
+        configs = []
 
         for integration in integration_manager.get_integrations():
-            integrations_data[integration.integration_id] = {
-                'configs': [],
+            integration_ids.append(integration.integration_id)
+            integrations_map[integration.integration_id] = {
+                'addURL': self.get_add_config_url(integration),
                 'description': integration.description,
-                'icons': integration.icon_static_urls,
+                'iconSrc': integration.icon_static_urls['1x'],
+                'iconSrcSet': build_srcset(integration.icon_static_urls),
                 'id': integration.integration_id,
-                'instance': integration,
                 'name': integration.name,
             }
 
-        for config in self.get_configs_queryset():
+        queryset = (
+            self.get_configs_queryset()
+            .only('enabled', 'integration_id', 'pk', 'name')
+        )
+
+        for config in queryset:
             integration_id = config.integration_id
 
-            if integration_id in integrations_data:
-                integrations_data[integration_id]['configs'].append(config)
+            if integration_id in integrations_map:
+                configs.append({
+                    'editURL': self.get_edit_config_url(config),
+                    'enabled': config.enabled,
+                    'id': config.pk,
+                    'integrationID': integration_id,
+                    'name': config.name,
+                })
 
         return {
-            'add_config_url_name': 'integration-add-config',
-            'edit_config_url_name': 'integration-change-config',
-            'integrations': sorted(
-                six.itervalues(integrations_data),
-                key=lambda integration: integration['name']),
+            'configs': sorted(
+                configs,
+                key=lambda config:
+                    (integrations_map[config['integrationID']]['name'],
+                     config['name'])),
+            'csrfToken': self.request.META['CSRF_COOKIE'],
+            'integrationIDs': sorted(
+                integration_ids,
+                key=lambda integration_id: integrations_map[integration_id]),
+            'integrationsMap': integrations_map,
         }
+
+    def get_add_config_url(self, integration):
+        """Return the URL for adding a new configuration.
+
+        This can be overridden by subclasses to return a URL for another
+        namespace or to add additional keyword arguments for the lookup.
+
+        Args:
+            integration (djblets.integrations.integration.Integration):
+                The integration to add configurations for.
+
+        Returns:
+            unicode:
+            The Add Configuration URL for the integration.
+        """
+        return reverse(
+            'integration-add-config',
+            kwargs={
+                'integration_id': integration.integration_id,
+            })
+
+    def get_edit_config_url(self, config):
+        """Return the URL for editing a configuration.
+
+        This can be overridden by subclasses to return a URL for another
+        namespace or to add additional keyword arguments for the lookup.
+
+        Args:
+            config (djblets.integrations.models.BaseIntegrationConfig):
+                The configuration to return the URL for.
+
+        Returns:
+            unicode:
+            The URL for editing the configuration.
+        """
+        return reverse(
+            'integration-change-config',
+            kwargs={
+                'integration_id': config.integration.integration_id,
+                'config_id': config.pk,
+            })
 
     def get_configs_queryset(self):
         """Return a queryset for integration configs.
@@ -92,6 +149,7 @@ class BaseIntegrationListView(IntegrationListContextViewMixin,
     template_name = None
 
     @method_decorator(login_required)
+    @method_decorator(csrf_protect)
     def dispatch(self, *args, **kwargs):
         """Handle the request to the view.
 
@@ -127,7 +185,7 @@ class BaseIntegrationListView(IntegrationListContextViewMixin,
         """
         context = super(BaseIntegrationListView, self).get_context_data(
             **kwargs)
-        context.update(self.get_integration_list_context_data())
+        context['integrationViewData'] = self.get_integration_js_view_data()
 
         return context
 

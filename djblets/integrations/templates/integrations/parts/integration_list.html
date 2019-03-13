@@ -1,0 +1,21 @@
+{% load djblets_images i18n %}
+
+<div class="djblets-c-integration-configs">
+ <div class="djblets-l-config-forms-container">
+  <button class="djblets-c-integration-configs__add btn">
+   <span class="djblets-o-config-forms-icon-add"></span>
+   {% trans "Add Integration" %}
+  </button>
+ </div>
+
+ <div class="djblets-l-config-forms-container -is-recessed">
+  <table class="djblets-c-config-forms-list -all-items-have-icons -all-items-have-actions">
+   <tr class="djblets-c-config-forms-list__item">
+    <td>
+     <span class="fa fa-spinner fa-pulse djblets-o-config-forms-spinner"></span>
+     {% trans "Loading integrations..." %}
+    </td>
+   </tr>
+  </table>
+ </div>
+</div>
