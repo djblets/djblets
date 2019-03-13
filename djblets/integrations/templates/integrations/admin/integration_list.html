@@ -1,5 +1,5 @@
 {% extends "djblets_forms/admin/base_site.html" %}
-{% load djblets_images djblets_utils i18n integrations pipeline staticfiles %}
+{% load djblets_js i18n pipeline %}
 
 
 {% block title %}
@@ -9,8 +9,15 @@
 
 
 {% block admin_css %}
+{%  stylesheet "djblets-config-forms" %}
 {%  stylesheet "djblets-integrations" %}
 {% endblock admin_css %}
+
+
+{% block admin_scripts_post %}
+{%  javascript "djblets-config-forms" %}
+{%  javascript "djblets-integrations" %}
+{% endblock admin_scripts_post %}
 
 
 {% block bodyclass %}{{block.super}} change-list integrations-list-page{% endblock %}
@@ -18,45 +25,21 @@
 
 {% block content %}
 <h1 class="title">{% trans "Manage Integrations" %}</h1>
-
 <div id="content-main">
  <div id="changelist" class="module">
   <form id="integration_manager" method="POST" action=".">
-   <ul id="integration_list">
-{%  for integration_info in integrations %}
-    <li>
-{%   if integration_info.icons.1x %}
-     <img class="integration-icon"
-          src="{{integration_info.icons.1x}}"
-          srcset="{% srcset integration_info.icons %}"
-          width="48" height="48" alt="" />
-{%   endif %}
-     <div class="integration-details">
-      <div class="integration-name">{{integration_info.name}}</div>
-      <div class="integration-description">{{integration_info.description}}</div>
-      <ul class="object-tools">
-       <li>
-        <a href="{% url 'integration-add-config' integration_info.id %}" class="add-config-action"><span class="fa fa-plus" aria-hidden="true"></span> {% trans "Add a new configuration" %}</a>
-       </li>
-      </ul>
-      <ul class="integration-configs">
-{%   for config in integration_info.configs %}
-       <li class="integration-config-{% if config.enabled %}enabled{% else %}disabled{% endif %}">
-{%    render_integration_config_status integration_info.instance config %}
-       </li>
-{%   endfor %}
-      </ul>
-     </div>
-    </li>
-{%  empty %}
-    <li class="integrations-list-empty">
-{%   block integrations_list_empty %}
-     {% trans "There are no integrations installed." %}
-{%   endblock integrations_list_empty %}
-    </li>
-{%  endfor %}
-   </ul>
+{%  include "integrations/parts/integration_list.html" %}
   </form>
  </div>
 </div>
+<script>
+
+$(document).ready(function() {
+    var view = new Djblets.IntegrationConfigListView({
+        el: $('#integration_manager'),
+        {{integrationViewData|json_dumps_items:', '}}
+    });
+    view.render();
+});
+</script>
 {% endblock content %}

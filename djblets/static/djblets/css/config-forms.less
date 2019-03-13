@@ -890,7 +890,26 @@ table.djblets-c-config-forms-list {
   display: inline-block;
   margin: 1px;
   vertical-align: middle;
-  visibility: hidden;
+}
+
+
+/**
+ * An Add icon for buttons and other widgets.
+ */
+.djblets-o-config-forms-icon-add {
+  color: #00AA00;
+  display: inline-block;
+  font-family: FontAwesome;
+  font-size: 120%;
+  vertical-align: text-bottom;
+
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  &:before {
+    content: "\f055";  /* Code for fa-plus-circle */
+  }
 }
 
 
