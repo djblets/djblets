@@ -65,7 +65,7 @@ PIPELINE_JAVASCRIPT = {
             'djblets/js/integrations/views/addIntegrationPopupView.es6.js',
             'djblets/js/integrations/views/integrationConfigListView.es6.js',
         ),
-        'output_filename': 'djblets/js/extensions.min.js',
+        'output_filename': 'djblets/js/integrations.min.js',
     },
     'djblets-gravy': {
         'source_filenames': (
