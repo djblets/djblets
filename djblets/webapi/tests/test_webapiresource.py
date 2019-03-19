@@ -11,7 +11,9 @@ from django.utils import six
 
 from djblets.testing.testcases import TestCase
 from djblets.util.http import encode_etag
-from djblets.webapi.fields import StringFieldType
+from djblets.webapi.fields import (ResourceFieldType,
+                                   ResourceListFieldType,
+                                   StringFieldType)
 from djblets.webapi.resources.base import WebAPIResource
 from djblets.webapi.resources.registry import (register_resource_for_model,
                                                unregister_resource_for_model,
@@ -19,11 +21,51 @@ from djblets.webapi.resources.registry import (register_resource_for_model,
 from djblets.webapi.responses import WebAPIResponse
 
 
+class BaseTestWebAPIResource(WebAPIResource):
+    mimetype_vendor = 'djblets-test'
+
+
+class TestUserResource(BaseTestWebAPIResource):
+    name = 'user'
+    model = User
+
+    fields = {
+        'username': {
+            'type': StringFieldType,
+        },
+        'first_name': {
+            'type': StringFieldType,
+        },
+        'last_name': {
+            'type': StringFieldType,
+        },
+    }
+
+    def get_href(self, obj, *args, **kwargs):
+        return 'http://testserver/api/test/users/%s/' % obj.pk
+
+
+class BaseTestRefUserResource(BaseTestWebAPIResource):
+    name = 'test'
+    uri_object_key = 'pk'
+
+    def build_resource_url(self, name, request, **kwargs):
+        return request.build_absolute_uri()
+
+    def get_serializer_for_object(self, o):
+        if isinstance(o, User):
+            return TestUserResource()
+        else:
+            return self
+
+
 class WebAPIResourceTests(TestCase):
     """Unit tests for djblets.webapi.resources.base."""
 
     def setUp(self):
         super(WebAPIResourceTests, self).setUp()
+
+        self.maxDiff = 10000000
 
         self.factory = RequestFactory()
         self.test_resource = None
@@ -437,87 +479,248 @@ class WebAPIResourceTests(TestCase):
             }
         })
 
-    def test_serialize_object_with_only_fields_and_expand(self):
+    def test_serialize_object_with_expand_model(self):
         """Testing WebAPIResource.serialize_object with
-        ?only-fields=<field>&expand=<field>
+        ?expand=<model_field>
         """
-        class TestModel(Model):
-            field = 'test'
-
-            def __init__(self, pk):
-                self.pk = pk  # Django 1.8+ requires a pk field
-
-            # TestModel isn't a real model picked up by Django, and this
-            # causes deepcopy to fail with it. We need to override for
-            # the sake of unit tests.
-            def __deepcopy__(self, other):
-                return TestModel()
-
-            def __str__(self):
-                return 'Test'
-
         class TestObject(object):
-            field1 = 'abc'
-            field2 = TestModel(1)
-            field3 = TestModel(2)
+            pk = '1'
+            user = User.objects.create(username='user1',
+                                       first_name='Test1',
+                                       last_name='User1')
 
-        class TestResource1(WebAPIResource):
+        class TestResource(BaseTestRefUserResource):
             fields = {
-                'field': {
-                    'type': StringFieldType,
+                'user': {
+                    'type': ResourceFieldType,
+                    'resource': TestUserResource,
                 },
             }
 
-            def get_href(self, *args, **kwargs):
-                return 'http://testserver/api/test1/'
+        request = RequestFactory().get('/api/test/?expand=user')
+        resource = TestResource()
+        data = resource.serialize_object(TestObject(), request=request)
 
-        class TestResource2(WebAPIResource):
-            fields = {
-                'field1': {
-                    'type': StringFieldType,
-                },
-                'field2': {
-                    'type': TestModel,
-                },
-                'field3': {
-                    'type': TestModel,
-                },
-            }
-
-            def get_serializer_for_object(self, o):
-                if isinstance(o, TestModel):
-                    return TestResource1()
-                else:
-                    return self
-
-        request = RequestFactory().get(
-            '/api/test2/?only-fields=field2&expand=field2')
-        resource = TestResource2()
-        obj = TestObject()
-        data = resource.serialize_object(obj, request=request)
-
-        # Note that field2 below isn't a serialized version of a TestModel.
-        # That's because serialization of model instances happens when
-        # dumping to a JSON string. We're not testing that part.
         self.assertEqual(data, {
-            'field2': {
+            '_expanded': {
+                'user': {
+                    'item_mimetype': 'application/vnd.djblets-test.user+json',
+                },
+            },
+            'user': {
+                'username': 'user1',
+                'first_name': 'Test1',
+                'last_name': 'User1',
                 'links': {
                     'self': {
-                        'href': 'http://testserver/api/test1/',
+                        'href': 'http://testserver/api/test/users/1/',
                         'method': 'GET',
                     },
                 },
             },
             'links': {
                 'self': {
-                    'href': 'http://testserver/api/test2/?only-fields=field2'
+                    'href': 'http://testserver/api/test/?expand=user',
+                    'method': 'GET',
+                },
+            }
+        })
+
+    def test_serialize_object_with_expand_queryset(self):
+        """Testing WebAPIResource.serialize_object with
+        ?expand=<queryset_field>
+        """
+        class TestObject(object):
+            pk = '1'
+            users = User.objects.all()
+
+        class TestResource(BaseTestRefUserResource):
+            fields = {
+                'users': {
+                    'type': ResourceListFieldType,
+                    'resource': TestUserResource,
+                },
+            }
+
+        User.objects.create(username='user1',
+                            first_name='Test1',
+                            last_name='User1')
+        User.objects.create(username='user2',
+                            first_name='Test2',
+                            last_name='User2')
+
+        request = RequestFactory().get('/api/test/?expand=users')
+        resource = TestResource()
+        data = resource.serialize_object(TestObject(), request=request)
+
+        self.assertEqual(data, {
+            '_expanded': {
+                'users': {
+                    'item_mimetype': 'application/vnd.djblets-test.user+json',
+                },
+            },
+            'users': [
+                {
+                    'username': 'user1',
+                    'first_name': 'Test1',
+                    'last_name': 'User1',
+                    'links': {
+                        'self': {
+                            'href': 'http://testserver/api/test/users/1/',
+                            'method': 'GET',
+                        },
+                    },
+                },
+                {
+                    'username': 'user2',
+                    'first_name': 'Test2',
+                    'last_name': 'User2',
+                    'links': {
+                        'self': {
+                            'href': 'http://testserver/api/test/users/2/',
+                            'method': 'GET',
+                        },
+                    },
+                },
+            ],
+            'links': {
+                'self': {
+                    'href': 'http://testserver/api/test/?expand=users',
+                    'method': 'GET',
+                },
+            }
+        })
+
+    def test_serialize_object_with_expand_child_resource(self):
+        """Testing WebAPIResource.serialize_object with
+        ?expand=<child_resource_field>
+        """
+        class TestObject(object):
+            pk = '1'
+            field = 'test'
+            users = User.objects.all()
+
+        class TestResource(BaseTestRefUserResource):
+            item_child_resources = [TestUserResource()]
+
+            fields = {
+                'field': {
+                    'type': StringFieldType,
+                },
+            }
+
+        User.objects.create(username='user1',
+                            first_name='Test1',
+                            last_name='User1')
+        User.objects.create(username='user2',
+                            first_name='Test2',
+                            last_name='User2')
+
+        request = RequestFactory().get('/api/test/?expand=users')
+        resource = TestResource()
+        data = resource.serialize_object(TestObject(), request=request)
+
+        self.assertEqual(data, {
+            '_expanded': {
+                'users': {
+                    'item_mimetype': 'application/vnd.djblets-test.user+json',
+                    'list_mimetype': 'application/vnd.djblets-test.users+json',
+                    'list_url': 'http://testserver/api/test/users/',
+                },
+            },
+            'field': 'test',
+            'users': [
+                {
+                    'username': 'user1',
+                    'first_name': 'Test1',
+                    'last_name': 'User1',
+                    'links': {
+                        'self': {
+                            'href': 'http://testserver/api/test/users/1/',
+                            'method': 'GET',
+                        },
+                    },
+                },
+                {
+                    'username': 'user2',
+                    'first_name': 'Test2',
+                    'last_name': 'User2',
+                    'links': {
+                        'self': {
+                            'href': 'http://testserver/api/test/users/2/',
+                            'method': 'GET',
+                        },
+                    },
+                },
+            ],
+            'links': {
+                'self': {
+                    'href': 'http://testserver/api/test/?expand=users',
+                    'method': 'GET',
+                },
+            }
+        })
+
+    def test_serialize_object_with_only_fields_and_expand(self):
+        """Testing WebAPIResource.serialize_object with
+        ?only-fields=<field>&expand=<field>
+        """
+        class TestObject(object):
+            pk = 1
+
+            field1 = 'abc'
+            field2 = User.objects.create(username='user1',
+                                         first_name='Test1',
+                                         last_name='Test1')
+            field3 = User.objects.create(username='user2',
+                                         first_name='Test2',
+                                         last_name='Test2')
+
+        class TestResource(BaseTestRefUserResource):
+            fields = {
+                'field1': {
+                    'type': StringFieldType,
+                },
+                'field2': {
+                    'type': ResourceFieldType,
+                    'resource': TestUserResource,
+                },
+                'field3': {
+                    'type': ResourceFieldType,
+                    'resource': TestUserResource,
+                },
+            }
+
+        request = RequestFactory().get(
+            '/api/test/?only-fields=field2&expand=field2')
+        resource = TestResource()
+        obj = TestObject()
+        data = resource.serialize_object(obj, request=request)
+
+        self.assertEqual(data, {
+            '_expanded': {
+                'field2': {
+                    'item_mimetype': 'application/vnd.djblets-test.user+json',
+                },
+            },
+            'field2': {
+                'links': {
+                    'self': {
+                        'href': 'http://testserver/api/test/users/1/',
+                        'method': 'GET',
+                    },
+                },
+            },
+            'links': {
+                'self': {
+                    'href': 'http://testserver/api/test/?only-fields=field2'
                             '&expand=field2',
                     'method': 'GET',
                 },
                 'field3': {
-                    'href': 'http://testserver/api/test1/',
+                    'href': 'http://testserver/api/test/users/2/',
                     'method': 'GET',
-                    'title': 'Test',
+                    'title': 'user2',
                 },
             }
         })
@@ -667,7 +870,7 @@ class WebAPIResourceTests(TestCase):
                 self.name = name
                 self.pk = pk  # Django 1.8+ requires a pk field
 
-        class TestResource(WebAPIResource):
+        class TestResource(BaseTestWebAPIResource):
             fields = {
                 'dependency': {
                     'type': [TestObject],
@@ -691,6 +894,12 @@ class WebAPIResourceTests(TestCase):
 
             self.maxDiff = 100000
             self.assertEqual(data, {
+                '_expanded': {
+                    'dependency': {
+                        'item_mimetype':
+                            'application/vnd.djblets-test.testresource+json',
+                    },
+                },
                 'dependency': {
                     'links': {
                         'dependency': {

@@ -809,6 +809,7 @@ class WebAPIResource(object):
 
         data = {}
         links = {}
+        expand_info = {}
 
         if only_links != []:
             links = self.get_links(self.item_child_resources, obj,
@@ -820,6 +821,12 @@ class WebAPIResource(object):
             expand = request.GET.get('expand', request.POST.get('expand', ''))
             expanded_resources = expand.split(',')
             request._djblets_webapi_expanded_resources = expanded_resources
+
+        if expanded_resources:
+            requested_mimetype = get_http_requested_mimetype(
+                request, WebAPIResponse.supported_mimetypes)
+        else:
+            requested_mimetype = None
 
         # Make a copy of the list of expanded resources. We'll be temporarily
         # removing items as we recurse down into any nested objects, to
@@ -882,6 +889,13 @@ class WebAPIResource(object):
 
                     if objects:
                         resource = self.get_serializer_for_object(objects[0])
+
+                        expand_info[field] = {
+                            'item_mimetype': resource._build_resource_mimetype(
+                                mimetype=requested_mimetype,
+                                is_list=False),
+                        }
+
                         data[field] = [
                             resource.serialize_object(o, *args, **kwargs)
                             for o in objects
@@ -890,6 +904,13 @@ class WebAPIResource(object):
                         data[field] = []
                 elif isinstance(value, models.Model):
                     resource = self.get_serializer_for_object(value)
+
+                    expand_info[field] = {
+                        'item_mimetype': resource._build_resource_mimetype(
+                            mimetype=requested_mimetype,
+                            is_list=False),
+                    }
+
                     data[field] = resource.serialize_object(
                         value, *args, **kwargs)
                 else:
@@ -912,8 +933,6 @@ class WebAPIResource(object):
             if not found or not resource.model:
                 continue
 
-            del links[resource_name]
-
             extra_kwargs = {
                 self.uri_object_key: getattr(obj, self.model_object_key),
             }
@@ -926,6 +945,18 @@ class WebAPIResource(object):
                     is_list=True, *args, **extra_kwargs)
             ]
 
+            expand_info[resource_name] = {
+                'list_url': links[resource_name]['href'],
+                'list_mimetype': resource._build_resource_mimetype(
+                    mimetype=requested_mimetype,
+                    is_list=True),
+                'item_mimetype': resource._build_resource_mimetype(
+                    mimetype=requested_mimetype,
+                    is_list=False),
+            }
+
+            del links[resource_name]
+
         if only_links is None:
             data['links'] = links
         elif only_links != []:
@@ -934,6 +965,9 @@ class WebAPIResource(object):
                 for link_name, link_info in six.iteritems(links)
                 if link_name in only_links
             ])
+
+        if expand_info:
+            data['_expanded'] = expand_info
 
         # Now that we're done serializing, restore the list of expanded
         # resource for the next call.
