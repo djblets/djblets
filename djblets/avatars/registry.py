@@ -9,6 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from djblets.avatars.errors import (AvatarServiceNotFoundError,
                                     DisabledServiceError)
+from djblets.avatars.services.fallback import FallbackService
 from djblets.avatars.services.gravatar import GravatarService
 from djblets.avatars.services.url import URLAvatarService
 from djblets.avatars.settings import AvatarSettingsManager
@@ -110,6 +111,12 @@ class AvatarServiceRegistry(Registry):
         GravatarService,
         URLAvatarService,
     ]
+
+    #: A fallback service to use if others are not available.
+    #:
+    #: Version Added:
+    #:     1.0.11
+    fallback_service_class = FallbackService
 
     #: The settings manager for avatar services.
     #:
@@ -323,6 +330,18 @@ class AvatarServiceRegistry(Registry):
             return None
 
         return self.get_avatar_service(default_service_id)
+
+    @property
+    def fallback_service(self):
+        """The fallback service used if no other services are available."""
+        avatar_service_id = self.fallback_service_class.avatar_service_id
+        service = self._instance_cache.get(avatar_service_id)
+
+        if service is None:
+            service = self.fallback_service_class(self.settings_manager_class)
+            self._instance_cache[avatar_service_id] = service
+
+        return service
 
     def set_default_service(self, service, save=True):
         """Set the default avatar service.
@@ -602,7 +621,10 @@ class AvatarServiceRegistry(Registry):
             if self.is_enabled(self.get('avatar_service_id', sid)):
                 services.append(self.get_avatar_service(sid))
 
-        services.append(self.default_service)
+        services += [
+            self.default_service,
+            self.fallback_service,
+        ]
 
         if (allow_consent_checks and
             siteconfig.get(AvatarServiceRegistry.ENABLE_CONSENT_CHECKS)):
