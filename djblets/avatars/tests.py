@@ -19,6 +19,7 @@ from djblets.avatars.forms import AvatarServiceConfigForm, AvatarSettingsForm
 from djblets.avatars.registry import AvatarServiceRegistry
 from djblets.avatars.settings import AvatarSettingsManager
 from djblets.avatars.services import (AvatarService,
+                                      FallbackService,
                                       FileUploadService,
                                       GravatarService,
                                       URLAvatarService)
@@ -213,7 +214,8 @@ class AvatarServiceTests(SpyAgency, TestCase):
             service.render(self.request, self.user, 24),
             '<img src="http://example.com/avatar.png" alt="username"'
             ' width="24" height="24"'
-            ' srcset="http://example.com/avatar.png 1x" class="avatar">\n')
+            ' srcset="http://example.com/avatar.png 1x"'
+            ' class="avatar djblets-o-avatar">')
 
     def test_render_2x(self):
         """Testing AvatarService.render at 2x resolution."""
@@ -223,7 +225,8 @@ class AvatarServiceTests(SpyAgency, TestCase):
             '<img src="http://example.com/avatar.png" alt="username"'
             ' width="24" height="24"'
             ' srcset="http://example.com/avatar.png 1x,'
-            ' http://example.com/avatar@2x.png 2x" class="avatar">\n')
+            ' http://example.com/avatar@2x.png 2x"'
+            ' class="avatar djblets-o-avatar">')
 
     def test_get_avatar_urls_caching(self):
         """Testing AvatarService.get_avatar_urls caching"""
@@ -237,6 +240,53 @@ class AvatarServiceTests(SpyAgency, TestCase):
         self.assertIs(service.get_avatar_urls(self.request, self.user, 32),
                       service.get_avatar_urls(self.request, self.user, 32))
         self.assertEqual(len(service.get_avatar_urls_uncached.calls), 2)
+
+
+class FallbackServiceTests(TestCase):
+    """Tests for djblets.avatars.services.fallback.FallbackService."""
+
+    @classmethod
+    def setUpClass(cls):
+        super(FallbackServiceTests, cls).setUpClass()
+        cls._request_factory = RequestFactory()
+
+    def setUp(self):
+        super(FallbackServiceTests, self).setUp()
+
+        self.service = FallbackService(DummySettingsManager)
+        self.request = self._request_factory.get('/')
+        self.user = User(username='username',
+                         email='username@example.com',
+                         first_name='User',
+                         last_name='Name')
+
+    def test_urls(self):
+        """Testing GravatarService.get_avatar_urls"""
+        urls = self.service.get_avatar_urls(self.request, self.user, 48)
+
+        self.assertEqual(
+            urls,
+            {
+                '1x': '',
+                '2x': '',
+                '3x': '',
+            })
+
+    def test_render(self):
+        """Testing FallbackService.render"""
+        html = self.service.render(request=self.request,
+                                   user=self.user,
+                                   size=48)
+
+        self.assertHTMLEqual(
+            html,
+            '<span class="avatar djblets-o-avatar djblets-o-avatar-fallback"'
+            ' title="username"'
+            ' style="background: hsl(174, 60%, 80%); display: inline-block;'
+            ' width: 48px; line-height: 48px; font-size: 16px;'
+            ' text-align: center;">'
+            'US'
+            '</span>')
 
 
 class GravatarServiceTests(TestCase):
@@ -1018,7 +1068,8 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         }
 
         with self.siteconfig_settings(settings):
-            self.assertIsNone(registry.for_user(user))
+            self.assertIsInstance(registry.for_user(user),
+                                  registry.fallback_service_class)
 
 
 @requires_user_profile

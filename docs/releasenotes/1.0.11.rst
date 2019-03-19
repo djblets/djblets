@@ -1,0 +1,126 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+============================
+Djblets 1.0.11 Release Notes
+============================
+
+**Release date**: March 19, 2019
+
+
+Packaging
+=========
+
+* Less_ 3.9 is now used to build all stylesheets.
+
+  This provides a number of new capabilities for our stylesheets, including
+  referencing variables within mixins, maps, and many other improvements.
+
+
+.. _Less: http://lesscss.org
+
+
+djblets.avatars
+===============
+
+* Added a fallback for when other avatar services cannot be used.
+
+  When no other avatar service is available, a fallback service is
+  automatically used that displays the first two letters of the username
+  on top of a background color generated based on a hash of the username.
+
+  This ensures that there's always something to display, even if the user
+  or administrator has opted out of all other forms of avatar services.
+
+
+djblets.configforms
+===================
+
+* Reworked the CSS class names and styles for existing config forms
+  components.
+
+  We've begun work on moving to a clearer, documented set of CSS classes for
+  our config forms widgets that provide a better naming structure and defaults
+  for styles that can be more easily built upon. These are not fully
+  solidified today, and may change in future releases.
+
+  These are not used currently by the rest of the config forms code, but can
+  be used by custom templates and widgets, giving them a head start for a
+  complete switch-over intended for Djblets 2.0.
+
+* Added a ``djblets-l-config-forms-container`` CSS class for container
+  elements.
+
+  This can (and, going forward, should) be used to group sections of content
+  in a config form. It provides margins between the container and other
+  components, and offers modifier CSS classes to make the top or bottom sides
+  flush (using ``-is-top-flush`` and ``-is-bottom-flush`` CSS classes,
+  respectively) or to recess within the parent container (using
+  ``-is-recessed``).
+
+  Parts of the styling may change in future releases.
+
+* Added CSS classes and styles for lists and list items.
+
+  List items can now have a state associated with them, which adds a colored
+  border to the left-hand side of the item. By default, ``-is-enabled`` and
+  ``-is-disabled`` CSS classes can be applied to each least item, setting an
+  appropriate border. Additional styles can be defined in Less_ using the
+  ``#djblets-ns-config-forms.list.add-item-state()`` mixin.
+
+  List items can also make use of ``-has-icon`` and ``-has-actions`` CSS
+  classes, which control padding on the left-hand side of the item and
+  right-hand side of the item, respectively. As shorthand, these can be
+  applied to all items by using ``-all-items-have-icons`` and
+  ``-all-items-have-actions`` CSS classes on the list itself.
+
+
+djblets.integrations
+====================
+
+* Added a new UI for adding and listing integration configurations.
+
+  This provides a complete revamp of the UI for working with integrations.
+  The list of configured integrations is now presented as a standard list,
+  showing the integration type, configuration name, enabled/disabled state,
+  and a button for removing the integration.
+
+  Adding a new integration is done by clicking :guilabel:`Add Integration`,
+  which will display a pop-up list of all available integrations.
+
+  This new UI makes it easier to work with large numbers of integrations and
+  configurations, and is more easily expandable in the future to offer
+  an improved interface for browsing available integrations.
+
+* Added embedding of the integration list and configuration pages outside
+  of the Django administration UI.
+
+  Consumers can define subclasses of
+  :py:class:`~djblets.integrations.views.BaseIntegrationListView` and
+  :py:class:`~djblets.integrations.views.BaseIntegrationConfigFormView` to
+  display the list of integrations in any page. Alternatively, for the list,
+  they can make use of the view mixin,
+  :py:class:`~djblets.integrations.views.IntegrationListContextViewMixin`,
+  to provide the state needed for rendering the page.
+
+  The URLs for these views can then be generated using
+  :py:func:`~djblets.integrations.urls.build_integration_urlpatterns`. This
+  allows the view subclasses to be specified and a URL namespace to be
+  defined for that usage. If a namespace is used, then subclasses must
+  override :py:meth:`get_add_config_url()
+  <djblets.integrations.views.IntegrationListContextViewMixin
+  .get_add_config_url>` and
+  :py:meth:`get_edit_config_url()
+  <djblets.integrations.views.IntegrationListContextViewMixin
+  .get_edit_config_url>` on the list view subclass in order to specify the
+  right URLs.
+
+  These pages need to use the ``djblets-integrations`` CSS and JavaScript
+  bundles for the page.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
