@@ -148,10 +148,7 @@ class JSONFieldTests(TestCase):
         class MyModel(Model):
             myfield = JSONField()
 
-        message = (
-            "<class 'djblets.db.tests.test_json_field.MyModel'> is not a "
-            "supported value type."
-        )
+        message = "%r is not a supported value type." % MyModel
 
         with self.assertRaisesMessage(ValidationError, message):
             MyModel(myfield=MyModel())

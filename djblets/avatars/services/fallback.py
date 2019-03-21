@@ -1,6 +1,6 @@
 """An avatar service used as a fallback to show something basic for a user."""
 
-from __future__ import unicode_literals
+from __future__ import division, unicode_literals
 
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
@@ -46,7 +46,7 @@ class FallbackService(AvatarService):
         """
         return render_to_string(template_name or self.template_name, {
             'bg': self.get_bg_color(user),
-            'font_size': '%spx' % (size / 3),
+            'font_size': '%spx' % (size // 3),
             'size': size,
             'text': user.username[:2].upper(),
             'user': user,
