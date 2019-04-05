@@ -113,11 +113,11 @@ class AvatarService(object):
         """Render the avatar URLs for the given user.
 
         The result of calls to this method will be cached on the request for
-        the specified user, service, and size.
+        the specified user, service, and size, if a request is provided.
 
         Args:
             request (django.http.HttpRequest):
-                The HTTP request.
+                The HTTP request. This can be ``None`` if not available.
 
             user (django.contrib.auth.models.User):
                 The user for whom the avatar URLs are to be retrieved.
@@ -146,6 +146,10 @@ class AvatarService(object):
                 Explicitly sanitize them and use
                 :py:meth:`django.utils.html.mark_safe`.
         """
+        if request is None:
+            # We won't be able to cache the avatar URLs.
+            return self.get_avatar_urls_uncached(user, size)
+
         if not hasattr(request, '_avatar_cache'):
             request._avatar_cache = {}
 
@@ -203,7 +207,7 @@ class AvatarService(object):
 
         Args:
             request (django.http.HttpRequest):
-                The HTTP request.
+                The HTTP request. This can be ``None`` if not available.
 
             user (django.contrib.auth.models.User):
                 The user for whom the avatar is to be rendered.
