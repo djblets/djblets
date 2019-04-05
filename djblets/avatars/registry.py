@@ -621,10 +621,12 @@ class AvatarServiceRegistry(Registry):
             if self.is_enabled(self.get('avatar_service_id', sid)):
                 services.append(self.get_avatar_service(sid))
 
-        services += [
-            self.default_service,
-            self.fallback_service,
-        ]
+        default_service = self.default_service
+
+        if default_service is not None:
+            services.append(default_service)
+
+        services.append(self.fallback_service)
 
         if (allow_consent_checks and
             siteconfig.get(AvatarServiceRegistry.ENABLE_CONSENT_CHECKS)):

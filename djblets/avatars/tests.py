@@ -1153,6 +1153,23 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
             self.assertIsInstance(registry.for_user(user),
                                   registry.fallback_service_class)
 
+    def test_for_user_default_service_none_and_no_configured_services(self):
+        """Testing AvatarServiceRegistry.for_user with None as default
+        avatar service and no user-configured services
+        """
+        class DummyAvatarServiceRegistry(AvatarServiceRegistry):
+            settings_manager_class = DummySettingsManager(
+                GravatarService.avatar_service_id, {})
+            default_avatar_service_classes = []
+
+        registry = DummyAvatarServiceRegistry()
+        registry.set_default_service(None, save=False)
+
+        user = User.objects.create(username='test-user')
+
+        self.assertIsInstance(registry.for_user(user),
+                              registry.fallback_service_class)
+
 
 @requires_user_profile
 class AvatarSettingsFormTests(SpyAgency, TestCase):
