@@ -3,9 +3,11 @@ from __future__ import unicode_literals
 import json
 import warnings
 
+from django.contrib.sites.models import Site
 from django.core.exceptions import ValidationError
 from django.db.models import Model
 from django.utils import six
+from djblets.siteconfig.models import SiteConfiguration
 
 from djblets.db.fields import JSONField, JSONFormField
 from djblets.deprecation import RemovedInDjblets20Warning
@@ -153,6 +155,19 @@ class JSONFieldTests(TestCase):
         with self.assertRaisesMessage(ValidationError, message):
             MyModel(myfield=MyModel())
 
+    def test_init_with_deferred(self):
+        """Testing JSONField initialization with deferred attribute"""
+        SiteConfiguration.objects.create(site=Site.objects.get_current())
+
+        # Saving the SiteConfiguration results in a cache clear, so re-fetch
+        # this in order to avoid a query below.
+        Site.objects.get_current()
+
+        # This should fetch just the SiteConfiguration, and not result in a
+        # fetch of settings in JSONField.post_init.
+        with self.assertNumQueries(1):
+            SiteConfiguration.objects.defer('settings').get(pk=1)
+
     def test_dumps_with_json_dict(self):
         """Testing JSONField with dumping a JSON dictionary"""
         result = self.field.dumps({'a': 1, 'b': 2})
@@ -227,6 +242,46 @@ class JSONFieldTests(TestCase):
 
         self.assertEqual(
             model.myfield,
+            {
+                'a': 1,
+                'b': 2,
+            })
+
+    def test_get_prep_value_with_string(self):
+        """Testing JSONField.get_prep_value with string value"""
+        self.assertEqual(
+            self.field.get_prep_value('{"a": 1, "b": 2}'),
+            '{"a": 1, "b": 2}')
+
+    def test_get_prep_value_with_dict(self):
+        """Testing JSONField.get_prep_value with dict value"""
+        self.assertEqual(
+            self.field.get_prep_value({
+                'a': 1,
+                'b': 2,
+            }),
+            '{"a": 1, "b": 2}')
+
+    def test_get_prep_value_with_none(self):
+        """Testing JSONField.get_prep_value with None value"""
+        self.assertIsNone(self.field.get_prep_value(None))
+
+    def test_to_python_with_string(self):
+        """Testing JSONField.to_python with string value"""
+        self.assertEqual(
+            self.field.to_python('{"a": 1, "b": 2}'),
+            {
+                'a': 1,
+                'b': 2,
+            })
+
+    def test_to_python_with_dict(self):
+        """Testing JSONField.to_python with dictionary value"""
+        self.assertEqual(
+            self.field.to_python({
+                'a': 1,
+                'b': 2,
+            }),
             {
                 'a': 1,
                 'b': 2,

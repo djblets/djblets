@@ -277,6 +277,11 @@ class JSONField(models.TextField):
             **kwargs (dict):
                 Extra keyword arguments from the signal.
         """
+        # Check if the field is deferred. If so, we don't want to do anything,
+        # as a fetch attempt would result in an SQL query.
+        if self.attname not in instance.__dict__:
+            return
+
         value = self.value_from_object(instance)
 
         if isinstance(value, (dict, list)):
@@ -295,25 +300,25 @@ class JSONField(models.TextField):
 
         setattr(instance, self.attname, value)
 
-    def get_db_prep_save(self, value, *args, **kwargs):
-        """Return the serialized value prepared for saving to the database.
+    def get_prep_value(self, value):
+        """Return the serialized value prepared for storage.
+
+        This will serialize the data, if it's a JSON structure and not
+        already a string, preparing it for storage in the database or
+        another location.
 
         Args:
             value (object):
-                The JSON document being saved.
-
-            *args (tuple):
-                Additional positional arguments for the method.
-
-            **kwargs (dict):
-                Additional keyword arguments for the method.
+                The value to prepare.
 
         Returns:
             unicode:
-            The resulting serialized data that can be saved to the database.
+            The serialized representation of the value.
         """
-        return super(JSONField, self).get_db_prep_save(self.dumps(value),
-                                                       *args, **kwargs)
+        if value is None or isinstance(value, six.string_types):
+            return value
+
+        return self.dumps(value)
 
     def value_to_string(self, obj):
         """Return the serialized JSON data from the field.
@@ -327,6 +332,25 @@ class JSONField(models.TextField):
             The serialized JSON data from the field.
         """
         return self.dumps(self.value_from_object(obj))
+
+    def to_python(self, value):
+        """Return a value suitable for using in Python code.
+
+        This will return the deserialized version of the data, allowing
+        Python code to work with the data directly.
+
+        Args:
+            value (object):
+                The value to make usable in Python code.
+
+        Returns:
+            object:
+            The deserialized data.
+        """
+        if isinstance(value, six.string_types):
+            value = self.loads(value)
+
+        return value
 
     def dumps(self, data):
         """Return serialized version of the provided JSON document.
