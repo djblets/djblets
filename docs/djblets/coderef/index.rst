@@ -349,6 +349,7 @@ Registries
 
    djblets.registries
    djblets.registries.errors
+   djblets.registries.importer
    djblets.registries.mixins
    djblets.registries.registry
    djblets.registries.signals
