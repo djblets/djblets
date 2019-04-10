@@ -44,6 +44,11 @@ class OptionParserWrapper(object):
                 Keyword arguments to pass to
                 :py:meth:`optparse.OptionParser.add_option`.
         """
+        if not args[0].startswith('-'):
+            # This is a positional argument, which is not supported by
+            # optparse.
+            return
+
         arg_type = kwargs.get('type')
 
         if arg_type is not None:
