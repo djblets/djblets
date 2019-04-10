@@ -325,7 +325,7 @@ class WebAPITestCaseMixin(TestCase):
                 The HTTP response from the API.
         """
         self.assertEquals(response.status_code, 304)
-        self.assertEquals(response.content, '')
+        self.assertEquals(response.content, b'')
 
     def api_call(self, client_http_method, path, data=None,
                  follow_redirects=False, expected_status=200,
@@ -436,7 +436,7 @@ class WebAPITestCaseMixin(TestCase):
         self.assertEqual(response.status_code, expected_status)
 
         if expected_status in (204, 405):
-            self.assertEqual(response.content, '')
+            self.assertEqual(response.content, b'')
             rsp = None
         else:
             if expected_status != 302 and expected_json:
