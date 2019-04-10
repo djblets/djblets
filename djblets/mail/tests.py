@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.core.cache import cache
 from django.test.utils import override_settings
+from django.utils import six
 from django.utils.datastructures import MultiValueDict
 from dns import resolver as dns_resolver
 
@@ -289,8 +290,32 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
 
         mail.outbox = []
 
-    def test_init_with_html_body(self):
-        """Testing EmailMessage.__init__ with html_body="""
+    def test_init_with_text_body_as_unicode(self):
+        """Testing EmailMessage.__init__ with text_body=<unicode>"""
+        # auto_generated is True by default, so test with that case to ensure
+        # it doesn't unintentionally change.
+        email = EmailMessage(subject='Test email',
+                             text_body=b'This is a test.',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'])
+
+        self.assertEqual(email.body, 'This is a test.')
+        self.assertIsInstance(email.body, six.text_type)
+
+    def test_init_with_text_body_as_bytes(self):
+        """Testing EmailMessage.__init__ with text_body=<bytes>"""
+        # auto_generated is True by default, so test with that case to ensure
+        # it doesn't unintentionally change.
+        email = EmailMessage(subject='Test email',
+                             text_body=b'This is a test.',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'])
+
+        self.assertEqual(email.body, 'This is a test.')
+        self.assertIsInstance(email.body, six.text_type)
+
+    def test_init_with_html_body_as_unicode(self):
+        """Testing EmailMessage.__init__ with html_body=<unicode>"""
         # auto_generated is True by default, so test with that case to ensure
         # it doesn't unintentionally change.
         email = EmailMessage(subject='Test email',
@@ -301,6 +326,21 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
 
         self.assertEqual(email.alternatives,
                          [('<p>This is a test.</p>', 'text/html')])
+        self.assertIsInstance(email.alternatives[0][0], six.text_type)
+
+    def test_init_with_html_body_as_bytes(self):
+        """Testing EmailMessage.__init__ with html_body=<bytes>"""
+        # auto_generated is True by default, so test with that case to ensure
+        # it doesn't unintentionally change.
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             html_body=b'<p>This is a test.</p>',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'])
+
+        self.assertEqual(email.alternatives,
+                         [('<p>This is a test.</p>', 'text/html')])
+        self.assertIsInstance(email.alternatives[0][0], six.text_type)
 
     def test_message_with_from(self):
         """Testing EmailMessage.message with from_email="""
