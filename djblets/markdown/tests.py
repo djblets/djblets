@@ -22,6 +22,11 @@ class MarkdownTestCase(TestCase):
                 'fenced_code', 'codehilite', 'sane_lists', 'smart_strong',
                 'nl2br', 'djblets.markdown.extensions.wysiwyg',
             ],
+            extension_configs={
+                'codehilite': {
+                    'guess_lang': False,
+                },
+            },
         )
 
 
