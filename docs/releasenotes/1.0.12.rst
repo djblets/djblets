@@ -1,0 +1,25 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+============================
+Djblets 1.0.12 Release Notes
+============================
+
+**Release date**: June 11, 2019
+
+
+djblets.avatars
+===============
+
+* Fixed a case where the fallback avatar service wasn't being used.
+  (:bug:`4800`)
+
+  The fallback avatar service wasn't being considered if there was a default
+  avatar service of ``None``. This could happen if the administrator didn't
+  have one configured.
+
+* Avatar rendering and URL fetching no longer requires an ``HttpRequest``.
+
+  This allows avatars to be rendered outside of an HTTP request/response
+  process. Note that custom avatar backends may still need to be updated to
+  make the ``HttpRequest`` optional in their implementations.
