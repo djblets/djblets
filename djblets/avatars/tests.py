@@ -12,6 +12,7 @@ from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
 from django.utils.html import mark_safe
+from django.utils.safestring import SafeText
 from kgb import SpyAgency
 
 from djblets.avatars.errors import DisabledServiceError
@@ -49,10 +50,11 @@ class DummySettingsManager(AvatarSettingsManager):
         """The configuration.
 
         Returns:
-            dict: The configuration."""
+            dict: The configuration.
+        """
         return self._settings
 
-    def __init__(self, avatar_service_id, settings):
+    def __init__(self, avatar_service_id, settings={}):
         """Initialize the settings manager.
 
         Args:
@@ -166,6 +168,31 @@ class DummyHighDPIAvatarService(DummyAvatarService):
         return urls
 
 
+class AvatarServiceTestCase(TestCase):
+    """Base test case for avatar service backend tests."""
+
+    #: The avatar service class.
+    avatar_service_cls = None
+
+    @classmethod
+    def setUpClass(cls):
+        super(AvatarServiceTestCase, cls).setUpClass()
+
+        cls._request_factory = RequestFactory()
+
+    def setUp(self):
+        super(AvatarServiceTestCase, self).setUp()
+
+        self.settings_manager = DummySettingsManager(
+            self.avatar_service_cls.avatar_service_id)
+        self.service = self.avatar_service_cls(self.settings_manager)
+        self.request = self._request_factory.get('/')
+        self.user = User(username='username',
+                         email='username@example.com',
+                         first_name='User',
+                         last_name='Name')
+
+
 class AvatarServiceTests(SpyAgency, TestCase):
     """Tests for djblets.avatars.services.base."""
 
@@ -183,14 +210,16 @@ class AvatarServiceTests(SpyAgency, TestCase):
                          first_name='User',
                          last_name='Name')
 
-    def test_default_urls(self):
-        """Testing AvatarService.get_avatar_urls default implementation"""
+    def test_get_avatar_urls(self):
+        """Testing AvatarService.get_avatar_urls"""
         service = AvatarService(DummySettingsManager)
 
         self.spy_on(logger.error)
 
         self.assertEqual(
-            service.get_avatar_urls(self.request, self.user, 32),
+            service.get_avatar_urls(request=self.request,
+                                    user=self.user,
+                                    size=32),
             {
                 '1x': '',
                 '2x': '',
@@ -199,34 +228,6 @@ class AvatarServiceTests(SpyAgency, TestCase):
         )
 
         self.assertTrue(logger.error.spy.called)
-
-    def test_default_etag_data(self):
-        """Testing AvatarService.get_etag_dagta default implementation"""
-        service = DummyAvatarService(DummySettingsManager)
-
-        self.assertEqual(
-            service.get_etag_data(self.user), ['dummy', None])
-
-    def test_render(self):
-        """Testing AvatarService.render at 1x resolution."""
-        service = DummyAvatarService(DummySettingsManager)
-        self.assertHTMLEqual(
-            service.render(self.request, self.user, 24),
-            '<img src="http://example.com/avatar.png" alt="username"'
-            ' width="24" height="24"'
-            ' srcset="http://example.com/avatar.png 1x"'
-            ' class="avatar djblets-o-avatar">')
-
-    def test_render_2x(self):
-        """Testing AvatarService.render at 2x resolution."""
-        service = DummyHighDPIAvatarService(DummySettingsManager)
-        self.assertHTMLEqual(
-            service.render(self.request, self.user, 24),
-            '<img src="http://example.com/avatar.png" alt="username"'
-            ' width="24" height="24"'
-            ' srcset="http://example.com/avatar.png 1x,'
-            ' http://example.com/avatar@2x.png 2x"'
-            ' class="avatar djblets-o-avatar">')
 
     def test_get_avatar_urls_caching(self):
         """Testing AvatarService.get_avatar_urls caching"""
@@ -241,27 +242,71 @@ class AvatarServiceTests(SpyAgency, TestCase):
                       service.get_avatar_urls(self.request, self.user, 32))
         self.assertEqual(len(service.get_avatar_urls_uncached.calls), 2)
 
+    def test_get_avatar_urls_with_request_none(self):
+        """Testing AvatarService.get_avatar_urls with request=None"""
+        service = DummyAvatarService(DummySettingsManager)
 
-class FallbackServiceTests(TestCase):
+        self.assertEqual(
+            service.get_avatar_urls(request=None,
+                                    user=self.user,
+                                    size=32),
+            {
+                '1x': 'http://example.com/avatar.png',
+                '2x': None,
+            }
+        )
+
+    def test_default_etag_data(self):
+        """Testing AvatarService.get_etag_dagta default implementation"""
+        service = DummyAvatarService(DummySettingsManager)
+
+        self.assertEqual(
+            service.get_etag_data(self.user), ['dummy', None])
+
+    def test_render(self):
+        """Testing AvatarService.render at 1x resolution."""
+        service = DummyAvatarService(DummySettingsManager)
+        html = service.render(request=self.request,
+                              user=self.user,
+                              size=24)
+
+        self.assertIsInstance(html, SafeText)
+        self.assertHTMLEqual(
+            html,
+            '<img src="http://example.com/avatar.png" alt="username"'
+            ' width="24" height="24"'
+            ' srcset="http://example.com/avatar.png 1x"'
+            ' class="avatar djblets-o-avatar">')
+
+    def test_render_2x(self):
+        """Testing AvatarService.render at 2x resolution."""
+        service = DummyHighDPIAvatarService(DummySettingsManager)
+        html = service.render(request=self.request,
+                              user=self.user,
+                              size=24)
+
+        self.assertIsInstance(html, SafeText)
+        self.assertHTMLEqual(
+            html,
+            '<img src="http://example.com/avatar.png" alt="username"'
+            ' width="24" height="24"'
+            ' srcset="http://example.com/avatar.png 1x,'
+            ' http://example.com/avatar@2x.png 2x"'
+            ' class="avatar djblets-o-avatar">')
+
+    def test_render_with_request_none(self):
+        """Testing AvatarService.render with request=None"""
+        self.request = None
+        self.test_render()
+
+
+class FallbackServiceTests(AvatarServiceTestCase):
     """Tests for djblets.avatars.services.fallback.FallbackService."""
 
-    @classmethod
-    def setUpClass(cls):
-        super(FallbackServiceTests, cls).setUpClass()
-        cls._request_factory = RequestFactory()
-
-    def setUp(self):
-        super(FallbackServiceTests, self).setUp()
-
-        self.service = FallbackService(DummySettingsManager)
-        self.request = self._request_factory.get('/')
-        self.user = User(username='username',
-                         email='username@example.com',
-                         first_name='User',
-                         last_name='Name')
+    avatar_service_cls = FallbackService
 
     def test_urls(self):
-        """Testing GravatarService.get_avatar_urls"""
+        """Testing FallbackService.get_avatar_urls"""
         urls = self.service.get_avatar_urls(self.request, self.user, 48)
 
         self.assertEqual(
@@ -277,6 +322,7 @@ class FallbackServiceTests(TestCase):
         html = self.service.render(request=self.request,
                                    user=self.user,
                                    size=48)
+        self.assertIsInstance(html, SafeText)
 
         self.assertHTMLEqual(
             html,
@@ -288,24 +334,16 @@ class FallbackServiceTests(TestCase):
             'US'
             '</span>')
 
+    def test_render_with_request_none(self):
+        """Testing FallbackService.render with request=None"""
+        self.request = None
+        self.test_render()
 
-class GravatarServiceTests(TestCase):
+
+class GravatarServiceTests(AvatarServiceTestCase):
     """Tests for djblets.avatars.services.gravatar."""
 
-    @classmethod
-    def setUpClass(cls):
-        super(GravatarServiceTests, cls).setUpClass()
-        cls._request_factory = RequestFactory()
-
-    def setUp(self):
-        super(GravatarServiceTests, self).setUp()
-
-        self.service = GravatarService(DummySettingsManager)
-        self.request = self._request_factory.get('/')
-        self.user = User(username='username',
-                         email='username@example.com',
-                         first_name='User',
-                         last_name='Name')
+    avatar_service_cls = GravatarService
 
     def test_urls(self):
         """Testing GravatarService.get_avatar_urls"""
@@ -318,8 +356,8 @@ class GravatarServiceTests(TestCase):
             urls['2x'],
             get_gravatar_url_for_email(email=self.user.email, size=96))
 
-    def test_render_safely(self):
-        """Testing GravatarService.render renders to HTML safely"""
+    def test_get_avatar_urls_with_rating(self):
+        """Testing GravatarService.get_avatar_urls with GRAVATAR_RATING"""
         with self.settings(GRAVATAR_RATING='G'):
             urls = self.service.get_avatar_urls(self.request, self.user, 48)
 
@@ -327,6 +365,30 @@ class GravatarServiceTests(TestCase):
         self.assertNotIn('&amp;', urls['1x'])
         self.assertIn('&', urls['2x'])
         self.assertNotIn('&amp;', urls['2x'])
+
+    def test_render(self):
+        """Testing GravatarService.render"""
+        html = self.service.render(request=self.request,
+                                   user=self.user,
+                                   size=48)
+
+        self.assertIsInstance(html, SafeText)
+        self.assertHTMLEqual(
+            html,
+            '<img alt="username" class="avatar djblets-o-avatar" height="48" '
+            ' src="%(gravatar_url_base)s?s=48"'
+            ' srcset="%(gravatar_url_base)s?s=48 1x,'
+            ' %(gravatar_url_base)s?s=96 2x,'
+            ' %(gravatar_url_base)s?s=144 3x" width="48" />'
+            % {
+                'gravatar_url_base': 'https://secure.gravatar.com/avatar/'
+                                     '5f0efb20de5ecfedbe0bf5e7c12353fe',
+            })
+
+    def test_render_with_request_none(self):
+        """Testing GravatarService.render with request=None"""
+        self.request = None
+        self.test_render()
 
     def test_user_without_email(self):
         """Testing GravatarService.render with a user without an email
@@ -345,14 +407,10 @@ class GravatarServiceTests(TestCase):
         })
 
 
-class URLAvatarServiceTests(SpyAgency, TestCase):
+class URLAvatarServiceTests(SpyAgency, AvatarServiceTestCase):
     """Tests for djblets.avatars.services.url."""
 
-    def setUp(self):
-        super(URLAvatarServiceTests, self).setUp()
-        self.settings_manager = DummySettingsManager(
-            URLAvatarService.avatar_service_id, {})
-        self.service = URLAvatarService(self.settings_manager)
+    avatar_service_cls = URLAvatarService
 
     def test_setup(self):
         """Testing URLAvatarService.setup"""
@@ -380,6 +438,32 @@ class URLAvatarServiceTests(SpyAgency, TestCase):
         self.assertEqual(
             urls,
             self.service.get_avatar_urls_uncached(User(), None))
+
+    def test_render(self):
+        """Testing URLAvatarService.render"""
+        urls = {
+            '1x': 'http://example.com/foo.jpg',
+            '2x': 'http://example.com/bar@2x.jpg',
+        }
+        self.settings_manager.configuration_for(
+            URLAvatarService.avatar_service_id).update(urls)
+
+        html = self.service.render(request=self.request,
+                                   user=self.user,
+                                   size=48)
+
+        self.assertIsInstance(html, SafeText)
+        self.assertHTMLEqual(
+            html,
+            '<img alt="username" class="avatar djblets-o-avatar" height="48"'
+            ' src="http://example.com/foo.jpg"'
+            ' srcset="http://example.com/foo.jpg 1x,'
+            ' http://example.com/bar@2x.jpg 2x" width="48" />')
+
+    def test_render_with_request_none(self):
+        """Testing URLAvatarService.render with request=None"""
+        self.request = None
+        self.test_render()
 
 
 class AvatarServiceRegistryTests(SpyAgency, TestCase):
@@ -1070,6 +1154,23 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         with self.siteconfig_settings(settings):
             self.assertIsInstance(registry.for_user(user),
                                   registry.fallback_service_class)
+
+    def test_for_user_default_service_none_and_no_configured_services(self):
+        """Testing AvatarServiceRegistry.for_user with None as default
+        avatar service and no user-configured services
+        """
+        class DummyAvatarServiceRegistry(AvatarServiceRegistry):
+            settings_manager_class = DummySettingsManager(
+                GravatarService.avatar_service_id, {})
+            default_avatar_service_classes = []
+
+        registry = DummyAvatarServiceRegistry()
+        registry.set_default_service(None, save=False)
+
+        user = User.objects.create(username='test-user')
+
+        self.assertIsInstance(registry.for_user(user),
+                              registry.fallback_service_class)
 
 
 @requires_user_profile

@@ -349,6 +349,7 @@ Registries
 
    djblets.registries
    djblets.registries.errors
+   djblets.registries.importer
    djblets.registries.mixins
    djblets.registries.registry
    djblets.registries.signals
@@ -442,6 +443,7 @@ Generic Utilities
    djblets.util.http
    djblets.util.humanize
    djblets.util.json_utils
+   djblets.util.properties
    djblets.util.serializers
    djblets.util.templatetags.djblets_deco
    djblets.util.templatetags.djblets_email

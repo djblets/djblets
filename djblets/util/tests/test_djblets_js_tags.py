@@ -20,3 +20,14 @@ class JSONDumpsFilterTests(TestCase):
             json_dumps(obj),
             '{"xss": "\\u003C/script\\u003E\\u003Cscript\\u003E'
             'alert(1);\\u003C/script\\u003E"}')
+
+    def test_sorted_keys(self):
+        """Testing {{...|json_dumps}} sorts dictionary keys"""
+        self.assertEqual(
+            json_dumps({
+                'a': 1,
+                'b': 2,
+                'z': 3,
+                '0': 4,
+            }),
+            '{"0": 4, "a": 1, "b": 2, "z": 3}')

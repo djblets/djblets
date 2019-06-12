@@ -224,7 +224,7 @@ class UpdateFormMixinTests(SpyAgency, TestCase):
                     'custom': True,
                 })
 
-        self.assertEqual(ctx.exception.error_dict, {
+        self.assertEqual(ctx.exception.message_dict, {
             'username': ['This field is just bad.'],
             'password': ['This field is just bad.'],
         })

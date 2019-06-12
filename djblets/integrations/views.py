@@ -73,7 +73,8 @@ class IntegrationListContextViewMixin(NeedsIntegrationManagerMixin):
             'csrfToken': self.request.META['CSRF_COOKIE'],
             'integrationIDs': sorted(
                 integration_ids,
-                key=lambda integration_id: integrations_map[integration_id]),
+                key=lambda integration_id:
+                    integrations_map[integration_id]['name']),
             'integrationsMap': integrations_map,
         }
 

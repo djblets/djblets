@@ -63,6 +63,5 @@ def build_integration_urlpatterns(list_view_cls, config_form_view_cls,
 
     return [
         url('', include(urlpatterns,
-                        namespace=namespace,
-                        app_name='integrations')),
+                        namespace=namespace)),
     ]

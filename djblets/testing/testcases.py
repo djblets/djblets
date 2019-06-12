@@ -34,6 +34,7 @@ import socket
 import sys
 import threading
 import types
+import warnings
 from collections import OrderedDict
 from contextlib import contextmanager
 from importlib import import_module
@@ -213,6 +214,55 @@ class TestCase(testcases.TestCase):
         return six.assertRaisesRegex(
             self, expected_exception, re.escape(expected_message),
             *args, **kwargs)
+
+    @contextmanager
+    def assertWarns(self, cls=DeprecationWarning, message=None):
+        """Assert that a warning is generated with a given message.
+
+        This method only supports code which generates a single warning.
+        Tests which make use of code generating multiple warnings will
+        need to manually catch their warnings.
+
+        Args:
+            cls (type, optional):
+                The expected warning type.
+
+            message (unicode, optional):
+                The expected error message, if any.
+
+        Context:
+            The test to run.
+        """
+        with warnings.catch_warnings(record=True) as w:
+            # Some warnings such as DeprecationWarning are filtered by
+            # default, stop filtering them.
+            warnings.simplefilter('always')
+            self.assertEqual(len(w), 0)
+
+            yield
+
+            self.assertEqual(len(w), 1)
+            self.assertTrue(issubclass(w[-1].category, cls))
+
+            if message is not None:
+                self.assertEqual(message, six.text_type(w[-1].message))
+
+    @contextmanager
+    def assertNoWarnings(self):
+        """Assert that a warning is not generated.
+
+        Context:
+            The test to run.
+        """
+        with warnings.catch_warnings(record=True) as w:
+            # Some warnings such as DeprecationWarning are filtered by
+            # default, stop filtering them.
+            warnings.simplefilter('always')
+            self.assertEqual(len(w), 0)
+
+            yield
+
+            self.assertEqual(len(w), 0)
 
 
 class TestModelsLoaderMixin(object):

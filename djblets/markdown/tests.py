@@ -26,6 +26,11 @@ class MarkdownTestCase(TestCase):
                 'djblets.markdown.extensions.escape_html',
                 'djblets.markdown.extensions.wysiwyg',
             ],
+            extension_configs={
+                'markdown.extensions.codehilite': {
+                    'guess_lang': False,
+                },
+            },
         )
 
 

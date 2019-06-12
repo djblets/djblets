@@ -855,6 +855,8 @@ def querystring(context, mode, *args):
                             values.remove(value)
                         except ValueError:
                             pass
+
+                    query.setlist(attr, values)
     elif mode == 'append':
         for arg in args:
             query.update(QueryDict(arg))
