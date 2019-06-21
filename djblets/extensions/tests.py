@@ -32,7 +32,6 @@ import threading
 import time
 import warnings
 
-import django
 import nose
 import pkg_resources
 from django import forms
@@ -41,7 +40,6 @@ from django.conf.urls import include, url
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.core.exceptions import ImproperlyConfigured
-from django.core.management import call_command
 from django.db import connection
 from django.dispatch import Signal
 from django.template import (Context, RequestContext, Template,
@@ -49,7 +47,7 @@ from django.template import (Context, RequestContext, Template,
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
 from django.utils import six
-from django.utils.six.moves import cPickle as pickle
+from django_evolution.evolve import Evolver
 from kgb import SpyAgency
 from mock import Mock
 from pipeline.conf import settings as pipeline_settings
@@ -60,11 +58,6 @@ try:
 except ImportError:
     # Django >= 1.9
     get_templatetags_modules = None
-
-try:
-    import django_evolution
-except ImportError:
-    django_evolution = None
 
 from djblets.datagrid.grids import Column, DataGrid
 from djblets.extensions.extension import Extension, ExtensionInfo
@@ -1205,11 +1198,12 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         Template('{% load djblets_js djblets_extensions %}').render(
             Context({}))
 
-    def test_enable_extension_syncdb_with_models(self):
+    def test_enable_extension_evolve_with_models(self):
         """Testing ExtensionManager.enable_extension synchronizes database
         models
         """
-        self.spy_on(call_command)
+        self.spy_on(Evolver.evolve,
+                    owner=Evolver)
 
         class TestExtension(Extension):
             apps = [
@@ -1218,14 +1212,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
 
         extension = self.setup_extension(TestExtension)
 
-        # There should be a call to call_command for either syncdb or
-        # migrate (depending on Django version). Note that syncdb at least
-        # will perform its own calls, so we don't want to expect a certain
-        # number of calls.
-        if django.VERSION[:2] >= (1, 7):
-            self.assertTrue(call_command.called_with('migrate'))
-        else:
-            self.assertTrue(call_command.called_with('syncdb'))
+        self.assertTrue(Evolver.evolve.called)
 
         from djblets.extensions.test.model_tests.models import \
             TestExtensionModel
@@ -1239,11 +1226,12 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         self.manager.enable_extension(extension.id)
         self.assertEqual(TestExtensionModel.objects.count(), 1)
 
-    def test_enable_extension_syncdb_without_models(self):
+    def test_enable_extension_evolve_without_models(self):
         """Testing ExtensionManager.enable_extension does not synchronize
         database models if extension does not have any
         """
-        self.spy_on(call_command)
+        self.spy_on(Evolver.evolve,
+                    owner=Evolver)
 
         class TestExtension(Extension):
             apps = [
@@ -1252,19 +1240,17 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
 
         self.setup_extension(TestExtension)
 
-        self.assertFalse(call_command.called)
+        self.assertFalse(Evolver.evolve.called)
 
     def test_enable_extension_evolve_with_pending_evolutions(self):
         """Testing ExtensionManager.enable_extension evolves database models
         when pending evolutions found
         """
-        if django_evolution is None:
-            raise nose.SkipTest()
-
         from django_evolution.models import Version
-        from django_evolution.signature import create_model_sig
+        from django_evolution.signature import AppSignature, ModelSignature
 
-        self.spy_on(call_command)
+        self.spy_on(Evolver.evolve,
+                    owner=Evolver)
 
         class TestExtension(Extension):
             apps = [
@@ -1274,33 +1260,29 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         # We need to set some initial state in the database for the model and
         # for the evolution history.
         connection.cursor().execute(
-            'CREATE TABLE evolve_tests_testextensionmodel ('
+            'CREATE TABLE evolve_tests_testevolveextensionmodel ('
             '    id INTEGER PRIMARY KEY AUTOINCREMENT,'
             '    test_field VARCHAR(16) NOT NULL'
             ')')
 
-        from djblets.extensions.test.model_tests.models import \
-            TestExtensionModel
+        from djblets.extensions.test.evolve_tests.models import \
+            TestEvolveExtensionModel
 
         latest_version = Version.objects.current_version()
-        sig = pickle.loads(latest_version.signature.encode('latin1'))
 
-        model_sig = create_model_sig(TestExtensionModel)
-        model_sig['meta']['db_table'] = 'evolve_tests_testevolveextensionmodel'
+        model_sig = ModelSignature.from_model(TestEvolveExtensionModel)
+        model_sig.remove_field_sig('new_field')
 
-        sig['evolve_tests'] = {
-            'TestEvolveExtensionModel': model_sig,
-        }
+        app_sig = AppSignature(app_id='evolve_tests')
+        app_sig.add_model_sig(model_sig)
 
-        Version.objects.create(signature=pickle.dumps(sig, protocol=0))
+        latest_version.signature.add_app_sig(app_sig)
+        latest_version.save()
 
         # We can now enable the extension, which will perform an evolution.
         extension = self.setup_extension(TestExtension)
 
-        self.assertTrue(call_command.called_with('evolve'))
-
-        from djblets.extensions.test.evolve_tests.models import \
-            TestEvolveExtensionModel
+        self.assertTrue(Evolver.evolve.called)
 
         # We should be able to create entries and query them.
         TestEvolveExtensionModel.objects.create(test_field='test')
@@ -1323,13 +1305,11 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager.enable_extension evolves database models
         when all evolutions are already applied
         """
-        if django_evolution is None:
-            raise nose.SkipTest()
-
         from django_evolution.models import Evolution, Version
-        from django_evolution.signature import create_model_sig
+        from django_evolution.signature import AppSignature, ModelSignature
 
-        self.spy_on(call_command)
+        self.spy_on(Evolver.evolve,
+                    owner=Evolver)
 
         class TestExtension(Extension):
             apps = [
@@ -1339,7 +1319,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         # We need to set some initial state in the database for the model and
         # for the evolution history.
         connection.cursor().execute(
-            'CREATE TABLE evolve_tests_testextensionmodel ('
+            'CREATE TABLE evolve_tests_testevolveextensionmodel ('
             '    id INTEGER PRIMARY KEY AUTOINCREMENT,'
             '    test_field VARCHAR(16) NOT NULL'
             ')')
@@ -1348,16 +1328,17 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
             TestExtensionModel
 
         latest_version = Version.objects.current_version()
-        sig = pickle.loads(bytes(latest_version.signature))
+        signature = latest_version.signature.clone()
 
-        model_sig = create_model_sig(TestExtensionModel)
-        model_sig['meta']['db_table'] = 'evolve_tests_testevolveextensionmodel'
+        model_sig = ModelSignature.from_model(TestExtensionModel)
+        model_sig.model_name = 'TestEvolveExtensionModel'
+        model_sig.table_name = 'evolve_tests_testevolveextensionmodel'
 
-        sig['evolve_tests'] = {
-            'TestEvolveExtensionModel': model_sig,
-        }
+        app_sig = AppSignature(app_id='evolve_tests')
+        app_sig.add_model_sig(model_sig)
+        signature.add_app_sig(app_sig)
 
-        version = Version.objects.create(signature=pickle.dumps(sig))
+        version = Version.objects.create(signature=signature)
         Evolution.objects.create(version=version,
                                  app_label='evolve_tests',
                                  label='add_new_field')
@@ -1365,25 +1346,7 @@ class ExtensionManagerTest(SpyAgency, ExtensionTestsMixin, TestCase):
         # We can now enable the extension, which will perform an evolution.
         self.setup_extension(TestExtension)
 
-        self.assertFalse(call_command.called_with('evolve'))
-
-    def test_enable_extension_evolve_without_evolutions(self):
-        """Testing ExtensionManager.enable_extension does not evolve database
-        models if extension does not have evolutions
-        """
-        if django_evolution is None:
-            raise nose.SkipTest()
-
-        self.spy_on(call_command)
-
-        class TestExtension(Extension):
-            apps = [
-                'djblets.extensions.test.model_tests',
-            ]
-
-        self.setup_extension(TestExtension)
-
-        self.assertFalse(call_command.called_with('evolve'))
+        self.assertFalse(Evolver.evolve.called)
 
     def test_disable_unregisters_static_bundles(self):
         """Testing ExtensionManager unregisters static bundles when disabling

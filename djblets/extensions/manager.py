@@ -13,28 +13,26 @@ import tempfile
 import threading
 import time
 import traceback
+import warnings
 import weakref
 from importlib import import_module
 
 from django.conf import settings
 from django.conf.urls import include, url
 from django.contrib.admin.sites import AdminSite
-from django.core.management import call_command
-from django.core.management.base import CommandError
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError
-from django.db.utils import DEFAULT_DB_ALIAS
 from django.utils import six
 from django.utils.module_loading import module_has_submodule
-from django.utils.six.moves import cStringIO as StringIO, reload_module
+from django.utils.six.moves import reload_module
 from django.utils.translation import ugettext as _
 from pipeline.conf import settings as pipeline_settings
 from setuptools.command import easy_install
 
 try:
-    from django_evolution.evolve import get_unapplied_evolutions
+    from django_evolution.evolve import Evolver
 except ImportError:
-    get_unapplied_evolutions = None
+    Evolver = None
 
 try:
     # Django >= 1.7
@@ -935,6 +933,9 @@ class ExtensionManager(object):
         This will create any database tables that need to be created and
         the perform a database migration, if needed.
 
+        This requires that Django Evolution be installed. Otherwise, models
+        will not be synced to the database.
+
         Args:
             ext_class (type):
                 The extension class owning the database models.
@@ -942,6 +943,11 @@ class ExtensionManager(object):
             new_installed_app_names (list of unicode):
                 The list of new Django app names that are installed by an
                 extension.
+
+        Raises:
+            djblets.extensions.errors.InstallExtensionError:
+                The extension's database entries could not be installed to
+                the database or upgraded.
         """
         installed_apps = self._get_app_modules_with_models(
             new_installed_app_names)
@@ -949,16 +955,27 @@ class ExtensionManager(object):
         if not installed_apps:
             return
 
-        if apps:
-            # Django >= 1.7
-            call_command('migrate', run_syncdb=True, verbosity=0,
-                         interactive=False)
-        else:
-            # Django == 1.6
-            call_command('syncdb', verbosity=0, interactive=False)
+        if not Evolver:
+            warnings.warn('Extension database models will not be synced '
+                          'to the database. Django Evolution must be '
+                          'installed.')
+            return
 
-        # Run evolve to do any table modification.
-        self._migrate_extension_models(ext_class, installed_apps)
+        evolver = Evolver()
+
+        for app in installed_apps:
+            evolver.queue_evolve_app(app)
+
+        if evolver.get_evolution_required():
+            try:
+                evolver.evolve()
+            except Exception as e:
+                logger.exception('Error evolving extension models for %s: %s',
+                                 ext_class.id, e)
+
+                raise InstallExtensionError(
+                    six.text_type(e),
+                    self._store_load_error(ext_class.id, e))
 
     def _get_app_modules_with_models(self, app_names):
         """Return app modules containing models for each app name.
@@ -1501,62 +1518,6 @@ class ExtensionManager(object):
 
         self._gen_sync.mark_updated()
         settings.AJAX_SERIAL = self._gen_sync.sync_gen
-
-    def _migrate_extension_models(self, ext_class, installed_apps):
-        """Perform database migrations for an extension's models.
-
-        This will call out to Django Evolution to handle the migrations.
-
-        Args:
-            ext_class (djblets.extensions.extension.Extension):
-                The class for the extension to migrate.
-
-            installed_apps (list of module):
-                The list of app modules (technically :file:`models.py`-like
-                modules -- this is a legacy Django definition) to migrate.
-        """
-        if get_unapplied_evolutions is None:
-            # Django Evolution isn't installed. Extensions with evolutions
-            # are not supported.
-            return
-
-        needs_evolution = any(
-            get_unapplied_evolutions(installed_app, DEFAULT_DB_ALIAS)
-            for installed_app in installed_apps
-        )
-
-        if not needs_evolution:
-            # This extension either doesn't use evolutions, or doesn't have
-            # any that need to be applied.
-            return
-
-        try:
-            stream = StringIO()
-            call_command('evolve',
-                         verbosity=0,
-                         interactive=False,
-                         execute=True,
-                         stdout=stream,
-                         stderr=stream)
-            output = stream.getvalue()
-
-            if output:
-                logger.info('Evolved extension models for %s: %s',
-                            ext_class.id, stream.read())
-
-            stream.close()
-        except CommandError as e:
-            # Something went wrong while running django-evolution, so
-            # grab the output.  We can't raise right away because we
-            # still need to put stdout back the way it was
-            output = stream.getvalue()
-            stream.close()
-
-            logger.exception('Error evolving extension models: %s: %s',
-                             e, output)
-
-            load_error = self._store_load_error(ext_class.id, output)
-            raise InstallExtensionError(six.text_type(e), load_error)
 
     def _recalculate_middleware(self):
         """Recalculate the list of middleware.
