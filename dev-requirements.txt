@@ -1,6 +1,6 @@
 beanbag-docutils>=1.6
 coverage
-django_evolution>=0.7.6
+django_evolution>=2.0.dev
 kgb>=2.0
 nose
 Markdown>=2.6.8,<2.6.999
