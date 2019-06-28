@@ -33,5 +33,5 @@ if __name__ == '__main__':
         # Django >= 1.7
         django.setup()
 
-    ret = call_command('collectstatic', interactive=False, verbosity=2)
-    sys.exit(ret)
+    # This will raise a CommandError or call sys.exit(1) on failure.
+    call_command('collectstatic', interactive=False, verbosity=2)
