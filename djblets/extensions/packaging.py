@@ -10,6 +10,7 @@ import sys
 from distutils.errors import DistutilsExecError
 from fnmatch import fnmatch
 
+import django
 import pkg_resources
 from django.core.management import call_command
 from django.utils import six
@@ -256,6 +257,11 @@ class BuildStaticFiles(Command):
         # media.
         old_settings_module = os.environ.get('DJANGO_SETTINGS_MODULE')
         os.environ['DJANGO_SETTINGS_MODULE'] = self.django_settings_module
+
+        if hasattr(django, 'setup'):
+            # Django >= 1.7
+            django.setup()
+
         cwd = os.getcwd()
         sys.path = [
             os.path.join(cwd, package_name)
