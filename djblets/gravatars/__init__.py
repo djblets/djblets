@@ -32,13 +32,11 @@ from django.conf import settings
 from django.http import QueryDict
 from django.utils import six
 
-from djblets.deprecation import RemovedInDjblets20Warning
-
 
 default_app_config = 'djblets.gravatars.apps.GravatarsAppConfig'
 
 
-def get_gravatar_url_for_email(request=None, email=None, size=None):
+def get_gravatar_url_for_email(email=None, size=None):
     """Return the Gravatar URL for an e-mail address.
 
     The returned URL will always use HTTPS.
@@ -48,9 +46,6 @@ def get_gravatar_url_for_email(request=None, email=None, size=None):
     if using :py:mod:`djblets.avatars`.
 
     Args:
-        request (django.http.HttpRequest):
-            Ignored. This argument will be removed in Djblets 2.0.
-
         email (unicode):
             The e-mail address to get the Gravatar URL for.
 
@@ -61,13 +56,6 @@ def get_gravatar_url_for_email(request=None, email=None, size=None):
         unicode:
         The URL for the Gravatar associated with the given e-mail address.
     """
-    if request is not None:
-        warn("djblets.gravatars.get_gravatar_url_for_email's request "
-             "argument is deprecated and should be None. It will be removed "
-             "in Djblets 2.0. Use get_gravatar_url_for_email(email=email, "
-             "size=size) instead.",
-             RemovedInDjblets20Warning)
-
     if email:
         email = email.strip().lower()
 
@@ -99,7 +87,7 @@ def get_gravatar_url_for_email(request=None, email=None, size=None):
     return url
 
 
-def get_gravatar_url(request=None, user=None, size=None):
+def get_gravatar_url(user=None, size=None):
     """Return the Gravatar URL for a user.
 
     The returned URL will always use HTTPS.
@@ -109,9 +97,6 @@ def get_gravatar_url(request=None, user=None, size=None):
     if using :py:mod:`djblets.avatars`.
 
     Args:
-        request (django.http.HttpRequest):
-            Ignored. This argument will be removed in Djblets 2.0.
-
         user (django.contrib.auth.models.User):
             The user whose Gravatar URL is to be retrieved.
 
@@ -126,12 +111,6 @@ def get_gravatar_url(request=None, user=None, size=None):
         ValueError:
             Raised if ``user`` is ``None``.
     """
-    if request is not None:
-        warn("djblets.gravatars.get_gravatar_url's request request argument "
-             "is deprecated and should be None. It will be removed in Djblets "
-             "2.0. Use get_gravatar_url(user=user, size=size) instead.",
-             RemovedInDjblets20Warning)
-
     if user is None:
         raise ValueError('"user" cannot be None.')
 

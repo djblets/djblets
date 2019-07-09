@@ -9,7 +9,6 @@ from django.template.context import RequestContext
 from django.utils import six
 from django.utils.translation import ugettext_lazy as _
 
-from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.util.compat.django.template.loader import render_to_string
 
 
@@ -81,22 +80,6 @@ class ConfigPageForm(forms.Form):
 
         self.fields['form_target'].initial = self.form_id
         self.load()
-
-    @property
-    def profile(self):
-        """The current user's profile.
-
-        .. deprecated:: 1.0.4
-
-           Callers should not depend on this being around. Instead, they
-           should query for the profile and set it themselves if they need
-           one.
-        """
-        warnings.warn('ConfigFormPage.profile is deprecated. Update your code '
-                      'to fetch the profile manually instead.',
-                      RemovedInDjblets20Warning)
-
-        return self.user.get_profile()
 
     def set_initial(self, field_values):
         """Set the initial fields for the form based on provided data.

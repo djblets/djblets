@@ -13,7 +13,6 @@ from djblets.avatars.services.fallback import FallbackService
 from djblets.avatars.services.gravatar import GravatarService
 from djblets.avatars.services.url import URLAvatarService
 from djblets.avatars.settings import AvatarSettingsManager
-from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.privacy.consent import Consent, get_consent_tracker
 from djblets.registries.registry import (ALREADY_REGISTERED,
                                          ATTRIBUTE_REGISTERED, DEFAULT_ERRORS,
@@ -215,33 +214,6 @@ class AvatarServiceRegistry(Registry):
                 services.add(service)
 
         return services
-
-    @enabled_services.setter
-    def enabled_services(self, services):
-        """Set the enabled services.
-
-        If the default service would be disabled by setting the set of enabled
-        services, the default service will be set to ``None``.
-
-        This is equivalent to setting :py:attr:`enabled_services` with
-        ``save=True``. It's considered deprecated in favor of that method.
-
-        Args:
-            services (set):
-                The set of services to set as enabled. Each element must be a
-                subclass of :py:class:`~djblets.avatars.service.AvatarService`.
-
-        Raises:
-            djblets.avatars.errors.AvatarServiceNotFoundError:
-                This exception is raised when an unknown avatar service is
-                enabled.
-        """
-        warnings.warn('Setting AvatarServiceRegistry.enabled_services is '
-                      'deprecated in favor of calling '
-                      'AvatarServiceRegistry.set_enabled_services.',
-                      RemovedInDjblets20Warning)
-
-        self.set_enabled_services(services, save=True)
 
     def set_enabled_services(self, services, save=True):
         """Set the enabled services.

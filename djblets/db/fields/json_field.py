@@ -15,7 +15,6 @@ from django.utils import six
 from django.utils.translation import ugettext_lazy as _
 
 from djblets.db.validators import validate_json
-from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.util.decorators import cached_property
 from djblets.util.serializers import DjbletsJSONEncoder
 
@@ -155,8 +154,8 @@ class JSONField(models.TextField):
         'invalid_type': _('%(type)s is not a supported value type.'),
     }
 
-    def __init__(self, verbose_name=None, name=None, encoder=None,
-                 encoder_cls=None, encoder_kwargs=None, **kwargs):
+    def __init__(self, verbose_name=None, name=None, encoder_cls=None,
+                 encoder_kwargs=None, **kwargs):
         """Initialize the field.
 
         Args:
@@ -165,17 +164,6 @@ class JSONField(models.TextField):
 
             name (unicode, optional):
                 The attribute name of the field.
-
-            encoder (json.JSONEncoder, optional):
-                The explicit JSON encoder instance to use. If specified, this
-                takes priority over ``encoder_cls`` and ``encoder_kwargs``,
-                and will prevent the field from nicely formatting the
-                contents for editing.
-
-                .. deprecated:: 1.0.1
-
-                   ``encoder_cls`` and ``encoder_kwargs`` should be used
-                   instead. Specifying ``encoder`` will emit a warning.
 
             encoder_cls (type, optional):
                 The type of encoder to use for serializing the JSON document
@@ -194,15 +182,7 @@ class JSONField(models.TextField):
                                         blank=kwargs.pop('blank', True),
                                         **kwargs)
 
-        if encoder is not None:
-            warnings.warn('The encoder argument to JSONField has been '
-                          'replaced by the encoder_cls and encoder_kwargs '
-                          'arguments. Support for encoder is deprecated.',
-                          RemovedInDjblets20Warning)
-
-            # Override the encoder property to hard-code the provided instance.
-            self.encoder = encoder
-        elif encoder_cls is None:
+        if encoder_cls is None:
             encoder_cls = DjbletsJSONEncoder
             encoder_kwargs = {
                 'strip_datetime_ms': False,

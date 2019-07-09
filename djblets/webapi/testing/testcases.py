@@ -16,7 +16,6 @@ from django.test.client import BOUNDARY, MULTIPART_CONTENT, encode_multipart
 from django.utils import six
 from django.utils.encoding import force_text
 
-from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.testing.testcases import TestCase
 
 
@@ -401,15 +400,6 @@ class WebAPITestCaseMixin(TestCase):
         # is stripped.
         if path.startswith(self.base_url):
             path = path[len(self.base_url):]
-
-        # The `query` argument is outdated. If passed, move its value over to
-        # `data` and raise a deprecation warning.
-        if 'query' in extra:
-            warnings.warn('%s should be passed a `data` argument. `query` '
-                          'is deprecated and will be removed in Djblets 2.0.',
-                          RemovedInDjblets20Warning)
-
-            data = extra.pop('query')
 
         # If the caller is explicitly requested multipart content, ensure we've
         # encoded the data.

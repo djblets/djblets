@@ -24,7 +24,6 @@ import warnings
 from django.template import RequestContext
 from django.utils import six
 
-from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.util.compat.django.template.loader import render_to_string
 
 
@@ -195,22 +194,7 @@ class ExtensionHook(object):
                    def shutdown(self):
                        unregister_thing(self.thing_id)
         """
-        if self.hook_state == self.HOOK_STATE_ENABLED:
-            # The extension framework will call disable_hook() properly,
-            # but a unit test might manually be calling shutdown(). In this
-            # case, we want to retain the old behavior, but warn.
-            warnings.warn(
-                '%(name)s.disable_hook() should be called when manually '
-                'disabling the hook instead of %(name)s.shutdown(), starting '
-                'in Djblets 1.0.'
-                % {
-                    'name': self.__class__.__name__,
-                },
-                RemovedInDjblets20Warning)
-
-            # Don't call shutdown() again, as the subclass might have already
-            # dealt with state cleanup.
-            self.disable_hook(call_shutdown=False)
+        assert self.hook_state != self.HOOK_STATE_ENABLED
 
     def enable_hook(self, *args, **kwargs):
         """Enable the ExtensionHook, beginning the initialization process.

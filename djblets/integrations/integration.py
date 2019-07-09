@@ -6,7 +6,6 @@ import warnings
 
 from django.template.loader import render_to_string
 
-from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.integrations.forms import IntegrationConfigForm
 from djblets.util.compat.django.template.loader import render_to_string
 
@@ -229,30 +228,3 @@ class Integration(object):
             config.save()
 
         return config
-
-    def render_config_status(self, config, url_name_prefix=''):
-        """Render the status for the given configuration.
-
-        This is deprecated and no longer returns anything.
-
-        Deprecated:
-            1.0.11:
-            This method no longer serves any purpose, due to major UI
-            changes. It now returns an empty string.
-
-        Args:
-            config (djblets.integrations.models.IntegrationConfig, unused):
-                The configuration to render the status for.
-
-            url_name_prefix (unicode, unused):
-                The prefix for integration-related URL names.
-
-        Returns:
-            unicode:
-            An empty string.
-        """
-        warnings.warn('render_config_status() is deprecated and should '
-                      'no longer be called.',
-                      RemovedInDjblets20Warning)
-
-        return ''

@@ -10,7 +10,6 @@ from django.utils import six
 from djblets.siteconfig.models import SiteConfiguration
 
 from djblets.db.fields import JSONField, JSONFormField
-from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.testing.testcases import TestCase
 
 
@@ -40,27 +39,6 @@ class JSONFieldTests(TestCase):
 
         self.assertEqual(field.dumps(MyEncoder), '"What even is this?"')
         self.assertEqual(len(w), 0)
-
-    def test_init_with_custom_encoder_instance(self):
-        """Testing JSONField initialization with deprecated custom encoder
-        instance
-        """
-        class MyEncoder(json.JSONEncoder):
-            def default(self, o):
-                return 'What even is this?'
-
-        with warnings.catch_warnings(record=True) as w:
-            field = JSONField(encoder=MyEncoder())
-
-        self.assertEqual(field.dumps(MyEncoder), '"What even is this?"')
-        self.assertEqual(len(w), 1)
-
-        message = w[0].message
-        self.assertIsInstance(message, RemovedInDjblets20Warning)
-        self.assertEqual(six.text_type(message),
-                         'The encoder argument to JSONField has been '
-                         'replaced by the encoder_cls and encoder_kwargs '
-                         'arguments. Support for encoder is deprecated.')
 
     def test_init_with_dict_value(self):
         """Testing JSONField initialization with initial dict value"""
