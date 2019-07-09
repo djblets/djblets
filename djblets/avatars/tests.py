@@ -703,7 +703,7 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
                     return
 
                 super(TestRegistry, self).populate()
-                self.enabled_services = [DummyAvatarService]
+                self.set_enabled_services([DummyAvatarService])
 
             def get_defaults(self):
                 yield DummyAvatarService

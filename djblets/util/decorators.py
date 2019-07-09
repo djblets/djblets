@@ -35,8 +35,6 @@ from django.conf import settings
 from django.template import TemplateSyntaxError, Variable
 from django.utils.functional import cached_property as django_cached_property
 
-from djblets.deprecation import RemovedInDjblets20Warning
-
 
 # The decorator decorator.  This is copyright unknown, verbatim from
 # http://wiki.python.org/moin/PythonDecoratorLibrary
@@ -285,26 +283,6 @@ class cached_property(django_cached_property):
         super(cached_property, self).__init__(func)
 
         update_wrapper(self, func)
-
-
-@simple_decorator
-def root_url(url_func):
-    """Decorates a function that returns a URL to add the SITE_ROOT."""
-    def _add_root(*args, **kwargs):
-        url = url_func(*args, **kwargs)
-
-        if url[0] != '/':
-            raise ValueError('Returned URL is not absolute')
-
-        if hasattr(settings, 'SITE_ROOT'):
-            return '%s%s' % (settings.SITE_ROOT, url[1:])
-        else:
-            return url
-
-    warnings.warn('djblets.util.decorators.root_url is deprecated.',
-                  RemovedInDjblets20Warning)
-
-    return _add_root
 
 
 def optional_decorator(decorator, predicate):

@@ -19,7 +19,6 @@ from django.views.decorators.vary import vary_on_headers
 from djblets.auth.ratelimit import (RATE_LIMIT_API_ANONYMOUS,
                                     RATE_LIMIT_API_AUTHENTICATED,
                                     get_usage_count)
-from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.util.http import (build_not_modified_from_response,
                                encode_etag,
                                etag_if_none_match,
@@ -683,7 +682,6 @@ class WebAPIResource(object):
         return them in the ``urls.py`` files.
         """
         urlpatterns = never_cache_patterns(
-            '',
             url(r'^$', self, name=self._build_named_url(self.name_plural)),
         )
 
@@ -703,7 +701,6 @@ class WebAPIResource(object):
                 base_regex = r'^'
 
             urlpatterns += never_cache_patterns(
-                '',
                 url(base_regex + r'$', self,
                     name=self._build_named_url(self.name))
             )

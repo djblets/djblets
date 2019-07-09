@@ -16,7 +16,6 @@ from django.core.urlresolvers import get_mod_func
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
 
-from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.extensions.settings import Settings
 from djblets.util.decorators import cached_property
 
@@ -491,36 +490,13 @@ class ExtensionInfo(object):
         try:
             issubclass(ext_class, Extension)
         except TypeError:
-            try:
-                is_entrypoint = (hasattr(ext_class, 'dist') and
-                                 issubclass(package_name, Extension))
-            except TypeError:
-                is_entrypoint = False
+            logger.error('Unexpected parameters passed to '
+                         'ExtensionInfo.__init__: ext_class=%r, '
+                         'package_name=%r, metadata=%r',
+                         ext_class, package_name, metadata)
 
-            if is_entrypoint:
-                # These are really (probably) an entrypoint and class,
-                # respectively. Fix up the variables.
-                entrypoint, ext_class = ext_class, package_name
-
-                metadata = self._get_metadata_from_entrypoint(entrypoint,
-                                                              ext_class.id)
-                package_name = metadata.get('Name')
-
-                # Warn after the above. Something about the above calls cause
-                # warnings to be reset.
-                warnings.warn(
-                    'ExtensionInfo.__init__() no longer accepts an '
-                    'EntryPoint. Please update your code to call '
-                    'ExtensionInfo.create_from_entrypoint() instead.',
-                    RemovedInDjblets20Warning)
-            else:
-                logger.error('Unexpected parameters passed to '
-                             'ExtensionInfo.__init__: ext_class=%r, '
-                             'package_name=%r, metadata=%r',
-                             ext_class, package_name, metadata)
-
-                raise TypeError(
-                    _('Invalid parameters passed to ExtensionInfo.__init__'))
+            raise TypeError(
+                _('Invalid parameters passed to ExtensionInfo.__init__'))
 
         # Set the base information from the extension and the package.
         self.package_name = package_name

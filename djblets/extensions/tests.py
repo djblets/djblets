@@ -485,32 +485,6 @@ class ExtensionInfoTests(TestCase):
                                    extension_id=extension_id,
                                    metadata=expected_metadata)
 
-    def test_deprecated_entrypoint_in_init(self):
-        """Testing ExtensionInfo.__init__ with deprecated entrypoint support"""
-        module_name = 'test_extension.dummy.submodule'
-        package_name = 'DummyExtension'
-        extension_id = '%s:DummyExtension' % module_name
-
-        class TestExtension(Extension):
-            __module__ = module_name
-            id = extension_id
-
-        entrypoint = FakeEntryPoint(TestExtension, project_name=package_name)
-
-        with warnings.catch_warnings(record=True) as w:
-            extension_info = ExtensionInfo(entrypoint, TestExtension)
-
-            self.assertEqual(six.text_type(w[0].message),
-                             'ExtensionInfo.__init__() no longer accepts an '
-                             'EntryPoint. Please update your code to call '
-                             'ExtensionInfo.create_from_entrypoint() instead.')
-
-        self._check_extension_info(extension_info=extension_info,
-                                   app_name='test_extension.dummy',
-                                   package_name=package_name,
-                                   extension_id=extension_id,
-                                   metadata=entrypoint.dist.metadata)
-
     def _check_extension_info(self, extension_info, app_name, package_name,
                               extension_id, metadata):
         htdocs_path = os.path.join(settings.MEDIA_ROOT, 'ext', package_name)

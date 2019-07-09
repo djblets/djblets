@@ -22,58 +22,15 @@ def dummy_view(request):
 class URLPatternsTests(SpyAgency, TestCase):
     """Unit tests for djblets.urls.patterns."""
 
-    def test_never_cache_patterns_with_prefix(self):
-        """Testing never_cache_patterns with view lookup string prefix"""
-        msg = (
-            'String prefixes for URLs in never_cache_patterns() is '
-            'deprecated, and will not work on Django 1.10 or higher.'
-        )
-
-        if django.VERSION[:2] >= (1, 10):
-            with self.assertRaisesMessage(ValueError, msg):
-                never_cache_patterns(
-                    'djblets.urls.tests',
-
-                    url('^a/$', dummy_view),
-                )
-        else:
-            self.spy_on(never_cache)
-
-            with warnings.catch_warnings(record=True) as w:
-                urlpatterns = never_cache_patterns(
-                    'djblets.urls.tests',
-
-                    url('^a/$', 'dummy_view'),
-                    url('^b/$', 'dummy_view'),
-                )
-
-            self.assertEqual(six.text_type(w[-1].message), msg)
-            self.assertEqual(len(never_cache.spy.calls), 2)
-            self.assertEqual(len(urlpatterns), 2)
-
-            pattern = urlpatterns[0]
-            self.assertEqual(pattern._callback_str,
-                             'djblets.urls.tests.dummy_view')
-            self.assertTrue(
-                never_cache.spy.calls[0].returned(pattern.callback))
-
-            pattern = urlpatterns[1]
-            self.assertEqual(pattern._callback_str,
-                             'djblets.urls.tests.dummy_view')
-            self.assertTrue(
-                never_cache.spy.calls[1].returned(pattern.callback))
-
-    def test_never_cache_patterns_without_prefix(self):
-        """Testing never_cache_patterns without view lookup string prefix"""
+    def test_never_cache_patterns(self):
+        """Testing never_cache_patterns"""
         self.spy_on(never_cache)
 
-        with warnings.catch_warnings(record=True) as w:
-            urlpatterns = never_cache_patterns(
-                url('^a/$', dummy_view),
-                url('^b/$', dummy_view),
-            )
+        urlpatterns = never_cache_patterns(
+            url('^a/$', dummy_view),
+            url('^b/$', dummy_view),
+        )
 
-        self.assertEqual(len(w), 0)
         self.assertEqual(len(never_cache.spy.calls), 2)
         self.assertEqual(len(urlpatterns), 2)
 

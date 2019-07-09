@@ -181,8 +181,7 @@ class RootResource(WebAPIResource):
         generic catch-all 404 handler which returns API errors instead of HTML.
         """
         urlpatterns = super(RootResource, self).get_url_patterns()
-        urlpatterns += never_cache_patterns(
-            '', url(r'.*', self.api_404_handler))
+        urlpatterns += never_cache_patterns(url(r'.*', self.api_404_handler))
 
         return urlpatterns
 

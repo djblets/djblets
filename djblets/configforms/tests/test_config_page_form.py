@@ -12,7 +12,6 @@ from django.utils import six
 from djblets.configforms.forms import ConfigPageForm
 from djblets.configforms.pages import ConfigPage
 from djblets.configforms.views import ConfigPagesView
-from djblets.deprecation import RemovedInDjblets20Warning
 from djblets.testing.testcases import TestCase
 
 
@@ -45,27 +44,6 @@ class ConfigPageFormTests(TestCase):
     def test_initial_state(self):
         """Testing ConfigPageForm initial state"""
         self.assertEqual(self.form.fields['form_target'].initial, 'my-form')
-
-    def test_profile(self):
-        """Testing ConfigPageForm.profile raises a deprecation warning"""
-        with warnings.catch_warnings(record=True) as w:
-            try:
-                self.form.profile
-            except Exception:
-                # This is either a SiteProfileNotAvailable (on Django 1.6) or
-                # an AttributeError (Django 1.7+). Ignore it. We only care
-                # about the warning.
-                pass
-
-        # We may get two warnings: One about the get_profile() deprecation in
-        # Django 1.6, the other about our own deprecation. Ours will be first.
-        message = w[0].message
-
-        self.assertIsInstance(message, RemovedInDjblets20Warning)
-        self.assertEqual(
-            six.text_type(message),
-            'ConfigFormPage.profile is deprecated. Update your code to '
-            'fetch the profile manually instead.')
 
     def test_set_initial(self):
         """Testing ConfigPageForm.set_initial"""
