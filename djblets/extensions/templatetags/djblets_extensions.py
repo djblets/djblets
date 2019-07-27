@@ -6,6 +6,7 @@ import warnings
 
 from django import template
 from django.utils import six
+from django.utils.html import format_html_join
 from pipeline.conf import settings as pipeline_settings
 from pipeline.templatetags.pipeline import JavascriptNode, StylesheetNode
 
@@ -74,7 +75,19 @@ class ExtensionStylesheetNode(ExtensionStaticMediaNodeMixin, StylesheetNode):
 
 @register.simple_tag(takes_context=True)
 def template_hook_point(context, name):
-    """Registers a place where TemplateHooks can render to."""
+    """Register a place where TemplateHooks can render to.
+
+    Args:
+        context (dict):
+            The template rendering context.
+
+        name (unicode):
+            The name of the CSS bundle to render.
+
+    Returns:
+        django.utils.safetext.SafeString:
+        The rendered HTML.
+    """
     def _render_hooks():
         request = context['request']
 
@@ -84,7 +97,7 @@ def template_hook_point(context, name):
                     context.push()
 
                     try:
-                        yield hook.render_to_string(request, context)
+                        yield (hook.render_to_string(request, context),)
                     except Exception as e:
                         logger.exception('Error rendering TemplateHook %r: %s',
                                          hook, e)
@@ -96,7 +109,7 @@ def template_hook_point(context, name):
                                  'TemplateHook %r: %s',
                                  hook, e)
 
-    return ''.join(_render_hooks())
+    return format_html_join('', '{0}', _render_hooks())
 
 
 @register.simple_tag(takes_context=True)
@@ -239,7 +252,7 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
             The renderer function to call for each applicable bundle.
 
     Yields:
-        django.utils.safetext.SafeString:
+        tuple of (unicode or django.utils.safetext.SafeString):
         The HTML used to include the bundled content.
     """
     request = context['request']
@@ -262,7 +275,7 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
                     for include_bundle in bundle.get('include_bundles', []):
                         yield renderer(context, extension, include_bundle)
 
-                    yield renderer(context, extension, bundle_name)
+                    yield (renderer(context, extension, bundle_name),)
 
         break
 
@@ -287,12 +300,15 @@ def load_extensions_css(context, extension_manager_key,
             include. Defaults to ``"default"``.
 
     Returns:
-        unicode:
+        django.utils.safestring.SafeText:
         The HTML used to include the bundled content.
     """
-    return ''.join(_get_extension_bundles(
-        extension_manager_key, context, 'css_bundles', default_bundles,
-        _render_css_bundle))
+    return format_html_join('', '{0}\n', _get_extension_bundles(
+        extension_manager_key=extension_manager_key,
+        context=context,
+        bundle_attr='css_bundles',
+        default_bundles=default_bundles,
+        renderer=_render_css_bundle))
 
 
 @register.simple_tag(takes_context=True)
@@ -315,12 +331,15 @@ def load_extensions_js(context, extension_manager_key,
             include. Defaults to ``"default"``.
 
     Returns:
-        unicode:
+        django.utils.safestring.SafeText:
         The HTML used to include the bundled content.
     """
-    return ''.join(_get_extension_bundles(
-        extension_manager_key, context, 'js_bundles', default_bundles,
-        _render_js_bundle))
+    return format_html_join('', '{0}\n', _get_extension_bundles(
+        extension_manager_key=extension_manager_key,
+        context=context,
+        bundle_attr='js_bundles',
+        default_bundles=default_bundles,
+        renderer=_render_js_bundle))
 
 
 @register.inclusion_tag('extensions/init_js_extensions.html',

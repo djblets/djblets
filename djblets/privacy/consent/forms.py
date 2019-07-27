@@ -6,7 +6,7 @@ from django import forms
 from django.contrib import messages
 from django.forms.widgets import MultiWidget, Widget
 from django.utils import timezone
-from django.utils.safestring import mark_safe
+from django.utils.html import format_html_join
 from django.utils.translation import ugettext_lazy as _
 
 from djblets.privacy.consent import (Consent,
@@ -168,11 +168,11 @@ class MultiConsentRequirementsWidget(MultiWidget):
                 final_attrs = dict(final_attrs,
                                    id='%s_%s' % (field_id, requirement_id))
 
-            output.append(widget.render('%s_%s' % (name, requirement_id),
-                                        widget_value,
-                                        final_attrs))
+            rendered = widget.render('%s_%s' % (name, requirement_id),
+                                     widget_value, final_attrs)
+            output.append((rendered,))
 
-        return mark_safe(''.join(output))
+        return format_html_join('', '{0}', output)
 
     def value_from_datadict(self, data, files, name):
         """Return the field values from the submitted form data.
