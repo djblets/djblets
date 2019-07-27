@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 from djblets.extensions.extension import Extension
-from djblets.extensions.tests import ExtensionTestsMixin
+from djblets.extensions.tests.base import ExtensionTestsMixin
 from djblets.privacy.consent import (BaseConsentRequirement,
                                      get_consent_requirements_registry)
 from djblets.privacy.consent.hooks import ConsentRequirementHook
