@@ -23,8 +23,9 @@ class CompressedTagsTests(TestCase):
         t = Template('{% load compressed %}'
                      '{% compressed_css "test" %}')
 
-        self.assertEqual(t.render(Context({'test': 'test'})),
-                         '/test.css\n')
+        self.assertEqual(
+            t.render(Context({'test': 'test'})),
+            '<link href="/test.css" rel="stylesheet" type="text/css" />')
 
     def test_compressed_js_tag(self):
         """Testing {% compressed_js %}"""
@@ -38,5 +39,7 @@ class CompressedTagsTests(TestCase):
         t = Template('{% load compressed %}'
                      '{% compressed_js "test" %}')
 
-        self.assertEqual(t.render(Context({'test': 'test'})),
-                         '/test.js\n')
+        self.assertEqual(
+            t.render(Context({'test': 'test'})),
+            '<script type="text/javascript" src="/test.js"'
+            ' charset="utf-8"></script>')

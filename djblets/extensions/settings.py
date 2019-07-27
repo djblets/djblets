@@ -30,18 +30,30 @@ from django.utils.translation import ugettext as _
 from djblets.extensions.signals import settings_saved
 
 
-class Settings(dict):
-    """
-    Settings data for an extension. This is a glorified dictionary that
-    acts as a proxy for the extension's stored settings in the database.
+class ExtensionSettings(dict):
+    """Settings data for an extension.
 
-    Callers must call save() when they want to make the settings persistent.
+    This is a glorified dictionary that acts as a proxy for the extension's
+    stored settings in the database.
 
-    If a key is not found in the dictionary, extension.default_settings
-    will be checked as well.
+    Callers must call :py:meth:`save` when they want to make the settings
+    persistent.
+
+    If a key is not found in the dictionary,
+    :py:attr:`Extension.default_settings
+    <djblets.extensions.extension.Extension.default_settings>` will be checked
+    as well.
     """
+
     def __init__(self, extension):
-        dict.__init__(self)
+        """Initialize and load the settings.
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension the settings is for.
+        """
+        super(ExtensionSettings, self).__init__()
+
         self.extension = extension
         self.load()
 
@@ -49,8 +61,21 @@ class Settings(dict):
         """Retrieve an item from the dictionary.
 
         This will attempt to return a default value from
-        extension.default_settings if the setting has not
-        been set.
+        :py:attr:`Extension.default_settings
+        <djblets.extensions.extension.Extension.default_settings>` if the
+        setting has not been set.
+
+        Args:
+            key (unicode):
+                The key to retrieve.
+
+        Returns:
+            object:
+            The value from settings.
+
+        Raises:
+            KeyError:
+                The key could not be found in stored or default settings.
         """
         if super(Settings, self).__contains__(key):
             return super(Settings, self).__getitem__(key)
@@ -66,24 +91,39 @@ class Settings(dict):
             })
 
     def __contains__(self, key):
-        """Indicate if the setting is present.
+        """Return if a setting can be found.
 
-        If the key is not present in the settings dictionary
-        check the default settings as well.
+        This will check both the stored settings and the default settings
+        for the extension.
+
+        Args:
+            key (unicode):
+                The key to check.
+
+        Returns:
+            bool:
+            ``True`` if the setting could be found. ``False`` if it could not.
         """
-        if super(Settings, self).__contains__(key):
-            return True
-
-        return key in self.extension.default_settings
+        return (super(Settings, self).__contains__(key) or
+                key in self.extension.default_settings)
 
     def get(self, key, default=None):
-        """Returns a setting.
+        """Return the value for a setting.
 
-        This will return the setting's stored value, or its default value if
-        unset.
+        This will return a value from either the stored settings, the
+        extensin's default settings, or the value passed as ``default``.
 
-        If the key isn't a valid setting, the provided default will be
-        returned instead.
+        Args:
+            key (unicode):
+                The key to retrieve.
+
+            default (object, optional):
+                The default value, if it couldn't be found in the stored
+                settings or the extension's default settings.
+
+        Returns:
+            object:
+            The value for the setting.
         """
         # dict.get doesn't call __getitem__ internally, and instead looks up
         # straight from the internal dictionary data. So, we need to handle it
@@ -94,15 +134,22 @@ class Settings(dict):
             return default
 
     def set(self, key, value):
-        """Sets a setting's value.
+        """Set a setting's value.
 
         This is equivalent to setting the value through standard dictionary
         attribute storage.
+
+        Args:
+            key (unicode):
+                The key to set.
+
+            value (object):
+                The value for the setting.
         """
         self[key] = value
 
     def load(self):
-        """Loads the settings from the database."""
+        """Load the settings from the database."""
         try:
             self.update(self.extension.registration.settings)
         except ValueError:
@@ -112,7 +159,7 @@ class Settings(dict):
             pass
 
     def save(self):
-        """Saves all current settings to the database."""
+        """Save all current settings to the database."""
         registration = self.extension.registration
         registration.settings = dict(self)
         registration.save()
@@ -121,3 +168,15 @@ class Settings(dict):
 
         # Make sure others are aware that the configuration changed.
         self.extension.extension_manager._bump_sync_gen()
+
+
+#: Legacy name for ExtensionSettings.
+#:
+#: This is unlikely to be needed outside of the Djblets Extensions code, but
+#: is available for any callers who might be dependent on it.
+#:
+#: Deprecated:
+#:     2.0:
+#:     Renamed to :py:class:`ExtensionSettings`. This will be removed in
+#:     Djblets 3.0.
+Settings = ExtensionSettings

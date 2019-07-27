@@ -1,3 +1,5 @@
+"""Tests for djblets.extensions.templatetags."""
+
 from __future__ import unicode_literals
 
 import re
@@ -7,10 +9,11 @@ from collections import OrderedDict
 from django.core.urlresolvers import ResolverMatch
 from django.http import HttpRequest
 from django.template import Context, Template
+from django.utils.safestring import mark_safe
 
 from djblets.extensions.extension import Extension, JSExtension
 from djblets.extensions.hooks import TemplateHook
-from djblets.extensions.tests import ExtensionTestsMixin
+from djblets.extensions.tests.base import ExtensionTestsMixin
 from djblets.testing.testcases import TestCase
 
 
@@ -72,14 +75,19 @@ class TemplateTagTests(ExtensionTestsMixin, TestCase):
         t = Template('{% load djblets_extensions %}'
                      '{% template_hook_point "test-hook" %}')
 
-        DummyTemplateHook('foo\n', self.extension, 'test-hook')
-        DummyTemplateHook('bar\n', self.extension, 'test-hook')
+        DummyTemplateHook(content=mark_safe('<strong>foo</strong>\n'),
+                          extension=self.extension,
+                          name='test-hook')
+        DummyTemplateHook(content='<bar>\n',
+                          extension=self.extension,
+                          name='test-hook')
 
         self.assertEqual(
             t.render(Context({
                 'request': self.request,
             })),
-            'foo\nbar\n')
+            '<strong>foo</strong>\n'
+            '&lt;bar&gt;\n')
 
     def test_ext_static_tag(self):
         """Testing ext_static template tag"""
@@ -91,7 +99,8 @@ class TemplateTagTests(ExtensionTestsMixin, TestCase):
                 'ext': self.extension,
                 'request': self.request,
             })),
-            '/ext/djblets.extensions.templatetags.tests.TestExtension/foo')
+            '/ext/djblets.extensions.tests.test_templatetags.TestExtension/'
+            'foo')
 
     def test_ext_css_bundle_tag(self):
         """Testing ext_css_bundle template tag"""
@@ -103,8 +112,9 @@ class TemplateTagTests(ExtensionTestsMixin, TestCase):
                 'ext': self.extension,
                 'request': self.request,
             })),
-            '/ext/djblets.extensions.templatetags.tests.TestExtension/css/'
-            'default.min.css\n')
+            '<link href="/ext/djblets.extensions.tests.test_templatetags'
+            '.TestExtension/css/default.min.css" rel="stylesheet" '
+            'type="text/css" />')
 
     def test_ext_js_bundle_tag(self):
         """Testing ext_js_bundle template tag"""
@@ -116,8 +126,9 @@ class TemplateTagTests(ExtensionTestsMixin, TestCase):
                 'ext': self.extension,
                 'request': self.request,
             })),
-            '/ext/djblets.extensions.templatetags.tests.TestExtension/js/'
-            'default.min.js\n')
+            '<script type="text/javascript" '
+            'src="/ext/djblets.extensions.tests.test_templatetag'
+            's.TestExtension/js/default.min.js" charset="utf-8"></script>')
 
     def test_load_extensions_css_tag(self):
         """Testing load_extensions_css template tag"""
@@ -132,10 +143,12 @@ class TemplateTagTests(ExtensionTestsMixin, TestCase):
                 'manager_id': self.key,
                 'request': self.request,
             })),
-            '/ext/djblets.extensions.templatetags.tests.TestExtension/css/'
-            'default.min.css\n'
-            '/ext/djblets.extensions.templatetags.tests.TestExtension/css/'
-            'optional.min.css\n')
+            '<link href="/ext/djblets.extensions.tests.test_templatetags'
+            '.TestExtension/css/default.min.css" rel="stylesheet" '
+            'type="text/css" />\n'
+            '<link href="/ext/djblets.extensions.tests.test_templatetags'
+            '.TestExtension/css/optional.min.css" rel="stylesheet" '
+            'type="text/css" />\n')
 
     def test_load_extensions_js_tag(self):
         """Testing load_extensions_js template tag"""
@@ -150,10 +163,12 @@ class TemplateTagTests(ExtensionTestsMixin, TestCase):
                 'manager_id': self.key,
                 'request': self.request,
             })),
-            '/ext/djblets.extensions.templatetags.tests.TestExtension/js/'
-            'default.min.js\n'
-            '/ext/djblets.extensions.templatetags.tests.TestExtension/js/'
-            'optional.min.js\n')
+            '<script type="text/javascript" '
+            'src="/ext/djblets.extensions.tests.test_templatetag'
+            's.TestExtension/js/default.min.js" charset="utf-8"></script>\n'
+            '<script type="text/javascript" '
+            'src="/ext/djblets.extensions.tests.test_templatetag'
+            's.TestExtension/js/optional.min.js" charset="utf-8"></script>\n')
 
     def test_init_js_extensions(self):
         """Testing init_js_extensions template tag"""
