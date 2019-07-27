@@ -28,10 +28,10 @@ from __future__ import unicode_literals
 from djblets.extensions.extension import Extension, ExtensionInfo
 from djblets.extensions.hooks import ExtensionHook, ExtensionHookPoint
 from djblets.extensions.manager import ExtensionManager
-from djblets.extensions.settings import Settings
+from djblets.extensions.settings import ExtensionSettings, Settings
 
 
 __all__ = [
     'Extension', 'ExtensionHook', 'ExtensionHookPoint', 'ExtensionInfo',
-    'ExtensionManager', 'Settings',
+    'ExtensionManager', 'ExtensionSettings', 'Settings',
 ]

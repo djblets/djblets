@@ -16,7 +16,7 @@ from django.core.urlresolvers import get_mod_func
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
 
-from djblets.extensions.settings import Settings
+from djblets.extensions.settings import ExtensionSettings
 from djblets.util.decorators import cached_property
 
 
@@ -137,7 +137,7 @@ class Extension(object):
             The list of Django middleware instances. Each will be an instance
             of a class listed in :py:attr:`middleware`.
 
-        settings (djblets.extensions.settings.Settings):
+        settings (djblets.extensions.settings.ExtensionSettings):
             The settings for the extension.
     """
 
@@ -266,7 +266,7 @@ class Extension(object):
         """
         self.extension_manager = extension_manager
         self.hooks = set()
-        self.settings = Settings(self)
+        self.settings = ExtensionSettings(self)
         self.admin_site = None
         self.middleware_instances = []
 
