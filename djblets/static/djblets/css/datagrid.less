@@ -1,8 +1,56 @@
 @import (reference) "mixins/retina.less";
 
 
-@datagrid-cell-height: 1.4em;
-@datagrid-menu-checkbox-size: 1.4em;
+#djblets-ns-ui() {
+  .datagrids() {
+    .cells() {
+      @height: 1.4em;
+      @padding: 4px;
+
+      @bg: #FFFFFF;
+      @hover-bg: #D4E0F3;
+
+      @even-bg: #F2F2F2;
+      @even-hover-bg: @hover-bg;
+    }
+
+    .header() {
+      @padding: #djblets-ns-ui.datagrids.cells[@padding];
+
+      @border-color: #999999;
+      @drag-border-color: @border-color;
+      @sep-border-color: #CCCCCC;
+      @text-color: #000000;
+
+      @unsort-icon-color: #444444;
+    }
+
+    .menu() {
+      @bg: #F0F0F0;
+      @border-color: #303030;
+      @padding: 0.3em;
+    }
+
+    .paginator() {
+      @padding: 8px 4px 4px 4px;
+      @page-padding: 2px 6px;
+
+      @active-bg-color: #D4E0F3;
+      @active-border-color: #CCCCCC;
+
+      @hover-border-color: @active-border-color;
+      @hover-bg-color: #9BC0F2;
+
+      @text-color: #000000;
+      @count-text-color: #444444;
+    }
+  }
+}
+
+
+/* These are deprecated in Djblets 2.0. */
+@datagrid-cell-height: #djblets-ns-ui.datagrids.cells[@height];
+@datagrid-menu-checkbox-size: #djblets-ns-ui.datagrids.cells[@height];
 
 
 @media screen and (max-width: 720px),
@@ -13,7 +61,7 @@
     }
 
     .datagrid-body {
-      tbody th {
+      tbody th:first-child {
         padding-left: 0.5em;
         text-align: right;
         white-space: nowrap;
@@ -30,19 +78,25 @@
 
 
 .datagrid {
+  @_cell-vars: #djblets-ns-ui.datagrids.cells();
+
   border-collapse: collapse;
   width: 100%;
 
   tr {
-    background-color: white;
+    background-color: @_cell-vars[@bg];
     cursor: pointer;
 
-    &.even {
-      background-color: #F2F2F2;
+    &:hover {
+      background-color: @_cell-vars[@hover-bg];
     }
 
-    &:hover {
-      background-color: #d4e0f3;
+    &.even {
+      background-color: @_cell-vars[@even-bg];
+
+      &:hover {
+        background-color: @_cell-vars[@even-hover-bg];
+      }
     }
 
     &:hover.headers {
@@ -50,13 +104,13 @@
     }
 
     &.datagrid-empty-row {
-      background-color: white;
+      background-color: @_cell-vars[@bg];
     }
   }
 
   td {
-    line-height: @datagrid-cell-height;
-    padding: 4px;
+    line-height: @_cell-vars[@height];
+    padding: @_cell-vars[@padding];
 
     &.has-link > a {
       /*
@@ -80,14 +134,17 @@
 }
 
 .datagrid-header {
+  @_datagrid-vars: #djblets-ns-ui.datagrids();
+  @_header-vars: #djblets-ns-ui.datagrids.header();
+
   background: url("../images/datagrid/header_bg.png") repeat-x bottom left;
-  border-top: 1px #999999 solid;
-  border-bottom: 1px #999999 solid;
-  border-right: 1px #CCCCCC solid;
-  color: black;
+  border-top: 1px @_header-vars[@border-color] solid;
+  border-bottom: 1px @_header-vars[@border-color] solid;
+  border-right: 1px @_header-vars[@sep-border-color] solid;
+  color: @_header-vars[@text-color];
   cursor: pointer;
   font-weight: bold;
-  padding: 4px;
+  padding: @_header-vars[@padding];
   text-align: left;
   white-space: nowrap;
 
@@ -100,11 +157,11 @@
   }
 
   a {
-    color: black;
+    color: @_header-vars[@text-color];
     text-decoration: none;
 
     &.unsort {
-      color: #444444;
+      color: @_header-vars[@unsort-icon-color];
     }
 
     &:hover {
@@ -118,7 +175,9 @@
 }
 
 .datagrid-header-drag {
-  border: 1px #999999 solid;
+  @_header-vars: #djblets-ns-ui.datagrids.header();
+
+  border: 1px @_header-vars[@drag-border-color] solid;
   border-top: 0;
 }
 
@@ -166,56 +225,64 @@
  ****************************************************************************/
 
 .datagrid-wrapper .paginator {
-  padding: 8px 4px 4px 4px;
+  @_paginator-vars: #djblets-ns-ui.datagrids.paginator();
+  @_active-bg-color: @_paginator-vars[@active-bg-color];
+  @_active-border-color: @_paginator-vars[@active-border-color];
+  @_hover-border-color: @_paginator-vars[@hover-border-color];
+  @_hover-bg-color: @_paginator-vars[@hover-bg-color];
+  @_text-color: @_paginator-vars[@text-color];
+  @_page-padding: @_paginator-vars[@page-padding];
+
+  padding: @_paginator-vars[@padding];
 
   .current-page {
     font-weight: bold;
-    padding: 2px 6px;
+    padding: @_page-padding;
   }
 
   .current-letter {
-    border: 1px solid #CCCCCC;
-    background-color: #d4e0f3;
-    padding: 2px 6px;
+    border: 1px @_active-border-color solid;
+    background-color: @_active-bg-color;
+    padding: @_page-padding;
     margin-right: 4px;
 
     a {
       border: none;
-      color: black;
-      padding: 2px 6px;
+      color: @_text-color;
+      padding: @_page-padding;
       text-decoration: none;
 
       &:hover {
-        border: 1px solid #CCCCCC;
-        background-color: #9BC0F2;
-        color: black;
+        border: 1px @_hover-border-color solid;
+        background-color: @_hover-bg-color;
+        color: @_text-color;
       }
 
       &:visited {
-        color: black;
+        color: @_text-color;
       }
     }
   }
 
   .page-count {
-    color: #444444;
+    color: @_paginator-vars[@count-text-color];
     margin-left: 10px;
   }
 
   a {
-    border: 1px solid #CCCCCC;
-    color: black;
-    padding: 2px 6px;
+    border: 1px @_active-border-color solid;
+    color: @_text-color;
+    padding: @_page-padding;
     text-decoration: none;
 
     &:hover {
-      background-color: #9BC0F2;
-      border-color: #003366;
-      color: black;
+      background-color: @_hover-bg-color;
+      border-color: @_hover-border-color;
+      color: @_text-color;
     }
 
     &:visited {
-      color: black;
+      color: @_text-color;
     }
   }
 }
@@ -331,15 +398,17 @@
 }
 
 .datagrid-menu {
-  background-color: #F0F0F0;
-  border-left: 1px #303030 solid;
-  border-bottom: 1px #303030 solid;
+  @_menu-vars: #djblets-ns-ui.datagrids.menu();
+
+  background-color: @_menu-vars[@bg];
+  border-left: 1px @_menu-vars[@border-color] solid;
+  border-bottom: 1px @_menu-vars[@border-color] solid;
   box-sizing: border-box;
   margin: 0;
   overflow-y: auto;
   right: 0;
 
-  padding: 0.3em;
+  padding: @_menu-vars[@padding];
 
   table {
     border-collapse: collapse;
@@ -398,9 +467,11 @@
 }
 
 .datagrid-menu-checkbox {
+  @_cell-vars: #djblets-ns-ui.datagrids.cells();
+
   border: 1px #C0C0C0 solid;
-  height: @datagrid-menu-checkbox-size;
-  width: @datagrid-menu-checkbox-size;
+  height: @_cell-vars[@height];
+  width: @_cell-vars[@height];
 
   img {
     display: block;
