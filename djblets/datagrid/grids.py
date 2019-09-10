@@ -1376,7 +1376,8 @@ class DataGrid(object):
                 self.rows.append({
                     'object': obj,
                     'cells': [column.render_cell(obj, render_context)
-                              for column in self.columns]
+                              for column in self.columns],
+                    'url': obj_url,
                 })
         except Exception as e:
             logger.exception('Error when calling render_cell for DataGrid '

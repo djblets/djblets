@@ -754,6 +754,21 @@ $.fn.datagrid = function() {
             });
     });
 
+    /* Handle clicks on empty parts of cells */
+    $bodyContainer.find('tr').on('click', function(e) {
+        var $target = $(e.target),
+            url;
+
+        if (!$target.is('input') &&
+            $target.parents('.has-link').length === 0) {
+            url = $(this).data('url');
+
+            if (url) {
+                window.location = url;
+            }
+        }
+    });
+
     $(document)
         .on('click', hideColumnsMenu)
         .on('click', '.datagrid-body input', function(e) {
