@@ -184,7 +184,10 @@ $.fn.datagrid = function() {
         var origHeaderCells = $bodyTableHead[0].rows[0].cells,
             $fixedCols = $headTable.find('colgroup col'),
             $origCols = $bodyTable.find('colgroup col'),
+            hasEditColumns = ($fixedCols.filter('.datagrid-customize')
+                              .length > 0),
             numCols = origHeaderCells.length,
+            lastColIndex = numCols - (hasEditColumns ? 2 : 1),
             bodyWidths = [],
             headWidths = [],
             bodyContainerWidth,
@@ -203,7 +206,7 @@ $.fn.datagrid = function() {
         $bodyTableHead.show();
 
         /* Store all the widths we'll apply. */
-        bodyContainerWidth = $bodyContainer.width();
+        bodyContainerWidth = $bodyContainer.outerWidth();
         $headTable.width(bodyContainerWidth);
         extraWidth = bodyContainerWidth - $bodyTable.width();
 
@@ -216,7 +219,7 @@ $.fn.datagrid = function() {
         $bodyTableHead.hide();
 
         /* Modify the widths to account for the scrollbar and extra spacing */
-        headWidths[numCols - 2] = bodyWidths[numCols - 2] + extraWidth;
+        headWidths[lastColIndex] = bodyWidths[lastColIndex] + extraWidth;
 
         /* Now set the new state. */
         for (i = 0; i < numCols; i++) {
@@ -272,7 +275,7 @@ $.fn.datagrid = function() {
         var width;
 
         $gridMain.css('max-width', '');
-        width = $gridMain.width();
+        width = Math.ceil($gridMain.width());
 
         if (width > 0) {
             $gridMain.css('max-width', width);
