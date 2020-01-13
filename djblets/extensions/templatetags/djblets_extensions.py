@@ -44,7 +44,7 @@ class ExtensionStaticMediaNodeMixin(object):
                 Keyword arguments to pass to the rendering function.
 
         Returns:
-            unicode:
+            django.utils.safestring.SafeText:
             The HTML for loading the static media.
         """
         rendered = ''
@@ -86,7 +86,7 @@ def template_hook_point(context, name):
             The name of the CSS bundle to render.
 
     Returns:
-        django.utils.safetext.SafeString:
+        django.utils.safetext.SafeText:
         The rendered HTML.
     """
     def _render_hooks():
@@ -150,7 +150,7 @@ def _render_css_bundle(context, extension, name):
             The name of the CSS bundle to render.
 
     Returns:
-        django.utils.safetext.SafeString:
+        django.utils.safetext.SafeText:
         The rendered HTML.
     """
     return _render_bundle(context, ExtensionStylesheetNode, extension,
@@ -171,7 +171,7 @@ def _render_js_bundle(context, extension, name):
             The name of the JS bundle to render.
 
     Returns:
-        django.utils.safetext.SafeString:
+        django.utils.safetext.SafeText:
         The rendered HTML.
     """
     return _render_bundle(context, ExtensionJavascriptNode, extension,
@@ -193,7 +193,7 @@ def ext_css_bundle(context, extension, name):
             The name of the CSS bundle to render.
 
     Returns:
-        django.utils.safetext.SafeString:
+        django.utils.safetext.SafeText:
         The rendered HTML.
     """
     return _render_css_bundle(context, extension, name)
@@ -214,7 +214,7 @@ def ext_js_bundle(context, extension, name):
             The name of the CSS bundle to render.
 
     Returns:
-        django.utils.safetext.SafeString:
+        django.utils.safetext.SafeText:
         The rendered HTML.
     """
     return _render_js_bundle(context, extension, name)
@@ -253,7 +253,7 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
             The renderer function to call for each applicable bundle.
 
     Yields:
-        tuple of (unicode or django.utils.safetext.SafeString):
+        tuple of (unicode or django.utils.safetext.SafeText):
         The HTML used to include the bundled content.
     """
     request = context['request']
