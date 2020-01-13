@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import nose
 import os
+import shutil
 import stat
 import sys
 import warnings
@@ -30,8 +31,14 @@ def run_tests(verbosity=1, interactive=False):
     settings.DEBUG = False
 
     for path in (settings.MEDIA_ROOT, settings.STATIC_ROOT):
+        shutil.rmtree(path, ignore_errors=True)
+
         if not os.path.exists(path):
             os.mkdir(path, 0o755)
+
+    management.call_command('collectstatic',
+                            verbosity=verbosity,
+                            interactive=interactive)
 
     old_db_name = 'default'
     connection.creation.create_test_db(verbosity, autoclobber=not interactive)

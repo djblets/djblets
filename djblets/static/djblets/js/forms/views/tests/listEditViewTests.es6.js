@@ -1,59 +1,52 @@
 suite('djblets/forms/views/ListEditView', () => {
-    const addImgUrl = '/static/admin/img/icon_addlink.gif';
-    const delImgUrl = '/static/admin/img/icon_deletelink.gif';
-
     /*
      * See templates/djblets_forms/list_edit_widget.html.
      */
     const formTemplate = _.template(dedent`
-        <div class="list-edit-widget" id="<%- id %>_container">
-         <ul>
-         <% if (items.length > 0) { %>
-          <% items.forEach(function(item, i) { %>
-           <li class="list-edit-entry" data-list-index="<%- i %>">
-            <input value="<%- item %>" type="text"<%- attrs %>>
-            <a href="#" class="list-edit-remove-item">
-             <img src="${delImgUrl}">
-            </a>
-           </li>
-          <% }); %>
-         <% } else { %>
-           <li class="list-edit-entry" data-list-index="0">
+        <div class="djblets-c-list-edit-widget">
+         <ul class="djblets-c-list-edit-widget__entries">
+          <% if (items.length > 0) { %>
+           <% items.forEach(function(item, i) { %>
+            <li class="djblets-c-list-edit-widget__entry"
+                data-list-index="<%- i %>">
+             <input value="<%- item %>" type="text"<%= attrs %>>
+             <a href="#" class="djblets-c-list-edit-widget__remove-item"></a>
+            </li>
+           <% }); %>
+          <% } else { %>
+           <li class="djblets-c-list-edit-widget__entry" data-list-index="0">
             <input type="text">
-            <a href="#" class="list-edit-remove-item">
-             <img src="${delImgUrl}">
-            </a>
+            <a href="#" class="djblets-c-list-edit-widget__remove-item"></a>
            </li>
-         <% } %>
-          <li>
-           <a href="#" class="list-edit-add-item"><img src="${addImgUrl}"></a>
-          </li>
+          <% } %>
          </ul>
-         <input id="<%- id %>" type="hidden"
-                value="<%- nonZeroItems.join(',') %>">
+         <button class="djblets-c-list-edit-widget__add-item"></button>
+         <input class="djblets-c-list-edit-widget__value"
+                type="hidden" value="<%- nonZeroItems.join(',') %>">
         </div>
     `);
 
     const makeView = function makeView(items=[], attrs='') {
         attrs = attrs.length ? ` ${attrs}` : '';
+        attrs = `${attrs} class="djblets-c-list-edit-widget__input"`;
 
-        $testsScratch.append($(formTemplate({
-            items: items,
-            nonZeroItems: items.filter(i => (i.length > 0)),
-            attrs: attrs,
-            id: 'list-edit',
-        })));
+        const $el =
+            $(formTemplate({
+                items: items,
+                nonZeroItems: items.filter(i => (i.length > 0)),
+                attrs: attrs,
+            }))
+            .appendTo($testsScratch);
 
         const view = new Djblets.Forms.ListEditView({
-            el: '#list-edit_container',
+            el: $el,
             inputAttrs: attrs,
-            deleteImageUrl: delImgUrl,
             sep: ',',
         });
 
         view.render();
 
-        return [view, view.$('#list-edit')];
+        return [view, view.$('.djblets-c-list-edit-widget__value')];
     };
 
     describe('Updating fields', () => {
@@ -67,13 +60,13 @@ suite('djblets/forms/views/ListEditView', () => {
 
             expect($valueField.val()).toEqual('One');
 
-            view.$('.list-edit-entry input').val('Foo').blur();
+            view.$('.djblets-c-list-edit-widget__input').val('Foo').blur();
             expect($valueField.val()).toEqual('Foo');
         });
 
         it('With multiple values', () => {
             const [view, $valueField] = makeView(['one', 'two', 'three']);
-            const $inputs = view.$('.list-edit-entry input');
+            const $inputs = view.$('.djblets-c-list-edit-widget__input');
 
             expect($valueField.val()).toEqual('one,two,three');
 
@@ -96,20 +89,23 @@ suite('djblets/forms/views/ListEditView', () => {
             const [view, $valueField] = makeView([]);
 
             expect($valueField.val()).toEqual('');
-            expect(view.$('.list-edit-entry').length).toEqual(1);
+            expect(view.$('.djblets-c-list-edit-widget__entry').length)
+                .toEqual(1);
 
-            view.$('.list-edit-remove-item').click();
+            view.$('.djblets-c-list-edit-widget__remove-item').click();
             expect($valueField.val()).toEqual('');
-            expect(view.$('.list-edit-entry').length).toEqual(1);
+            expect(view.$('.djblets-c-list-edit-widget__entry').length)
+                .toEqual(1);
         });
 
         it ('With one value', () => {
             const [view, $valueField] = makeView(['One']);
             expect($valueField.val()).toEqual('One');
 
-            view.$('.list-edit-remove-item').click();
+            view.$('.djblets-c-list-edit-widget__remove-item').click();
             expect($valueField.val()).toEqual('');
-            expect(view.$('.list-edit-entry').length).toEqual(1);
+            expect(view.$('.djblets-c-list-edit-widget__entry').length)
+                .toEqual(1);
         });
 
         it('With multiple values', () => {
@@ -117,17 +113,27 @@ suite('djblets/forms/views/ListEditView', () => {
 
             expect($valueField.val()).toEqual('One,Two,Three');
 
-            view.$('.list-edit-remove-item').eq(1).click();
+            expect(view.$('.djblets-c-list-edit-widget__remove-item').length)
+                .toEqual(3);
+
+            view.$('.djblets-c-list-edit-widget__remove-item').eq(1).click();
             expect($valueField.val()).toEqual('One,Three');
-            expect(view.$('.list-edit-entry').length).toEqual(2);
+            expect(view.$('.djblets-c-list-edit-widget__entry').length)
+                .toEqual(2);
+            expect(view.$('.djblets-c-list-edit-widget__remove-item').length)
+                .toEqual(2);
 
-            view.$('.list-edit-remove-item').eq(1).click();
+            view.$('.djblets-c-list-edit-widget__remove-item').eq(1).click();
             expect($valueField.val()).toEqual('One');
-            expect(view.$('.list-edit-entry').length).toEqual(1);
+            expect(view.$('.djblets-c-list-edit-widget__entry').length)
+                .toEqual(1);
+            expect(view.$('.djblets-c-list-edit-widget__remove-item').length)
+                .toEqual(1);
 
-            view.$('.list-edit-remove-item').click();
+            view.$('.djblets-c-list-edit-widget__remove-item').click();
             expect($valueField.val()).toEqual('');
-            expect(view.$('.list-edit-entry').length).toEqual(1);
+            expect(view.$('.djblets-c-list-edit-widget__entry').length)
+                .toEqual(1);
         });
     });
 
@@ -136,11 +142,14 @@ suite('djblets/forms/views/ListEditView', () => {
             const [view, $valueField] = makeView(['one', 'two', 'three']);
             expect($valueField.val()).toEqual('one,two,three');
 
-            view.$('.list-edit-add-item').click();
+            view.$('.djblets-c-list-edit-widget__add-item').click();
             expect($valueField.val()).toEqual('one,two,three');
-            expect(view.$('.list-edit-entry').length).toEqual(4);
+            expect(view.$('.djblets-c-list-edit-widget__entry').length)
+                .toEqual(4);
 
-            view.$('.list-edit-entry input').eq(3).val('four').blur();
+            view.$('.djblets-c-list-edit-widget__input').eq(3)
+                .val('four')
+                .blur();
             expect($valueField.val()).toEqual('one,two,three,four');
         });
 
@@ -148,18 +157,21 @@ suite('djblets/forms/views/ListEditView', () => {
             const [view, $valueField] = makeView(['', '', '']);
             expect($valueField.val()).toEqual('');
 
-            view.$('.list-edit-add-item').click();
+            view.$('.djblets-c-list-edit-widget__add-item').click();
             expect($valueField.val()).toEqual('');
-            expect(view.$('.list-edit-entry').length).toEqual(4);
+            expect(view.$('.djblets-c-list-edit-widget__entry').length)
+                .toEqual(4);
 
-            view.$('.list-edit-entry input').eq(3).val('four').blur();
+            view.$('.djblets-c-list-edit-widget__input').eq(3)
+                .val('four')
+                .blur();
             expect($valueField.val()).toEqual('four');
         });
 
         it('With correct attributes', () => {
             const [view,] = makeView([], 'size="100" readonly');
 
-            view.$('.list-edit-add-item').click();
+            view.$('.djblets-c-list-edit-widget__add-item').click();
             const $input = view.$('input').eq(1);
             expect($input.attr('size')).toEqual('100');
             expect($input.prop('readonly')).toBe(true);

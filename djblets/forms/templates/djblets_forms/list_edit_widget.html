@@ -1,42 +1,40 @@
 {% load i18n static %}
-<div class="list-edit-widget" id="{{id}}_container">
- <ul>
+<div class="djblets-c-list-edit-widget list-edit-widget" id="{{id}}_container">
+ <ul class="djblets-c-list-edit-widget__entries">
 {% if value_list %}
 {%  for value in value_list %}
- <li class="list-edit-entry" data-list-index="{{forloop.counter0}}">
-  <input value="{{value}}" type="text"{{attrs}}>
-  <a href="#" class="list-edit-remove-item" role="button" title="{% trans 'Remove this entry' %}">
-   <img src="{% static "admin/img/icon_deletelink.gif" %}">
-  </a>
- </li>
+  <li class="djblets-c-list-edit-widget__entry" data-list-index="{{forloop.counter0}}">
+   <input value="{{value}}" type="text"{{attrs}}>
+   <a href="#" class="djblets-c-list-edit-widget__remove-item" role="button" title="{% trans 'Remove this entry' %}">
+    <span class="fa fa-times"></span>
+   </a>
+  </li>
 {%  endfor %}
 {% else %}
- <li class="list-edit-entry" data-list-index="0">
-  <input type="text"{{attrs}}>
-  <a href="#" class="list-edit-remove-item" role="button" title="{% trans 'Remove this entry' %}">
-   <img src="{% static "admin/img/icon_deletelink.gif" %}">
-  </a>
- </li>
-{% endif %}
- <li>
-  <button class="btn list-edit-add-item" role="button">
-   <img src="{%  static "admin/img/icon_addlink.gif" %}">
-   {% trans "Add item" %}
-  </button>
+  <li class="djblets-c-list-edit-widget__entry" data-list-index="0">
+   <input type="text"{{attrs}}>
+   <a href="#" class="djblets-c-list-edit-widget__remove-item" role="button" title="{% trans 'Remove this entry' %}">
+    <span class="fa fa-times"></span>
+   </a>
   </li>
+{% endif %}
  </ul>
- <input name="{{name}}" id="{{id}}" value="{{value}}" type="hidden">
+ <button class="djblets-c-list-edit-widget__add-item btn" role="button">
+  <span class="fa fa-plus"></span>
+  {% trans "Add item" %}
+ </button>
+ <input class="djblets-c-list-edit-widget__value"
+        name="{{name}}" id="{{id}}" value="{{value}}" type="hidden">
 </div>
 <script>
 (function($) {
     $(document).ready(function() {
         var view = new Djblets.Forms.ListEditView({
-                el: $('#{{id|escapejs}}_container'),
-                inputAttrs: '{{attrs|escapejs}}',
-                deleteImgUrl: '{% static "admin/img/icon_deletelink.gif" %}',
-                removeText: '{{remove_text|escapejs}}',
-                sep: '{{sep|escapejs}}'
-            });
+            el: $('#{{id|escapejs}}_container'),
+            inputAttrs: '{{attrs|escapejs}}',
+            removeText: '{{remove_text|escapejs}}',
+            sep: '{{sep|escapejs}}'
+        });
 
         view.render();
     });
