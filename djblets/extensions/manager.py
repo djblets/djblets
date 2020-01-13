@@ -1178,16 +1178,18 @@ class ExtensionManager(object):
             ext_class (type):
                 The extension class owning the static media to install.
         """
-        if pkg_resources.resource_exists(ext_class.__module__, 'htdocs'):
+        ext_info = ext_class.info
+
+        if ext_info.has_resource('htdocs'):
             # This is an older extension that doesn't use the static file
             # support. Log a deprecation notice and then install the files.
             logger.error('The %s extension uses the deprecated "htdocs" '
                          'directory for static files. This is no longer '
                          'supported. It must be updated to use a "static" '
                          'directory instead.',
-                         ext_class.info.name)
+                         ext_info.name)
 
-        ext_static_path = ext_class.info.installed_static_path
+        ext_static_path = ext_info.installed_static_path
         ext_static_path_exists = os.path.exists(ext_static_path)
 
         if ext_static_path_exists:
@@ -1199,19 +1201,18 @@ class ExtensionManager(object):
                                 'at %s. Make sure this path, its parent, and '
                                 'everything under it is writable by your '
                                 'web server.',
-                                ext_class.info.name, ext_static_path)
+                                ext_info.name, ext_static_path)
 
-        if pkg_resources.resource_exists(ext_class.__module__, 'static'):
-            extracted_path = \
-                pkg_resources.resource_filename(ext_class.__module__, 'static')
+        extracted_path = ext_info.extract_resource('static')
 
+        if extracted_path:
             try:
                 shutil.copytree(extracted_path, ext_static_path, symlinks=True)
             except Exception as e:
                 logger.critical('Unable to install extension media for %s to '
                                 '%s: %s. The extension may not work, and '
                                 'pages may crash.',
-                                ext_class.info.name, ext_static_path, e,
+                                ext_info.name, ext_static_path, e,
                                 exc_info=True)
 
     def _uninstall_extension(self, extension):

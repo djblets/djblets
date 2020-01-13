@@ -9,6 +9,7 @@ import os
 import warnings
 from email.parser import FeedParser
 
+import pkg_resources
 from django.conf import settings
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.core.exceptions import ImproperlyConfigured
@@ -519,6 +520,7 @@ class ExtensionInfo(object):
 
         # Set the base information from the extension and the package.
         self.package_name = package_name
+        self.module_name = ext_class.__module__
         self.app_name = '.'.join(ext_class.__module__.split('.')[:-1])
         self.is_configurable = ext_class.is_configurable
         self.has_admin_site = ext_class.has_admin_site
@@ -546,6 +548,46 @@ class ExtensionInfo(object):
         self.license = metadata.get('License')
         self.url = metadata.get('Home-page')
         self.author_url = metadata.get('Author-home-page', self.url)
+
+    def has_resource(self, path):
+        """Return whether an extension has a resource in its package.
+
+        A resource is a file or directory that exists within an extension's
+        package.
+
+        Args:
+            path (unicode):
+                The ``/``-delimited path to the resource within the package.
+
+        Returns:
+            bool:
+            ``True`` if the resource exits. ``False`` if it does not.
+        """
+        return pkg_resources.resource_exists(self.module_name, path)
+
+    def extract_resource(self, path):
+        """Return the filesystem path to an extracted resource.
+
+        A resource is a file or directory that exists within an extension's
+        package.
+
+        This will extract the resource from the package, if the package is
+        compressed, and then return the local path to the file on the
+        filesystem.
+
+        Args:
+            path (unicode):
+                The ``/``-delimited path to the resource within the package.
+
+        Returns:
+            unicode:
+            The local filesystem path to the resource, or ``None`` if it
+            could not be found.
+        """
+        if self.has_resource(path):
+            return pkg_resources.resource_filename(self.module_name, path)
+
+        return None
 
     def __str__(self):
         return '%s %s (enabled = %s)' % (self.name, self.version, self.enabled)

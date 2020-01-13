@@ -93,8 +93,33 @@ ROOT_URLCONF = 'djblets.testing.urls'
 # from Django 1.7.
 TEST_RUNNER = 'djblets.testing.testrunners.TestRunner'
 
+base_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                         "..", "djblets"))
 
-PIPELINE = {}
+
+NODE_PATH = os.path.join(base_path, '..', 'node_modules')
+os.environ['NODE_PATH'] = NODE_PATH
+
+PIPELINE = {
+    'PIPELINE_ENABLED': True,
+    'COMPILERS': [
+        'djblets.pipeline.compilers.es6.ES6Compiler',
+        'djblets.pipeline.compilers.less.LessCompiler',
+    ],
+    'CSS_COMPRESSOR': None,
+    'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
+    'BABEL_BINARY': os.path.join(NODE_PATH, 'babel-cli', 'bin', 'babel.js'),
+    'BABEL_ARGUMENTS': ['--presets', 'env', '--plugins', 'dedent',
+                        '-s', 'true'],
+    'LESS_BINARY': os.path.join(NODE_PATH, 'less', 'bin', 'lessc'),
+    'LESS_ARGUMENTS': [
+        '--no-color',
+        '--source-map',
+        '--js',
+        '--autoprefix',
+    ],
+    'UGLIFYJS_BINARY': os.path.join(NODE_PATH, 'uglify-js', 'bin', 'uglifyjs'),
+}
 
 
 INSTALLED_APPS = [
@@ -109,8 +134,19 @@ INSTALLED_APPS = [
 ]
 
 
-base_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                         "..", "djblets"))
+STATICFILES_DIRS = (
+    ('djblets', os.path.join(base_path, 'static', 'djblets')),
+)
+
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'djblets.extensions.staticfiles.ExtensionFinder',
+    'pipeline.finders.PipelineFinder',
+)
+
+STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
+
 
 for entry in os.listdir(base_path):
     fullpath = os.path.join(base_path, entry)
