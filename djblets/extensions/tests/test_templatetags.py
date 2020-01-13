@@ -17,6 +17,7 @@ from djblets.extensions.extension import Extension, ExtensionInfo, JSExtension
 from djblets.extensions.hooks import TemplateHook
 from djblets.extensions.tests.base import ExtensionTestsMixin
 from djblets.testing.testcases import TestCase
+from pipeline.conf import settings as pipeline_settings
 
 
 class TestJSExtension(JSExtension):
@@ -92,6 +93,13 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
                                               manager_key=self.key)
         self.request = HttpRequest()
 
+        self._old_pipeline_enabled = pipeline_settings.PIPELINE_ENABLED
+
+    def tearDown(self):
+        super(TemplateTagTests, self).tearDown()
+
+        pipeline_settings.PIPELINE_ENABLED = self._old_pipeline_enabled
+
     def test_template_hook_point_tag(self):
         """Testing template_hook_point template tag"""
         class DummyTemplateHook(TemplateHook):
@@ -134,12 +142,14 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
             '/ext/djblets.extensions.tests.test_templatetags.TestExtension/'
             'css/default-test.dad0c9b31e59.css')
 
-    def test_ext_css_bundle_tag(self):
-        """Testing ext_css_bundle template tag"""
+    def test_ext_css_bundle_tag_with_pipeline_enabled(self):
+        """Testing ext_css_bundle template tag with PIPELINE_ENABLED=True"""
+        pipeline_settings.PIPELINE_ENABLED = True
+
         t = Template('{% load djblets_extensions %}'
                      '{% ext_css_bundle ext "default" %}')
 
-        self.assertEqual(
+        self.assertHTMLEqual(
             t.render(Context({
                 'ext': self.extension,
                 'request': self.request,
@@ -148,12 +158,30 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
             '.TestExtension/css/default.min.dad0c9b31e59.css" '
             'rel="stylesheet" type="text/css" />')
 
-    def test_ext_js_bundle_tag(self):
-        """Testing ext_js_bundle template tag"""
+    def test_ext_css_bundle_tag_with_pipeline_disabled(self):
+        """Testing ext_css_bundle template tag with PIPELINE_ENABLED=False"""
+        pipeline_settings.PIPELINE_ENABLED = False
+
+        t = Template('{% load djblets_extensions %}'
+                     '{% ext_css_bundle ext "default" %}')
+
+        self.assertHTMLEqual(
+            t.render(Context({
+                'ext': self.extension,
+                'request': self.request,
+            })),
+            '<link href="/ext/djblets.extensions.tests.test_templatetags.'
+            'TestExtension/css/default-test.dad0c9b31e59.css" '
+            'rel="stylesheet" type="text/css" />')
+
+    def test_ext_js_bundle_tag_with_pipeline_enabled(self):
+        """Testing ext_js_bundle template tag with PIPELINE_ENABLED=True"""
+        pipeline_settings.PIPELINE_ENABLED = True
+
         t = Template('{% load djblets_extensions %}'
                      '{% ext_js_bundle ext "default" %}')
 
-        self.assertEqual(
+        self.assertHTMLEqual(
             t.render(Context({
                 'ext': self.extension,
                 'request': self.request,
@@ -163,8 +191,28 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
             's.TestExtension/js/default.min.dad0c9b31e59.js" '
             'charset="utf-8"></script>')
 
-    def test_load_extensions_css_tag(self):
-        """Testing load_extensions_css template tag"""
+    def test_ext_js_bundle_tag_with_pipeline_disabled(self):
+        """Testing ext_js_bundle template tag with PIPELINE_ENABLED=False"""
+        pipeline_settings.PIPELINE_ENABLED = False
+
+        t = Template('{% load djblets_extensions %}'
+                     '{% ext_js_bundle ext "default" %}')
+
+        self.assertHTMLEqual(
+            t.render(Context({
+                'ext': self.extension,
+                'request': self.request,
+            })),
+            '<script type="text/javascript" '
+            'src="/ext/djblets.extensions.tests.test_templatetag'
+            's.TestExtension/js/default-test.dad0c9b31e59.js" '
+            'charset="utf-8"></script>')
+
+    def test_load_extensions_css_tag_with_pipline_enabled(self):
+        """Testing load_extensions_css template tag with PIPELINE_ENABLED=True
+        """
+        pipeline_settings.PIPELINE_ENABLED = True
+
         t = Template('{% load djblets_extensions %}'
                      '{% load_extensions_css manager_id %}')
 
@@ -183,8 +231,34 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
             '.TestExtension/css/optional.min.dad0c9b31e59.css" '
             'rel="stylesheet" type="text/css" />')
 
-    def test_load_extensions_js_tag(self):
-        """Testing load_extensions_js template tag"""
+    def test_load_extensions_css_tag_with_pipline_disabled(self):
+        """Testing load_extensions_css template tag with PIPELINE_ENABLED=False
+        """
+        pipeline_settings.PIPELINE_ENABLED = False
+
+        t = Template('{% load djblets_extensions %}'
+                     '{% load_extensions_css manager_id %}')
+
+        self.request.resolver_match = ResolverMatch(None, None, None, 'foo')
+
+        self.assertHTMLEqual(
+            t.render(Context({
+                'ext': self.extension,
+                'manager_id': self.key,
+                'request': self.request,
+            })),
+            '<link href="/ext/djblets.extensions.tests.test_templatetags'
+            '.TestExtension/css/default-test.dad0c9b31e59.css" '
+            'rel="stylesheet" type="text/css" />'
+            '<link href="/ext/djblets.extensions.tests.test_templatetags'
+            '.TestExtension/css/optional-test.dad0c9b31e59.css" '
+            'rel="stylesheet" type="text/css" />')
+
+    def test_load_extensions_js_tag_with_pipeline_enabled(self):
+        """Testing load_extensions_js template tag with PIPELINE_ENABLED=True
+        """
+        pipeline_settings.PIPELINE_ENABLED = True
+
         t = Template('{% load djblets_extensions %}'
                      '{% load_extensions_js manager_id %}')
 
@@ -203,6 +277,31 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
             '<script type="text/javascript" '
             'src="/ext/djblets.extensions.tests.test_templatetags'
             '.TestExtension/js/optional.min.dad0c9b31e59.js" '
+            'charset="utf-8"></script>')
+
+    def test_load_extensions_js_tag_with_pipeline_disabled(self):
+        """Testing load_extensions_js template tag with PIPELINE_ENABLED=False
+        """
+        pipeline_settings.PIPELINE_ENABLED = False
+
+        t = Template('{% load djblets_extensions %}'
+                     '{% load_extensions_js manager_id %}')
+
+        self.request.resolver_match = ResolverMatch(None, None, None, 'foo')
+
+        self.assertHTMLEqual(
+            t.render(Context({
+                'ext': self.extension,
+                'manager_id': self.key,
+                'request': self.request,
+            })),
+            '<script type="text/javascript" '
+            'src="/ext/djblets.extensions.tests.test_templatetags'
+            '.TestExtension/js/default-test.dad0c9b31e59.js" '
+            'charset="utf-8"></script>'
+            '<script type="text/javascript" '
+            'src="/ext/djblets.extensions.tests.test_templatetags'
+            '.TestExtension/js/optional-test.dad0c9b31e59.js" '
             'charset="utf-8"></script>')
 
     def test_init_js_extensions(self):

@@ -7,6 +7,7 @@ import warnings
 from django import template
 from django.utils import six
 from django.utils.html import format_html_join
+from django.utils.safestring import mark_safe
 from pipeline.conf import settings as pipeline_settings
 from pipeline.templatetags.pipeline import JavascriptNode, StylesheetNode
 
@@ -54,7 +55,7 @@ class ExtensionStaticMediaNodeMixin(object):
         if not rendered:
             rendered = self.render_compressed_output(*args, **kwargs)
 
-        return rendered
+        return mark_safe(rendered)
 
 
 class ExtensionJavascriptNode(ExtensionStaticMediaNodeMixin, JavascriptNode):
