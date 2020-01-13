@@ -23,16 +23,20 @@ class ListEditWidgetTests(TestCase):
             })
 
         self.assertIn(
-            '<div class="list-edit-widget" id="id_my_field_container">',
+            '<div class="djblets-c-list-edit-widget list-edit-widget"'
+            ' id="id_my_field_container">',
             rendered)
         self.assertIn('<input value="foo" type="text"'
-                      ' class="my-value-class list-edit-item">',
+                      ' class="my-value-class'
+                      ' djblets-c-list-edit-widget__input">',
                       rendered)
         self.assertIn('<input value="bar" type="text"'
-                      ' class="my-value-class list-edit-item">',
+                      ' class="my-value-class'
+                      ' djblets-c-list-edit-widget__input">',
                       rendered)
         self.assertIn('<input value="baz" type="text"'
-                      ' class="my-value-class list-edit-item">',
+                      ' class="my-value-class'
+                      ' djblets-c-list-edit-widget__input">',
                       rendered)
 
     def test_render_with_custom_separator(self):
@@ -47,14 +51,18 @@ class ListEditWidgetTests(TestCase):
             })
 
         self.assertIn(
-            '<div class="list-edit-widget" id="id_my_field_container">',
+            '<div class="djblets-c-list-edit-widget list-edit-widget"'
+            ' id="id_my_field_container">',
             rendered)
         self.assertIn('<input value="foo" type="text"'
-                      ' class="my-value-class list-edit-item">',
+                      ' class="my-value-class'
+                      ' djblets-c-list-edit-widget__input">',
                       rendered)
         self.assertIn('<input value="bar" type="text"'
-                      ' class="my-value-class list-edit-item">',
+                      ' class="my-value-class'
+                      ' djblets-c-list-edit-widget__input">',
                       rendered)
         self.assertIn('<input value="baz" type="text"'
-                      ' class="my-value-class list-edit-item">',
+                      ' class="my-value-class'
+                      ' djblets-c-list-edit-widget__input">',
                       rendered)

@@ -2,11 +2,12 @@
 
 
 const entryTemplate = _.template(dedent`
-    <li class="list-edit-entry" data-list-index="<%- index %>">
+    <li class="djblets-c-list-edit-widget__entry"
+        data-list-index="<%- index %>">
      <input type="text"<%= inputAttrs %>>
-     <a href="#" class="list-edit-remove-item" role="button"
-        title=<%- removeText %>">
-       <img src="<%- deleteImgUrl %>">
+     <a href="#" class="djblets-c-list-edit-widget__remove-item"
+        role="button" title="<%- removeText %>">
+       <span class="fa fa-times"></span>
      </a>
     </li>
 `);
@@ -19,9 +20,9 @@ const entryTemplate = _.template(dedent`
  */
 Djblets.Forms.ListEditView = Backbone.View.extend({
     events: {
-        'click .list-edit-add-item': '_addItem',
-        'click .list-edit-remove-item': '_removeItem',
-        'blur input': '_onBlur',
+        'click .djblets-c-list-edit-widget__add-item': '_addItem',
+        'click .djblets-c-list-edit-widget__remove-item': '_removeItem',
+        'blur .djblets-c-list-edit-widget__input': '_onBlur',
     },
 
     /**
@@ -35,9 +36,6 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
      *     inputAttrs (string):
      *         The attributes that should be added to each ``<input>`` element.
      *
-     *     deleteImgUrl (string):
-     *         The URL for the delete icon image.
-     *
      *     removeText (string):
      *         The localized text for removing an item.
      *
@@ -47,7 +45,6 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
      */
     initialize(options) {
         this._inputAttrs = options.inputAttrs;
-        this._deleteImgUrl = options.deleteImgUrl;
         this._removeText = options.removeText;
         this._sep = options.sep;
         this._values = [];
@@ -64,25 +61,17 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
      *     This view.
      */
     render() {
-        this._$list = this.$('ul');
-        this._$list.find('.list-edit-entry > input').each((idx, el) => {
-            this._values.push($(el).val());
-        });
-        this._$addBtn = this.$('.list-edit-add-item');
-        this._$hidden = this.$('input[type="hidden"]');
+        this.$el.data('djblets-list-edit-view', this);
 
-        return this;
-    },
+        this._$list = this.$el.children(
+            '.djblets-c-list-edit-widget__entries');
+        this._$list.find('.djblets-c-list-edit-widget__input')
+            .each((idx, el) => this._values.push($(el).val()));
+        this._$addBtn = this.$el.children(
+            '.djblets-c-list-edit-widget__add-item');
+        this._$hidden = this.$el.children(
+            '.djblets-c-list-edit-widget__value');
 
-    /**
-     * Remove the view from the DOM.
-     *
-     * Returns:
-     *     Djblets.Forms.ListEditView:
-     *     This view.
-     */
-    remove() {
-        this.$el.closest('form').off('submit', this._onSubmit);
         return this;
     },
 
@@ -99,17 +88,16 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
 
         const $entry = $(entryTemplate({
                 index: this._values.length,
-                deleteImgUrl: this._deleteImgUrl,
                 inputAttrs: this._inputAttrs,
                 removeText: this._removeText,
             }))
             .insertBefore(this._$addBtn);
 
         $entry
-            .find('.list-edit-add-item')
+            .find('.djblets-c-list-edit-widget__add-item')
                 .on('click', e => this._addItem(e))
             .end()
-            .find('input')
+            .find('.djblets-c-list-edit-widget__input')
                 .on('change', e => this._onBlur(e))
             .end();
 
@@ -132,18 +120,17 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
         e.stopPropagation();
 
         const $target = $(e.target);
-        const $entry = $target.closest('.list-edit-entry');
+        const $entry = $target.closest('.djblets-c-list-edit-widget__entry');
         const index = $entry.attr('data-list-index');
 
         if (this._values.length > 1) {
             $entry.remove();
             this._values.splice(index, 1);
-            this._$list.find('.list-edit-entry').each((idx, el) => {
-                $(el).attr('data-list-index', idx);
-            });
+            this._$list.find('.djblets-c-list-edit-widget__entry')
+                .each((idx, el) => $(el).attr('data-list-index', idx));
         } else {
             this._values[index] = '';
-            $target.siblings('input').val('');
+            $target.siblings('.djblets-c-list-edit-widget__input').val('');
         }
 
         this._$hidden
@@ -160,7 +147,7 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
     _onBlur(e) {
         const $target = $(e.target);
         const index = $target
-            .closest('.list-edit-entry')
+            .closest('.djblets-c-list-edit-widget__entry')
             .attr('data-list-index');
 
         this._values[index] = $target.val();

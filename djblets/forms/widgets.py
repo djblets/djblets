@@ -607,7 +607,7 @@ class CopyableTextInput(widgets.TextInput):
 class ListEditWidget(widgets.Widget):
     """A widget for editing a list of separated values.
 
-    .. note: The ``django-forms`` CSS and JS bundles are required to use this
+    .. note: The ``djblets-forms`` CSS and JS bundles are required to use this
              widget.
     """
 
@@ -648,9 +648,9 @@ class ListEditWidget(widgets.Widget):
         id_ = attrs.pop('id')
 
         if 'class' in attrs:
-            attrs['class'] += ' list-edit-item'
+            attrs['class'] += ' djblets-c-list-edit-widget__input'
         else:
-            attrs['class'] = 'list-edit-item'
+            attrs['class'] = 'djblets-c-list-edit-widget__input'
 
         value = value or ''
         value_list = list(
