@@ -2,8 +2,16 @@
 
 from __future__ import unicode_literals
 
-from django.db.backends.mysql.base import (DatabaseWrapper as
-                                           BaseMySQLDatabaseWrapper)
+from django.core.exceptions import ImproperlyConfigured
+
+try:
+    from django.db.backends.mysql.base import (DatabaseWrapper as
+                                               BaseMySQLDatabaseWrapper)
+except ImproperlyConfigured as e:
+    # We can't load this backend, but flat-out aborting the module loading now
+    # will cause errors in unit test discovery. So we're going to effectively
+    # stub this out. It will be useless if actually instantiated.
+    BaseMySQLDatabaseWrapper = object
 
 
 class DatabaseWrapper(BaseMySQLDatabaseWrapper):
