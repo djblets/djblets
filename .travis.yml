@@ -20,6 +20,7 @@ install:
       fi
     - python setup.py develop
     - pip install -r dev-requirements.txt
+    - pip install -r ci-requirements.txt
 
 script:
     # Set up the origin/master branch, for doc building.

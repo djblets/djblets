@@ -84,7 +84,7 @@ class Base64FieldCreator(object):
                 The type of value provided could not be set.
         """
         if value is not None:
-            if not isinstance(value, (six.text_type, six.binary_type)):
+            if not isinstance(value, (bytes, six.memoryview, six.text_type)):
                 raise Base64TypeError(value)
 
             pk_val = obj._get_pk_val(obj.__class__._meta)
@@ -92,6 +92,8 @@ class Base64FieldCreator(object):
 
             if isinstance(value, six.text_type):
                 value = value.encode('utf-8')
+            elif isinstance(value, six.memoryview):
+                value = bytes(value)
 
             if isinstance(value, Base64DecodedValue) or not pk_set:
                 value = base64_encode(value)
@@ -201,13 +203,15 @@ class Base64Field(models.TextField):
                 The type of value provided could not be prepared for writing.
         """
         if value is not None:
-            if not isinstance(value, (six.text_type, six.binary_type)):
+            if not isinstance(value, (bytes, six.memoryview, six.text_type)):
                 raise Base64TypeError(value)
 
             if isinstance(value, Base64DecodedValue):
                 value = base64_encode(value)
             elif isinstance(value, six.text_type):
                 value = value.encode('utf-8')
+            elif isinstance(value, six.memoryview):
+                value = bytes(value)
 
         return value
 
@@ -229,12 +233,14 @@ class Base64Field(models.TextField):
                 The type of value provided could not be prepared for writing.
         """
         if value is not None:
-            if not isinstance(value, (six.text_type, six.binary_type)):
+            if not isinstance(value, (bytes, six.memoryview, six.text_type)):
                 raise Base64TypeError(value)
 
             if not isinstance(value, Base64DecodedValue):
                 if isinstance(value, six.text_type):
                     value = value.encode('utf-8')
+                elif isinstance(value, six.memoryview):
+                    value = bytes(value)
 
                 value = Base64DecodedValue(base64_decode(value))
 
