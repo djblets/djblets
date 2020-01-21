@@ -4,6 +4,7 @@
 from __future__ import unicode_literals
 
 from django.db import models
+from django.utils import six
 
 from djblets.db.fields.base64_field import (Base64DecodedValue, Base64Field,
                                             Base64TypeError)
@@ -58,6 +59,20 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
         encoded = obj.get_field_base64()
         self.assertIs(type(encoded), bytes)
         self.assertEqual(encoded, b'VGhpcyBpcyBhIHRlc3Q=\n')
+
+    def test_create_with_memoryview(self):
+        """Testing Base64Field with setting memoryview in
+        Model.objects.create()
+        """
+        obj = Base64TestModel.objects.create(
+            field=six.memoryview(b'This is a t\xc3\xa9st'))
+
+        self.assertIs(type(obj.field), Base64DecodedValue)
+        self.assertEqual(obj.field, b'This is a t\xc3\xa9st')
+
+        encoded = obj.get_field_base64()
+        self.assertIs(type(encoded), bytes)
+        self.assertEqual(encoded, b'VGhpcyBpcyBhIHTDqXN0\n')
 
     def test_create_with_none(self):
         """Testing Base64Field with setting None in
@@ -117,6 +132,18 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
         encoded = obj.get_field_base64()
         self.assertIs(type(encoded), bytes)
         self.assertEqual(encoded, b'VGhpcyBpcyBhIHRlc3Q=\n')
+
+    def test_unsaved_obj_with_memoryview_value(self):
+        """Testing Base64Field with setting memoryview on unsaved instance"""
+        obj = Base64TestModel()
+        obj.field = six.memoryview(b'This is a t\xc3\xa9st')
+
+        self.assertIs(type(obj.field), Base64DecodedValue)
+        self.assertEqual(obj.field, b'This is a t\xc3\xa9st')
+
+        encoded = obj.get_field_base64()
+        self.assertIs(type(encoded), bytes)
+        self.assertEqual(encoded, b'VGhpcyBpcyBhIHTDqXN0\n')
 
     def test_unsaved_obj_with_invalid_value_type(self):
         """Testing Base64Field with setting invalid value type on unsaved
@@ -179,6 +206,18 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
         self.assertIs(type(encoded), bytes)
         self.assertEqual(encoded, b'VGhpcyBpcyBhIHRlc3Q=\n')
 
+    def test_saved_obj_with_memoryview_value(self):
+        """Testing Base64Field with setting memoryview on saved instance"""
+        obj = Base64TestModel.objects.create()
+        obj.field = six.memoryview(b'VGhpcyBpcyBhIHTDqXN0\n')
+
+        self.assertIs(type(obj.field), Base64DecodedValue)
+        self.assertEqual(obj.field, b'This is a t\xc3\xa9st')
+
+        encoded = obj.get_field_base64()
+        self.assertIs(type(encoded), bytes)
+        self.assertEqual(encoded, b'VGhpcyBpcyBhIHTDqXN0\n')
+
     def test_saved_obj_with_invalid_value_type(self):
         """Testing Base64Field with setting invalid value type on saved
         instance
@@ -234,6 +273,19 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
         self.assertIs(type(encoded), bytes)
         self.assertEqual(encoded, b'VGhpcyBpcyBhIHTDqXN0\n')
 
+    def test_save_form_data_with_memoryview(self):
+        """Testing Base64Field.save_form_data with memoryview value"""
+        obj = Base64TestModel(field=b'This is a test')
+        obj._meta.get_field('field').save_form_data(
+            obj, six.memoryview(b'This is a t\xc3\xa9st'))
+
+        self.assertIs(type(obj.field), Base64DecodedValue)
+        self.assertEqual(obj.field, b'This is a t\xc3\xa9st')
+
+        encoded = obj.get_field_base64()
+        self.assertIs(type(encoded), bytes)
+        self.assertEqual(encoded, b'VGhpcyBpcyBhIHTDqXN0\n')
+
     def test_to_python_with_bytes(self):
         """Testing Base64Field.to_python with bytes value"""
         obj = Base64TestModel()
@@ -260,6 +312,15 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
 
         self.assertIs(type(value), Base64DecodedValue)
         self.assertEqual(value, b'This is a test')
+
+    def test_to_python_with_memoryview_value(self):
+        """Testing Base64Field.to_python with memoryview value"""
+        obj = Base64TestModel()
+        value = obj._meta.get_field('field').to_python(
+            six.memoryview(b'VGhpcyBpcyBhIHTDqXN0\n'))
+
+        self.assertIs(type(value), Base64DecodedValue)
+        self.assertEqual(value, b'This is a t\xc3\xa9st')
 
     def test_to_python_with_none(self):
         """Testing Base64Field.to_python with None"""
