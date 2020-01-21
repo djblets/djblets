@@ -45,7 +45,7 @@
     <th colspan="3">{{timestamp|date}}</th>
    </tr>
 {%  endifchanged %}
-   <tr class="level-{{level|lower}} {% cycle row1,row2 %}">
+   <tr class="level-{{level|lower}} {% cycle 'row1' 'row2' %}">
     <th>{{timestamp|time:"H:i:s"}}</td>
     <th>{{level}}</td>
     <td><pre>{{message}}</pre></td>
