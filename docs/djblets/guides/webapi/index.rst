@@ -1,3 +1,5 @@
+.. _webapi-guides:
+
 ==============
 Web API Guides
 ==============
