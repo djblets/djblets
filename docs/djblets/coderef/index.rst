@@ -45,10 +45,16 @@ Avatars
    djblets.avatars.registry
    djblets.avatars.services
    djblets.avatars.services.base
+   djblets.avatars.services.fallback
    djblets.avatars.services.file_upload
    djblets.avatars.services.gravatar
    djblets.avatars.services.url
    djblets.avatars.settings
+
+
+.. seealso::
+
+   :ref:`avatar-guides`
 
 
 .. _coderef-djblets-cache:
@@ -160,6 +166,11 @@ Extensions
    djblets.extensions.templatetags.djblets_extensions
 
 
+.. seealso::
+
+   :ref:`extension-guides`
+
+
 .. _coderef-djblets-features:
 
 Feature Checks
@@ -177,6 +188,11 @@ Feature Checks
    djblets.features.registry
    djblets.features.testing
    djblets.features.templatetags.features
+
+
+.. seealso::
+
+   :ref:`feature-checks-guides`
 
 
 .. _coderef-djblets-feedview:
@@ -247,6 +263,11 @@ Integrations
    djblets.integrations.templatetags.integrations
    djblets.integrations.urls
    djblets.integrations.views
+
+
+.. seealso::
+
+   :ref:`integration-guides`
 
 
 .. _coderef-djblets-log:
@@ -325,6 +346,11 @@ Privacy Protection
    djblets.privacy.templatetags.djblets_privacy
 
 
+.. seealso::
+
+   :ref:`privacy-guides`
+
+
 .. _coderef-djblets-recaptcha:
 
 reCAPTCHA
@@ -337,6 +363,11 @@ reCAPTCHA
    djblets.recaptcha.siteconfig
    djblets.recaptcha.templatetags.djblets_recaptcha
    djblets.recaptcha.widgets
+
+
+.. seealso::
+
+   :ref:`recaptcha-guides`
 
 
 .. _coderef-djblets-registries:
@@ -353,6 +384,11 @@ Registries
    djblets.registries.mixins
    djblets.registries.registry
    djblets.registries.signals
+
+
+.. seealso::
+
+   :ref:`registry-guides`
 
 
 .. _coderef-djblets-siteconfig:
@@ -503,3 +539,8 @@ Web API
    djblets.webapi.testing
    djblets.webapi.testing.decorators
    djblets.webapi.testing.testcases
+
+
+.. seealso::
+
+   :ref:`webapi-guides`
