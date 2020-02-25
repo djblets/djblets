@@ -31,15 +31,7 @@ This contains some validation functions that may be useful for forms.
 
 from __future__ import unicode_literals
 
-from django import forms
 from django.utils.translation import ugettext as _
-
-
-try:
-    # Django renamed forms.util to forms.utils in 1.7.
-    from django.forms import utils as form_utils
-except ImportError:
-    from django.forms import util as form_utils
 
 
 def validate_test_cookie(form, request):
@@ -49,14 +41,14 @@ def validate_test_cookie(form, request):
     be set with an error saying that cookies must be enabled.
 
     Args:
-        form (Form):
+        form (django.forms.Form):
             The form using the validator.
 
-        request (HttpRequest):
+        request (django.http.HttpRequest):
             The HTTP request containing the test cookie.
     """
     if not request.session.test_cookie_worked():
-        form.errors['submit'] = forms.util.ErrorList(
+        form.errors['submit'] = form.error_class(
             [_('Cookies must be enabled.')])
 
 
@@ -67,16 +59,15 @@ def validate_old_password(form, user, field_name='password'):
     specified password in the form matches the user's current password.
 
     Args:
-        form (Form):
+        form (django.forms.Form):
             The form using the validator and containing the field.
 
-        user (User):
+        user (django.contrib.auth.models.User):
             The user whose password is being changed.
 
-        field_name (unicode):
+        field_name (unicode, optional):
             The name of the password field.
     """
     if (not form.errors.get(field_name) and
         not user.check_password(form.data.get(field_name))):
-        form.errors[field_name] = form_utils.ErrorList(
-            [_('Incorrect password.')])
+        form.errors[field_name] = form.error_class([_('Incorrect password.')])
