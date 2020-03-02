@@ -29,8 +29,8 @@ from hashlib import md5
 from warnings import warn
 
 from django.conf import settings
-from django.http import QueryDict
 from django.utils import six
+from django.utils.six.moves.urllib.parse import urlencode
 
 
 default_app_config = 'djblets.gravatars.apps.GravatarsAppConfig'
@@ -67,22 +67,22 @@ def get_gravatar_url_for_email(email=None, size=None):
         email_hash = '00000000000000000000000000000000'
 
     url = 'https://secure.gravatar.com/avatar/%s' % email_hash
-    params = QueryDict('', mutable=True)
+    params = []
 
     if not size and hasattr(settings, 'GRAVATAR_SIZE'):
         size = settings.GRAVATAR_SIZE
 
     if size:
-        params['s'] = size
+        params.append(('s', size))
 
     if hasattr(settings, 'GRAVATAR_RATING'):
-        params['r'] = settings.GRAVATAR_RATING
+        params.append(('r', settings.GRAVATAR_RATING))
 
     if hasattr(settings, 'GRAVATAR_DEFAULT'):
-        params['d'] = settings.GRAVATAR_DEFAULT
+        params.append(('d', settings.GRAVATAR_DEFAULT))
 
-    if len(params):
-        url = '%s?%s' % (url, params.urlencode())
+    if params:
+        url = '%s?%s' % (url, urlencode(params))
 
     return url
 
