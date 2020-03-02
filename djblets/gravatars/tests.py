@@ -40,6 +40,17 @@ class GravatarTests(TestCase):
             get_gravatar_url_for_email(email=raw_email),
             '%s%s' % (self._URL_BASE, md5(encoded_email).hexdigest()))
 
+    def test_get_gravatar_url_for_email_query_order(self):
+        """Testing get_gravatar_url_for_email query string ordering"""
+        email = 'foo@example.com'
+
+        with self.settings(GRAVATAR_RATING='G',
+                           GRAVATAR_DEFAULT='my-default'):
+            self.assertEqual(
+                get_gravatar_url_for_email(email='foo@example.com', size=128),
+                '%s%s?s=128&r=G&d=my-default'
+                % (self._URL_BASE, md5(email.encode('utf-8')).hexdigest()))
+
     def test_get_gravatar_url_uppercase(self):
         """Testing get_gravatar_url with uppercase characters"""
         user = User.objects.create_user(username='user',
