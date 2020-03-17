@@ -64,9 +64,13 @@ def definevar(context, nodelist, varname, *options):
     same block or for loop). This is useful for caching a portion of a
     template that would otherwise be expensive to repeatedly compute.
 
-    .. versionadded:: 1.0
+    Version Added:
+        2.0:
+        Added the new ``global`` option.
 
-       Added new ``strip``, ``spaceless``, and ``unsafe`` options.
+    Version Added:
+        1.0:
+        Added new ``strip``, ``spaceless``, and ``unsafe`` options.
 
     Args:
         varname (unicode):
@@ -74,6 +78,15 @@ def definevar(context, nodelist, varname, *options):
 
         *options (list of unicode, optional):
             A list of options passed. This supports the following:
+
+            ``global``:
+                Register the variable in the top-level context, for other
+                blocks to see.
+
+                Note that the ordering of registration and usage is important,
+                so consumers are advised to have a dedicated template block
+                for this purpose. Also note that if a later block defines a
+                variable with the same name, that will take precedence.
 
             ``strip``:
                 Strip whitespace at the beginning/end of the value.
@@ -119,7 +132,13 @@ def definevar(context, nodelist, varname, *options):
     else:
         result = mark_safe(result)
 
-    context[varname] = result
+    if 'global' in options:
+        # Note that we're setting at index 1. That's the first mutable
+        # context dictionary. Index 0 is reserved for primitives (True,
+        # False, None).
+        context.dicts[1][varname] = result
+    else:
+        context[varname] = result
 
     return ''
 

@@ -144,6 +144,23 @@ class DefineVarTagTests(TestCase):
             })),
             '\ntest123\n')
 
+    def test_with_global(self):
+        """Testing {% definevar %} with global option"""
+        t = Template(
+            '{% load djblets_utils %}'
+            '{% block main %}'
+            '{%  block inner %}'
+            '{%   definevar "myvar" global %}{{num}}{% enddefinevar %}'
+            '{%  endblock %}'
+            '{% endblock %}'
+            '[{{myvar}}]')
+
+        self.assertEqual(
+            t.render(Context({
+                'num': 123,
+            })),
+            '[123]')
+
     def test_with_strip(self):
         """Testing {% definevar %} with strip option"""
         t = Template('{% load djblets_utils %}'
