@@ -684,7 +684,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         self.assertTrue(call_command.called_with('evolve'))
 
-        from djblets.extensions.test.evolve_tests.models import \
+        from djblets.extensions.tests.apps.evolve_tests.models import \
             TestEvolveExtensionModel
 
         # We should be able to create entries and query them.
@@ -763,7 +763,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         class TestExtension(Extension):
             apps = [
-                'djblets.extensions.test.model_tests',
+                'djblets.extensions.tests.apps.model_tests',
             ]
 
         self.setup_extension(TestExtension)
