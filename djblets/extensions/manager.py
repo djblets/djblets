@@ -528,7 +528,7 @@ class ExtensionManager(object):
         self._bump_sync_gen()
         self._recalculate_middleware()
 
-        extension_enabled.send(sender=self, extension=extension)
+        extension_enabled.send_robust(sender=self, extension=extension)
 
         return extension
 
@@ -592,7 +592,7 @@ class ExtensionManager(object):
         self._bump_sync_gen()
         self._recalculate_middleware()
 
-        extension_disabled.send(sender=self, extension=extension)
+        extension_disabled.send_robust(sender=self, extension=extension)
 
     def install_extension(self, install_url, package_name):
         """Install an extension from a remote source.
@@ -872,60 +872,91 @@ class ExtensionManager(object):
 
         self._extension_instances[extension_id] = extension
 
-        if extension.has_admin_site:
-            self._init_admin_site(extension)
-
-        # Installing the urls must occur after _init_admin_site(). The urls
-        # for the admin site will not be generated until it is called.
-        self._install_admin_urls(extension)
-
-        self._register_static_bundles(extension)
-
-        extension.info.installed = extension.registration.installed
-        extension.info.enabled = True
-        new_installed_apps = self._add_to_installed_apps(extension)
-        self._context_processors_setting.add_list(extension.context_processors)
-        clear_template_tag_caches()
-        ext_class.instance = extension
-
         try:
-            self.install_extension_media(ext_class)
-        except InstallExtensionError as e:
-            raise EnablingExtensionError(e.message, e.load_error)
+            if extension.has_admin_site:
+                try:
+                    self._init_admin_site(extension)
+                except Exception as e:
+                    raise EnablingExtensionError(
+                        _("Error setting up extension's administration "
+                          "site: %s")
+                        % e,
+                        self._store_load_error(ext_class.id, e))
 
-        # Check if the version information stored along with the extension is
-        # stale. If so, we may need to perform some updates.
-        cur_version = ext_class.info.version
+            # Installing the urls must occur after _init_admin_site(). The urls
+            # for the admin site will not be generated until it is called.
+            try:
+                self._install_admin_urls(extension)
+            except Exception as e:
+                raise EnablingExtensionError(
+                    _('Error setting up administration URLs: %s') % e,
+                    self._store_load_error(ext_class.id, e))
 
-        if ext_class.registration.installed:
-            old_version = extension.settings.get(self.VERSION_SETTINGS_KEY)
-        else:
-            old_version = None
+            self._register_static_bundles(extension)
 
-        if (not old_version or
-            pkg_resources.parse_version(old_version) <
-            pkg_resources.parse_version(cur_version)):
-            # If any models are introduced by this extension, we may need to
-            # update the database.
-            self._sync_database(ext_class, new_installed_apps)
+            extension.info.installed = extension.registration.installed
+            extension.info.enabled = True
+            new_installed_apps = self._add_to_installed_apps(extension)
+            self._context_processors_setting.add_list(
+                extension.context_processors)
+            clear_template_tag_caches()
+            ext_class.instance = extension
 
-            # Record this version so we don't update the database again.
-            extension.settings.set(self.VERSION_SETTINGS_KEY, cur_version)
-            extension.settings.save()
-        elif (old_version and
-              pkg_resources.parse_version(old_version) >
-              pkg_resources.parse_version(cur_version)):
-            logger.warning('The version of the "%s" extension installed on '
-                           'the server is older than the version recorded '
-                           'in the database! Upgrades will not be performed.',
-                           ext_class)
+            try:
+                self.install_extension_media(ext_class)
+            except InstallExtensionError as e:
+                raise EnablingExtensionError(e.message, e.load_error)
 
-        # Mark the extension as installed.
-        if not ext_class.registration.installed:
-            ext_class.registration.installed = True
-            ext_class.registration.save(update_fields=('installed',))
+            # Check if the version information stored along with the extension
+            # is stale. If so, we may need to perform some updates.
+            cur_version = ext_class.info.version
 
-        extension_initialized.send(self, ext_class=extension)
+            if ext_class.registration.installed:
+                old_version = extension.settings.get(self.VERSION_SETTINGS_KEY)
+            else:
+                old_version = None
+
+            if (not old_version or
+                pkg_resources.parse_version(old_version) <
+                pkg_resources.parse_version(cur_version)):
+                # If any models are introduced by this extension, we may need
+                # to update the database.
+                self._sync_database(ext_class, new_installed_apps)
+
+                # Record this version so we don't update the database again.
+                extension.settings.set(self.VERSION_SETTINGS_KEY, cur_version)
+                extension.settings.save()
+            elif (old_version and
+                  pkg_resources.parse_version(old_version) >
+                  pkg_resources.parse_version(cur_version)):
+                logger.warning('The version of the "%s" extension installed '
+                               'on the server is older than the version '
+                               'recorded in the database! Upgrades will not '
+                               'be performed.',
+                               ext_class)
+
+            # Mark the extension as installed.
+            if not ext_class.registration.installed:
+                ext_class.registration.installed = True
+                ext_class.registration.save(update_fields=('installed',))
+        except EnablingExtensionError as e:
+            # Raise this as-is.
+            del self._extension_instances[extension_id]
+
+            logger.exception('Error initializing extension %s: %s',
+                             ext_class.id, e)
+            raise
+        except Exception as e:
+            del self._extension_instances[extension_id]
+
+            logger.exception('Unexpected error initializing extension %s: %s',
+                             ext_class.id, e)
+
+            raise EnablingExtensionError(
+                _('Unexpected error initializing the extension: %s') % e,
+                self._store_load_error(ext_class.id, e))
+
+        extension_initialized.send_robust(self, ext_class=extension)
 
         return extension
 
@@ -1012,23 +1043,32 @@ class ExtensionManager(object):
             extension (djblets.extensions.extension.Extension):
                 The extension instance to uninitialize.
         """
-        extension.shutdown()
+        try:
+            extension.shutdown()
 
-        if hasattr(extension, 'admin_urlpatterns'):
-            self.dynamic_urls.remove_patterns(extension.admin_urlpatterns)
+            if hasattr(extension, 'admin_urlpatterns'):
+                self.dynamic_urls.remove_patterns(
+                    extension.admin_urlpatterns)
 
-        if hasattr(extension, 'admin_site_urlpatterns'):
-            self.dynamic_urls.remove_patterns(extension.admin_site_urlpatterns)
+            if hasattr(extension, 'admin_site_urlpatterns'):
+                self.dynamic_urls.remove_patterns(
+                    extension.admin_site_urlpatterns)
 
-        if hasattr(extension, 'admin_site'):
-            del extension.admin_site
+            if hasattr(extension, 'admin_site'):
+                del extension.admin_site
 
-        self._context_processors_setting.remove_list(
-            extension.context_processors)
-        self._remove_from_installed_apps(extension)
-        clear_template_tag_caches()
+            self._context_processors_setting.remove_list(
+                extension.context_processors)
+            self._remove_from_installed_apps(extension)
+            clear_template_tag_caches()
+        except Exception as e:
+            logger.exception('Unexpected error uninitializing extension %s: '
+                             '%s',
+                             extension.id, e)
+
         extension.info.enabled = False
-        extension_uninitialized.send(self, ext_class=extension)
+
+        extension_uninitialized.send_robust(self, ext_class=extension)
 
         del self._extension_instances[extension.id]
         extension.__class__.instance = None
