@@ -17,6 +17,7 @@ from django.core.urlresolvers import get_mod_func
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
 
+from djblets.extensions.errors import InstallExtensionMediaError
 from djblets.extensions.settings import ExtensionSettings
 from djblets.util.decorators import cached_property
 
@@ -530,6 +531,18 @@ class ExtensionInfo(object):
         self.url = metadata.get('Home-page')
         self.author_url = metadata.get('Author-home-page', self.url)
 
+    @cached_property
+    def installed_static_version_path(self):
+        """The path to the static media version file.
+
+        This file records the version of the extension used when last
+        installing the static media files.
+
+        Type:
+            unicode
+        """
+        return os.path.join(self.installed_static_path, '.version')
+
     def has_resource(self, path):
         """Return whether an extension has a resource in its package.
 
@@ -569,6 +582,50 @@ class ExtensionInfo(object):
             return pkg_resources.resource_filename(self.module_name, path)
 
         return None
+
+    def write_installed_static_version(self):
+        """Write the extension's current static media version to disk.
+
+        This will write the extension's current version in its static media
+        directory, creating that directory if necessary. This will allow
+        the extension manager to check if new media files need to be installed.
+
+        Raises:
+            djblets.extensions.errors.InstallExtensionMediaError:
+                There was an error writing the version to the static media
+                directory. Details are in the error message.
+        """
+        version_path = self.installed_static_version_path
+        parent_path = os.path.dirname(version_path)
+
+        try:
+            if not os.path.exists(parent_path):
+                os.makedirs(parent_path, 0o755)
+
+            with open(version_path, 'w') as fp:
+                fp.write('%s\n' % self.version)
+        except Exception:
+            raise InstallExtensionMediaError(
+                _('Unable to write the extension static media version '
+                  'file "%(path)s". Please make sure the file and its parent '
+                  'directory are owned by the web server.')
+                % {
+                    'path': version_path,
+                })
+
+    def get_installed_static_version(self):
+        """Return the extension's locally-written static media version.
+
+        Returns:
+            unicode:
+            The extension version written to disk, or ``None`` if it didn't
+            exist or couldn't be read.
+        """
+        try:
+            with open(self.installed_static_version_path, 'r') as fp:
+                return fp.read().strip()
+        except IOError:
+            return None
 
     def __str__(self):
         return '%s %s (enabled = %s)' % (self.name, self.version, self.enabled)
