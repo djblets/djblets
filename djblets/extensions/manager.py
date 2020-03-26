@@ -15,6 +15,7 @@ import time
 import traceback
 import warnings
 import weakref
+from contextlib import contextmanager
 from importlib import import_module
 
 from django.conf import settings
@@ -46,6 +47,7 @@ except ImportError:
 from djblets.cache.synchronizer import GenerationSynchronizer
 from djblets.extensions.errors import (EnablingExtensionError,
                                        InstallExtensionError,
+                                       InstallExtensionMediaError,
                                        InvalidExtensionError)
 from djblets.extensions.extension import ExtensionInfo
 from djblets.extensions.models import RegisteredExtension
@@ -256,6 +258,8 @@ class ExtensionManager(object):
     #: This should not be changed by subclasses, and generally is not needed
     #: outside of this class.
     VERSION_SETTINGS_KEY = '_extension_installed_version'
+
+    _MEDIA_LOCK_SLEEP_TIME_SECS = 1
 
     def __init__(self, key):
         """Initialize the extension manager.
@@ -526,7 +530,7 @@ class ExtensionManager(object):
         self._bump_sync_gen()
         self._recalculate_middleware()
 
-        extension_enabled.send(sender=self, extension=extension)
+        extension_enabled.send_robust(sender=self, extension=extension)
 
         return extension
 
@@ -590,7 +594,7 @@ class ExtensionManager(object):
         self._bump_sync_gen()
         self._recalculate_middleware()
 
-        extension_disabled.send(sender=self, extension=extension)
+        extension_disabled.send_robust(sender=self, extension=extension)
 
     def install_extension(self, install_url, package_name):
         """Install an extension from a remote source.
@@ -870,60 +874,91 @@ class ExtensionManager(object):
 
         self._extension_instances[extension_id] = extension
 
-        if extension.has_admin_site:
-            self._init_admin_site(extension)
-
-        # Installing the urls must occur after _init_admin_site(). The urls
-        # for the admin site will not be generated until it is called.
-        self._install_admin_urls(extension)
-
-        self._register_static_bundles(extension)
-
-        extension.info.installed = extension.registration.installed
-        extension.info.enabled = True
-        new_installed_apps = self._add_to_installed_apps(extension)
-        self._context_processors_setting.add_list(extension.context_processors)
-        clear_template_tag_caches()
-        ext_class.instance = extension
-
         try:
-            self.install_extension_media(ext_class)
-        except InstallExtensionError as e:
-            raise EnablingExtensionError(e.message, e.load_error)
+            if extension.has_admin_site:
+                try:
+                    self._init_admin_site(extension)
+                except Exception as e:
+                    raise EnablingExtensionError(
+                        _("Error setting up extension's administration "
+                          "site: %s")
+                        % e,
+                        self._store_load_error(ext_class.id, e))
 
-        # Check if the version information stored along with the extension is
-        # stale. If so, we may need to perform some updates.
-        cur_version = ext_class.info.version
+            # Installing the urls must occur after _init_admin_site(). The urls
+            # for the admin site will not be generated until it is called.
+            try:
+                self._install_admin_urls(extension)
+            except Exception as e:
+                raise EnablingExtensionError(
+                    _('Error setting up administration URLs: %s') % e,
+                    self._store_load_error(ext_class.id, e))
 
-        if ext_class.registration.installed:
-            old_version = extension.settings.get(self.VERSION_SETTINGS_KEY)
-        else:
-            old_version = None
+            self._register_static_bundles(extension)
 
-        if (not old_version or
-            pkg_resources.parse_version(old_version) <
-            pkg_resources.parse_version(cur_version)):
-            # If any models are introduced by this extension, we may need to
-            # update the database.
-            self._sync_database(ext_class, new_installed_apps)
+            extension.info.installed = extension.registration.installed
+            extension.info.enabled = True
+            new_installed_apps = self._add_to_installed_apps(extension)
+            self._context_processors_setting.add_list(
+                extension.context_processors)
+            clear_template_tag_caches()
+            ext_class.instance = extension
 
-            # Record this version so we don't update the database again.
-            extension.settings.set(self.VERSION_SETTINGS_KEY, cur_version)
-            extension.settings.save()
-        elif (old_version and
-              pkg_resources.parse_version(old_version) >
-              pkg_resources.parse_version(cur_version)):
-            logger.warning('The version of the "%s" extension installed on '
-                           'the server is older than the version recorded '
-                           'in the database! Upgrades will not be performed.',
-                           ext_class)
+            try:
+                self.install_extension_media(ext_class)
+            except InstallExtensionMediaError as e:
+                raise EnablingExtensionError(e.message, e.load_error)
 
-        # Mark the extension as installed.
-        if not ext_class.registration.installed:
-            ext_class.registration.installed = True
-            ext_class.registration.save(update_fields=('installed',))
+            # Check if the version information stored along with the extension
+            # is stale. If so, we may need to perform some updates.
+            cur_version = ext_class.info.version
 
-        extension_initialized.send(self, ext_class=extension)
+            if ext_class.registration.installed:
+                old_version = extension.settings.get(self.VERSION_SETTINGS_KEY)
+            else:
+                old_version = None
+
+            if (not old_version or
+                pkg_resources.parse_version(old_version) <
+                pkg_resources.parse_version(cur_version)):
+                # If any models are introduced by this extension, we may need
+                # to update the database.
+                self._sync_database(ext_class, new_installed_apps)
+
+                # Record this version so we don't update the database again.
+                extension.settings.set(self.VERSION_SETTINGS_KEY, cur_version)
+                extension.settings.save()
+            elif (old_version and
+                  pkg_resources.parse_version(old_version) >
+                  pkg_resources.parse_version(cur_version)):
+                logger.warning('The version of the "%s" extension installed '
+                               'on the server is older than the version '
+                               'recorded in the database! Upgrades will not '
+                               'be performed.',
+                               ext_class)
+
+            # Mark the extension as installed.
+            if not ext_class.registration.installed:
+                ext_class.registration.installed = True
+                ext_class.registration.save(update_fields=('installed',))
+        except EnablingExtensionError as e:
+            # Raise this as-is.
+            del self._extension_instances[extension_id]
+
+            logger.exception('Error initializing extension %s: %s',
+                             ext_class.id, e)
+            raise
+        except Exception as e:
+            del self._extension_instances[extension_id]
+
+            logger.exception('Unexpected error initializing extension %s: %s',
+                             ext_class.id, e)
+
+            raise EnablingExtensionError(
+                _('Unexpected error initializing the extension: %s') % e,
+                self._store_load_error(ext_class.id, e))
+
+        extension_initialized.send_robust(self, ext_class=extension)
 
         return extension
 
@@ -1029,23 +1064,32 @@ class ExtensionManager(object):
             extension (djblets.extensions.extension.Extension):
                 The extension instance to uninitialize.
         """
-        extension.shutdown()
+        try:
+            extension.shutdown()
 
-        if hasattr(extension, 'admin_urlpatterns'):
-            self.dynamic_urls.remove_patterns(extension.admin_urlpatterns)
+            if hasattr(extension, 'admin_urlpatterns'):
+                self.dynamic_urls.remove_patterns(
+                    extension.admin_urlpatterns)
 
-        if hasattr(extension, 'admin_site_urlpatterns'):
-            self.dynamic_urls.remove_patterns(extension.admin_site_urlpatterns)
+            if hasattr(extension, 'admin_site_urlpatterns'):
+                self.dynamic_urls.remove_patterns(
+                    extension.admin_site_urlpatterns)
 
-        if hasattr(extension, 'admin_site'):
-            del extension.admin_site
+            if hasattr(extension, 'admin_site'):
+                del extension.admin_site
 
-        self._context_processors_setting.remove_list(
-            extension.context_processors)
-        self._remove_from_installed_apps(extension)
-        clear_template_tag_caches()
+            self._context_processors_setting.remove_list(
+                extension.context_processors)
+            self._remove_from_installed_apps(extension)
+            clear_template_tag_caches()
+        except Exception as e:
+            logger.exception('Unexpected error uninitializing extension %s: '
+                             '%s',
+                             extension.id, e)
+
         extension.info.enabled = False
-        extension_uninitialized.send(self, ext_class=extension)
+
+        extension_uninitialized.send_robust(self, ext_class=extension)
 
         del self._extension_instances[extension.id]
         extension.__class__.instance = None
@@ -1070,7 +1114,8 @@ class ExtensionManager(object):
 
         return error_details
 
-    def install_extension_media(self, ext_class, force=False):
+    def install_extension_media(self, ext_class, force=False,
+                                max_lock_attempts=10):
         """Install extension static media.
 
         This will check whether we actually need to install extension media,
@@ -1090,6 +1135,15 @@ class ExtensionManager(object):
             force (bool, optional):
                 Whether to force installation of static media, regardless of
                 the media version.
+
+            max_lock_attempts (int, optional):
+                Maximum number of attempts to try to claim a lock in order
+                to install media files.
+
+        Raises:
+            djblets.extensions.errors.InstallExtensionMediaError:
+                There was an error installing extension media. Details are in
+                the error message.
         """
         # If we're not installing static media, it's assumed that media will
         # be looked up using the static media finders instead. In that case,
@@ -1097,10 +1151,6 @@ class ExtensionManager(object):
         # directory. We won't want to be storing version files there.
         if not self.should_install_static_media:
             return
-
-        lockfile = os.path.join(tempfile.gettempdir(), ext_class.id + '.lock')
-        media_version_dir = ext_class.info.installed_static_path
-        media_version_filename = os.path.join(media_version_dir, '.version')
 
         cur_version = ext_class.info.version
 
@@ -1114,11 +1164,11 @@ class ExtensionManager(object):
                          ext_class.info)
             old_version = None
         else:
-            if (ext_class.registration.installed and
-                os.path.exists(media_version_filename)):
-                # There's a media version stamp we can read from for this site.
-                with open(media_version_filename, 'r') as fp:
-                    old_version = fp.read().strip()
+            if ext_class.registration.installed:
+                # There may be a static media version stamp we can fetch from
+                # this site. This also might be ``None``, if the file does not
+                # exist.
+                old_version = ext_class.info.get_installed_static_version()
             else:
                 # This is either a new install, or an older one from before the
                 # media version stamp files.
@@ -1128,61 +1178,70 @@ class ExtensionManager(object):
                 # Nothing to do
                 return
 
-            if not old_version:
+            if old_version:
+                logger.debug('Upgrading/re-installing extension media for '
+                             '%s from version %s to %s',
+                             ext_class.info, old_version, cur_version)
+            else:
                 logger.debug('Installing extension media for %s',
                              ext_class.info)
-            else:
-                logger.debug('Reinstalling extension media for %s because '
-                             'version changed from %s',
-                             ext_class.info, old_version)
 
-        while old_version != cur_version:
-            with open(lockfile, 'w') as f:
-                try:
-                    locks.lock(f, locks.LOCK_EX | locks.LOCK_NB)
-                except IOError as e:
-                    if e.errno in (errno.EAGAIN, errno.EACCES, errno.EINTR):
-                        # Sleep for one second, then try again
-                        time.sleep(1)
+        if old_version == cur_version:
+            # Nothing to do. The media is up-to-date.
+            return
 
-                        # See if the version has changed at all. If so, we'll
-                        # be able to break the loop. Otherwise, we're going to
-                        # try for the lock again.
-                        if os.path.exists(media_version_filename):
-                            with open(media_version_filename, 'r') as fp:
-                                old_version = fp.read().strip()
+        lockfile = '%s.lock' % ext_class.id
+        attempt = 0
 
-                        continue
-                    else:
-                        raise e
+        while old_version != cur_version and attempt < max_lock_attempts:
+            try:
+                with self._open_lock_file(ext_class, lockfile):
+                    # These will raise exceptions if there's a fatal error,
+                    # such as permission issues with the destination directory
+                    # for static media files and the version file.
+                    self._install_extension_media_internal(ext_class)
+                    ext_class.info.write_installed_static_version()
 
-                self._install_extension_media_internal(ext_class)
+                    old_version = cur_version
+            except IOError as e:
+                # There was an error writing or locking the lock file.
+                # Depending on the error, we may want to try again.
+                if e.errno not in (errno.EACCES, errno.EAGAIN, errno.EINTR):
+                    raise InstallExtensionMediaError(
+                        _('Unexpected error installing extension media files '
+                          'for this extension. A lock file could not be '
+                          'established: %s')
+                        % e)
 
-                try:
-                    if not os.path.exists(media_version_dir):
-                        os.makedirs(media_version_dir, 0o755)
+                # See if the version has changed at all. If so, we'll be able
+                # to break the loop. Otherwise, we're going to try for the
+                # lock again.
+                temp_version = ext_class.info.get_installed_static_version()
 
-                    with open(media_version_filename, 'w') as fp:
-                        fp.write('%s\n' % cur_version)
-                except IOError as e:
-                    logger.error('Failed to write static media version file '
-                                 '"%s" for extension "%s": %s',
-                                 media_version_filename, ext_class.info, e)
+                if temp_version != cur_version:
+                    if temp_version is not None:
+                        cur_version = temp_version
 
-                old_version = cur_version
+                    # Sleep for one second before we try again.
+                    attempt += 1
 
-                locks.unlock(f)
+                    if attempt < max_lock_attempts:
+                        time.sleep(self._MEDIA_LOCK_SLEEP_TIME_SECS)
 
-        try:
-            os.unlink(lockfile)
-        except OSError as e:
-            # A "No such file or directory" (ENOENT) is most likely due to
-            # another thread removing the lock file before this thread could.
-            # It's safe to ignore. We want to handle all others, though.
-            if e.errno != errno.ENOENT:
-                logger.exception("Failed to unlock media lock file '%s' for "
-                                 "extension '%s': %s",
-                                 lockfile, ext_class.info, e)
+        if old_version != cur_version:
+            # We never succeeded. We probably hit the maximum number of
+            # attempts.
+            raise InstallExtensionMediaError(
+                _('Unable to install static media files for this extension. '
+                  'There have been %(attempts)d attempts to install the '
+                  'media files. Please make sure that "%(static_path)s", its '
+                  'contents, its parent directory, and "%(temp_path)s" are '
+                  'writable by the web server.')
+                % {
+                    'attempts': attempt,
+                    'static_path': ext_class.info.installed_static_path,
+                    'temp_path': tempfile.gettempdir(),
+                })
 
     def _install_extension_media_internal(self, ext_class):
         """Install static media for an extension.
@@ -1194,12 +1253,18 @@ class ExtensionManager(object):
         Args:
             ext_class (type):
                 The extension class owning the static media to install.
+
+        Raises:
+            djblets.extensions.errors.InstallExtensionMediaError:
+                There was a fatal error writing static media files. The
+                error will be logged and details will be in the error
+                message.
         """
         ext_info = ext_class.info
 
         if ext_info.has_resource('htdocs'):
             # This is an older extension that doesn't use the static file
-            # support. Log a deprecation notice and then install the files.
+            # support. Log a notice that the files won't be installed.
             logger.error('The %s extension uses the deprecated "htdocs" '
                          'directory for static files. This is no longer '
                          'supported. It must be updated to use a "static" '
@@ -1207,30 +1272,39 @@ class ExtensionManager(object):
                          ext_info.name)
 
         ext_static_path = ext_info.installed_static_path
-        ext_static_path_exists = os.path.exists(ext_static_path)
 
-        if ext_static_path_exists:
-            # Also get rid of the old static contents.
+        if os.path.exists(ext_static_path):
+            # Get rid of the old static contents.
             shutil.rmtree(ext_static_path, ignore_errors=True)
 
             if os.path.exists(ext_static_path):
+                # We'll warn here, but we're probably going to fail further
+                # down. We'll raise a suitable error at that time.
                 logger.critical('Unable to remove old extension media for %s '
                                 'at %s. Make sure this path, its parent, and '
                                 'everything under it is writable by your '
                                 'web server.',
                                 ext_info.name, ext_static_path)
 
-        extracted_path = ext_info.extract_resource('static')
+        try:
+            extracted_path = ext_info.extract_resource('static')
 
-        if extracted_path:
-            try:
+            if extracted_path:
                 shutil.copytree(extracted_path, ext_static_path, symlinks=True)
-            except Exception as e:
-                logger.critical('Unable to install extension media for %s to '
-                                '%s: %s. The extension may not work, and '
-                                'pages may crash.',
-                                ext_info.name, ext_static_path, e,
-                                exc_info=True)
+        except Exception as e:
+            logger.exception('Unable to install extension media for %s to '
+                             '%s: %s. The extension may not work, and '
+                             'pages may crash.',
+                             ext_info.name, ext_static_path, e)
+
+            raise InstallExtensionMediaError(
+                _('Unable to install static media files for this extension. '
+                  'The extension will not work correctly without them. Please '
+                  'make sure that "%(path)s", its contents, and its parent '
+                  'directory are owned by the web server.')
+                % {
+                    'path': ext_class.info.installed_static_path,
+                })
 
     def _uninstall_extension(self, extension):
         """Uninstall extension data.
@@ -1567,6 +1641,62 @@ class ExtensionManager(object):
 
         middleware.extend(extension.middleware_instances)
         return middleware
+
+    @contextmanager
+    def _open_lock_file(self, ext_class, filename,
+                        lock_flags=locks.LOCK_EX | locks.LOCK_NB):
+        """Open a lock file for a multi-threaded/process operation.
+
+        This will attempt to create a lock file and acquire a lock on it,
+        yielding to the caller if a lock is acquired, and cleaning up after
+        if it is not.
+
+        If a lock file cannot be written or a lock cannot be acquired, this
+        will raise immediately.
+
+        Args:
+            ext_class (type):
+                The extension class that this lock file pertains to.
+
+            filename (unicode):
+                The name of the lock file. This will be created within the
+                temp directory, and should just be a filename.
+
+            lock_flags (int, optional):
+                Flags to specify when acquiring a lock.
+
+        Context:
+            The lock will be acquired. The caller can successfully perform
+            its operations.
+
+        Raises:
+            IOError:
+                The lock file could not be written or a lock could not be
+                acquired.
+        """
+        if not os.path.isabs(filename):
+            filename = os.path.join(tempfile.gettempdir(), filename)
+
+        with open(filename, 'w') as fp:
+            locks.lock(fp, lock_flags)
+
+            try:
+                yield
+            finally:
+                locks.unlock(fp)
+
+                try:
+                    os.unlink(filename)
+                except OSError as e:
+                    # A "No such file or directory" (ENOENT) is most likely
+                    # due to another thread removing the lock file before
+                    # this thread could. It's safe to ignore. We want to
+                    # handle all others, though.
+                    if e.errno != errno.ENOENT:
+                        logger.exception(
+                            'Failed to unlock lock file "%s" for extension '
+                            '"%s": %s',
+                            filename, ext_class.info, e)
 
 
 def get_extension_managers():

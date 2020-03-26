@@ -10,4 +10,5 @@ def dummy_view(request):
 urlpatterns = [
     url(r'^$', dummy_view, name='test-url-name'),
     url(r'^admin/extensions/', include('djblets.extensions.urls')),
+    url(r'^auth/', include('djblets.auth.urls')),
 ]
