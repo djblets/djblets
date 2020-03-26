@@ -2,9 +2,11 @@
 
 from __future__ import unicode_literals
 
+import errno
 import logging
 import os
 import shutil
+import tempfile
 import threading
 import time
 
@@ -31,6 +33,7 @@ try:
 except ImportError:
     django_evolution = None
 
+from djblets.extensions.errors import EnablingExtensionError
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import URLHook
 from djblets.extensions.manager import (get_extension_managers,
@@ -264,9 +267,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         extension.registration.save()
         TestExtension.instance = extension
 
-        # Re-create the directories.
-        shutil.rmtree(extension.info.installed_static_path)
-        os.mkdir(extension.info.installed_static_path, 0o755)
+        self._rebuild_media_dirs(extension)
 
         self.manager.should_install_static_media = True
 
@@ -300,9 +301,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         extension.registration.save()
         TestExtension.instance = extension
 
-        # Re-create the directories.
-        shutil.rmtree(extension.info.installed_static_path)
-        os.mkdir(extension.info.installed_static_path, 0o755)
+        self._rebuild_media_dirs(extension)
 
         self.manager.should_install_static_media = True
 
@@ -338,9 +337,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         extension.registration.save()
         TestExtension.instance = extension
 
-        # Re-create the directories.
-        shutil.rmtree(extension.info.installed_static_path)
-        os.mkdir(extension.info.installed_static_path, 0o755)
+        self._rebuild_media_dirs(extension)
 
         self.manager.should_install_static_media = True
 
@@ -366,6 +363,88 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         with open(version_filename, 'r') as fp:
             self.assertEqual(fp.read().strip(), extension.info.version)
 
+    def test_install_extension_media_with_permission_error(self):
+        """Testing ExtensionManager media installation with permission error
+        when copying media files
+        """
+        extension = self.setup_extension(TestExtension, enable=False)
+        TestExtension.instance = extension
+
+        self._rebuild_media_dirs(extension)
+
+        self.manager.should_install_static_media = True
+
+        def _copytree(*args, **kwargs):
+            raise shutil.Error()
+
+        self.spy_on(self.manager.install_extension_media)
+        self.spy_on(extension.info.has_resource,
+                    call_fake=lambda *args, **kwargs: True)
+        self.spy_on(shutil.copytree, call_fake=_copytree)
+
+        message = (
+            'Unable to install static media files for this extension. '
+            'The extension will not work correctly without them. Please '
+            'make sure that "%s", its contents, and its parent directory '
+            'are owned by the web server.'
+        ) % os.path.join(
+            settings.STATIC_ROOT, 'ext',
+            'djblets.extensions.tests.test_extension_manager.TestExtension'
+        )
+
+        with self.assertRaisesMessage(EnablingExtensionError, message):
+            self.manager.enable_extension(TestExtension.id)
+
+        self.assertFalse(extension.registration.installed)
+        self.assertEqual(len(self.manager.install_extension_media.calls), 1)
+        self.assertFalse(os.path.exists(
+            os.path.join(extension.info.installed_static_path, '.version')))
+
+    def test_install_extension_media_with_lock_error(self):
+        """Testing ExtensionManager media installation with error when locking
+        static directory
+        """
+        extension = self.setup_extension(TestExtension, enable=False)
+        TestExtension.instance = extension
+
+        self._rebuild_media_dirs(extension)
+
+        self.manager.should_install_static_media = True
+        self.manager._MEDIA_LOCK_SLEEP_TIME_SECS = 0
+
+        def _open_lock_file(*args, **kwargs):
+            raise IOError(errno.EAGAIN, 'Try again')
+
+        self.spy_on(self.manager.install_extension_media)
+        self.spy_on(self.manager._install_extension_media_internal,
+                    call_original=False)
+        self.spy_on(self.manager._open_lock_file,
+                    call_fake=_open_lock_file)
+
+        message = (
+            'Unable to install static media files for this extension. There '
+            'have been 10 attempts to install the media files. Please make '
+            'sure that "%s", its contents, its parent directory, and "%s" are '
+            'writable by the web server.'
+        ) % (
+            os.path.join(
+                settings.STATIC_ROOT, 'ext',
+                'djblets.extensions.tests.test_extension_manager.TestExtension'
+            ),
+            tempfile.gettempdir()
+        )
+
+        with self.assertRaisesMessage(EnablingExtensionError, message):
+            self.manager.enable_extension(TestExtension.id)
+
+        self.assertFalse(extension.registration.installed)
+
+        self.assertEqual(len(self.manager.install_extension_media.calls), 1)
+        self.assertFalse(self.manager._install_extension_media_internal.called)
+
+        self.assertFalse(os.path.exists(
+            os.path.join(extension.info.installed_static_path, '.version')))
+
     def test_install_media_concurrent_threads(self):
         """Testing ExtensionManager installs media safely with multiple
         threads
@@ -379,8 +458,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         extension.registration.save()
         TestExtension.instance = extension
 
-        # Clear out the old directory, if it exists.
-        shutil.rmtree(extension.info.installed_static_path)
+        self._rebuild_media_dirs(extension)
 
         self.manager.should_install_static_media = True
 
@@ -416,9 +494,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         extension.registration.save()
         TestExtension.instance = extension
 
-        # Re-create the directories.
-        shutil.rmtree(extension.info.installed_static_path)
-        os.mkdir(extension.info.installed_static_path, 0o755)
+        self._rebuild_media_dirs(extension)
 
         self.manager.should_install_static_media = True
 
@@ -910,6 +986,25 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         manager1.load(full_reload=True)
         self.assertEqual(manager1._gen_sync.sync_gen,
                          manager2._gen_sync.sync_gen)
+
+    def _rebuild_media_dirs(self, extension):
+        """Rebuild the static media directories for an extension.
+
+        This will erase the existing directories, if they exist, and then
+        create a new directory for the tests.
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension being tested.
+        """
+        path = extension.info.installed_static_path
+
+        self.assertTrue(os.path.isabs(path))
+
+        if os.path.exists(path):
+            shutil.rmtree(path)
+
+        os.mkdir(extension.info.installed_static_path, 0o755)
 
     def _run_thread_test(self, main_func):
         def _thread_main(main_connection, main_func, sleep_time):
