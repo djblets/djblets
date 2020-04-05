@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import inspect
 from functools import wraps
 
 from django.contrib.auth.models import User
@@ -40,7 +41,17 @@ def requires_user_profile(f):
     def get_profile(self):
         raise NotImplementedError
 
-    if callable(f):
+    if inspect.isclass(f):
+        # f is a class, so we will decorate all test_ methods on the class.
+        decorator = method_decorator(requires_user_profile)
+        attrs = vars(f)
+
+        for attr_name, value in six.iteritems(attrs):
+            if attr_name.startswith('test_') and callable(value):
+                setattr(f, attr_name, decorator(value))
+
+        return f
+    else:
         @wraps(f)
         def decorated(*args, **kwargs):
             add_profile = not hasattr(User, 'get_profile')
@@ -63,13 +74,3 @@ def requires_user_profile(f):
                     if User.get_profile.im_func is get_profile:
                         delattr(User, 'get_profile')
         return decorated
-    else:
-        # f is a class, so we will decorate all test_ methods on the class.
-        decorator = method_decorator(requires_user_profile)
-        attrs = vars(f)
-
-        for attr_name, value in six.iteritems(attrs):
-            if attr_name.startswith('test_') and callable(value):
-                attrs[attr_name] = decorator(value)
-
-        return f
