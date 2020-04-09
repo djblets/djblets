@@ -66,6 +66,7 @@ $.widget("ui.modalBox", {
         this.inner = $("<div/>")
             .appendTo(this.box)
             .addClass("modalbox-inner")
+            .attr("tabindex", "0")
             .css({
                 position: "relative",
                 width: "100%",
@@ -111,6 +112,7 @@ $.widget("ui.modalBox", {
         });
 
         this.resize();
+        this.inner.focus();
     },
 
     destroy: function() {
