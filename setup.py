@@ -38,6 +38,52 @@ else:
     check_run = subprocess.check_call
 
 
+class AuditNodeDependenciesCommand(Command):
+    """Audit all node.js dependencies, checking for security issues.
+
+    This will scan the Node build-time dependencies, looking for any
+    security issues. It does this through the :command:`npm audit` command.
+    """
+
+    description = 'Audit the node build-time packages for security issues.'
+    user_options = []
+
+    def initialize_options(self):
+        """Initialize options for the command.
+
+        This is required, but does not actually do anything.
+        """
+        pass
+
+    def finalize_options(self):
+        """Finalize options for the command.
+
+        This is required, but does not actually do anything.
+        """
+        pass
+
+    def run(self):
+        """Run the commands to audit node packages.
+
+        Raises:
+            RuntimeError:
+                There was an error finding or invoking the package manager.
+        """
+        try:
+            check_run(['npm', '--version'])
+        except (subprocess.CalledProcessError, OSError):
+            raise RuntimeError(
+                'Unable to locate npm in the path, which is needed to '
+                'audit dependencies required to build this package.')
+
+        self.run_command('list_node_deps')
+
+        print('Auditing node.js modules...')
+        os.system('npm audit')
+
+        os.unlink('package.json')
+
+
 class BuildEggInfoCommand(egg_info):
     """Build the egg information for the package.
 
@@ -426,10 +472,11 @@ setup(
     zip_safe=False,
     test_suite='dummy',
     cmdclass={
-        'develop': DevelopCommand,
-        'egg_info': BuildEggInfoCommand,
+        'audit_node_deps': AuditNodeDependenciesCommand,
         'build_media': BuildMediaCommand,
         'build_i18n': BuildI18nCommand,
+        'develop': DevelopCommand,
+        'egg_info': BuildEggInfoCommand,
         'fetch_public_suffix_list': FetchPublicSuffixListCommand,
         'install_node_deps': InstallNodeDependenciesCommand,
         'list_node_deps': ListNodeDependenciesCommand,
