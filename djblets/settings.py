@@ -49,8 +49,11 @@ PIPELINE = {
     'JAVASCRIPT': PIPELINE_JAVASCRIPT,
     'STYLESHEETS': PIPELINE_STYLESHEETS,
     'BABEL_BINARY': os.path.join(NODE_PATH, 'babel-cli', 'bin', 'babel.js'),
-    'BABEL_ARGUMENTS': ['--presets', 'es2015', '--plugins', 'dedent',
-                        '-s', 'true'],
+    'BABEL_ARGUMENTS': [
+        '--presets', 'es2015',
+        '--plugins', 'dedent,django-gettext',
+        '-s', 'true',
+    ],
     'LESS_BINARY': os.path.join(NODE_PATH, 'less', 'bin', 'lessc'),
     'LESS_ARGUMENTS': [
         '--no-color',
