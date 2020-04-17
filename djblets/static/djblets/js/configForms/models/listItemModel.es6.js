@@ -83,7 +83,7 @@ Djblets.Config.ListItem = Backbone.Model.extend({
         showRemove: false,
         canRemove: true,
         loading: false,
-        removeLabel: gettext('Remove')
+        removeLabel: _`Remove`,
     },
 
     /**

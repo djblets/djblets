@@ -21,7 +21,7 @@ django_version = '>=1.6.11,<1.11.999'
 
 #: Dependencies required for LessCSS pipelining.
 lesscss_npm_dependencies = {
-    'less': '^3.9.0',
+    'less': '^3.11.0',
     'less-plugin-autoprefix': '^2.0.0',
 }
 
@@ -35,6 +35,7 @@ babel_npm_dependencies = {
     'babel-cli': '^6.26.0',
     'babel-preset-env': '^1.7.0',
     'babel-plugin-dedent': '^2.0.0',
+    'babel-plugin-django-gettext': '^1.0.0',
 }
 
 #: All static media dependencies required to package/develop against  Djblets.
