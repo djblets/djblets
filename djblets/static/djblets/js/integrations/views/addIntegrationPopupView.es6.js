@@ -37,7 +37,7 @@ Djblets.AddIntegrationPopupView = Backbone.View.extend({
      */
     emptyIntegrationsTemplateSource: dedent`
         <p class="djblets-c-integrations-popup__empty">
-         <%- gettext('There are no integrations currently installed.') %>
+         ${_.escape(_`There are no integrations currently installed.`)}
         </p>
     `,
 
