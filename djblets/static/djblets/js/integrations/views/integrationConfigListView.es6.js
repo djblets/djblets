@@ -9,12 +9,12 @@
  */
 const IntegrationConfigItem = Djblets.Config.ListItem.extend({
     defaults: _.defaults({
-        disabledText: gettext('Disabled'),
-        enabledText: gettext('Enabled'),
+        disabledText: _`Disabled`,
+        enabledText: _`Enabled`,
         integrationID: null,
         enabled: false,
         name: null,
-        removeLabel: gettext('Delete'),
+        removeLabel: _`Delete`,
         showRemove: true,
     }, Djblets.Config.ListItem.prototype.defaults),
 
@@ -107,14 +107,17 @@ const IntegrationConfigItemView = Djblets.Config.TableItemView.extend({
      */
     _onDeleteClicked() {
         $('<p>')
-            .html(gettext('This integration will be permanently removed. This cannot be undone.'))
+            .html(_`
+                This integration will be permanently removed. This cannot
+                be undone.
+            `)
             .modalBox({
-                title: gettext('Are you sure you want to delete this integration?'),
+                title: _`Are you sure you want to delete this integration?`,
                 buttons: [
                     $('<input type="button">')
-                        .val(gettext('Cancel')),
+                        .val(_`Cancel`),
                     $('<input type="button" class="danger">')
-                        .val(gettext('Delete Integration'))
+                        .val(_`Delete Integration`)
                         .click(() => this.model.destroy({
                             beforeSend: xhr => {
                                 xhr.setRequestHeader(

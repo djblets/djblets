@@ -34,12 +34,15 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
         const file = this._$fileInput[0].files[0];
 
         if (!file) {
-            alert(gettext('You must choose a file.'));
+            alert(_`You must choose a file.`);
             return false;
         }
 
         if (!allowedMimeTypes.some(el => (el === file.type))) {
-            alert(gettext("This wasn't a valid image file format. Please provide a PNG, JPEG, or GIF file."));
+            alert(_`
+                This wasn't a valid image file format. Please provide a PNG,
+                JPEG, or GIF file.
+            `);
             return false;
         }
 
@@ -184,7 +187,10 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
         }
 
         if (files.length > 1) {
-            alert(gettext("You can only set one file as your avatar. Please drag and drop a single file."));
+            alert(_`
+                You can only set one file as your avatar. Please drag and
+                drop a single file.
+            `);
             return;
         }
 
@@ -192,7 +198,10 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
 
         if (fileType !== 'image/png' && fileType !== 'image/jpeg' &&
             fileType !== 'image/gif') {
-            alert(gettext("This doesn't appear to be a compatible image file for avatars. Please upload a PNG, JPEG, or GIF file."));
+            alert(_`
+                This doesn't appear to be a compatible image file for avatars.
+                Please upload a PNG, JPEG, or GIF file.
+            `);
             return;
         }
 
@@ -206,7 +215,10 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
              * complain. So instead of outright failing, tell the user that this
              * won't work and suggest a workaround.
              */
-            alert(gettext("Looks like dragging to upload a file isn't going to work with your browser. Try browsing for a file instead."));
+            alert(_`
+                Looks like dragging to upload a file isn't going to work with
+                your browser. Try browsing for a file instead.
+            `);
             return;
         }
 
@@ -246,7 +258,7 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
                 .removeClass('avatar-preview-unset')
                 .append($('<img />').attr({
                      src: reader.result,
-                     alt: gettext('Your new avatar'),
+                     alt: _`Your new avatar`,
                  }));
         });
 

@@ -1,9 +1,9 @@
-beanbag-docutils>=1.6
+beanbag-docutils>=1.7
 coverage
 django_evolution>=2.0.dev
-kgb>=2.0
+kgb>=5.0
 nose
 Markdown>=2.6.8,<2.6.999
 mock
-Pygments>=2.1.3
+Pygments>=2.1.3,<=2.5.999
 django_oauth_toolkit>=0.9.0,<0.10.0
