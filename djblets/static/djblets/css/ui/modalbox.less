@@ -1,0 +1,106 @@
+/** Styles and definitions for modal dialog boxes. */
+
+#djblets-ns-ui() {
+  .modalboxes() {
+    @bg-color: white;
+    @border-color: #888A85;
+    @padding: 10px;
+    @spacing: 10px;
+
+    @title-bg-color: #A2BEDC;
+    @title-border-color: #728EAC;
+    @title-font-size: 120%;
+    @title-padding: 5px 10px 5px 5px;
+  }
+}
+
+/**
+ * A modal dialog box that displays over the page contents.
+ *
+ * Note that this is a legacy component that does not follow modern
+ * CSS Component standards. It may receive significant layout and styling
+ * changes sometime after Djblets 2.0.
+ *
+ * Structure:
+ *     <div class="modalbox">
+ *      <div class="modalbox-inner">
+ *       ...
+ *      </div>
+ *     </div>
+ */
+.modalbox {
+  @_modalboxes-vars: #djblets-ns-ui.modalboxes();
+  @_padding: @_modalboxes-vars[@padding];
+  @_spacing: @_modalboxes-vars[@spacing];
+
+  background: @_modalboxes-vars[@bg-color];;
+  border: 1px @_modalboxes-vars[@border-color] solid;
+  margin: @_padding;
+
+  /**
+   * The buttons shown on the modalbox.
+   *
+   * Structure:
+   *     <div class="modalbox-buttons">
+   *      <button>...</button>
+   *      ...
+   *     </div>
+   */
+  &-buttons {
+    position: absolute;
+    margin: @_padding;
+    text-align: right;
+    bottom: 0;
+    right: 0;
+
+    button,
+    input,
+    [role="button"] {
+      margin-left: @_spacing;
+    }
+  }
+
+  /**
+   * The caller-provided contents of the modalbox.
+   *
+   * This generally contains forms or dialog text.
+   *
+   * Structure:
+   *     <div class="modalbox-contents">
+   *      ...
+   *     </div>
+   */
+  &-contents {
+    margin: @_padding;
+    position: relative;
+  }
+
+  /**
+   * The inner part of a modalbox.
+   *
+   * This contains the content of the modalbox itself.
+   *
+   * Structure:
+   *     <div class="modalbox-inner">
+   *      <h1 class="modalbox-title">...</h1>
+   *      <div class="modalbox-contents">...</div>
+   *      <div class="modalnbox-buttons">...</div>
+   *     </div>
+   */
+  &-inner {
+  }
+
+  /**
+   * The title of a modalbox.
+   *
+   * Structure:
+   *     <h1 class="modalbox-title">...</h1>
+   */
+  &-title {
+    background: @_modalboxes-vars[@title-bg-color];
+    border-bottom: 1px @_modalboxes-vars[@title-border-color] solid;
+    font-size: @_modalboxes-vars[@title-font-size];
+    margin: 0;
+    padding: @_modalboxes-vars[@title-padding];
+  }
+}
