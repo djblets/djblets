@@ -1,4 +1,4 @@
-suite('djblets/forms/views/ListEditView', () => {
+suite('djblets/forms/views/ListEditView', function() {
     /*
      * See templates/djblets_forms/list_edit_widget.html.
      */
@@ -49,13 +49,13 @@ suite('djblets/forms/views/ListEditView', () => {
         return [view, view.$('.djblets-c-list-edit-widget__value')];
     };
 
-    describe('Updating fields', () => {
-        it('With no values', () => {
+    describe('Updating fields', function() {
+        it('With no values', function() {
             const [, $valueField] = makeView([]);
             expect($valueField.val()).toEqual('');
         });
 
-        it('With one value', () => {
+        it('With one value', function() {
             const [view, $valueField] = makeView(['One']);
 
             expect($valueField.val()).toEqual('One');
@@ -64,7 +64,7 @@ suite('djblets/forms/views/ListEditView', () => {
             expect($valueField.val()).toEqual('Foo');
         });
 
-        it('With multiple values', () => {
+        it('With multiple values', function() {
             const [view, $valueField] = makeView(['one', 'two', 'three']);
             const $inputs = view.$('.djblets-c-list-edit-widget__input');
 
@@ -84,8 +84,8 @@ suite('djblets/forms/views/ListEditView', () => {
         });
     });
 
-    describe('Removal', () => {
-        it('With no values', () => {
+    describe('Removal', function() {
+        it('With no values', function() {
             const [view, $valueField] = makeView([]);
 
             expect($valueField.val()).toEqual('');
@@ -98,7 +98,7 @@ suite('djblets/forms/views/ListEditView', () => {
                 .toEqual(1);
         });
 
-        it ('With one value', () => {
+        it ('With one value', function() {
             const [view, $valueField] = makeView(['One']);
             expect($valueField.val()).toEqual('One');
 
@@ -108,7 +108,7 @@ suite('djblets/forms/views/ListEditView', () => {
                 .toEqual(1);
         });
 
-        it('With multiple values', () => {
+        it('With multiple values', function() {
             const [view, $valueField] = makeView(['One', 'Two', 'Three']);
 
             expect($valueField.val()).toEqual('One,Two,Three');
@@ -137,8 +137,8 @@ suite('djblets/forms/views/ListEditView', () => {
         });
     });
 
-    describe('Addition', () => {
-        it('With values', () => {
+    describe('Addition', function() {
+        it('With values', function() {
             const [view, $valueField] = makeView(['one', 'two', 'three']);
             expect($valueField.val()).toEqual('one,two,three');
 
@@ -153,7 +153,7 @@ suite('djblets/forms/views/ListEditView', () => {
             expect($valueField.val()).toEqual('one,two,three,four');
         });
 
-        it('With blank values', () => {
+        it('With blank values', function() {
             const [view, $valueField] = makeView(['', '', '']);
             expect($valueField.val()).toEqual('');
 
@@ -168,7 +168,7 @@ suite('djblets/forms/views/ListEditView', () => {
             expect($valueField.val()).toEqual('four');
         });
 
-        it('With correct attributes', () => {
+        it('With correct attributes', function() {
             const [view,] = makeView([], 'size="100" readonly');
 
             view.$('.djblets-c-list-edit-widget__add-item').click();

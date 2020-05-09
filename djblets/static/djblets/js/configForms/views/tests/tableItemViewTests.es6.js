@@ -1,7 +1,7 @@
-suite('djblets/configForms/views/TableItemView', () => {
-    describe('Rendering', () => {
-        describe('Item display', () => {
-            it('With editURL', () => {
+suite('djblets/configForms/views/TableItemView', function() {
+    describe('Rendering', function() {
+        describe('Item display', function() {
+            it('With editURL', function() {
                 const item = new Djblets.Config.ListItem({
                     editURL: 'http://example.com/',
                     text: 'Label',
@@ -20,7 +20,7 @@ suite('djblets/configForms/views/TableItemView', () => {
                 ].join(''));
             });
 
-            it('Without editURL', () => {
+            it('Without editURL', function() {
                 const item = new Djblets.Config.ListItem({
                     text: 'Label',
                 });
@@ -39,8 +39,8 @@ suite('djblets/configForms/views/TableItemView', () => {
             });
         });
 
-        describe('Action placement', () => {
-            it('Default template', () => {
+        describe('Action placement', function() {
+            it('Default template', function() {
                 const item = new Djblets.Config.ListItem({
                     text: 'Label',
                     actions: [
@@ -62,8 +62,9 @@ suite('djblets/configForms/views/TableItemView', () => {
                 expect($button.text()).toBe('Button');
             });
 
-            it('Custom template', () => {
-                const CustomTableItemView = Djblets.Config.TableItemView.extend({
+            it('Custom template', function() {
+                const CustomTableItemView =
+                    Djblets.Config.TableItemView.extend({
                         template: _.template(dedent`
                             <td></td>
                             <td></td>

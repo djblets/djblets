@@ -1,7 +1,7 @@
-suite('djblets/configForms/views/ListItemView', () => {
-    describe('Rendering', () => {
-        describe('Item display', () => {
-            it('With editURL', () => {
+suite('djblets/configForms/views/ListItemView', function() {
+    describe('Rendering', function() {
+        describe('Item display', function() {
+            it('With editURL', function() {
                 const item = new Djblets.Config.ListItem({
                     editURL: 'http://example.com/',
                     text: 'Label',
@@ -18,7 +18,7 @@ suite('djblets/configForms/views/ListItemView', () => {
                 ].join(''));
             });
 
-            it('Without editURL', () => {
+            it('Without editURL', function() {
                 const item = new Djblets.Config.ListItem({
                     text: 'Label',
                 });
@@ -35,8 +35,8 @@ suite('djblets/configForms/views/ListItemView', () => {
             });
         });
 
-        describe('Actions', () => {
-            it('Checkboxes', () => {
+        describe('Actions', function() {
+            it('Checkboxes', function() {
                 const item = new Djblets.Config.ListItem({
                     text: 'Label',
                     checkboxAttr: false,
@@ -59,8 +59,8 @@ suite('djblets/configForms/views/ListItemView', () => {
                 expect(itemView.$('label').length).toBe(1);
             });
 
-            describe('Buttons', () => {
-                it('Simple', () => {
+            describe('Buttons', function() {
+                it('Simple', function() {
                     const item = new Djblets.Config.ListItem({
                         text: 'Label',
                         actions: [
@@ -89,7 +89,7 @@ suite('djblets/configForms/views/ListItemView', () => {
                     expect(buttonEl).not.toHaveClass('-is-primary');
                 });
 
-                it('Danger', () => {
+                it('Danger', function() {
                     const item = new Djblets.Config.ListItem({
                         text: 'Label',
                         actions: [
@@ -149,7 +149,7 @@ suite('djblets/configForms/views/ListItemView', () => {
                     expect(buttonEl).toHaveClass('-is-primary');
                 });
 
-                it('Icon names', () => {
+                it('Icon names', function() {
                     const item = new Djblets.Config.ListItem({
                         text: 'Label',
                         actions: [
@@ -185,11 +185,11 @@ suite('djblets/configForms/views/ListItemView', () => {
                 });
             });
 
-            describe('Menus', () => {
+            describe('Menus', function() {
                 let item;
                 let itemView;
 
-                beforeEach(() => {
+                beforeEach(function() {
                     item = new Djblets.Config.ListItem({
                         text: 'Label',
                         actions: [
@@ -213,7 +213,7 @@ suite('djblets/configForms/views/ListItemView', () => {
                     itemView.render();
                 });
 
-                it('Initial display', () => {
+                it('Initial display', function() {
                     const $button = itemView.$(
                         'button.djblets-c-config-forms-list__item-action');
 
@@ -221,8 +221,7 @@ suite('djblets/configForms/views/ListItemView', () => {
                     expect($button.text()).toBe('Menu ▾');
                 });
 
-                it('Opening', () => {
-
+                it('Opening', function() {
                     /* Prevent deferring. */
                     spyOn(_, 'defer').and.callFake(function(cb) {
                         cb();
@@ -240,7 +239,7 @@ suite('djblets/configForms/views/ListItemView', () => {
                         'actionMenuPopUp');
                 });
 
-                it('Closing', () => {
+                it('Closing', function() {
                     /* Prevent deferring. */
                     spyOn(_, 'defer').and.callFake(cb => cb());
 
@@ -260,9 +259,9 @@ suite('djblets/configForms/views/ListItemView', () => {
             });
         });
 
-        describe('Action properties', () => {
-            describe('enabledPropName', () => {
-                it('value == undefined', () => {
+        describe('Action properties', function() {
+            describe('enabledPropName', function() {
+                it('value == undefined', function() {
                     const item = new Djblets.Config.ListItem({
                         text: 'Label',
                         actions: [
@@ -286,7 +285,7 @@ suite('djblets/configForms/views/ListItemView', () => {
                     expect($action.prop('disabled')).toBe(true);
                 });
 
-                it('value == true', () => {
+                it('value == true', function() {
                     const item = new Djblets.Config.ListItem({
                         text: 'Label',
                         isEnabled: true,
@@ -311,7 +310,7 @@ suite('djblets/configForms/views/ListItemView', () => {
                     expect($action.prop('disabled')).toBe(false);
                 });
 
-                it('value == false', () => {
+                it('value == false', function() {
                     const item = new Djblets.Config.ListItem({
                         text: 'Label',
                         isEnabled: false,
@@ -336,8 +335,8 @@ suite('djblets/configForms/views/ListItemView', () => {
                     expect($action.prop('disabled')).toBe(true);
                 });
 
-                describe('with enabledPropInverse == true', () => {
-                    it('value == undefined', () => {
+                describe('with enabledPropInverse == true', function() {
+                    it('value == undefined', function() {
                         const item = new Djblets.Config.ListItem({
                             text: 'Label',
                             actions: [
@@ -362,7 +361,7 @@ suite('djblets/configForms/views/ListItemView', () => {
                         expect($action.prop('disabled')).toBe(false);
                     });
 
-                    it('value == true', () => {
+                    it('value == true', function() {
                         const item = new Djblets.Config.ListItem({
                             text: 'Label',
                             isDisabled: true,
@@ -388,7 +387,7 @@ suite('djblets/configForms/views/ListItemView', () => {
                         expect($action.prop('disabled')).toBe(true);
                     });
 
-                    it('value == false', () => {
+                    it('value == false', function() {
                         var item = new Djblets.Config.ListItem({
                                 text: 'Label',
                                 isDisabled: false,
@@ -419,8 +418,8 @@ suite('djblets/configForms/views/ListItemView', () => {
         });
     });
 
-    describe('Action handlers', () => {
-        it('Buttons', () => {
+    describe('Action handlers', function() {
+        it('Buttons', function() {
             var item = new Djblets.Config.ListItem({
                 text: 'Label',
                 actions: [
@@ -450,7 +449,7 @@ suite('djblets/configForms/views/ListItemView', () => {
             expect(itemView._onMyButtonClick).toHaveBeenCalled();
         });
 
-        it('Checkboxes', () => {
+        it('Checkboxes', function() {
             const item = new Djblets.Config.ListItem({
                 text: 'Label',
                 checkboxAttr: false,
