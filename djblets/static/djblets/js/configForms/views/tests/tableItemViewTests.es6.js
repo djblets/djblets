@@ -12,10 +12,12 @@ suite('djblets/configForms/views/TableItemView', () => {
 
                 itemView.render();
                 expect(itemView.$el.html().strip()).toBe([
-                    '<td><span class="config-forms-list-item-actions"></span>',
-                    '<a href="http://example.com/">Label</a>',
+                    '<td>',
+                    '<span class="djblets-c-config-forms-list__item-actions">',
+                    '</span>\n\n',
+                    '<a href="http://example.com/">Label</a>\n\n',
                     '</td>',
-                ].join('\n\n'));
+                ].join(''));
             });
 
             it('Without editURL', () => {
@@ -28,10 +30,12 @@ suite('djblets/configForms/views/TableItemView', () => {
 
                 itemView.render();
                 expect(itemView.$el.html().strip()).toBe([
-                    '<td><span class="config-forms-list-item-actions"></span>',
-                    'Label',
+                    '<td>',
+                    '<span class="djblets-c-config-forms-list__item-actions">',
+                    '</span>\n\n',
+                    'Label\n\n',
                     '</td>',
-                ].join('\n\n'));
+                ].join(''));
             });
         });
 
@@ -52,7 +56,8 @@ suite('djblets/configForms/views/TableItemView', () => {
 
                 itemView.render();
 
-                const $button = itemView.$('td:last .btn');
+                const $button = itemView.$(
+                    'td:last button.djblets-c-config-forms-list__item-action');
                 expect($button.length).toBe(1);
                 expect($button.text()).toBe('Button');
             });
@@ -79,7 +84,8 @@ suite('djblets/configForms/views/TableItemView', () => {
 
                 itemView.render();
 
-                const $button = itemView.$('td:last .btn');
+                const $button = itemView.$(
+                    'td:last button.djblets-c-config-forms-list__item-action');
                 expect($button.length).toBe(1);
                 expect($button.text()).toBe('Button');
             });

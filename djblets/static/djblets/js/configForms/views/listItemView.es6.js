@@ -10,7 +10,7 @@
  */
 Djblets.Config.ListItemView = Backbone.View.extend({
     tagName: 'li',
-    className: 'config-forms-list-item',
+    className: 'djblets-c-config-forms-list-item',
     iconBaseClassName: 'djblets-icon',
 
     actionHandlers: {},
@@ -149,7 +149,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      */
     addActions($parentEl) {
         const $actions = $('<span>')
-            .addClass('config-forms-list-item-actions');
+            .addClass('djblets-c-config-forms-list__item-actions');
 
         this.model.actions.forEach(action => {
             const $action = this._buildActionEl(action)
@@ -238,7 +238,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      * Args:
      *     action (object):
      *         The action to show the dropdown for. See
-     *         :js:class:`Djblets.Config.ListItem`. for a list of attributes.
+     *         :js:class:`Djblets.Config.ListItem` for a list of attributes.
      */
     _buildActionEl(action) {
         const actionHandlerName = (action.enabled !== false
@@ -305,31 +305,44 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                 }
             }
         } else {
-            $action = $result = $('<a class="btn">')
-                .text(action.label || '');
+            $action = $result = $('<button type="button">');
+
+            if (action.label) {
+                $action.text(action.label);
+            }
 
             if (action.iconName) {
-                $action.append($('<span>')
+                $action.prepend($('<span>')
                     .addClass(this.iconBaseClassName)
                     .addClass(`${this.iconBaseClassName}-${action.iconName}`));
             }
 
             if (actionHandlerName) {
-                $action.click(_.bind(this[actionHandlerName], this));
+                $action.click(evt => {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+
+                    this[actionHandlerName].call(this, evt);
+                });
             }
         }
+
+        $action.addClass('djblets-c-config-forms-list__item-action');
 
         if (action.id) {
             $action.addClass(`config-forms-list-action-${action.id}`);
         }
 
         if (action.danger) {
-            $action.addClass('danger');
+            $action.addClass('-is-danger');
+        }
+
+        if (action.primary) {
+            $action.addClass('-is-primary');
         }
 
         if (action.enabled === false) {
             $action.prop('disabled', true);
-            $result.addClass('disabled');
         }
 
         return $result;
