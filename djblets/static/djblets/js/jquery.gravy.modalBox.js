@@ -40,13 +40,10 @@ $.widget('ui.modalBox', {
     _init: function() {
         var self = this;
 
-        this._eventID = _.uniqueId('modalbox-');
-        this._titleID = _.uniqueId('modalbox-title-');
-
         if (this.options.fadeBackground) {
             this.bgbox = $('<div/>')
                 .addClass('modalbox-bg')
-                .attr('aria-hidden', 'true')
+                .appendTo(this.options.container)
                 .css({
                     'background-color': '#000',
                     opacity: 0
@@ -54,17 +51,11 @@ $.widget('ui.modalBox', {
                 .move(0, 0, 'fixed')
                 .width('100%')
                 .height('100%')
-                .keydown(function(e) { e.stopPropagation(); })
-                .appendTo(this.options.container);
+                .keydown(function(e) { e.stopPropagation(); });
         }
 
         this.box = $('<div/>')
             .addClass('modalbox')
-            .attr({
-                'aria-labelledby': this._titleID,
-                'aria-modal': 'true',
-                role: 'dialog'
-            })
             .move(0, 0, 'absolute')
             .keydown(function(e) { e.stopPropagation(); });
 
@@ -73,26 +64,25 @@ $.widget('ui.modalBox', {
         }
 
         this.inner = $('<div/>')
+            .appendTo(this.box)
             .addClass('modalbox-inner')
             .attr('tabindex', '0')
             .css({
                 position: 'relative',
                 width: '100%',
                 height: '100%'
-            })
-            .appendTo(this.box);
+            });
 
         if (this.options.title) {
             this.titleBox = $('<h1/>')
-                .attr('id', this._titleID)
+                .appendTo(this.inner)
                 .addClass(this.options.modalBoxTitleClass)
-                .text(this.options.title)
-                .appendTo(this.inner);
+                .text(this.options.title);
         }
 
         this.element
-            .addClass(this.options.modalBoxContentsClass)
-            .appendTo(this.inner);
+            .appendTo(this.inner)
+            .addClass(this.options.modalBoxContentsClass);
 
         this.observer = new MutationObserver(function() {
             self.resize();
@@ -103,6 +93,7 @@ $.widget('ui.modalBox', {
         });
 
         this._buttons = $('<div/>')
+            .appendTo(this.inner)
             .addClass(this.options.modalBoxButtonsClass)
             .click(function(e) {
                 /* Check here so that buttons can call stopPropagation(). */
@@ -111,40 +102,22 @@ $.widget('ui.modalBox', {
                 }
             });
 
+        this.box.appendTo(this.options.container);
+
         $.each(this.options.buttons, function() {
-            var $button = $(this),
-                buttonEl = $button[0];
-
-            if (buttonEl.tagName !== 'BUTTON' &&
-                buttonEl.tagName !== 'INPUT' &&
-                !$button.attr('role')) {
-                $button.attr('role', 'button');
-            }
-
-            $button.appendTo(self._buttons);
+            $(this).appendTo(self._buttons);
         });
 
-        this._buttons.appendTo(this.inner);
-
-        if (this.options.fadeBackground && this.bgbox) {
+        if (this.options.fadeBackground) {
             this.bgbox.fadeTo(350, 0.85);
         }
 
-        this.box.appendTo(this.options.container);
-
-        $(window).on('resize.' + this._eventID, function() {
+        $(window).on('resize.modalbox', function() {
             self.resize();
         });
 
         this.resize();
         this.inner.focus();
-
-        /*
-         * Listen for focus changes (at the capture phase) to make sure we
-         * stay in the dialog.
-         */
-        this._onDocumentFocusChanged = this._onDocumentFocusChanged.bind(this);
-        document.addEventListener('focus', this._onDocumentFocusChanged, true);
     },
 
     destroy: function() {
@@ -158,10 +131,6 @@ $.widget('ui.modalBox', {
             .removeData('uiModalBox')
             .off('resize.modalbox')
             .css('position', 'static');
-
-        $(window).off('resize.' + this._eventID);
-        document.removeEventListener('focus', this._onDocumentFocusChanged,
-                                     true);
 
         this.observer.disconnect();
 
@@ -213,23 +182,6 @@ $.widget('ui.modalBox', {
                       'fixed');
 
         this.element.triggerHandler('resize');
-    },
-
-    /**
-     * Handle focus changes throughout the document.
-     *
-     * If the focus has moved outside of the modalbox, focus will be reset
-     * back to the inner portion of the box.
-     *
-     * Args:
-     *     evt (Event):
-     *         The focus event.
-     */
-    _onDocumentFocusChanged: function(evt) {
-        if (!this.box[0].contains(evt.target)) {
-            evt.stopPropagation();
-            this.inner.focus();
-        }
     }
 });
 

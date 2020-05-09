@@ -60,13 +60,6 @@
  *         ``label`` (:js:class:`string`):
  *             The action's label.
  *
- *         ``primary`` (:js:class:`boolean`, optional):
- *             When ``true``, this button will be marked as a primary action
- *             for the item. This is only useful for button actions.
- *
- *             If this attribute is present, the action will be rendered as a
- *             menu and its children will be rendered as items in that menu.
- *
  *         ``propName`` (:js:class:`string`, optional):
  *             For a checkbox action, this attribute specifies the attribute on
  *             the model that will be set to reflect the checkbox's state.

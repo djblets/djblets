@@ -1,6 +1,6 @@
-suite('djblets/forms/models/ConditionChoice', function() {
-    describe('Initialization', function() {
-        it('With parse and data', function() {
+suite('djblets/forms/models/ConditionChoice', () => {
+    describe('Initialization', () => {
+        it('With parse and data', () => {
             const choice = new Djblets.Forms.ConditionChoice({
                 id: 'my-choice',
                 name: 'My Choice',
@@ -50,8 +50,8 @@ suite('djblets/forms/models/ConditionChoice', function() {
         });
     });
 
-    describe('Methods', function() {
-        it('createValueField', function() {
+    describe('Methods', () => {
+        it('createValueField', () => {
             const choice = new Djblets.Forms.ConditionChoice({
                 id: 'my-choice',
                 name: 'My Choice',

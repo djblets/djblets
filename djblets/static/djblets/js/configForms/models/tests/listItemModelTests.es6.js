@@ -1,7 +1,7 @@
-suite('djblets/configForms/models/ListItem', function() {
-    describe('Default actions', function() {
-        describe('showRemove', function() {
-            it('true', function() {
+suite('djblets/configForms/models/ListItem', () => {
+    describe('Default actions', () => {
+        describe('showRemove', () =>  {
+            it('true', () => {
                 const listItem = new Djblets.Config.ListItem({
                     showRemove: true,
                 });
@@ -10,7 +10,7 @@ suite('djblets/configForms/models/ListItem', function() {
                 expect(listItem.actions[0].id).toBe('delete');
             });
 
-            it('false', function() {
+            it('false', () => {
                 const listItem = new Djblets.Config.ListItem({
                     showRemove: false,
                 });

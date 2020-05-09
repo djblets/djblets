@@ -1,4 +1,4 @@
-suite('djblets/forms/views/ConditionValueFormFieldView', function() {
+suite('djblets/forms/views/ConditionValueFormFieldView', () => {
     function makeValueField(html) {
         return {
             model: {
@@ -77,8 +77,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
         return conditionSetView;
     }
 
-    describe('Rendering', function() {
-        it('Loaded rows', function() {
+    describe('Rendering', () => {
+        it('Loaded rows', () => {
             const conditionSetView = setupConditionSetView([
                 {
                     choiceID: 'my-choice-1',
@@ -156,7 +156,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
             expect($input.val()).toBe('42');
         });
 
-        it('Loaded rows with errors', function() {
+        it('Loaded rows with errors', () => {
             const conditionSetView = setupConditionSetView([
                 {
                     choiceID: 'my-choice-1',
@@ -181,8 +181,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
         });
     });
 
-    describe('Actions', function() {
-        it('Add a new condition', function() {
+    describe('Actions', () => {
+        it('Add a new condition', () => {
             const conditionSetView = setupConditionSetView();
 
             let $rows = conditionSetView.$('.conditions-field-row');
@@ -227,7 +227,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
             expect($input.val()).toBe('');
         });
 
-        it('Delete a condition', function() {
+        it('Delete a condition', () => {
             const conditionSetView = setupConditionSetView([
                 {
                     choiceID: 'my-choice-1',
@@ -262,7 +262,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
             expect($lastID.val()).toBe('0');
         });
 
-        it('Changing a choice updates model', function() {
+        it('Changing a choice updates model', () => {
             const conditionSetView = setupConditionSetView([
                 {
                     choiceID: 'my-choice-1',
@@ -282,7 +282,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
             expect(condition.get('choice').id).toBe('my-choice-2');
         });
 
-        it('Changing an operator updates model', function() {
+        it('Changing an operator updates model', () => {
             const conditionSetView = setupConditionSetView([
                 {
                     choiceID: 'my-choice-1',
@@ -303,7 +303,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
         });
     });
 
-    describe('Model events', function() {
+    describe('Model events', () => {
         let conditionSetView,
             conditionSet,
             condition,
@@ -312,7 +312,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
             $operator,
             $valueWrapper;
 
-        beforeEach(function() {
+        beforeEach(() => {
             conditionSetView = setupConditionSetView([
                 {
                     choiceID: 'my-choice-1',
@@ -335,8 +335,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
             expect($input.val()).toBe('<test>');
         });
 
-        describe('Choice changed', function() {
-            it('Updates UI state', function() {
+        describe('Choice changed', () => {
+            it('Updates UI state', () => {
                 condition.set('choice',
                               conditionSet.choices.get('my-choice-2'));
 
@@ -349,8 +349,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
             });
         });
 
-        describe('Operator changed', function() {
-            it('Updates UI state', function() {
+        describe('Operator changed', () => {
+            it('Updates UI state', () => {
                 const choice = conditionSet.choices.get('my-choice-1');
                 condition.set('operator', choice.operators.get('my-op-2'));
 
@@ -362,7 +362,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                 expect($input.val()).toBe('');
             });
 
-            it('Retains value if valueField remains', function() {
+            it('Retains value if valueField remains', () => {
                 const choice = conditionSet.choices.get('my-choice-2');
 
                 /* Set the initial conditions. */
@@ -377,8 +377,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
             });
         });
 
-        describe('Value changed', function() {
-            it('Updated UI state', function() {
+        describe('Value changed', () => {
+            it('Updated UI state', () => {
                 condition.set('value', 'new-value');
 
                 expect($valueWrapper.find('input').val()).toBe('new-value');

@@ -1,6 +1,6 @@
-suite('djblets/forms/models/ConditionOperator', function() {
-    describe('Initialization', function() {
-        it('With parse and data', function() {
+suite('djblets/forms/models/ConditionOperator', () => {
+    describe('Initialization', () => {
+        it('With parse and data', () => {
             const op = new Djblets.Forms.ConditionOperator({
                 id: 'my-op',
                 name: 'My Operator',
@@ -38,7 +38,7 @@ suite('djblets/forms/models/ConditionOperator', function() {
             });
         });
 
-        it('With parse and data, but no valueField', function() {
+        it('With parse and data, but no valueField', () => {
             const op = new Djblets.Forms.ConditionOperator({
                 id: 'my-op',
                 name: 'My Operator',
@@ -54,8 +54,8 @@ suite('djblets/forms/models/ConditionOperator', function() {
         });
     });
 
-    describe('createValueField', function() {
-        it('With custom valueField', function() {
+    describe('createValueField', () => {
+        it('With custom valueField', () => {
             const op = new Djblets.Forms.ConditionOperator({
                 id: 'my-op',
                 name: 'My Operator',
@@ -75,7 +75,7 @@ suite('djblets/forms/models/ConditionOperator', function() {
             expect(valueField.model.get('fieldName')).toBe('my-field');
         });
 
-        it('Without custom valueField', function() {
+        it('Without custom valueField', () => {
             const op = new Djblets.Forms.ConditionOperator({
                 id: 'my-op',
                 name: 'My Operator'

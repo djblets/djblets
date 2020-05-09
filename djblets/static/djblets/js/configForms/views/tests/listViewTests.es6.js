@@ -1,10 +1,10 @@
-suite('djblets/configForms/views/ListView', function() {
-    describe('Manages items', function() {
+suite('djblets/configForms/views/ListView', () => {
+    describe('Manages items', () => {
         let collection;
         let list;
         let listView;
 
-        beforeEach(function() {
+        beforeEach(() => {
             collection = new Backbone.Collection(
                 [
                     {text: 'Item 1'},
@@ -25,7 +25,7 @@ suite('djblets/configForms/views/ListView', function() {
             listView.render();
         });
 
-        it('On render', function() {
+        it('On render', () => {
             const $items = listView.$('li');
             expect($items.length).toBe(3);
             expect($items.eq(0).text().strip()).toBe('Item 1');
@@ -33,7 +33,7 @@ suite('djblets/configForms/views/ListView', function() {
             expect($items.eq(2).text().strip()).toBe('Item 3');
         });
 
-        it('On add', function() {
+        it('On add', () => {
             collection.add({
                 text: 'Item 4',
             });
@@ -43,7 +43,7 @@ suite('djblets/configForms/views/ListView', function() {
             expect($items.eq(3).text().strip()).toBe('Item 4');
         });
 
-        it('On remove', function() {
+        it('On remove', () => {
             collection.remove(collection.at(0));
 
             const $items = listView.$('li');
@@ -51,7 +51,7 @@ suite('djblets/configForms/views/ListView', function() {
             expect($items.eq(0).text().strip()).toBe('Item 2');
         });
 
-        it('On reset', function() {
+        it('On reset', () => {
             collection.reset([
                 {text: 'Foo'},
                 {text: 'Bar'},

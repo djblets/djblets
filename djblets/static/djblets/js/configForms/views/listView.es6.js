@@ -14,7 +14,7 @@
  */
 Djblets.Config.ListView = Backbone.View.extend({
     tagName: 'ul',
-    className: 'djblets-c-config-forms-list',
+    className: 'config-forms-list',
     defaultItemView: Djblets.Config.ListItemView,
 
     /**

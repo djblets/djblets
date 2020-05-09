@@ -719,52 +719,21 @@ table.djblets-c-config-forms-list {
  *
  * Structure:
  *     <div class="djblets-c-config-forms-list__item-actions">
- *      <button class="djblets-c-config-forms-list__item-action">...</button>
+ *      <a class="btn">...</a>
  *      ...
  *     </div>
  */
 .djblets-c-config-forms-list__item-actions {
   float: right;
-}
 
-
-/**
- * An action for an item.
- *
- * This is shown on the right-hand side of the list.
- *
- * Modifiers:
- *     -is-danger:
- *         Indicates that the action performs an operation that might result
- *         in data loss (such as discarding a form or deleting data).
- *
- *         This is not styled by default. It is up to the consuming
- *         application to provide a style. It will generally be the same
- *         styling used for this modifier on a ``<button>``.
- *
- *     -is-primary:
- *         Indicates that the button is the primary action for the item.
- *
- *         This is not styled by default. It is up to the consuming
- *         application to provide a style. It will generally be the same
- *         styling used for this modifier on a ``<button>``.
- *
- * Structure:
- *     <button class="djblets-c-config-forms-list__item-action">...</button>
- *
- *     <a class="djblets-c-config-forms-list__item-action" href="...">...</a>
- */
-.djblets-c-config-forms-list__item-action {
-  color: black;
-  font-size: 12px;
-  height: 28px;
-  line-height: 28px;
-  margin: 0;
-  padding: 0 1em;
-  text-align: center;
-
-  + .djblets-c-config-forms-list__item-action {
-    margin: 5px 0 0 0;
+  .btn {
+    color: black;
+    font-size: 12px;
+    height: 28px;
+    line-height: 28px;
+    margin: 1px 1px 1px 5px;
+    padding: 0 1em;
+    text-align: center;
   }
 }
 
