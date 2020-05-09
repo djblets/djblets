@@ -76,7 +76,21 @@ class BaseIntegrationConfig(NeedsIntegrationManagerMixin, models.Model):
         self.settings[key] = value
 
     def __str__(self):
-        return _('Integration config for %s') % self.integration_id
+        """Return a string representation of this configuration.
+
+        Returns:
+            unicode:
+            The string representation.
+        """
+        try:
+            integration_name = self.integration.name
+        except Exception:
+            integration_name = self.integration_id
+
+        return _('%(config_name)s (%(integration_name)s)') % {
+            'config_name': self.name,
+            'integration_name': integration_name,
+        }
 
     class Meta:
         abstract = True

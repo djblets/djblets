@@ -160,12 +160,13 @@ PIPELINE_STYLESHEETS = {
         ),
         'output_filename': 'djblets/css/integrations.min.css',
     },
-    'djblets-widgets': {
+    'djblets-ui': {
         'source_filenames': (
             'lib/css/selectize.default-0.12.4.css',
+            'djblets/css/ui/modalbox.less',
             'djblets/css/ui/related-object-selector.less',
         ),
-        'output_filename': 'djblets/css/widgets.min.css',
+        'output_filename': 'djblets/css/ui.min.css',
         'absolute_paths': False,
     },
 }
