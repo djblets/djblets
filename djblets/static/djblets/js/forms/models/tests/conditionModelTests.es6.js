@@ -1,11 +1,11 @@
-suite('djblets/forms/models/Condition', () => {
-    describe('Events', () => {
-        describe('choice changes', () => {
+suite('djblets/forms/models/Condition', function() {
+    describe('Events', function() {
+        describe('choice changes', function() {
             let choice1,
                 choice2,
                 condition;
 
-            beforeEach(() => {
+            beforeEach(function() {
                 choice1 = new Djblets.Forms.ConditionChoice({
                     id: 'my-choice-1',
                     name: 'My Choice 1',
@@ -40,12 +40,12 @@ suite('djblets/forms/models/Condition', () => {
                 condition.set('choice', choice2);
             });
 
-            it('Operator resets to first', () => {
+            it('Operator resets to first', function() {
                 expect(condition.get('operator')).toBe(
                     choice2.operators.first());
             });
 
-            it('Value resets', () => {
+            it('Value resets', function() {
                 expect(condition.get('value')).toBe(undefined);
             });
         });

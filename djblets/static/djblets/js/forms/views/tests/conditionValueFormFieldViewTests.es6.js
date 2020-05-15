@@ -1,4 +1,4 @@
-suite('djblets/forms/views/ConditionValueFormFieldView', () => {
+suite('djblets/forms/views/ConditionValueFormFieldView', function() {
     function createValueField(html) {
         const view = new Djblets.Forms.ConditionValueFormFieldView({
             model: new Djblets.Forms.ConditionValueField({
@@ -11,7 +11,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', () => {
         return view;
     }
 
-    it('Rendering', () => {
+    it('Rendering', function() {
         const view = createValueField('<input type="text" />');
 
         expect(view.$input[0].tagName).toBe('INPUT');
@@ -19,16 +19,16 @@ suite('djblets/forms/views/ConditionValueFormFieldView', () => {
         expect(view.$input.attr('name')).toBe('my-field');
     });
 
-    describe('Methods', () => {
-        describe('getValue', () => {
-            it('<input>', () => {
+    describe('Methods', function() {
+        describe('getValue', function() {
+            it('<input>', function() {
                 const view = createValueField(
                     '<input type="text" value="abc123" />');
 
                 expect(view.getValue()).toBe('abc123');
             });
 
-            it('<select>', () => {
+            it('<select>', function() {
                 const view = createValueField([
                     '<select>',
                     '<option value="1">One</option>',
@@ -39,7 +39,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', () => {
                 expect(view.getValue()).toBe('2');
             });
 
-            it('<textarea>', () => {
+            it('<textarea>', function() {
                 const view = createValueField('<textarea></textarea>');
 
                 view.setValue('abc123');
@@ -48,8 +48,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', () => {
             });
         });
 
-        describe('setValue', () => {
-            it('<input>', () => {
+        describe('setValue', function() {
+            it('<input>', function() {
                 const view = createValueField('<input type="text" />');
 
                 view.setValue('abc123');
@@ -57,7 +57,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', () => {
                 expect(view.$input.val()).toBe('abc123');
             });
 
-            it('<select>', () => {
+            it('<select>', function() {
                 const view = createValueField([
                     '<select>',
                     '<option value="1">One</option>',
@@ -70,7 +70,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', () => {
                 expect(view.$input.val()).toBe('2');
             });
 
-            it('<textarea>', () => {
+            it('<textarea>', function() {
                 const view = createValueField('<textarea></textarea>');
 
                 view.setValue('abc123');

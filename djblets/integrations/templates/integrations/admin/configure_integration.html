@@ -14,21 +14,8 @@
 {% endblock %}
 
 {% block submit_row_buttons %}
-{{block.super}}
-<p class="deletelink-box">
- <a href="#" class="deletelink">{% trans "Delete" %}</a>
-</p>
+{%  include "admin/submit_line.html" %}
 {% endblock %}
-
-{% block admin_scripts %}
-{{block.super}}
-<script src="{% static "admin/js/jquery.min.js" %}"></script>
-<script src="{% static "admin/js/core.js" %}"></script>
-<script src="{% static "admin/js/jquery.init.js" %}"></script>
-<script src="{% static "admin/js/collapse.js" %}"></script>
-{% include "js/jquery.html" %}
-{% include "js/jquery-ui.html" %}
-{% endblock admin_scripts %}
 
 {% block admin_scripts_post %}
 {{block.super}}

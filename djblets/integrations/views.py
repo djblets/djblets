@@ -265,6 +265,7 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin,
                 found.
         """
         integration_mgr = self.get_integration_manager()
+        self.integration_mgr = integration_mgr
 
         self.integration = integration_mgr.get_integration(
             kwargs['integration_id'])
@@ -445,3 +446,28 @@ class BaseAdminIntegrationConfigFormView(BaseIntegrationConfigFormView):
         """
         return super(BaseAdminIntegrationConfigFormView, self).dispatch(
             *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        """Return context data for the configuration page.
+
+        Args:
+            **kwargs (dict):
+                Additional keyword arguments that may be passed to this
+                function by the parent views.
+
+        Returns:
+            dict:
+            The context to provide on the page.
+        """
+        data = (
+            super(BaseAdminIntegrationConfigFormView, self)
+            .get_context_data(**kwargs)
+        )
+        data.update({
+            'opts': self.integration_mgr.config_model._meta,
+            'original': self.config,
+            'show_delete_link': self.config is not None,
+            'show_save': True,
+        })
+
+        return data

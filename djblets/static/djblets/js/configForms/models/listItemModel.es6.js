@@ -12,6 +12,10 @@
  *     editURL (string):
  *         The URL to edit the model.
  *
+ *     itemState (string):
+ *         A string representing the item's state, for those items that
+ *         need to show an enabled, disabled, error, or custom state.
+ *
  *     loading (boolean):
  *         Whether or not the model is loading content from the server.
  *
@@ -60,6 +64,13 @@
  *         ``label`` (:js:class:`string`):
  *             The action's label.
  *
+ *         ``primary`` (:js:class:`boolean`, optional):
+ *             When ``true``, this button will be marked as a primary action
+ *             for the item. This is only useful for button actions.
+ *
+ *             If this attribute is present, the action will be rendered as a
+ *             menu and its children will be rendered as items in that menu.
+ *
  *         ``propName`` (:js:class:`string`, optional):
  *             For a checkbox action, this attribute specifies the attribute on
  *             the model that will be set to reflect the checkbox's state.
@@ -84,6 +95,19 @@ Djblets.Config.ListItem = Backbone.Model.extend({
         canRemove: true,
         loading: false,
         removeLabel: _`Remove`,
+        itemState: null,
+    },
+
+    /**
+     * A mapping of item states to text.
+     *
+     * Subclasses can extend this to provide custom strings, or support
+     * custom item states.
+     */
+    itemStateTexts: {
+        disabled: _`Disabled`,
+        enabled: _`Enabled`,
+        error: _`Error`,
     },
 
     /**

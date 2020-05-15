@@ -1,7 +1,7 @@
-suite('djblets/configForms/views/TableItemView', () => {
-    describe('Rendering', () => {
-        describe('Item display', () => {
-            it('With editURL', () => {
+suite('djblets/configForms/views/TableItemView', function() {
+    describe('Rendering', function() {
+        describe('Item display', function() {
+            it('With editURL', function() {
                 const item = new Djblets.Config.ListItem({
                     editURL: 'http://example.com/',
                     text: 'Label',
@@ -12,13 +12,15 @@ suite('djblets/configForms/views/TableItemView', () => {
 
                 itemView.render();
                 expect(itemView.$el.html().strip()).toBe([
-                    '<td><span class="config-forms-list-item-actions"></span>',
-                    '<a href="http://example.com/">Label</a>',
+                    '<td>',
+                    '<span class="djblets-c-config-forms-list__item-actions">',
+                    '</span>\n\n',
+                    '<a href="http://example.com/">Label</a>\n\n',
                     '</td>',
-                ].join('\n\n'));
+                ].join(''));
             });
 
-            it('Without editURL', () => {
+            it('Without editURL', function() {
                 const item = new Djblets.Config.ListItem({
                     text: 'Label',
                 });
@@ -28,15 +30,17 @@ suite('djblets/configForms/views/TableItemView', () => {
 
                 itemView.render();
                 expect(itemView.$el.html().strip()).toBe([
-                    '<td><span class="config-forms-list-item-actions"></span>',
-                    'Label',
+                    '<td>',
+                    '<span class="djblets-c-config-forms-list__item-actions">',
+                    '</span>\n\n',
+                    'Label\n\n',
                     '</td>',
-                ].join('\n\n'));
+                ].join(''));
             });
         });
 
-        describe('Action placement', () => {
-            it('Default template', () => {
+        describe('Action placement', function() {
+            it('Default template', function() {
                 const item = new Djblets.Config.ListItem({
                     text: 'Label',
                     actions: [
@@ -52,13 +56,15 @@ suite('djblets/configForms/views/TableItemView', () => {
 
                 itemView.render();
 
-                const $button = itemView.$('td:last .btn');
+                const $button = itemView.$(
+                    'td:last button.djblets-c-config-forms-list__item-action');
                 expect($button.length).toBe(1);
                 expect($button.text()).toBe('Button');
             });
 
-            it('Custom template', () => {
-                const CustomTableItemView = Djblets.Config.TableItemView.extend({
+            it('Custom template', function() {
+                const CustomTableItemView =
+                    Djblets.Config.TableItemView.extend({
                         template: _.template(dedent`
                             <td></td>
                             <td></td>
@@ -79,7 +85,8 @@ suite('djblets/configForms/views/TableItemView', () => {
 
                 itemView.render();
 
-                const $button = itemView.$('td:last .btn');
+                const $button = itemView.$(
+                    'td:last button.djblets-c-config-forms-list__item-action');
                 expect($button.length).toBe(1);
                 expect($button.text()).toBe('Button');
             });

@@ -10,8 +10,20 @@
  */
 Djblets.Config.ListItemView = Backbone.View.extend({
     tagName: 'li',
-    className: 'config-forms-list-item',
+    className: 'djblets-c-config-forms-list-item',
     iconBaseClassName: 'djblets-icon',
+
+    /**
+     * A mapping of item states to CSS classes.
+     *
+     * Subclasses can extend this to provide custom CSS classes, or support
+     * custom item states.
+     */
+    itemStateClasses: {
+        disabled: '-is-disabled',
+        enabled: '-is-enabled',
+        error: '-has-error',
+    },
 
     actionHandlers: {},
 
@@ -47,12 +59,21 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      *     This view.
      */
     render() {
+        const model = this.model;
+
         this.$el
             .empty()
             .append(this.template(_.defaults(
-                this.model.attributes,
+                model.attributes,
                 this.getRenderContext()
             )));
+
+        this._$itemState =
+            this.$('.djblets-c-config-forms-list__item-state');
+
+        this.listenTo(model, 'change:itemState', this._onItemStateChanged);
+        this._onItemStateChanged();
+
         this.addActions(this.getActionsParent());
 
         return this;
@@ -149,7 +170,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      */
     addActions($parentEl) {
         const $actions = $('<span>')
-            .addClass('config-forms-list-item-actions');
+            .addClass('djblets-c-config-forms-list__item-actions');
 
         this.model.actions.forEach(action => {
             const $action = this._buildActionEl(action)
@@ -238,7 +259,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      * Args:
      *     action (object):
      *         The action to show the dropdown for. See
-     *         :js:class:`Djblets.Config.ListItem`. for a list of attributes.
+     *         :js:class:`Djblets.Config.ListItem` for a list of attributes.
      */
     _buildActionEl(action) {
         const actionHandlerName = (action.enabled !== false
@@ -305,33 +326,72 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                 }
             }
         } else {
-            $action = $result = $('<a class="btn">')
-                .text(action.label || '');
+            $action = $result = $('<button type="button">');
+
+            if (action.label) {
+                $action.text(action.label);
+            }
 
             if (action.iconName) {
-                $action.append($('<span>')
+                $action.prepend($('<span>')
                     .addClass(this.iconBaseClassName)
                     .addClass(`${this.iconBaseClassName}-${action.iconName}`));
             }
 
             if (actionHandlerName) {
-                $action.click(_.bind(this[actionHandlerName], this));
+                $action.click(evt => {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+
+                    this[actionHandlerName].call(this, evt);
+                });
             }
         }
+
+        $action.addClass('djblets-c-config-forms-list__item-action');
 
         if (action.id) {
             $action.addClass(`config-forms-list-action-${action.id}`);
         }
 
         if (action.danger) {
-            $action.addClass('danger');
+            $action.addClass('-is-danger');
+        }
+
+        if (action.primary) {
+            $action.addClass('-is-primary');
         }
 
         if (action.enabled === false) {
             $action.prop('disabled', true);
-            $result.addClass('disabled');
         }
 
         return $result;
     },
+
+    /**
+     * Handle changes to the item state.
+     *
+     * This will update the CSS class used on the item and any relevant text
+     * contained within the item to reflect the current state.
+     */
+    _onItemStateChanged() {
+        const model = this.model;
+        const oldItemState = model.previous('itemState');
+        const itemState = model.get('itemState');
+
+        if (oldItemState) {
+            this.$el.removeClass(this.itemStateClasses[oldItemState]);
+        }
+
+        if (itemState) {
+            this.$el.addClass(this.itemStateClasses[itemState]);
+
+            /*
+             * Note that if we didn't find an element in the template for
+             * this before, this is basically a no-op.
+             */
+            this._$itemState.text(model.itemStateTexts[itemState]);
+        }
+    }
 });
