@@ -1,6 +1,6 @@
 suite('djblets/configForms/views/ListItemView', function() {
     describe('Rendering', function() {
-        describe('Item display', function() {
+        describe('General item display', function() {
             it('With editURL', function() {
                 const item = new Djblets.Config.ListItem({
                     editURL: 'http://example.com/',
@@ -32,6 +32,53 @@ suite('djblets/configForms/views/ListItemView', function() {
                     '</span>\n',
                     'Label',
                 ].join(''));
+            });
+        });
+
+        describe('Item states', function() {
+            const CustomItemView = Djblets.Config.ListItemView.extend({
+                template: _.template(dedent`
+                    <div><%- text %></div>
+                    <div class="djblets-c-config-forms-list__item-state">
+                    </div>
+                `),
+            });
+
+            it('Initial render', function() {
+                const item = new Djblets.Config.ListItem({
+                    itemState: 'enabled',
+                });
+                const itemView = new CustomItemView({
+                    model: item,
+                });
+
+                itemView.render();
+
+                expect(itemView.el).toHaveClass('-is-enabled');
+
+                const $stateText =
+                    itemView.$('.djblets-c-config-forms-list__item-state');
+                expect($stateText.text()).toBe('Enabled');
+            });
+
+            it('When changed', function() {
+                const item = new Djblets.Config.ListItem({
+                    itemState: 'enabled',
+                });
+                const itemView = new CustomItemView({
+                    model: item,
+                });
+
+                itemView.render();
+
+                item.set('itemState', 'disabled');
+
+                expect(itemView.el).toHaveClass('-is-disabled');
+                expect(itemView.el).not.toHaveClass('-is-enabled');
+
+                const $stateText =
+                    itemView.$('.djblets-c-config-forms-list__item-state');
+                expect($stateText.text()).toBe('Disabled');
             });
         });
 

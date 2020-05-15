@@ -84,6 +84,22 @@
   }
 
   .list() {
+    /*
+     * NOTE: We don't bundle Font Awesome in Djblets, so reference by the
+     *       character code. This corresponds to Font Awesome 4.7.
+     */
+    @state-disabled-color: #DDDDDD;
+    @state-disabled-fa-icon: "\f00d";
+    @state-disabled-text-color: darkred;
+
+    @state-enabled-color: #53CC53;
+    @state-enabled-fa-icon: "\f00c";
+    @state-enabled-text-color: darkgreen;
+
+    @state-error-color: #E45757;
+    @state-error-fa-icon: "\f057";
+    @state-error-text-color: darkred;
+
     /**
      * Define a color state for an item.
      *
@@ -101,11 +117,31 @@
      *
      *     color (string):
      *         The border color to define for the modifier.
+     *
+     *     text-color (string, optional):
+     *         The text color for any status text.
      */
-    .add-item-state(@modifier, @color) {
+    .add-item-state(@modifier, @color, @text-color: black, @fa-icon: none) {
       .djblets-c-config-forms-list__item.-@{modifier},
-      tr.djblets-c-config-forms-list__item.-@{modifier} > td:first-child {
-        border-left: 8px @color solid !important;
+      tr.djblets-c-config-forms-list__item.-@{modifier} {
+        > td:first-child {
+          border-left: 8px @color solid !important;
+        }
+
+        .djblets-c-config-forms-list__item-state {
+          color: @text-color;
+
+          & when not (@fa-icon = none) {
+            &:before {
+              content: @fa-icon;
+              display: inline-block;
+              font-family: FontAwesome;
+              text-align: center;
+              width: 1em;
+              margin-right: 4px;
+            }
+          }
+        }
       }
     }
   }
@@ -634,6 +670,10 @@ table.djblets-c-config-forms-list {
  *         not needed if the parent list has the ``-all-items-have-actions``
  *         modifier.
  *
+ *     -has-error:
+ *         The list item has an error state. This will show a thick red
+ *         border on the left.
+ *
  *     -has-icon:
  *         The list item has an icon shown on the left-hand side. This is
  *         not needed if the parent list has the ``-all-items-have-icons``
@@ -769,10 +809,40 @@ table.djblets-c-config-forms-list {
 }
 
 
-#djblets-ns-config-forms.list.add-item-state(@modifier: is-disabled,
-                                             @color: #DDDDDD);
-#djblets-ns-config-forms.list.add-item-state(@modifier: is-enabled,
-                                             @color: #53CC53);
+/**
+ * A text/icon-based state indicator for an item.
+ *
+ * This can be used as part of an item to indicate the enabled/disabled/etc.
+ * state of an item. It will be color-coded based on the registered item
+ * state. This is purely optional and up to the implementation to use.
+ *
+ * Structure:
+ *     <td class="djblets-c-config-forms-list__item-state">
+ *      <span class="fa ..."></span> ...
+ *     </td>
+ */
+.djblets-c-config-forms-list__item-state {
+  white-space: nowrap;
+}
+
+
+@_list-vars: #djblets-ns-config-forms.list();
+
+#djblets-ns-config-forms.list.add-item-state(
+  @modifier: is-disabled,
+  @color: @_list-vars[@state-disabled-color],
+  @text-color: @_list-vars[@state-disabled-text-color],
+  @fa-icon: @_list-vars[@state-disabled-fa-icon]);
+#djblets-ns-config-forms.list.add-item-state(
+  @modifier: is-enabled,
+  @color: @_list-vars[@state-enabled-color],
+  @text-color: @_list-vars[@state-enabled-text-color],
+  @fa-icon: @_list-vars[@state-enabled-fa-icon]);
+#djblets-ns-config-forms.list.add-item-state(
+  @modifier: has-error,
+  @color: @_list-vars[@state-error-color],
+  @text-color: @_list-vars[@state-error-text-color],
+  @fa-icon: @_list-vars[@state-error-fa-icon]);
 
 
 /****************************************************************************

@@ -12,6 +12,10 @@
  *     editURL (string):
  *         The URL to edit the model.
  *
+ *     itemState (string):
+ *         A string representing the item's state, for those items that
+ *         need to show an enabled, disabled, error, or custom state.
+ *
  *     loading (boolean):
  *         Whether or not the model is loading content from the server.
  *
@@ -91,6 +95,19 @@ Djblets.Config.ListItem = Backbone.Model.extend({
         canRemove: true,
         loading: false,
         removeLabel: _`Remove`,
+        itemState: null,
+    },
+
+    /**
+     * A mapping of item states to text.
+     *
+     * Subclasses can extend this to provide custom strings, or support
+     * custom item states.
+     */
+    itemStateTexts: {
+        disabled: _`Disabled`,
+        enabled: _`Enabled`,
+        error: _`Error`,
     },
 
     /**

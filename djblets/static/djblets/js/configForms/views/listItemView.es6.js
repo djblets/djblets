@@ -13,6 +13,18 @@ Djblets.Config.ListItemView = Backbone.View.extend({
     className: 'djblets-c-config-forms-list-item',
     iconBaseClassName: 'djblets-icon',
 
+    /**
+     * A mapping of item states to CSS classes.
+     *
+     * Subclasses can extend this to provide custom CSS classes, or support
+     * custom item states.
+     */
+    itemStateClasses: {
+        disabled: '-is-disabled',
+        enabled: '-is-enabled',
+        error: '-has-error',
+    },
+
     actionHandlers: {},
 
     template: _.template(dedent`
@@ -47,12 +59,21 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      *     This view.
      */
     render() {
+        const model = this.model;
+
         this.$el
             .empty()
             .append(this.template(_.defaults(
-                this.model.attributes,
+                model.attributes,
                 this.getRenderContext()
             )));
+
+        this._$itemState =
+            this.$('.djblets-c-config-forms-list__item-state');
+
+        this.listenTo(model, 'change:itemState', this._onItemStateChanged);
+        this._onItemStateChanged();
+
         this.addActions(this.getActionsParent());
 
         return this;
@@ -347,4 +368,30 @@ Djblets.Config.ListItemView = Backbone.View.extend({
 
         return $result;
     },
+
+    /**
+     * Handle changes to the item state.
+     *
+     * This will update the CSS class used on the item and any relevant text
+     * contained within the item to reflect the current state.
+     */
+    _onItemStateChanged() {
+        const model = this.model;
+        const oldItemState = model.previous('itemState');
+        const itemState = model.get('itemState');
+
+        if (oldItemState) {
+            this.$el.removeClass(this.itemStateClasses[oldItemState]);
+        }
+
+        if (itemState) {
+            this.$el.addClass(this.itemStateClasses[itemState]);
+
+            /*
+             * Note that if we didn't find an element in the template for
+             * this before, this is basically a no-op.
+             */
+            this._$itemState.text(model.itemStateTexts[itemState]);
+        }
+    }
 });
