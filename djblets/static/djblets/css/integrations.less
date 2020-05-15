@@ -3,7 +3,7 @@
  */
 
 
-#djblets-ns-integrations {
+#djblets-ns-integrations() {
   .integrations-popup() {
     @blank-bg: #E3E3E3;
     @border-color: #AAA;
@@ -153,16 +153,6 @@
     .djblets-c-integration-config__integration-name {
       color: #999;
     }
-
-    .djblets-c-integration-config__status {
-      color: darkred;
-    }
-  }
-
-  &.-is-enabled {
-    .djblets-c-integration-config__status {
-      color: darkgreen;
-    }
   }
 
   &__name {
@@ -170,15 +160,6 @@
 
     a {
       display: inline-block;
-    }
-  }
-
-  &__status {
-    white-space: nowrap;
-
-    .fa {
-      text-align: center;
-      width: 1em;
     }
   }
 }

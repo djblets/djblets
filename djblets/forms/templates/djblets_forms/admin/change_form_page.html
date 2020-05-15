@@ -30,6 +30,13 @@
 {% endblock admin_css %}
 
 
+{% block admin_scripts %}
+{{block.super}}
+{% include "js/jquery.html" %}
+{% include "js/jquery-ui.html" %}
+{% endblock admin_scripts %}
+
+
 {% block admin_scripts_post %}
 {%  for bundle_name in form.js_bundle_names %}
 {%   javascript bundle_name %}

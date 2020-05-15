@@ -167,30 +167,25 @@ suite('djblets/integrations/views/IntegrationConfigListView', function() {
                 expect($row3.hasClass('-is-disabled')).toBe(true);
                 expect($row4.hasClass('-is-disabled')).toBe(false);
 
-                const $status1 =
-                    $row1.find('.djblets-c-integration-config__status');
-                const $status2 =
-                    $row2.find('.djblets-c-integration-config__status');
-                const $status3 =
-                    $row3.find('.djblets-c-integration-config__status');
-                const $status4 =
-                    $row4.find('.djblets-c-integration-config__status');
+                expect(
+                    $row1.find('.djblets-c-config-forms-list__item-state')
+                    .text()
+                ).toBe('Enabled');
 
-                expect($status1.text().trim()).toBe('Enabled');
-                expect($status1.children('.fa').hasClass('fa-check'))
-                    .toBe(true);
+                expect(
+                    $row2.find('.djblets-c-config-forms-list__item-state')
+                    .text()
+                ).toBe('Enabled');
 
-                expect($status2.text().trim()).toBe('Enabled');
-                expect($status2.children('.fa').hasClass('fa-check'))
-                    .toBe(true);
+                expect(
+                    $row3.find('.djblets-c-config-forms-list__item-state')
+                    .text()
+                ).toBe('Disabled');
 
-                expect($status3.text().trim()).toBe('Disabled');
-                expect($status3.children('.fa').hasClass('fa-close'))
-                    .toBe(true);
-
-                expect($status4.text().trim()).toBe('Enabled');
-                expect($status4.children('.fa').hasClass('fa-check'))
-                    .toBe(true);
+                expect(
+                    $row4.find('.djblets-c-config-forms-list__item-state')
+                    .text()
+                ).toBe('Enabled');
             });
         });
 

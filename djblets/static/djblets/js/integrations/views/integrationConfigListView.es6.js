@@ -9,11 +9,6 @@
  */
 const IntegrationConfigItem = Djblets.Config.ListItem.extend({
     defaults: _.defaults({
-        disabledText: _`Disabled`,
-        enabledText: _`Enabled`,
-        integrationID: null,
-        enabled: false,
-        name: null,
         removeLabel: _`Delete`,
         showRemove: true,
     }, Djblets.Config.ListItem.prototype.defaults),
@@ -31,6 +26,28 @@ const IntegrationConfigItem = Djblets.Config.ListItem.extend({
     url() {
         return this.get('editURL');
     },
+
+    /**
+     * Return the attributes for this item from a provided payload.
+     *
+     * Args:
+     *     data (object):
+     *         The data for this item provided when constructing the
+     *         integrations page.
+     *
+     * Returns:
+     *     object:
+     *     The new attribute data from the item.
+     */
+    parse(data) {
+        return {
+            editURL: data.editURL,
+            id: data.id,
+            integrationID: data.integrationID,
+            itemState: data.enabled ? 'enabled' : 'disabled',
+            name: data.name,
+        };
+    },
 });
 
 
@@ -41,6 +58,9 @@ const IntegrationConfigItem = Djblets.Config.ListItem.extend({
  * and provides actions for deleting configurations.
  */
 const IntegrationConfigItemView = Djblets.Config.TableItemView.extend({
+    className:
+        'djblets-c-integration-config djblets-c-config-forms-list__item',
+
     actionHandlers: {
         'delete': '_onDeleteClicked',
     },
@@ -55,30 +75,9 @@ const IntegrationConfigItemView = Djblets.Config.TableItemView.extend({
         <td class="djblets-c-integration-config__integration-name">
          <%- integrationName %>
         </td>
-        <td class="djblets-c-integration-config__status">
-         <% if (enabled) { %>
-          <span class="fa fa-check"></span> <%- enabledText %>
-         <% } else { %>
-          <span class="fa fa-close"></span> <%- disabledText %>
-         <% } %>
-        </td>
+        <td class="djblets-c-config-forms-list__item-state"></td>
         <td></td>
     `),
-
-    _baseClassName:
-        'djblets-c-integration-config djblets-c-config-forms-list__item ',
-
-    /**
-     * Return the CSS class name of the item.
-     *
-     * Returns:
-     *     string:
-     *     The CSS class name.
-     */
-    className() {
-        return this._baseClassName +
-               (this.model.get('enabled') ? '-is-enabled' : '-is-disabled');
-    },
 
     /**
      * Return context data for rendering the item's template.
@@ -107,17 +106,17 @@ const IntegrationConfigItemView = Djblets.Config.TableItemView.extend({
      */
     _onDeleteClicked() {
         $('<p>')
-            .html(_`
+            .text(_`
                 This integration will be permanently removed. This cannot
                 be undone.
             `)
             .modalBox({
                 title: _`Are you sure you want to delete this integration?`,
                 buttons: [
-                    $('<input type="button">')
-                        .val(_`Cancel`),
-                    $('<input type="button" class="danger">')
-                        .val(_`Delete Integration`)
+                    $('<button>')
+                        .text(_`Cancel`),
+                    $('<button class="danger">')
+                        .text(_`Delete Integration`)
                         .click(() => this.model.destroy({
                             beforeSend: xhr => {
                                 xhr.setRequestHeader(
@@ -177,6 +176,7 @@ Djblets.IntegrationConfigListView = Backbone.View.extend({
                         csrfToken: options.csrfToken,
                         integrationsMap: options.integrationsMap,
                         model: this.listItemType,
+                        parse: true,
                     }
                 ),
             });
