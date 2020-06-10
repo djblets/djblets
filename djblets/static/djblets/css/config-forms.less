@@ -22,25 +22,7 @@
 
 @img-base: '../images/config-forms';
 
-@config-forms-box-bg: #F3F3F3;
-@config-forms-box-padding: 1em;
-@config-forms-box-border-radius: 6px;
-
-@config-forms-list-bg-color: #FFFFFF;
-@config-forms-list-border-color: #AAAAAA;
-@config-forms-list-item-border-color: #E9E9E9;
-@config-forms-list-item-hover-bg-color: #FAFAFA;
-@config-forms-list-item-line-height: 32px;
-@config-forms-list-item-padding-horiz: 1.5em;
-@config-forms-list-item-padding-horiz-small: 0.5em;
-@config-forms-list-item-padding-vert: 0.5em;
-@config-forms-list-item-padding:
-  @config-forms-list-item-padding-vert
-  @config-forms-list-item-padding-horiz;
-
-@config-forms-side-nav-width: 17em;
 @config-forms-forms-width: 60em;
-@config-forms-container-padding: 1em;
 @config-forms-gap: 2em;
 
 @config-forms-text-field-border-color: #AAA;
@@ -59,6 +41,10 @@
 
 
 #djblets-ns-config-forms() {
+  @container-padding: 1em;
+  @border-color: #AAAAAA;
+  @border-radius: 6px;
+
   /**
    * Set the widths for the navigation and forms content.
    *
@@ -69,12 +55,13 @@
    *     forms-width (number, optional):
    *         The width of the forms section.
    */
-  .set-page-widths(@nav-width: @config-forms-side-nav-width,
-                   @forms-width: @config-forms-forms-width) {
+  .set-page-widths(@nav-width: #djblets-ns-config-forms.page[@nav-width],
+                   @forms-width: #djblets-ns-config-forms.page[@forms-width]) {
     .config-forms-container,  /* Deprecated */
     .djblets-c-config-forms-page {
-      width: (@nav-width + @forms-width + @config-forms-gap +
-              (2 * @config-forms-container-padding));
+      width: (@nav-width + @forms-width +
+              #djblets-ns-config-forms.page[@gap] +
+              (2 * #djblets-ns-config-forms[@container-padding]));
     }
 
     .config-forms-page-content,  /* Deprecated */
@@ -84,6 +71,30 @@
   }
 
   .list() {
+    @bg-color: #FFFFFF;
+    @border-color: #djblets-ns-config-forms[@border-color];
+
+    @column-bg-color: #F0F0F3;
+    @column-sep-color: #CCCCCC;
+
+    @item-border-color: #E9E9E9;
+    @item-hover-bg-color: #FAFAFA;
+
+    @item-line-height: 32px;
+
+    @item-padding-horiz-small: 0.5em;
+    @item-padding-horiz-large: 1em;
+    @item-padding-vert-small: 0.5em;
+    @item-padding-vert-large: 1em;
+    @item-padding-default: @item-padding-vert-small @item-padding-horiz-large;
+    @item-padding-small: @item-padding-vert-small @item-padding-horiz-small;
+    @item-padding-large: @item-padding-vert-large @item-padding-horiz-large;
+
+    @item-action-color: black;
+    @item-action-font-size: 110%;
+    @item-action-spacing: 5px;
+    @item-action-padding: 0.5em 1em;
+
     /*
      * NOTE: We don't bundle Font Awesome in Djblets, so reference by the
      *       character code. This corresponds to Font Awesome 4.7.
@@ -145,6 +156,56 @@
       }
     }
   }
+
+  .page() {
+    @box-bg-color: #F3F3F3;
+    @box-padding: 1em;
+    @box-border-radius: 6px;
+    @box-sep-width: 2em;
+    @font-size: 9pt;
+
+    @forms-width: 60em;
+    @nav-width: 17em;
+    @gap: 2em;
+
+    @nav-item-bg-color: @box-bg-color;
+    @nav-item-active-bg-color: #FEFEFE;
+    @nav-item-hover-bg-color: darken(@nav-item-bg-color, 5%);
+    @nav-item-padding-horiz: 1em;
+    @nav-item-padding-vert: 0.5em;
+    @nav-item-sep-color: #D9D9D9;
+  }
+
+  .popup-menu() {
+    @bg-color: #FFFFF0;
+    @border-color: #BBBBB0;
+
+    @item-padding-vert: 0;
+    @item-padding-horiz: 0.5em;
+    @item-label-margin-left: 0.2em;
+  }
+
+  .spinner() {
+    @margin: 1px;
+    @size: 16px;
+
+    /**
+     * Set the size of a spinner.
+     *
+     * Args:
+     *     @size (number):
+     *         The size, in pixels.
+     */
+    .set-size(@size) {
+      /*
+       * We need !important in order to ensure that .fa's default size is
+       * overridden.
+       */
+      font-size: @size !important;
+      width: @size;
+      height: @size;
+    }
+  }
 }
 
 
@@ -174,16 +235,14 @@
  *     </div>
  */
 .djblets-c-config-forms-page {
-  font-size: 9pt;
-  width: (@config-forms-side-nav-width +
-          @config-forms-forms-width +
-          @config-forms-gap +
-          (2 * @config-forms-container-padding));
+  @_page-vars: #djblets-ns-config-forms.page();
+
+  font-size: @_page-vars[@font-size];
   margin: 0 auto;
 
   &.-has-sidebar .djblets-c-config-forms-page__content {
     float: left;
-    margin-left: @config-forms-gap;
+    margin-left: @_page-vars[@gap];
   }
 
   a {
@@ -196,8 +255,8 @@
   }
 
   .box {
-    background: @config-forms-box-bg;
-    margin: 0 0 2em 0;
+    background: @_page-vars[@box-bg-color];
+    margin: 0 0 @_page-vars[@box-sep-width] 0;
   }
 
   .box-container {
@@ -230,7 +289,7 @@
   margin-top: 0;
   margin-left: auto;
   margin-right: auto;
-  width: @config-forms-forms-width;
+  width: #djblets-ns-config-forms.page[@forms-width];
 
   fieldset {
     border: 0;
@@ -450,8 +509,10 @@
  *     </div>
  */
 .djblets-c-config-forms-page-nav {
+  @_page-vars: #djblets-ns-config-forms.page();
+
   float: left;
-  width: @config-forms-side-nav-width;
+  width: @_page-vars[@nav-width];
 
   .box-main {
     padding: 0;
@@ -473,25 +534,27 @@
  *     </li>
  */
 .djblets-c-config-forms-page-nav__item {
-  border-bottom: 1px #D9D9D9 solid;
+  @_page-vars: #djblets-ns-config-forms.page();
+  @_border-radius: @_page-vars[@box-border-radius];
+
+  border-bottom: 1px @_page-vars[@nav-item-sep-color] solid;
 
   &:last-child {
     border-bottom: 0;
 
     &.-is-active, &:hover {
-      border-radius: 0 0 @config-forms-box-border-radius
-                     @config-forms-box-border-radius;
+      border-radius: 0 0 @_border-radius @_border-radius;
     }
   }
 
   &:hover {
-    background-color: darken(@config-forms-box-bg, 5%);
+    background-color: @_page-vars[@nav-item-hover-bg-color];
   }
 
   &.-is-active {
     &,
     &:hover {
-      background: #FEFEFE;
+      background: @_page-vars[@nav-item-active-bg-color];
     }
 
     a {
@@ -500,11 +563,12 @@
   }
 
   a {
-    color: black;
+    color: inherit;
     display: block;
     font-weight: normal;
     outline: none;
-    padding: 0.5em 1em;
+    padding: @_page-vars[@nav-item-padding-vert]
+             @_page-vars[@nav-item-padding-horiz];
     text-decoration: none;
   }
 }
@@ -580,9 +644,12 @@
  *     </ul>
  */
 .djblets-c-config-forms-list {
-  background: @config-forms-list-bg-color;
-  border-bottom: 1px @config-forms-list-border-color solid;
-  border-top: 1px @config-forms-list-border-color solid;
+  @_list-vars: #djblets-ns-config-forms.list();
+  @_border-color: @_list-vars[@border-color];
+
+  background: @_list-vars[@bg-color];
+  border-bottom: 1px @_border-color solid;
+  border-top: 1px @_border-color solid;
   margin-bottom: 0;
   padding: 0;
 
@@ -638,11 +705,13 @@ table.djblets-c-config-forms-list {
  *     <th class="djblets-c-config-forms-list__column">...</th>
  */
 .djblets-c-config-forms-list__column {
-  background: #F0F0F3;
-  border-bottom: 1px @config-forms-list-border-color solid;
-  border-right: 1px #CCCCCC solid;
+  @_list-vars: #djblets-ns-config-forms.list();
+
+  background: @_list-vars[@column-bg-color];
+  border-bottom: 1px @_list-vars[@border-color] solid;
+  border-right: 1px @_list-vars[@column-sep-color] solid;
   text-align: left;
-  padding: @config-forms-list-item-padding;
+  padding: @_list-vars[@item-padding-default];
 
   &:last-child {
     border-right: 0;
@@ -701,13 +770,15 @@ table.djblets-c-config-forms-list {
  *     ...
  */
 .djblets-c-config-forms-list__item {
+  @_list-vars: #djblets-ns-config-forms.list();
+
   &,
   > td,
   > th {
-    border-bottom: 1px @config-forms-list-item-border-color solid;
-    padding: @config-forms-list-item-padding;
+    border-bottom: 1px @_list-vars[@item-border-color] solid;
+    padding: @_list-vars[@item-padding-default];
     list-style: none;
-    line-height: @config-forms-list-item-line-height;
+    line-height: @_list-vars[@item-line-height];
     vertical-align: middle;
     .ellipsize();
 
@@ -717,7 +788,7 @@ table.djblets-c-config-forms-list {
   }
 
   &:hover {
-    background: @config-forms-list-item-hover-bg-color;
+    background: @_list-vars[@item-hover-bg-color];
   }
 
   .djblets-c-config-forms-list.-all-items-have-actions &,
@@ -725,7 +796,7 @@ table.djblets-c-config-forms-list {
     &,
     > td:last-child,
     > th:last-child {
-      padding-right: @config-forms-list-item-padding-horiz-small;
+      padding-right: @_list-vars[@item-padding-horiz-small];
     }
   }
 
@@ -746,7 +817,7 @@ table.djblets-c-config-forms-list {
 
   img {
     display: inline-block;
-    margin-right: @config-forms-list-item-padding-horiz-small;
+    margin-right: @_list-vars[@item-padding-horiz-small];
     vertical-align: middle;
   }
 }
@@ -795,16 +866,16 @@ table.djblets-c-config-forms-list {
  *     <a class="djblets-c-config-forms-list__item-action" href="...">...</a>
  */
 .djblets-c-config-forms-list__item-action {
-  color: black;
-  font-size: 12px;
-  height: 28px;
-  line-height: 28px;
+  @_list-vars: #djblets-ns-config-forms.list();
+
+  color: @_list-vars[@item-action-color];
+  font-size: @_list-vars[@item-action-font-size];
   margin: 0;
-  padding: 0 1em;
+  padding: @_list-vars[@item-action-padding];
   text-align: center;
 
   + .djblets-c-config-forms-list__item-action {
-    margin: 5px 0 0 0;
+    margin: 0 0 0 @_list-vars[@item-action-spacing];
   }
 }
 
@@ -867,8 +938,10 @@ table.djblets-c-config-forms-list {
  *     </div>
  */
 .djblets-c-config-forms-popup-menu {
-  background: #FFFFF0;
-  border: 1px #BBBBB0 solid;
+  @_popup-menu-vars: #djblets-ns-config-forms.popup-menu();
+
+  background: @_popup-menu-vars[@bg-color];
+  border: 1px @_popup-menu-vars[@border-color] solid;
 }
 
 
@@ -896,11 +969,14 @@ table.djblets-c-config-forms-list {
  *     <li class="djblets-c-config-forms-popup-menu__item">...</li>
  */
 .djblets-c-config-forms-popup-menu__item {
-  padding: 0 0.5em;
+  @_popup-menu-vars: #djblets-ns-config-forms.popup-menu();
+
+  padding: @_popup-menu-vars[@item-padding-vert]
+           @_popup-menu-vars[@item-padding-horiz];
 
   label {
     display: inline;
-    margin-left: 0.2em;
+    margin-left: @_popup-menu-vars[@item-label-margin-left];
     vertical-align: middle;
   }
 }
@@ -943,7 +1019,10 @@ table.djblets-c-config-forms-list {
  *     </div>
  */
 .djblets-l-config-forms-container {
-  margin: @config-forms-container-padding;
+  @_config-forms-vars: #djblets-ns-config-forms();
+  @_border-color: @_config-forms-vars[@border-color];
+
+  margin: @_config-forms-vars[@container-padding];
 
   &.-is-bottom-flush {
     margin-bottom: 0;
@@ -956,8 +1035,8 @@ table.djblets-c-config-forms-list {
   &.-is-recessed {
     margin-left: 0;
     margin-right: 0;
-    border-top: 1px @config-forms-list-border-color solid;
-    border-bottom: 1px @config-forms-list-border-color solid;
+    border-top: 1px @_border-color solid;
+    border-bottom: 1px @_border-color solid;
 
     &.-is-bottom-flush {
       border-bottom: 0;
@@ -985,11 +1064,12 @@ table.djblets-c-config-forms-list {
  *     </span>
  */
 .djblets-o-config-forms-spinner {
-  width: 16px;
-  height: 16px;
-  font-size: 16px;
+  @_spinner-vars: #djblets-ns-config-forms.spinner();
+
+  #djblets-ns-config-forms.spinner.set-size(@_spinner-vars[@size]);
+
   display: inline-block;
-  margin: 1px;
+  margin: @_spinner-vars[@margin];
   vertical-align: middle;
 }
 
@@ -1017,6 +1097,36 @@ table.djblets-c-config-forms-list {
 /****************************************************************************
  * Deprecated styles
  ****************************************************************************/
+@_config-forms-vars: #djblets-ns-config-forms();
+@config-forms-container-padding: @_config-forms-vars[@container-padding];
+
+@_config-forms-list-vars: #djblets-ns-config-forms.list();
+@config-forms-list-bg-color:
+  @_config-forms-list-vars[@bg-color];
+@config-forms-list-border-color:
+  @_config-forms-list-vars[@border-color];
+@config-forms-list-item-border-color:
+  @_config-forms-list-vars[@item-border-color];
+@config-forms-list-item-hover-bg-color:
+  @_config-forms-list-vars[@item-hover-bg-color];
+@config-forms-list-item-line-height:
+  @_config-forms-list-vars[@item-line-height];
+@config-forms-list-item-padding-horiz:
+  @_config-forms-list-vars[@item-padding-horiz-large];
+@config-forms-list-item-padding-horiz-small:
+  @_config-forms-list-vars[@item-padding-horiz-small];
+@config-forms-list-item-padding-vert:
+  @_config-forms-list-vars[@item-padding-vert-small];
+@config-forms-list-item-padding:
+  @_config-forms-list-vars[@item-padding-default];
+
+@_config-forms-page-vars: #djblets-ns-config-forms.page();
+@config-forms-box-bg: @_config-forms-page-vars[@box-bg-color];
+@config-forms-box-padding: @_config-forms-page-vars[@box-padding];
+@config-forms-box-border-radius: @_config-forms-page-vars[@box-border-radius];
+@config-forms-side-nav-width: @_config-forms-page-vars[@nav-width];
+
+
 .config-forms-container {
   &:extend(.djblets-c-config-forms-page all);
 
