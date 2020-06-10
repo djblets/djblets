@@ -629,6 +629,12 @@
  * and dropdown menus.
  *
  * Modifiers:
+ *     -all-items-are-multiline:
+ *         All list items should be styled to support multi-line content.
+ *         This will cause actions and state columns to be vertically-aligned
+ *         to the top of the row. This is short-hand for adding
+ *         ``-is-multiline` to all list items.
+ *
  *     -all-items-have-actions:
  *         All list items have actions shown on the right-hand side. This
  *         is short-hand for adding ``-has-actions`` to all list items.
@@ -748,6 +754,13 @@ table.djblets-c-config-forms-list {
  *         not needed if the parent list has the ``-all-items-have-icons``
  *         modifier.
  *
+ *     -is-multiline:
+ *         The list item should be styled to support multi-line content.
+ *         This will cause actions and state columns to be vertically-aligned
+ *         to the top of the row. It will also turn off custom line heights
+ *         and re-enable line wrapping for contents in a
+ *         ``djblets-c-config-forms-list__item-main`` child.
+ *
  *     -is-disabled:
  *         The list item has a disabled state. This will show a thick grey
  *         border on the left.
@@ -809,7 +822,39 @@ table.djblets-c-config-forms-list {
     li&,
     > td:first-child,
     > th:first-child {
-      padding-left: @config-forms-list-item-padding-horiz-small;
+      padding-left: @_list-vars[@item-padding-horiz-small];
+    }
+  }
+
+  .djblets-c-config-forms-list.-all-items-are-multiline &,
+  &.-is-multiline {
+    li&,
+    > td,
+    > th,
+    > td:first-child,  /* Overrides the actions/icons above. */
+    > th:first-child,
+    > td:last-child,
+    > th:last-child {
+      padding: @_list-vars[@item-padding-large];
+      vertical-align: top;
+    }
+
+    .djblets-c-config-forms-list__item-actions {
+      width: 100%;
+    }
+
+    .djblets-c-config-forms-list__item-action {
+      display: block;
+      width: 100%;
+
+      + .djblets-c-config-forms-list__item-action {
+        margin: @_list-vars[@item-action-spacing] 0 0 0;
+      }
+    }
+
+    .djblets-c-config-forms-list__item-main {
+      line-height: normal;
+      white-space: normal;
     }
   }
 
@@ -883,6 +928,20 @@ table.djblets-c-config-forms-list {
   + .djblets-c-config-forms-list__item-action {
     margin: 0 0 0 @_list-vars[@item-action-spacing];
   }
+}
+
+
+/**
+ * The main content of an item.
+ *
+ * This is an optional child that can define the main content of more complex
+ * list items. It is currently required if you want to use list items with
+ * the ``-is-multiline`` modifier.
+ *
+ * Structure:
+ *     <div class="djblets-c-config-forms-list__item-main">...</div>
+ */
+.djblets-c-config-forms-list__item-main {
 }
 
 
