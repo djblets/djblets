@@ -9,10 +9,11 @@
  </div>
 
  <div class="djblets-l-config-forms-container -is-recessed">
-  <table class="djblets-c-config-forms-list -all-items-have-icons -all-items-have-actions">
+  <table class="djblets-c-config-forms-list -all-items-have-icons -all-items-have-actions"
+         aria-live="polite" aria-busy="true">
    <tr class="djblets-c-config-forms-list__item">
     <td>
-     <span class="fa fa-spinner fa-pulse djblets-o-config-forms-spinner"></span>
+     <span class="djblets-o-spinner" aria-hidden="true"></span>
      {% trans "Loading integrations..." %}
     </td>
    </tr>

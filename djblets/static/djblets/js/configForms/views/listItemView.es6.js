@@ -128,8 +128,10 @@ Djblets.Config.ListItemView = Backbone.View.extend({
             return;
         }
 
+        this.$el.attr('aria-busy', 'true');
         this.$spinner = $('<span>')
-            .addClass('fa fa-spinner fa-pulse config-forms-list-item-spinner')
+            .addClass('djblets-o-spinner')
+            .attr('aria-hidden', 'true')
             .prependTo(this.$spinnerParent)
             .hide()
             .css('visibility', 'visible')
@@ -159,6 +161,8 @@ Djblets.Config.ListItemView = Backbone.View.extend({
             this.$spinner.remove();
             this.$spinner = null;
         });
+
+        this.$el.removeAttr('aria-busy');
     },
 
     /**

@@ -197,7 +197,8 @@ Djblets.IntegrationConfigListView = Backbone.View.extend({
             model: this.list,
             ItemView: this.listItemViewType,
         });
-        this.listView.render();
+        this.listView.render().$el
+            .removeAttr('aria-busy');
 
         this._$listContainer = this.listView.$el.parent();
 
