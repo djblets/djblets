@@ -49,7 +49,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
     },
 
     /**
-     *  Render the view.
+     * Render the view.
      *
      * This will be called every time the list of actions change for
      * the item.
@@ -266,7 +266,8 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      *         :js:class:`Djblets.Config.ListItem` for a list of attributes.
      */
     _buildActionEl(action) {
-        const actionHandlerName = (action.enabled !== false
+        const enabled = (action.enabled !== false);
+        const actionHandlerName = (enabled
                                    ? this.actionHandlers[action.id]
                                    : null);
         const isCheckbox = (action.type === 'checkbox');
@@ -330,10 +331,21 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                 }
             }
         } else {
-            $action = $result = $('<button type="button">');
+            if (action.url) {
+                $action = $('<a class="btn" role="button">')
+                    .attr('href', action.url);
+            } else {
+                $action = $('<button type="button">');
+            }
+
+            $result = $action;
 
             if (action.label) {
                 $action.text(action.label);
+            }
+
+            if (action.ariaLabel) {
+                $action.attr('aria-label', action.ariaLabel);
             }
 
             if (action.iconName) {
@@ -347,7 +359,8 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                     evt.preventDefault();
                     evt.stopPropagation();
 
-                    this[actionHandlerName].call(this, evt);
+                    this._onActionButtonClicked(evt, actionHandlerName,
+                                                $action);
                 });
             }
         }
@@ -366,7 +379,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
             $action.addClass('-is-primary');
         }
 
-        if (action.enabled === false) {
+        if (!enabled) {
             $action.prop('disabled', true);
         }
 
@@ -397,5 +410,47 @@ Djblets.Config.ListItemView = Backbone.View.extend({
              */
             this._$itemState.text(model.itemStateTexts[itemState]);
         }
-    }
+    },
+
+    /**
+     * Handle clicks on a list item action button.
+     *
+     * This will invoke the click handler on the view. If that handler
+     * returns a Promise, this will disable the button, replace its contents
+     * with a spinner, and then wait for the promise to resolve before
+     * setting the button's contents and enabled states back to normal.
+     *
+     * Args:
+     *     evt (jQuery.Event):
+     *         The click event on the button.
+     *
+     *     actionHandlerName (string):
+     *         The name of the action handler function to call.
+     *
+     *     $action (jQuery):
+     *         The action button that was clicked.
+     */
+    _onActionButtonClicked(evt, actionHandlerName, $action) {
+        const promise = this[actionHandlerName].call(this, evt);
+
+        if (promise && typeof promise.then === 'function') {
+            $action.prop('disabled', true);
+
+            const childrenHTML = $action.html();
+            $action.empty();
+
+            const $spinner = $('<span class="djblets-o-spinner">')
+                .appendTo($action);
+
+            /*
+             * This is a promise, so there's an async operation
+             * going on. Set up the spinner.
+             */
+            promise.finally(() => {
+                $spinner.remove();
+                $action.html(childrenHTML);
+                $action.prop('disabled', false);
+            });
+        }
+    },
 });

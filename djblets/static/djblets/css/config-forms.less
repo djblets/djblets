@@ -914,16 +914,34 @@ table.djblets-c-config-forms-list {
  * Structure:
  *     <button class="djblets-c-config-forms-list__item-action">...</button>
  *
- *     <a class="djblets-c-config-forms-list__item-action" href="...">...</a>
+ *     <a class="djblets-c-config-forms-list__item-action" role="button"
+ *        href="...">...</a>
  */
 .djblets-c-config-forms-list__item-action {
   @_list-vars: #djblets-ns-config-forms.list();
 
-  color: @_list-vars[@item-action-color];
-  font-size: @_list-vars[@item-action-font-size];
-  margin: 0;
-  padding: @_list-vars[@item-action-padding];
-  text-align: center;
+  /*
+   * In practice, there are stylesheets that have higher specificity and will
+   * override some of these styles in ways that make things wildly
+   * inconsisten. So, we need to generate some variants to match that.
+   */
+  &,
+  a&,
+  button& {
+    box-sizing: border-box;
+    font-size: @_list-vars[@item-action-font-size];
+    margin: 0;
+    padding: @_list-vars[@item-action-padding];
+    text-align: center;
+  }
+
+  &,
+  a&,
+  button&,
+  a&:link,
+  a&:visited {
+    color: @_list-vars[@item-action-color];
+  }
 
   + .djblets-c-config-forms-list__item-action {
     margin: 0 0 0 @_list-vars[@item-action-spacing];
