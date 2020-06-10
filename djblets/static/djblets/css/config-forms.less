@@ -772,7 +772,7 @@ table.djblets-c-config-forms-list {
 .djblets-c-config-forms-list__item {
   @_list-vars: #djblets-ns-config-forms.list();
 
-  &,
+  li&,
   > td,
   > th {
     border-bottom: 1px @_list-vars[@item-border-color] solid;
@@ -781,8 +781,12 @@ table.djblets-c-config-forms-list {
     line-height: @_list-vars[@item-line-height];
     vertical-align: middle;
     .ellipsize();
+  }
 
-    &:last-child {
+  &:last-child {
+    li&,
+    > td,
+    > th {
       border-bottom: 0;
     }
   }
@@ -793,7 +797,7 @@ table.djblets-c-config-forms-list {
 
   .djblets-c-config-forms-list.-all-items-have-actions &,
   &.-has-actions {
-    &,
+    li&,
     > td:last-child,
     > th:last-child {
       padding-right: @_list-vars[@item-padding-horiz-small];
@@ -802,7 +806,7 @@ table.djblets-c-config-forms-list {
 
   .djblets-c-config-forms-list.-all-items-have-icons &,
   &.-has-icon {
-    &,
+    li&,
     > td:first-child,
     > th:first-child {
       padding-left: @config-forms-list-item-padding-horiz-small;
@@ -835,7 +839,9 @@ table.djblets-c-config-forms-list {
  *     </div>
  */
 .djblets-c-config-forms-list__item-actions {
-  float: right;
+  li.djblets-c-config-forms-list__item & {
+    float: right;
+  }
 }
 
 
