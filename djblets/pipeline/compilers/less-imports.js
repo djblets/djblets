@@ -98,6 +98,7 @@ function parseArgs() {
             case 'source-map':
             case 'autoprefix':
             case 'js':
+            case 'rewrite-urls':
                 // These don't matter for the imports check. No-op.
                 break;
 

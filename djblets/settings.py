@@ -60,6 +60,7 @@ PIPELINE = {
         '--source-map',
         '--js',
         '--autoprefix',
+        '--rewrite-urls=all',
     ],
     'UGLIFYJS_BINARY': os.path.join(NODE_PATH, 'uglify-js', 'bin', 'uglifyjs'),
 }
