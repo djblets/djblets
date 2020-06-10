@@ -35,7 +35,7 @@ babel_npm_dependencies = {
     'babel-cli': '^6.26.0',
     'babel-preset-env': '^1.7.0',
     'babel-plugin-dedent': '^2.0.0',
-    'babel-plugin-django-gettext': '^1.0.0',
+    'babel-plugin-django-gettext': '^1.1.0',
 }
 
 #: All static media dependencies required to package/develop against  Djblets.
