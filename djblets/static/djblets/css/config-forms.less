@@ -999,6 +999,48 @@ table.djblets-c-config-forms-list {
   @fa-icon: @_list-vars[@state-error-fa-icon]);
 
 
+/**
+ * Actions shown above a list component.
+ *
+ * This should generally be mixed in with a
+ * ``.djblets-l-config-forms-container``.
+ *
+ * Structure:
+ *     <div class="djblets-c-config-forms-list-actions
+ *                 djblets-l-config-forms-container">
+ *      <button class="djblets-c-config-forms-list-actions__acction">
+ *       ...
+ *      </button>
+ *      ...
+ *     </div>
+ */
+.djblets-c-config-forms-list-actions {
+  /**
+   * An action shown above a list.
+   *
+   * This does not provide styling for the action, aside from spacing.
+   * It's up to consumers to style the actions that they need, or to mix in
+   * additional classes.
+   *
+   * Structure:
+   *     <button class="djblets-c-config-forms-list-actions__action">
+   *      ...
+   *     </button>
+   *
+   *     <a href="..." class="djblets-c-config-forms-list-actions__action btn">
+   *      ...
+   *     </a>
+   */
+  &__action {
+    margin: 0;
+
+    & + & {
+      margin-left: 0.5em;
+    }
+  }
+}
+
+
 /****************************************************************************
  * Pop-up menu component
  ****************************************************************************/
