@@ -225,6 +225,54 @@ class EscapeSpacesFilterTests(TestCase):
                          'Hi&nbsp; there<br />')
 
 
+class GetAttrFilterTests(TestCase):
+    """Unit tests for the {{...|getattr:...}} template filter."""
+
+    def test_with_attr_found(self):
+        """Testing {{...|getattr:...}} with attribute found"""
+        class MyObject(object):
+            key = 'value'
+
+        t = Template('{% load djblets_utils %}'
+                     '{{obj|getattr:"key"}}')
+
+        self.assertEqual(
+            t.render(Context({
+                'obj': MyObject(),
+            })),
+            'value')
+
+    def test_with_attr_not_found(self):
+        """Testing {{...|getattr:...}} with attribute not found"""
+        class MyObject(object):
+            key = 'value'
+
+        t = Template('{% load djblets_utils %}'
+                     '{{obj|getattr:"bad_key"}}')
+
+        self.assertEqual(
+            t.render(Context({
+                'obj': MyObject(),
+            })),
+            'None')
+
+    def test_with_attr_not_found_and_default_if_none(self):
+        """Testing {{...|getattr:...}} with attribute not found and
+        default_if_none fallback filter
+        """
+        class MyObject(object):
+            key = 'value'
+
+        t = Template('{% load djblets_utils %}'
+                     '{{obj|getattr:"bad_key"|default_if_none:"doh"}}')
+
+        self.assertEqual(
+            t.render(Context({
+                'obj': MyObject(),
+            })),
+            'doh')
+
+
 class HumanizeListFilterTests(TestCase):
     """Unit tests for the {{...|humanize_list}} template filter."""
 

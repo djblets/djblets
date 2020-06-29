@@ -462,9 +462,42 @@ def contains(container, value):
     return value in container
 
 
+@register.filter('getattr')
+def getattr_filter(obj, name):
+    """Return the attribute of a specified name from an object.
+
+    This is equivalent to a ``getattr(obj, name, None)`` statement in
+    Python.
+
+    Version Added:
+        2.0
+
+    Args:
+        obj (object):
+            The object that contains the attribute.
+
+        name (unicode):
+            The name of the key to look up in the container.
+
+    Returns:
+        object:
+        The attribute value.
+
+    Example:
+        .. code-block:: html+django
+
+           {% for name in attrs %}
+             {{name}}: {{obj|getattr:name}}
+           {% endfor %}
+
+           {{obj|getattr:other_attr|default_if_none:"my fallback"}}
+    """
+    return getattr(obj, name, None)
+
+
 @register.filter
 def getitem(container, key):
-    """Return the attribute of a specified name from a container.
+    """Return the value of a specified key from a container.
 
     This is equivalent to a ``container[key]`` statement in Python. The
     container must support this operator.
