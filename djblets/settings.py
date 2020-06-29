@@ -56,6 +56,7 @@ PIPELINE = {
     ],
     'LESS_BINARY': os.path.join(NODE_PATH, 'less', 'bin', 'lessc'),
     'LESS_ARGUMENTS': [
+        '--include-path=%s' % STATIC_ROOT,
         '--no-color',
         '--source-map',
         '--js',

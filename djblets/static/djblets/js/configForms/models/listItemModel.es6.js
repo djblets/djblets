@@ -136,4 +136,16 @@ Djblets.Config.ListItem = Backbone.Model.extend({
             });
         }
     },
+
+    /**
+     * Set the actions available for this item.
+     *
+     * Args:
+     *     actions (Array of object):
+     *         The new action definitions.
+     */
+    setActions(actions) {
+        this.actions = actions;
+        this.trigger('actionsChanged');
+    },
 });
