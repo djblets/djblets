@@ -6,6 +6,7 @@ from contextlib import contextmanager
 
 from django.utils import six
 
+from djblets.features.feature import Feature
 from djblets.features.registry import get_features_registry
 
 
@@ -20,17 +21,25 @@ def override_feature_checks(feature_states):
     Only the provided features will be modified, with all other feature logic
     falling back to the default behavior for the configured feature checker.
 
+    Version Change:
+        1.0.13:
+        ``feature_states`` now accepts a
+        :py:class:`~djblets.features.feature.Feature` instance as a key.
+
     Args:
         feature_states (dict):
-            A dictionary of feature IDs to booleans (representing whether the
-            feature is enabled).
+            A dictionary of feature IDs or instances to booleans (representing
+            whether the feature is enabled).
 
     Example:
         .. code-block:: python
 
+           from myproject.features import my_feature_3
+
            feature_states = {
                'my-feature-1': True,
                'my-feature-2': False,
+               my_feature_3: True,
            }
 
            with override_feature_checks(feature_states):
@@ -39,8 +48,9 @@ def override_feature_checks(feature_states):
     registry = get_features_registry()
     old_state = []
 
-    for feature_id, enabled in six.iteritems(feature_states):
-        feature = registry.get_feature(feature_id)
+    for feature, enabled in six.iteritems(feature_states):
+        if not isinstance(feature, Feature):
+            feature = registry.get_feature(feature)
 
         old_state.append({
             'feature': feature,
@@ -50,10 +60,11 @@ def override_feature_checks(feature_states):
         feature.is_enabled = \
             lambda _is_enabled=enabled, **kwargs: _is_enabled
 
-    yield
-
-    for feature_info in old_state:
-        feature_info['feature'].is_enabled = feature_info['func']
+    try:
+        yield
+    finally:
+        for feature_info in old_state:
+            feature_info['feature'].is_enabled = feature_info['func']
 
 
 @contextmanager
@@ -68,8 +79,8 @@ def override_feature_check(feature_id, enabled):
     falling back to the default behavior for the configured feature checker.
 
     Args:
-        feature_id (unicode):
-            The ID of the feature to override.
+        feature_id (unicode or djblets.features.feature.Feature):
+            The ID or instance of the feature to override.
 
         enabled (bool):
             The enabled state for the feature.
@@ -77,7 +88,12 @@ def override_feature_check(feature_id, enabled):
     Example:
         .. code-block:: python
 
+           from myproject.features import my_feature_2
+
            with override_feature_check('my-feature', enabled=False):
+               # Your test code here.
+
+           with override_feature_check(my_feature_2, enabled=True):
                # Your test code here.
     """
     with override_feature_checks({feature_id: enabled}):
