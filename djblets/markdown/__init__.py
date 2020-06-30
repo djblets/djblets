@@ -6,6 +6,7 @@ from xml.dom.minidom import parseString
 
 from django.utils import six
 from django.utils.six.moves import cStringIO as StringIO
+from django.utils.six.moves.html_entities import name2codepoint
 from markdown import Markdown, markdownFromFile
 
 
@@ -200,14 +201,37 @@ def get_markdown_element_tree(markdown_html):
     """Return an XML element tree for Markdown-generated HTML.
 
     This will build the tree and return all nodes representing the rendered
-    Markdown content.
+    Markdown content. The element tree is generated using Python's
+    :py:mod:`xml.dom.minidom`.
+
+    Args:
+        markdown_html (bytes or unicode):
+            The Markdown-generated HTML to parse.
+
+    Returns:
+        xml.dom.minicompat.NodeList:
+            The list of nodes representing the Markdown-generated HTML.
     """
     markdown_html = sanitize_illegal_chars_for_xml(markdown_html)
 
-    if isinstance(markdown_html, six.text_type):
-        markdown_html = markdown_html.encode('utf-8')
+    # Python-Markdown converts all characters in an e-mail address to
+    # entities (likely to avoid e-mail address harvesting). It optimistically
+    # tries to use named HTML entities for special characters, but these won't
+    # be known to an XML parser.
+    #
+    # Since there's no easy way to register entities with xml.dom.minidom, and
+    # we don't want to change the return type, the easiest solution is to
+    # convert named entites back to character codes through a regex before
+    # parsing.
+    unknown_code = ord('?')
+    markdown_html = re.sub(
+        r'&([^#][^;]+);',
+        lambda m: '&#%s;' % name2codepoint.get(m.group(1), unknown_code),
+        markdown_html,
+        flags=re.M)
 
-    doc = parseString(b'<html>%s</html>' % markdown_html)
+    doc = parseString(('<html>%s</html>' % markdown_html).encode('utf-8'))
+
     return doc.childNodes[0].childNodes
 
 

@@ -1,5 +1,7 @@
 from __future__ import print_function, unicode_literals
 
+from django.utils import six
+from django.utils.six.moves.html_entities import codepoint2name
 from markdown import markdown
 
 from djblets.testing.testcases import TestCase
@@ -55,6 +57,31 @@ class MarkdownUtilsTests(MarkdownTestCase):
             self.render_markdown('(**Test**\x0C)'))
 
         self.assertEqual(node[0].toxml(), '<p>(<strong>Test</strong>)</p>')
+
+    def test_get_markdown_element_tree_with_named_entities(self):
+        """Testing get_markdown_element_tree with named entities"""
+        rendered_html_entities = ['&fooooo;']
+        expected_html_entities = ['?']
+
+        # toxml() will convert a select list of characters into named
+        # entities when generating the string. We need to account for this.
+        # These aren't expanded when text is processed in
+        # get_markdown_element_tree(). They'll be &#...; entities.
+        toxml_expanded_chars = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+        }
+
+        for char_code, entity_name in six.iteritems(codepoint2name):
+            rendered_html_entities.append('&%s;' % entity_name)
+
+            char = six.unichr(char_code)
+            expected_html_entities.append(toxml_expanded_chars.get(char, char))
+
+        node = get_markdown_element_tree(''.join(rendered_html_entities))
+        self.assertEqual(node[0].toxml(), ''.join(expected_html_entities))
 
     def test_markdown_escape(self):
         """Testing markdown_escape"""
