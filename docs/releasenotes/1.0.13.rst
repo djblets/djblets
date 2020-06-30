@@ -1,0 +1,94 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+============================
+Djblets 1.0.13 Release Notes
+============================
+
+**Release date**: June 30, 2020
+
+
+Packaging
+=========
+
+* Added a new JavaScript build-time dependency on
+  babel-plugin-django-gettext_.
+
+
+.. _babel-plugin-django-gettext:
+   https://www.npmjs.com/package/babel-plugin-django-gettext
+
+
+djblets.datagrid
+================
+
+* Fixed navigating to a destination when clicking on a row of a cell.
+
+  Clicking any area of a cell will now take you to the destination URL for
+  that row. Previously, only certain linked parts of the row were clickable.
+
+
+djblets.extensions
+==================
+
+* Updated the versions of Babel, UglifyJS, and LessSS used for compiling
+  extension static media.
+
+  This shouldn't impact any extension authors. We're simply making sure we
+  pull in newer versions with bug fixes.
+
+* Fixed cases where loading a broken extension could crash the product.
+
+  We now better handle extensions with syntax errors or bad configuration,
+  making sure that they're skipped and remaining extensions can still be
+  loaded.
+
+* Improved error handling when failing to install extension media files.
+
+
+djblets.features
+================
+
+* :py:func:`~djblets.features.testing.override_feature_check` and
+  :py:func:`~djblets.features.testing.override_feature_checks` now accept
+  a :py:class:`~djblets.features.feature.Feature` instance, instead of just
+  an ID.
+
+* :py:func:`~djblets.features.testing.override_feature_check` and
+  :py:func:`~djblets.features.testing.override_feature_checks` now clean up
+  after exceptions or assertions.
+
+
+djblets.markdown
+================
+
+* :py:func:`~djblets.markdown.get_markdown_element_tree` and
+  :py:func:`~iter_markdown_lines` no longer break when encountering
+  obfuscated e-mail addresses containing certain Unicode characters converted
+  to named HTML entities.
+
+
+djblets.testing
+===============
+
+* Fixed using :py:func:`@requires_user_profile
+  <djblets.testing.decorators.requires_user_profile>` with unit test classes.
+
+  This previously worked for functions but not classes.
+
+
+JavaScript
+==========
+
+* Modal dialog boxes created by :js:func:`$.fn.modalBox` are now focused when
+  opened.
+
+  Patch by Hannah Lin.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Hannah Lin
