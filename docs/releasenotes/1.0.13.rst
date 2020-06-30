@@ -5,7 +5,7 @@
 Djblets 1.0.13 Release Notes
 ============================
 
-**Release date**: TBD
+**Release date**: June 30, 2020
 
 
 Packaging

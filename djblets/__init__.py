@@ -33,7 +33,7 @@ from __future__ import unicode_literals
 #
 #   (Major, Minor, Micro, alpha/beta/rc/final, Release Number, Released)
 #
-VERSION = (1, 0, 13, 'alpha', 0, False)
+VERSION = (1, 0, 13, 'final', 0, True)
 
 
 def get_version_string():
