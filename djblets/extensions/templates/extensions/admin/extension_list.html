@@ -6,8 +6,7 @@
 
 
 {% block admin_css %}
-<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />
-{%  stylesheet 'djblets-admin' %}
+{%  stylesheet "djblets-admin" %}
 {% endblock admin_css %}
 
 
@@ -36,19 +35,12 @@
 <h1 class="title">{% trans "Manage Extensions" %}</h1>
 
 <div id="content-main">
-  <div id="changelist" class="module">
+ <div id="changelist" class="module">
   <form id="extension-manager" method="POST" action=".">
-  {% csrf_token %}
+   {% csrf_token %}
    <input type="hidden" name="full-reload" value="1" />
 
-   <ul class="actions">
-{%  block extension_list_actions %}
-    <li><a href="#" id="reload-extensions">{% trans "Scan for installed extensions" %}</a></li>
-{%  endblock %}
-   </ul>
-   <ul class="extensions">
-    <li class="loading">{% trans "Loading..." %}</li>
-   </ul>
+{%  include "extensions/parts/extension_list.html" with browse_extensions_url=settings.DJBLETS_EXTENSIONS_BROWSE_URL %}
   </form>
  </div>
 </div>

@@ -233,7 +233,6 @@ class ExtensionResource(WebAPIResource):
                     'needs_reload': e.needs_reload,
                 }
             except InvalidExtensionError as e:
-                raise
                 return ENABLE_EXTENSION_FAILED.with_message(six.text_type(e))
         else:
             try:

@@ -1,0 +1,14 @@
+{% extends "djblets_forms/admin/change_form_page.html" %}
+{% load i18n %}
+
+{% block page_title %}
+{%  blocktrans with extension.info.name as name %}Configure {{name}}{% endblocktrans %}
+{% endblock %}
+
+{% block form_title %}
+{%  blocktrans with extension.info.name as name %}Configure {{name}}{% endblocktrans %}
+{% endblock %}
+
+{% block save_message %}
+{%  trans "The extension settings have been saved." %}
+{% endblock %}

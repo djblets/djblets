@@ -36,7 +36,7 @@ from djblets.util.compat.django.shortcuts import render
 @csrf_protect
 @staff_member_required
 def extension_list(request, extension_manager,
-                   template_name='extensions/extension_list.html'):
+                   template_name='extensions/admin/extension_list.html'):
     if request.method == 'POST':
         if 'full-reload' in request.POST:
             extension_manager.load(full_reload=True)

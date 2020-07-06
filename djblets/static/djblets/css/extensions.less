@@ -1,156 +1,147 @@
-/* !(*%!(&^ (see http://www.positioniseverything.net/easyclearing.html) */
-.clearfix {
-  display: inline-block;
+#djblets-ns-extensions() {
+  .extension-list() {
+  }
 
-  &:after {
-    clear: both;
-    content: ".";
-    display: block;
-    height: 0;
-    visibility: hidden;
+  .extension-item() {
+    @version-color: grey;
+    @version-margin-left: 0.5em;
+    @load-error-color: darkred;
   }
 }
 
 
-/****************************************************************************
- * Extension manager
- ****************************************************************************/
-
-#extension-manager {
-  .actions {
-    background: #FDFDFD;
-    border-bottom: 1px #999999 solid;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-
-    li {
-      list-style: none;
-      display: inline-block;
-      margin: 0;
-      padding: 0.8em 1em;
-
-      a {
-        color: #0000FF;
-
-        &:hover {
-          text-decoration: underline;
-        }
-      }
-    }
-  }
+/**
+ * The Manage Extensions component.
+ *
+ * This contains actions for working with the list of extensions, and a list
+ * of all extensions currently registered.
+ *
+ * Structure:
+ *     <div class="djblets-c-extensions">
+ *      <div class="djblets-c-config-forms-list-actions">
+ *       ...
+ *      </div>
+ *      <table class="djblets-c-config-forms-list
+ *                    -all-items-have-actions -all-items-are-multiline"
+ *             aria-live="polite" aria-busy="true">
+ *       ...
+ *      </table>
+ *     </div>
+ */
+.djblets-c-extensions {
 }
 
-.extensions-list-page {
-  #content-main {
-    float: left;
-    margin-bottom: 20px;
-    width: 100%;
+
+/**
+ * An item in the list of extensions.
+ *
+ * This represents a single extension. It makes use of the enabled, disabled,
+ * and error state modifiers.
+ *
+ * Modifiers:
+ *     -has-error:
+ *         The extension has an error. The item must include a
+ *         ``djblets-c-extension-item__load-error`` class.
+ *
+ *     -is-disabled:
+ *         The extension is disabled.
+ *
+ *     -is-enabled:
+ *         The extension is enabled.
+ *
+ * Structure:
+ *     <tr class="djblets-c-extension-item
+ *                 djblets-c-config-forms-list__item">
+ *      <td class="djblets-c-config-forms-list__item-main">
+ *       <div class="djblets-c-extension-item__header">...</div>
+ *       <p class="djblets-c-extension-item__description">...</p>
+ *
+ *       <pre class="djblets-c-extension-item__load-error">...</pre>
+ *      </td>
+ *      <td class="djblets-c-config-forms-list__item-state"></td>
+ *      <td>
+ *       <span class="djblets-c-config-forms-list__item-actions">...</span>
+ *      </td>
+ *     </tr>
+ */
+.djblets-c-extension-item {
+  @_extension-item-vars: #djblets-ns-extensions.extension-item();
+
+  /**
+   * The author of the extension.
+   *
+   * Structure:
+   *     <div class="djblets-c-extension-item__author">
+   *      <a href="...">...</a>
+   *     </div>
+   */
+  &__author {
+    line-height: 2;
   }
 
-  ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-}
-
-.extensions {
-  li {
-    list-style: none;
-    padding: 1em;
-    position: relative;
-
-    &.loading {
-      background: url("../images/extensions/spinner.gif") no-repeat 1em center;
-      padding-left: 3em;
-    }
+  /**
+   * A description of the extension.
+   *
+   * Structure:
+   *     <p class="djblets-c-extension-item__description">
+   *      text...
+   *     </p>
+   */
+  &__description {
   }
 
-  .extension {
-    &.enabled {
-      border-left: 8px #AACCAA solid;
-    }
-
-    &.disabled {
-      border-left: 8px #DDDDDD solid;
-    }
-
-    &.error {
-      border-left: 8px #CCAAAA solid;
-    }
-
-    &.row1 {
-      border-top: 1px #E0E0E0 solid;
-      border-bottom: 1px #E0E0E0 solid;
-
-      &:first-child {
-        border-top: 0;
-      }
-    }
-
-    h1 {
-      float: left;
-      font-size: 120%;
-      margin: 0;
-
-      .version {
-        color: #444;
-        font-weight: normal;
-        margin-left: 0.5em;
-      }
-    }
-
-    .author {
-      float: right;
-      margin: 0;
-    }
-
-    .description {
-      clear: both;
-      margin: 1.5em 10em 1.5em 1em;
-      padding: 0;
-    }
-
-    .extension-header {
-      .clearfix;
-      display: block;
-    }
-
-    .extension-load-error {
-      p {
-        margin: 1.5em 10em 1.5em 1em;
-        padding: 0;
-      }
-
-      pre {
-        margin-left: 3em;
-        margin-bottom: 2em;
-        overflow-x: auto;
-      }
-    }
+  /**
+   * The header containing details on the extension.
+   *
+   * Structure:
+   *     <div class="djblets-c-extension-item__header">
+   *      <h3 class="djblets-c-extension-item__name">...</h3>
+   *      <span class="djblets-c-extension-item__version">...</span>
+   *      <div class="djblets-c-extension-item__author">...</div>
+   *     </div>
+   */
+  &__header {
   }
 
-  .object-tools {
-    float: none;
-    margin: 0 0 0 1em;
+  /**
+   * The name of the extension.
+   *
+   * Structure:
+   *     <h3 class="djblets-c-extension-item__name">
+   *      text...
+   *     </h3>
+   */
+  &__name {
+    display: inline;
+  }
 
-    li {
-      background: none;
-      display: inline;
-      float: none;
-      margin: 0 1em 0 0;
-      padding: 0;
+  /**
+   * The extension's version.
+   *
+   * Structure:
+   *     <span class="djblets-c-extension-item__version">
+   *      text...
+   *     </span>
+   */
+  &__version {
+    color: @_extension-item-vars[@version-color];
+    margin-left: @_extension-item-vars[@version-margin-left];
+  }
 
-      a {
-        background: none;
-        color: blue;
-        display: inline;
-        float: none;
-        font-weight: normal;
-        margin: 0;
-        padding: 0;
-      }
-    }
+  /**
+   * A detailed error describing why the extension could not load.
+   *
+   * This should only be present if there is an error to show.
+   *
+   * Structure:
+   *     <pre class="djblets-c-extension-item__load-error">
+   *      text...
+   *     </pre>
+   */
+  &__load-error {
+    color: @_extension-item-vars[@load-error-color];
+    font-size: inherit;
+    overflow-x: auto;
+    white-space: pre-wrap;
   }
 }
