@@ -34,33 +34,53 @@ const InstalledExtension = Backbone.Model.extend({
 
     /**
      * Enable the extension.
+     *
+     * This will submit a request to the server to enable this extension.
+     *
+     * Returns:
+     *     Promise:
+     *     A promise that will be resolved when the request to enable the
+     *     extension completes.
      */
     enable() {
-        this.save({
-            enabled: true
-        }, {
-            wait: true,
-            error: (model, xhr) => {
-                this.set({
-                    loadable: false,
-                    loadError: xhr.errorRsp.load_error,
-                    canEnable: !xhr.errorRsp.needs_reload,
-                });
-            },
+        return new Promise((resolve, reject) => {
+            this.save({
+                enabled: true
+            }, {
+                wait: true,
+                success: () => resolve(),
+                error: (model, xhr) => {
+                    this.set({
+                        loadable: false,
+                        loadError: xhr.errorRsp.load_error,
+                        canEnable: !xhr.errorRsp.needs_reload,
+                    });
+
+                    reject(new Error(xhr.errorText));
+                },
+            });
         });
     },
 
     /**
      * Disable the extension.
+     *
+     * This will submit a request to the server to disable this extension.
+     *
+     * Returns:
+     *     Promise:
+     *     A promise that will be resolved when the request to enable the
+     *     extension completes.
      */
     disable() {
-        this.save({
-            enabled: false,
-        }, {
-            wait: true,
-            error: (model, xhr) => alert(
-                gettext('Failed to disable extension. ') +
-                xhr.errorText + '.'),
+        return new Promise((resolve, reject) => {
+            this.save({
+                enabled: false,
+            }, {
+                wait: true,
+                success: () => resolve(),
+                error: xhr => reject(new Error(xhr.errorText)),
+            });
         });
     },
 
@@ -132,7 +152,7 @@ const InstalledExtension = Backbone.Model.extend({
             data: model.toJSON(options),
             processData: true,
             error: xhr => {
-                let rsp = null;
+                let rsp;
                 let text;
 
                 try {
@@ -140,6 +160,10 @@ const InstalledExtension = Backbone.Model.extend({
                     text = rsp.err.msg;
                 } catch (e) {
                     text = 'HTTP ' + xhr.status + ' ' + xhr.statusText;
+                    rsp = {
+                        loadError: text,
+                        canEnable: false,
+                    };
                 }
 
                 if (_.isFunction(options.error)) {
@@ -206,6 +230,8 @@ Djblets.ExtensionManager = Backbone.Model.extend({
      * Load the extensions list.
      */
     load() {
+        this.trigger('loading');
+
         this.installedExtensions.fetch({
             success: () => this.trigger('loaded'),
         });

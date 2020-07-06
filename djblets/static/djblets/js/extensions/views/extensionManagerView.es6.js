@@ -2,147 +2,226 @@
 
 
 /**
+ * An item in the list of registered extensions.
+ *
+ * This will contain information on the extension and actions for toggling
+ * the enabled state, reloading the extension, or configuring the extension.
+ */
+const ExtensionItem = Djblets.Config.ListItem.extend({
+    defaults: _.defaults({
+        extension: null,
+    }, Djblets.Config.ListItem.prototype.defaults),
+
+    /**
+     * Initialize the item.
+     *
+     * This will set up the initial state and then listen for any changes
+     * to the extension's state (caused by enabling/disabling/reloading the
+     * extension).
+     */
+    initialize() {
+        Djblets.Config.ListItem.prototype.initialize.apply(this, arguments);
+
+        this._updateActions();
+        this._updateItemState();
+
+        this.listenTo(
+            this.get('extension'),
+            'change:loadable change:loadError change:enabled',
+            () => {
+                this._updateItemState();
+                this._updateActions();
+            });
+    },
+
+    /**
+     * Update the actions for the extension.
+     *
+     * If the extension is disabled, this will add an Enabled action.
+     *
+     * If it's enabled, but has a load error, it will add a Reload action.
+     *
+     * If it's enabled, it will provide actions for Configure and Database,
+     * if enabled by the extension, along with a Disable action.
+     */
+    _updateActions() {
+        const extension = this.get('extension');
+        const actions = [];
+
+        if (!extension.get('loadable')) {
+            /* Add an action for reloading the extension. */
+            actions.push({
+                id: 'reload',
+                label: _`Reload`,
+            });
+        } else if (extension.get('enabled')) {
+            /*
+             * Show all the actions for enabled extensions.
+             *
+             * Note that the order used is here to ensure visual alignment
+             * for most-frequently-used options.
+             */
+            const configURL = extension.get('configURL');
+            const dbURL = extension.get('dbURL');
+
+            if (dbURL) {
+                actions.push({
+                    id: 'database',
+                    label: _`Database`,
+                    url: dbURL,
+                });
+            }
+
+            if (configURL) {
+                actions.push({
+                    id: 'configure',
+                    label: _`Configure`,
+                    primary: true,
+                    url: configURL,
+                });
+            }
+
+            actions.push({
+                id: 'disable',
+                label: _`Disable`,
+                danger: true,
+            });
+        } else {
+            /* Add an action for enabling a disabled extension. */
+            actions.push({
+                id: 'enable',
+                label: _`Enable`,
+                primary: true,
+            });
+        }
+
+        this.setActions(actions);
+    },
+
+    /**
+     * Update the state of this item.
+     *
+     * This will set the "error", "enabled", or "disabled" state of the
+     * item, depending on the corresponding state in the extension.
+     */
+    _updateItemState() {
+        const extension = this.get('extension');
+        let itemState;
+
+        if (!extension.get('loadable')) {
+            itemState = 'error';
+        } else if (extension.get('enabled')) {
+            itemState = 'enabled';
+        } else {
+            itemState = 'disabled';
+        }
+
+        this.set('itemState', itemState);
+    },
+});
+
+
+/**
  * Displays an extension in the Manage Extensions list.
  *
  * This will show information about the extension, and provide links for
  * enabling/disabling the extension, and (depending on the extension's
  * capabilities) configuring it or viewing its database.
  */
-const InstalledExtensionView = Backbone.View.extend({
-    className: 'extension',
-    tagName: 'li',
+const ExtensionItemView = Djblets.Config.TableItemView.extend({
+    className: 'djblets-c-extension-item djblets-c-config-forms-list__item',
 
-    events: {
-        'click .enable-toggle': '_toggleEnableState',
-        'click .reload-link': '_reloadExtensions',
+    actionHandlers: {
+        'configure': '_onConfigureClicked',
+        'database': '_onDatabaseClicked',
+        'disable': '_onDisableClicked',
+        'enable': '_onEnableClicked',
+        'reload': '_onReloadClicked',
     },
 
     template: _.template(dedent`
-        <div class="extension-header">
-         <h1><%- name %> <span class="version"><%- version %></span></h1>
-         <p class="author">
-          <% if (authorURL) { %>
-           <a href="<%- authorURL %>"><%- author %></a>
-          <% } else { %>
-           <%- author %>
-          <% } %>
-         </p>
-        </div>
-        <div class="description"><%- summary %></div>
-        <% if (!loadable) { %>
-         <div class="extension-load-error">
-          <p><%- loadFailureText %></p>
-          <pre><%- loadError %></pre>
+        <td class="djblets-c-config-forms-list__item-main">
+         <div class="djblets-c-extension-item__header">
+          <h3 class="djblets-c-extension-item__name"><%- name %></h3>
+          <span class="djblets-c-extension-item__version"><%- version %></span>
+          <div class="djblets-c-extension-item__author">
+           <% if (authorURL) { %>
+            <a href="<%- authorURL %>"><%- author %></a>
+           <% } else { %>
+            <%- author %>
+           <% } %>
+          </div>
          </div>
-        <% } %>
-        <ul class="object-tools">
-         <li><a href="#" class="enable-toggle"></a></li>
-         <% if (loadError) { %>
-          <li><a href="#" class="reload-link"><%- reloadText %></a></li>
-         <% } else { %>
-          <% if (configURL) { %>
-           <li><a href="<%- configURL %>" class="enabled-only changelink">
-               <%- configureText %></a></li>
-          <% } %>
-          <% if (dbURL) { %>
-           <li><a href="<%- dbURL %>" class="enabled-only changelink">
-               <%- databaseText %></a></li>
-          <% } %>
+         <p class="djblets-c-extension-item__description">
+          <%- summary %>
+         </p>
+         <% if (!loadable) { %>
+          <pre class="djblets-c-extension-item__load-error"><%- loadError %></pre>
          <% } %>
-        </ul>
+        </td>
+        <td class="djblets-c-config-forms-list__item-state"></td>
+        <td></td>
     `),
 
     /**
-     * Render the extension in the list.
+     * Return context data for rendering the item's template.
      *
      * Returns:
-     *     InstalledExtensionView:
-     *     This object, for chaining.
+     *     object:
+     *     Context data for the render.
      */
-    render() {
-        this._renderTemplate();
-
-        this.listenTo(this.model, 'change:loadable change:loadError',
-                      this._renderTemplate);
-        this.listenTo(this.model,
-                      'change:enabled change:canEnable change:canDisable',
-                      this._showEnabledState);
-
-        return this;
+    getRenderContext() {
+        return this.model.get('extension').attributes;
     },
 
     /**
-     * Render the template for the extension.
+     * Handle a click on the Disable action.
      *
-     * This will render the template based on the current page conditions.
-     * It's called when first rendering the extension and whenever there's
-     * another need to do a full re-render (such as when loading an extension
-     * fails).
-     */
-    _renderTemplate() {
-        this.$el
-            .html(this.template(_.defaults({
-                configureText: gettext('Configure'),
-                databaseText: gettext('Database'),
-                loadFailureText: gettext('This extension failed to load with the following error:'),
-                reloadText: gettext('Reload'),
-            }, this.model.attributes)))
-            .toggleClass('error', !this.model.get('loadable'));
-
-        this._$enableToggle = this.$('.enable-toggle');
-        this._$enabledToolLinks = this.$('.enabled-only');
-        this._showEnabledState();
-    },
-
-    /**
-     * Update the view to reflect the current enabled state.
-     *
-     * The Enable/Disable link will change to reflect the state, and
-     * other links (Configure and Database) will be hidden if disabled.
-     */
-    _showEnabledState() {
-        const enabled = this.model.get('enabled');
-
-        this.$el
-            .toggleClass('enabled', enabled)
-            .toggleClass('disabled', !enabled);
-
-        this._$enableToggle
-            .text(enabled ? gettext('Disable') : gettext('Enable'))
-            .toggleClass('enablelink', enabled)
-            .toggleClass('disablelink', !enabled)
-            .setVisible((enabled && this.model.get('canDisable')) ||
-                        (!enabled && this.model.get('canEnable')));
-        this._$enabledToolLinks.setVisible(enabled);
-    },
-
-    /**
-     * Toggle the enabled state of the extension.
+     * This will make an asynchronous request to disable the extension.
      *
      * Returns:
-     *     boolean:
-     *     false, always.
+     *     Promise:
+     *     A promise for the disable request. This will resolve once the
+     *     API has handled the request.
      */
-    _toggleEnableState() {
-        if (this.model.get('enabled')) {
-            this.model.disable();
-        } else {
-            this.model.enable();
-        }
-
-        return false;
+    _onDisableClicked() {
+        return this.model.get('extension').disable()
+            .catch(error => {
+                alert(_`Failed to disable the extension: ${error.message}.`);
+            });
     },
 
     /**
-     * Reload the extensions list.
+     * Handle a click on the Enable action.
+     *
+     * This will make an asynchronous request to enable the extension.
      *
      * Returns:
-     *     boolean:
-     *     false, always.
+     *     Promise:
+     *     A promise for the enable request. This will resolve once the
+     *     API has handled the request.
      */
-    _reloadExtensions() {
-        this.trigger('reloadClicked');
-        return false;
+    _onEnableClicked() {
+        return this.model.get('extension').enable()
+            .catch(error => {
+                alert(_`Failed to enable the extension: ${error.message}.`);
+            });
+    },
+
+    /**
+     * Handle a click on the Reload action.
+     *
+     * This will trigger an event on the item that tells the extension
+     * manager to perform a full reload of all extensions, this one included.
+     *
+     * Returns:
+     *     Promise:
+     *     A promise for the enable request. This will never resolve, in
+     *     practice, but is returned to enable the action's spinner until
+     *     the page reloads.
+     */
+    _onReloadClicked() {
+        return new Promise(() => this.model.trigger('needsReload'));
     },
 });
 
@@ -154,14 +233,27 @@ const InstalledExtensionView = Backbone.View.extend({
  */
 Djblets.ExtensionManagerView = Backbone.View.extend({
     events: {
-        'click #reload-extensions': '_reloadFull',
+        'click .djblets-c-extensions__reload': '_reloadFull',
     },
+
+    listItemsCollectionType: Djblets.Config.ListItems,
+    listItemType: ExtensionItem,
+    listItemViewType: ExtensionItemView,
+    listViewType: Djblets.Config.TableView,
 
     /**
      * Initialize the view.
      */
     initialize() {
-        this._$extensions = null;
+        this.list = new Djblets.Config.List(
+            {},
+            {
+                collection: new this.listItemsCollectionType(
+                    [],
+                    {
+                        model: this.listItemType,
+                    })
+            });
     },
 
     /**
@@ -172,11 +264,23 @@ Djblets.ExtensionManagerView = Backbone.View.extend({
      *     This object, for chaining.
      */
     render() {
-        this._$extensions = this.$('.extensions');
+        const model = this.model;
+        const list = this.list;
 
-        this.listenTo(this.model, 'loaded', this._onLoaded);
+        this.listView = new this.listViewType({
+            el: this.$('.djblets-c-config-forms-list'),
+            model: list,
+            ItemView: this.listItemViewType,
+        });
+        this.listView.render().$el
+            .removeAttr('aria-busy')
+            .addClass('-all-items-are-multiline');
 
-        this.model.load();
+        this._$listContainer = this.listView.$el.parent();
+
+        this.listenTo(model, 'loading', () => list.collection.reset());
+        this.listenTo(model, 'loaded', this._onLoaded);
+        model.load();
 
         return this;
     },
@@ -188,31 +292,15 @@ Djblets.ExtensionManagerView = Backbone.View.extend({
      * display that there are no extensions installed.
      */
     _onLoaded() {
-        this._$extensions.empty();
+        const items = this.list.collection;
 
-        if (this.model.installedExtensions.length === 0) {
-            $('<li/>')
-                .text(gettext('There are no extensions installed.'))
-                .appendTo(this._$extensions);
-        } else {
-            let evenRow = false;
-
-            this.model.installedExtensions.each(extension => {
-                const view = new InstalledExtensionView({
-                    model: extension,
-                });
-
-                this._$extensions.append(view.$el);
-                view.$el.addClass(evenRow ? 'row2' : 'row1');
-                view.render();
-
-                this.listenTo(view, 'reloadClicked', this._reloadFull);
-
-                evenRow = !evenRow;
+        this.model.installedExtensions.each(extension => {
+            const item = items.add({
+                extension: extension,
             });
 
-            this._$extensions.appendTo(this.$el);
-        }
+            this.listenTo(item, 'needsReload', this._reloadFull);
+        });
     },
 
     /**
@@ -221,7 +309,7 @@ Djblets.ExtensionManagerView = Backbone.View.extend({
      * This submits our form, which is set in the template to tell the
      * ExtensionManager to do a full reload.
      */
-    _reloadFull: function() {
+    _reloadFull() {
         this.el.submit();
     },
 });

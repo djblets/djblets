@@ -1,0 +1,31 @@
+{% load i18n %}
+
+<div class="djblets-c-extensions">
+ <div class="djblets-c-config-forms-list-actions
+             djblets-l-config-forms-container">
+{% if browse_extensions_url %}
+  <a href="{{browse_extensions_url}}"
+     class="djblets-c-config-forms-list-action btn">
+   <span class="djblets-o-config-forms-icon-add"></span>
+   {% trans "More Extensions" %}
+  </a>
+{% endif %}
+  <button class="djblets-c-config-forms-list-action
+                 djblets-c-extensions__reload">
+   <span class="fa fa-refresh"></span>
+   {% trans "Reload Extensions" %}
+  </button>
+ </div>
+
+ <div class="djblets-l-config-forms-container -is-recessed">
+  <table class="djblets-c-config-forms-list -all-items-have-actions"
+         aria-live="polite" aria-busy="true">
+   <tr class="djblets-c-config-forms-list__item">
+    <td>
+     <span class="djblets-o-spinner" aria-hidden="true"></span>
+     {% trans "Loading extensions..." %}
+    </td>
+   </tr>
+  </table>
+ </div>
+</div>
