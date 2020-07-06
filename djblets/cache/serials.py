@@ -9,6 +9,7 @@ it changes on disk.
 from __future__ import unicode_literals
 
 import importlib
+import itertools
 import logging
 import os
 
@@ -63,7 +64,17 @@ def generate_ajax_serial():
     AJAX_SERIAL = getattr(settings, "AJAX_SERIAL", 0)
 
     if not AJAX_SERIAL:
-        template_dirs = getattr(settings, "TEMPLATE_DIRS", ["."])
+        templates = getattr(settings, 'TEMPLATES', None)
+
+        if templates is not None:
+            # Django >= 1.8
+            template_dirs = itertools.chain.from_iterable(
+                template_settings.get('DIRS', [])
+                for template_settings in templates
+            )
+        else:
+            # Django < 1.8
+            template_dirs = getattr(settings, 'TEMPLATE_DIRS', [])
 
         for template_path in template_dirs:
             for root, dirs, files in os.walk(template_path):
