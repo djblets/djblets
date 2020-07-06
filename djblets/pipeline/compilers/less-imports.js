@@ -136,7 +136,23 @@ fs.readFile(path, function(err, data) {
             process.exit(1);
         }
 
-        files = Object.keys(imports.files);
+        /*
+         * LessCSS 3.11.3 uses an array for the list of files. Prior versions
+         *
+         * LessCSS 3.11.1 and older use an object.
+         *
+         * LessCSS 3.11.2 does not have a list of files at all. This might
+         * come up again in the future, so explicitly check for this.
+         */
+        if (imports.files === undefined) {
+            console.error('Unsupported version of LessCSS. The list of file ' +
+                          'imports does not exist.');
+            process.exit(1);
+        }
+
+        files = (Array.isArray(imports.files)
+                 ? imports.files
+                 : Object.keys(imports.files));
 
         for (i = 0; i < files.length; i++) {
             console.log(files[i]);
