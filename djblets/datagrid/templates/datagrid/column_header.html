@@ -2,7 +2,7 @@
 
 {% if column.sortable %}
 <th onclick="javascript:window.location = '{{sort_url|escapejs}}';" class="datagrid-header{% if column.label and not column.show_checkbox_header %} has-label{% endif %}">
- <a href="{{sort_url}}">{% if column.label %}{{column.label}}{% endif %}{% spaceless %}
+ <a rel="nofollow" href="{{sort_url}}">{% if column.label %}{{column.label}}{% endif %}{% spaceless %}
 {%  if column.image_url %}
   <img src="{{column.image_url}}" width="{{column.image_width}}"
        height="{{column.image_height}}" alt="{{column.image_alt}}"
@@ -14,7 +14,7 @@
 {%  if in_sort %}
 {% definevar "sort_image" %}sort-{{sort_ascending|yesno:"asc,desc"}}-{{sort_primary|yesno:"primary,secondary"}}{% enddefinevar %}
   <div class="datagrid-icon datagrid-icon-{{sort_image}}" title="{% if sort_ascending %}{% trans "Ascending" %}{% else %}{% trans "Descending" %}{% endif %}"></div>
- <a class="datagrid-unsort" href="{{unsort_url}}">
+ <a rel="nofollow" class="datagrid-unsort" href="{{unsort_url}}">
   <div class="datagrid-icon datagrid-icon-unsort" title="{% trans "Unsort" %}"></div>
  </a>
 {%  endif %}
