@@ -132,7 +132,6 @@ const ExtensionItemView = Djblets.Config.TableItemView.extend({
     className: 'djblets-c-extension-item djblets-c-config-forms-list__item',
 
     actionHandlers: {
-        'configure': '_onConfigureClicked',
         'database': '_onDatabaseClicked',
         'disable': '_onDisableClicked',
         'enable': '_onEnableClicked',
