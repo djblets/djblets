@@ -341,7 +341,7 @@ def restart_logging():
     """
     global _logging_setup
 
-    logging.log(logging.INFO, "Reloading logging settings")
+    logging.debug('Reloading logging settings')
 
     for logger_id in ('profile', ''):
         logger = logging.getLogger(logger_id)
