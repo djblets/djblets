@@ -166,10 +166,37 @@ class RequestLogFormatter(logging.Formatter):
         return logging.Formatter.format(self, record)
 
     def format_request(self, request):
+        """Return formatted request information for the log message.
+
+        The returned string will be based off the configured
+        ``settings.LOGGING_REQUEST_FORMAT`` and keys in the request, if
+        found.
+
+        If anything from the request is missing, an empty string will be
+        returned.
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
+
+        Returns:
+            unicode:
+            The request-specific string to include in the log message. This
+            may be empty.
+        """
+        s = ''
+
         if request:
-            return self.request_fmt % request.__dict__
-        else:
-            return ''
+            try:
+                s = self.request_fmt % request.__dict__
+            except KeyError:
+                # The request isn't populated with the keys expected in the
+                # format string. Assume that we're logging before some
+                # middleware or app configuration has had a chance to set
+                # things up, and return an empty string.
+                pass
+
+        return s
 
 
 class BlacklistFilter(logging.Filter):
@@ -314,7 +341,7 @@ def restart_logging():
     """
     global _logging_setup
 
-    logging.log(logging.INFO, "Reloading logging settings")
+    logging.debug('Reloading logging settings')
 
     for logger_id in ('profile', ''):
         logger = logging.getLogger(logger_id)
