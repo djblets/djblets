@@ -26,6 +26,7 @@
 from __future__ import division, unicode_literals
 
 import logging
+import os
 import re
 
 from django import template
@@ -35,6 +36,7 @@ from django.utils.html import format_html, format_html_join
 from django.utils.six.moves import cStringIO as StringIO
 from django.utils.translation import ugettext as _
 from PIL import Image
+from PIL.Image import registered_extensions
 
 from djblets.util.decorators import blocktag
 
@@ -92,8 +94,16 @@ def thumbnail(f, size='400x100'):
     pixels), or a 2-tuple. If the size is a tuple and the second part is None,
     it will be calculated to preserve the aspect ratio.
 
+    If the image format is not registered in PIL the thumbnail is not generated
+    and returned as-is.
+
     This will return the URL to the stored thumbnail.
     """
+    storage = f.storage
+    ext = os.path.splitext(f.name)[1].lower()
+    if ext not in registered_extensions():
+        return storage.url(f.name)
+
     if isinstance(size, six.string_types):
         x, y = (int(x) for x in size.split('x'))
         size_str = size
@@ -114,8 +124,6 @@ def thumbnail(f, size='400x100'):
     else:
         basename = filename
         miniature = '%s_%s' % (basename, size_str)
-
-    storage = f.storage
 
     if not storage.exists(miniature):
         try:
