@@ -49,8 +49,18 @@ class TestExtension(Extension):
     ]
 
 
+class HooksTestExtension(TestExtension):
+    def initialize(self):
+        self.url_hook = URLHook(self, ())
+
+
 class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
     """Unit tests for djblets.extensions.manager.ExtensionManager."""
+
+    def tearDown(self):
+        super(ExtensionManagerTests, self).tearDown()
+
+        self.assertEqual(len(URLHook.hooks), 0)
 
     def test_added_to_extension_managers(self):
         """Testing ExtensionManager registration"""
@@ -83,6 +93,9 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
     def test_load_full_reload_hooks(self):
         """Testing ExtensionManager.load with full_reload=True"""
+        # NOTE: We're not using HooksTestExtension here, because we want to
+        #       manually set up a hook and not have to return once we
+        #       perform a reload.
         extension = self.setup_extension(TestExtension)
 
         self.assertEqual(len(self.manager.get_installed_extensions()), 1)
@@ -158,6 +171,71 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertEqual(TestExtension.registration.name,
                          self.test_project_name)
         self.assertTrue(TestExtension.registration.enabled)
+
+    def test_load_with_admin_site_failure(self):
+        """Testing ExtensionManager.load with extension error setting up
+        admin site
+        """
+        class AdminSiteTestExtension(HooksTestExtension):
+            has_admin_site = True
+
+        def _init_admin_site(*args, **kwargs):
+            raise Exception('admin site failed!')
+
+        extension = self.setup_extension(AdminSiteTestExtension)
+        manager = self.manager
+
+        self.assertEqual(manager.get_installed_extensions(),
+                         [AdminSiteTestExtension])
+        self.assertEqual(manager.get_enabled_extensions(), [extension])
+        self.assertIs(AdminSiteTestExtension.instance, extension)
+        self.assertEqual(len(URLHook.hooks), 1)
+
+        self.spy_on(TestExtensionManager._init_admin_site,
+                    owner=TestExtensionManager,
+                    call_fake=_init_admin_site)
+
+        self.manager.load(full_reload=True)
+
+        self.assertEqual(manager.get_installed_extensions(),
+                         [AdminSiteTestExtension])
+        self.assertEqual(manager.get_enabled_extensions(), [])
+        self.assertIsNone(AdminSiteTestExtension.instance)
+        self.assertEqual(len(URLHook.hooks), 0)
+        self.assertTrue(manager._load_errors[extension.id].startswith(
+            'admin site failed!\n\nTraceback'))
+
+    def test_load_with_admin_urls_failure(self):
+        """Testing ExtensionManager.load with extension error setting up
+        admin URLs
+        """
+        def _install_admin_urls(*args, **kwargs):
+            raise Exception('admin URLs failed!')
+
+        extension = self.setup_extension(HooksTestExtension)
+        manager = self.manager
+
+        self.assertEqual(manager.get_installed_extensions(),
+                         [HooksTestExtension])
+        self.assertEqual(manager.get_enabled_extensions(), [extension])
+        self.assertIs(HooksTestExtension.instance, extension)
+        self.assertEqual(len(URLHook.hooks), 1)
+        self.assertEqual(manager._load_errors, {})
+
+        self.spy_on(TestExtensionManager._install_admin_urls,
+                    owner=TestExtensionManager,
+                    call_fake=_install_admin_urls)
+
+        self.manager.load(full_reload=True)
+
+        self.assertEqual(manager.get_installed_extensions(),
+                         [HooksTestExtension])
+        self.assertEqual(manager.get_enabled_extensions(), [])
+        self.assertIsNone(HooksTestExtension.instance)
+        self.assertEqual(len(URLHook.hooks), 0)
+        self.assertIn(extension.id, manager._load_errors)
+        self.assertTrue(manager._load_errors[extension.id].startswith(
+            'admin URLs failed!\n\nTraceback'))
 
     def test_sync_database_with_no_settings_version(self):
         """Testing ExtensionManager synchronizes database when no version
@@ -359,17 +437,22 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager media installation with permission error
         when copying media files
         """
-        extension = self.setup_extension(TestExtension, enable=False)
-        TestExtension.instance = extension
+        self.assertEqual(len(URLHook.hooks), 0)
+        extension = self.setup_extension(HooksTestExtension, enable=False)
+        extension.shutdown()
+
+        manager = self.manager
+
+        self.assertEqual(len(URLHook.hooks), 0)
 
         self._rebuild_media_dirs(extension)
 
-        self.manager.should_install_static_media = True
+        manager.should_install_static_media = True
 
         def _copytree(*args, **kwargs):
             raise shutil.Error()
 
-        self.spy_on(self.manager.install_extension_media)
+        self.spy_on(manager.install_extension_media)
         self.spy_on(extension.info.has_resource,
                     call_fake=lambda *args, **kwargs: True)
         self.spy_on(shutil.copytree, call_fake=_copytree)
@@ -381,36 +464,44 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
             'are owned by the web server.'
         ) % os.path.join(
             settings.STATIC_ROOT, 'ext',
-            'djblets.extensions.tests.test_extension_manager.TestExtension'
+            'djblets.extensions.tests.test_extension_manager.'
+            'HooksTestExtension'
         )
 
         with self.assertRaisesMessage(EnablingExtensionError, message):
-            self.manager.enable_extension(TestExtension.id)
+            manager.enable_extension(HooksTestExtension.id)
 
         self.assertFalse(extension.registration.installed)
-        self.assertEqual(len(self.manager.install_extension_media.calls), 1)
+        self.assertEqual(len(manager.install_extension_media.calls), 1)
         self.assertFalse(os.path.exists(
             os.path.join(extension.info.installed_static_path, '.version')))
+        self.assertEqual(manager.get_installed_extensions(),
+                         [HooksTestExtension])
+        self.assertEqual(manager.get_enabled_extensions(), [])
+        self.assertIsNone(HooksTestExtension.instance)
+        self.assertEqual(len(URLHook.hooks), 0)
 
     def test_install_extension_media_with_lock_error(self):
         """Testing ExtensionManager media installation with error when locking
         static directory
         """
-        extension = self.setup_extension(TestExtension, enable=False)
-        TestExtension.instance = extension
+        extension = self.setup_extension(HooksTestExtension, enable=False)
+        extension.shutdown()
+
+        manager = self.manager
 
         self._rebuild_media_dirs(extension)
 
-        self.manager.should_install_static_media = True
-        self.manager._MEDIA_LOCK_SLEEP_TIME_SECS = 0
+        manager.should_install_static_media = True
+        manager._MEDIA_LOCK_SLEEP_TIME_SECS = 0
 
         def _open_lock_file(*args, **kwargs):
             raise IOError(errno.EAGAIN, 'Try again')
 
-        self.spy_on(self.manager.install_extension_media)
-        self.spy_on(self.manager._install_extension_media_internal,
+        self.spy_on(manager.install_extension_media)
+        self.spy_on(manager._install_extension_media_internal,
                     call_original=False)
-        self.spy_on(self.manager._open_lock_file,
+        self.spy_on(manager._open_lock_file,
                     call_fake=_open_lock_file)
 
         message = (
@@ -421,21 +512,28 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         ) % (
             os.path.join(
                 settings.STATIC_ROOT, 'ext',
-                'djblets.extensions.tests.test_extension_manager.TestExtension'
+                'djblets.extensions.tests.test_extension_manager'
+                '.HooksTestExtension'
             ),
             tempfile.gettempdir()
         )
 
         with self.assertRaisesMessage(EnablingExtensionError, message):
-            self.manager.enable_extension(TestExtension.id)
+            manager.enable_extension(HooksTestExtension.id)
 
         self.assertFalse(extension.registration.installed)
 
-        self.assertEqual(len(self.manager.install_extension_media.calls), 1)
-        self.assertFalse(self.manager._install_extension_media_internal.called)
+        self.assertEqual(len(manager.install_extension_media.calls), 1)
+        self.assertFalse(manager._install_extension_media_internal.called)
 
         self.assertFalse(os.path.exists(
             os.path.join(extension.info.installed_static_path, '.version')))
+
+        self.assertEqual(manager.get_installed_extensions(),
+                         [HooksTestExtension])
+        self.assertEqual(manager.get_enabled_extensions(), [])
+        self.assertIsNone(HooksTestExtension.instance)
+        self.assertEqual(len(URLHook.hooks), 0)
 
     def test_install_media_concurrent_threads(self):
         """Testing ExtensionManager installs media safely with multiple
