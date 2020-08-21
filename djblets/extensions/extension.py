@@ -515,6 +515,8 @@ class ExtensionInfo(object):
         self.enabled = False
         self.installed = False
         self.requirements = []
+        self.apps_registered = False
+        self.context_processors_registered = False
 
         # Set information from the provided metadata.
         if ext_class.metadata is not None:

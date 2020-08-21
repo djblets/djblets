@@ -898,9 +898,14 @@ class ExtensionManager(object):
 
             extension.info.installed = extension.registration.installed
             extension.info.enabled = True
+
             new_installed_apps = self._add_to_installed_apps(extension)
+            extension.info.apps_registered = True
+
             self._context_processors_setting.add_list(
                 extension.context_processors)
+            extension.info.context_processors_registered = True
+
             clear_template_tag_caches()
             ext_class.instance = extension
 
@@ -942,14 +947,15 @@ class ExtensionManager(object):
                 ext_class.registration.installed = True
                 ext_class.registration.save(update_fields=('installed',))
         except EnablingExtensionError as e:
-            # Raise this as-is.
-            del self._extension_instances[extension_id]
+            self._uninit_extension(extension)
 
             logger.exception('Error initializing extension %s: %s',
                              ext_class.id, e)
+
+            # Raise this as-is.
             raise
         except Exception as e:
-            del self._extension_instances[extension_id]
+            self._uninit_extension(extension)
 
             logger.exception('Unexpected error initializing extension %s: %s',
                              ext_class.id, e)
@@ -1066,25 +1072,53 @@ class ExtensionManager(object):
         """
         try:
             extension.shutdown()
+        except Exception as e:
+            logger.exception('Unexpected error shutting down extension %s: %s',
+                             extension.id, e)
 
-            if hasattr(extension, 'admin_urlpatterns'):
-                self.dynamic_urls.remove_patterns(
-                    extension.admin_urlpatterns)
+        if getattr(extension, 'admin_urlpatterns', []):
+            try:
+                self.dynamic_urls.remove_patterns(extension.admin_urlpatterns)
+            except Exception as e:
+                logger.exception('Unexpected error removing custom admin URL '
+                                 'patterns for extension %s: %s',
+                                 extension.id, e)
 
-            if hasattr(extension, 'admin_site_urlpatterns'):
+        if getattr(extension, 'admin_site_urlpatterns', []):
+            try:
                 self.dynamic_urls.remove_patterns(
                     extension.admin_site_urlpatterns)
+            except Exception as e:
+                logger.exception('Unexpected error removing AdminSite URL '
+                                 'patterns for extension %s: %s',
+                                 extension.id, e)
 
-            if hasattr(extension, 'admin_site'):
-                del extension.admin_site
+        if hasattr(extension, 'admin_site'):
+            del extension.admin_site
 
-            self._context_processors_setting.remove_list(
-                extension.context_processors)
-            self._remove_from_installed_apps(extension)
+        if (extension.info.context_processors_registered and
+            extension.context_processors):
+            try:
+                self._context_processors_setting.remove_list(
+                    extension.context_processors)
+            except Exception as e:
+                logger.exception('Unexpected error unregistering context '
+                                 'processors for extension %s: %s',
+                                 extension.id, e)
+
+        if extension.info.apps_registered:
+            try:
+                self._remove_from_installed_apps(extension)
+            except Exception as e:
+                logger.exception('Unexpected error removing installed app '
+                                 'modules for extension %s: %s',
+                                 extension.id, e)
+
+        try:
             clear_template_tag_caches()
         except Exception as e:
-            logger.exception('Unexpected error uninitializing extension %s: '
-                             '%s',
+            logger.exception('Unexpected error clearing template tag caches '
+                             'when uninitializing extension %s: %s',
                              extension.id, e)
 
         extension.info.enabled = False
