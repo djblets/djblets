@@ -467,8 +467,8 @@ Generic Utilities
    djblets.util.compat.django.core.management.base
    djblets.util.compat.django.core.validators
    djblets.util.compat.django.shortcuts
-   djblets.util.compat.django.templates.context
-   djblets.util.compat.django.templates.loader
+   djblets.util.compat.django.template.context
+   djblets.util.compat.django.template.loader
    djblets.util.compat.django.utils.functional
    djblets.util.compat.python.past
    djblets.util.contextmanagers

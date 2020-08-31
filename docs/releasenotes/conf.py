@@ -225,20 +225,22 @@ else:
 
 
 # Add references for intersphinx and custom roles.
-django_doc_base_url = 'http://django.readthedocs.io/en'
+django_doc_base_url = 'https://django.readthedocs.io/en'
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'django1.6': ('%s/1.6.x/' % django_doc_base_url, None),
     'django1.8': ('%s/1.8.x/' % django_doc_base_url, None),
-    'django1.10': ('%s/1.10.x/' % django_doc_base_url, None),
+    'django1.11': ('%s/1.11.x/' % django_doc_base_url, None),
     'python27': ('https://docs.python.org/2.7', None),
+    'python38': ('https://docs.python.org/3.8', None),
     'djblets1.0': ('%s/docs/djblets/1.0/' % rbwebsite_url, None),
+    'djblets2.0': ('%s/docs/djblets/2.0/' % rbwebsite_url, None),
     'djblets-latest': ('%s/docs/djblets/latest/' % rbwebsite_url, None),
 }
 
 extlinks = {
     'djangodoc': ('%s%%s.html' % django_doc_base_url, None),
-    'backbonejs': ('http://backbonejs.org/#%s', 'Backbone.'),
+    'backbonejs': ('https://backbonejs.org/#%s', 'Backbone.'),
 }
