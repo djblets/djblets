@@ -77,8 +77,10 @@ INSTALLED_APPS = [
     'djblets.gravatars',
     'djblets.log',
     'djblets.pipeline',
+    'djblets.privacy',
     'djblets.siteconfig',
     'djblets.testing',
     'djblets.util',
     'djblets.webapi',
+    'django_evolution',
 ]
