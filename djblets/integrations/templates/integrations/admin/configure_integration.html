@@ -17,10 +17,16 @@
 {%  include "admin/submit_line.html" %}
 {% endblock %}
 
+{% block css %}
+{{block.super}}
+{%  stylesheet "djblets-forms" %}
+{% endblock %}
+
 {% block admin_scripts_post %}
 {{block.super}}
 {% include "js/underscore.html" %}
 {%  javascript "djblets-gravy" %}
+{%  javascript "djblets-forms" %}
 
 <script>
     $('.deletelink').click(function(e) {
