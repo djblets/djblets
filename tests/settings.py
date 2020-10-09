@@ -108,9 +108,13 @@ PIPELINE = {
     ],
     'CSS_COMPRESSOR': None,
     'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
-    'BABEL_BINARY': os.path.join(NODE_PATH, 'babel-cli', 'bin', 'babel.js'),
-    'BABEL_ARGUMENTS': ['--presets', 'env', '--plugins', 'dedent',
-                        '-s', 'true'],
+    'BABEL_BINARY': os.path.join(NODE_PATH, '@babel', 'cli', 'bin',
+                                 'babel.js'),
+    'BABEL_ARGUMENTS': [
+        '--presets', '@babel/env',
+        '--plugins', 'dedent,django-gettext',
+        '-s', 'true',
+    ],
     'LESS_BINARY': os.path.join(NODE_PATH, 'less', 'bin', 'lessc'),
     'LESS_ARGUMENTS': [
         '--no-color',
