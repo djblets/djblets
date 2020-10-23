@@ -10,7 +10,7 @@
  */
 Djblets.Config.ListItemView = Backbone.View.extend({
     tagName: 'li',
-    className: 'djblets-c-config-forms-list-item',
+    className: 'djblets-c-config-forms-list__item',
     iconBaseClassName: 'djblets-icon',
 
     /**
