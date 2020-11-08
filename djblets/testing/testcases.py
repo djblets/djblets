@@ -76,6 +76,12 @@ except ImportError:
 
     apps = None
 
+try:
+    from django_evolution.models import Evolution, Version
+except ImportError:
+    Evolution = None
+    Version = None
+
 from djblets.siteconfig.models import SiteConfiguration
 
 
@@ -289,8 +295,6 @@ class TestModelsLoaderMixin(object):
 
     @classmethod
     def setUpClass(cls):
-        super(TestModelsLoaderMixin, cls).setUpClass()
-
         cls._tests_loader_models_mod = None
 
         if not cls.tests_app:
@@ -343,32 +347,28 @@ class TestModelsLoaderMixin(object):
 
         cls._tests_loader_models_mod = models_mod
 
-    @classmethod
-    def tearDownClass(cls):
-        super(TestModelsLoaderMixin, cls).tearDownClass()
-
-        # Set this free so the garbage collector can eat it.
-        cls._tests_loader_models_mod = None
-
-    def setUp(self):
-        super(TestModelsLoaderMixin, self).setUp()
-
-        # If we made a fake 'models' module, add it to sys.modules.
-        models_mod = self._tests_loader_models_mod
-
         if models_mod:
             sys.modules[models_mod.__name__] = models_mod
 
-        self._models_loader_old_settings = settings.INSTALLED_APPS
+        cls._models_loader_old_settings = settings.INSTALLED_APPS
         settings.INSTALLED_APPS = list(settings.INSTALLED_APPS) + [
-            self.tests_app,
+            cls.tests_app,
         ]
+
+        # If Django Evolution is being used, we'll want to clear out any
+        # recorded schema information so that it can be generated from
+        # scratch when we set up the database.
+        if (Evolution is not None and
+            Version is not None and
+            getattr(settings, 'DJANGO_EVOLUTION_ENABLED', True)):
+            Version.objects.all().delete()
+            Evolution.objects.all().delete()
 
         if apps:
             # Push the new set of installed apps, and begin registering
             # each of the models associated with the tests.
             apps.set_installed_apps(settings.INSTALLED_APPS)
-            app_config = apps.get_containing_app_config(self.tests_app)
+            app_config = apps.get_containing_app_config(cls.tests_app)
 
             if models_mod:
                 app_label = app_config.label
@@ -390,18 +390,21 @@ class TestModelsLoaderMixin(object):
             call_command('migrate', run_syncdb=True, verbosity=0,
                          interactive=False)
         else:
-            load_app(self.tests_app)
+            load_app(cls.tests_app)
             call_command('syncdb', verbosity=0, interactive=False)
 
-    def tearDown(self):
-        super(TestModelsLoaderMixin, self).tearDown()
+        super(TestModelsLoaderMixin, cls).setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        super(TestModelsLoaderMixin, cls).tearDownClass()
 
         call_command('flush', verbosity=0, interactive=False)
 
-        settings.INSTALLED_APPS = self._models_loader_old_settings
+        settings.INSTALLED_APPS = cls._models_loader_old_settings
 
         # If we added a fake 'models' module to sys.modules, remove it.
-        models_mod = self._tests_loader_models_mod
+        models_mod = cls._tests_loader_models_mod
 
         if models_mod:
             try:
@@ -411,12 +414,15 @@ class TestModelsLoaderMixin(object):
 
         if apps:
             apps.unset_installed_apps()
-            apps.all_models[self.tests_app].clear()
+            apps.all_models[cls.tests_app].clear()
         else:
             if models_mod:
                 del app_cache.app_store[models_mod]
 
             app_cache._get_models_cache.clear()
+
+        # Set this free so the garbage collector can eat it.
+        cls._tests_loader_models_mod = None
 
 
 class FixturesCompilerMixin(object):
