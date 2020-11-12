@@ -23,7 +23,7 @@ from djblets.dependencies import (build_dependency_list, npm_dependencies,
 # the source tarball, and failing.
 pyver = sys.version_info[:2]
 
-if pyver < (2, 7) or (3, 0) <= pyver < (3, 4):
+if pyver < (2, 7) or (3, 0) <= pyver < (3, 6):
     sys.stderr.write('This version of Djblets is incompatible with your '
                      'version of Python.\n')
     sys.exit(1)
@@ -492,9 +492,10 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Topic :: Software Development',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],

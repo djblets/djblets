@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 from django.http import HttpRequest, QueryDict
 from django.template import Context, Template
 from django.utils import six
-from django.utils.six.moves.html_parser import HTMLParser
 
 from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.testing.testcases import TagTest, TestCase
@@ -407,38 +406,18 @@ class QuerystringWithTagTests(TestCase):
 class QuerystringTagTests(TestCase):
     """Unit tests for the {% querystring %} template tag."""
 
-    @classmethod
-    def setUpClass(cls):
-        super(QuerystringTagTests, cls).setUpClass()
-
-        cls.html_parser = HTMLParser()
-
-    def setUp(self):
-        super(QuerystringTagTests, self).setUp()
-        self.request = HttpRequest()
-
     def test_update_basic_usage(self):
         """Testing {% querystring "update" %} basic usage"""
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "update" "foo=bar" %}')
-
         self.assertEqual(
-            t.render(Context({
-                'request': HttpRequest(),
-            })),
+            self._render_tag(tag='{% querystring "update" "foo=bar" %}',
+                             query_str='foo=bar'),
             '?foo=bar')
 
     def test_update_with_tag_existing_query(self):
         """Testing {% querystring "update" %} with an existing query"""
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "update" "foo=bar" %}')
-
-        # request = HttpRequest()
-        self.request.GET = QueryDict("a=1&b=2")
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "update" "foo=bar" %}',
+            query_str='a=1&b=2')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
@@ -448,14 +427,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "update" %} with an existing query that gets
         overridden
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "update" "foo=bar" %}')
-
-        self.request.GET = QueryDict("foo=foo&bar=baz")
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "update" "foo=bar" %}',
+            query_str='foo=foo&bar=baz')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
@@ -465,15 +439,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "update" %} with two args that get
         overridden
         """
-        t = Template(
-            '{% load djblets_utils %}'
-            '{% querystring "update" "foo=bar" "qux=baz" %}')
-
-        self.request.GET = QueryDict('foo=foo&bar=bar&baz=baz&qux=qux')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "update" "foo=bar" "qux=baz" %}',
+            query_str='foo=foo&bar=bar&baz=baz&qux=qux')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
@@ -481,28 +449,18 @@ class QuerystringTagTests(TestCase):
 
     def test_update_with_no_value(self):
         """Testing {% querystring "update" %} with no value"""
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "update" "foo" %}')
-
-        self.request.GET = QueryDict('')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "update" "foo" %}',
+            query_str='')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]), QueryDict('foo='))
 
     def test_update_with_multiple_values(self):
         """Testing {% querystring "update" %} with multiple values"""
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "update" "foo=bar=baz" %}')
-
-        self.request.GET = QueryDict('foo=foo')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "update" "foo=bar=baz" %}',
+            query_str='foo=foo')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
@@ -510,28 +468,18 @@ class QuerystringTagTests(TestCase):
 
     def test_update_with_empty_value(self):
         """Testing {% querystring "update" %} with empty value"""
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "update" "foo=" %}')
-
-        self.request.GET = QueryDict('')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "update" "foo=" %}',
+            query_str='')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]), QueryDict('foo='))
 
     def test_update_with_no_key(self):
         """Testing {% querystring "update" %} with no key"""
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "update" "=foo" %}')
-
-        self.request.GET = QueryDict('')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "update" "=foo" %}',
+            query_str='')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]), QueryDict('=foo'))
@@ -540,14 +488,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "update" %} by updating multiple values of a
         key value gets overriden
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "update" "a=1" "a=2" %}')
-
-        self.request.GET = QueryDict('foo=foo')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "update" "a=1" "a=2" %}',
+            query_str='foo=foo')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
@@ -557,14 +500,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "update" %} by updating multiple values of a
         key value
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "update" "a=1&a=2" %}')
-
-        self.request.GET = QueryDict('foo=foo')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "update" "a=1&a=2" %}',
+            query_str='foo=foo')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
@@ -574,14 +512,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "append" %} with appending on to an existing
         key
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "append" "foo=baz" %}')
-
-        self.request.GET = QueryDict('foo=foo&bar=bar')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "append" "foo=baz" %}',
+            query_str='foo=foo&bar=bar')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
@@ -591,14 +524,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "append" %} with appending multiple values of
         a key
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "append" "a=1&a=2&a=3" %}')
-
-        self.request.GET = QueryDict('a=0&&b=2&c=3')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "append" "a=1&a=2&a=3" %}',
+            query_str='a=0&&b=2&c=3')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
@@ -608,14 +536,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "append" %} with appending multiple values of
         a key fragment
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "append" "a=1" "a=2" "a=3" %}')
-
-        self.request.GET = QueryDict('a=0&b=2&c=3')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "append" "a=1" "a=2" "a=3" %}',
+            query_str='a=0&&b=2&c=3')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
@@ -625,15 +548,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "append" %} with appending new key-value
         pair
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "append" "d=4" %}')
-
-        request = HttpRequest()
-        request.GET = QueryDict('a=1&b=2&c=3')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "append" "d=4" %}',
+            query_str='a=1&b=2&c=3')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
@@ -643,15 +560,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "remove" %} by removing a single instance of
         key
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "remove" "foo" %}')
-
-        request = HttpRequest()
-        request.GET = QueryDict('foo=foo&bar=bar')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "remove" "foo" %}',
+            query_str='foo=foo&bar=bar')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]), QueryDict('bar=bar'))
@@ -660,14 +571,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "remove" %} by attempting to remove a
         non-existing key
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "remove" "baz" %}')
-
-        self.request.GET = QueryDict('foo=foo&bar=bar')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "remove" "baz" %}',
+            query_str='foo=foo&bar=bar')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
@@ -677,14 +583,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "remove" %} by removing all instances of a
         key
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "remove" "foo" %}')
-
-        self.request.GET = QueryDict('foo=foo&foo=bar&bar=bar')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "remove" "foo" %}',
+            query_str='foo=foo&foo=bar&bar=bar')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]), QueryDict('bar=bar'))
@@ -693,14 +594,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "remove" %} by removing a specific key-value
         pair
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "remove" "a=4" %}')
-
-        self.request.GET = QueryDict('a=1&a=2&a=3&a=4')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "remove" "a=4" %}',
+            query_str='a=1&a=2&a=3&a=4')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
@@ -710,14 +606,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "remove" %} by removing a value with
         no key
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "remove" "=foo" %}')
-
-        self.request.GET = QueryDict('foo=foo&foo=bar&baz=baz&=foo')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "remove" "=foo" %}',
+            query_str='foo=foo&foo=bar&baz=baz&=foo')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
@@ -727,14 +618,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "remove" %} by removing a key with no
         value
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "remove" "foo=" %}')
-
-        self.request.GET = QueryDict('foo=foo&foo=bar&foo=&baz=baz')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "remove" "foo=" %}',
+            query_str='foo=foo&foo=bar&foo=&baz=baz')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]), QueryDict('baz=baz'))
@@ -743,14 +629,9 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "remove" %} by removing multiple keys and
         values
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "remove" "foo" "bar" "baz=1" %}')
-
-        self.request.GET = QueryDict('foo=foo&bar=bar&foo=&baz=1&qux=qux')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "remove" "foo" "bar" "baz=1" %}',
+            query_str='foo=foo&bar=bar&foo=&baz=1&qux=qux')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]), QueryDict('qux=qux'))
@@ -759,14 +640,40 @@ class QuerystringTagTests(TestCase):
         """Testing {% querystring "remove" %} by removing multiple specific
         key-value pairs
         """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring "remove" "foo=1" "foo=2" %}')
-
-        self.request.GET = QueryDict('foo=1&foo=2&foo=3')
-
-        rendered_result = self.html_parser.unescape(t.render(Context({
-            'request': self.request,
-        })))
+        rendered_result = self._render_tag(
+            tag='{% querystring "remove" "foo=1" "foo=2" %}',
+            query_str='foo=1&foo=2&foo=3')
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]), QueryDict('foo=3'))
+
+    def _render_tag(self, tag, query_str):
+        """Returned a rendered template tag using a query string.
+
+        This will render a ``querystring`` template using the provided template
+        tag, with auto-escaping turned off, and with the given query string as
+        would be provided in a URL.
+
+        Args:
+            tag (unicode):
+                The template tag line (``{% querystring ... %}``).
+
+            query_str (unicode):
+                The query string to simulate being in the URL.
+
+        Returns:
+            unicode:
+            The rendered content, without escaping.
+        """
+        t = Template('{%% load djblets_utils %%}'
+                     '{%% autoescape off %%}%s{%% endautoescape %%}'
+                     % tag)
+
+        request = HttpRequest()
+
+        if query_str:
+            request.GET = QueryDict(query_str)
+
+        return t.render(Context({
+            'request': request,
+        })).replace('&amp;', '&')
