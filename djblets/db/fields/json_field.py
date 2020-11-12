@@ -373,7 +373,10 @@ class JSONField(models.TextField):
             return {}
 
         try:
-            val = json.loads(val, encoding=settings.DEFAULT_CHARSET)
+            if not isinstance(val, six.text_type):
+                val = val.decode(settings.DEFAULT_CHARSET)
+
+            val = json.loads(val)
 
             # Old versions of JSONField could end up double-encoding JSON
             # data, resulting in a string being stored that then needs to be
@@ -384,7 +387,7 @@ class JSONField(models.TextField):
                                'got string for input "%s"',
                                val)
 
-                val = json.loads(val, encoding=settings.DEFAULT_CHARSET)
+                val = json.loads(val)
         except ValueError:
             # There's probably embedded unicode markers (like u'foo') in the
             # string, due to bugs in old versions of JSONField. We have to
