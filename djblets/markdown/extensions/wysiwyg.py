@@ -84,6 +84,9 @@ class PreserveStartOListBlockProcessor(OListProcessor):
     This replaces OListProcessor.
     """
 
+    # Force <ol> tags to have a start= attribute.
+    LAZY_OL = False
+
     def run(self, parent, blocks):
         """Run the processor on the given blocks."""
         # The base BlockProcessor class does not inherit from object, so
@@ -137,10 +140,7 @@ class TrimmedRawHtmlPostprocessor(RawHtmlPostprocessor):
 
     Python-Markdown's RawHtmlPostprocessor had a nasty habit of adding an
     extra newline after replacing a placeholder with stored raw HTML. That
-    would cause extra newlines to appear in our output. It also (at least
-    as of Python-Markdown 2.6 -- the latest release at the time of this
-    writing) wasn't very efficient, unnecessarily comparing strings and
-    fetching results from the same functions on every loop.
+    would cause extra newlines to appear in our output.
 
     This version more efficiently replaces the raw HTML placeholders and
     ensures there are no trailing newlines in the resulting HTML. Not only does
@@ -165,38 +165,17 @@ class TrimmedRawHtmlPostprocessor(RawHtmlPostprocessor):
         if html_stash.html_counter == 0:
             return text
 
-        # safeMode is only available in Python-Markdown 2.6 and lower.
-        safe_mode = getattr(self.markdown, 'safeMode', None)
-        should_escape = False
-        should_remove = False
-
-        if safe_mode:
-            safe_mode = safe_mode.lower()
-
-            if safe_mode == 'escape':
-                should_escape = True
-            elif safe_mode == 'remove':
-                should_remove = True
-
         replacements = OrderedDict()
 
         for i in range(html_stash.html_counter):
-            html, safe = html_stash.rawHtmlBlocks[i]
+            html = html_stash.rawHtmlBlocks[i]
             placeholder = html_stash.get_placeholder(i)
 
             # Help control whitespace by getting rid of any trailing newlines
             # we may find.
             html = html.rstrip('\n')
 
-            if not safe:
-                if should_escape:
-                    html = self.escape(html)
-                elif should_remove:
-                    html = ''
-                else:
-                    html = self.markdown.html_replacement_text
-
-            if self.isblocklevel(html) and (safe or not safe_mode):
+            if self.isblocklevel(html):
                 replacements['<p>%s</p>' % placeholder] = html
 
             replacements[placeholder] = html

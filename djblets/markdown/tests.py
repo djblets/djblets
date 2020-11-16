@@ -2,7 +2,7 @@ from __future__ import print_function, unicode_literals
 
 from django.utils import six
 from django.utils.six.moves.html_entities import codepoint2name
-from markdown import markdown
+from markdown import __version_info__ as markdown_version, markdown
 
 from djblets.testing.testcases import TestCase
 from djblets.markdown import (get_markdown_element_tree,
@@ -15,6 +15,16 @@ class MarkdownTestCase(TestCase):
     """Base class for Markdown-related test cases."""
 
     def render_markdown(self, text):
+        """Render Markdown text with a standard configuration.
+
+        Args:
+            text (unicode):
+                The Markdown-formatted text to render.
+
+        Returns:
+            unicode:
+            The resulting HTML.
+        """
         return markdown(
             text,
             output_format='xhtml1',
@@ -23,7 +33,6 @@ class MarkdownTestCase(TestCase):
                 'markdown.extensions.fenced_code',
                 'markdown.extensions.codehilite',
                 'markdown.extensions.sane_lists',
-                'markdown.extensions.smart_strong',
                 'markdown.extensions.nl2br',
                 'djblets.markdown.extensions.escape_html',
                 'djblets.markdown.extensions.wysiwyg',
@@ -274,9 +283,9 @@ class WysiwygRenderTests(MarkdownTestCase):
                 '\n'
                 'done.'),
             ('<p>begin:</p>\n'
-             '<div class="codehilite"><pre><span></span>if (1) {}\n'
-             '</pre></div>\n'
-             '<p>done.</p>'))
+             '%s'
+             '<p>done.</p>')
+            % self._build_expected_code_block('if (1) {}\n'))
 
     def test_code_2_blank_lines(self):
         """Testing Markdown WYSIWYG rendering with code block and 2 surrounding
@@ -293,10 +302,10 @@ class WysiwygRenderTests(MarkdownTestCase):
                 'done.'),
             ('<p>begin:</p>\n'
              '<p></p>\n'
-             '<div class="codehilite"><pre><span></span>if (1) {}\n'
-             '</pre></div>\n'
+             '%s'
              '<p></p>\n'
-             '<p>done.</p>'))
+             '<p>done.</p>')
+            % self._build_expected_code_block('if (1) {}\n'))
 
     def test_code_3_blank_lines(self):
         """Testing Markdown WYSIWYG rendering with code block and 3 surrounding
@@ -316,11 +325,11 @@ class WysiwygRenderTests(MarkdownTestCase):
             ('<p>begin:</p>\n'
              '<p></p>\n'
              '<p></p>\n'
-             '<div class="codehilite"><pre><span></span>if (1) {}\n'
-             '</pre></div>\n'
+             '%s'
              '<p></p>\n'
              '<p></p>\n'
-             '<p>done.</p>'))
+             '<p>done.</p>')
+            % self._build_expected_code_block('if (1) {}\n'))
 
     def test_code_4_blank_lines(self):
         """Testing Markdown WYSIWYG rendering with code block and 4 surrounding
@@ -343,12 +352,12 @@ class WysiwygRenderTests(MarkdownTestCase):
              '<p></p>\n'
              '<p></p>\n'
              '<p></p>\n'
-             '<div class="codehilite"><pre><span></span>if (1) {}\n'
-             '</pre></div>\n'
+             '%s'
              '<p></p>\n'
              '<p></p>\n'
              '<p></p>\n'
-             '<p>done.</p>'))
+             '<p>done.</p>')
+            % self._build_expected_code_block('if (1) {}\n'))
 
     def test_lists_1_blank_line(self):
         """Testing Markdown WYSIWYG rendering with 1 blank lines between lists
@@ -484,3 +493,27 @@ class WysiwygRenderTests(MarkdownTestCase):
                 '\n'
                 '\n'),
             '<p>begin:</p>')
+
+    def _build_expected_code_block(self, code):
+        """Build the HTML that'd be expected for a Markdown code block.
+
+        This handles the differences between Markdown < 3.2 code blocks
+        (which will be used on Python 2.7) and Markdown >= 3.2 code blocks
+        (Python 3 and up).
+
+        Args:
+            code (unicode):
+                The code inside the code block.
+
+        Returns:
+            unicode:
+            The HTML for the code block.
+        """
+        if markdown_version[:2] >= (3, 2):
+            # Markdown 3.2+ adds <code> around any code blocks.
+            code = '<code>%s</code>' % code
+
+        return (
+            '<div class="codehilite"><pre><span></span>%s</pre></div>\n'
+            % code
+        )
