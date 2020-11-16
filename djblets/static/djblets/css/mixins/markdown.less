@@ -226,6 +226,24 @@
             -(@code-block-padding-horiz + @code-block-border-size);
     padding: @code-block-padding-vert @code-block-padding-horiz;
 
+    code {
+      /*
+       * Undo all the rules above. This is necessary with Python-Markdown 3.2+,
+       * which places a <code> around the code block. Previous versions did
+       * not do this.
+       */
+      background: none;
+      border: none;
+      border-radius: 0;
+      color: inherit;
+      display: inline;
+      margin: 0;
+
+      &:before, &:after {
+        content: none;
+      }
+    }
+
     pre {
       margin-left: 0;
       padding: 0;

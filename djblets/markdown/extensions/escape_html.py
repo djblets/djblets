@@ -32,12 +32,8 @@ class EscapeHTMLExtension(Extension):
             md_globals (dict):
                 Global variables from the :py:mod:`markdown` module.
         """
-        # This is basically the implementation recommended by Python-Markdown.
-        # In their implementation, these keys must exist. We make them
-        # optional, so that if a caller is using both safe_mode='escape' and
-        # this extension, it won't crash due to KeyErrors.
-        md.preprocessors.pop('html_block', None)
-        md.inlinePatterns.pop('html', None)
+        md.preprocessors.deregister('html_block')
+        md.inlinePatterns.deregister('html')
 
 
 def makeExtension(*args, **kwargs):
