@@ -11,7 +11,7 @@ def lazy_import_registry(module_path, registry_name, **kwargs):
     """Lazily import and construct a registry on access.
 
     This is useful for providing registry instances in a Django app's
-    :py:file:`__init__.py` file without needing to import other modules that
+    :file:`__init__.py` file without needing to import other modules that
     might interfere with the Django initialization process. When accessed
     for the first time, the registry will be imported and constructed.
 
