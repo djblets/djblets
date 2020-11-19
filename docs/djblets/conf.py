@@ -33,7 +33,8 @@ if hasattr(django, 'setup'):
     django.setup()
 
 import djblets
-from djblets.dependencies import django_doc_major_version
+from djblets.dependencies import (django_doc_major_version,
+                                  reviewboard_doc_major_version)
 
 
 # General configuration
@@ -227,8 +228,10 @@ intersphinx_mapping = {
                % django_doc_major_version,
                None),
     'setuptools': ('https://setuptools.readthedocs.io/en/latest/', None),
-    'python': ('https://docs.python.org/2.7', None),
-    'reviewboard': ('https://www.reviewboard.org/docs/manual/2.5/', None),
+    'python': ('https://docs.python.org/3', None),
+    'reviewboard': ('https://www.reviewboard.org/docs/manual/%s/'
+                    % reviewboard_doc_major_version,
+                    None),
 }
 
 todo_include_todos = True

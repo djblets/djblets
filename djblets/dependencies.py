@@ -16,6 +16,9 @@ from __future__ import unicode_literals
 #: The major version of Django we're using for documentation.
 django_doc_major_version = '1.6'
 
+#: The major version of Review Board we're using for documentation.
+reviewboard_doc_major_version = 'dev'
+
 #: The version range required for Django.
 django_version = '>=1.6.11,<1.11.999'
 
