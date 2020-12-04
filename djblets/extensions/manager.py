@@ -284,6 +284,7 @@ class ExtensionManager(object):
         self._block_sync_gen = False
 
         self.dynamic_urls = DynamicURLResolver()
+        self._extension_list_url = None
 
         # Extension middleware instances, ordered by dependencies.
         self.middleware = []
@@ -344,14 +345,20 @@ class ExtensionManager(object):
     def get_absolute_url(self):
         """Return an absolute URL to the view for listing extensions.
 
-        By default, this simply looks up the "extension-list" URL. Subclasses
-        can override this to provide a more specific URL.
+        By default, this simply looks up the "extension-list" URL.
+
+        Subclasses can override this to provide a more specific URL, but should
+        take care to cache the result in order to avoid unwanted lookups caused
+        by URL resolver cache flushes.
 
         Returns:
             unicode:
             The URL to the extension list view.
         """
-        return reverse('extension-list')
+        if not self._extension_list_url:
+            self._extension_list_url = reverse('extension-list')
+
+        return self._extension_list_url
 
     def get_can_disable_extension(self, registered_extension):
         """Return whether an extension can be disabled.
