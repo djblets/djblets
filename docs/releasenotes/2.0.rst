@@ -1,0 +1,421 @@
+.. default-intersphinx:: django1.11 djblets2.0
+
+
+=========================
+Djblets 2.0 Release Notes
+=========================
+
+**Release date**: TBD
+
+
+Packaging/Compatibility
+=======================
+
+* Increased Python support to 2.7 and 3.6-3.9.
+
+  This is the last version series to support Python 2.7.
+
+* Increased Django support to 1.6 and 1.11.
+
+  This is the last version series to support any Django 1.x releases.
+
+* Added a dependency on :pypi:`python-dateutil` 2.7 or higher.
+
+* :py:mod:`djblets.markdown` now requires :pypi:`Markdown` 3.x.
+
+* :py:mod:`djblets.extensions` now requires :pypi:`django-evolution` 2.1
+  or higher for extension database support.
+
+
+LessCSS/JavaScript Components
+=============================
+
+ConfigForms
+-----------
+
+* Added ARIA attributes to improve accessibility.
+
+* Switched all ConfigForms classes to our modern CSS Component naming
+  scheme.
+
+  These were first introduced in Djblets 1.0. The modern scheme uses
+  ``djblets-c-config-forms-*`` prefixes for all CSS classes, and a ``-is-*``
+  or ``-has-*`` form for modifier CSS classes.
+
+  This is now used all throughout our codebase, in both CSS and JavaScript.
+  Consuming applications may need to make changes.
+
+* Added a ``.djblets-o-spinner`` CSS Component for showing a spinner.
+
+  This replaces the Font Awesome ``fa-spinner``. It's less wobbly,
+  cleaner, and supports light/dark themes.
+
+  LessCSS-based consumers can set the theme by calling
+  ``#djblets-ns-ui.spinners.set-theme`` with ``dark`` or ``light``
+  within a spinner selector rule.
+
+* Added a ``.djblets-c-config-forms-list-actions`` CSS component for
+  adding a list of actions above a list.
+
+* Added support for item states in list items.
+
+  ``.djblets-c-config-forms-list__item`` now supports CSS modifier
+  classes: ``.djblets-c-config-forms-list__item.-is-disabled`` and
+  ``.djblets-c-config-forms-list__item.-has-error``. These affect
+  the presentation of the item, using icons and colors.
+
+  New states can be added using
+  ``#djblets-ns-config-forms.list.add-item-state``.
+
+  :js:class:`Djblets.Config.ListItemView` will manage these based on the
+  ``itemState`` attribute on the :js:class:`Djblets.Config.ListItem`.
+
+* Added support for multi-line content in list items.
+
+  List items that contain multiple lines of content (such as multiple
+  paragraphs) should use the new
+  ``.djblets-c-config-forms-list__item.-is-multiline`` CSS
+  modifier class or a
+  ``.djblets-c-config-forms-list.-all-items-are-multiline`` on the
+  parent ``.djblets-c-config-forms-list``. These will ensure padding
+  and actions are correct.
+
+* :js:class:`Djblets.Config.ListItemView` actions can now return a
+  :js:class:`Promise` for asynchronous tasks.
+
+  This will cause the button to show a spinner until the action is complete or
+  has failed.
+
+* Added many new ConfigForms variables and macros in
+  ``#djblets-ns-config-forms``.
+
+
+Modal Boxes
+===========
+
+* Added a new formal stylesheet for modal boxes.
+
+  This is available in the ``djblets-ui`` Pipeline bundle, and replaces the
+  old styles that were only available when using the ``djblets-extensions``
+  bundle.
+
+  Definitions are in :file:`djblets/css/ui/modalboxes.less`.
+
+* Added ARIA attributes to improve accessibility.
+
+
+djblets.auth
+============
+
+* Fixed a database transaction error in
+  :py:class:`~djblets.auth.forms.RegistrationForm` that could occur when
+  attempting to create a user with a conflicting username.
+
+
+djblets.avatars
+===============
+
+* Removed the deprecated :py:attr:`AvatarServiceRegistry.enabled_services
+  <djblets.avatars.registry.AvatarServiceRegistry.enabled_services>` setter
+  property.
+
+  Callers must update to use
+  :py:meth:`AvatarServiceRegistry.set_enabled_services()
+  <djblets.avatars.registry.AvatarServiceRegistry.set_enabled_services>`
+  instead.
+
+
+djblets.configforms
+===================
+
+* Removed the deprecated :py:attr:`ConfigPageForm.profile
+  <djblets.configforms.forms.ConfigPageForm.profile>` property.
+
+
+djblets.datagrid
+================
+
+* All column sorting links are now marked as ``nofollow``.
+
+  This will hint to search engine bots that they shouldn't attempt to load
+  all the various sorting variants of the URL.
+
+* Fixed some display issues involving tiny gaps between headers and bodies,
+  which mostly affected high-DPI displays.
+
+* Removed a gap on the right-hand side of the datagrid header when a scrollbar
+  is visible.
+
+* Removed the deprecated
+  :py:func:`~djblets.datagrid.templatetags.datagrid.paginator` template tag.
+
+
+djblets.db
+==========
+
+* Fixed a rare infinite recursion issue in
+  :py:class:`~djblets.db.fields.counter_field.CounterField`.
+
+  Patch by Barret Rennie.
+
+* Removed the deprecated ``encoder`` argument in the
+  :py:class:`~djblets.db.fields.json_field.JSONField` constructor, in favor
+  of ``encoder_cls`` and ``encoder_kwargs``.
+
+
+djblets.extensions
+==================
+
+* Added a new and improved UI for managing extensions.
+
+  This is a complete design refresh, bringing it in line with the Integrations
+  UI. The new design makes use of the Djblets ConfigForms CSS styles, making
+  it easier to embed in any page, not just the Django admin UI.
+
+  The new layout does a better job of presenting the enabled and available
+  extensions, and bringing attention to the buttons for managing the extension
+  state and configuring the extension.
+
+  It's also been made more accessible, helping people manage the list when
+  using screen readers.
+
+  Consumers can also set :setting:`DJBLETS_EXTENSIONS_BROWSE_URL` in
+  their project's :file:`settings.py` to a URL, which will enable a
+  :guilabel:`More Extensions` button for getting additional extensions.
+
+* Database migrations for extensions now support both evolutions (through
+  `Django Evolution`_) and Django's migrations.
+
+  Evolutions are also no longer applied to multiple extensions or Django apps
+  at a time.
+
+* Shortcuts for extension-provided API resources are now added to the root
+  API's URI templates list.
+
+  Patch by Maram El-Salamouny.
+
+* Fixed some extension state management issues when an extension broke
+  in the middle of initializing.
+
+* Removed the deprecated :py:attr:`SettingsForm.siteconfig
+  <djblets.extensions.forms.SettingsForm.siteconfig>` attribute, in favor of
+  :py:attr:`SettingsForm.instance
+  <djblets.extensions.forms.SettingsForm.instance>`.
+
+* Removed the deprecated support for calling
+  :py:meth:`ExtensionHook.shutdown()
+  <djblets.extensions.hooks.ExtensionHook.shutdown>`, in favor of
+  :py:meth:`ExtensionHook.disable_hook()
+  <djblets.extensions.hooks.ExtensionHook.disable_hook>`.
+
+  :py:meth:`ExtensionHook.shutdown()
+  <djblets.extensions.hooks.ExtensionHook.shutdown>` is now specifically
+  intended for hooks to perform their own shutdown logic.
+
+* Removed the deprecated ``'djblets.extensions.loaders.load_template_source'``
+  in :setting:`TEMPLATE_LOADERS`.
+
+  This was used to load templates from extensions. Consumers must now add
+  ``djblets.extensions.loaders.Loader`` in :setting:`TEMPLATE`'s ``loaders``
+  list.
+
+* Removed the deprecated support for passing an
+  :py:class:`pkg_resources.EntryPoint` to
+  :py:class:`~djblets.extensions.extension.ExtensionInfo`.
+
+  Callers should call :py:meth:`ExtensionInfo.create_from_entrypoint()
+  <djblets.extensions.extension.ExtensionInfo.create_from_entrypoint>` if
+  they need to pass one.
+
+
+.. _Django Evolution: https://django-evolution.readthedocs.io/
+
+
+djblets.forms
+=============
+
+* Added :py:class:`~djblets.forms.widgets.RelatedObjectWidget`, which can be
+  extended to provide a clean, mobile-friendly UI for managing a list of
+  related objects in a form.
+
+  This is intended as a replacement for Django's built-in filtered selection
+  fields.
+
+  Patch by Storm Kaefer.
+
+
+djblets.gravatars
+=================
+
+* Removed the deprecated ``request`` argument in
+  :py:func:`~djblets.gravatars.get_gravatar_url_for_email` and
+  :py:func:`~djblets.gravatars.get_gravatar_url`.
+
+
+djblets.http
+============
+
+* Added :py:class:`~djblets.http.middleware.AbsoluteURLRedirectMiddleware`,
+  which turns all relative URL redirects to absolute.
+
+
+djblets.integrations
+====================
+
+* Removed the deprecated :py:meth:`Integration.render_config_status()
+  <djblets.integrations.integration.Integration.render_config_status>`.
+
+* Removed the deprecated
+  :py:func:`{% render_integration_config_status %}
+  <djblets.integrations.templatetags.integrations
+  .render_integration_config_status>` template tag.
+
+  The :py:mod:`integrations <djblets.integrations.templatetags.integrations>`
+  template tag library is now deprecated.
+
+
+djblets.log
+===========
+
+* Fixed a crash when trying to log a message with a
+  :py:class:`~django.http.HttpRequest` that was missing attributes expected
+  in :setting:`LOGGING_REQUEST_FORMAT`.
+
+* The "Reloading logging settings" message is now logged as debug instead of
+  info.
+
+
+djblets.registries
+==================
+
+* Added :py:func:`djblets.registries.importer.lazy_import_registry`, which
+  can be used to create a registry instance at a module level only when
+  it's first accessed.
+
+  This can help with providing registries at the base of a Django app without
+  causing loading problems in modern versions of Django.
+
+
+djblets.testing
+===============
+
+* Added :py:meth:`TestCase.assertWarns()
+  <djblets.testing.testcases.TestCase.assertWarns>`, for
+  asserting that a warning was emitted by a call.
+
+* Added :py:meth:`TestCase.assertNoWawrnings()
+  <djblets.testing.testcases.TestCase.assertNoWarnings>`, for
+  asserting that no warning is emitted by a call.
+
+* :py:class:`~djblets.testing.testcases.TestModelsLoaderMixin` is now much
+  faster, requires less database work, and is compatible with
+  `Django Evolution`_ 2.0+.
+
+
+djblets.urls
+============
+
+* Removed the deprecated support for an initial view path string prefix in
+  :py:func:`~djblets.urls.patterns.never_cache_patterns`.
+
+
+djblets.util
+============
+
+* Added a special :py:class:`~djblets.util.properties.AliasProperty` class
+  for creating an alias to another attribute.
+
+  This can optionally emit a deprecation warning on access, making it useful
+  when renaming attributes and retaining backwards-compatibility.
+
+* Added a special :py:class:`~djblets.util.properties.TypedProperty` class
+  for type-specific properties.
+
+  This will do the work of checking that any values set are of a list of
+  supported types.
+
+* Added a :py:func:`{% querystring %}
+  <djblets.util.templatetags.djblets_utils.querystring>` template tag for
+  adding, removing, or updating URL query strings.
+
+  This deprecates :py:func:`{% querystring_with %}
+  <djblets.util.templatetags.djblets_utils.querystring_with>`.
+
+  Patch by Mandeep Singh.
+
+* Added a :py:func:`{{...|getattr}}
+  <djblets.util.templatetags.djblets_utils.getattr_filter>` template filter.
+
+  This can be used by templates to fetch the attribute of an object. If not
+  found, ``None`` will be returned.
+
+* Added a ``global`` option to the
+  :py:func:`{% definevar %}
+  <djblets.util.templatetags.djblets_utils.definevar>` template tag.
+
+  This will register the variable in the top-most Django template context,
+  allowing other blocks to use it. It's suggested that consumers create an
+  early block in the top-level template, and for sub-templates to override
+  that block and register global variables.
+
+* The :py:func:`{{...|json_dumps}}
+  <djblets.util.templatetags.djblets_js.json_dumps>`
+  template filter now returns keys sorted.
+
+* Removed the deprecated :py:func:`~djblets.util.decorators.root_url`.
+
+* Removed some long-deprecated modules:
+
+  * :py:mod:`djblets.util.cache`
+  * :py:mod:`djblets.util.context_processors`
+  * :py:mod:`djblets.util.db`
+  * :py:mod:`djblets.util.dbevolution`
+  * :py:mod:`djblets.util.forms`
+  * :py:mod:`djblets.util.misc`
+  * :py:mod:`djblets.util.rooturl`
+  * :py:mod:`djblets.util.testing`
+  * :py:mod:`djblets.util.urlresolvers`
+
+
+djblets.webapi
+==============
+
+* Added a new way of specifying field types in API resources.
+
+  Field definitions for API resources used to take in an `int`, `str`, `list`,
+  etc. as a field type. This was limited and posed compatibility problems.
+
+  Consumers should now use one of the new field types, defined in
+  :py:mod:`djblets.webapi.fields`. They can also create their own, providing
+  their own parsing/validation/serialization logic.
+
+* Added an ``_expanded`` field to API resource responses when using
+  ``?expand=...``.
+
+  This is a dictionary contains information on the fields that were expanded.
+  Each key is an expanded field name, and each value is a dictionary that may
+  contain ``item_mimetype``, ``list_mimetype``, and ``list_url`` fields. These
+  are useful for clients that need to map expanded payloads to
+  resource-specific handlers.
+
+* All JSON payloads now sort dictionary keys alphabetically.
+
+* Removed the deprecated :py:mod:`djblets.webapi.core` module.
+
+* Removed the deprecated ``query`` arguments to the
+  :py:class:`~djblets.webapi.testing.testcases.WebAPITestCaseMixin` API
+  invocation utility methods, in favor of ``data``.
+
+
+Contributors
+============
+
+* Barret Rennie
+* Christian Hammond
+* David Trowbridge
+* Hailan Xu
+* Jacob Blazusiak
+* Mandeep Singh
+* Maram El-Salamouny
+* Monica Bui
+* Storm Kaefer
