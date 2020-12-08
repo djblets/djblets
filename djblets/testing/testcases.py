@@ -36,6 +36,7 @@ import threading
 from collections import OrderedDict
 from contextlib import contextmanager
 from importlib import import_module
+from unittest.util import safe_repr
 
 from django.conf import settings
 from django.core import serializers
@@ -153,6 +154,43 @@ class TestCase(testcases.TestCase):
                 siteconfig.set(key, value)
 
             siteconfig.save()
+
+    def assertAttrsEqual(self, obj, attrs, msg=None):
+        """Assert that attributes on an object match expected values.
+
+        This will compare each attribute defined in ``attrs`` against the
+        corresponding attribute on ``obj``. If the attribute value does not
+        match, or the attribute is missing, this will assert.
+
+        Args:
+            obj (object):
+                The object to compare attribute values to.
+
+            attrs (dict):
+                A dictionary of expected attribute names and values.
+
+            msg (unicode, optional):
+                A custom message to include if there's a failure.
+
+        Raises:
+            AssertionError:
+                An attribute was not found or the value did not match.
+        """
+        for key, value in six.iteritems(attrs):
+            try:
+                attr_value = getattr(obj, key)
+
+                if attr_value != value:
+                    raise self.failureException(self._formatMessage(
+                        msg,
+                        '%s: %s != %s'
+                        % (key, safe_repr(attr_value),
+                           safe_repr(value))))
+            except AttributeError:
+                raise self.failureException(self._formatMessage(
+                    msg,
+                    'Attribute "%s" was not found on %s'
+                    % (key, safe_repr(obj))))
 
     def assertRaisesValidationError(self, expected_messages, *args, **kwargs):
         """Assert that a ValidationError is raised with the given message(s).
