@@ -5,7 +5,7 @@
 Djblets 1.0.14 Release Notes
 ============================
 
-**Release date**: TBD
+**Release date**: December 10, 2020
 
 
 djblets.testing
