@@ -1,0 +1,44 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+============================
+Djblets 1.0.14 Release Notes
+============================
+
+**Release date**: December 10, 2020
+
+
+djblets.testing
+===============
+
+* Added :py:meth:`TestCase.assertAttrsEqual()
+  <djblets.testing.testcases.TestCase.assertAttrsEqual>` for asserting against
+  an object's attributes.
+
+  This makes it easy to check whether an object has attributes that match a
+  dictionary of expected values.
+
+
+djblets.pipeline
+================
+
+* Fixed a compatibility issue with our own
+  :py:class:`djblets.pipeline.compilers.less.LessCompiler` when using
+  LessCSS 3.11.2+.
+
+
+djblets.util
+============
+
+* Fixed an exception when trying to use the :py:func:`{{...|thumbnail}}
+  <djblets.util.templatetags.djblets_images.thumbnail>` template filter on a
+  SVG file (:bug:`4687`).
+
+  Patch by André Klitzing.
+
+
+Contributors
+============
+
+* André Klitzing
+* Christian Hammond
