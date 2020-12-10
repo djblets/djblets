@@ -91,7 +91,7 @@ ConfigForms
 
 
 Modal Boxes
-===========
+-----------
 
 * Added a new formal stylesheet for modal boxes.
 
