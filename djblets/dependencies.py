@@ -54,7 +54,7 @@ package_dependencies = {
     'django-pipeline': '>=1.6.14,<1.6.999',
     'dnspython': '>=1.14.0',
     'feedparser': '>=5.1.2',
-    'pillowfight': '',
+    'Pillow': '',
     'publicsuffix': '>=1.1',
     'python-dateutil': '>=2.7',
     'pytz': '',

@@ -280,7 +280,8 @@ suite('djblets/configForms/views/ListItemView', function() {
                         .$('.config-forms-list-action-mymenu');
                     $action.click();
 
-                    const $menu = itemView.$('.action-menu');
+                    const $menu =
+                        itemView.$('.djblets-c-config-forms-popup-menu');
                     expect($menu.length).toBe(1);
                     expect(itemView.trigger.calls.mostRecent().args[0]).toBe(
                         'actionMenuPopUp');

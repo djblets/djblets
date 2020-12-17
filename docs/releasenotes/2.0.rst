@@ -5,7 +5,7 @@
 Djblets 2.0 Release Notes
 =========================
 
-**Release date**: TBD
+**Release date**: December 16, 2020
 
 
 Packaging/Compatibility
@@ -18,6 +18,14 @@ Packaging/Compatibility
 * Increased Django support to 1.6 and 1.11.
 
   This is the last version series to support any Django 1.x releases.
+
+* Added a dependency on :pypi:`Pillow` and removed support for PIL.
+
+  PIL is a legacy image library that we've maintained compatibility with
+  through :pypi:`pillowfight`. We're finally dropping PIL and moving entirely
+  to Pillow.
+
+  If you hit any issues, you may need to manually uninstall PIL.
 
 * Added a dependency on :pypi:`python-dateutil` 2.7 or higher.
 

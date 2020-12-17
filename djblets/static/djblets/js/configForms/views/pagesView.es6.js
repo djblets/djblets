@@ -35,11 +35,11 @@ Djblets.Config.PagesView = Backbone.View.extend({
      *     This view.
      */
     render() {
-        this._$pageNavs = this.$('.config-forms-side-nav li');
-        this._$pages = this.$('.config-forms-page-content > .page');
+        this._$pageNavs = this.$('.djblets-c-config-forms-page-nav__item');
+        this._$pages = this.$('.djblets-c-config-forms-subpage');
 
-        this._$activeNav = this._$pageNavs.eq(0).addClass('active');
-        this._$activePage = this._$pages.eq(0).addClass('active');
+        this._$activeNav = this._$pageNavs.eq(0).addClass('-is-active');
+        this._$activePage = this._$pages.eq(0).addClass('-is-active');
 
         Backbone.history.start({
             root: window.location.pathname,
@@ -63,8 +63,8 @@ Djblets.Config.PagesView = Backbone.View.extend({
      *         The ID of the page that is becoming active.
      */
     _onPageChanged(pageID) {
-        this._$activeNav.removeClass('active');
-        this._$activePage.removeClass('active');
+        this._$activeNav.removeClass('-is-active');
+        this._$activePage.removeClass('-is-active');
 
         this._$activePage = $(`#page_${pageID}`);
 
@@ -83,9 +83,9 @@ Djblets.Config.PagesView = Backbone.View.extend({
             this._$activeNav =
                 this._$pageNavs
                     .filter(`:has(a[href="#${pageID}"])`)
-                    .addClass('active');
+                    .addClass('-is-active');
 
-            this._$activePage.addClass('active');
+            this._$activePage.addClass('-is-active');
 
             if (!this._preserveMessages) {
                 $('#messages').remove();

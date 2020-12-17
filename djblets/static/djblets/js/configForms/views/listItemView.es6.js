@@ -212,31 +212,38 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      */
     _showActionDropdown(action, $action) {
         const actionPos = $action.position();
-        const $pane = $('<ul/>')
-                .css('position', 'absolute')
-                .addClass('action-menu')
-                .click(e => e.stopPropagation());
+        const $menu = $('<div/>')
+            .css({
+                minWidth: $action.outerWidth(),
+                position: 'absolute',
+            })
+            .addClass('djblets-c-config-forms-popup-menu')
+            .click(e => e.stopPropagation());
+        const $items = $('<ul/>')
+            .addClass('djblets-c-config-forms-popup-menu__items')
+            .appendTo($menu);
         const actionLeft = actionPos.left + $action.getExtents('m', 'l');
 
         action.children.forEach(
             childAction => $('<li/>')
-                .addClass(`config-forms-list-action-row-${childAction.id}`)
+                .addClass('djblets-c-config-forms-popup-menu__item ' +
+                          `config-forms-list-action-row-${childAction.id}`)
                 .append(this._buildActionEl(childAction))
-                .appendTo($pane)
+                .appendTo($items)
         );
 
         this.trigger('actionMenuPopUp', {
             action: action,
             $action: $action,
-            $menu: $pane
+            $menu: $menu,
         });
 
-        $pane.appendTo($action.parent());
+        $menu.appendTo($action.parent());
 
         const winWidth = $(window).width();
-        const paneWidth = $pane.width();
+        const paneWidth = $menu.width();
 
-        $pane.move(($action.offset().left + paneWidth > winWidth
+        $menu.move(($action.offset().left + paneWidth > winWidth
                     ? actionLeft + $action.innerWidth() - paneWidth
                     : actionLeft),
                    actionPos.top + $action.outerHeight(),
@@ -247,10 +254,10 @@ Djblets.Config.ListItemView = Backbone.View.extend({
             this.trigger('actionMenuPopDown', {
                 action: action,
                 $action: $action,
-                $menu: $pane
+                $menu: $menu,
             });
 
-            $pane.remove();
+            $menu.remove();
         });
     },
 

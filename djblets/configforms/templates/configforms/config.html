@@ -4,23 +4,23 @@
 {% block title %}{{page_title}}{% endblock %}
 
 {% block content %}
-<div class="config-forms-container{% if render_sidebar %} config-forms-has-sidebar{% endif %}"{% if pages_id %} id="{{pages_id}}"{% endif %}>
+<div class="djblets-c-config-forms-page{% if render_sidebar %} -has-sidebar{% endif %}"{% if pages_id %} id="{{pages_id}}"{% endif %}>
 {%  if render_sidebar %}
-{%   box "nav config-forms-side-nav" %}
+{%   box "nav djblets-c-config-forms-page-nav" %}
  <div class="box-head">
   <h1 class="box-title">{{nav_title}}</h1>
  </div>
  <div class="box-main box-foot">
-  <ul>
+  <ul class="djblets-c-config-forms-page-nav__list">
 {%    for page in pages %}
-   <li><a href="#{{page.page_id}}">{{page.page_title}}</a></li>
+   <li class="djblets-c-config-forms-page-nav__item"><a href="#{{page.page_id}}">{{page.page_title}}</a></li>
 {%    endfor %}
   </ul>
  </div>
 {%   endbox %}
 {%  endif %}
 
- <div class="config-forms-page-content">
+ <div class="djblets-c-config-forms-page__content">
 {%  if messages %}
   <ul id="messages">
 {%   for message in messages %}
@@ -30,7 +30,7 @@
 {%  endif %}
 
 {%  for page in pages %}
-  <div class="page" id="page_{{page.page_id}}">
+  <div class="djblets-c-config-forms-subpage" id="page_{{page.page_id}}">
 {{page.render|safe}}
   </div>
 {%  endfor %}
