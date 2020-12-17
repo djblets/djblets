@@ -19,6 +19,14 @@ Packaging/Compatibility
 
   This is the last version series to support any Django 1.x releases.
 
+* Added a dependency on :pypi:`Pillow` and removed support for PIL.
+
+  PIL is a legacy image library that we've maintained compatibility with
+  through :pypi:`pillowfight`. We're finally dropping PIL and moving entirely
+  to Pillow.
+
+  If you hit any issues, you may need to manually uninstall PIL.
+
 * Added a dependency on :pypi:`python-dateutil` 2.7 or higher.
 
 * :py:mod:`djblets.markdown` now requires :pypi:`Markdown` 3.x.
