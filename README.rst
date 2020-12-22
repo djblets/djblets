@@ -251,7 +251,7 @@ We accept patches on `reviews.reviewboard.org
 requests.)
 
 .. _Review Board Contributor Guide:
-   https://www.reviewboard.org/docs/codebase/dev://www.notion.so/reviewboard/Review-Board-45d228fb07a0459b84fee509ac054cec
+   https://www.notion.so/reviewboard/Review-Board-45d228fb07a0459b84fee509ac054cec
 
 
 Related Projects
