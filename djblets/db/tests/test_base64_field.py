@@ -3,7 +3,7 @@
 
 from __future__ import unicode_literals
 
-from django.db import models
+from django.db import connection, models
 from django.utils import six
 
 from djblets.db.fields.base64_field import (Base64DecodedValue, Base64Field,
@@ -249,6 +249,28 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
         self.assertIs(type(encoded), bytes)
         self.assertEqual(encoded, b'VGhpcyBpcyBhIHRlc3Q=\n')
 
+    def test_values_persist_after_save_with_bad_x(self):
+        """Testing Base64Field value persists correctly after save with
+        bad \\x from Djblets 2.0
+        """
+        # Djblets 2.0 could save an empty Base64-encoded string as "\x", due to
+        # saving as bytes. This was an issue only on Postgres, and didn't
+        # manifest on MySQL or SQLite. Still, to work around it, we now check
+        # for this bad value.
+        obj = Base64TestModel.objects.create()
+
+        # Simulate the error case.
+        with connection.cursor() as cursor:
+            # We want to plug in the table name, so we won't be using
+            # execute's own params=[...] here.
+            cursor.execute('UPDATE %s SET field="\\x" WHERE id=%s'
+                           % (Base64TestModel._meta.db_table, obj.pk))
+
+        obj = Base64TestModel.objects.get(pk=obj.pk)
+
+        self.assertIs(type(obj.field), Base64DecodedValue)
+        self.assertEqual(obj.field, b'')
+
     def test_save_form_data_with_bytes(self):
         """Testing Base64Field.save_form_data with bytes value"""
         obj = Base64TestModel(field=b'This is a test')
@@ -285,6 +307,49 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
         encoded = obj.get_field_base64()
         self.assertIs(type(encoded), bytes)
         self.assertEqual(encoded, b'VGhpcyBpcyBhIHTDqXN0\n')
+
+    def test_get_prep_value_with_bytes(self):
+        """Testing Base64Field.get_prep_value with bytes value"""
+        obj = Base64TestModel()
+        value = obj._meta.get_field('field').get_prep_value(
+            b'VGhpcyBpcyBhIHTDqXN0\n')
+
+        self.assertIs(type(value), six.text_type)
+        self.assertEqual(value, 'VGhpcyBpcyBhIHTDqXN0\n')
+
+    def test_get_prep_value_with_unicode(self):
+        """Testing Base64Field.get_prep_value with unicode value"""
+        obj = Base64TestModel()
+        value = obj._meta.get_field('field').get_prep_value(
+            'VGhpcyBpcyBhIHTDqXN0\n')
+
+        self.assertIs(type(value), six.text_type)
+        self.assertEqual(value, 'VGhpcyBpcyBhIHTDqXN0\n')
+
+    def test_get_prep_value_with_base64_decoded_value(self):
+        """Testing Base64Field.get_prep_value with Base64DecodedValue value"""
+        obj = Base64TestModel()
+        value = obj._meta.get_field('field').get_prep_value(
+            Base64DecodedValue(b'This is a t\xc3\xa9st'))
+
+        self.assertIs(type(value), six.text_type)
+        self.assertEqual(value, 'VGhpcyBpcyBhIHTDqXN0\n')
+
+    def test_get_prep_value_with_memoryview_value(self):
+        """Testing Base64Field.get_prep_value with memoryview value"""
+        obj = Base64TestModel()
+        value = obj._meta.get_field('field').get_prep_value(
+            six.memoryview(b'VGhpcyBpcyBhIHTDqXN0\n'))
+
+        self.assertIs(type(value), six.text_type)
+        self.assertEqual(value, 'VGhpcyBpcyBhIHTDqXN0\n')
+
+    def test_get_prep_value_with_none(self):
+        """Testing Base64Field.get_prep_value with None value"""
+        obj = Base64TestModel()
+        value = obj._meta.get_field('field').get_prep_value(None)
+
+        self.assertIsNone(value)
 
     def test_to_python_with_bytes(self):
         """Testing Base64Field.to_python with bytes value"""

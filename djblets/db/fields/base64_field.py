@@ -16,7 +16,7 @@ except ImportError:
 
 from django.db import models
 from django.utils import six
-from django.utils.encoding import smart_text
+from django.utils.encoding import force_text, smart_text
 from django.utils.translation import ugettext as _
 
 
@@ -91,7 +91,13 @@ class Base64FieldCreator(object):
             pk_set = pk_val is not None and smart_text(pk_val) != ''
 
             if isinstance(value, six.text_type):
-                value = value.encode('utf-8')
+                if value == r'\x':
+                    # On Djblets 2.0 with Python 3 on Postgres, empty byte
+                    # strings were being stored as the literal 2-byte string
+                    # "\x". Check for this and convert back.
+                    value = b''
+                else:
+                    value = value.encode('utf-8')
             elif isinstance(value, six.memoryview):
                 value = bytes(value)
 
@@ -188,6 +194,10 @@ class Base64Field(models.TextField):
     def get_prep_value(self, value):
         """Return a value prepared for the field.
 
+        This prepares the value for use in database operations (saving
+        or querying). It will convert the value into a Unicode Base64-encoded
+        string.
+
         Args:
             value (object):
                 The value to prepare. This is expected to be a string or a
@@ -195,7 +205,7 @@ class Base64Field(models.TextField):
                 encoded.
 
         Returns:
-            bytes:
+            unicode:
             The resulting value.
 
         Raises:
@@ -203,15 +213,14 @@ class Base64Field(models.TextField):
                 The type of value provided could not be prepared for writing.
         """
         if value is not None:
-            if not isinstance(value, (bytes, six.memoryview, six.text_type)):
-                raise Base64TypeError(value)
-
             if isinstance(value, Base64DecodedValue):
-                value = base64_encode(value)
-            elif isinstance(value, six.text_type):
-                value = value.encode('utf-8')
+                value = base64_encode(value).decode('utf-8')
+            elif isinstance(value, bytes):
+                value = value.decode('utf-8')
             elif isinstance(value, six.memoryview):
-                value = bytes(value)
+                value = force_text(bytes(value))
+            elif not isinstance(value, six.text_type):
+                raise Base64TypeError(value)
 
         return value
 
@@ -232,17 +241,15 @@ class Base64Field(models.TextField):
             Base64TypeError:
                 The type of value provided could not be prepared for writing.
         """
-        if value is not None:
-            if not isinstance(value, (bytes, six.memoryview, six.text_type)):
+        if value is not None and not isinstance(value, Base64DecodedValue):
+            if isinstance(value, six.text_type):
+                value = value.encode('utf-8')
+            elif isinstance(value, six.memoryview):
+                value = bytes(value)
+            elif not isinstance(value, bytes):
                 raise Base64TypeError(value)
 
-            if not isinstance(value, Base64DecodedValue):
-                if isinstance(value, six.text_type):
-                    value = value.encode('utf-8')
-                elif isinstance(value, six.memoryview):
-                    value = bytes(value)
-
-                value = Base64DecodedValue(base64_decode(value))
+            value = Base64DecodedValue(base64_decode(value))
 
         return value
 
