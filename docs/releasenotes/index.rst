@@ -11,6 +11,7 @@ Djblets Release Notes
 .. toctree::
    :maxdepth: 1
 
+   2.0.1
    2.0
 
 

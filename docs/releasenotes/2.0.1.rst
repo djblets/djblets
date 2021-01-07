@@ -1,0 +1,22 @@
+.. default-intersphinx:: django1.11 djblets2.0
+
+
+===========================
+Djblets 2.0.1 Release Notes
+===========================
+
+**Release date**: TBD
+
+
+Bug Fixes
+=========
+
+* Fixed a regression with saving a
+  :py:class:`~djblets.db.fields.base64_field.Base64Field` on Postgres
+  databases on Python 3.
+
+
+Contributors
+============
+
+* Christian Hammond
