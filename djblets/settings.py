@@ -60,7 +60,7 @@ PIPELINE = {
         '--no-color',
         '--source-map',
         '--js',
-        '--autoprefix',
+        '--plugin=@beanbag/less-plugin-autoprefix',
     ],
     'UGLIFYJS_BINARY': os.path.join(NODE_PATH, 'uglify-js', 'bin', 'uglifyjs'),
 }

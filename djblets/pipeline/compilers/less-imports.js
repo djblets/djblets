@@ -94,17 +94,9 @@ function parseArgs() {
                     });
                 break;
 
-            case 'no-color':
-            case 'source-map':
-            case 'autoprefix':
-            case 'js':
-            case 'rewrite-urls':
-                // These don't matter for the imports check. No-op.
-                break;
-
             default:
-                console.error('less-imports.js: Un-handled argument "%s"', arg);
-                process.exit(1);
+                /* Ignore everything else. */
+                break;
         }
     });
 
