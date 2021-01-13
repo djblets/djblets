@@ -138,7 +138,7 @@ def build_pipeline_settings(pipeline_enabled,
         'STYLESHEETS': stylesheet_bundles,
         'BABEL_BINARY': babel_bin_path,
         'BABEL_ARGUMENTS': [
-            '--presets', '@babel/env',
+            '--presets', 'env',
             '--plugins', ','.join(babel_plugins),
             '-s', 'true',
         ] + babel_extra_args,
