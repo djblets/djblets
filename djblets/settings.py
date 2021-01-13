@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 
 import os
 
+from djblets.pipeline.settings import build_pipeline_settings
 from djblets.staticbundles import PIPELINE_JAVASCRIPT, PIPELINE_STYLESHEETS
 
 
@@ -34,36 +35,17 @@ STATICFILES_FINDERS = (
 STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
 
 
-NODE_PATH = os.path.join(DJBLETS_ROOT, '..', 'node_modules')
-os.environ['NODE_PATH'] = NODE_PATH
+NODE_PATH = os.path.abspath(os.path.join(DJBLETS_ROOT, '..', 'node_modules'))
 
 
-PIPELINE = {
-    'PIPELINE_ENABLED': not DEBUG or os.getenv('FORCE_BUILD_MEDIA'),
-    'COMPILERS': [
-        'djblets.pipeline.compilers.es6.ES6Compiler',
-        'djblets.pipeline.compilers.less.LessCompiler',
-    ],
-    'CSS_COMPRESSOR': None,
-    'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
-    'JAVASCRIPT': PIPELINE_JAVASCRIPT,
-    'STYLESHEETS': PIPELINE_STYLESHEETS,
-    'BABEL_BINARY': os.path.join(NODE_PATH, 'babel-cli', 'bin', 'babel.js'),
-    'BABEL_ARGUMENTS': [
-        '--presets', 'env',
-        '--plugins', 'dedent,django-gettext',
-        '-s', 'true',
-    ],
-    'LESS_BINARY': os.path.join(NODE_PATH, 'less', 'bin', 'lessc'),
-    'LESS_ARGUMENTS': [
-        '--include-path=%s' % STATIC_ROOT,
-        '--no-color',
-        '--source-map',
-        '--js',
-        '--plugin=@beanbag/less-plugin-autoprefix',
-    ],
-    'UGLIFYJS_BINARY': os.path.join(NODE_PATH, 'uglify-js', 'bin', 'uglifyjs'),
-}
+PIPELINE = build_pipeline_settings(
+    pipeline_enabled=not DEBUG or os.getenv('FORCE_BUILD_MEDIA'),
+    node_modules_path=NODE_PATH,
+    static_root=STATIC_ROOT,
+    javascript_bundles=PIPELINE_JAVASCRIPT,
+    stylesheet_bundles=PIPELINE_STYLESHEETS,
+    validate_paths=DEBUG)
+
 
 INSTALLED_APPS = [
     'django.contrib.auth',

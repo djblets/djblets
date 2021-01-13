@@ -323,6 +323,7 @@ Django Pipeline Additions
 
    djblets.pipeline.compilers.es6.ES6Compiler
    djblets.pipeline.compilers.less.LessCompiler
+   djblets.pipeline.settings
 
 
 .. _coderef-djblets-privacy:
