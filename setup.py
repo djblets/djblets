@@ -29,6 +29,24 @@ if pyver < (2, 7) or (3, 0) <= pyver < (3, 6):
     sys.exit(1)
 
 
+# NOTE: When updating, make sure you update the classifiers below.
+SUPPORTED_PYVERS = ['2.7', '3.6', '3.7', '3.8', '3.9']
+
+
+if '--all-pyvers' in sys.argv:
+    new_argv = sys.argv[1:]
+    new_argv.remove('--all-pyvers')
+
+    for pyver in SUPPORTED_PYVERS:
+        result = os.system(subprocess.list2cmdline(
+            ['python%s' % pyver, __file__] + new_argv))
+
+        if result != 0:
+            sys.exit(result)
+
+    sys.exit(0)
+
+
 # We want to use subprocess.check_output to see if certain commands can be run,
 # but on Python 2.6 we don't have this. Instead, use subprocess.check_call
 # (which will display any results to stdout).
