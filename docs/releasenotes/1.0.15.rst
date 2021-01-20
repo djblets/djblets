@@ -1,0 +1,28 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+============================
+Djblets 1.0.15 Release Notes
+============================
+
+**Release date**: January 20, 2021
+
+
+Packaging
+=========
+
+Added restrictive version ranges for many of our dependencies, in order to
+avoid installation issues on Python 2.7:
+
+* :pypi:`dnspython` is capped to < 2.0.
+* :pypi:`feedparser` is capped to < 6.0.
+* :pypi:`Pillow` is capped to < 7.0.
+* :pypi:`python-dateutil` is capped < 2.0.
+
+The package can also now be built with modern versions of Node.JS.
+
+
+Contributors
+============
+
+* Christian Hammond

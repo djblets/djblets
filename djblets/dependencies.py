@@ -70,8 +70,26 @@ npm_dependencies.update(babel_npm_dependencies)
 package_dependencies = {
     'Django': django_version,
     'django-pipeline': '>=1.6.14,<1.6.999',
-    'dnspython': '>=1.14.0',
-    'feedparser': '>=5.1.2',
+    'dnspython': [
+        {
+            'python': PYTHON_2_RANGE,
+            'version': '>=1.14.0,<1.999',
+        },
+        {
+            'python': PYTHON_3_RANGE,
+            'version': '>=1.14.0',
+        },
+    ],
+    'feedparser': [
+        {
+            'python': PYTHON_2_RANGE,
+            'version': '>=5.1.2,<5.999',
+        },
+        {
+            'python': PYTHON_3_RANGE,
+            'version': '>=5.1.2',
+        },
+    ],
     'Pillow': [
         {
             'python': PYTHON_2_RANGE,
@@ -83,7 +101,16 @@ package_dependencies = {
         },
     ],
     'publicsuffix': '>=1.1',
-    'python-dateutil': '>=2.7',
+    'python-dateutil': [
+        {
+            'python': PYTHON_2_RANGE,
+            'version': '>=1.5,<1.999',
+        },
+        {
+            'python': PYTHON_3_RANGE,
+            'version': '>=2.7',
+        },
+    ],
     'pytz': '',
 }
 
