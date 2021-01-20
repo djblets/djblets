@@ -67,7 +67,7 @@ def build_pipeline_settings(pipeline_enabled,
             project.
 
         static_root (unicode):
-            The value of the ``settings.STATIC_ROOT`. This must be provided
+            The value of the ``settings.STATIC_ROOT``. This must be provided
             explicitly, since :file:`settings.py` is likely the module
             calling this.
 

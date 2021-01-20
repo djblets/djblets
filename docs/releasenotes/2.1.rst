@@ -1,0 +1,44 @@
+.. default-intersphinx:: django1.11 djblets2.x
+
+
+=========================
+Djblets 2.1 Release Notes
+=========================
+
+**Release date**: January 18, 2021
+
+
+Packaging
+=========
+
+* Djblets packages can now be built with modern versions of Node.JS.
+
+
+New Features
+============
+
+* Added :py:func:`~djblets.pipeline.settings.build_pipeline_settings` for
+  generating Djblets-recommended :pypi:`django-pipeline` settings.
+
+  This can be used by consuming projects to compile LessCSS files using
+  our `autoprefix plugin`_ with modern Node.JS support, as well as compiling
+  JavaScript using Babel with dedent_ and django-gettext_ plugins.
+
+.. _autoprefix plugin:
+   https://www.npmjs.com/package/@beanbag/less-plugin-autoprefix
+.. _dedent: https://www.npmjs.com/package/babel-plugin-dedent
+.. _django-gettext: https://www.npmjs.com/package/babel-plugin-django-gettext
+
+
+Bug Fixes
+=========
+
+* Fixed a regression with saving a
+  :py:class:`~djblets.db.fields.base64_field.Base64Field` on Postgres
+  databases on Python 3.
+
+
+Contributors
+============
+
+* Christian Hammond
