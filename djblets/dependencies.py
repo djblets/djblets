@@ -105,7 +105,7 @@ package_dependencies = {
     'python-dateutil': [
         {
             'python': PYTHON_2_RANGE,
-            'version': '>=1.5,<1.999',
+            'version': '>=2.7',
         },
         {
             'python': PYTHON_3_RANGE,

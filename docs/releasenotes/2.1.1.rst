@@ -1,0 +1,18 @@
+.. default-intersphinx:: django1.11 djblets2.x
+
+
+===========================
+Djblets 2.1.1 Release Notes
+===========================
+
+**Release date**: January 20, 2021
+
+
+Packaging
+=========
+
+* Relaxed the :pypi:`python-dateutil` dependency version range.
+
+  This inadvertently capped the version range on Python 2.7 to the
+  1.x range. As this package hasn't announced Python 2.7 will be dropped,
+  the cap has been removed.
