@@ -13,6 +13,25 @@ from __future__ import unicode_literals
 #       may be needed before any dependencies have been installed.
 
 
+#: The minimum supported version of Python 2.x.
+PYTHON_2_MIN_VERSION = (2, 7)
+
+#: The minimum supported version of Python 3.x.
+PYTHON_3_MIN_VERSION = (3, 6)
+
+#: A string representation of the minimum supported version of Python 2.x.
+PYTHON_2_MIN_VERSION_STR = '%s.%s' % (PYTHON_2_MIN_VERSION)
+
+#: A string representation of the minimum supported version of Python 3.x.
+PYTHON_3_MIN_VERSION_STR = '%s.%s' % (PYTHON_3_MIN_VERSION)
+
+#: A dependency version range for Python 2.x.
+PYTHON_2_RANGE = "=='%s.*'" % PYTHON_2_MIN_VERSION_STR
+
+#: A dependency version range for Python 3.x.
+PYTHON_3_RANGE = ">='%s'" % PYTHON_3_MIN_VERSION_STR
+
+
 #: The major version of Django we're using for documentation.
 django_doc_major_version = '1.6'
 
@@ -52,11 +71,47 @@ npm_dependencies.update(babel_npm_dependencies)
 package_dependencies = {
     'Django': django_version,
     'django-pipeline': '>=1.6.14,<1.6.999',
-    'dnspython': '>=1.14.0',
-    'feedparser': '>=5.1.2',
-    'Pillow': '',
+    'dnspython': [
+        {
+            'python': PYTHON_2_RANGE,
+            'version': '>=1.14.0,<1.999',
+        },
+        {
+            'python': PYTHON_3_RANGE,
+            'version': '>=1.14.0',
+        },
+    ],
+    'feedparser': [
+        {
+            'python': PYTHON_2_RANGE,
+            'version': '>=5.1.2,<5.999',
+        },
+        {
+            'python': PYTHON_3_RANGE,
+            'version': '>=5.1.2',
+        },
+    ],
+    'Pillow': [
+        {
+            'python': PYTHON_2_RANGE,
+            'version': '>=6.2,<6.999',
+        },
+        {
+            'python': PYTHON_3_RANGE,
+            'version': '>=6.2',
+        },
+    ],
     'publicsuffix': '>=1.1',
-    'python-dateutil': '>=2.7',
+    'python-dateutil': [
+        {
+            'python': PYTHON_2_RANGE,
+            'version': '>=1.5,<1.999',
+        },
+        {
+            'python': PYTHON_3_RANGE,
+            'version': '>=2.7',
+        },
+    ],
     'pytz': '',
 }
 
@@ -77,7 +132,16 @@ def build_dependency_list(deps, version_prefix=''):
         list of unicode:
         A list of dependency specifiers.
     """
-    return [
-        '%s%s%s' % (dep_name, version_prefix, dep_version)
-        for dep_name, dep_version in deps.items()
-    ]
+    new_deps = []
+
+    for dep_name, dep_details in deps.items():
+        if isinstance(dep_details, list):
+            new_deps += [
+                '%s%s%s; python_version%s'
+                % (dep_name, version_prefix, entry['version'], entry['python'])
+                for entry in dep_details
+            ]
+        else:
+            new_deps.append('%s%s%s' % (dep_name, version_prefix, dep_details))
+
+    return sorted(new_deps, key=lambda s: s.lower())
