@@ -5,7 +5,7 @@
 Djblets 1.0.15 Release Notes
 ============================
 
-**Release date**: TBD
+**Release date**: January 20, 2021
 
 
 Packaging
