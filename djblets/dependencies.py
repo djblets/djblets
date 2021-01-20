@@ -48,11 +48,11 @@ npm_dependencies.update(babel_npm_dependencies)
 package_dependencies = {
     'Django': django_version,
     'django-pipeline': '>=1.6.14,<1.6.999',
-    'dnspython': '>=1.14.0',
-    'feedparser': '>=5.1.2',
-    'pillowfight': '',
+    'dnspython': '>=1.14.0,<1.999',
+    'feedparser': '>=5.1.2,<5.999',
+    'pillowfight': '>=0.4',
     'publicsuffix': '>=1.1',
-    'python-dateutil': '>=1.5',
+    'python-dateutil': '>=1.5,<1.999',
     'pytz': '',
 }
 
