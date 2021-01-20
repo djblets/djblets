@@ -102,8 +102,8 @@ function parseArgs() {
                 break;
 
             default:
-                console.error('less-imports.js: Un-handled argument "%s"', arg);
-                process.exit(1);
+                /* Ignore everything else. */
+                break;
         }
     });
 
