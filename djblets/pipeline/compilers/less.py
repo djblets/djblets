@@ -185,8 +185,11 @@ class LessCompiler(PipelineLessCompiler):
             bool:
             ``True`` if the file is outdated. ``False`` if it is up-to-date.
         """
-        mtime = self._get_mtime(filename)
-        outdated = (mtime is None or mtime > compare_mtime)
+        if compare_mtime is None:
+            outdated = True
+        else:
+            mtime = self._get_mtime(filename)
+            outdated = (mtime is None or mtime > compare_mtime)
 
         if outdated:
             # Since this can run concurrently with other operations, we need
