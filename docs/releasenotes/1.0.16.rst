@@ -1,0 +1,24 @@
+.. default-intersphinx:: django1.6 djblets1.0
+
+
+============================
+Djblets 1.0.16 Release Notes
+============================
+
+**Release date**: February 11, 2021
+
+
+Packaging
+=========
+
+* Removed the cap on :pypi:`python-dateutil`.
+
+  Djblets 1.0.15 added a cap on this version, which was too restrictive and
+  unnecessary, as modern versions of this module work fine on Python 2.7,
+  and maintain API compatibility.
+
+
+Contributors
+============
+
+* Christian Hammond

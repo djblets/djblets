@@ -30,6 +30,7 @@ class LessCompilerTests(kgb.SpyAgency, TestCase):
         cls.dep2_less = os.path.join(tempdir, 'dep2.less')
         cls.dep3_less = os.path.join(tempdir, 'dep3.less')
         cls.main_css = os.path.join(tempdir, 'main.css')
+        cls.dep3_css = os.path.join(tempdir, 'dep3.css')
         cls.dep_filenames = [
             cls.dep1_less,
             cls.dep2_less,
@@ -159,6 +160,25 @@ class LessCompilerTests(kgb.SpyAgency, TestCase):
         self.assertSpyCallCount(getmtime_spy, 2)
         self.assertSpyCalledWith(getmtime_spy, main_less)
         self.assertSpyCalledWith(getmtime_spy, main_css)
+
+        self.assertSpyNotCalled(get_import_files_spy)
+
+    def test_is_outdated_with_no_dest_file(self):
+        """Testing LessCompiler.is_outdated with missing destination file"""
+        compiler = self.compiler
+        dep3_less = self.dep3_less
+        dep3_css = self.dep3_css
+
+        getmtime_spy = self.spy_on(os.path.getmtime)
+        get_import_files_spy = self.spy_on(compiler._get_import_files)
+
+        self.assertFalse(os.path.exists(dep3_css))
+        self.assertTrue(compiler.is_outdated(dep3_less, dep3_css))
+        self.assertEqual(compiler._import_files_cache, {})
+
+        self.assertEqual(set(compiler._mtime_cache), {dep3_css})
+        self.assertSpyCallCount(getmtime_spy, 1)
+        self.assertSpyCalledWith(getmtime_spy, dep3_css)
 
         self.assertSpyNotCalled(get_import_files_spy)
 
