@@ -87,6 +87,17 @@ Default: ``['django.db.backends']``
 
 A list of logger names to exclude from the logs. Each logger with the given
 name will be filtered out, along with any descendents of those loggers.
+
+
+LOGGING_TO_STDOUT
+-----------------
+
+.. versionadded:: 1.0.17
+
+Default: ``Flase``
+
+Whether to log output to stdout. This would be in addition to any other
+configured logging, and is intended for environments like Docker.
 """
 
 from __future__ import unicode_literals
@@ -245,10 +256,13 @@ def init_logging():
         return
 
     enabled = getattr(settings, 'LOGGING_ENABLED', False)
+    logging_to_stdout = getattr(settings, 'LOGGING_TO_STDOUT', False)
     log_directory = getattr(settings, 'LOGGING_DIRECTORY', None)
     log_name = getattr(settings, 'LOGGING_NAME', None)
 
-    if not enabled or not log_directory or not log_name:
+    if (not enabled or
+        (not logging_to_stdout and
+         (not log_directory or not log_name))):
         return
 
     log_level_name = getattr(settings, 'LOGGING_LEVEL',
@@ -262,7 +276,10 @@ def init_logging():
         'django.db.backends',
     ])
 
-    log_path = os.path.join(log_directory, log_name + ".log")
+    if log_directory and log_name:
+        log_path = os.path.join(log_directory, '%s.log' % log_name)
+    else:
+        log_path = None
 
     formatter = RequestLogFormatter(request_format_str, format_str)
     logging_to_stderr = False
@@ -278,8 +295,9 @@ def init_logging():
 
             logging_to_stderr = False
         except IOError:
-            handler = logging.StreamHandler()
-            logging_to_stderr = True
+            if not logging_to_stdout:
+                handler = logging.StreamHandler()
+                logging_to_stderr = True
 
         handler.setLevel(log_level)
         handler.setFormatter(formatter)
@@ -291,7 +309,7 @@ def init_logging():
         logging.warning("Could not open logfile %s. Logging to stderr",
                         log_path)
 
-    if settings.DEBUG and not logging_to_stderr:
+    if not logging_to_stderr and (settings.DEBUG or logging_to_stdout):
         # In DEBUG mode, log to the console as well.
         console_log = logging.StreamHandler()
         console_log.setLevel(log_level)
