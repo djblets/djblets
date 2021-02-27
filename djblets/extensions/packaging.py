@@ -47,9 +47,10 @@ class BuildStaticFiles(Command):
     django_settings_module = None
 
     user_options = [
-        (b'remove-source-files', None, 'remove source files from the package'),
+        (str('remove-source-files'), None,
+         'remove source files from the package'),
     ]
-    boolean_options = [b'remove-source-files']
+    boolean_options = [str('remove-source-files')]
 
     def initialize_options(self):
         self.build_lib = None
