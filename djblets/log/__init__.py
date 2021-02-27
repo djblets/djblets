@@ -94,7 +94,7 @@ LOGGING_TO_STDOUT
 
 .. versionadded:: 1.0.17
 
-Default: ``Flase``
+Default: ``False``
 
 Whether to log output to stdout. This would be in addition to any other
 configured logging, and is intended for environments like Docker.
