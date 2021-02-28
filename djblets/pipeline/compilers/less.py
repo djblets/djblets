@@ -24,7 +24,7 @@ class LessCompiler(PipelineLessCompiler):
     ``settings.PIPELINE['COMPILERS']``.
 
     Version Changed:
-        2.1.2:
+        2.2:
         Added in-memory caching of import lists and file information to
         speed up performance of compilations.
     """
@@ -32,13 +32,13 @@ class LessCompiler(PipelineLessCompiler):
     #: Cache expiration time for the list of outdated timestamp states.
     #:
     #: Version Added:
-    #:     2.1.2
+    #:     2.2
     _MTIME_CACHE_STALE_SECS = 10
 
     #: Cache mapping files to lists of imported files.
     #:
     #: Version Added:
-    #:     2.1.2
+    #:     2.2
     #:
     #: Type:
     #:     dict
@@ -47,7 +47,7 @@ class LessCompiler(PipelineLessCompiler):
     #: Cache of filenames to mtimes.
     #:
     #: Version Added:
-    #:     2.1.2
+    #:     2.2
     #:
     #: Type:
     #:     dict
@@ -56,7 +56,7 @@ class LessCompiler(PipelineLessCompiler):
     #: The latest updated timestamp for the mtime cache.
     #:
     #: Version Added:
-    #:     2.1.2
+    #:     2.2
     #:
     #: Type:
     #:     datetime.datetime
