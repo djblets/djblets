@@ -1,0 +1,47 @@
+.. default-intersphinx:: django1.11 djblets2.x
+
+
+=========================
+Djblets 2.2 Release Notes
+=========================
+
+**Release date**: March 2, 2021
+
+
+Performance Improvements
+========================
+
+* Improved compilation times with our
+  :py:class:`~djblets.pipeline.compilers.less.LessCompiler` for LessCSS files.
+
+  This has a significant impact on development servers, where all LessCSS
+  files are checked every page load to see which need to be compiled. The
+  first page's load time will be reduced, and subsequent page loads will be
+  nearly instantaneous.
+
+
+New Features
+============
+
+* Added a ``settings.LOGGING_TO_STDOUT`` setting, which can be set to ``True``
+  to force all log messages to go to standard out.
+
+  This is useful particularly when running in a Docker container, where
+  applications are expected to log to standard output. This can be used along
+  with the standard file-based logging.
+
+
+Bug Fixes
+=========
+
+* Fixed packaging extensions when running on Python 3.
+
+  Our extension packaging support was previously using byte strings on
+  Python 3 for some command line arguments used for packaging. This crashed
+  when trying to invoke the :file:`setup.py` for an extension's package.
+
+
+Contributors
+============
+
+* Christian Hammond
