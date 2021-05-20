@@ -141,6 +141,8 @@ class BuildStaticFiles(Command):
         build_dir = os.path.join(os.getcwd(), 'build')
         node_modules_dir = os.path.join(build_dir, 'node_modules')
 
+        os.environ['NODE_PATH'] = node_modules_dir
+
         if not os.path.exists(build_dir):
             os.mkdir(build_dir, 0o755)
 
@@ -258,6 +260,11 @@ class BuildStaticFiles(Command):
         # media.
         old_settings_module = os.environ.get('DJANGO_SETTINGS_MODULE')
         os.environ['DJANGO_SETTINGS_MODULE'] = self.django_settings_module
+
+        # Skip any initial pipeline settings validation in the consuming
+        # project's settings.py. The paths may not exist at this stage. We'll
+        # be creating them.
+        os.environ['DJBLETS_SKIP_PIPELINE_VALIDATION'] = '1'
 
         if hasattr(django, 'setup'):
             # Django >= 1.7

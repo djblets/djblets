@@ -1,0 +1,29 @@
+.. default-intersphinx:: django1.11 djblets2.x
+
+
+===========================
+Djblets 2.2.1 Release Notes
+===========================
+
+**Release date**: May 20, 2021
+
+
+Bug Fixes
+=========
+
+* Fixed :file:`node_modules` path validation errors when building extensions
+  against packaged installs of a consuming project.
+
+  When building extension packages against a production (packaged, rather than
+  local tree) install of a product, typical usage of
+  :py:func:`~djblets.pipeline.settings.build_pipeline_settings` could cause a
+  failure to find a :file:`node_modules` directory.
+
+  This validation was premature, and is no longer performed during packaging.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
