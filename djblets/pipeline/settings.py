@@ -94,6 +94,10 @@ def build_pipeline_settings(pipeline_enabled,
 
             It's recommended to set this based on ``DEBUG``, or another
             variable indicating a production vs. development environment.
+
+            If the :envvar:`DJBLETS_SKIP_PIPELINE_VALIDATION` environment
+            variable is set to ``1``, then this will be forced to ``False``.
+            This is primarily used for packaging building.
     """
     babel_bin_path = os.path.join(node_modules_path, 'babel-cli', 'bin',
                                   'babel.js')
@@ -101,7 +105,8 @@ def build_pipeline_settings(pipeline_enabled,
     uglifyjs_bin_path = os.path.join(node_modules_path, 'uglify-js', 'bin',
                                      'uglifyjs')
 
-    if validate_paths:
+    if (validate_paths and
+        os.environ.get('DJBLETS_SKIP_PIPELINE_VALIDATION') != '1'):
         if not os.path.exists(node_modules_path):
             raise ImproperlyConfigured(
                 'node_modules could not be found at %s'
