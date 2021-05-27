@@ -99,7 +99,7 @@ def build_pipeline_settings(pipeline_enabled,
             variable is set to ``1``, then this will be forced to ``False``.
             This is primarily used for packaging building.
     """
-    babel_bin_path = os.path.join(node_modules_path, 'babel-cli', 'bin',
+    babel_bin_path = os.path.join(node_modules_path, '@babel', 'cli', 'bin',
                                   'babel.js')
     lessc_bin_path = os.path.join(node_modules_path, 'less', 'bin', 'lessc')
     uglifyjs_bin_path = os.path.join(node_modules_path, 'uglify-js', 'bin',
@@ -143,7 +143,7 @@ def build_pipeline_settings(pipeline_enabled,
         'STYLESHEETS': stylesheet_bundles,
         'BABEL_BINARY': babel_bin_path,
         'BABEL_ARGUMENTS': [
-            '--presets', 'env',
+            '--presets', '@babel/preset-env',
             '--plugins', ','.join(babel_plugins),
             '-s', 'true',
         ] + babel_extra_args,
