@@ -19,9 +19,7 @@ from __future__ import unicode_literals
 
 import logging
 import uuid
-import warnings
 
-from django.template import RequestContext
 from django.utils import six
 
 from djblets.util.compat.django.template.loader import render_to_string

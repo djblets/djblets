@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
-from django.core.cache import cache
 from django.test.utils import override_settings
 from django.utils import six
 from django.utils.datastructures import MultiValueDict

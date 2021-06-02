@@ -6,7 +6,6 @@ import inspect
 import locale
 import logging
 import os
-import warnings
 from email.parser import FeedParser
 
 import pkg_resources

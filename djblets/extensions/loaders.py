@@ -2,8 +2,6 @@
 
 from __future__ import unicode_literals
 
-import warnings
-
 from django.template import TemplateDoesNotExist
 from pkg_resources import _manager as manager
 try:

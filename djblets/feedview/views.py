@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 from django.http import HttpResponse
-from django.template.context import RequestContext
 from django.utils.six.moves import http_client
 from django.utils.six.moves.urllib.error import URLError
 from django.utils.six.moves.urllib.request import urlopen

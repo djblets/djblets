@@ -26,7 +26,6 @@
 from __future__ import unicode_literals
 
 from hashlib import md5
-from warnings import warn
 
 from django.conf import settings
 from django.utils import six

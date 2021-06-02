@@ -36,7 +36,6 @@ import time
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404
-from django.template.context import RequestContext
 from django.utils import six
 from django.utils.six.moves.urllib.parse import urlencode
 from django.utils.translation import ugettext_lazy as _

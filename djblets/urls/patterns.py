@@ -1,10 +1,5 @@
 from __future__ import unicode_literals
 
-import warnings
-
-from django.conf.urls import url
-from django.core.urlresolvers import RegexURLPattern
-from django.utils import six
 from django.views.decorators.cache import never_cache
 
 

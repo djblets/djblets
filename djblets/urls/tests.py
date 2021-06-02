@@ -1,12 +1,8 @@
 from __future__ import unicode_literals
 
-import warnings
-
-import django
 from django.conf.urls import include, url
 from django.core.urlresolvers import (NoReverseMatch, clear_url_caches,
                                       reverse)
-from django.utils import six
 from django.views.decorators.cache import never_cache
 from kgb import SpyAgency
 
