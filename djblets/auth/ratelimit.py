@@ -61,7 +61,7 @@ def get_user_id_or_ip(request):
         If the user is authenticated, the user ID will be returned.
         Otherwise, the IP address of the client is returned instead.
     """
-    if hasattr(request, 'user') and request.user.is_authenticated():
+    if hasattr(request, 'user') and request.user.is_authenticated:
         return six.text_type(request.user.pk)
 
     try:

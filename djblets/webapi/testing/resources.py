@@ -38,7 +38,7 @@ def make_resource_tree(mixins=None, extension_manager=None,
     bases = tuple(mixins + [WebAPIResource])
 
     def has_access_permissions(self, request, *args, **kwargs):
-        return allow_anonymous_access or request.user.is_authenticated()
+        return allow_anonymous_access or request.user.is_authenticated
 
     base_resource = type('BaseResource', bases, {
         'has_access_permissions': has_access_permissions,

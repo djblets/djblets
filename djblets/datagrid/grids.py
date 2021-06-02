@@ -1071,7 +1071,7 @@ class DataGrid(object):
         # Get the saved settings for this grid in the profile. These will
         # work as defaults and allow us to determine if we need to save
         # the profile.
-        if self.request.user.is_authenticated():
+        if self.request.user.is_authenticated:
             profile = self.get_user_profile()
 
             if profile:

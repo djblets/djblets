@@ -1295,7 +1295,7 @@ class WebAPIResource(object):
         Subclasses can override this to return different or more detailed
         errors.
         """
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             logger.warning('%s %s: user %s does not have '
                            'permission to access this resource.',
                            request.method, request.path,
