@@ -33,7 +33,7 @@ from django.dispatch import Signal
 #: Args:
 #:     extension (djblets.extensions.extension.Extension):
 #:         The extension that was disabled.
-extension_disabled = Signal(providing_args=['extension'])
+extension_disabled = Signal()
 
 
 #: A signal fired when an extension is enabled.
@@ -41,7 +41,7 @@ extension_disabled = Signal(providing_args=['extension'])
 #: Args:
 #:     extension (djblets.extensions.extension.Extension):
 #:         The extension that was enabled.
-extension_enabled = Signal(providing_args=['extension'])
+extension_enabled = Signal()
 
 
 #: A signal fired when an extension is initialized.
@@ -52,7 +52,7 @@ extension_enabled = Signal(providing_args=['extension'])
 #:
 #:         This will be a subclass of
 #:         :py:class:`djblets.extensions.extension.Extension`.
-extension_initialized = Signal(providing_args=['ext_class'])
+extension_initialized = Signal()
 
 
 #: A signal fired when an extension is uninitialized.
@@ -63,7 +63,7 @@ extension_initialized = Signal(providing_args=['ext_class'])
 #:
 #:         This will be a subclass of
 #:         :py:class:`djblets.extensions.extension.Extension`.
-extension_uninitialized = Signal(providing_args=['ext_class'])
+extension_uninitialized = Signal()
 
 
 #: A signal fired when an extension's settings are saved.

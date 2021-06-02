@@ -18,4 +18,4 @@ from django.dispatch import Signal
 #:         The old site configuration. The caller can compare the settings
 #:         between the new one and this one to see if it needs to handle
 #:         anything.
-siteconfig_reloaded = Signal(providing_args=['siteconfig', 'old_siteconfig'])
+siteconfig_reloaded = Signal()

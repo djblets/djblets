@@ -10,4 +10,4 @@ from django.dispatch import Signal
 #: Args:
 #:     registry (djblets.registries.registry.Registry):
 #:         The registry being populated.
-registry_populating = Signal(providing_args=['registry'])
+registry_populating = Signal()
