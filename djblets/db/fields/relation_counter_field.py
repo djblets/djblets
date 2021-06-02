@@ -107,17 +107,11 @@ class RelationTracker(object):
     def __init__(self, model_cls, rel_field_name):
         self._rel_field_name = rel_field_name
 
-        if django.VERSION >= (1, 8):
-            # Django >= 1.8
-            self._rel_field = model_cls._meta.get_field(rel_field_name)
-            rel_model = self._rel_field.model
-            is_rel_direct = (not self._rel_field.auto_created or
-                             self._rel_field.concrete)
-            is_m2m = self._rel_field.many_to_many
-        else:
-            # Django < 1.8
-            self._rel_field, rel_model, is_rel_direct, is_m2m = \
-                model_cls._meta.get_field_by_name(rel_field_name)
+        self._rel_field = model_cls._meta.get_field(rel_field_name)
+        rel_model = self._rel_field.model
+        is_rel_direct = (not self._rel_field.auto_created or
+                         self._rel_field.concrete)
+        is_m2m = self._rel_field.many_to_many
 
         self._is_rel_reverse = not is_rel_direct
 
@@ -148,11 +142,7 @@ class RelationTracker(object):
                 # this.
                 m2m_field = self._rel_field.field
 
-            if hasattr(m2m_field, 'remote_field'):
-                # Django >= 1.7
-                remote_field = m2m_field.remote_field
-            else:
-                remote_field = m2m_field.rel
+            remote_field = m2m_field.remote_field
 
             if is_rel_direct:
                 self._related_name = remote_field.related_name
@@ -172,7 +162,7 @@ class RelationTracker(object):
             # This is a ForeignKey or similar. It must be the reverse end.
             assert not is_rel_direct
 
-            model = self._get_rel_field_related_model(self._rel_field)
+            model = self._rel_field.related_model
             self._related_name = self._rel_field.field.attname
 
             # Listen for deletions and saves on that model type. In the
@@ -415,9 +405,10 @@ class RelationTracker(object):
         rel_pk = getattr(instance, self._rel_field.field.attname)
 
         if rel_pk is not None:
-            self._update_counts(
-                self._get_rel_field_parent_model(self._rel_field),
-                [rel_pk], '_rel_field_name', by)
+            self._update_counts(model_cls=self._rel_field.model,
+                                pks=[rel_pk],
+                                rel_attname='_rel_field_name',
+                                update_by=by)
 
     def _update_counts(self, model_cls, pks, rel_attname, update_by):
         """Updates counts on all model entries matching the given criteria.
@@ -488,33 +479,9 @@ class RelationTracker(object):
             end of the relation.
         """
         return RelationCounterField._get_saved_states(
-            self._get_rel_field_parent_model(self._rel_field),
-            getattr(instance, self._rel_field.field.attname),
-            self._rel_field_name)
-
-    def _get_rel_field_parent_model(self, rel_field):
-        """Return the model owning a relation field.
-
-        This provides compatibility across different versions of Django.
-        """
-        if hasattr(rel_field, 'parent_model'):
-            # Django < 1.7
-            return rel_field.parent_model
-        else:
-            # Django >= 1.7
-            return rel_field.model
-
-    def _get_rel_field_related_model(self, rel_field):
-        """Return the model on the other side of a relation field.
-
-        This provides compatibility across different versions of Django.
-        """
-        if hasattr(rel_field, 'related_model'):
-            # Django >= 1.7
-            return rel_field.related_model
-        else:
-            # Django < 1.7
-            return rel_field.model
+            model_cls=self._rel_field.model,
+            instance_pk=getattr(instance, self._rel_field.field.attname),
+            rel_field_name=self._rel_field_name)
 
 
 class RelationCounterField(CounterField):

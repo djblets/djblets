@@ -18,13 +18,6 @@ from django_evolution.evolve import Evolver
 from kgb import SpyAgency
 from pipeline.conf import settings as pipeline_settings
 
-try:
-    # Django >= 1.6, <= 1.8
-    from django.template.base import get_templatetags_modules
-except ImportError:
-    # Django >= 1.9
-    get_templatetags_modules = None
-
 from djblets.extensions.errors import EnablingExtensionError
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import URLHook
@@ -715,18 +708,10 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         def _check_state(enabled):
             if enabled:
-                if get_templatetags_modules:
-                    self.assertIn(templatetags_module,
-                                  get_templatetags_modules())
-
                 self.assertEqual(
                     Template(template_str).render(Context({})),
                     'Hello, world!')
             else:
-                if get_templatetags_modules:
-                    self.assertNotIn(templatetags_module,
-                                     get_templatetags_modules())
-
                 with self.assertRaisesRegexp(TemplateSyntaxError,
                                              'is not a (valid|registered) tag '
                                              'library'):

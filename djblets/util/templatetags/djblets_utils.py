@@ -34,6 +34,7 @@ from django import template
 from django.http import QueryDict
 from django.template import TemplateSyntaxError, Variable
 from django.template.defaultfilters import stringfilter
+from django.template.loader import render_to_string
 from django.utils import six
 from django.utils.html import escape, format_html, strip_spaces_between_tags
 from django.utils.safestring import mark_safe
@@ -42,7 +43,6 @@ from django.utils.six.moves.urllib.parse import urlencode
 from django.utils.timezone import is_aware
 
 from djblets.deprecation import RemovedInDjblets30Warning
-from djblets.util.compat.django.template.loader import render_to_string
 from djblets.util.decorators import blocktag
 from djblets.util.dates import get_tz_aware_utcnow
 from djblets.util.http import get_url_params_except
@@ -260,7 +260,7 @@ def include_as_string(context, template_name):
            var s = {% include_as_string "message.txt" %};
            </script>
     """
-    s = render_to_string(template_name, context)
+    s = render_to_string(template_name, context.flatten())
     s = s.replace("'", "\\'")
     s = s.replace("\n", "\\\n")
 

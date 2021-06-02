@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 from django import forms
 from django.contrib import messages
 from django.forms.widgets import MultiWidget, Widget
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import format_html_join
 from django.utils.translation import ugettext_lazy as _
@@ -12,7 +13,6 @@ from django.utils.translation import ugettext_lazy as _
 from djblets.privacy.consent import (Consent,
                                      get_consent_requirements_registry,
                                      get_consent_tracker)
-from djblets.util.compat.django.template.loader import render_to_string
 
 
 class ConsentRequirementWidget(Widget):

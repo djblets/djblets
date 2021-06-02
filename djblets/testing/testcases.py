@@ -55,6 +55,7 @@ except ImportError:
     ModuleSpec = None
     module_from_spec = None
 
+from django.apps import apps
 from django.conf import settings
 from django.core import serializers
 from django.core.exceptions import ValidationError
@@ -67,15 +68,6 @@ from django.db.models import Model
 from django.template import Node
 from django.test import testcases
 from django.utils import six
-
-try:
-    # Django >= 1.7
-    from django.apps import apps
-except ImportError:
-    # Django < 1.7
-    from django.db.models.loading import cache as app_cache, load_app
-
-    apps = None
 
 try:
     from django_evolution.models import Evolution, Version
@@ -317,8 +309,7 @@ class TestModelsLoaderMixin(object):
     tests.
 
     Typically, Django requires any test directories to be pre-added to
-    INSTALLED_APPS, and a models.py made available (in Django < 1.7), in
-    order for models to be created in the test database.
+    INSTALLED_APPS in order for models to be created in the test database.
 
     This mixin works around this by dynamically adding the module to
     INSTALLED_APPS and forcing the database to be synced. It also will
@@ -402,34 +393,30 @@ class TestModelsLoaderMixin(object):
             Version.objects.all().delete()
             Evolution.objects.all().delete()
 
-        if apps:
-            # Push the new set of installed apps, and begin registering
-            # each of the models associated with the tests.
-            apps.set_installed_apps(settings.INSTALLED_APPS)
-            app_config = apps.get_containing_app_config(cls.tests_app)
+        # Push the new set of installed apps, and begin registering
+        # each of the models associated with the tests.
+        apps.set_installed_apps(settings.INSTALLED_APPS)
+        app_config = apps.get_containing_app_config(cls.tests_app)
 
-            if models_mod:
-                app_label = app_config.label
+        if models_mod:
+            app_label = app_config.label
 
-                for key, value in six.iteritems(models_mod.__dict__):
-                    if inspect.isclass(value) and issubclass(value, Model):
-                        # The model was likely registered under another app,
-                        # so we need to remove the old one and add the new
-                        # one.
-                        try:
-                            del apps.all_models[value._meta.app_label][
-                                value._meta.model_name]
-                        except KeyError:
-                            pass
+            for key, value in six.iteritems(models_mod.__dict__):
+                if inspect.isclass(value) and issubclass(value, Model):
+                    # The model was likely registered under another app,
+                    # so we need to remove the old one and add the new
+                    # one.
+                    try:
+                        del apps.all_models[value._meta.app_label][
+                            value._meta.model_name]
+                    except KeyError:
+                        pass
 
-                        value._meta.app_label = app_label
-                        apps.register_model(app_label, value)
+                    value._meta.app_label = app_label
+                    apps.register_model(app_label, value)
 
-            call_command('migrate', run_syncdb=True, verbosity=0,
-                         interactive=False)
-        else:
-            load_app(cls.tests_app)
-            call_command('syncdb', verbosity=0, interactive=False)
+        call_command('migrate', run_syncdb=True, verbosity=0,
+                     interactive=False)
 
         super(TestModelsLoaderMixin, cls).setUpClass()
 
@@ -450,14 +437,8 @@ class TestModelsLoaderMixin(object):
             except KeyError:
                 pass
 
-        if apps:
-            apps.unset_installed_apps()
-            apps.all_models[cls.tests_app].clear()
-        else:
-            if models_mod:
-                del app_cache.app_store[models_mod]
-
-            app_cache._get_models_cache.clear()
+        apps.unset_installed_apps()
+        apps.all_models[cls.tests_app].clear()
 
         # Set this free so the garbage collector can eat it.
         cls._tests_loader_models_mod = None
@@ -702,14 +683,11 @@ class FixturesCompilerMixin(object):
             list:
             The list of Django applications.
         """
-        if apps:
-            return [
-                app.models_module
-                for app in apps.get_app_configs()
-                if app.models_module
-            ]
-        else:
-            return app_cache.get_apps()
+        return [
+            app.models_module
+            for app in apps.get_app_configs()
+            if app.models_module
+        ]
 
     def __getattribute__(self, name):
         if name == 'fixtures' and self.__dict__.get('_hide_fixtures'):

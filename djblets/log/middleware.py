@@ -13,18 +13,11 @@ import traceback
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.db import connection
+from django.db.backends import utils as db_backend_utils
+from django.db.backends.base.base import BaseDatabaseWrapper
 from django.http import Http404
 from django.utils import six
 from django.utils.six.moves import cStringIO as StringIO
-
-try:
-    # Django >= 1.7
-    from django.db.backends import utils as db_backend_utils
-    from django.db.backends.base.base import BaseDatabaseWrapper
-except ImportError:
-    # Django < 1.7
-    from django.db.backends import (util as db_backend_utils,
-                                    BaseDatabaseWrapper)
 
 from djblets.log import init_logging, init_profile_logger, log_timed
 
@@ -98,13 +91,7 @@ class CursorDebugWrapper(db_backend_utils.CursorDebugWrapper):
             stack (unicode):
                 The formatted stack trace.
         """
-        try:
-            # Django >= 1.8
-            queries = self.db.queries_log
-        except AttributeError:
-            # Django < 1.8
-            queries = self.db.queries
-
+        queries = self.db.queries_log
         queries[-1]['stack'] = stack
 
 

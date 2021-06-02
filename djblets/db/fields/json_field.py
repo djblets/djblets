@@ -439,8 +439,6 @@ class JSONField(models.TextField):
         This makes JSONField migration-safe by encoding the default value
         to a string so that it can be safely loaded into the database.
 
-        This is only used on Django 1.7+.
-
         .. versionadded:: 0.9
 
         Returns:

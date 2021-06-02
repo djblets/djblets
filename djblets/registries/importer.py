@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 from importlib import import_module
 
-from djblets.util.compat.django.utils.functional import SimpleLazyObject
+from django.utils.functional import SimpleLazyObject
 
 
 def lazy_import_registry(module_path, registry_name, **kwargs):
@@ -29,7 +29,7 @@ def lazy_import_registry(module_path, registry_name, **kwargs):
             Keyword arguments to pass to the registry's constructor.
 
     Returns:
-        djblets.util.compat.django.utils.functional.SimpleLazyObject:
+        django.utils.functional.SimpleLazyObject:
         A wrapper that will dynamically load and forward on to the registry.
     """
     def _create_registry():

@@ -4,14 +4,9 @@ from __future__ import unicode_literals
 
 from django.db import models
 from django.db.models import F
+from django.db.models.expressions import Combinable as QueryExpressionType
 from django.db.models.signals import post_init
 from django.utils import six
-
-try:
-    from django.db.models.expressions import Combinable as QueryExpressionType
-except ImportError:
-    from django.db.models.expressions import (ExpressionNode as
-                                              QueryExpressionType)
 
 
 class CounterField(models.IntegerField):

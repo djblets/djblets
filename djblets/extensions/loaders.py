@@ -4,11 +4,7 @@ from __future__ import unicode_literals
 
 from django.template import TemplateDoesNotExist
 from pkg_resources import _manager as manager
-try:
-    from django.template.loaders.base import Loader as BaseLoader
-except ImportError:
-    # Django < 1.8
-    from django.template.loader import BaseLoader
+from django.template.loaders.base import Loader as BaseLoader
 
 from djblets.extensions.manager import get_extension_managers
 

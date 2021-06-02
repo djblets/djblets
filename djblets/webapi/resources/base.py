@@ -8,6 +8,9 @@ import warnings
 from django.conf.urls import include, url
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
+from django.db.models.fields.related_descriptors import (
+    ManyToManyDescriptor,
+    ForwardManyToOneDescriptor)
 from django.db.models.query import QuerySet
 from django.http import (HttpResponseNotAllowed, HttpResponse,
                          HttpResponseNotModified)
@@ -45,26 +48,9 @@ from djblets.webapi.errors import (DOES_NOT_EXIST,
                                    WebAPIError)
 from djblets.webapi.fields import IntFieldType
 
-try:
-    # Django >= 1.9
-    from django.db.models.fields.related_descriptors import (
-        ManyToManyDescriptor,
-        ForwardManyToOneDescriptor)
 
-    m2m_descriptors = (ManyToManyDescriptor,)
-    fkey_descriptors = (ForwardManyToOneDescriptor,)
-except ImportError:
-    # Django < 1.9
-    from django.db.models.fields.related import (
-        ManyRelatedObjectsDescriptor,
-        ReverseManyRelatedObjectsDescriptor,
-        ReverseSingleRelatedObjectDescriptor)
-
-    m2m_descriptors = (
-        ManyRelatedObjectsDescriptor,
-        ReverseManyRelatedObjectsDescriptor,
-    )
-    fkey_descriptors = (ReverseSingleRelatedObjectDescriptor,)
+m2m_descriptors = (ManyToManyDescriptor,)
+fkey_descriptors = (ForwardManyToOneDescriptor,)
 
 
 logger = logging.getLogger(__name__)

@@ -64,17 +64,10 @@ def generate_ajax_serial():
     AJAX_SERIAL = getattr(settings, "AJAX_SERIAL", 0)
 
     if not AJAX_SERIAL:
-        templates = getattr(settings, 'TEMPLATES', None)
-
-        if templates is not None:
-            # Django >= 1.8
-            template_dirs = itertools.chain.from_iterable(
-                template_settings.get('DIRS', [])
-                for template_settings in templates
-            )
-        else:
-            # Django < 1.8
-            template_dirs = getattr(settings, 'TEMPLATE_DIRS', [])
+        template_dirs = itertools.chain.from_iterable(
+            template_settings.get('DIRS', [])
+            for template_settings in getattr(settings, 'TEMPLATES', None)
+        )
 
         for template_path in template_dirs:
             for root, dirs, files in os.walk(template_path):

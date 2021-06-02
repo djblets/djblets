@@ -22,7 +22,7 @@ class CursorDebugWrapperTests(TestCase):
                 'INSERT INTO django_site (name, domain) VALUES (%s, %s)',
                 ('site1', 'domain1.com'))
 
-        self.assertIn('stack', self._get_queries()[-1])
+        self.assertIn('stack', connection.queries_log[-1])
 
     def test_executemany(self):
         """Testing CursorDebugWrapper.executemany"""
@@ -34,12 +34,4 @@ class CursorDebugWrapperTests(TestCase):
                     ('site2', 'domain2.com'),
                 ])
 
-        self.assertIn('stack', self._get_queries()[-1])
-
-    def _get_queries(self):
-        try:
-            # Django >+ 1.8
-            return connection.queries_log
-        except AttributeError:
-            # Django < 1.8
-            return connection.queries
+        self.assertIn('stack', connection.queries_log[-1])
