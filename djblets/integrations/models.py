@@ -3,15 +3,14 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from django.utils import timezone
-from django.utils.encoding import python_2_unicode_compatible
+from django.utils import six, timezone
 from django.utils.translation import ugettext_lazy as _
 
 from djblets.db.fields import JSONField
 from djblets.integrations.mixins import NeedsIntegrationManagerMixin
 
 
-@python_2_unicode_compatible
+@six.python_2_unicode_compatible
 class BaseIntegrationConfig(NeedsIntegrationManagerMixin, models.Model):
     """Base class for stored configuration for a particular integration.
 
