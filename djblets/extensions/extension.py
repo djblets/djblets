@@ -10,8 +10,8 @@ from email.parser import FeedParser
 
 import pkg_resources
 from django.conf import settings
-from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.core.exceptions import ImproperlyConfigured
+from django.templatetags.static import static
 from django.urls import get_mod_func
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
