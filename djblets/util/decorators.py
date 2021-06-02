@@ -28,10 +28,8 @@
 from __future__ import unicode_literals
 from functools import update_wrapper, wraps
 from inspect import getargspec
-import warnings
 
 from django import template
-from django.conf import settings
 from django.template import TemplateSyntaxError, Variable
 from django.utils.functional import cached_property as django_cached_property
 

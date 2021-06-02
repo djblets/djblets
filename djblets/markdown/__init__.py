@@ -7,7 +7,7 @@ from xml.dom.minidom import parseString
 from django.utils import six
 from django.utils.six.moves import cStringIO as StringIO
 from django.utils.six.moves.html_entities import name2codepoint
-from markdown import Markdown, markdownFromFile
+from markdown import markdownFromFile
 
 
 default_app_config = 'djblets.markdown.apps.MarkdownAppConfig'

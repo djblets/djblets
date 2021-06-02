@@ -5,7 +5,6 @@ import gc
 import django
 import nose
 from django.db import models, transaction
-from django.db.models.signals import post_save, pre_delete
 from kgb import SpyAgency
 
 from djblets.db.fields import RelationCounterField

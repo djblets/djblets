@@ -2,10 +2,7 @@
 
 from __future__ import unicode_literals
 
-import warnings
-
 from django import forms
-from django.template.context import RequestContext
 from django.utils import six
 from django.utils.translation import ugettext_lazy as _
 
