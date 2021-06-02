@@ -7,9 +7,9 @@ import re
 import uuid
 from collections import OrderedDict
 
-from django.core.urlresolvers import ResolverMatch
 from django.http import HttpRequest
 from django.template import Context, Template
+from django.urls import ResolverMatch
 from django.utils.safestring import mark_safe
 from kgb import SpyAgency
 

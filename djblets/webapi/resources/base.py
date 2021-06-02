@@ -7,11 +7,11 @@ import warnings
 
 from django.conf.urls import include, url
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models.query import QuerySet
 from django.http import (HttpResponseNotAllowed, HttpResponse,
                          HttpResponseNotModified)
+from django.urls import reverse
 from django.utils import six
 from django.views.decorators.vary import vary_on_headers
 
