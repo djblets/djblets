@@ -1,0 +1,26 @@
+.. default-intersphinx:: django1.11 djblets2.x
+
+
+===========================
+Djblets 2.2.2 Release Notes
+===========================
+
+**Release date**: June 15, 2021
+
+
+Bug Fixes
+==========
+
+djblets.markdown
+----------------
+
+* Fixed a crash in :py:func:`~djblets.markdown.get_markdown_element_tree` when
+  parsing e-mail addresses ending with a trailing backslash or containing
+  certain Unicode characters.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
