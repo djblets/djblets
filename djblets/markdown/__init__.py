@@ -5,7 +5,7 @@ import sys
 from xml.dom.minidom import parseString
 
 from django.utils import six
-from django.utils.six.moves import cStringIO as StringIO
+from django.utils.six.moves import cStringIO as StringIO, range
 from django.utils.six.moves.html_entities import name2codepoint
 from markdown import markdownFromFile
 
@@ -69,6 +69,7 @@ ESCAPE_CHARS_RE = re.compile(r"""
 UNESCAPE_CHARS_RE = re.compile(r'\\([%s])' % MARKDOWN_SPECIAL_CHARS)
 
 ILLEGAL_XML_CHARS_RE = None
+_ILLEGAL_XML_CHAR_CODES_SET = None
 
 
 def markdown_escape(text):
@@ -223,12 +224,31 @@ def get_markdown_element_tree(markdown_html):
     # we don't want to change the return type, the easiest solution is to
     # convert named entites back to character codes through a regex before
     # parsing.
+    illegal_chars_set = _get_illegal_char_codes_set_for_xml()
     unknown_code = ord('?')
-    markdown_html = re.sub(
-        r'&([^#][^;]+);',
-        lambda m: '&#%s;' % name2codepoint.get(m.group(1), unknown_code),
-        markdown_html,
-        flags=re.M)
+    unknown_entity = '#%s' % unknown_code
+
+    def _handle_entity(m):
+        entity = m.group(1)
+
+        if entity.startswith('#'):
+            try:
+                if entity.startswith('#x'):
+                    value = int(entity[2:], 16)
+                else:
+                    value = int(entity[1:])
+
+                if value in illegal_chars_set:
+                    entity = unknown_entity
+            except ValueError:
+                entity = unknown_entity
+
+            return '&%s;' % entity
+        else:
+            return '&#%s;' % name2codepoint.get(entity, unknown_code)
+
+    markdown_html = re.sub(r'&([^;]+);', _handle_entity, markdown_html,
+                           flags=re.M)
 
     doc = parseString(('<html>%s</html>' % markdown_html).encode('utf-8'))
 
@@ -238,34 +258,30 @@ def get_markdown_element_tree(markdown_html):
 def sanitize_illegal_chars_for_xml(s):
     """Sanitize a string, removing characters illegal in XML.
 
-    This will remove a number of characters that would break the  XML parser.
+    This will remove a number of characters that would break the XML parser.
     They may be in the string due to a copy/paste.
+
+    Note that this will not perform any security-related sanitization of the
+    HTML. It's purely a parsing aid for dealing with illegal characters.
 
     This code is courtesy of the XmlRpcPlugin developers, as documented
     here: http://stackoverflow.com/a/22273639
+
+    Args:
+        s (unicode):
+            The string to sanitize.
+
+    Returns:
+        unicode:
+        The resulting sanitized HTML.
     """
     global ILLEGAL_XML_CHARS_RE
 
     if ILLEGAL_XML_CHARS_RE is None:
-        _illegal_unichrs = [
-            (0x00, 0x08), (0x0B, 0x0C), (0x0E, 0x1F), (0x7F, 0x84),
-            (0x86, 0x9F), (0xFDD0, 0xFDDF), (0xFFFE, 0xFFFF)
-        ]
-
-        if sys.maxunicode > 0x10000:
-            _illegal_unichrs += [
-                (0x1FFFE, 0x1FFFF), (0x2FFFE, 0x2FFFF), (0x3FFFE, 0x3FFFF),
-                (0x4FFFE, 0x4FFFF), (0x5FFFE, 0x5FFFF), (0x6FFFE, 0x6FFFF),
-                (0x7FFFE, 0x7FFFF), (0x8FFFE, 0x8FFFF), (0x9FFFE, 0x9FFFF),
-                (0xAFFFE, 0xAFFFF), (0xBFFFE, 0xBFFFF), (0xCFFFE, 0xCFFFF),
-                (0xDFFFE, 0xDFFFF), (0xEFFFE, 0xEFFFF), (0xFFFFE, 0xFFFFF),
-                (0x10FFFE, 0x10FFFF)
-            ]
-
-        ILLEGAL_XML_CHARS_RE = re.compile('[%s]' % ''.join([
+        ILLEGAL_XML_CHARS_RE = re.compile('[%s]' % ''.join(
             '%s-%s' % (six.unichr(low), six.unichr(high))
-            for low, high in _illegal_unichrs
-        ]))
+            for low, high in _get_illegal_chars_for_xml()
+        ))
 
     if isinstance(s, bytes):
         s = s.decode('utf-8')
@@ -281,3 +297,64 @@ def render_markdown_from_file(f, **markdown_kwargs):
     s.close()
 
     return html
+
+
+def _get_illegal_char_codes_set_for_xml():
+    """Return a set of all illegal character codes for an XML document.
+
+    The set will contain a numeric character code for every single character
+    that's considered invalid in an XML document.
+
+    Version Added:
+        1.0.18
+
+    Returns:
+        set of int:
+        A set of all illegal character codes.
+    """
+    global _ILLEGAL_XML_CHAR_CODES_SET
+
+    if _ILLEGAL_XML_CHAR_CODES_SET is None:
+        _ILLEGAL_XML_CHAR_CODES_SET = set()
+
+        for illegal_range in _get_illegal_chars_for_xml():
+            _ILLEGAL_XML_CHAR_CODES_SET.update(range(illegal_range[0],
+                                                     illegal_range[1] + 1))
+
+    return _ILLEGAL_XML_CHAR_CODES_SET
+
+
+def _get_illegal_chars_for_xml():
+    """Return all illegal character ranges for an XML document.
+
+    This is used internally to build ranges of characters that aren't
+    valid in an XML document, for the purposes of building regexes and
+    maps for filtering them out.
+
+    We don't cache the result, because this will only ever be generated
+    up to two times per process. The end results themselves are cached, and
+    there's no point in keeping the raw lists in memory.
+
+    Version Added:
+        1.0.18
+
+    Returns:
+        list of tuple:
+        The list of inclusive illegal character ranges.
+    """
+    illegal_unichrs = [
+        (0x00, 0x08), (0x0B, 0x0C), (0x0E, 0x1F), (0x7F, 0x84),
+        (0x86, 0x9F), (0xFDD0, 0xFDDF), (0xFFFE, 0xFFFF),
+    ]
+
+    if sys.maxunicode > 0x10000:
+        illegal_unichrs += [
+            (0x1FFFE, 0x1FFFF), (0x2FFFE, 0x2FFFF), (0x3FFFE, 0x3FFFF),
+            (0x4FFFE, 0x4FFFF), (0x5FFFE, 0x5FFFF), (0x6FFFE, 0x6FFFF),
+            (0x7FFFE, 0x7FFFF), (0x8FFFE, 0x8FFFF), (0x9FFFE, 0x9FFFF),
+            (0xAFFFE, 0xAFFFF), (0xBFFFE, 0xBFFFF), (0xCFFFE, 0xCFFFF),
+            (0xDFFFE, 0xDFFFF), (0xEFFFE, 0xEFFFF), (0xFFFFE, 0xFFFFF),
+            (0x10FFFE, 0x10FFFF),
+        ]
+
+    return illegal_unichrs
