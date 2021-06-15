@@ -2,9 +2,7 @@
 
 from __future__ import unicode_literals
 
-from django.template.context import RequestContext
-
-from djblets.util.compat.django.template.loader import render_to_string
+from django.template.loader import render_to_string
 
 
 class ConfigPage(object):

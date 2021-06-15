@@ -266,9 +266,7 @@ class BuildStaticFiles(Command):
         # be creating them.
         os.environ['DJBLETS_SKIP_PIPELINE_VALIDATION'] = '1'
 
-        if hasattr(django, 'setup'):
-            # Django >= 1.7
-            django.setup()
+        django.setup()
 
         cwd = os.getcwd()
         sys.path = [

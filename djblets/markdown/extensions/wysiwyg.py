@@ -11,7 +11,6 @@ import re
 from collections import OrderedDict
 
 import markdown
-from django.utils import six
 from django.utils.six.moves import range
 from markdown.blockprocessors import BlockProcessor, OListProcessor
 from markdown.postprocessors import RawHtmlPostprocessor

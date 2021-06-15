@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from django.conf.urls import include, url
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils import six
 from django.utils.translation import ugettext as _
 

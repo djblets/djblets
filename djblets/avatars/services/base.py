@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 import logging
 
-from djblets.util.compat.django.template.loader import render_to_string
+from django.template.loader import render_to_string
 
 
 logger = logging.getLogger(__name__)

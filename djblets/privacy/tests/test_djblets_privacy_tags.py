@@ -4,13 +4,7 @@ from __future__ import unicode_literals
 
 from django.template import Context, Template
 from django.test.client import RequestFactory
-
-try:
-    # Django >= 1.10
-    from django.urls import ResolverMatch
-except ImportError:
-    # Django < 1.10
-    from django.core.urlresolvers import ResolverMatch
+from django.urls import ResolverMatch
 
 from djblets.testing.testcases import TestCase
 

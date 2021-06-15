@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 from django import forms
 from django.contrib import messages
 from django.forms.widgets import MultiWidget, Widget
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import format_html_join
 from django.utils.translation import ugettext_lazy as _
@@ -12,7 +13,6 @@ from django.utils.translation import ugettext_lazy as _
 from djblets.privacy.consent import (Consent,
                                      get_consent_requirements_registry,
                                      get_consent_tracker)
-from djblets.util.compat.django.template.loader import render_to_string
 
 
 class ConsentRequirementWidget(Widget):
@@ -282,7 +282,7 @@ class ConsentRequirementField(forms.ChoiceField):
         self.extra_consent_data = extra_consent_data
         self.widget.consent_requirement = consent_requirement
 
-        if user and user.is_authenticated():
+        if user and user.is_authenticated:
             self.set_initial_from_user(user)
 
     def set_initial_from_user(self, user):
@@ -296,7 +296,7 @@ class ConsentRequirementField(forms.ChoiceField):
                 The user viewing the form.
         """
         assert user
-        assert user.is_authenticated()
+        assert user.is_authenticated
 
         self.initial = self.consent_requirement.get_consent(user)
 
@@ -405,7 +405,7 @@ class MultiConsentRequirementsField(forms.MultiValueField):
             widget=self.widget(self.consent_requirements),
             *args, **kwargs)
 
-        if user and user.is_authenticated():
+        if user and user.is_authenticated:
             self.set_initial_from_user(user)
 
     def set_initial_from_user(self, user):
@@ -419,7 +419,7 @@ class MultiConsentRequirementsField(forms.MultiValueField):
                 The user viewing the form.
         """
         assert user
-        assert user.is_authenticated()
+        assert user.is_authenticated
 
         self.initial = [
             field.consent_requirement.get_consent(user)
@@ -558,7 +558,7 @@ class ConsentFormMixin(object):
         """
         assert self.is_valid()
         assert user
-        assert user.is_authenticated()
+        assert user.is_authenticated
 
         get_consent_tracker().record_consent_data_list(
             user,

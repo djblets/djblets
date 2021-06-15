@@ -1,10 +1,9 @@
 from __future__ import unicode_literals
 
-from django.core.management.base import CommandError
+from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext as _
 
 from djblets.siteconfig.models import SiteConfiguration
-from djblets.util.compat.django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):

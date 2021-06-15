@@ -2,18 +2,24 @@ from __future__ import unicode_literals
 
 import threading
 
-from django.core.urlresolvers import (RegexURLResolver, clear_url_caches,
-                                      get_resolver)
+from django.urls import clear_url_caches, get_resolver
+
+try:
+    # Django >= 2.0
+    from django.urls import URLResolver
+except ImportError:
+    # Django <= 1.11
+    from django.urls import RegexURLResolver as URLResolver
 
 
-class DynamicURLResolver(RegexURLResolver):
+class DynamicURLResolver(URLResolver):
     """A URL resolver that allows for dynamically altering URL patterns.
 
-    A standard RegexURLResolver expects that a list of URL patterns will
-    be set once and never again change. In most applications, this is a
-    good assumption. However, some that are more specialized may need
-    to be able to swap in URL patterns dynamically. For example, those
-    that can plug in third-party extensions.
+    A standard URLResolver expects that a list of URL patterns will be set
+    once and never again change. In most applications, this is a good
+    assumption. However, some that are more specialized may need to be able
+    to swap in URL patterns dynamically. For example, those that can plug in
+    third-party extensions.
 
     DynamicURLResolver makes it easy to add and remove URL patterns. Any
     time the list of URL patterns changes, they'll be immediately available
@@ -32,8 +38,21 @@ class DynamicURLResolver(RegexURLResolver):
     DynamicURLResolver will handle managing all the lookup caches to ensure
     that there won't be any stale entries affecting any dynamic URL patterns.
     """
+
     def __init__(self, regex=r'', app_name=None, namespace=None):
-        super(DynamicURLResolver, self).__init__(regex=regex,
+        """Initialize the resolver.
+
+        Args:
+            regex (unicode, optional):
+                The relative pattern for the root of any child URLs.
+
+            app_name (unicode, optional):
+                The application namespace for any child URLs.
+
+            namespace (unicode, optional):
+                The instance namespace for any child URLs.
+        """
+        super(DynamicURLResolver, self).__init__(regex,
                                                  urlconf_name=[],
                                                  app_name=app_name,
                                                  namespace=namespace)
@@ -44,7 +63,7 @@ class DynamicURLResolver(RegexURLResolver):
     def url_patterns(self):
         """Returns the current list of URL patterns.
 
-        This is a simplified version of RegexURLResolver.url_patterns that
+        This is a simplified version of URLResolver.url_patterns that
         simply returns the preset list of patterns. Unlike the original
         function, we don't care if the list is empty.
         """
@@ -85,7 +104,7 @@ class DynamicURLResolver(RegexURLResolver):
         This will force all the resolvers in the chain to repopulate,
         replacing the caches, in order to ensure that the next lookup or
         reverse will result in a lookup in this resolver. By default, every
-        RegexURLResolver in Django will cache all results from its children.
+        URLResolver in Django will cache all results from its children.
 
         We take special care to only repopulate the caches of the resolvers in
         our parent chain.
@@ -106,7 +125,7 @@ class DynamicURLResolver(RegexURLResolver):
 
     @property
     def resolver_chain(self):
-        """Returns every RegexURLResolver between here and the root.
+        """Returns every URLResolver between here and the root.
 
         The list of resolvers is cached in order to prevent having to locate
         the resolvers more than once.
@@ -122,7 +141,7 @@ class DynamicURLResolver(RegexURLResolver):
             return [resolver]
 
         for url_pattern in resolver.url_patterns:
-            if isinstance(url_pattern, RegexURLResolver):
+            if isinstance(url_pattern, URLResolver):
                 resolvers = self._find_resolver_chain(url_pattern)
 
                 if resolvers:

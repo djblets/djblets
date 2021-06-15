@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 from django.core.cache import cache
 from django.http import HttpResponseRedirect
-from djblets.util.compat.django.shortcuts import render
+from django.shortcuts import render
 from django.test.client import Client
 from kgb import SpyAgency
 

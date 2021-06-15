@@ -60,24 +60,14 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import InvalidPage, QuerySetPaginator
 from django.http import Http404, HttpResponse
 from django.template.defaultfilters import date, timesince
-from django.template.loader import get_template
+from django.template.loader import get_template, render_to_string
 from django.utils import six
 from django.utils.cache import patch_cache_control
 from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
-try:
-    from django.contrib.auth.models import SiteProfileNotAvailable
-except ImportError:
-    # Django >= 1.7
-    class SiteProfileNotAvailable(Exception):
-        pass
-
 from djblets.template.context import get_default_template_context_processors
-from djblets.db.query import chainable_select_related_queryset
-from djblets.util.compat.django.template.loader import (render_template,
-                                                        render_to_string)
 from djblets.util.decorators import cached_property
 from djblets.util.http import get_url_params_except
 
@@ -379,7 +369,7 @@ class Column(object):
             unsort_url = url_prefix + ','.join(sort_list[1:])
             sort_url = url_prefix + ','.join(sort_list)
 
-        return render_template(datagrid.column_header_template_obj, {
+        return datagrid.column_header_template_obj.render(context={
             'column': self,
             'column_state': state,
             'in_sort': in_sort,
@@ -508,7 +498,7 @@ class Column(object):
             if template is None:
                 template = state.datagrid.cell_template_obj
 
-            state.cell_render_cache[key] = render_template(template, ctx)
+            state.cell_render_cache[key] = template.render(ctx)
 
         return state.cell_render_cache[key]
 
@@ -1071,7 +1061,7 @@ class DataGrid(object):
         # Get the saved settings for this grid in the profile. These will
         # work as defaults and allow us to determine if we need to save
         # the profile.
-        if self.request.user.is_authenticated():
+        if self.request.user.is_authenticated:
             profile = self.get_user_profile()
 
             if profile:
@@ -1201,8 +1191,6 @@ class DataGrid(object):
             try:
                 return self.request.user.get_profile()
             except ObjectDoesNotExist:
-                pass
-            except SiteProfileNotAvailable:
                 pass
 
         return None
@@ -1396,8 +1384,6 @@ class DataGrid(object):
             django.db.models.query.QuerySet:
             The resulting augmented QuerySet.
         """
-        queryset = chainable_select_related_queryset(queryset)
-
         for column in self.columns:
             try:
                 queryset = column.augment_queryset(queryset)

@@ -18,11 +18,13 @@ import weakref
 from contextlib import contextmanager
 from importlib import import_module
 
+from django.apps.registry import apps
 from django.conf import settings
 from django.conf.urls import include, url
 from django.contrib.admin.sites import AdminSite
-from django.core.urlresolvers import reverse
+from django.core.files import locks
 from django.db import IntegrityError
+from django.urls import reverse
 from django.utils import six
 from django.utils.module_loading import module_has_submodule
 from django.utils.six.moves import reload_module
@@ -34,15 +36,6 @@ try:
     from django_evolution.evolve import Evolver
 except ImportError:
     Evolver = None
-
-try:
-    # Django >= 1.7
-    from django.apps.registry import apps
-except ImportError:
-    # Django == 1.6
-    from django.db.models import loading
-
-    apps = None
 
 from djblets.cache.synchronizer import GenerationSynchronizer
 from djblets.extensions.errors import (EnablingExtensionError,
@@ -58,7 +51,6 @@ from djblets.extensions.signals import (extension_disabled,
 from djblets.template.caches import (clear_template_caches,
                                      clear_template_tag_caches)
 from djblets.urls.resolvers import DynamicURLResolver
-from djblets.util.compat.django.core.files import locks
 
 
 logger = logging.getLogger(__name__)
@@ -294,16 +286,10 @@ class ExtensionManager(object):
         self._installed_apps_setting = SettingListWrapper('INSTALLED_APPS',
                                                           'installed app')
 
-        if hasattr(settings, 'TEMPLATES'):
-            # Django >= 1.7
-            self._context_processors_setting = SettingListWrapper(
-                'context_processors',
-                'context processor',
-                parent_dict=settings.TEMPLATES[0]['OPTIONS'])
-        else:
-            self._context_processors_setting = SettingListWrapper(
-                'TEMPLATE_CONTEXT_PROCESSORS',
-                'context processor')
+        self._context_processors_setting = SettingListWrapper(
+            'context_processors',
+            'context processor',
+            parent_dict=settings.TEMPLATES[0]['OPTIONS'])
 
         instance_id = id(self)
         _extension_managers[instance_id] = self
@@ -1041,28 +1027,18 @@ class ExtensionManager(object):
         """
         results = []
 
-        if apps:
-            # Django >= 1.7
+        # There's no way of looking up an AppConfig based on the app
+        # name, so we'll need to start by building our own map.
+        all_app_configs = {
+            app_config.name: app_config
+            for app_config in apps.get_app_configs()
+        }
 
-            # There's no way of looking up an AppConfig based on the app
-            # name, so we'll need to start by building our own map.
-            all_app_configs = {
-                app_config.name: app_config
-                for app_config in apps.get_app_configs()
-            }
+        for app_name in app_names:
+            app_config = all_app_configs[app_name]
 
-            for app_name in app_names:
-                app_config = all_app_configs[app_name]
-
-                if app_config.models and app_config.models_module:
-                    results.append(app_config.models_module)
-        else:
-            # Django == 1.6
-            for app_name in app_names:
-                app = loading.load_app(app_name)
-
-                if app is not None:
-                    results.append(app)
+            if app_config.models and app_config.models_module:
+                results.append(app_config.models_module)
 
         return results
 
@@ -1521,12 +1497,7 @@ class ExtensionManager(object):
         new_installed_apps = extension.apps or [extension.info.app_name]
         self._installed_apps_setting.add_list(new_installed_apps)
 
-        if apps:
-            # Django >= 1.7
-            apps.set_installed_apps(settings.INSTALLED_APPS)
-        else:
-            # Django == 1.6
-            loading.cache.loaded = False
+        apps.set_installed_apps(settings.INSTALLED_APPS)
 
         return new_installed_apps
 
@@ -1545,59 +1516,7 @@ class ExtensionManager(object):
             extension.apps or [extension.info.app_name])
 
         # Now clear the apps and their modules from any caches.
-        if apps:
-            apps.unset_installed_apps()
-        else:
-            had_models = False
-
-            for app_name in removed_apps:
-                # In Django 1.6, the only apps that are registered are those
-                # with models. If this particular app does not have models, we
-                # don't want to clear any caches below. There might be another
-                # app with the same label that actually does have models, and
-                # we'd be clearing those away. An example would be
-                # reviewboard.hostingsvcs (which has models) and
-                # rbpowerpack.hostingsvcs (which does not).
-                #
-                # Django 1.6 doesn't technically allow multiple apps with the
-                # same label to have models (other craziness will happen), so
-                # we don't have to worry about that. It's not our problem.
-                try:
-                    app_mod = import_module('%s.models' % app_name)
-                except ImportError:
-                    # Something went very wrong. Maybe this module didn't
-                    # exist anymore. Ignore it.
-                    continue
-
-                # Fetch the models before we make any changes to the cache.
-                model_modules = {app_mod}
-                model_modules.update(
-                    import_module(model.__module__)
-                    for model in loading.get_models(app_mod)
-                )
-
-                # Start pruning this app from the caches.
-                #
-                # We are going to keep this in loading.cache.app_models.
-                # If we don't, we'll never get those modules again without
-                # some potentially dangerous manipulation of sys.modules and
-                # possibly other state. get_models() will default to ignoring
-                # anything in that list if the app label isn't present in
-                # loading.cache.app_labels, which we'll remove, so the model
-                # will appear as "uninstalled."
-                app_label = app_name.rpartition('.')[2]
-                loading.cache.app_labels.pop(app_label, None)
-
-                for module in model_modules:
-                    loading.cache.app_store.pop(module, None)
-
-                had_models = True
-
-            if had_models:
-                # Force get_models() to recompute models for lookups, so that
-                # now-unregistered models aren't returned.
-                loading.cache._get_models_cache.clear()
-                loading.cache.loaded = False
+        apps.unset_installed_apps()
 
     def _entrypoint_iterator(self):
         """Iterate through registered Python entry points.

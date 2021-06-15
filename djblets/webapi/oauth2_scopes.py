@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 import logging
 import threading
-from collections import defaultdict, deque
+from collections import defaultdict
 from importlib import import_module
 
 from django.conf import settings

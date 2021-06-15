@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import copy
 import json
 import logging
-import warnings
 from ast import literal_eval
 
 from django import forms
@@ -439,8 +438,6 @@ class JSONField(models.TextField):
 
         This makes JSONField migration-safe by encoding the default value
         to a string so that it can be safely loaded into the database.
-
-        This is only used on Django 1.7+.
 
         .. versionadded:: 0.9
 

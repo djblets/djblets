@@ -6,7 +6,6 @@ from django.contrib.auth.models import User
 from kgb import SpyAgency
 
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
-from djblets.webapi.models import BaseWebAPIToken
 from djblets.webapi.signals import webapi_token_created, webapi_token_updated
 from djblets.webapi.tests.test_api_token import WebAPIToken
 

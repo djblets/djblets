@@ -62,7 +62,7 @@ class UserResource(WebAPIResource):
 
     def has_modify_permissions(self, request, user, *args, **kwargs):
         """Return whether or not the user can modify this object."""
-        return request.user.is_authenticated() and user.pk == request.user.pk
+        return request.user.is_authenticated and user.pk == request.user.pk
 
     @augment_method_from(WebAPIResource)
     def get_list(self, *args, **kwargs):

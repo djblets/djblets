@@ -2,12 +2,9 @@
 
 from __future__ import unicode_literals
 
-import warnings
-
 from django import forms
 from django.contrib.auth.models import User
 from django.test.client import RequestFactory
-from django.utils import six
 
 from djblets.configforms.forms import ConfigPageForm
 from djblets.configforms.pages import ConfigPage

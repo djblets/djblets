@@ -26,7 +26,6 @@
 from __future__ import unicode_literals
 
 from hashlib import md5
-from warnings import warn
 
 from django.conf import settings
 from django.utils import six
@@ -114,7 +113,7 @@ def get_gravatar_url(user=None, size=None):
     if user is None:
         raise ValueError('"user" cannot be None.')
 
-    if user.is_anonymous() or not user.email:
+    if user.is_anonymous or not user.email:
         return ''
 
     return get_gravatar_url_for_email(email=user.email, size=size)

@@ -2,12 +2,7 @@
 
 from __future__ import unicode_literals
 
-import warnings
-
-from django.template.loader import render_to_string
-
 from djblets.integrations.forms import IntegrationConfigForm
-from djblets.util.compat.django.template.loader import render_to_string
 
 
 class Integration(object):
@@ -64,8 +59,8 @@ class Integration(object):
     #: are expected to be multiples of this size.
     #:
     #: If the paths need to be computed (through a call to
-    #: :py:func:`~django.contrib.staticfiles.templatetags.staticfiles.static`
-    #: or :py:meth:`~djblets.extensions.extension.Extension.get_static_url`,
+    #: :py:func:`~django.templatetags.static` or
+    #: :py:meth:`~djblets.extensions.extension.Extension.get_static_url`,
     #: it is best to declare this as a method and use
     #: :py:func:`~django.utils.functional.cached_property`.
     #:

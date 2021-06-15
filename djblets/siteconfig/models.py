@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 from django.contrib.sites.models import Site
 from django.db import models
 from django.utils import six
-from django.utils.encoding import python_2_unicode_compatible
 
 from djblets.cache.synchronizer import GenerationSynchronizer
 from djblets.db.fields import JSONField
@@ -49,7 +48,7 @@ class SiteConfigSettingsWrapper(object):
         return self.siteconfig.get(name)
 
 
-@python_2_unicode_compatible
+@six.python_2_unicode_compatible
 class SiteConfiguration(models.Model):
     """Stored version and settings data for a Django site.
 

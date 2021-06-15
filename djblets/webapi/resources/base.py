@@ -2,17 +2,19 @@
 
 from __future__ import unicode_literals
 
-import json
 import logging
 import warnings
 
 from django.conf.urls import include, url
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
 from django.db import models
+from django.db.models.fields.related_descriptors import (
+    ManyToManyDescriptor,
+    ForwardManyToOneDescriptor)
 from django.db.models.query import QuerySet
 from django.http import (HttpResponseNotAllowed, HttpResponse,
                          HttpResponseNotModified)
+from django.urls import reverse
 from django.utils import six
 from django.views.decorators.vary import vary_on_headers
 
@@ -46,26 +48,9 @@ from djblets.webapi.errors import (DOES_NOT_EXIST,
                                    WebAPIError)
 from djblets.webapi.fields import IntFieldType
 
-try:
-    # Django >= 1.9
-    from django.db.models.fields.related_descriptors import (
-        ManyToManyDescriptor,
-        ForwardManyToOneDescriptor)
 
-    m2m_descriptors = (ManyToManyDescriptor,)
-    fkey_descriptors = (ForwardManyToOneDescriptor,)
-except ImportError:
-    # Django < 1.9
-    from django.db.models.fields.related import (
-        ManyRelatedObjectsDescriptor,
-        ReverseManyRelatedObjectsDescriptor,
-        ReverseSingleRelatedObjectDescriptor)
-
-    m2m_descriptors = (
-        ManyRelatedObjectsDescriptor,
-        ReverseManyRelatedObjectsDescriptor,
-    )
-    fkey_descriptors = (ReverseSingleRelatedObjectDescriptor,)
+m2m_descriptors = (ManyToManyDescriptor,)
+fkey_descriptors = (ForwardManyToOneDescriptor,)
 
 
 logger = logging.getLogger(__name__)
@@ -1296,7 +1281,7 @@ class WebAPIResource(object):
         Subclasses can override this to return different or more detailed
         errors.
         """
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             logger.warning('%s %s: user %s does not have '
                            'permission to access this resource.',
                            request.method, request.path,

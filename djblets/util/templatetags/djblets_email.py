@@ -28,9 +28,9 @@ from __future__ import unicode_literals
 import re
 
 from django import template
+from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
-from djblets.util.compat.django.template.loader import render_to_string
 from djblets.util.decorators import blocktag
 
 
@@ -42,7 +42,7 @@ def quoted_email(context, template_name):
     """
     Renders a specified template as a quoted reply, using the current context.
     """
-    return quote_text(render_to_string(template_name, context))
+    return quote_text(render_to_string(template_name, context.flatten()))
 
 
 @register.tag

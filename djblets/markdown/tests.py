@@ -67,6 +67,17 @@ class MarkdownUtilsTests(MarkdownTestCase):
 
         self.assertEqual(node[0].toxml(), '<p>(<strong>Test</strong>)</p>')
 
+    def test_get_markdown_element_tree_with_illegal_in_email(self):
+        """Testing get_markdown_element_tree with illegal characters in
+        email address
+        """
+        node = get_markdown_element_tree(
+            self.render_markdown(r'<test@test.com\\>'))
+
+        self.assertEqual(
+            node[0].toxml(),
+            '<p><a href="mailto:test@test.com?92?">test@test.com?92?</a></p>')
+
     def test_get_markdown_element_tree_with_named_entities(self):
         """Testing get_markdown_element_tree with named entities"""
         rendered_html_entities = ['&fooooo;']

@@ -25,10 +25,7 @@
 
 from __future__ import unicode_literals
 
-import warnings
-
 from djblets.forms.forms import KeyValueForm
-from djblets.util.decorators import cached_property
 
 
 class SettingsForm(KeyValueForm):

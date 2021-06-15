@@ -7,7 +7,7 @@ from django.core.exceptions import ImproperlyConfigured
 try:
     from django.db.backends.mysql.base import (DatabaseWrapper as
                                                BaseMySQLDatabaseWrapper)
-except ImproperlyConfigured as e:
+except ImproperlyConfigured:
     # We can't load this backend, but flat-out aborting the module loading now
     # will cause errors in unit test discovery. So we're going to effectively
     # stub this out. It will be useless if actually instantiated.

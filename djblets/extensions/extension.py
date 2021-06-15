@@ -6,14 +6,14 @@ import inspect
 import locale
 import logging
 import os
-import warnings
 from email.parser import FeedParser
 
 import pkg_resources
 from django.conf import settings
-from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.core.exceptions import ImproperlyConfigured
-from django.core.urlresolvers import get_mod_func
+from django.templatetags.static import static
+from django.urls import get_mod_func
+from django.utils import six
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext as _
 
@@ -364,7 +364,7 @@ class Extension(object):
                 (name, e))
 
 
-@python_2_unicode_compatible
+@six.python_2_unicode_compatible
 class ExtensionInfo(object):
     """Information on an extension.
 

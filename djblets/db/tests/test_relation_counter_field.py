@@ -5,7 +5,6 @@ import gc
 import django
 import nose
 from django.db import models, transaction
-from django.db.models.signals import post_save, pre_delete
 from kgb import SpyAgency
 
 from djblets.db.fields import RelationCounterField
@@ -138,56 +137,6 @@ class RelationCounterFieldTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         model.m2m.add(added_model)
         self.assertEqual(model.pk, 1)
         self.assertEqual(added_model.pk, 1)
-        self.assertEqual(model.counter, 1)
-        self.assertEqual(model.counter_2, 1)
-
-    @transaction.atomic
-    def test_reused_ids_with_delete(self):
-        """Testing RelationCounterField with reused instance IDs with delete"""
-        if django.VERSION >= (1, 8):
-            # Django 1.8 introduced the usage of transaction.atomic() in
-            # the deletion code, which starts a new transaction and commits it
-            # after deletion concludes. Prior versions started a transaction
-            # that would only save if not already in another transaction.
-            # Since 1.8+ commits the transaction, the ID ends up being reserved
-            # in the database, and makes this test meaningless.
-            raise nose.SkipTest('Django 1.8+ does not allow instance IDs '
-                                'to be reused')
-
-        # NOTE: The failure case would involve model.counter and
-        #       model.counter_2 being 0 at the end, due to the old instance
-        #       being tracked and updated.
-        model = M2MRefModel()
-        model.save()
-        self.assertEqual(model.counter, 0)
-        self.assertEqual(model.counter_2, 0)
-
-        reffed = ReffedModel.objects.create()
-        model.m2m.add(reffed)
-        self.assertEqual(model.pk, 1)
-        self.assertEqual(model.counter, 1)
-        self.assertEqual(model.counter_2, 1)
-
-        # Delete the main instance. The next one will have the same ID.
-        model.delete()
-        self.assertIsNone(model.pk)
-
-        new_model = M2MRefModel.objects.create()
-        self.assertEqual(new_model.pk, 1)
-        self.assertEqual(new_model.counter, 0)
-        self.assertEqual(new_model.counter_2, 0)
-
-        # Adding a reference again should result in these counters being
-        # increased, rather than the old ones.
-        assert reffed.pk
-        assert new_model.pk
-        new_model.m2m.add(reffed)
-        self.assertEqual(new_model.counter, 1)
-        self.assertEqual(new_model.counter_2, 1)
-
-        # Old model's counters aren't updated after deletion, so they'll be
-        # 1. We don't want them to be 2, or it'll mean the wrong instance
-        # was tracked.
         self.assertEqual(model.counter, 1)
         self.assertEqual(model.counter_2, 1)
 

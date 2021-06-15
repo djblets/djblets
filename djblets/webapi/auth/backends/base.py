@@ -210,7 +210,7 @@ class WebAPIAuthBackend(object):
         # the user is already logged in, and querying the backend for every
         # request is excessive, so it's a tradeoff. The user already has
         # access to the server at this point anyway.
-        if (request.user.is_authenticated() and
+        if (request.user.is_authenticated and
             request.user.username == credentials.get('username')):
             return True, None, None
 

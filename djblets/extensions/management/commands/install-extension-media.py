@@ -2,13 +2,12 @@ from __future__ import unicode_literals
 
 from itertools import chain
 
-from django.core.management.base import CommandError
+from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext as _
 
 from djblets.extensions.errors import (InstallExtensionError,
                                        InvalidExtensionError)
 from djblets.extensions.manager import get_extension_managers
-from djblets.util.compat.django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):

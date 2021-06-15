@@ -326,7 +326,7 @@ class SiteConfigurationTests(SiteConfigTestCase):
             SiteConfiguration.remove_global_default('valid_key_2')
             SiteConfiguration.remove_global_default('valid_key_3')
 
-    def test_add_default(self):
+    def test_add_global_default(self):
         """Testing SiteConfiguration.add_global_default"""
         SiteConfiguration.add_global_default('valid_key_1', 'global_value')
 
@@ -336,15 +336,15 @@ class SiteConfigurationTests(SiteConfigTestCase):
         finally:
             SiteConfiguration.remove_global_default('valid_key_1')
 
-    def test_remove_default(self):
-        """Testing SiteConfiguration.remove_default"""
+    def test_remove_global_default(self):
+        """Testing SiteConfiguration.remove_global_default"""
         SiteConfiguration.add_global_default('valid_key_1', 'global_value')
         SiteConfiguration.remove_global_default('valid_key_1')
 
         self.assertIsNone(self.siteconfig.get('valid_key_1'))
 
-    def test_clear_defaults(self):
-        """Testing SiteConfiguration.clear_defaults"""
+    def test_clear_global_defaults(self):
+        """Testing SiteConfiguration.clear_global_defaults"""
         SiteConfiguration.add_global_default('valid_key_1', 'global_default_1')
         SiteConfiguration.add_global_default('valid_key_2', 'global_default_2')
         SiteConfiguration.clear_global_defaults()
@@ -352,8 +352,8 @@ class SiteConfigurationTests(SiteConfigTestCase):
         self.assertIsNone(self.siteconfig.get('valid_key_1'))
         self.assertIsNone(self.siteconfig.get('valid_key_2'))
 
-    def test_get_defaults(self):
-        """Testing SiteConfiguration.get_defaults"""
+    def test_get_global_defaults(self):
+        """Testing SiteConfiguration.get_global_defaults"""
         SiteConfiguration.add_global_defaults({
             'valid_key_1': 'global_value_1',
             'valid_key_2': 'global_value_2',

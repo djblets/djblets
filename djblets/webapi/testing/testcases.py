@@ -10,7 +10,6 @@ from __future__ import print_function, unicode_literals
 
 import json
 import pprint
-import warnings
 
 from django.test.client import BOUNDARY, MULTIPART_CONTENT, encode_multipart
 from django.utils import six

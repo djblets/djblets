@@ -19,12 +19,9 @@ from __future__ import unicode_literals
 
 import logging
 import uuid
-import warnings
 
-from django.template import RequestContext
+from django.template.loader import render_to_string
 from django.utils import six
-
-from djblets.util.compat.django.template.loader import render_to_string
 
 
 logger = logging.getLogger(__name__)
@@ -493,7 +490,7 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook):
         context.update(context_data)
 
         s = render_to_string(template_name=self.template_name,
-                             context=context,
+                             context=context.flatten(),
                              request=request)
 
         context.pop()

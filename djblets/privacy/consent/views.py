@@ -36,7 +36,7 @@ def check_pending_consent(view):
     def decorated(request, *args, **kwargs):
         user = request.user
 
-        if user.is_authenticated():
+        if user.is_authenticated:
             pending_requirements = \
                 get_consent_tracker().get_pending_consent_requirements(user)
             policy_requirement = \

@@ -27,10 +27,8 @@ from __future__ import unicode_literals
 
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404, HttpResponseRedirect
-from django.template.context import RequestContext
+from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
-
-from djblets.util.compat.django.shortcuts import render
 
 
 @csrf_protect

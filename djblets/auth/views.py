@@ -34,13 +34,12 @@ from __future__ import unicode_literals
 
 from django.contrib import auth
 from django.http import HttpResponseRedirect
-from django.template.context import RequestContext
+from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 
 from djblets.auth.forms import RegistrationForm
 from djblets.auth.signals import user_registered
 from djblets.auth.util import validate_test_cookie
-from djblets.util.compat.django.shortcuts import render
 
 
 @csrf_protect

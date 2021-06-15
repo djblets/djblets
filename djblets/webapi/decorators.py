@@ -200,7 +200,7 @@ def webapi_login_required(view_func):
     def _checklogin(*args, **kwargs):
         request = _find_httprequest(args)
 
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             return view_func(*args, **kwargs)
         else:
             return NOT_LOGGED_IN
@@ -222,7 +222,7 @@ def webapi_permission_required(perm):
         def _checkpermissions(*args, **kwargs):
             request = _find_httprequest(args)
 
-            if not request.user.is_authenticated():
+            if not request.user.is_authenticated:
                 response = NOT_LOGGED_IN
             elif not request.user.has_perm(perm):
                 logger.warning('%s %s: user %s is missing required '

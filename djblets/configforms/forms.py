@@ -2,14 +2,10 @@
 
 from __future__ import unicode_literals
 
-import warnings
-
 from django import forms
-from django.template.context import RequestContext
+from django.template.loader import render_to_string
 from django.utils import six
 from django.utils.translation import ugettext_lazy as _
-
-from djblets.util.compat.django.template.loader import render_to_string
 
 
 class ConfigPageForm(forms.Form):
