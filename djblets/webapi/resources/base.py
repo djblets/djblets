@@ -812,10 +812,15 @@ class WebAPIResource(object):
                                    *args, **kwargs)
 
         if hasattr(request, '_djblets_webapi_expanded_resources'):
+            # We're nested at least one level down. We'll be operating off of
+            # a possible subset of any specified expanded resources. Fields
+            # that were handled by a parent resource won't be handled here.
             expanded_resources = request._djblets_webapi_expanded_resources
         else:
-            expand = request.GET.get('expand', request.POST.get('expand', ''))
-            expanded_resources = expand.split(',')
+            expanded_resources = set(
+                request.GET.get('expand', request.POST.get('expand', ''))
+                .split(',')
+            )
             request._djblets_webapi_expanded_resources = expanded_resources
 
         if expanded_resources:
@@ -824,12 +829,43 @@ class WebAPIResource(object):
         else:
             requested_mimetype = None
 
-        # Make a copy of the list of expanded resources. We'll be temporarily
+        # Make a copy of the set of expanded resources. We'll be temporarily
         # removing items as we recurse down into any nested objects, to
         # prevent infinite loops. We'll want to make sure we don't
         # permanently remove these entries, or subsequent list items will
         # be affected.
-        orig_expanded_resources = list(expanded_resources)
+        orig_expanded_resources = expanded_resources.copy()
+
+        if expanded_resources:
+            # Make sure that any given field expansion only applies once,
+            # starting at this level. This prevents infinite recursion in the
+            # case where there's a loop in the object graph.
+            #
+            # We'll be restoring these values once we're done serializing
+            # this object and its children.
+            child_expanded_resources = expanded_resources.copy()
+
+            for field in six.iterkeys(self.fields):
+                if field in expanded_resources:
+                    child_expanded_resources.remove(field)
+
+                    if not child_expanded_resources:
+                        break
+
+            # If we have any left...
+            if child_expanded_resources:
+                for resource in self.item_child_resources:
+                    if resource.name in child_expanded_resources:
+                        child_expanded_resources.remove(resource.name)
+
+                    if resource.name_plural in child_expanded_resources:
+                        child_expanded_resources.remove(resource.name_plural)
+
+                    if not child_expanded_resources:
+                        break
+
+            request._djblets_webapi_expanded_resources = \
+                child_expanded_resources
 
         for field in six.iterkeys(self.fields):
             can_include_field = only_fields is None or field in only_fields
@@ -858,15 +894,6 @@ class WebAPIResource(object):
                     value = value.all()
                 elif isinstance(value, models.ForeignKey):
                     value = value.get()
-
-            # Make sure that any given field expansion only applies once. This
-            # prevents infinite recursion in the case where there's a loop in
-            # the object graph.
-            #
-            # We'll be restoring these values once we're done serializing
-            # objects.
-            if expand_field:
-                request._djblets_webapi_expanded_resources.remove(field)
 
             if isinstance(value, models.Model) and not expand_field:
                 serialize_link_func = self.get_link_serializer(field)
