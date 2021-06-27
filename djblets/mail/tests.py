@@ -1,3 +1,6 @@
+# coding: utf-8
+"""Unit tests for djblets.mail."""
+
 from __future__ import unicode_literals
 
 from django.conf import settings
@@ -967,6 +970,12 @@ class UtilsTests(TestCase):
                                              full_name='Test User'),
                          'Test User <test@example.com>')
 
+    def test_build_email_address_with_unicode(self):
+        """Testing build_email_address with Unicode characters"""
+        self.assertEqual(build_email_address(email='test@example.com',
+                                             full_name='Tést Üser'),
+                         'Tést Üser <test@example.com>')
+
     def test_build_email_address_without_full_name(self):
         """Testing build_email_address without full name"""
         self.assertEqual(build_email_address(email='test@example.com'),
@@ -982,6 +991,16 @@ class UtilsTests(TestCase):
         self.assertEqual(build_email_address_for_user(user),
                          'Test User <test@example.com>')
 
+    def test_build_email_address_for_user_with_unicode(self):
+        """Testing build_email_address_for_user with Unicode characters"""
+        user = User.objects.create(username='test',
+                                   first_name='Tést',
+                                   last_name='Üser',
+                                   email='test@example.com')
+
+        self.assertEqual(build_email_address_for_user(user),
+                         'Tést Üser <test@example.com>')
+
     def test_build_email_address_via_service(self):
         """Testing test_build_email_address_via_service"""
         self.assertEqual(
@@ -991,6 +1010,30 @@ class UtilsTests(TestCase):
                 service_name='My Service',
                 sender_email='noreply@example.com'),
             'Test User via My Service <noreply@example.com>')
+
+    def test_build_email_address_via_service_with_unicode_user_name(self):
+        """Testing test_build_email_address_via_service with Unicode
+        characters in user's name
+        """
+        self.assertEqual(
+            build_email_address_via_service(
+                email='test@example.com',
+                full_name='Tést Üser',
+                service_name='My Service',
+                sender_email='noreply@example.com'),
+            'Tést Üser via My Service <noreply@example.com>')
+
+    def test_build_email_address_via_service_with_unicode_service(self):
+        """Testing test_build_email_address_via_service with Unicode
+        characters in service name
+        """
+        self.assertEqual(
+            build_email_address_via_service(
+                email='test@example.com',
+                full_name='Test User',
+                service_name='My Sérvice',
+                sender_email='noreply@example.com'),
+            'Test User via My Sérvice <noreply@example.com>')
 
     def test_build_email_address_via_service_without_full_name(self):
         """Testing test_build_email_address_via_service without full name"""
