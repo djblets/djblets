@@ -348,7 +348,7 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         """Testing EmailMessage.message with from_email="""
         email = EmailMessage(subject='Test email',
                              text_body='This is a test.',
-                             from_email='doc@example.com',
+                             from_email='Doc <doc@example.com>',
                              to=['sleepy@example.com'],
                              enable_smart_spoofing=False)
 
@@ -360,15 +360,44 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertIn('X-Sender', email._headers)
         self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
-        self.assertEqual(email.extra_headers['From'], 'doc@example.com')
-        self.assertEqual(email._headers['Reply-To'], 'doc@example.com')
+        self.assertEqual(email.extra_headers['From'], 'Doc <doc@example.com>')
+        self.assertEqual(email._headers['Reply-To'], 'Doc <doc@example.com>')
         self.assertEqual(email._headers['Sender'], settings.DEFAULT_FROM_EMAIL)
         self.assertEqual(email._headers['X-Sender'],
                          settings.DEFAULT_FROM_EMAIL)
 
         msg = email.message()
-        self.assertEqual(msg['From'], 'doc@example.com')
-        self.assertEqual(msg['Reply-To'], 'doc@example.com')
+        self.assertEqual(msg['From'], 'Doc <doc@example.com>')
+        self.assertEqual(msg['Reply-To'], 'Doc <doc@example.com>')
+
+    def test_message_with_from_and_unicode(self):
+        """Testing EmailMessage.message with from_email= with Unicode
+        characters
+        """
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             from_email='Døc <doc@example.com>',
+                             to=['sleepy@example.com'],
+                             enable_smart_spoofing=False)
+
+        self.assertNotIn('From', email._headers)
+        self.assertNotIn('Sender', email.extra_headers)
+        self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertIn('From', email.extra_headers)
+        self.assertIn('Sender', email._headers)
+        self.assertIn('X-Sender', email._headers)
+        self.assertIn('Reply-To', email._headers)
+        self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.extra_headers['From'], 'Døc <doc@example.com>')
+        self.assertEqual(email._headers['Reply-To'], 'Døc <doc@example.com>')
+        self.assertEqual(email._headers['Sender'], settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email._headers['X-Sender'],
+                         settings.DEFAULT_FROM_EMAIL)
+
+        msg = email.message()
+        self.assertEqual(msg['From'], '=?utf-8?q?D=C3=B8c?= <doc@example.com>')
+        self.assertEqual(msg['Reply-To'],
+                         '=?utf-8?q?D=C3=B8c?= <doc@example.com>')
 
     def test_message_with_sender(self):
         """Testing EmailMessage.message with sender="""
@@ -377,7 +406,7 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
                              html_body='<p>This is a test.</p>',
                              from_email='doc@example.com',
                              to=['sleepy@example.com'],
-                             sender='noreply@example.com',
+                             sender='Sender <noreply@example.com>',
                              enable_smart_spoofing=False)
 
         self.assertIn('From', email.extra_headers)
@@ -388,13 +417,55 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('X-Sender', email.extra_headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
         self.assertEqual(email.extra_headers['From'], 'doc@example.com')
-        self.assertEqual(email._headers['Sender'], 'noreply@example.com')
-        self.assertEqual(email._headers['X-Sender'], 'noreply@example.com')
+        self.assertEqual(email._headers['Sender'],
+                         'Sender <noreply@example.com>')
+        self.assertEqual(email._headers['X-Sender'],
+                         'Sender <noreply@example.com>')
 
         msg = email.message()
         self.assertEqual(msg['From'], 'doc@example.com')
-        self.assertEqual(msg['Sender'], 'noreply@example.com')
-        self.assertEqual(msg['X-Sender'], 'noreply@example.com')
+        self.assertEqual(msg['Sender'], 'Sender <noreply@example.com>')
+        self.assertEqual(msg['X-Sender'], 'Sender <noreply@example.com>')
+
+    def test_message_with_sender_with_unicode(self):
+        """Testing EmailMessage.message with sender= with Unicode characters"""
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             html_body='<p>This is a test.</p>',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'],
+                             sender='Sénder <noreply@example.com>',
+                             enable_smart_spoofing=False)
+
+        self.assertIn('From', email.extra_headers)
+        self.assertIn('Sender', email._headers)
+        self.assertIn('X-Sender', email._headers)
+        self.assertNotIn('From', email._headers)
+        self.assertNotIn('Sender', email.extra_headers)
+        self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.extra_headers['From'], 'doc@example.com')
+        self.assertEqual(email._headers['Sender'],
+                         'Sénder <noreply@example.com>')
+        self.assertEqual(email._headers['X-Sender'],
+                         'Sénder <noreply@example.com>')
+
+        msg = email.message()
+        self.assertEqual(msg['From'], 'doc@example.com')
+        self.assertEqual(msg['Sender'],
+                         '=?utf-8?q?S=C3=A9nder?= <noreply@example.com>')
+
+        # Django specially handles several address-related headers, parsing
+        # out the name from the e-mail address, in order to selectively
+        # encode only the name. It does not know X-Sender, though, and will
+        # encode the entire string.
+        #
+        # This shouldn't be a problem in practice (and we've been doing it
+        # this way for years), but that's the reason this doesn't resemble
+        # the value from 'Sender' above.
+        self.assertEqual(
+            msg['X-Sender'],
+            '=?utf-8?b?U8OpbmRlciA8bm9yZXBseUBleGFtcGxlLmNvbT4=?=')
 
     @override_settings(EMAIL_DEFAULT_SENDER_SERVICE_NAME='My Service')
     def test_message_with_from_spoofing_always(self):
@@ -829,16 +900,43 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
                              text_body='This is a test.',
                              from_email='doc@example.com',
                              to=['sleepy@example.com'],
-                             in_reply_to='someone@example.com')
+                             in_reply_to='Someone <someone@example.com>')
 
         self.assertIn('In-Reply-To', email._headers)
         self.assertIn('References', email._headers)
-        self.assertEqual(email._headers['In-Reply-To'], 'someone@example.com')
-        self.assertEqual(email._headers['References'], 'someone@example.com')
+        self.assertEqual(email._headers['In-Reply-To'],
+                         'Someone <someone@example.com>')
+        self.assertEqual(email._headers['References'],
+                         'Someone <someone@example.com>')
 
         msg = email.message()
-        self.assertEqual(msg['In-Reply-To'], 'someone@example.com')
-        self.assertEqual(msg['References'], 'someone@example.com')
+        self.assertEqual(msg['In-Reply-To'], 'Someone <someone@example.com>')
+        self.assertEqual(msg['References'], 'Someone <someone@example.com>')
+
+    def test_message_with_in_reply_to_and_unicode(self):
+        """Testing EmailMessage.message with in_reply_to= with Unicode
+        characters
+        """
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'],
+                             in_reply_to='Sømeone <someone@example.com>')
+
+        self.assertIn('In-Reply-To', email._headers)
+        self.assertIn('References', email._headers)
+        self.assertEqual(email._headers['In-Reply-To'],
+                         'Sømeone <someone@example.com>')
+        self.assertEqual(email._headers['References'],
+                         'Sømeone <someone@example.com>')
+
+        msg = email.message()
+        self.assertEqual(
+            msg['In-Reply-To'],
+            '=?utf-8?b?U8O4bWVvbmUgPHNvbWVvbmVAZXhhbXBsZS5jb20+?=')
+        self.assertEqual(
+            msg['References'],
+            '=?utf-8?b?U8O4bWVvbmUgPHNvbWVvbmVAZXhhbXBsZS5jb20+?=')
 
     def test_message_with_auto_generated_true(self):
         """Testing EmailMessage.message with auto_generated=True"""
@@ -943,8 +1041,8 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
                              to=['sleepy@example.com'],
                              sender='noreply@example.com')
 
-        with self.settings(EMAIL_BACKEND=_CONSOLE_EMAIL_BACKEND):
-            email.send()
+        message = email.message()
+        self.assertEqual(message['Subject'], '=?utf-8?b?8J+YhA==?=')
 
     def test_send_with_unicode_body(self):
         """Testing EmailMessage.send with a Unicode body"""
@@ -955,10 +1053,11 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
                              to=['sleepy@example.com'],
                              sender='noreply@example.com')
 
-        # If the e-mail doesn't send correctly, it will raise a
-        # UnicodeDecodeError.
-        with self.settings(EMAIL_BACKEND=_CONSOLE_EMAIL_BACKEND):
-            email.send()
+        message = email.message()
+        self.assertEqual(message.get_payload(0).get_payload(decode=True),
+                         b'\xf0\x9f\x98\x84')
+        self.assertEqual(message.get_payload(1).get_payload(decode=True),
+                         b'<p>\xf0\x9f\x98\x84</p>')
 
 
 class UtilsTests(TestCase):
