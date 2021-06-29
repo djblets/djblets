@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 
-from email.utils import formataddr, parseaddr
+from email.utils import escapesre, parseaddr, specialsre
 
 from django.conf import settings
 
@@ -21,7 +21,15 @@ def build_email_address(email, full_name=None):
         unicode:
         A formatted e-mail address intended for a To/CC/BCC field.
     """
-    return formataddr((full_name, email))
+    if full_name:
+        escaped_name = escapesre.sub(r'\\\g<0>', full_name)
+
+        if specialsre.search(full_name):
+            escaped_name = '"%s"' % escaped_name
+
+        return '%s <%s>' % (escaped_name, email)
+
+    return email
 
 
 def build_email_address_for_user(user):

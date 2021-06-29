@@ -1,0 +1,49 @@
+.. default-intersphinx:: django1.11 djblets2.x
+
+
+===========================
+Djblets 2.2.3 Release Notes
+===========================
+
+**Release date**: June 28, 2021
+
+
+djblets.mail
+============
+
+* Fixed :py:func:`~djblets.mail.utils.build_email_address` on Python 3 to
+  guarantee returning e-mail addresses without encoding for mail headers.
+
+  This regressed on Python 3, due to this method previously using
+  :py:meth:`email.utils.formataddr` behind the scenes. E-mail addresses
+  containing Unicode characters were being encoded for use directly in
+  e-mail payloads.
+
+  This method is now guaranteed to return an e-mail address with the same
+  behavior as on Python 2.7.
+
+* Improved e-mail headers and Unicode support.
+
+  Our e-mail header handling now better leverages Django's own header
+  handling, ensuring that headers with Unicode values or e-mail addresses are
+  always encoded properly.
+
+
+djblets.webapi
+==============
+
+* Fixed ``?expand=`` to not expand keys in nested objects if they're found in
+  top-level objects.
+
+  Previously, when expanding multiple keys (like ``?expand=a,b,c``), if one
+  key (``b``) was found inside of both ``a`` and in the main resource, it
+  would prefer the one in ``a`` and leave out the one in the main resource.
+  Now, expanded keys in a resource are prioritized over those in an expanded
+  child.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
