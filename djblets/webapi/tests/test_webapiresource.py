@@ -1,14 +1,15 @@
 from __future__ import print_function, unicode_literals
 
 import warnings
+from collections import OrderedDict
 
 from django.contrib.auth.models import User
-from django.db.models import Model
+from django.db import models
 from django.http import HttpResponseNotModified
 from django.test.client import RequestFactory
 from django.utils import six
 
-from djblets.testing.testcases import TestCase
+from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
 from djblets.util.http import encode_etag
 from djblets.webapi.fields import (ResourceFieldType,
                                    ResourceListFieldType,
@@ -20,6 +21,11 @@ from djblets.webapi.resources.registry import (register_resource_for_model,
 from djblets.webapi.responses import WebAPIResponse
 
 
+class TestGroup(models.Model):
+    name = models.CharField(max_length=10)
+    users = models.ManyToManyField(User)
+
+
 class BaseTestWebAPIResource(WebAPIResource):
     mimetype_vendor = 'djblets-test'
 
@@ -27,6 +33,7 @@ class BaseTestWebAPIResource(WebAPIResource):
 class TestUserResource(BaseTestWebAPIResource):
     name = 'user'
     model = User
+    uri_object_key = 'pk'
 
     fields = {
         'username': {
@@ -44,6 +51,30 @@ class TestUserResource(BaseTestWebAPIResource):
         return 'http://testserver/api/test/users/%s/' % obj.pk
 
 
+class TestGroupResource(BaseTestWebAPIResource):
+    name = 'group'
+    model = TestGroup
+    uri_object_key = 'pk'
+
+    fields = {
+        'name': {
+            'type': StringFieldType,
+        },
+        'users': {
+            'type': ResourceListFieldType,
+        },
+    }
+
+    def get_href(self, obj, *args, **kwargs):
+        return 'http://testserver/api/test/groups/%s/' % obj.pk
+
+    def get_serializer_for_object(self, o):
+        if isinstance(o, User):
+            return TestUserResource()
+        else:
+            return self
+
+
 class BaseTestRefUserResource(BaseTestWebAPIResource):
     name = 'test'
     uri_object_key = 'pk'
@@ -54,12 +85,16 @@ class BaseTestRefUserResource(BaseTestWebAPIResource):
     def get_serializer_for_object(self, o):
         if isinstance(o, User):
             return TestUserResource()
+        elif isinstance(o, TestGroup):
+            return TestGroupResource()
         else:
             return self
 
 
-class WebAPIResourceTests(TestCase):
+class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
     """Unit tests for djblets.webapi.resources.base."""
+
+    tests_app = 'djblets.webapi.tests'
 
     def setUp(self):
         super(WebAPIResourceTests, self).setUp()
@@ -660,6 +695,100 @@ class WebAPIResourceTests(TestCase):
             }
         })
 
+    def test_serialize_object_with_expand_in_parent_and_child_fields(self):
+        """Testing WebAPIResource.serialize_object with
+        ?expand= and field found in parent and expanded child resource
+        """
+        class TestObject(object):
+            pk = '1'
+            users = User.objects.all()
+            groups = TestGroup.objects.all()
+
+        class TestResource(BaseTestRefUserResource):
+            item_child_resources = []
+
+            fields = OrderedDict([
+                ('groups', {
+                    'type': ResourceListFieldType,
+                }),
+                ('users', {
+                    'type': ResourceListFieldType,
+                }),
+            ])
+
+        User.objects.create(username='user1',
+                            first_name='Test1',
+                            last_name='User1')
+        user2 = User.objects.create(username='user2',
+                                    first_name='Test2',
+                                    last_name='User2')
+
+        group = TestGroup.objects.create(name='group1')
+        group.users.add(user2)
+
+        request = RequestFactory().get('/api/test/?expand=users,groups')
+        resource = TestResource()
+        data = resource.serialize_object(TestObject(), request=request)
+
+        self.assertEqual(data, {
+            '_expanded': {
+                'groups': {
+                    'item_mimetype': 'application/vnd.djblets-test.group+json',
+                },
+                'users': {
+                    'item_mimetype': 'application/vnd.djblets-test.user+json',
+                },
+            },
+            'links': {
+                'self': {
+                    'href': 'http://testserver/api/test/?expand=users,groups',
+                    'method': 'GET',
+                },
+            },
+            'groups': [
+                {
+                    'name': 'group1',
+                    'links': {
+                        'self': {
+                            'href': 'http://testserver/api/test/groups/1/',
+                            'method': 'GET',
+                        },
+                    },
+                    'users': [
+                        {
+                            'href': 'http://testserver/api/test/users/2/',
+                            'method': 'GET',
+                            'title': 'user2',
+                        },
+                    ],
+                },
+            ],
+            'users': [
+                {
+                    'username': 'user1',
+                    'first_name': 'Test1',
+                    'last_name': 'User1',
+                    'links': {
+                        'self': {
+                            'href': 'http://testserver/api/test/users/1/',
+                            'method': 'GET',
+                        },
+                    },
+                },
+                {
+                    'username': 'user2',
+                    'first_name': 'Test2',
+                    'last_name': 'User2',
+                    'links': {
+                        'self': {
+                            'href': 'http://testserver/api/test/users/2/',
+                            'method': 'GET',
+                        },
+                    },
+                },
+            ],
+        })
+
     def test_serialize_object_with_only_fields_and_expand(self):
         """Testing WebAPIResource.serialize_object with
         ?only-fields=<field>&expand=<field>
@@ -862,7 +991,7 @@ class WebAPIResourceTests(TestCase):
         """Testing WebAPIResource.serialize_object with circular references and
         ?expand=
         """
-        class TestObject(Model):
+        class TestObject(models.Model):
             def __init__(self, name, pk):
                 super(TestObject, self).__init__()
 

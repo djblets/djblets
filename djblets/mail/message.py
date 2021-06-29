@@ -307,7 +307,7 @@ class EmailMessage(EmailMultiAlternatives):
                 # Use the native string on each version of Python. These
                 # are headers, so they'll be convertible without encoding
                 # issues.
-                msg.add_header(str(name), value)
+                msg[name] = value
 
         return msg
 
