@@ -5,7 +5,7 @@
 Djblets 2.2.3 Release Notes
 ===========================
 
-**Release date**: TBD
+**Release date**: June 28, 2021
 
 
 djblets.mail
