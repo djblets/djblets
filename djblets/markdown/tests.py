@@ -1,5 +1,7 @@
 from __future__ import print_function, unicode_literals
 
+import io
+
 from django.utils import six
 from django.utils.six.moves.html_entities import codepoint2name
 from markdown import __version_info__ as markdown_version, markdown
@@ -8,7 +10,8 @@ from djblets.testing.testcases import TestCase
 from djblets.markdown import (get_markdown_element_tree,
                               iter_markdown_lines,
                               markdown_escape,
-                              markdown_unescape)
+                              markdown_unescape,
+                              render_markdown_from_file)
 
 
 class MarkdownTestCase(TestCase):
@@ -268,6 +271,13 @@ class MarkdownUtilsTests(MarkdownTestCase):
         self.assertEqual(len(nodes), 1)
         self.assertEqual(nodes[0].toxml(),
                          '<a>\u2018\u2019\u201c\u201d\u201c\u201d</a>')
+
+    def test_render_markdown_from_file(self):
+        """Testing render_markdown_from_file"""
+        stream = io.BytesIO(b'This is a **test**')
+
+        self.assertEqual(render_markdown_from_file(stream),
+                         '<p>This is a <strong>test</strong></p>')
 
 
 class EscapeHtmlRenderTests(MarkdownTestCase):
