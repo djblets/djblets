@@ -1,5 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 
+import io
 import re
 import sys
 from xml.dom.minidom import parseString
@@ -290,13 +291,27 @@ def sanitize_illegal_chars_for_xml(s):
 
 
 def render_markdown_from_file(f, **markdown_kwargs):
-    """Render Markdown text from a file stream to HTML."""
-    s = StringIO()
-    markdownFromFile(input=f, output=s, **markdown_kwargs)
-    html = s.getvalue()
-    s.close()
+    """Render Markdown text from a file stream to HTML.
 
-    return html
+    Args:
+        f (file or io.BytesIO):
+            The byte stream to read from.
+
+        **markdown_kwargs (dict):
+            Keyword arguments to pass to :py:func:`markdown.markdownFromFile`.
+
+    Returns:
+        unicode:
+        The resulting Markdown-rendered HTML.
+    """
+    s = io.BytesIO()
+
+    try:
+        markdownFromFile(input=f, output=s, **markdown_kwargs)
+
+        return s.getvalue().decode('utf-8')
+    finally:
+        s.close()
 
 
 def _get_illegal_char_codes_set_for_xml():
