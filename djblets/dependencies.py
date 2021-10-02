@@ -54,9 +54,9 @@ uglifyjs_npm_dependencies = {
 
 #: Dependencies required for Babel for JavaScript.
 babel_npm_dependencies = {
-    '@babel/cli': '^7.11.6',
-    '@babel/core': '^7.11.6',
-    '@babel/preset-env': '^7.11.5',
+    '@babel/cli': '^7.15.4',
+    '@babel/core': '^7.15.5',
+    '@babel/preset-env': '^7.15.6',
     'babel-plugin-dedent': '^2.1.0',
     'babel-plugin-django-gettext': '^1.1.0',
 }
