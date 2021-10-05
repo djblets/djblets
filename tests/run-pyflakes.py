@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Utility script to run pyflakes with the modules we care about and
 # exclude errors we know to be fine.
@@ -20,6 +20,7 @@ def main():
     p = subprocess.Popen(['pyflakes'] + modules,
                          stderr=subprocess.PIPE,
                          stdout=subprocess.PIPE,
+                         encoding='utf-8',
                          close_fds=True)
 
     contents = p.stdout.readlines()
@@ -40,7 +41,7 @@ def main():
         test_line = re.sub(r'line [0-9]+', r'line *', test_line)
 
         if test_line not in exclusions:
-            print line
+            print(line)
 
 if __name__ == "__main__":
     main()
