@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function, unicode_literals
 
@@ -14,7 +14,9 @@ from setuptools.command.egg_info import egg_info
 from setuptools.command.test import test
 
 from djblets import get_package_version, VERSION
-from djblets.dependencies import (build_dependency_list, npm_dependencies,
+from djblets.dependencies import (PYTHON_3_MIN_VERSION,
+                                  build_dependency_list,
+                                  npm_dependencies,
                                   package_dependencies)
 
 
@@ -23,14 +25,22 @@ from djblets.dependencies import (build_dependency_list, npm_dependencies,
 # the source tarball, and failing.
 pyver = sys.version_info[:2]
 
-if pyver < (2, 7) or (3, 0) <= pyver < (3, 6):
+if pyver < PYTHON_3_MIN_VERSION:
     sys.stderr.write('This version of Djblets is incompatible with your '
                      'version of Python.\n')
     sys.exit(1)
 
 
 # NOTE: When updating, make sure you update the classifiers below.
-SUPPORTED_PYVERS = ['2.7', '3.6', '3.7', '3.8', '3.9']
+#
+# Python end-of-life dates (as of October 2, 2021):
+#
+# 3.7: June 27, 2023
+# 3.8: October 14, 2024
+# 3.9: October 5, 2025
+#
+# See https://endoflife.date/python
+SUPPORTED_PYVERS = ['3.7', '3.8', '3.9']
 
 
 if '--all-pyvers' in sys.argv:
@@ -507,10 +517,7 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',

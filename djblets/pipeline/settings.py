@@ -99,11 +99,10 @@ def build_pipeline_settings(pipeline_enabled,
             variable is set to ``1``, then this will be forced to ``False``.
             This is primarily used for packaging building.
     """
-    babel_bin_path = os.path.join(node_modules_path, '@babel', 'cli', 'bin',
-                                  'babel.js')
-    lessc_bin_path = os.path.join(node_modules_path, 'less', 'bin', 'lessc')
-    uglifyjs_bin_path = os.path.join(node_modules_path, 'uglify-js', 'bin',
-                                     'uglifyjs')
+    bin_path = os.path.join(node_modules_path, '.bin')
+    babel_bin_path = os.path.join(bin_path, 'babel')
+    lessc_bin_path = os.path.join(bin_path, 'lessc')
+    uglifyjs_bin_path = os.path.join(bin_path, 'uglifyjs')
 
     if (validate_paths and
         os.environ.get('DJBLETS_SKIP_PIPELINE_VALIDATION') != '1'):

@@ -13,20 +13,11 @@ from __future__ import unicode_literals
 #       may be needed before any dependencies have been installed.
 
 
-#: The minimum supported version of Python 2.x.
-PYTHON_2_MIN_VERSION = (2, 7)
-
 #: The minimum supported version of Python 3.x.
-PYTHON_3_MIN_VERSION = (3, 6)
-
-#: A string representation of the minimum supported version of Python 2.x.
-PYTHON_2_MIN_VERSION_STR = '%s.%s' % (PYTHON_2_MIN_VERSION)
+PYTHON_3_MIN_VERSION = (3, 7)
 
 #: A string representation of the minimum supported version of Python 3.x.
-PYTHON_3_MIN_VERSION_STR = '%s.%s' % (PYTHON_3_MIN_VERSION)
-
-#: A dependency version range for Python 2.x.
-PYTHON_2_RANGE = "=='%s.*'" % PYTHON_2_MIN_VERSION_STR
+PYTHON_3_MIN_VERSION_STR = '%s.%s' % PYTHON_3_MIN_VERSION
 
 #: A dependency version range for Python 3.x.
 PYTHON_3_RANGE = ">='%s'" % PYTHON_3_MIN_VERSION_STR
@@ -70,48 +61,12 @@ npm_dependencies.update(babel_npm_dependencies)
 #: All dependencies required to install Djblets.
 package_dependencies = {
     'Django': django_version,
-    'django-pipeline': '>=1.6.14,<1.6.999',
-    'dnspython': [
-        {
-            'python': PYTHON_2_RANGE,
-            'version': '>=1.14.0,<1.999',
-        },
-        {
-            'python': PYTHON_3_RANGE,
-            'version': '>=1.14.0',
-        },
-    ],
-    'feedparser': [
-        {
-            'python': PYTHON_2_RANGE,
-            'version': '>=5.1.2,<5.999',
-        },
-        {
-            'python': PYTHON_3_RANGE,
-            'version': '>=5.1.2',
-        },
-    ],
-    'Pillow': [
-        {
-            'python': PYTHON_2_RANGE,
-            'version': '>=6.2,<6.999',
-        },
-        {
-            'python': PYTHON_3_RANGE,
-            'version': '>=6.2',
-        },
-    ],
+    'django-pipeline': '~=1.6.14',
+    'dnspython': '>=1.14.0',
+    'feedparser': '>=5.1.2',
+    'Pillow': '>=6.2',
     'publicsuffix': '>=1.1',
-    'python-dateutil': [
-        {
-            'python': PYTHON_2_RANGE,
-            'version': '>=2.7',
-        },
-        {
-            'python': PYTHON_3_RANGE,
-            'version': '>=2.7',
-        },
-    ],
+    'python-dateutil': '>=2.7',
     'pytz': '',
 }
 

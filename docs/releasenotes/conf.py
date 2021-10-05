@@ -194,8 +194,7 @@ htmlhelp_basename = 'ReleaseNotes'
 # (source start file, target name, title, author, document class
 # [howto/manual]).
 latex_documents = [
-  ('index', 'ReleaseNotes.tex', ur'Release Notes',
-   ur'Christian Hammond', 'manual'),
+    ('index', 'ReleaseNotes.tex', 'Release Notes', 'Beanbag, Inc.', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top
