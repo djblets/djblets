@@ -22,20 +22,20 @@ class CacheTests(SpyAgency, TestCase):
 
     def test_cache_memoize(self):
         """Testing cache_memoize"""
-        cacheKey = 'abc123'
-        testStr = 'Test 123'
+        cache_key = 'abc123'
+        test_str = 'Test 123'
 
-        def cacheFunc(cacheCalled=[]):
-            self.assertTrue(not cacheCalled)
-            cacheCalled.append(True)
-            return testStr
+        def cache_func(cache_called=[]):
+            self.assertTrue(not cache_called)
+            cache_called.append(True)
+            return test_str
 
-        result = cache_memoize(cacheKey, cacheFunc)
-        self.assertEqual(result, testStr)
+        result = cache_memoize(cache_key, cache_func)
+        self.assertEqual(result, test_str)
 
-        # Call a second time. We should only call cacheFunc once.
-        result = cache_memoize(cacheKey, cacheFunc)
-        self.assertEqual(result, testStr)
+        # Call a second time. We should only call cache_func once.
+        result = cache_memoize(cache_key, cache_func)
+        self.assertEqual(result, test_str)
 
     def test_cache_memoize_with_unicode_data(self):
         """Testing cache_memoize with Unicode data"""
@@ -50,9 +50,26 @@ class CacheTests(SpyAgency, TestCase):
         result = cache_memoize(cache_key, cache_func)
         self.assertEqual(result, test_str)
 
-        # Call a second time. We should only call cacheFunc once.
+        # Call a second time. We should only call cache_func once.
         result = cache_memoize(cache_key, cache_func)
         self.assertEqual(result, test_str)
+
+    def test_cache_memoize_with_non_sequence(self):
+        """Testing cache_memoize with non-sequence type data"""
+        cache_key = 'abc123'
+        data = True
+
+        def cache_func(cache_called=[]):
+            self.assertFalse(cache_called)
+            cache_called.append(True)
+            return data
+
+        result = cache_memoize(cache_key, cache_func)
+        self.assertEqual(result, data)
+
+        # Call a second time. We should only call cache_func once.
+        result = cache_memoize(cache_key, cache_func)
+        self.assertEqual(result, data)
 
     def test_cache_memoize_large_files_uncompressed(self):
         """Testing cache_memoize with large files without compression"""
