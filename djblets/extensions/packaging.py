@@ -155,20 +155,19 @@ class BuildStaticFiles(Command):
             dependencies.update(lesscss_npm_dependencies)
 
             pipeline_settings.LESS_BINARY = \
-                os.path.join(node_modules_dir, 'less', 'bin', 'lessc')
+                os.path.join(node_modules_dir, '.bin', 'lessc')
 
         if self.get_bundle_file_matches(js_bundles, '*.js'):
             dependencies.update(uglifyjs_npm_dependencies)
 
             pipeline_settings.UGLIFYJS_BINARY = \
-                os.path.join(node_modules_dir, 'uglify-js', 'bin', 'uglifyjs')
+                os.path.join(node_modules_dir, '.bin', 'uglifyjs')
 
             if self.get_bundle_file_matches(js_bundles, '*.es6.js'):
                 dependencies.update(babel_npm_dependencies)
 
                 pipeline_settings.BABEL_BINARY = \
-                    os.path.join(node_modules_dir, 'babel-cli', 'bin',
-                                 'babel.js')
+                    os.path.join(node_modules_dir, '.bin', 'babel')
 
         package_file = os.path.join(build_dir, 'package.json')
 
