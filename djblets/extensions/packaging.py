@@ -160,14 +160,16 @@ class BuildStaticFiles(Command):
         if self.get_bundle_file_matches(js_bundles, '*.js'):
             dependencies.update(uglifyjs_npm_dependencies)
 
+            bin_path = os.path.join(node_modules_dir, '.bin')
+
             pipeline_settings.UGLIFYJS_BINARY = \
-                os.path.join(node_modules_dir, '.bin', 'uglifyjs')
+                os.path.join(bin_path, 'uglifyjs')
 
             if self.get_bundle_file_matches(js_bundles, '*.es6.js'):
                 dependencies.update(babel_npm_dependencies)
 
                 pipeline_settings.BABEL_BINARY = \
-                    os.path.join(node_modules_dir, '.bin', 'babel')
+                    os.path.join(bin_path, 'babel')
 
         package_file = os.path.join(build_dir, 'package.json')
 
