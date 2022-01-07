@@ -26,6 +26,12 @@ except ImportError:
     from django.db.backends import (util as db_backend_utils,
                                     BaseDatabaseWrapper)
 
+try:
+    # Django >= 1.10
+    from django.utils.deprecation import MiddlewareMixin
+except ImportError:
+    MiddlewareMixin = object
+
 from djblets.log import init_logging, init_profile_logger, log_timed
 
 
@@ -127,7 +133,7 @@ def reformat_sql(sql):
     return sql
 
 
-class LoggingMiddleware(object):
+class LoggingMiddleware(MiddlewareMixin):
     """A piece of middleware that sets up page timing and profile logging.
 
     This is needed if using ``settings.LOGGING_PAGE_TIMES`` or

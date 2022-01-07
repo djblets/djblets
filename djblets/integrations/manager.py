@@ -65,10 +65,15 @@ class IntegrationManager(object):
 
         middleware = 'djblets.integrations.middleware.IntegrationsMiddleware'
 
-        if middleware not in settings.MIDDLEWARE_CLASSES:
+        MIDDLEWARE = getattr(settings, 'MIDDLEWARE', None) or []
+        MIDDLEWARE_CLASSES = \
+            getattr(settings, 'MIDDLEWARE_CLASSES', None) or []
+
+        if (middleware not in MIDDLEWARE and
+            middleware not in MIDDLEWARE_CLASSES):
             raise ImproperlyConfigured(
                 'IntegrationManager requires %s to be listed in '
-                'settings.MIDDLEWARE_CLASSES'
+                'settings.MIDDLEWARE or settings.MIDDLEWARE_CLASSES'
                 % middleware
             )
 
