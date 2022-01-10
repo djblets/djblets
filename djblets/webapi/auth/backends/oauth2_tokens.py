@@ -24,10 +24,13 @@ class OAuth2TokenBackendMixin(object):
                  implementation is based off of.
     """
 
-    def authenticate(self, **credentials):
+    def authenticate(self, request, **credentials):
         """Attempt to authenticate a request.
 
         Args:
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
+
             **credentials (dict):
                 The credentials for authentication.
 
@@ -36,8 +39,6 @@ class OAuth2TokenBackendMixin(object):
             If authentication succeeds, the user that authenticated, otherwise
             ``None``.
         """
-        request = credentials.get('request')
-
         if request is None:
             return None
 

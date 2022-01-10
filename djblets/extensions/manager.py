@@ -1381,7 +1381,7 @@ class ExtensionManager(object):
         if getattr(extension, 'admin_site', None):
             extension.admin_site_urlpatterns = [
                 url(r'^%s%s/db/' % (prefix, extension.id),
-                    include(extension.admin_site.urls)),
+                    extension.admin_site.urls)
             ]
 
             self.dynamic_urls.add_patterns(extension.admin_site_urlpatterns)
