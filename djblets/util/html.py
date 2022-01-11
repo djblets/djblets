@@ -9,7 +9,7 @@ from django.utils.safestring import mark_safe
 #: Lazily mark text as safe.
 #:
 #: This is useful if you need a lazily-translated string (such as with
-#: :py:func:`~django.utils.translation.ugettext_lazy`) to be marked safe.
+#: :py:func:`~django.utils.translation.gettext_lazy`) to be marked safe.
 #:
 #: Args:
 #:     text (str):

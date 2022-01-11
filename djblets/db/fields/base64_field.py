@@ -16,7 +16,7 @@ except ImportError:
 
 from django.db import models
 from django.utils.encoding import force_text, smart_text
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 
 class Base64TypeError(TypeError):

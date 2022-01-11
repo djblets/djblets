@@ -6,7 +6,7 @@ import logging
 
 from django import forms
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _, ugettext
+from django.utils.translation import gettext_lazy as _, gettext
 import pytz
 
 from djblets.conditions.conditions import ConditionSet
@@ -175,7 +175,7 @@ class ConditionsField(forms.Field):
 
         if not isinstance(data, dict):
             raise ValueError(
-                ugettext('%r is not a valid value for a %s')
+                gettext('%r is not a valid value for a %s')
                 % (data, self.__class__.__name__))
 
         return data

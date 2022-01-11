@@ -9,7 +9,7 @@ from importlib import import_module
 import dateutil.parser
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _, ugettext
+from django.utils.translation import gettext_lazy as _, gettext
 from pytz.exceptions import AmbiguousTimeError
 
 
@@ -80,7 +80,7 @@ class BaseAPIFieldType(object):
             return self.field_info[key]
         except KeyError:
             raise KeyError(
-                ugettext('Missing "%(key)s" key in %(field_info)r')
+                gettext('Missing "%(key)s" key in %(field_info)r')
                 % {
                     'key': key,
                     'field_info': self.field_info,
@@ -134,7 +134,7 @@ class NonRequestFieldTypeMixin(object):
                 request data.
         """
         raise NotImplementedError(
-            ugettext('%s cannot be used for request data')
+            gettext('%s cannot be used for request data')
             % self.__class__.__name__)
 
 
@@ -211,8 +211,8 @@ class ChoiceFieldType(BaseAPIFieldType):
             return value
 
         raise ValidationError(
-            ugettext('"%(value)s" is not a valid value. Valid values '
-                     'are: %(choices)s'),
+            gettext('"%(value)s" is not a valid value. Valid values '
+                    'are: %(choices)s'),
             params={
                 'value': value,
                 'choices': self._get_choices_str(),
@@ -225,7 +225,7 @@ class ChoiceFieldType(BaseAPIFieldType):
             unicode:
             A string representation of this field type.
         """
-        return ugettext('One of %s') % self._get_choices_str()
+        return gettext('One of %s') % self._get_choices_str()
 
     def _get_choices_str(self):
         """Return a string representation of a list of choices.
@@ -269,8 +269,8 @@ class DateTimeFieldType(BaseAPIFieldType):
                 value = dateutil.parser.parse(value)
             except ValueError:
                 raise ValidationError(
-                    ugettext('This timestamp is not a valid ISO 8601 '
-                             'date/time'))
+                    gettext('This timestamp is not a valid ISO 8601 '
+                            'date/time'))
 
         if timezone.is_naive(value):
             try:
@@ -278,9 +278,9 @@ class DateTimeFieldType(BaseAPIFieldType):
                                             timezone.get_current_timezone())
             except AmbiguousTimeError:
                 raise ValidationError(
-                    ugettext('This timestamp needs a UTC offset to avoid '
-                             'being ambiguous due to daylight savings time '
-                             'changes'))
+                    gettext('This timestamp needs a UTC offset to avoid '
+                            'being ambiguous due to daylight savings time '
+                            'changes'))
 
         return value
 
@@ -315,13 +315,13 @@ class DictFieldType(BaseAPIFieldType):
                 result = json.loads(value)
             except ValueError:
                 raise ValidationError(
-                    ugettext('This value is not a valid JSON document'))
+                    gettext('This value is not a valid JSON document'))
 
             if isinstance(result, dict):
                 return result
 
         raise ValidationError(
-            ugettext('This value is not a valid dictionary value'))
+            gettext('This value is not a valid dictionary value'))
 
 
 class FileFieldType(BaseAPIFieldType):
@@ -428,10 +428,10 @@ class ListFieldType(BaseAPIFieldType):
                 value = json.loads(value)
             except ValueError:
                 raise ValidationError(
-                    ugettext('This value is not a valid JSON document'))
+                    gettext('This value is not a valid JSON document'))
 
         if not isinstance(value, list):
-            raise ValidationError(ugettext('This value is not a valid list'))
+            raise ValidationError(gettext('This value is not a valid list'))
 
         if self.item_info:
             item_type = self.item_info['type'](self.item_info)
@@ -453,9 +453,9 @@ class ListFieldType(BaseAPIFieldType):
         if self.item_info:
             item_type = self.item_info['type'](self.item_info)
 
-            return ugettext('List of %s') % item_type
+            return gettext('List of %s') % item_type
         else:
-            return ugettext('List')
+            return gettext('List')
 
 
 class ResourceFieldType(NonRequestFieldTypeMixin, BaseAPIFieldType):
@@ -538,7 +538,7 @@ class ResourceListFieldType(ResourceFieldType):
             unicode:
             A string representation of this field type.
         """
-        return ugettext('List of %s') % self.resource.__name__
+        return gettext('List of %s') % self.resource.__name__
 
 
 class StringFieldType(BaseAPIFieldType):

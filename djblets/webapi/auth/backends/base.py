@@ -6,7 +6,7 @@ import logging
 import re
 
 from django.contrib import auth
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from djblets.auth.ratelimit import is_ratelimited
 

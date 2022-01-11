@@ -31,7 +31,7 @@ This contains some validation functions that may be useful for forms.
 
 from __future__ import unicode_literals
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 
 def validate_test_cookie(form, request):

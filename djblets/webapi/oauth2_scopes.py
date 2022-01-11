@@ -9,7 +9,7 @@ from importlib import import_module
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from djblets.extensions.manager import get_extension_managers
 from djblets.extensions.signals import (extension_enabled,

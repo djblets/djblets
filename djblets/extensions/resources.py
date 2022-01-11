@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from django.conf.urls import include, url
 from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from djblets.extensions.errors import (DisablingExtensionError,
                                        EnablingExtensionError,

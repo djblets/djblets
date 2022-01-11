@@ -7,7 +7,7 @@ further customized by applications needing to offer consent for services.
 from __future__ import unicode_literals
 
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _, ugettext
+from django.utils.translation import gettext_lazy as _, gettext
 
 from djblets.privacy.consent.base import BaseConsentRequirement
 
@@ -88,21 +88,21 @@ class PolicyConsentRequirement(BaseConsentRequirement):
     def name(self):
         """The name of the requirement."""
         if self.privacy_policy_url and self.terms_of_service_url:
-            return ugettext('Privacy Policy and Terms of Service')
+            return gettext('Privacy Policy and Terms of Service')
         elif self.privacy_policy_url:
-            return ugettext('Privacy Policy')
+            return gettext('Privacy Policy')
         elif self.terms_of_service_url:
-            return ugettext('Terms of Service')
+            return gettext('Terms of Service')
 
     @property
     def summary(self):
         """A brief summary of the requirement."""
         if self.privacy_policy_url and self.terms_of_service_url:
-            return ugettext('Accept the Privacy Policy and Terms of Service')
+            return gettext('Accept the Privacy Policy and Terms of Service')
         elif self.privacy_policy_url:
-            return ugettext('Accept the Privacy Policy')
+            return gettext('Accept the Privacy Policy')
         elif self.terms_of_service_url:
-            return ugettext('Accept the Terms of Service')
+            return gettext('Accept the Terms of Service')
 
     @property
     def intent_description(self):
@@ -111,30 +111,30 @@ class PolicyConsentRequirement(BaseConsentRequirement):
             reject_instructions = self.reject_instructions
         else:
             reject_instructions = (
-                ugettext('You will not be able to use the service '
-                         'without accepting this. If you disagree, '
-                         'please <a href="mailto:%s">contact</a> '
-                         'your server administrator.')
+                gettext('You will not be able to use the service '
+                        'without accepting this. If you disagree, '
+                        'please <a href="mailto:%s">contact</a> '
+                        'your server administrator.')
                 % self.site_admin_email
             )
 
         if self.privacy_policy_url and self.terms_of_service_url:
             return mark_safe(
-                ugettext('You must accept the <a href="%s">Privacy '
-                         'Policy</a> and <a href="%s">Terms of '
-                         'Service</a>. %s')
+                gettext('You must accept the <a href="%s">Privacy '
+                        'Policy</a> and <a href="%s">Terms of '
+                        'Service</a>. %s')
                 % (self.privacy_policy_url, self.terms_of_service_url,
                    reject_instructions)
             )
         elif self.privacy_policy_url:
             return mark_safe(
-                ugettext('You must accept the <a href="%s">Privacy '
-                         'Policy</a>. %s')
+                gettext('You must accept the <a href="%s">Privacy '
+                        'Policy</a>. %s')
                 % (self.privacy_policy_url, reject_instructions)
             )
         elif self.terms_of_service_url:
             return mark_safe(
-                ugettext('You must accept the <a href="%s">Terms of '
-                         'Service</a>. %s')
+                gettext('You must accept the <a href="%s">Terms of '
+                        'Service</a>. %s')
                 % (self.terms_of_service_url, reject_instructions)
             )

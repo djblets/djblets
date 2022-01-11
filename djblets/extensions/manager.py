@@ -26,7 +26,7 @@ from django.core.files import locks
 from django.db import IntegrityError
 from django.urls import reverse
 from django.utils.module_loading import module_has_submodule
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.conf import settings as pipeline_settings
 from setuptools.command import easy_install
 

@@ -10,7 +10,7 @@ from __future__ import unicode_literals
 
 import logging
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from pkg_resources import iter_entry_points
 
 

@@ -33,7 +33,7 @@ import re
 from django import template
 from django.template import TemplateSyntaxError
 from django.utils.html import format_html, format_html_join
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from PIL import Image
 from PIL.Image import registered_extensions
 

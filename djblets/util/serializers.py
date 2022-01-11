@@ -15,7 +15,6 @@ class DjbletsJSONEncoder(DjangoJSONEncoder):
     following:
 
     * Evaluates strings translated with
-      :py:func:`~django.utils.translation.ugettext_lazy` or
       :py:func:`~django.utils.translation.gettext_lazy` to real strings.
 
     * Removes the milliseconds and microseconds
@@ -55,7 +54,7 @@ class DjbletsJSONEncoder(DjangoJSONEncoder):
             :py:class:`list`, py:class:`unicode`, or :py:class:`bytes` object).
         """
         if isinstance(obj, Promise):
-            # Handles initializing lazily created ugettext messages.
+            # Handles initializing lazily created gettext messages.
             return force_text(obj)
         elif isinstance(obj, datetime.datetime) and self.strip_datetime_ms:
             # This is like DjangoJSONEncoder's datetime encoding

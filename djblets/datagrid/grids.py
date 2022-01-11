@@ -64,7 +64,7 @@ from django.template.loader import get_template, render_to_string
 from django.utils.cache import patch_cache_control
 from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from djblets.template.context import get_default_template_context_processors
 from djblets.util.decorators import cached_property

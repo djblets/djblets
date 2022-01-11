@@ -14,7 +14,7 @@ from django.forms.widgets import HiddenInput
 from django.template.context import Context
 from django.template.loader import render_to_string
 from django.utils.html import format_html_join
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from djblets.conditions import ConditionSet
 from djblets.conditions.errors import (ConditionChoiceNotFoundError,

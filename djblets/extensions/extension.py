@@ -15,7 +15,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.templatetags.static import static
 from django.urls import get_mod_func
 from django.utils.module_loading import import_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.extensions.errors import InstallExtensionMediaError
