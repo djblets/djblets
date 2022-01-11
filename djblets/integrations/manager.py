@@ -10,7 +10,6 @@ import weakref
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models.signals import post_delete, post_save
-from django.utils import six
 
 from djblets.cache.synchronizer import GenerationSynchronizer
 from djblets.integrations.errors import (IntegrationAlreadyRegisteredError,
@@ -137,7 +136,7 @@ class IntegrationManager(object):
             type:
             The registered integration classes.
         """
-        return six.itervalues(self._integration_classes)
+        return self._integration_classes.values()
 
     def get_integration(self, integration_id):
         """Return an integration instance for a given ID.
@@ -169,7 +168,7 @@ class IntegrationManager(object):
             djblets.integrations.integration.Integration:
             The integration instances.
         """
-        return six.itervalues(self._integration_instances)
+        return self._integration_instances.values()
 
     def get_integration_configs(self, integration_cls=None, **filter_kwargs):
         """Return a list of saved integration configurations.
@@ -451,7 +450,7 @@ def get_integration_managers():
     Returns:
         list: The list of :py:class:`IntegrationManager` instances.
     """
-    return list(six.itervalues(_integration_managers))
+    return list(_integration_managers.values())
 
 
 def shutdown_integration_managers():

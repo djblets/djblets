@@ -61,7 +61,6 @@ from django.core.paginator import InvalidPage, QuerySetPaginator
 from django.http import Http404, HttpResponse
 from django.template.defaultfilters import date, timesince
 from django.template.loader import get_template, render_to_string
-from django.utils import six
 from django.utils.cache import patch_cache_control
 from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
@@ -461,13 +460,13 @@ class Column(object):
                 url = render_context.get('_datagrid_object_url')
 
         if self.css_class:
-            if six.callable(self.css_class):
+            if callable(self.css_class):
                 css_class = self.css_class(obj)
             else:
                 css_class = self.css_class
 
         if self.link_css_class:
-            if six.callable(self.link_css_class):
+            if callable(self.link_css_class):
                 link_css_class = self.link_css_class(obj)
             else:
                 link_css_class = self.link_css_class
@@ -535,7 +534,7 @@ class Column(object):
                 if field_name:
                     value = getattr(value, field_name)
 
-                    if six.callable(value):
+                    if callable(value):
                         value = value()
 
             return escape(value)
@@ -888,7 +887,7 @@ class DataGrid(object):
         """
         cls._populate_columns()
 
-        return six.itervalues(_column_registry[cls])
+        return _column_registry[cls].values()
 
     @classmethod
     def _populate_columns(cls):
@@ -1445,7 +1444,7 @@ class DataGrid(object):
             HttpResponse: The HTTP response to send to the client.
         """
         response = HttpResponse(
-            six.text_type(self.render_listview(render_context)))
+            str(self.render_listview(render_context)))
         patch_cache_control(response, no_cache=True, no_store=True, max_age=0,
                             must_revalidate=True)
         return response

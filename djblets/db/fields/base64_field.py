@@ -15,7 +15,6 @@ except ImportError:
                         encodestring as base64_encode)
 
 from django.db import models
-from django.utils import six
 from django.utils.encoding import force_text, smart_text
 from django.utils.translation import ugettext as _
 
@@ -84,13 +83,13 @@ class Base64FieldCreator(object):
                 The type of value provided could not be set.
         """
         if value is not None:
-            if not isinstance(value, (bytes, six.memoryview, six.text_type)):
+            if not isinstance(value, (bytes, memoryview, str)):
                 raise Base64TypeError(value)
 
             pk_val = obj._get_pk_val(obj.__class__._meta)
             pk_set = pk_val is not None and smart_text(pk_val) != ''
 
-            if isinstance(value, six.text_type):
+            if isinstance(value, str):
                 if value == r'\x':
                     # On Djblets 2.0 with Python 3 on Postgres, empty byte
                     # strings were being stored as the literal 2-byte string
@@ -98,7 +97,7 @@ class Base64FieldCreator(object):
                     value = b''
                 else:
                     value = value.encode('utf-8')
-            elif isinstance(value, six.memoryview):
+            elif isinstance(value, memoryview):
                 value = bytes(value)
 
             if isinstance(value, Base64DecodedValue) or not pk_set:
@@ -217,9 +216,9 @@ class Base64Field(models.TextField):
                 value = base64_encode(value).decode('utf-8')
             elif isinstance(value, bytes):
                 value = value.decode('utf-8')
-            elif isinstance(value, six.memoryview):
+            elif isinstance(value, memoryview):
                 value = force_text(bytes(value))
-            elif not isinstance(value, six.text_type):
+            elif not isinstance(value, str):
                 raise Base64TypeError(value)
 
         return value
@@ -242,9 +241,9 @@ class Base64Field(models.TextField):
                 The type of value provided could not be prepared for writing.
         """
         if value is not None and not isinstance(value, Base64DecodedValue):
-            if isinstance(value, six.text_type):
+            if isinstance(value, str):
                 value = value.encode('utf-8')
-            elif isinstance(value, six.memoryview):
+            elif isinstance(value, memoryview):
                 value = bytes(value)
             elif not isinstance(value, bytes):
                 raise Base64TypeError(value)

@@ -7,7 +7,6 @@ import hmac
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core.cache import cache
-from django.utils import six
 
 from djblets.siteconfig.django_settings import (apply_django_settings,
                                                 cache_settings_map,
@@ -49,8 +48,8 @@ class DjangoSettingsTests(SiteConfigTestCase):
         username = 'myuser'
         password = 'mypass'
 
-        self.assertEqual(type(username), six.text_type)
-        self.assertEqual(type(password), six.text_type)
+        self.assertEqual(type(username), str)
+        self.assertEqual(type(password), str)
 
         self.siteconfig.set('mail_host_user', username)
         self.siteconfig.set('mail_host_password', password)

@@ -13,7 +13,6 @@ from django.forms import widgets
 from django.forms.widgets import HiddenInput
 from django.template.context import Context
 from django.template.loader import render_to_string
-from django.utils import six
 from django.utils.html import format_html_join
 from django.utils.translation import ugettext as _
 
@@ -515,7 +514,7 @@ class ConditionsWidget(widgets.Widget):
             djblets.conditions.values.BaseConditionValueField:
             The resulting value field.
         """
-        if six.callable(value_field):
+        if callable(value_field):
             value_field = value_field()
 
         return value_field
@@ -662,7 +661,7 @@ class ListEditWidget(widgets.Widget):
                 'name': name,
                 'value': value,
                 'attrs': format_html_join('', ' {0}="{1}"',
-                                          sorted(six.iteritems(attrs))),
+                                          sorted(attrs.items())),
                 'id': id_,
                 'remove_text': _('Remove this item.'),
                 'sep': self._sep,

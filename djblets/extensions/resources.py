@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 from django.conf.urls import include, url
 from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
-from django.utils import six
 from django.utils.translation import ugettext as _
 
 from djblets.extensions.errors import (DisablingExtensionError,
@@ -226,19 +225,19 @@ class ExtensionResource(WebAPIResource):
             try:
                 self._extension_manager.enable_extension(extension_id)
             except EnablingExtensionError as e:
-                err = ENABLE_EXTENSION_FAILED.with_message(six.text_type(e))
+                err = ENABLE_EXTENSION_FAILED.with_message(str(e))
 
                 return err, {
                     'load_error': e.load_error,
                     'needs_reload': e.needs_reload,
                 }
             except InvalidExtensionError as e:
-                return ENABLE_EXTENSION_FAILED.with_message(six.text_type(e))
+                return ENABLE_EXTENSION_FAILED.with_message(str(e))
         else:
             try:
                 self._extension_manager.disable_extension(extension_id)
             except (DisablingExtensionError, InvalidExtensionError) as e:
-                return DISABLE_EXTENSION_FAILED.with_message(six.text_type(e))
+                return DISABLE_EXTENSION_FAILED.with_message(str(e))
 
         # Refetch extension, since the ExtensionManager may have changed
         # the model.

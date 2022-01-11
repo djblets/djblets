@@ -5,7 +5,6 @@ import json
 from django.contrib.sites.models import Site
 from django.core.exceptions import ValidationError
 from django.db.models import Model
-from django.utils import six
 from djblets.siteconfig.models import SiteConfiguration
 
 from djblets.db.fields import JSONField, JSONFormField
@@ -146,13 +145,13 @@ class JSONFieldTests(TestCase):
     def test_dumps_with_json_dict(self):
         """Testing JSONField with dumping a JSON dictionary"""
         result = self.field.dumps({'a': 1, 'b': 2})
-        self.assertTrue(isinstance(result, six.string_types))
+        self.assertTrue(isinstance(result, str))
         self.assertEqual(result, '{"a": 1, "b": 2}')
 
     def test_dumps_with_json_string(self):
         """Testing JSONField with dumping a JSON string"""
         result = self.field.dumps('{"a": 1, "b": 2}')
-        self.assertTrue(isinstance(result, six.string_types))
+        self.assertTrue(isinstance(result, str))
         self.assertEqual(result, '{"a": 1, "b": 2}')
 
     def test_loading_json_dict(self):

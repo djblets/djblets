@@ -4,7 +4,6 @@ import inspect
 from functools import wraps
 
 from django.contrib.auth.models import User
-from django.utils import six
 from django.utils.decorators import method_decorator
 
 
@@ -46,7 +45,7 @@ def requires_user_profile(f):
         decorator = method_decorator(requires_user_profile)
         attrs = vars(f)
 
-        for attr_name, value in six.iteritems(attrs):
+        for attr_name, value in attrs.items():
             if attr_name.startswith('test_') and callable(value):
                 setattr(f, attr_name, decorator(value))
 

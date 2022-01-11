@@ -3,7 +3,6 @@ from __future__ import print_function, unicode_literals
 import io
 from html.entities import codepoint2name
 
-from django.utils import six
 from markdown import __version_info__ as markdown_version, markdown
 
 from djblets.testing.testcases import TestCase
@@ -97,10 +96,10 @@ class MarkdownUtilsTests(MarkdownTestCase):
             '"': '&quot;',
         }
 
-        for char_code, entity_name in six.iteritems(codepoint2name):
+        for char_code, entity_name in codepoint2name.items():
             rendered_html_entities.append('&%s;' % entity_name)
 
-            char = six.unichr(char_code)
+            char = chr(char_code)
             expected_html_entities.append(toxml_expanded_chars.get(char, char))
 
         node = get_markdown_element_tree(''.join(rendered_html_entities))

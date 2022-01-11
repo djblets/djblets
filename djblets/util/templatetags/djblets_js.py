@@ -31,7 +31,6 @@ from django import template
 from django.core.serializers import serialize
 from django.db.models.query import QuerySet
 from django.template.defaultfilters import escapejs
-from django.utils import six
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
@@ -70,7 +69,7 @@ def form_dialog_fields(form):
             if field.field.help_text:
                 s += "help_text: '%s', " % escapejs(field.field.help_text)
 
-        s += "widget: '%s' }," % escapejs(six.text_type(field))
+        s += "widget: '%s' }," % escapejs(str(field))
 
     # Chop off the last ','
     return "[ %s ]" % s[:-1]

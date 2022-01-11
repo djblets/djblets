@@ -15,7 +15,6 @@ from django.db.models.query import QuerySet
 from django.http import (HttpResponseNotAllowed, HttpResponse,
                          HttpResponseNotModified)
 from django.urls import reverse
-from django.utils import six
 from django.views.decorators.vary import vary_on_headers
 
 from djblets.deprecation import RemovedInDjblets30Warning
@@ -229,7 +228,7 @@ class WebAPIResource(object):
         else:
             view = None
 
-        if view and six.callable(view):
+        if view and callable(view):
             result = self.call_method_view(
                 request, method, view, api_format=api_format, *args, **kwargs)
 
@@ -735,7 +734,7 @@ class WebAPIResource(object):
         serialize_link_func = getattr(self, 'serialize_%s_link' % field,
                                       None)
 
-        if not serialize_link_func or not six.callable(serialize_link_func):
+        if not serialize_link_func or not callable(serialize_link_func):
             serialize_link_func = self.serialize_link
 
         return serialize_link_func
@@ -773,7 +772,7 @@ class WebAPIResource(object):
             unicode:
             The object's title.
         """
-        return six.text_type(obj)
+        return str(obj)
 
     def serialize_object(self, obj, *args, **kwargs):
         """Serializes the object into a Python dictionary."""
@@ -832,7 +831,7 @@ class WebAPIResource(object):
             # this object and its children.
             child_expanded_resources = expanded_resources.copy()
 
-            for field in six.iterkeys(self.fields):
+            for field in self.fields.keys():
                 if field in expanded_resources:
                     child_expanded_resources.remove(field)
 
@@ -854,7 +853,7 @@ class WebAPIResource(object):
             request._djblets_webapi_expanded_resources = \
                 child_expanded_resources
 
-        for field in six.iterkeys(self.fields):
+        for field in self.fields.keys():
             can_include_field = only_fields is None or field in only_fields
             expand_field = field in expanded_resources
 
@@ -866,7 +865,7 @@ class WebAPIResource(object):
 
             serialize_func = getattr(self, "serialize_%s_field" % field, None)
 
-            if serialize_func and six.callable(serialize_func):
+            if serialize_func and callable(serialize_func):
                 value = serialize_func(obj, request=request)
             else:
                 value = getattr(obj, field)
@@ -972,7 +971,7 @@ class WebAPIResource(object):
         elif only_links != []:
             data['links'] = dict([
                 (link_name, link_info)
-                for link_name, link_info in six.iteritems(links)
+                for link_name, link_info in links.items()
                 if link_name in only_links
             ])
 
@@ -1082,8 +1081,9 @@ class WebAPIResource(object):
                 'href': '%s%s/' % (clean_base_href, resource.uri_name),
             }
 
-        for key, info in six.iteritems(
-                self.get_related_links(obj, request, *args, **kwargs)):
+        related_links = self.get_related_links(obj, request, *args, **kwargs)
+
+        for key, info in related_links.items():
             links[key] = {
                 'method': info['method'],
                 'href': info['href'],
@@ -1231,7 +1231,7 @@ class WebAPIResource(object):
         if self.etag_field:
             return self.encode_etag(
                 request,
-                six.text_type(getattr(obj, self.etag_field)))
+                str(getattr(obj, self.etag_field)))
 
         return None
 
@@ -1374,7 +1374,7 @@ class WebAPIResource(object):
         if not hasattr(self, '_select_related_fields'):
             self._select_related_fields = []
 
-            for field in six.iterkeys(self.fields):
+            for field in self.fields.keys():
                 if hasattr(self, 'serialize_%s_field' % field):
                     continue
 
@@ -1391,7 +1391,7 @@ class WebAPIResource(object):
             if not hasattr(self, '_prefetch_related_fields'):
                 self._prefetch_related_fields = []
 
-                for field in six.iterkeys(self.fields):
+                for field in self.fields.keys():
                     if hasattr(self, 'serialize_%s_field' % field):
                         continue
 
@@ -1423,7 +1423,7 @@ class WebAPIResource(object):
         if isinstance(obj, dict):
             return dict(
                 (key, self._clone_serialized_object(value))
-                for key, value in six.iteritems(obj)
+                for key, value in obj.items()
             )
         elif isinstance(obj, list):
             return [

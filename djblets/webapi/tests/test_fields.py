@@ -7,7 +7,7 @@ from datetime import datetime
 import pytz
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import UploadedFile
-from django.utils import six, timezone
+from django.utils import timezone
 from kgb import SpyAgency
 
 from djblets.testing.testcases import TestCase
@@ -64,7 +64,7 @@ class BooleanFieldTypeTests(TestCase):
 
     def test_str(self):
         """Testing BooleanFieldType.__str__"""
-        self.assertEqual(six.text_type(self.field_type), 'Boolean')
+        self.assertEqual(str(self.field_type), 'Boolean')
 
 
 class ChoiceFieldTypeTests(TestCase):
@@ -112,7 +112,7 @@ class ChoiceFieldTypeTests(TestCase):
 
     def test_str(self):
         """Testing ChoiceFieldType.__str__"""
-        self.assertEqual(six.text_type(self.field_type),
+        self.assertEqual(str(self.field_type),
                          'One of "a", "b", "cde"')
 
 
@@ -196,7 +196,7 @@ class DateTimeFieldTypeTests(SpyAgency, TestCase):
 
     def test_str(self):
         """Testing DateTimeFieldType.__str__"""
-        self.assertEqual(six.text_type(self.field_type),
+        self.assertEqual(str(self.field_type),
                          'ISO 8601 Date/Time')
 
 
@@ -264,7 +264,7 @@ class DictFieldTypeTests(TestCase):
 
     def test_str(self):
         """Testing DictFieldType.__str__"""
-        self.assertEqual(six.text_type(self.field_type), 'Dictionary')
+        self.assertEqual(str(self.field_type), 'Dictionary')
 
 
 class FileFieldTypeTests(TestCase):
@@ -295,7 +295,7 @@ class FileFieldTypeTests(TestCase):
 
     def test_str(self):
         """Testing FileFieldType.__str__"""
-        self.assertEqual(six.text_type(self.field_type), 'Uploaded file')
+        self.assertEqual(str(self.field_type), 'Uploaded file')
 
 
 class IntFieldTypeTests(TestCase):
@@ -332,7 +332,7 @@ class IntFieldTypeTests(TestCase):
 
     def test_str(self):
         """Testing IntFieldType.__str__"""
-        self.assertEqual(six.text_type(self.field_type), 'Integer')
+        self.assertEqual(str(self.field_type), 'Integer')
 
 
 class ListFieldTypeTests(TestCase):
@@ -417,7 +417,7 @@ class ListFieldTypeTests(TestCase):
 
     def test_str(self):
         """Testing ListFieldType.__str__"""
-        self.assertEqual(six.text_type(self.field_type), 'List')
+        self.assertEqual(str(self.field_type), 'List')
 
     def test_str_with_item_type(self):
         """Testing ListFieldType.__str__ with item type"""
@@ -428,7 +428,7 @@ class ListFieldTypeTests(TestCase):
             },
         })
 
-        self.assertEqual(six.text_type(field_type), 'List of One of "a", "b"')
+        self.assertEqual(str(field_type), 'List of One of "a", "b"')
 
 
 class ResourceFieldTypeTests(TestCase):
@@ -515,7 +515,7 @@ class ResourceFieldTypeTests(TestCase):
 
     def test_str(self):
         """Testing ResourceFieldType.__str__"""
-        self.assertEqual(six.text_type(self.field_type), 'UserResource')
+        self.assertEqual(str(self.field_type), 'UserResource')
 
 
 class ResourceListFieldTypeTests(TestCase):
@@ -585,7 +585,7 @@ class ResourceListFieldTypeTests(TestCase):
 
     def test_str(self):
         """Testing ResourceListFieldType.__str__"""
-        self.assertEqual(six.text_type(self.field_type),
+        self.assertEqual(str(self.field_type),
                          'List of UserResource')
 
 
@@ -617,4 +617,4 @@ class StringFieldTypeTests(TestCase):
 
     def test_str(self):
         """Testing StringFieldType.__str__"""
-        self.assertEqual(six.text_type(self.field_type), 'String')
+        self.assertEqual(str(self.field_type), 'String')

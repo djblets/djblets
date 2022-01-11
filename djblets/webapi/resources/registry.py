@@ -4,8 +4,6 @@ from __future__ import unicode_literals
 
 import logging
 
-from django.utils import six
-
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +139,7 @@ def get_resource_for_object(obj):
 
     resource = _model_to_resources.get(cls, None)
 
-    if not isinstance(resource, WebAPIResource) and six.callable(resource):
+    if not isinstance(resource, WebAPIResource) and callable(resource):
         resource = resource(obj)
 
     return resource

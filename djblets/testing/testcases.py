@@ -67,7 +67,6 @@ from django.db import (DatabaseError, DEFAULT_DB_ALIAS, IntegrityError,
 from django.db.models import Model
 from django.template import Node
 from django.test import testcases
-from django.utils import six
 
 try:
     from django_evolution.models import Evolution, Version
@@ -155,7 +154,7 @@ class TestCase(testcases.TestCase):
 
         old_settings = {}
 
-        for key, value in six.iteritems(settings):
+        for key, value in settings.items():
             old_settings[key] = siteconfig.get(key)
             siteconfig.set(key, value)
 
@@ -164,7 +163,7 @@ class TestCase(testcases.TestCase):
         try:
             yield
         finally:
-            for key, value in six.iteritems(old_settings):
+            for key, value in old_settings.items():
                 siteconfig.set(key, value)
 
             siteconfig.save()
@@ -190,7 +189,7 @@ class TestCase(testcases.TestCase):
             AssertionError:
                 An attribute was not found or the value did not match.
         """
-        for key, value in six.iteritems(attrs):
+        for key, value in attrs.items():
             try:
                 attr_value = getattr(obj, key)
 
@@ -227,7 +226,7 @@ class TestCase(testcases.TestCase):
                 Additional keyword arguments to pass to
                 :py:meth:`assertRaisesMessage`.
         """
-        if isinstance(expected_messages, six.string_types):
+        if isinstance(expected_messages, str):
             expected_messages = [expected_messages]
 
         return self.assertRaisesMessage(ValidationError,
@@ -247,9 +246,9 @@ class TestCase(testcases.TestCase):
         # passing it down to assertRaisesRegex. Python 2.7.9/10's
         # implementation defaults callable_obj to a special value, which
         # Django overrides.
-        return six.assertRaisesRegex(
-            self, expected_exception, re.escape(expected_message),
-            *args, **kwargs)
+        return self.assertRaisesRegex(expected_exception,
+                                      re.escape(expected_message),
+                                      *args, **kwargs)
 
     @contextmanager
     def assertWarns(self, cls=DeprecationWarning, message=None):
@@ -289,7 +288,7 @@ class TestCase(testcases.TestCase):
             self.assertTrue(issubclass(w[-1].category, cls))
 
             if message is not None:
-                self.assertEqual(message, six.text_type(w[-1].message))
+                self.assertEqual(message, str(w[-1].message))
 
     @contextmanager
     def assertNoWarnings(self):
@@ -384,7 +383,7 @@ class TestModelsLoaderMixin(object):
             module_name = cls.__module__
             test_module = sys.modules[module_name]
 
-            for key, value in six.iteritems(test_module.__dict__):
+            for key, value in test_module.__dict__.items():
                 if (inspect.isclass(value) and
                     issubclass(value, Model) and
                     value.__module__ == module_name):
@@ -417,7 +416,7 @@ class TestModelsLoaderMixin(object):
         if models_mod:
             app_label = app_config.label
 
-            for key, value in six.iteritems(models_mod.__dict__):
+            for key, value in models_mod.__dict__.items():
                 if inspect.isclass(value) and issubclass(value, Model):
                     # The model was likely registered under another app,
                     # so we need to remove the old one and add the new
@@ -642,7 +641,7 @@ class FixturesCompilerMixin(object):
                 # everything matching the deserialized objects' IDs and then
                 # bulk-create new entries.
                 try:
-                    for model_cls, objs in six.iteritems(to_save):
+                    for model_cls, objs in to_save.items():
                         obj_ids = [
                             _obj.pk
                             for _obj in objs
@@ -672,7 +671,7 @@ class FixturesCompilerMixin(object):
                 # need to clear the old list first.
                 for obj, m2m_data in to_save_m2m:
                     try:
-                        for m2m_attr, m2m_objs in six.iteritems(m2m_data):
+                        for m2m_attr, m2m_objs in m2m_data.items():
                             getattr(obj, m2m_attr).add(*m2m_objs)
                     except (DatabaseError, IntegrityError) as e:
                         meta = obj._meta

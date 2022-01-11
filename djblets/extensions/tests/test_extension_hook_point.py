@@ -2,7 +2,6 @@
 
 from __future__ import unicode_literals
 
-from django.utils import six
 from mock import Mock
 
 from djblets.extensions.extension import Extension
@@ -11,8 +10,7 @@ from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
-@six.add_metaclass(ExtensionHookPoint)
-class MyTestExtensionHook(ExtensionHook):
+class MyTestExtensionHook(ExtensionHook, metaclass=ExtensionHookPoint):
     pass
 
 

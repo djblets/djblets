@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 from django.contrib.sites.models import Site
 from django.db import models
-from django.utils import six
 
 from djblets.cache.synchronizer import GenerationSynchronizer
 from djblets.db.fields import JSONField
@@ -48,7 +47,6 @@ class SiteConfigSettingsWrapper(object):
         return self.siteconfig.get(name)
 
 
-@six.python_2_unicode_compatible
 class SiteConfiguration(models.Model):
     """Stored version and settings data for a Django site.
 
@@ -318,7 +316,7 @@ class SiteConfiguration(models.Model):
             unicode:
             The string representation of the site configuration.
         """
-        return "%s (version %s)" % (six.text_type(self.site), self.version)
+        return "%s (version %s)" % (str(self.site), self.version)
 
     class Meta:
         # Djblets 0.9+ sets an app label of "djblets_siteconfig" on

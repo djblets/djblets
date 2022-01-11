@@ -7,7 +7,6 @@ from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
 from django.test import RequestFactory
 from django.test.utils import override_settings
-from django.utils import six
 
 from djblets.auth.ratelimit import is_ratelimited, Rate
 from djblets.testing.testcases import TestCase
@@ -56,7 +55,7 @@ class RateLimitTests(TestCase):
         with self.assertRaises(ImproperlyConfigured) as context:
             is_ratelimited(request, increment=False)
 
-        self.assertEqual(six.text_type(context.exception),
+        self.assertEqual(str(context.exception),
                          'LOGIN_LIMIT_RATE setting could not be parsed.')
 
     @override_settings(LOGIN_LIMIT_RATE='1/h')

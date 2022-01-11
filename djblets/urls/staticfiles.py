@@ -3,7 +3,6 @@
 from __future__ import unicode_literals
 
 from django.templatetags import static
-from django.utils import six
 from django.utils.functional import lazy
 
 
@@ -23,4 +22,4 @@ from django.utils.functional import lazy
 #: Returns:
 #:     django.utils.functional.__proxy__:
 #:     A proxy that evaluates to the static media URL (as a unicode string).
-static_lazy = lazy(static, six.text_type)
+static_lazy = lazy(static, str)

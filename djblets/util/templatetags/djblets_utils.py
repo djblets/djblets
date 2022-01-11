@@ -36,7 +36,6 @@ from django.http import QueryDict
 from django.template import TemplateSyntaxError, Variable
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
-from django.utils import six
 from django.utils.html import escape, format_html, strip_spaces_between_tags
 from django.utils.safestring import mark_safe
 from django.utils.timezone import is_aware
@@ -127,7 +126,7 @@ def definevar(context, nodelist, varname, *options):
 
     if 'unsafe' in options:
         # Unicode strings are inherently "unsafe".
-        result = six.text_type(result)
+        result = str(result)
     else:
         result = mark_safe(result)
 
@@ -328,7 +327,7 @@ def attr(context, nodelist, attrname, *options):
     if not content:
         return ''
 
-    return format_html(' {0}="{1}"', attrname, six.text_type(content))
+    return format_html(' {0}="{1}"', attrname, str(content))
 
 
 @register.filter

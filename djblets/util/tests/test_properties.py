@@ -2,8 +2,6 @@
 
 from __future__ import unicode_literals
 
-from django.utils import six
-
 from djblets.testing.testcases import TestCase
 from djblets.util.properties import AliasProperty, TypedProperty
 
@@ -52,7 +50,7 @@ class AliasPropertyTests(TestCase):
         """Testing AliasProperty.__set__ with convert_to_func"""
         class MyObject(object):
             prop = AliasProperty('other_prop',
-                                 convert_to_func=six.text_type)
+                                 convert_to_func=str)
             other_prop = '100'
 
         obj = MyObject()
@@ -66,7 +64,7 @@ class AliasPropertyTests(TestCase):
         """Testing AliasProperty.__set__ with convert_to_func and value=None"""
         class MyObject(object):
             prop = AliasProperty('other_prop',
-                                 convert_to_func=six.text_type)
+                                 convert_to_func=str)
             other_prop = 100
 
         obj = MyObject()
@@ -109,7 +107,7 @@ class AliasPropertyTests(TestCase):
         """Testing AliasProperty.__get__ with convert_from_func"""
         class MyObject(object):
             prop = AliasProperty('other_prop',
-                                 convert_from_func=six.text_type)
+                                 convert_from_func=str)
             other_prop = 100
 
         obj = MyObject()
@@ -122,7 +120,7 @@ class AliasPropertyTests(TestCase):
         """
         class MyObject(object):
             prop = AliasProperty('other_prop',
-                                 convert_to_func=six.text_type)
+                                 convert_to_func=str)
             other_prop = None
 
         obj = MyObject()
@@ -150,7 +148,7 @@ class TypedPropertyTests(TestCase):
     def test_with_invalid_type(self):
         """Testing TypedProperty with invalid type"""
         class MyObject(object):
-            prop = TypedProperty((six.text_type,))
+            prop = TypedProperty((str,))
 
         obj = MyObject()
 

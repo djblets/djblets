@@ -7,7 +7,6 @@ from xml.sax.saxutils import XMLGenerator
 from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.db.models.query import QuerySet
-from django.utils import six
 
 from djblets.util.serializers import DjbletsJSONEncoder
 
@@ -152,10 +151,10 @@ class XMLEncoderAdapter(object):
 
     def __encode(self, o, *args, **kwargs):
         if isinstance(o, dict):
-            for key, value in six.iteritems(o):
+            for key, value in o.items():
                 attrs = {}
 
-                if isinstance(key, six.integer_types):
+                if isinstance(key, int):
                     attrs['value'] = str(key)
                     key = 'int'
 
@@ -171,9 +170,9 @@ class XMLEncoderAdapter(object):
                 self.endElement("item")
 
             self.endElement("array")
-        elif isinstance(o, six.string_types):
+        elif isinstance(o, str):
             self.text(o)
-        elif isinstance(o, six.integer_types):
+        elif isinstance(o, int):
             self.text("%d" % o)
         elif isinstance(o, float):
             self.text("%s" % o)

@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import copy
 
-from django.utils import six
 from django.utils.datastructures import MultiValueDict
 
 from djblets.conditions.choices import (BaseConditionChoice,
@@ -239,7 +238,7 @@ class ConditionsWidgetTests(TestCase):
 
         # Check the first rendered row.
         rendered_row = rendered_rows[0]
-        self.assertEqual(set(six.iterkeys(rendered_row)),
+        self.assertEqual(set(rendered_row.keys()),
                          {'choice', 'operator', 'error'})
 
         self.assertHTMLEqual(
@@ -265,7 +264,7 @@ class ConditionsWidgetTests(TestCase):
 
         # Check the second rendered row.
         rendered_row = rendered_rows[1]
-        self.assertEqual(set(six.iterkeys(rendered_row)),
+        self.assertEqual(set(rendered_row.keys()),
                          {'choice', 'operator', 'error'})
 
         self.assertHTMLEqual(
@@ -293,7 +292,7 @@ class ConditionsWidgetTests(TestCase):
 
         # Check the first serialized choice.
         serialized_choice = serialized_choices[0]
-        self.assertEqual(set(six.iterkeys(serialized_choice)),
+        self.assertEqual(set(serialized_choice.keys()),
                          {'id', 'name', 'valueField', 'operators'})
         self.assertEqual(serialized_choice['id'], 'my-choice-1')
         self.assertEqual(serialized_choice['name'], 'My Choice 1')
@@ -305,14 +304,14 @@ class ConditionsWidgetTests(TestCase):
 
         # Check the first operator in the first serialized choice.
         serialized_operator = serialized_operators[0]
-        self.assertEqual(set(six.iterkeys(serialized_operator)),
+        self.assertEqual(set(serialized_operator.keys()),
                          {'id', 'name', 'useValue', 'valueField'})
         self.assertEqual(serialized_operator['id'], 'my-op-1')
         self.assertEqual(serialized_operator['name'], 'My Op 1')
         self.assertTrue(serialized_operator['useValue'])
 
         serialized_value_field = serialized_operator['valueField']
-        self.assertEqual(set(six.iterkeys(serialized_value_field)),
+        self.assertEqual(set(serialized_value_field.keys()),
                          {'model', 'view'})
 
         serialized_value_model = serialized_value_field['model']
@@ -328,14 +327,14 @@ class ConditionsWidgetTests(TestCase):
 
         # Check the second operator in the first serialized choice.
         serialized_operator = serialized_operators[1]
-        self.assertEqual(set(six.iterkeys(serialized_operator)),
+        self.assertEqual(set(serialized_operator.keys()),
                          {'id', 'name', 'useValue', 'valueField'})
         self.assertEqual(serialized_operator['id'], 'my-op-2')
         self.assertEqual(serialized_operator['name'], 'My Op 2')
         self.assertTrue(serialized_operator['useValue'])
 
         serialized_value_field = serialized_operator['valueField']
-        self.assertEqual(set(six.iterkeys(serialized_value_field)),
+        self.assertEqual(set(serialized_value_field.keys()),
                          {'model', 'view'})
 
         serialized_value_model = serialized_value_field['model']
@@ -423,7 +422,7 @@ class ConditionsWidgetTests(TestCase):
         self.assertEqual(len(rendered_rows), 1)
 
         rendered_row = rendered_rows[0]
-        self.assertEqual(set(six.iterkeys(rendered_row)),
+        self.assertEqual(set(rendered_row.keys()),
                          {'choice', 'operator', 'error'})
         self.assertHTMLEqual(
             rendered_row['choice'],
@@ -502,7 +501,7 @@ class ConditionsWidgetTests(TestCase):
         self.assertEqual(len(rendered_rows), 1)
 
         rendered_row = rendered_rows[0]
-        self.assertEqual(set(six.iterkeys(rendered_row)),
+        self.assertEqual(set(rendered_row.keys()),
                          {'choice', 'operator', 'error'})
         self.assertHTMLEqual(
             rendered_row['choice'],
@@ -581,7 +580,7 @@ class ConditionsWidgetTests(TestCase):
         self.assertEqual(len(rendered_rows), 1)
 
         rendered_row = rendered_rows[0]
-        self.assertEqual(set(six.iterkeys(rendered_row)),
+        self.assertEqual(set(rendered_row.keys()),
                          {'choice', 'operator', 'error'})
         self.assertHTMLEqual(
             rendered_row['choice'],

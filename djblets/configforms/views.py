@@ -6,7 +6,6 @@ import logging
 
 from django.http import (Http404, HttpResponse, HttpResponseBadRequest,
                          HttpResponseRedirect)
-from django.utils import six
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic.base import TemplateView
@@ -160,7 +159,7 @@ class ConfigPagesView(TemplateView):
             'js_view_class': self.js_view_class,
             'js_model_data': self.get_js_model_data(),
             'js_view_data': self.get_js_view_data(),
-            'forms': list(six.itervalues(self.forms)),
+            'forms': list(self.forms.values()),
             'render_sidebar': self.render_sidebar,
         }
 

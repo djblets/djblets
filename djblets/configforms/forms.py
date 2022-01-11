@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 from django import forms
 from django.template.loader import render_to_string
-from django.utils import six
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -87,7 +86,7 @@ class ConfigPageForm(forms.Form):
             field_values (dict):
                 The initial field data to set on the form.
         """
-        for field, value in six.iteritems(field_values):
+        for field, value in field_values.items():
             self.fields[field].initial = value
 
     def is_visible(self):

@@ -3,7 +3,6 @@
 from __future__ import unicode_literals
 
 from django.test.utils import override_settings
-from django.utils import six
 from oauth2_provider.settings import oauth2_settings
 
 from djblets.extensions.extension import Extension
@@ -72,13 +71,10 @@ class WebAPIScopeDictionaryTests(TestCase):
         self.assertNotIn('bad-key', scopes)
 
     def test_iterkeys(self):
-        """Testing WebAPIScopeDictionary with six.iterkeys"""
-        # Note that we have both implemented for Python 2/3 compatibility.
-        # We'll actually be testing how this is used under the hood, with
-        # six.iterkeys().
+        """Testing WebAPIScopeDictionary with keys()"""
         scopes = WebAPIScopeDictionary(self._resources.root_resource)
 
-        self.assertEqual(set(six.iterkeys(scopes)), {
+        self.assertEqual(set(scopes.keys()), {
             'root:read',
             'item-child:read',
             'item-child:write',

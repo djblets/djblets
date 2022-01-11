@@ -3,7 +3,6 @@
 from __future__ import unicode_literals
 
 from django.core.exceptions import ImproperlyConfigured
-from django.utils import six
 from kgb import SpyAgency
 
 from djblets.extensions.extension import Extension
@@ -13,8 +12,7 @@ from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
-@six.add_metaclass(ExtensionHookPoint)
-class DummyHook(ExtensionHook):
+class DummyHook(ExtensionHook, metaclass=ExtensionHookPoint):
     def initialize(self):
         self.foo = [1]
 

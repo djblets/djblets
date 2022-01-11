@@ -29,7 +29,6 @@ import hashlib
 from urllib.parse import urlencode
 
 from django.http import HttpResponse, HttpResponseNotModified
-from django.utils import six
 from django.utils.encoding import force_bytes
 
 from djblets.util.dates import http_date
@@ -60,7 +59,7 @@ def get_modified_since(request, last_modified):
     if_modified_since = request.META.get('HTTP_IF_MODIFIED_SINCE', None)
 
     if if_modified_since is not None:
-        if six.callable(last_modified):
+        if callable(last_modified):
             last_modified = last_modified()
 
         return (if_modified_since == http_date(last_modified))
@@ -253,6 +252,6 @@ def get_url_params_except(query, *params):
     """
     return urlencode([
         (key.encode('utf-8'), value.encode('utf-8'))
-        for key, value in six.iteritems(query)
+        for key, value in query.items()
         if key not in params
     ])

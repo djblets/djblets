@@ -4,8 +4,6 @@ from __future__ import unicode_literals
 
 import warnings
 
-from django.utils import six
-
 
 class BaseProperty(object):
     """Base class for a custom property for a class.
@@ -239,7 +237,7 @@ def get_descriptor_attr_name(descriptor, cls):
         str:
         The name of the property/descriptor.
     """
-    for attr_name, attr_value in six.iteritems(cls.__dict__):
+    for attr_name, attr_value in cls.__dict__.items():
         if attr_value is descriptor:
             return attr_name
 

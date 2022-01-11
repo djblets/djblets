@@ -26,13 +26,11 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from django.utils import six
 
 from djblets.db.fields import JSONField
 from djblets.extensions.errors import InvalidExtensionError
 
 
-@six.python_2_unicode_compatible
 class RegisteredExtension(models.Model):
     """Extension registration info.
 

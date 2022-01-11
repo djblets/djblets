@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-from django.utils import six
-
 from djblets.testing.testcases import TestCase
 from djblets.webapi.resources.base import WebAPIResource
 from djblets.webapi.resources.mixins.api_tokens import ResourceAPITokenMixin
@@ -304,7 +302,7 @@ class APIPolicyTests(TestCase):
     def assert_policy(self, policy, allowed_methods=[], blocked_methods=[],
                       resource_id=None):
         if resource_id is not None:
-            resource_id = six.text_type(resource_id)
+            resource_id = str(resource_id)
 
         for method in allowed_methods:
             allowed = self.resource.is_resource_method_allowed(

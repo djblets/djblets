@@ -7,7 +7,6 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.http import HttpResponseNotModified
 from django.test.client import RequestFactory
-from django.utils import six
 
 from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin

@@ -11,7 +11,6 @@ from __future__ import unicode_literals
 import logging
 
 from django.utils.translation import ugettext_lazy as _
-from django.utils import six
 from pkg_resources import iter_entry_points
 
 
@@ -210,7 +209,7 @@ class Registry(object):
                     item=item,
                     attr_name=attr_name))
 
-        for attr_name, attr_value in six.iteritems(attr_values):
+        for attr_name, attr_value in attr_values.items():
             self._registry[attr_name][attr_value] = item
 
         self._items.add(item)

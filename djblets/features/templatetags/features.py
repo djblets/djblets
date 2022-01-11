@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 from django import template
 from django.template.base import (Node, NodeList, TemplateSyntaxError,
                                   token_kwargs)
-from django.utils import six
 
 from djblets.features.registry import get_features_registry
 
@@ -83,7 +82,7 @@ class IfFeatureNode(Node):
         feature_id = self.feature_id.resolve(context, True)
         extra_kwargs = {
             key: value.resolve(context)
-            for key, value in six.iteritems(self.extra_kwargs)
+            for key, value in self.extra_kwargs.items()
         }
 
         feature = get_features_registry().get_feature(feature_id)

@@ -6,7 +6,6 @@ import logging
 import re
 
 from django.contrib import auth
-from django.utils import six
 from django.utils.translation import ugettext as _
 
 from djblets.auth.ratelimit import is_ratelimited
@@ -160,7 +159,7 @@ class WebAPIAuthBackend(object):
             'Attempting authentication on API: %s',
             ', '.join([
                 '%s=%s' % pair
-                for pair in six.iteritems(cleaned_credentials)
+                for pair in cleaned_credentials.items()
             ]),
             extra=log_extra)
 
@@ -232,7 +231,7 @@ class WebAPIAuthBackend(object):
         """
         clean_credentials = {}
 
-        for key, value in six.iteritems(credentials):
+        for key, value in credentials.items():
             if self.SENSITIVE_CREDENTIALS_RE.search(key):
                 clean_credentials[key] = '************'
             else:

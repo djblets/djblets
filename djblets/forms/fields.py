@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 import logging
 
 from django import forms
-from django.utils import six
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _, ugettext
 import pytz
@@ -206,7 +205,7 @@ class ConditionsField(forms.Field):
                 value,
                 choice_kwargs=self.widget.choice_kwargs)
         except InvalidConditionModeError as e:
-            raise forms.ValidationError(six.text_type(e),
+            raise forms.ValidationError(str(e),
                                         code='invalid_mode')
         except (ConditionChoiceNotFoundError,
                 ConditionOperatorNotFoundError,
@@ -215,8 +214,7 @@ class ConditionsField(forms.Field):
                 self.widget.condition_errors[e.condition_index] = \
                     self.error_messages['value_required']
             else:
-                self.widget.condition_errors[e.condition_index] = \
-                    six.text_type(e)
+                self.widget.condition_errors[e.condition_index] =  str(e)
 
             raise forms.ValidationError(
                 self.error_messages['condition_errors'],

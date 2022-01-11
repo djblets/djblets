@@ -6,7 +6,6 @@ from django.db import models
 from django.db.models import F
 from django.db.models.expressions import Combinable as QueryExpressionType
 from django.db.models.signals import post_init
-from django.utils import six
 
 
 class CounterField(models.IntegerField):
@@ -114,7 +113,7 @@ class CounterField(models.IntegerField):
             model_instance=model_instance,
             values={
                 attname: F(attname) + value * multiplier
-                for attname, value in six.iteritems(values)
+                for attname, value in values.items()
                 if value != 0
             },
             reload_object=reload_object)
@@ -143,7 +142,7 @@ class CounterField(models.IntegerField):
         model_cls.objects.filter(pk=model_instance.pk).update(**values)
 
         if reload_object:
-            cls._reload_model_instance(model_instance, six.iterkeys(values))
+            cls._reload_model_instance(model_instance, values.keys())
 
     @classmethod
     def _reload_model_instance(cls, model_instance, attnames):
@@ -159,7 +158,7 @@ class CounterField(models.IntegerField):
         q = type(model_instance).objects.filter(pk=model_instance.pk)
         values = q.values(*attnames)[0]
 
-        for attname, value in six.iteritems(values):
+        for attname, value in values.items():
             setattr(model_instance, attname, value)
 
     def __init__(self, verbose_name=None, name=None,
@@ -337,7 +336,7 @@ class CounterField(models.IntegerField):
                 The model instance containing the field to re-initialize.
         """
         if not (model_instance.pk or self._initializer or
-                six.callable(self._initializer)):
+                callable(self._initializer)):
             # We don't want to end up defaulting this to 0 if creating a
             # new instance unless an initializer is provided. Instead,
             # we'll want to handle this the next time the object is
@@ -349,7 +348,7 @@ class CounterField(models.IntegerField):
         if self._initializer:
             if isinstance(self._initializer, QueryExpressionType):
                 value = self._initializer
-            elif six.callable(self._initializer):
+            elif callable(self._initializer):
                 model_instance_id = id(model_instance)
                 self._locks[model_instance_id] = 1
                 value = self._initializer(model_instance)

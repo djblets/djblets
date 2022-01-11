@@ -7,7 +7,6 @@ import os
 import subprocess
 from datetime import datetime
 
-from django.utils import six
 from django.utils.functional import cached_property
 from pipeline.compilers.less import LessCompiler as PipelineLessCompiler
 from pipeline.conf import settings as pipeline_settings
@@ -197,7 +196,7 @@ class LessCompiler(PipelineLessCompiler):
             import_files_cache = self._import_files_cache
             import_files_cache.pop(filename, None)
 
-            for key, files in list(six.iteritems(import_files_cache)):
+            for key, files in list(import_files_cache.items()):
                 if filename in files:
                     import_files_cache.pop(key, None)
 

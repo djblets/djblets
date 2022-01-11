@@ -14,8 +14,6 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.templatetags.static import static
 from django.urls import get_mod_func
-from django.utils import six
-from django.utils.encoding import python_2_unicode_compatible
 from django.utils.module_loading import import_string
 from django.utils.translation import ugettext as _
 
@@ -415,7 +413,6 @@ class Extension(object):
                 (name, e))
 
 
-@six.python_2_unicode_compatible
 class ExtensionInfo(object):
     """Information on an extension.
 
@@ -514,8 +511,7 @@ class ExtensionInfo(object):
         p.feed(data)
         pkg_info = p.close()
 
-        # Convert from a Message to a dictionary. Note that items() is correct
-        # here. six.iteritems() will not work.
+        # Convert from a Message to a dictionary.
         return dict(pkg_info.items())
 
     def __init__(self, ext_class, package_name, metadata={}):

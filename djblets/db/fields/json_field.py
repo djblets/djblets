@@ -10,7 +10,6 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_init
-from django.utils import six
 from django.utils.translation import ugettext_lazy as _
 
 from djblets.db.validators import validate_json
@@ -93,7 +92,7 @@ class JSONFormField(forms.CharField):
         Returns:
             unicode: The resulting JSON string.
         """
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             return value
         else:
             return self.encoder.encode(value)
@@ -117,7 +116,7 @@ class JSONFormField(forms.CharField):
             django.core.exceptions.ValidationError:
                 The value was not able to be deserialized as JSON content.
         """
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             if not value:
                 return None
 
@@ -125,7 +124,7 @@ class JSONFormField(forms.CharField):
                 return json.loads(value)
             except ValueError as e:
                 raise ValidationError(
-                    six.text_type(e),
+                    str(e),
                     code='invalid',
                     params={
                         'value': value,
@@ -265,7 +264,7 @@ class JSONField(models.TextField):
 
         if isinstance(value, (dict, list)):
             value = copy.deepcopy(value)
-        elif isinstance(value, six.string_types):
+        elif isinstance(value, str):
             value = self.loads(value)
         elif value is None:
             value = {}
@@ -294,7 +293,7 @@ class JSONField(models.TextField):
             unicode:
             The serialized representation of the value.
         """
-        if value is None or isinstance(value, six.string_types):
+        if value is None or isinstance(value, str):
             return value
 
         return self.dumps(value)
@@ -326,7 +325,7 @@ class JSONField(models.TextField):
             object:
             The deserialized data.
         """
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             value = self.loads(value)
 
         return value
@@ -346,7 +345,7 @@ class JSONField(models.TextField):
             unicode:
             The serialized JSON data.
         """
-        if isinstance(data, six.string_types):
+        if isinstance(data, str):
             return data
         else:
             return self.encoder.encode(data)
@@ -372,7 +371,7 @@ class JSONField(models.TextField):
             return {}
 
         try:
-            if not isinstance(val, six.text_type):
+            if not isinstance(val, str):
                 val = val.decode(settings.DEFAULT_CHARSET)
 
             val = json.loads(val)
@@ -381,7 +380,7 @@ class JSONField(models.TextField):
             # data, resulting in a string being stored that then needs to be
             # parsed again. Check for this and try to deserialize. Worst-case,
             # the JSON decoder decides it's actually a string and returns it.
-            if isinstance(val, six.string_types):
+            if isinstance(val, str):
                 logger.warning('JSONField decode error. Expected dictionary, '
                                'got string for input "%s"',
                                val)
@@ -398,7 +397,7 @@ class JSONField(models.TextField):
                              val, e)
                 val = {}
 
-            if isinstance(val, six.string_types):
+            if isinstance(val, str):
                 logger.warning('JSONField decode error after literal_eval: '
                                'Expected dictionary, got string: %r',
                                val)

@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 from django.core.management.base import BaseCommand, CommandError
-from django.utils import six
 from django.utils.translation import ugettext as _
 
 from djblets.siteconfig.models import SiteConfiguration
@@ -66,8 +65,7 @@ class Command(BaseCommand):
         stored_value = node[key_basename]
         value_type = type(stored_value)
 
-        if value_type not in (six.text_type, six.binary_type, int, bool,
-                              type(None)):
+        if value_type not in (str, bytes, int, bool, type(None)):
             raise CommandError(_("Cannot set %s keys") % value_type.__name__)
 
         try:

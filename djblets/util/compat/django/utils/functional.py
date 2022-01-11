@@ -44,7 +44,6 @@ import copy
 import operator
 
 import django
-from django.utils import six
 from django.utils.functional import empty, new_method_proxy
 
 
@@ -139,14 +138,9 @@ else:
                 return result
             return copy.deepcopy(self._wrapped, memo)
 
-        if six.PY3:
-            __bytes__ = new_method_proxy(bytes)
-            __str__ = new_method_proxy(str)
-            __bool__ = new_method_proxy(bool)
-        else:
-            __str__ = new_method_proxy(str)
-            __unicode__ = new_method_proxy(unicode)  # NOQA: unicode undefined on PY3
-            __nonzero__ = new_method_proxy(bool)
+        __bytes__ = new_method_proxy(bytes)
+        __str__ = new_method_proxy(str)
+        __bool__ = new_method_proxy(bool)
 
         # Introspection support
         __dir__ = new_method_proxy(dir)

@@ -4,7 +4,6 @@
 from __future__ import unicode_literals
 
 from django.db import connection, models
-from django.utils import six
 
 from djblets.db.fields.base64_field import (Base64DecodedValue, Base64Field,
                                             Base64TypeError)
@@ -65,7 +64,7 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
         Model.objects.create()
         """
         obj = Base64TestModel.objects.create(
-            field=six.memoryview(b'This is a t\xc3\xa9st'))
+            field=memoryview(b'This is a t\xc3\xa9st'))
 
         self.assertIs(type(obj.field), Base64DecodedValue)
         self.assertEqual(obj.field, b'This is a t\xc3\xa9st')
@@ -136,7 +135,7 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
     def test_unsaved_obj_with_memoryview_value(self):
         """Testing Base64Field with setting memoryview on unsaved instance"""
         obj = Base64TestModel()
-        obj.field = six.memoryview(b'This is a t\xc3\xa9st')
+        obj.field = memoryview(b'This is a t\xc3\xa9st')
 
         self.assertIs(type(obj.field), Base64DecodedValue)
         self.assertEqual(obj.field, b'This is a t\xc3\xa9st')
@@ -209,7 +208,7 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
     def test_saved_obj_with_memoryview_value(self):
         """Testing Base64Field with setting memoryview on saved instance"""
         obj = Base64TestModel.objects.create()
-        obj.field = six.memoryview(b'VGhpcyBpcyBhIHTDqXN0\n')
+        obj.field = memoryview(b'VGhpcyBpcyBhIHTDqXN0\n')
 
         self.assertIs(type(obj.field), Base64DecodedValue)
         self.assertEqual(obj.field, b'This is a t\xc3\xa9st')
@@ -299,7 +298,7 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
         """Testing Base64Field.save_form_data with memoryview value"""
         obj = Base64TestModel(field=b'This is a test')
         obj._meta.get_field('field').save_form_data(
-            obj, six.memoryview(b'This is a t\xc3\xa9st'))
+            obj, memoryview(b'This is a t\xc3\xa9st'))
 
         self.assertIs(type(obj.field), Base64DecodedValue)
         self.assertEqual(obj.field, b'This is a t\xc3\xa9st')
@@ -314,7 +313,7 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
         value = obj._meta.get_field('field').get_prep_value(
             b'VGhpcyBpcyBhIHTDqXN0\n')
 
-        self.assertIs(type(value), six.text_type)
+        self.assertIs(type(value), str)
         self.assertEqual(value, 'VGhpcyBpcyBhIHTDqXN0\n')
 
     def test_get_prep_value_with_unicode(self):
@@ -323,7 +322,7 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
         value = obj._meta.get_field('field').get_prep_value(
             'VGhpcyBpcyBhIHTDqXN0\n')
 
-        self.assertIs(type(value), six.text_type)
+        self.assertIs(type(value), str)
         self.assertEqual(value, 'VGhpcyBpcyBhIHTDqXN0\n')
 
     def test_get_prep_value_with_base64_decoded_value(self):
@@ -332,16 +331,16 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
         value = obj._meta.get_field('field').get_prep_value(
             Base64DecodedValue(b'This is a t\xc3\xa9st'))
 
-        self.assertIs(type(value), six.text_type)
+        self.assertIs(type(value), str)
         self.assertEqual(value, 'VGhpcyBpcyBhIHTDqXN0\n')
 
     def test_get_prep_value_with_memoryview_value(self):
         """Testing Base64Field.get_prep_value with memoryview value"""
         obj = Base64TestModel()
         value = obj._meta.get_field('field').get_prep_value(
-            six.memoryview(b'VGhpcyBpcyBhIHTDqXN0\n'))
+            memoryview(b'VGhpcyBpcyBhIHTDqXN0\n'))
 
-        self.assertIs(type(value), six.text_type)
+        self.assertIs(type(value), str)
         self.assertEqual(value, 'VGhpcyBpcyBhIHTDqXN0\n')
 
     def test_get_prep_value_with_none(self):
@@ -382,7 +381,7 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
         """Testing Base64Field.to_python with memoryview value"""
         obj = Base64TestModel()
         value = obj._meta.get_field('field').to_python(
-            six.memoryview(b'VGhpcyBpcyBhIHTDqXN0\n'))
+            memoryview(b'VGhpcyBpcyBhIHTDqXN0\n'))
 
         self.assertIs(type(value), Base64DecodedValue)
         self.assertEqual(value, b'This is a t\xc3\xa9st')

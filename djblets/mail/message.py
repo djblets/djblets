@@ -7,7 +7,6 @@ from email.utils import parseaddr
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
-from django.utils import six
 from django.utils.datastructures import MultiValueDict
 from django.utils.encoding import force_text
 
@@ -166,7 +165,7 @@ class EmailMessage(EmailMultiAlternatives):
             # values are lists, so we have to ensure that ourselves.
             headers = MultiValueDict(dict(
                 (key, [value])
-                for key, value in six.iteritems(headers)
+                for key, value in headers.items()
             ))
 
         if in_reply_to:
@@ -302,7 +301,7 @@ class EmailMessage(EmailMultiAlternatives):
         msg = super(EmailMessage, self).message()
         self.message_id = msg['Message-ID']
 
-        for name, value_list in six.iterlists(self._headers):
+        for name, value_list in self._headers.lists():
             for value in value_list:
                 # Use the native string on each version of Python. These
                 # are headers, so they'll be convertible without encoding

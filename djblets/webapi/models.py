@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils import six, timezone
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from djblets.db.fields import JSONField
@@ -11,7 +11,6 @@ from djblets.webapi.managers import WebAPITokenManager
 from djblets.webapi.signals import webapi_token_updated
 
 
-@six.python_2_unicode_compatible
 class BaseWebAPIToken(models.Model):
     """Base class for an access token used for authenticating with the API.
 
@@ -113,7 +112,7 @@ class BaseWebAPIToken(models.Model):
 
         resource_policies = [
             (section_name, section)
-            for section_name, section in six.iteritems(resources_section)
+            for section_name, section in resources_section.items()
             if section_name != '*'
         ]
 
@@ -127,8 +126,8 @@ class BaseWebAPIToken(models.Model):
                         _('"%s" is not a valid resource policy ID.')
                         % policy_id)
 
-                for subsection_name, subsection in six.iteritems(section):
-                    if not isinstance(subsection_name, six.text_type):
+                for subsection_name, subsection in section.items():
+                    if not isinstance(subsection_name, str):
                         raise ValidationError(
                             _('%s must be a string in "resources.%s"')
                             % (subsection_name, policy_id))

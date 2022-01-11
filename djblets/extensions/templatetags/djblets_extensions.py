@@ -5,7 +5,6 @@ import logging
 import warnings
 
 from django import template
-from django.utils import six
 from django.utils.html import format_html_join
 from django.utils.safestring import mark_safe
 from pipeline.conf import settings as pipeline_settings
@@ -274,7 +273,7 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
         for extension in manager.get_enabled_extensions():
             bundles = getattr(extension, bundle_attr, {})
 
-            for bundle_name, bundle in six.iteritems(bundles):
+            for bundle_name, bundle in bundles.items():
                 if (bundle_name in default_bundles or
                     requested_url_name in bundle.get('apply_to', [])):
                     for include_bundle in bundle.get('include_bundles', []):

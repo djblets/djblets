@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 from django.http import HttpResponse
-from django.utils import six
 from django.utils.encoding import force_text
 from djblets.util.http import (get_http_requested_mimetype,
                                get_url_params_except,
@@ -56,7 +55,7 @@ class WebAPIResponse(HttpResponse):
         self.encoders = encoders or get_registered_encoders()
         self.encoder_kwargs = encoder_kwargs
 
-        for header, value in six.iteritems(headers):
+        for header, value in headers.items():
             self[header] = value
 
         # Prevent IE8 from trying to download some AJAX responses as if they

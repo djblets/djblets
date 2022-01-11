@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-from django.utils import six
-
 from djblets.extensions.hooks import ExtensionHookPoint
 from djblets.integrations.hooks import BaseIntegrationHook
 from djblets.integrations.integration import Integration
@@ -10,8 +8,7 @@ from djblets.integrations.tests.models import IntegrationConfig
 from djblets.integrations.tests.testcases import IntegrationsTestCase
 
 
-@six.add_metaclass(ExtensionHookPoint)
-class DummyIntegrationHook(BaseIntegrationHook):
+class DummyIntegrationHook(BaseIntegrationHook, metaclass=ExtensionHookPoint):
     def __init__(self, manager, *args, **kwargs):
         self.manager = manager
 

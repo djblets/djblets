@@ -6,7 +6,6 @@ from collections import namedtuple
 
 from django.conf.urls import url
 from django.http import HttpResponseNotModified
-from django.utils import six
 
 from djblets.urls.patterns import never_cache_patterns
 from djblets.webapi.errors import DOES_NOT_EXIST
@@ -106,7 +105,7 @@ class RootResource(WebAPIResource):
             unassigned_templates = self._registered_uri_templates.get(
                 None, {})
 
-            for name, href in six.iteritems(unassigned_templates):
+            for name, href in unassigned_templates.items():
                 templates[name] = href
 
             for entry in self.walk_resources(self, base_href):
@@ -116,7 +115,7 @@ class RootResource(WebAPIResource):
                     list_templates = self._registered_uri_templates.get(
                         entry.resource, {})
 
-                    for name, href in six.iteritems(list_templates):
+                    for name, href in list_templates.items():
                         templates[name] = '%s%s' % (entry.list_href, href)
 
             self._uri_templates[base_href] = templates

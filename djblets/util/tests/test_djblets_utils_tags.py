@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 
 from django.http import HttpRequest, QueryDict
 from django.template import Context, Template
-from django.utils import six
 
 from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.testing.testcases import TagTest, TestCase

@@ -2,8 +2,6 @@
 
 from __future__ import unicode_literals
 
-from django.utils import six
-
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import (ExtensionHookPoint,
                                       BaseRegistryMultiItemHook)
@@ -36,8 +34,8 @@ class BaseRegistryMultiItemHookTests(ExtensionTestCaseMixin, TestCase):
 
         self.registry = DummyRegistry()
 
-        @six.add_metaclass(ExtensionHookPoint)
-        class DummyRegistryHook(BaseRegistryMultiItemHook):
+        class DummyRegistryHook(BaseRegistryMultiItemHook,
+                                metaclass=ExtensionHookPoint):
             registry = self.registry
 
         self.hook_cls = DummyRegistryHook

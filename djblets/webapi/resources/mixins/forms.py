@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 from django.core.exceptions import ValidationError
 from django.forms.forms import NON_FIELD_ERRORS
 from django.forms.models import model_to_dict
-from django.utils import six
 from django.utils.encoding import force_text
 
 from djblets.webapi.errors import INVALID_FORM_DATA
@@ -281,7 +280,7 @@ class UpdateFormMixin(object):
         if form is not None:
             return {
                 field_name: [force_text(e) for e in field_errors]
-                for field_name, field_errors in six.iteritems(form.errors)
+                for field_name, field_errors in form.errors.items()
             }
         else:
             if hasattr(errors, 'error_dict'):
@@ -377,7 +376,7 @@ class UpdateFormMixin(object):
         """
         initial = {}
 
-        for field_name, field in six.iteritems(form_cls.base_fields):
+        for field_name, field in form_cls.base_fields.items():
             data = field.initial
 
             if callable(data):
@@ -412,7 +411,7 @@ class UpdateFormMixin(object):
         parsed_data = form_data.copy()
         errors = {}
 
-        for field, value in six.iteritems(form_data):
+        for field, value in form_data.items():
             parser = getattr(self, 'parse_%s_field' % field, None)
 
             if parser is not None:

@@ -29,7 +29,6 @@ from hashlib import md5
 from urllib.parse import urlencode
 
 from django.conf import settings
-from django.utils import six
 
 
 default_app_config = 'djblets.gravatars.apps.GravatarsAppConfig'
@@ -58,7 +57,7 @@ def get_gravatar_url_for_email(email=None, size=None):
     if email:
         email = email.strip().lower()
 
-        if isinstance(email, six.text_type):
+        if isinstance(email, str):
             email = email.encode('utf-8')
 
         email_hash = md5(email).hexdigest()

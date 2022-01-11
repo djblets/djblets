@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 from django.contrib.auth.models import User
 from django.http import Http404
 from django.test.client import RequestFactory
-from django.utils import six
 
 from djblets.configforms.forms import ConfigPageForm
 from djblets.configforms.pages import ConfigPage
@@ -88,7 +87,7 @@ class ConfigPagesViewTests(TestCase):
         self.assertEqual(len(view.pages), 2)
         self.assertIsInstance(view.pages[0], MyTestPage1)
         self.assertIsInstance(view.pages[1], MyTestPage2)
-        self.assertEqual(set(six.iterkeys(view.forms)),
+        self.assertEqual(set(view.forms.keys()),
                          {'my-form-1', 'my-form-2'})
 
     def test_get_context_data(self):
@@ -119,7 +118,7 @@ class ConfigPagesViewTests(TestCase):
                 'js_view_data': {
                     'my-option': 'value',
                 },
-                'forms': list(six.itervalues(view.forms)),
+                'forms': list(view.forms.values()),
                 'render_sidebar': True,
             })
 

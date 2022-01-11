@@ -8,7 +8,6 @@ import django
 from django.db.models import F, Q
 from django.db.models.signals import (m2m_changed, post_delete, post_save,
                                       pre_delete)
-from django.utils import six
 
 from djblets.db.fields.counter_field import CounterField
 
@@ -596,7 +595,7 @@ class RelationCounterField(CounterField):
             # remove by the end.
             to_remove = []
 
-            for key, states in six.iteritems(cls._saved_instance_states):
+            for key, states in cls._saved_instance_states.items():
                 cls._cleanup_state_for_dict(states,
                                             instance_cls=instance_cls,
                                             instance_pk=instance_pk,
@@ -634,7 +633,7 @@ class RelationCounterField(CounterField):
         """
         to_remove = []
 
-        for key, state in six.iteritems(states):
+        for key, state in states.items():
             model_instance = state.model_instance
 
             if (model_instance is None or
@@ -734,7 +733,7 @@ class RelationCounterField(CounterField):
             if states is not None:
                 return [
                     state
-                    for state in six.itervalues(states)
+                    for state in states.values()
                     if state.model_instance is not None
                 ]
 

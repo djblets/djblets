@@ -32,7 +32,6 @@ import re
 
 from django import template
 from django.template import TemplateSyntaxError
-from django.utils import six
 from django.utils.html import format_html, format_html_join
 from django.utils.translation import ugettext as _
 from PIL import Image
@@ -104,7 +103,7 @@ def thumbnail(f, size='400x100'):
     if ext not in registered_extensions():
         return storage.url(f.name)
 
-    if isinstance(size, six.string_types):
+    if isinstance(size, str):
         x, y = (int(x) for x in size.split('x'))
         size_str = size
     elif isinstance(size, tuple):
@@ -168,7 +167,7 @@ def build_srcset(sources):
     """
     sources_info = []
 
-    for descriptor, url in six.iteritems(sources):
+    for descriptor, url in sources.items():
         if not url:
             continue
 
@@ -226,7 +225,7 @@ def srcset(sources):
     try:
         return build_srcset(sources)
     except ValueError as e:
-        raise TemplateSyntaxError(six.text_type(e))
+        raise TemplateSyntaxError(str(e))
 
 
 @register.tag

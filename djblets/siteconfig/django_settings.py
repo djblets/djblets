@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 from django.conf import settings
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import DEFAULT_CACHE_ALIAS
-from django.utils import six, timezone
+from django.utils import timezone
 
 from djblets.cache.backend_compat import normalize_cache_backend
 from djblets.cache.forwarding_backend import (DEFAULT_FORWARD_CACHE_ALIAS,
@@ -102,13 +102,13 @@ def _set_timezone(settings, key, value):
 
 locale_settings_map = {
     'locale_timezone':             {'key': 'TIME_ZONE',
-                                    'deserialize_func': six.text_type,
+                                    'deserialize_func': str,
                                     'setter': _set_timezone},
     'locale_language_code':        'LANGUAGE_CODE',
     'locale_date_format':          'DATE_FORMAT',
     'locale_datetime_format':      'DATETIME_FORMAT',
     'locale_default_charset':      {'key': 'DEFAULT_CHARSET',
-                                    'deserialize_func': six.text_type},
+                                    'deserialize_func': str},
     'locale_language_code':        'LANGUAGE_CODE',
     'locale_month_day_format':     'MONTH_DAY_FORMAT',
     'locale_time_format':          'TIME_FORMAT',
@@ -207,7 +207,7 @@ def generate_defaults(settings_map):
     """
     defaults = {}
 
-    for siteconfig_key, setting_data in six.iteritems(settings_map):
+    for siteconfig_key, setting_data in settings_map.items():
         if isinstance(setting_data, dict):
             setting_key = setting_data['key']
         else:
@@ -306,7 +306,7 @@ def apply_django_settings(siteconfig, settings_map=None):
     if settings_map is None:
         settings_map = get_django_settings_map()
 
-    for key, setting_data in six.iteritems(settings_map):
+    for key, setting_data in settings_map.items():
         if key in siteconfig.settings:
             value = siteconfig.get(key)
             setter = setattr
@@ -318,7 +318,7 @@ def apply_django_settings(siteconfig, settings_map=None):
                     setter = setting_data['setter']
 
                 if ('deserialize_func' in setting_data and
-                    six.callable(setting_data['deserialize_func'])):
+                    callable(setting_data['deserialize_func'])):
                     value = setting_data['deserialize_func'](value)
             else:
                 setting_key = setting_data

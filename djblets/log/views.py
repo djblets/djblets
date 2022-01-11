@@ -38,7 +38,6 @@ from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404
 from django.shortcuts import render
-from django.utils import six
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -82,13 +81,13 @@ def build_query_string(request, params):
     """
     query_parts = []
 
-    for key, value in six.iteritems(request.GET):
+    for key, value in request.GET.items():
         if key not in params:
             query_parts.append(urlencode({
                 key: value
             }))
 
-    for key, value in six.iteritems(params):
+    for key, value in params.items():
         if value is not None:
             query_parts.append(urlencode({
                 key: value

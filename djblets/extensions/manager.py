@@ -25,7 +25,6 @@ from django.contrib.admin.sites import AdminSite
 from django.core.files import locks
 from django.db import IntegrityError
 from django.urls import reverse
-from django.utils import six
 from django.utils.module_loading import module_has_submodule
 from django.utils.translation import ugettext as _
 from pipeline.conf import settings as pipeline_settings
@@ -458,7 +457,7 @@ class ExtensionManager(object):
         """
         # This will raise InvalidExtensionError if not found.
         dependency = self.get_installed_extension(dependency_extension_id)
-        extension_classes = six.iteritems(self._extension_classes)
+        extension_classes = self._extension_classes.items()
 
         return [
             extension_id
@@ -770,7 +769,7 @@ class ExtensionManager(object):
 
         # Now we have all the RegisteredExtension instances. Go through
         # and initialize each of them.
-        for class_name, registered_ext in six.iteritems(found_registrations):
+        for class_name, registered_ext in found_registrations.items():
             ext_class = found_extensions[class_name]
             ext_class.registration = registered_ext
 
@@ -794,7 +793,7 @@ class ExtensionManager(object):
         # While we're at it, since we're at a point where we've seen all
         # extensions, we can set the ExtensionInfo.requirements for
         # each extension
-        for class_name, ext_class in six.iteritems(self._extension_classes):
+        for class_name, ext_class in self._extension_classes.items():
             if class_name not in found_extensions:
                 if class_name in self._extension_instances:
                     self.disable_extension(class_name)
@@ -1011,7 +1010,7 @@ class ExtensionManager(object):
                                  ext_class.id, e)
 
                 raise InstallExtensionError(
-                    six.text_type(e),
+                    str(e),
                     self._store_load_error(ext_class.id, e))
 
     def _get_app_modules_with_models(self, app_names):
@@ -1404,7 +1403,7 @@ class ExtensionManager(object):
 
         def _add_bundles(pipeline_bundles, extension_bundles, default_dir,
                          ext):
-            for name, bundle in six.iteritems(extension_bundles):
+            for name, bundle in extension_bundles.items():
                 new_bundle = bundle.copy()
 
                 new_bundle['source_filenames'] = [
@@ -1436,7 +1435,7 @@ class ExtensionManager(object):
                 unregister.
         """
         def _remove_bundles(pipeline_bundles, extension_bundles):
-            for name, bundle in six.iteritems(extension_bundles):
+            for name, bundle in extension_bundles.items():
                 try:
                     del pipeline_bundles[extension.get_bundle_id(name)]
                 except KeyError:
@@ -1681,7 +1680,7 @@ def get_extension_managers():
         list of ExtensionManager:
         The list of all extension manager instances currently registered.
     """
-    return list(six.itervalues(_extension_managers))
+    return list(_extension_managers.values())
 
 
 def shutdown_extension_managers():

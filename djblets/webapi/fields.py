@@ -8,7 +8,7 @@ from importlib import import_module
 
 import dateutil.parser
 from django.core.exceptions import ValidationError
-from django.utils import six, timezone
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _, ugettext
 from pytz.exceptions import AmbiguousTimeError
 
@@ -115,7 +115,7 @@ class BaseAPIFieldType(object):
             unicode:
             A string representation of this field type.
         """
-        return six.text_type(self.name)
+        return str(self.name)
 
 
 class NonRequestFieldTypeMixin(object):
@@ -157,7 +157,7 @@ class BooleanFieldType(BaseAPIFieldType):
             unicode:
             The normalized boolean value.
         """
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             return value.lower() in ('1', 'true')
 
         return value in (1, True)
@@ -310,7 +310,7 @@ class DictFieldType(BaseAPIFieldType):
         """
         if isinstance(value, dict):
             return value
-        elif isinstance(value, six.string_types):
+        elif isinstance(value, str):
             try:
                 result = json.loads(value)
             except ValueError:
@@ -423,7 +423,7 @@ class ListFieldType(BaseAPIFieldType):
 
                 It may also be raised through the list item type's validation.
         """
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             try:
                 value = json.loads(value)
             except ValueError:
@@ -495,7 +495,7 @@ class ResourceFieldType(NonRequestFieldTypeMixin, BaseAPIFieldType):
 
         resource = self.get_field_info_key('resource')
 
-        if isinstance(resource, six.string_types):
+        if isinstance(resource, str):
             module, attr = resource.rsplit('.', 1)
 
             try:
@@ -557,7 +557,7 @@ class StringFieldType(BaseAPIFieldType):
             unicode:
             A string version of the value.
         """
-        if isinstance(value, six.binary_type):
+        if isinstance(value, bytes):
             return value.decode('utf-8')
         else:
-            return six.text_type(value)
+            return str(value)

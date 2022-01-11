@@ -12,7 +12,6 @@ import json
 import pprint
 
 from django.test.client import BOUNDARY, MULTIPART_CONTENT, encode_multipart
-from django.utils import six
 from django.utils.encoding import force_text
 
 from djblets.testing.testcases import TestCase
@@ -460,7 +459,7 @@ class WebAPITestCaseMixin(TestCase):
                                  self.base_url + expected_redirects[0])
 
         # Check that all the expected headers are present in the response.
-        for header, value in six.iteritems(expected_headers):
+        for header, value in expected_headers.items():
             self.assertIn(header, response)
             self.assertEqual(response[header], value)
 
