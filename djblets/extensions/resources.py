@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 
-from django.conf.urls import include, url
 from django.core.exceptions import ObjectDoesNotExist
-from django.urls import reverse
+from django.urls import include, path, reverse
 from django.utils.translation import gettext as _
 
 from djblets.extensions.errors import (DisablingExtensionError,
@@ -310,8 +309,8 @@ class ExtensionResource(WebAPIResource):
         # For each resource, generate the URLs
         for resource in extension.resources:
             self._resource_url_patterns_map[extension].extend([
-                url(r'^%s/%s/' % (extension.id, resource.uri_name),
-                    include(resource.get_url_patterns())),
+                path('%s/%s/' % (extension.id, resource.uri_name),
+                     include(resource.get_url_patterns())),
             ])
 
         self._dynamic_patterns.add_patterns(

@@ -4,10 +4,10 @@ from __future__ import unicode_literals
 
 from datetime import timedelta
 
-from django.conf.urls import include, url
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.models import User
 from django.test.utils import override_settings
+from django.urls import include, path
 from django.utils import timezone
 from oauth2_provider.models import AccessToken, Application
 
@@ -33,7 +33,7 @@ resource_tree = make_resource_tree(
 root_resource = resource_tree.root_resource
 
 urlpatterns = [
-    url('^api/', include(root_resource.get_url_patterns())),
+    path('api/', include(root_resource.get_url_patterns())),
 ]
 
 

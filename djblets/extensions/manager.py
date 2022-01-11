@@ -20,11 +20,10 @@ from importlib import import_module, reload
 
 from django.apps.registry import apps
 from django.conf import settings
-from django.conf.urls import include, url
 from django.contrib.admin.sites import AdminSite
 from django.core.files import locks
 from django.db import IntegrityError
-from django.urls import reverse
+from django.urls import include, path, reverse
 from django.utils.module_loading import module_has_submodule
 from django.utils.translation import gettext as _
 from pipeline.conf import settings as pipeline_settings
@@ -1372,16 +1371,16 @@ class ExtensionManager(object):
 
             if hasattr(urlconf, 'urlpatterns'):
                 extension.admin_urlpatterns = [
-                    url(r'^%s%s/config/' % (prefix, extension.id),
-                        include(urlconf.__name__)),
+                    path('%s%s/config/' % (prefix, extension.id),
+                         include(urlconf.__name__)),
                 ]
 
                 self.dynamic_urls.add_patterns(extension.admin_urlpatterns)
 
         if getattr(extension, 'admin_site', None):
             extension.admin_site_urlpatterns = [
-                url(r'^%s%s/db/' % (prefix, extension.id),
-                    extension.admin_site.urls)
+                path('%s%s/db/' % (prefix, extension.id),
+                     extension.admin_site.urls)
             ]
 
             self.dynamic_urls.add_patterns(extension.admin_site_urlpatterns)

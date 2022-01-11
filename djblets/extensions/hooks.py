@@ -353,7 +353,7 @@ class URLHook(ExtensionHook, metaclass=ExtensionHookPoint):
 
         Args:
             patterns (list):
-                The list of :py:func:`~django.conf.urls.url` entries
+                The list of :py:func:`~django.urls.path` entries
                 comprising the URLs to register.
         """
         self.patterns = patterns

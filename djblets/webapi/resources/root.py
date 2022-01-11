@@ -4,8 +4,8 @@ from __future__ import unicode_literals
 
 from collections import namedtuple
 
-from django.conf.urls import url
 from django.http import HttpResponseNotModified
+from django.urls import path
 
 from djblets.urls.patterns import never_cache_patterns
 from djblets.webapi.errors import DOES_NOT_EXIST
@@ -180,7 +180,8 @@ class RootResource(WebAPIResource):
         generic catch-all 404 handler which returns API errors instead of HTML.
         """
         urlpatterns = super(RootResource, self).get_url_patterns()
-        urlpatterns += never_cache_patterns(url(r'.*', self.api_404_handler))
+        urlpatterns += never_cache_patterns(
+            path('<str>', self.api_404_handler))
 
         return urlpatterns
 

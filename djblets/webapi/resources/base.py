@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 import logging
 import warnings
 
-from django.conf.urls import include, url
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models.fields.related_descriptors import (
@@ -14,7 +13,7 @@ from django.db.models.fields.related_descriptors import (
 from django.db.models.query import QuerySet
 from django.http import (HttpResponseNotAllowed, HttpResponse,
                          HttpResponseNotModified)
-from django.urls import reverse
+from django.urls import include, path, re_path, reverse
 from django.views.decorators.vary import vary_on_headers
 
 from djblets.deprecation import RemovedInDjblets30Warning
@@ -667,14 +666,14 @@ class WebAPIResource(object):
         return them in the ``urls.py`` files.
         """
         urlpatterns = never_cache_patterns(
-            url(r'^$', self, name=self._build_named_url(self.name_plural)),
+            path('', self, name=self._build_named_url(self.name_plural)),
         )
 
         for resource in self.list_child_resources:
             resource._parent_resource = self
-            child_regex = r'^' + resource.uri_name + r'/'
             urlpatterns += [
-                url(child_regex, include(resource.get_url_patterns())),
+                path(resource.uri_name + '/',
+                     include(resource.get_url_patterns())),
             ]
 
         if self.uri_object_key or self.singleton:
@@ -686,15 +685,15 @@ class WebAPIResource(object):
                 base_regex = r'^'
 
             urlpatterns += never_cache_patterns(
-                url(base_regex + r'$', self,
-                    name=self._build_named_url(self.name))
+                re_path(base_regex + r'$', self,
+                        name=self._build_named_url(self.name))
             )
 
             for resource in self.item_child_resources:
                 resource._parent_resource = self
                 child_regex = base_regex + resource.uri_name + r'/'
                 urlpatterns += [
-                    url(child_regex, include(resource.get_url_patterns())),
+                    re_path(child_regex, include(resource.get_url_patterns())),
                 ]
 
         return urlpatterns

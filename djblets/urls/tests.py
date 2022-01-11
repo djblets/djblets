@@ -1,7 +1,10 @@
 from __future__ import unicode_literals
 
-from django.conf.urls import include, url
-from django.urls import NoReverseMatch, clear_url_caches, reverse
+from django.urls import (NoReverseMatch,
+                         clear_url_caches,
+                         include,
+                         path,
+                         reverse)
 from django.views.decorators.cache import never_cache
 from kgb import SpyAgency
 
@@ -22,8 +25,8 @@ class URLPatternsTests(SpyAgency, TestCase):
         self.spy_on(never_cache)
 
         urlpatterns = never_cache_patterns(
-            url('^a/$', dummy_view),
-            url('^b/$', dummy_view),
+            path('a/', dummy_view),
+            path('b/', dummy_view),
         )
 
         self.assertEqual(len(never_cache.spy.calls), 2)
@@ -46,17 +49,17 @@ class URLResolverTests(TestCase):
             pass
 
         dynamic_urls = DynamicURLResolver()
-        root_urlconf = [
-            url(r'^root/', include([dynamic_urls])),
-            url(r'^foo/', dummy_view, name='foo'),
-        ]
+        root_urlconf = (
+            path('root/', include([dynamic_urls])),
+            path('foo/', dummy_view, name='foo'),
+        )
 
         with self.settings(ROOT_URLCONF=root_urlconf):
             clear_url_caches()
 
             new_patterns = [
-                url(r'^bar/$', dummy_view, name='bar'),
-                url(r'^baz/$', dummy_view, name='baz'),
+                path('bar/', dummy_view, name='bar'),
+                path('baz/', dummy_view, name='baz'),
             ]
 
             # The new patterns shouldn't reverse, just the original "foo".

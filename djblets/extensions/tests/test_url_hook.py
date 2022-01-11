@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 
-from django.conf.urls import include, url
+from django.urls import include, path
 
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import URLHook
@@ -13,8 +13,8 @@ from djblets.testing.testcases import TestCase
 class MyTestExtension(Extension):
     def initialize(self):
         self.patterns = [
-            url(r'^url_hook_test/',
-                include('djblets.extensions.tests.apps.urls')),
+            path('url_hook_test/',
+                 include('djblets.extensions.tests.apps.urls')),
         ]
         self.url_hook = URLHook(self, self.patterns)
 

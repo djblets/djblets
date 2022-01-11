@@ -3,10 +3,10 @@
 from __future__ import unicode_literals
 
 from django import forms
-from django.conf.urls import url
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.test.utils import override_settings
+from django.urls import path
 
 from djblets.extensions.extension import Extension
 from djblets.extensions.forms import SettingsForm
@@ -31,13 +31,12 @@ class ViewTests(ExtensionTestCaseMixin, TestCase):
             mykey = forms.CharField(max_length=100)
 
         urlpatterns[:] = [
-            url('^config/$', configure_extension,
-                {
-                    'ext_class': type(self.extension),
-                    'form_class': TestSettingsForm,
-                    'extension_manager': self.extension_mgr,
-                }),
-            url('', admin.site.urls),
+            path('config/', configure_extension, kwargs={
+                'ext_class': type(self.extension),
+                'form_class': TestSettingsForm,
+                'extension_manager': self.extension_mgr,
+            }),
+            path('', admin.site.urls),
         ]
 
         User.objects.create_superuser(username='admin',

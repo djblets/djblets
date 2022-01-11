@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
-from django.conf.urls import include, url
 from django.http import HttpResponse
+from django.urls import include, path
 
 
 def dummy_view(request):
@@ -9,7 +9,7 @@ def dummy_view(request):
 
 
 urlpatterns = [
-    url(r'^$', dummy_view, name='test-url-name'),
-    url(r'^admin/extensions/', include('djblets.extensions.urls')),
-    url(r'^auth/', include('djblets.auth.urls')),
+    path('', dummy_view, name='test-url-name'),
+    path('admin/extensions/', include('djblets.extensions.urls')),
+    path('auth/', include('djblets.auth.urls')),
 ]
