@@ -1064,7 +1064,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         if os.path.exists(path):
             shutil.rmtree(path)
 
-        os.mkdir(extension.info.installed_static_path, 0o755)
+        os.makedirs(extension.info.installed_static_path, 0o755)
 
     def _run_thread_test(self, main_func):
         def _thread_main(main_connection, main_func, sleep_time):

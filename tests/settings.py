@@ -38,8 +38,8 @@ USE_TZ = True
 
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
-STATIC_ROOT = os.path.abspath('tests/static')
-MEDIA_ROOT = os.path.abspath('tests/media')
+STATIC_ROOT = os.path.abspath(os.path.join(__file__, '..', 'static'))
+MEDIA_ROOT = os.path.abspath(os.path.join(__file__, '..', 'media'))
 
 # URL that handles the media served from STATIC_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
