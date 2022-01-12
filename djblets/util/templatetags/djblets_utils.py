@@ -125,8 +125,7 @@ def definevar(context, nodelist, varname, *options):
         result = result.strip()
 
     if 'unsafe' in options:
-        # Unicode strings are inherently "unsafe".
-        result = str(result)
+        result = escape(result)
     else:
         result = mark_safe(result)
 
