@@ -20,14 +20,14 @@ from djblets.testing.testcases import TestCase
 from pipeline.conf import settings as pipeline_settings
 
 
-class TestJSExtension(JSExtension):
+class MyTestJSExtension(JSExtension):
     model_class = 'FooNew'
 
     def get_model_data(self, request, **kwargs):
         return {'test': 'new'}
 
 
-class TestJSExtensionDeprecated(JSExtension):
+class MyTestJSExtensionDeprecated(JSExtension):
     model_class = 'FooOld'
 
     def get_model_data(self):
@@ -66,7 +66,7 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
             'apply_to': ['foo'],
         }
 
-        js_extensions = [TestJSExtension, TestJSExtensionDeprecated]
+        js_extensions = [MyTestJSExtension, MyTestJSExtensionDeprecated]
 
     def setUp(self):
         def _has_resource(self, path):

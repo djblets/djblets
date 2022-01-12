@@ -16,22 +16,22 @@ class DynamicConfigPage(DynamicConfigPageMixin, ConfigPage):
     pass
 
 
-class TestFormA(ConfigPageForm):
+class MyTestFormA(ConfigPageForm):
     form_id = 'form-a'
 
 
-class TestFormB(ConfigPageForm):
+class MyTestFormB(ConfigPageForm):
     form_id = 'form-b'
 
 
-class TestPageOne(DynamicConfigPage):
+class MyTestPageOne(DynamicConfigPage):
     page_id = 'page-b'
-    form_classes = [TestFormB]
+    form_classes = [MyTestFormB]
 
 
-class TestPageTwo(DynamicConfigPage):
+class MyTestPageTwo(DynamicConfigPage):
     page_id = 'page-ab'
-    form_classes = [TestFormA, TestFormB]
+    form_classes = [MyTestFormA, MyTestFormB]
 
 
 class ConfigPageRegistryTests(SpyAgency, TestCase):
@@ -47,14 +47,14 @@ class ConfigPageRegistryTests(SpyAgency, TestCase):
         super(ConfigPageRegistryTests, self).tearDown()
 
         self.registry.reset()
-        TestPageOne.form_classes = [TestFormB]
-        TestPageTwo.formClasses = [TestFormA, TestFormB]
+        MyTestPageOne.form_classes = [MyTestFormB]
+        MyTestPageTwo.formClasses = [MyTestFormA, MyTestFormB]
 
     def test_reset(self):
         """Testing ConfigPageRegistry.reset"""
         self.assertSetEqual(set(self.registry), set())
         self.assertSetEqual(set(self.registry._forms), set())
-        self.registry.register(TestPageOne)
+        self.registry.register(MyTestPageOne)
         self.registry.reset()
 
         self.assertSetEqual(set(self.registry), set())
@@ -64,86 +64,86 @@ class ConfigPageRegistryTests(SpyAgency, TestCase):
         """Testing ConfigPageRegistry.register when the registration is
         partially successful
         """
-        self.registry.register(TestPageOne)
+        self.registry.register(MyTestPageOne)
 
         with self.assertRaises(RegistrationError):
-            self.registry.register(TestPageTwo)
+            self.registry.register(MyTestPageTwo)
 
-        self.assertEqual(set(self.registry), {TestPageOne})
+        self.assertEqual(set(self.registry), {MyTestPageOne})
 
     def test_register_page_with_duplicate(self):
         """Testing ConfigPageRegistry.register when registering a page that
         contains pre-registered forms
         """
-        class TestPage(DynamicConfigPage):
+        class MyTestPage(DynamicConfigPage):
             page_id = 'test-page'
-            form_classes = [TestFormB]
+            form_classes = [MyTestFormB]
 
-        self.registry.register(TestPageOne)
+        self.registry.register(MyTestPageOne)
 
         with self.assertRaises(RegistrationError):
-            self.registry.register(TestPage)
+            self.registry.register(MyTestPage)
 
     def test_add_form_to_page(self):
         """Testing ConfigPageRegistry.add_form_to_page"""
-        self.registry.register(TestPageOne)
-        self.registry.add_form_to_page(TestPageOne, TestFormA)
+        self.registry.register(MyTestPageOne)
+        self.registry.add_form_to_page(MyTestPageOne, MyTestFormA)
 
-        self.assertSetEqual(set(TestPageOne.form_classes),
-                            {TestFormA, TestFormB})
+        self.assertSetEqual(set(MyTestPageOne.form_classes),
+                            {MyTestFormA, MyTestFormB})
         self.assertSetEqual(set(self.registry._forms),
-                            {TestFormA, TestFormB})
+                            {MyTestFormA, MyTestFormB})
 
     def test_remove_form_from_page(self):
         """Testing ConfigPageRegistry.remove_form_from_page"""
-        self.registry.register(TestPageOne)
-        self.registry.remove_form_from_page(TestPageOne, TestFormB)
+        self.registry.register(MyTestPageOne)
+        self.registry.remove_form_from_page(MyTestPageOne, MyTestFormB)
 
-        self.assertListEqual(list(TestPageOne.form_classes), [])
+        self.assertListEqual(list(MyTestPageOne.form_classes), [])
         self.assertListEqual(list(self.registry._forms), [])
 
     def test_add_duplicate_form_to_page(self):
         """Testing ConfigPageRegistry.add_form_to_page with a duplicate form"""
-        self.registry.register(TestPageOne)
+        self.registry.register(MyTestPageOne)
 
         with self.assertRaises(RegistrationError):
-            self.registry.add_form_to_page(TestPageOne, TestFormB)
+            self.registry.add_form_to_page(MyTestPageOne, MyTestFormB)
 
-        self.assertEqual(TestPageOne.form_classes, [TestFormB])
+        self.assertEqual(MyTestPageOne.form_classes, [MyTestFormB])
 
     def test_default_form_classes(self):
         """Testing DynamicConfigPageMixin._default_form_classes persistence"""
-        self.registry.register(TestPageOne)
-        self.assertListEqual(TestPageOne.form_classes, [TestFormB])
-        self.registry.add_form_to_page(TestPageOne, TestFormA)
-        self.assertSetEqual(set(TestPageOne.form_classes),
-                            {TestFormA, TestFormB})
+        self.registry.register(MyTestPageOne)
+        self.assertListEqual(MyTestPageOne.form_classes, [MyTestFormB])
+        self.registry.add_form_to_page(MyTestPageOne, MyTestFormA)
+        self.assertSetEqual(set(MyTestPageOne.form_classes),
+                            {MyTestFormA, MyTestFormB})
 
-        self.registry.unregister(TestPageOne)
-        self.assertListEqual(TestPageOne.form_classes, [])
+        self.registry.unregister(MyTestPageOne)
+        self.assertListEqual(MyTestPageOne.form_classes, [])
 
-        self.registry.register(TestPageOne)
-        self.assertListEqual(TestPageOne.form_classes, [TestFormB])
+        self.registry.register(MyTestPageOne)
+        self.assertListEqual(MyTestPageOne.form_classes, [MyTestFormB])
 
     def test_empty_default_form_classes_for_page(self):
         """Testing DynamicConfigPageMixin._default_form_classes with no form
         classes
         """
-        class TestPage(DynamicConfigPage):
+        class MyTestPage(DynamicConfigPage):
             page_id = 'test-page'
             page_title = 'Test Page'
 
-        self.registry.register(TestPage)
-        self.assertListEqual(TestPage.form_classes, [])
+        self.registry.register(MyTestPage)
+        self.assertListEqual(MyTestPage.form_classes, [])
 
-        self.registry.add_form_to_page(TestPage, TestFormA)
-        self.assertListEqual(TestPage.form_classes, [TestFormA])
+        self.registry.add_form_to_page(MyTestPage, MyTestFormA)
+        self.assertListEqual(MyTestPage.form_classes, [MyTestFormA])
 
-        self.registry.unregister(TestPage)
-        self.assertListEqual(TestPage.form_classes, [])
+        self.registry.unregister(MyTestPage)
+        self.assertListEqual(MyTestPage.form_classes, [])
 
-        self.registry.register(TestPage)
-        self.assertListEqual(TestPage.form_classes, [])
+        self.registry.register(MyTestPage)
+        self.assertListEqual(MyTestPage.form_classes, [])
 
     def test_add_form_to_page_populate(self):
         """Testing ConfigPageRegistry.add_form_to_page populates itself and the
@@ -151,18 +151,18 @@ class ConfigPageRegistryTests(SpyAgency, TestCase):
          """
         class TestRegistry(ConfigPageRegistry):
             def get_defaults(self):
-                yield TestPageOne
+                yield MyTestPageOne
 
         registry = TestRegistry()
 
         self.spy_on(registry.populate)
         self.spy_on(registry._forms.populate)
 
-        registry.add_form_to_page(TestPageOne, TestFormA)
+        registry.add_form_to_page(MyTestPageOne, MyTestFormA)
 
         self.assertTrue(registry.populate.spy.called)
         self.assertTrue(registry._forms.populate.spy.called)
-        self.assertEqual(set(registry._forms), {TestFormA, TestFormB})
+        self.assertEqual(set(registry._forms), {MyTestFormA, MyTestFormB})
 
     def test_add_form_to_page_populate_duplicate(self):
         """Testing ConfigPageRegistry.add_form_to_page with an already
@@ -170,14 +170,14 @@ class ConfigPageRegistryTests(SpyAgency, TestCase):
         """
         class TestRegistry(ConfigPageRegistry):
             def get_defaults(self):
-                yield TestPageOne
+                yield MyTestPageOne
 
         registry = TestRegistry()
 
         with self.assertRaises(registry.already_registered_error_class):
-            registry.add_form_to_page(TestPageOne, TestFormB)
+            registry.add_form_to_page(MyTestPageOne, MyTestFormB)
 
-        self.assertEqual(set(registry._forms), {TestFormB})
+        self.assertEqual(set(registry._forms), {MyTestFormB})
 
     def test_remove_form_from_page_populate(self):
         """Testing ConfigPageRegistry.remove_form_from_page populates itself
@@ -185,14 +185,14 @@ class ConfigPageRegistryTests(SpyAgency, TestCase):
         """
         class TestRegistry(ConfigPageRegistry):
             def get_defaults(self):
-                yield TestPageOne
+                yield MyTestPageOne
 
         registry = TestRegistry()
 
         self.spy_on(registry.populate)
         self.spy_on(registry._forms.populate)
 
-        registry.remove_form_from_page(TestPageOne, TestFormB)
+        registry.remove_form_from_page(MyTestPageOne, MyTestFormB)
 
         self.assertTrue(registry.populate.spy.called)
         self.assertTrue(registry._forms.populate.spy.called)
@@ -204,11 +204,11 @@ class ConfigPageRegistryTests(SpyAgency, TestCase):
         """
         class TestRegistry(ConfigPageRegistry):
             def get_defaults(self):
-                yield TestPageOne
+                yield MyTestPageOne
 
         registry = TestRegistry()
 
         with self.assertRaises(registry.lookup_error_class):
-            registry.remove_form_from_page(TestPageOne, TestFormA)
+            registry.remove_form_from_page(MyTestPageOne, MyTestFormA)
 
-        self.assertEqual(set(registry._forms), {TestFormB})
+        self.assertEqual(set(registry._forms), {MyTestFormB})

@@ -11,7 +11,7 @@ from djblets.extensions.tests.base import ExtensionTestsMixin
 from djblets.testing.testcases import TestCase
 
 
-class TestExtension(Extension):
+class MyTestExtension(Extension):
     pass
 
 
@@ -21,7 +21,7 @@ class SignalHookTests(SpyAgency, ExtensionTestsMixin, TestCase):
     def setUp(self):
         super(SignalHookTests, self).setUp()
 
-        self.test_extension = self.setup_extension(TestExtension)
+        self.test_extension = self.setup_extension(MyTestExtension)
 
         self.signal = Signal()
         self.spy_on(self._on_signal_fired)

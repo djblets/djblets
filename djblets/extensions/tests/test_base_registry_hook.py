@@ -28,12 +28,12 @@ class BaseRegistryHookTests(ExtensionTestsMixin, TestCase):
         class DummyRegistryHook(BaseRegistryHook):
             registry = self.registry
 
-        class TestExtension(Extension):
+        class MyTestExtension(Extension):
             pass
 
         self.hook_cls = DummyRegistryHook
 
-        self.extension = self.setup_extension(TestExtension)
+        self.extension = self.setup_extension(MyTestExtension)
 
     def test_hook_register(self):
         """Testing BaseRegistryHook item registration"""

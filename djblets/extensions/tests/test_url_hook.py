@@ -10,7 +10,7 @@ from djblets.extensions.tests.base import ExtensionTestsMixin
 from djblets.testing.testcases import TestCase
 
 
-class TestExtension(Extension):
+class MyTestExtension(Extension):
     def initialize(self):
         self.patterns = [
             url(r'^url_hook_test/',
@@ -25,7 +25,7 @@ class URLHookTest(ExtensionTestsMixin, TestCase):
     def setUp(self):
         super(URLHookTest, self).setUp()
 
-        self.extension = self.setup_extension(TestExtension)
+        self.extension = self.setup_extension(MyTestExtension)
 
     def test_url_registration(self):
         """Testing URLHook URL registration"""
