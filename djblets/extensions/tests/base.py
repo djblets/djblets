@@ -110,14 +110,14 @@ class FakeProvider(pkg_resources.DefaultProvider):
         ).encode('utf-8')
 
 
-class TestExtensionManager(ExtensionManager):
+class MyTestExtensionManager(ExtensionManager):
     """An extension manager for testing.
 
     The entry points are provided at initialization time.
     """
 
     def __init__(self, entry_points=None, *args, **kwargs):
-        """Initialize the TestExtensionManager.
+        """Initialize the MyTestExtensionManager.
 
         Args:
             entry_points (list):
@@ -131,7 +131,7 @@ class TestExtensionManager(ExtensionManager):
                 Additional keyword arguments to pass to the base class'
                 constructor.
         """
-        super(TestExtensionManager, self).__init__(*args, **kwargs)
+        super(MyTestExtensionManager, self).__init__(*args, **kwargs)
         self._entry_points = entry_points or []
 
     def _entrypoint_iterator(self):
@@ -198,7 +198,7 @@ class ExtensionTestsMixin(object):
         fake_entry_point = FakeEntryPoint(extension_cls,
                                           project_name=self.test_project_name)
 
-        self.manager = TestExtensionManager([fake_entry_point], manager_key)
+        self.manager = MyTestExtensionManager([fake_entry_point], manager_key)
         self.manager.load()
 
         if enable:

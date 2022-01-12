@@ -17,6 +17,7 @@ from django.db.backends import utils as db_backend_utils
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.http import Http404
 from django.utils import six
+from django.utils.deprecation import MiddlewareMixin
 from django.utils.six.moves import cStringIO as StringIO
 
 from djblets.log import init_logging, init_profile_logger, log_timed
@@ -114,7 +115,7 @@ def reformat_sql(sql):
     return sql
 
 
-class LoggingMiddleware(object):
+class LoggingMiddleware(MiddlewareMixin):
     """A piece of middleware that sets up page timing and profile logging.
 
     This is needed if using ``settings.LOGGING_PAGE_TIMES`` or

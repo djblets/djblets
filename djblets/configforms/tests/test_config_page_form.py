@@ -12,7 +12,7 @@ from djblets.configforms.views import ConfigPagesView
 from djblets.testing.testcases import TestCase
 
 
-class TestForm(ConfigPageForm):
+class MyTestForm(ConfigPageForm):
     form_id = 'my-form'
     field1 = forms.CharField(label='Field 1',
                              required=False)
@@ -20,9 +20,9 @@ class TestForm(ConfigPageForm):
                              required=False)
 
 
-class TestPage(ConfigPage):
+class MyTestPage(ConfigPage):
     page_id = 'my-page'
-    form_classes = [TestForm]
+    form_classes = [MyTestForm]
 
 
 class ConfigPageFormTests(TestCase):
@@ -34,9 +34,9 @@ class ConfigPageFormTests(TestCase):
         request = RequestFactory().request()
         user = User.objects.create_user(username='test-user',
                                         password='test-user')
-        page = TestPage(ConfigPagesView, request, user)
+        page = MyTestPage(ConfigPagesView, request, user)
 
-        self.form = TestForm(page, request, user)
+        self.form = MyTestForm(page, request, user)
 
     def test_initial_state(self):
         """Testing ConfigPageForm initial state"""

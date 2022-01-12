@@ -1,10 +1,11 @@
 from __future__ import unicode_literals
 
 from django.conf.urls import include, url
+from django.http import HttpResponse
 
 
 def dummy_view(request):
-    pass
+    return HttpResponse('')
 
 
 urlpatterns = [

@@ -28,12 +28,29 @@ from __future__ import unicode_literals
 import threading
 
 from django.conf import settings
+
+try:
+    # Django >= 1.10
+    from django.utils.deprecation import MiddlewareMixin
+except ImportError:
+    MiddlewareMixin = object
+
 from djblets.extensions.manager import get_extension_managers
 
 
-class ExtensionsMiddleware(object):
+class ExtensionsMiddleware(MiddlewareMixin):
     """Middleware to manage extension lifecycles and data."""
+
     def __init__(self, *args, **kwargs):
+        """Initialize the middleware.
+
+        Args:
+            *args (tuple):
+                Positional arguments to pass through to the superclass.
+
+            **kwargs (dict):
+                Keyword arguments to pass through to the superclass.
+        """
         super(ExtensionsMiddleware, self).__init__(*args, **kwargs)
 
         self.do_expiration_checks = not getattr(settings, 'RUNNING_TEST',
@@ -76,7 +93,7 @@ class ExtensionsMiddleware(object):
                         extension_manager.load(full_reload=True)
 
 
-class ExtensionsMiddlewareRunner(object):
+class ExtensionsMiddlewareRunner(MiddlewareMixin):
     """Middleware to execute middleware from extensions.
 
     The process_*() methods iterate over all extensions' middleware, calling
@@ -107,6 +124,44 @@ class ExtensionsMiddlewareRunner(object):
     def process_exception(self, request, exception):
         return self._call_until('process_exception', True, request, exception)
 
+    def __call__(self, request):
+        """Run as new-style (Django 1.10+) middleware.
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request object.
+
+        Returns:
+            django.http.HttpResponse
+            The HTTP response.
+        """
+        middleware = []
+
+        for mgr in get_extension_managers():
+            middleware += mgr.middleware_classes
+
+        middleware.reverse()
+
+        # Run old-style middleware process_request first.
+        response = self.process_request(request)
+
+        # Do all new-style middleware.
+        if not response:
+            def _get_response_iter(request, middleware=middleware):
+                try:
+                    next_method = middleware.pop(0)(_get_response_iter)
+                except IndexError:
+                    next_method = self.get_response
+
+                return next_method(request)
+
+            response = _get_response_iter(request)
+
+        # Run old-style middleware process_response.
+        response = self.process_response(request, response)
+
+        return response
+
     def _call_until(self, func_name, reverse, *args, **kwargs):
         """Call extension middleware until a truthy value is returned."""
         r = None
@@ -135,7 +190,7 @@ class ExtensionsMiddlewareRunner(object):
         middleware = []
 
         for mgr in get_extension_managers():
-            middleware.extend(mgr.middleware)
+            middleware += mgr.legacy_middleware_instances
 
         if reverse:
             middleware.reverse()

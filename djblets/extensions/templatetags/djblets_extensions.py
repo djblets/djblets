@@ -354,6 +354,14 @@ def init_js_extensions(context, extension_manager_key):
     and their JavaScript-side Extension subclasses will be instantiated.
     """
     request = context['request']
+
+    if not request.resolver_match:
+        # In some cases, this can get called from within middleware (typically
+        # if the middleware is bailing out of the usual call chain for some
+        # reason). In that case, we don't have access to the resolver match,
+        # but we also almost certainly don't want to be enabling JS extensions.
+        return {}
+
     url_name = request.resolver_match.url_name
 
     for manager in get_extension_managers():

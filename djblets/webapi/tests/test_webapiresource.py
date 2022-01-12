@@ -21,7 +21,7 @@ from djblets.webapi.resources.registry import (register_resource_for_model,
 from djblets.webapi.responses import WebAPIResponse
 
 
-class TestGroup(models.Model):
+class MyTestGroup(models.Model):
     name = models.CharField(max_length=10)
     users = models.ManyToManyField(User)
 
@@ -30,7 +30,7 @@ class BaseTestWebAPIResource(WebAPIResource):
     mimetype_vendor = 'djblets-test'
 
 
-class TestUserResource(BaseTestWebAPIResource):
+class MyTestUserResource(BaseTestWebAPIResource):
     name = 'user'
     model = User
     uri_object_key = 'pk'
@@ -51,9 +51,9 @@ class TestUserResource(BaseTestWebAPIResource):
         return 'http://testserver/api/test/users/%s/' % obj.pk
 
 
-class TestGroupResource(BaseTestWebAPIResource):
+class MyTestGroupResource(BaseTestWebAPIResource):
     name = 'group'
-    model = TestGroup
+    model = MyTestGroup
     uri_object_key = 'pk'
 
     fields = {
@@ -70,7 +70,7 @@ class TestGroupResource(BaseTestWebAPIResource):
 
     def get_serializer_for_object(self, o):
         if isinstance(o, User):
-            return TestUserResource()
+            return MyTestUserResource()
         else:
             return self
 
@@ -84,9 +84,9 @@ class BaseTestRefUserResource(BaseTestWebAPIResource):
 
     def get_serializer_for_object(self, o):
         if isinstance(o, User):
-            return TestUserResource()
-        elif isinstance(o, TestGroup):
-            return TestGroupResource()
+            return MyTestUserResource()
+        elif isinstance(o, MyTestGroup):
+            return MyTestGroupResource()
         else:
             return self
 
@@ -527,7 +527,7 @@ class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
             fields = {
                 'user': {
                     'type': ResourceFieldType,
-                    'resource': TestUserResource,
+                    'resource': MyTestUserResource,
                 },
             }
 
@@ -572,7 +572,7 @@ class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
             fields = {
                 'users': {
                     'type': ResourceListFieldType,
-                    'resource': TestUserResource,
+                    'resource': MyTestUserResource,
                 },
             }
 
@@ -635,7 +635,7 @@ class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
             users = User.objects.all()
 
         class TestResource(BaseTestRefUserResource):
-            item_child_resources = [TestUserResource()]
+            item_child_resources = [MyTestUserResource()]
 
             fields = {
                 'field': {
@@ -702,7 +702,7 @@ class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
         class TestObject(object):
             pk = '1'
             users = User.objects.all()
-            groups = TestGroup.objects.all()
+            groups = MyTestGroup.objects.all()
 
         class TestResource(BaseTestRefUserResource):
             item_child_resources = []
@@ -723,7 +723,7 @@ class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
                                     first_name='Test2',
                                     last_name='User2')
 
-        group = TestGroup.objects.create(name='group1')
+        group = MyTestGroup.objects.create(name='group1')
         group.users.add(user2)
 
         request = RequestFactory().get('/api/test/?expand=users,groups')
@@ -811,11 +811,11 @@ class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
                 },
                 'field2': {
                     'type': ResourceFieldType,
-                    'resource': TestUserResource,
+                    'resource': MyTestUserResource,
                 },
                 'field3': {
                     'type': ResourceFieldType,
-                    'resource': TestUserResource,
+                    'resource': MyTestUserResource,
                 },
             }
 

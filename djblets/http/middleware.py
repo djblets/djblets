@@ -4,11 +4,17 @@ from __future__ import unicode_literals
 
 import django
 
+try:
+    # Django >= 1.10
+    from django.utils.deprecation import MiddlewareMixin
+except ImportError:
+    MiddlewareMixin = object
+
 
 _uses_relative_redirects = (django.VERSION >= (1, 9))
 
 
-class AbsoluteURLRedirectMiddleware(object):
+class AbsoluteURLRedirectMiddleware(MiddlewareMixin):
     """Middleware that turns all relative URL redirects to absolute.
 
     Django 1.9 changed URL redirects to be relative by default (so long as

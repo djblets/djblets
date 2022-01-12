@@ -1,10 +1,15 @@
-#!/usr/bin/env python3
-import nose
+#!/usr/bin/env python
+
 import os
 import shutil
 import stat
 import sys
 import warnings
+
+# This has to happen before we import nose.
+import djblets.util.compat.python.collections
+
+import nose
 
 
 def run_tests(verbosity=1, interactive=False):

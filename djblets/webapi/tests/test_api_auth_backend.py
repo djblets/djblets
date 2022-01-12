@@ -18,7 +18,7 @@ from djblets.webapi.auth.backends.api_tokens import (TokenAuthBackendMixin,
                                                      WebAPITokenAuthBackend)
 
 
-class TestWebAPITokenModel(models.Model):
+class MyTestWebAPITokenModel(models.Model):
     """Mock WebAPI Token Model for testing purposes."""
 
     user = models.ForeignKey(User,
@@ -27,14 +27,14 @@ class TestWebAPITokenModel(models.Model):
     token = models.CharField(max_length=40, unique=True)
 
 
-class TestTokenAuthBackend(TokenAuthBackendMixin):
+class MyTestTokenAuthBackend(TokenAuthBackendMixin):
     """Mock Token Auth Backend for testing purposes."""
 
-    api_token_model = TestWebAPITokenModel
+    api_token_model = MyTestWebAPITokenModel
 
 
 @override_settings(AUTHENTICATION_BACKENDS=(
-    'djblets.webapi.tests.test_api_auth_backend.TestTokenAuthBackend',
+    'djblets.webapi.tests.test_api_auth_backend.MyTestTokenAuthBackend',
 ))
 class WebAPITokenAuthBackendTests(SpyAgency, TestModelsLoaderMixin, TestCase):
     """Unit tests for the WebAPITokenAuthBackend."""
@@ -83,7 +83,7 @@ class WebAPITokenAuthBackendTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         """Testing Token Auth authenticate succeeds"""
         token = 'invalidtoken123'
         self.user = User.objects.create_user(username='testuser')
-        TestWebAPITokenModel.objects.create(user=self.user, token=token)
+        MyTestWebAPITokenModel.objects.create(user=self.user, token=token)
         self.request.user = User()
         self.request.META['HTTP_AUTHORIZATION'] = 'token %s' % token
 
@@ -95,7 +95,7 @@ class WebAPITokenAuthBackendTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         """Testing Token Auth authenticate failed with wrong token"""
         token = 'invalidtoken123'
         self.user = User.objects.create_user(username='testuser')
-        TestWebAPITokenModel.objects.create(user=self.user, token=token)
+        MyTestWebAPITokenModel.objects.create(user=self.user, token=token)
         self.request.user = User()
         self.request.META['HTTP_AUTHORIZATION'] = 'token bad_token'
 
@@ -109,7 +109,7 @@ class WebAPITokenAuthBackendTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         """
         token = 'myToken'
         self.user = User.objects.create_user(username='testratelimit')
-        TestWebAPITokenModel.objects.create(user=self.user, token=token)
+        MyTestWebAPITokenModel.objects.create(user=self.user, token=token)
         self.request.user = self.user
 
         # Send invalid token to count number of failed login attempts
@@ -134,7 +134,7 @@ class WebAPITokenAuthBackendTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         """
         token = 'myRateLimitToken1'
         self.user = User.objects.create_user(username='testratelimit1')
-        TestWebAPITokenModel.objects.create(user=self.user, token=token)
+        MyTestWebAPITokenModel.objects.create(user=self.user, token=token)
         self.request.user = self.user
         self.request.META['HTTP_AUTHORIZATION'] = 'token bad_token'
 
@@ -157,7 +157,7 @@ class WebAPITokenAuthBackendTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         """
         token = 'myRateLimitToken2'
         self.user = User.objects.create_user(username='testratelimit2')
-        TestWebAPITokenModel.objects.create(user=self.user, token=token)
+        MyTestWebAPITokenModel.objects.create(user=self.user, token=token)
         self.request.user = self.user
         self.request.META['HTTP_AUTHORIZATION'] = 'token bad_token'
 

@@ -13,41 +13,41 @@ from djblets.testing.testcases import TestCase
 from djblets.webapi.resources import RootResource, WebAPIResource
 
 
-class TestChildResource1(WebAPIResource):
+class MyTestChildResource1(WebAPIResource):
     """Test api resource item under MockResourceOne."""
 
     name = 'test_child_resource_item_1'
     uri_object_key = 'test_child_resource_item_1_id'
 
 
-class TestChildResource2(WebAPIResource):
+class MyTestChildResource2(WebAPIResource):
     """Test api resource item under MockResourceTwo."""
 
     name = 'test_child_resource_item_2'
     uri_object_key = 'test_child_resource_item_2_id'
 
 
-class TestResource1(WebAPIResource):
+class MyTestResource1(WebAPIResource):
     """Test api resource exposed by MockExtension."""
 
     name = 'test_resource_1'
-    item_child_resources = [TestChildResource1()]
+    item_child_resources = [MyTestChildResource1()]
 
 
-class TestResource2(WebAPIResource):
+class MyTestResource2(WebAPIResource):
     """Test api resource exposed by MockExtension."""
 
     name = 'test_resource_2'
-    item_child_resources = [TestChildResource2()]
+    item_child_resources = [MyTestChildResource2()]
 
 
-class TestExtension(Extension):
+class MyTestExtension(Extension):
     """Test extension for use by ExtensionTemplateTests."""
 
-    resources = [TestResource1(), TestResource2()]
+    resources = [MyTestResource1(), MyTestResource2()]
 
 
-class TestRootResource(ExtensionRootResourceMixin, RootResource):
+class MyTestRootResource(ExtensionRootResourceMixin, RootResource):
     """RootResource for testing ExtensionRootResourceMixin."""
 
     def get_extension_resource(self):
@@ -63,12 +63,12 @@ class TestRootResource(ExtensionRootResourceMixin, RootResource):
 class ExtensionRootResourceMixinTests(ExtensionTestCaseMixin, TestCase):
     """Unit tests for the ExtensionRootResourceMixin."""
 
-    extension_class = TestExtension
+    extension_class = MyTestExtension
 
     def setUp(self):
         self.mgr = ExtensionManager('')
         self.ext_resource = ExtensionResource(self.mgr)
-        self.root_resource = TestRootResource([self.ext_resource])
+        self.root_resource = MyTestRootResource([self.ext_resource])
         self.request = RequestFactory().get('/')
 
         super(ExtensionRootResourceMixinTests, self).setUp()
@@ -87,12 +87,12 @@ class ExtensionRootResourceMixinTests(ExtensionTestCaseMixin, TestCase):
             'test_resource_1s': (
                 'http://testserver/extensions/djblets.webapi.tests.'
                 'test_extension_resource_mixin.'
-                'TestExtension/test-resource-1s/'
+                'MyTestExtension/test-resource-1s/'
             ),
             'test_resource_2s': (
                 'http://testserver/extensions/djblets.webapi.tests.'
                 'test_extension_resource_mixin.'
-                'TestExtension/test-resource-2s/'
+                'MyTestExtension/test-resource-2s/'
             ),
             'root': 'http://testserver/',
         })

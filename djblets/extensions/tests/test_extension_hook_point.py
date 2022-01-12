@@ -12,11 +12,11 @@ from djblets.testing.testcases import TestCase
 
 
 @six.add_metaclass(ExtensionHookPoint)
-class TestExtensionHook(ExtensionHook):
+class MyTestExtensionHook(ExtensionHook):
     pass
 
 
-class TestExtension(Extension):
+class MyTestExtension(Extension):
     pass
 
 
@@ -26,8 +26,8 @@ class ExtensionHookPointTest(ExtensionTestsMixin, TestCase):
     def setUp(self):
         super(ExtensionHookPointTest, self).setUp()
 
-        self.extension = self.setup_extension(TestExtension)
-        self.extension_hook_class = TestExtensionHook
+        self.extension = self.setup_extension(MyTestExtension)
+        self.extension_hook_class = MyTestExtensionHook
         self.dummy_hook = Mock()
         self.extension_hook_class.add_hook(self.dummy_hook)
 

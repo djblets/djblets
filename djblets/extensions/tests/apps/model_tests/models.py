@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from django.db import models
 
 
-class TestExtensionModel(models.Model):
+class MyTestExtensionModel(models.Model):
     test_field = models.CharField(max_length=16)
 
     class Meta(object):

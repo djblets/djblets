@@ -262,7 +262,8 @@ def cache_memoize_iter(key, items_or_callable,
         yield item
 
 
-def cache_memoize(key, lookup_callable,
+def cache_memoize(key,
+                  lookup_callable,
                   expiration=_default_expiration,
                   force_overwrite=False,
                   large_data=False,
@@ -270,7 +271,18 @@ def cache_memoize(key, lookup_callable,
                   use_generator=False):
     """Memoize the results of a callable inside the configured cache.
 
+    Version Changed:
+        2.2.4:
+        Added support for non-iterable value types.
+
     Args:
+        key (unicode):
+            The key to use in the cache.
+
+        lookup_callable (callable):
+            A callable to execute in the case where the data did not exist in
+            the cache.
+
         expiration (int):
             The expiration time for the key, in seconds.
 
@@ -288,6 +300,10 @@ def cache_memoize(key, lookup_callable,
         compress_large_data (bool):
             Compresses the data with zlib compression when ``large_data``
             is ``True``.
+
+        use_generator (bool, deprecated):
+            This parameter is no longer used and will be removed in Djblets
+            3.0.
 
     Returns:
         The cached data, or the result of ``lookup_callable`` if uncached.
@@ -312,16 +328,21 @@ def cache_memoize(key, lookup_callable,
 
         # Most people will be using memcached, and memcached has a limit of
         # 1MB. Data this big should be broken up somehow, so let's warn
-        # about this. Users should hopefully be using large_data=True in this
-        # case.
+        # about this. Users should hopefully be using large_data=True which
+        # will handle this appropriately.
         #
-        # XXX - since 'data' may be a sequence that's not a string/unicode,
-        #       this can fail. len(data) might be something like '6' but the
-        #       data could exceed a megabyte. The best way to catch this would
-        #       be an exception, but while python-memcached defines an
-        #       exception type for this, it never uses it, choosing instead to
-        #       fail silently. WTF.
-        if len(data) >= CACHE_CHUNK_SIZE:
+        # If we do get here, we try to do some sanity checking.
+        # python-memcached will return a result in the case where the data
+        # exceeds the value size, which Django will then silently use to clear
+        # out the key. We won't know at all whether we had success unless we
+        # come back and try to verify the value.
+        #
+        # This check handles the common case of large string data being stored
+        # in cache. It's still possible to attempt to store large data
+        # structures (where len(data) might be something like '6' but the
+        # serialized value is huge), where this can still fail.
+        if (isinstance(data, six.string_types) and
+            len(data) >= CACHE_CHUNK_SIZE):
             logger.warning('Cache data for key "%s" (length %s) may be too '
                            'big for the cache.' % (key, len(data)))
 
@@ -340,10 +361,12 @@ def make_cache_key(key):
     changed to an MD5SUM if it's larger than the maximum key size.
 
     Args:
-        key (str): The base key to generate a cache key from.
+        key (unicode):
+            The base key to generate a cache key from.
 
     Returns:
-        str: A cache key suitable for use with the cache backend.
+        unicode:
+        A cache key suitable for use with the cache backend.
     """
     try:
         site = Site.objects.get_current()

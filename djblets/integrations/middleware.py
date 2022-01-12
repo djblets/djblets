@@ -5,10 +5,16 @@ from __future__ import unicode_literals
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
+try:
+    # Django >= 1.10
+    from django.utils.deprecation import MiddlewareMixin
+except ImportError:
+    MiddlewareMixin = object
+
 from djblets.integrations.manager import get_integration_managers
 
 
-class IntegrationsMiddleware(object):
+class IntegrationsMiddleware(MiddlewareMixin):
     """Middleware to manage integration lifecycles and data.
 
     Any project making use of
@@ -24,6 +30,8 @@ class IntegrationsMiddleware(object):
                 'IntegrationsMiddleware requires djblets.integrations to be '
                 'listed in settings.INSTALLED_APPS.'
             )
+
+        super(IntegrationsMiddleware, self).__init__(*args, **kwargs)
 
         self.check_expiration = not getattr(settings, 'RUNNING_TEST', False)
 

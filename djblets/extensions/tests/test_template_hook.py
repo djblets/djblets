@@ -13,7 +13,7 @@ from djblets.extensions.tests.base import ExtensionTestsMixin
 from djblets.testing.testcases import TestCase
 
 
-class TestExtension(Extension):
+class MyTestExtension(Extension):
     def initialize(self):
         self.hook_no_applies_name = 'template-hook-no-applies-name'
         self.template_hook_no_applies = TemplateHook(
@@ -41,7 +41,7 @@ class TemplateHookTests(SpyAgency, ExtensionTestsMixin, TestCase):
     def setUp(self):
         super(TemplateHookTests, self).setUp()
 
-        self.extension = self.setup_extension(TestExtension)
+        self.extension = self.setup_extension(MyTestExtension)
 
         self.request = Mock()
         self.request._djblets_extensions_kwargs = {}

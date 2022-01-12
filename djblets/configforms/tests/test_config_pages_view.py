@@ -13,7 +13,7 @@ from djblets.configforms.views import ConfigPagesView
 from djblets.testing.testcases import TestCase
 
 
-class TestForm1(ConfigPageForm):
+class MyTestForm1(ConfigPageForm):
     form_id = 'my-form-1'
     form_title = 'Form 1'
 
@@ -21,12 +21,12 @@ class TestForm1(ConfigPageForm):
         pass
 
 
-class TestForm2(ConfigPageForm):
+class MyTestForm2(ConfigPageForm):
     form_id = 'my-form-2'
     form_title = 'Form 2'
 
 
-class TestForm3(ConfigPageForm):
+class MyTestForm3(ConfigPageForm):
     form_id = 'my-form-3'
     form_title = 'Form 3'
 
@@ -34,25 +34,25 @@ class TestForm3(ConfigPageForm):
         return False
 
 
-class TestPage1(ConfigPage):
+class MyTestPage1(ConfigPage):
     page_id = 'my-page-1'
-    form_classes = [TestForm1]
+    form_classes = [MyTestForm1]
 
 
-class TestPage2(ConfigPage):
+class MyTestPage2(ConfigPage):
     page_id = 'my-page-2'
-    form_classes = [TestForm2]
+    form_classes = [MyTestForm2]
 
 
-class TestPage3(ConfigPage):
+class MyTestPage3(ConfigPage):
     page_id = 'my-page-3'
-    form_classes = [TestForm3]
+    form_classes = [MyTestForm3]
 
 
 class MyConfigPagesView(ConfigPagesView):
     title = 'My Page Title'
     nav_title = 'My Nav Entry'
-    page_classes = [TestPage1, TestPage2, TestPage3]
+    page_classes = [MyTestPage1, MyTestPage2, MyTestPage3]
 
     css_bundle_names = ['my-css-bundle']
     js_bundle_names = ['my-js-bundle']
@@ -86,8 +86,8 @@ class ConfigPagesViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
         self.assertEqual(len(view.pages), 2)
-        self.assertIsInstance(view.pages[0], TestPage1)
-        self.assertIsInstance(view.pages[1], TestPage2)
+        self.assertIsInstance(view.pages[0], MyTestPage1)
+        self.assertIsInstance(view.pages[1], MyTestPage2)
         self.assertEqual(set(six.iterkeys(view.forms)),
                          {'my-form-1', 'my-form-2'})
 

@@ -26,6 +26,11 @@
 
 from __future__ import unicode_literals
 
+# Python 3.10+ removed a bunch of aliases from the collections module.
+# Unfortunately, Django 1.11 and nose still rely on these. Do this before
+# anything else.
+import djblets.util.compat.python.collections
+
 
 # The version of Djblets
 #

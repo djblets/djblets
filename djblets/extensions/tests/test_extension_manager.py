@@ -25,11 +25,11 @@ from djblets.extensions.manager import (get_extension_managers,
                                         logger as manager_logger)
 from djblets.extensions.tests.base import (ExtensionTestsMixin,
                                            FakeEntryPoint,
-                                           TestExtensionManager)
+                                           MyTestExtensionManager)
 from djblets.testing.testcases import TestCase
 
 
-class TestExtension(Extension):
+class MyTestExtension(Extension):
     # We set this to djblets.extensions to avoid an issue unique to tests
     # involving multiple ExtensionManagers. They'd both try wrapping
     # INSTALLED_APPS, and would try adding the same default app for the
@@ -42,7 +42,7 @@ class TestExtension(Extension):
     ]
 
 
-class HooksTestExtension(TestExtension):
+class HooksTestExtension(MyTestExtension):
     def initialize(self):
         self.url_hook = URLHook(self, ())
 
@@ -57,14 +57,14 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
     def test_added_to_extension_managers(self):
         """Testing ExtensionManager registration"""
-        self.manager = TestExtensionManager([], '')
+        self.manager = MyTestExtensionManager([], '')
         self.assertIn(self.manager, get_extension_managers())
 
     def test_get_enabled_extensions_returns_empty(self):
         """Testing ExtensionManager.get_enabled_extensions with no
         extensions
         """
-        self.manager = TestExtensionManager([], '')
+        self.manager = MyTestExtensionManager([], '')
         self.manager.load()
 
         self.assertEqual(len(self.manager.get_enabled_extensions()), 0)
@@ -73,15 +73,15 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager.get_installed_extensions with loaded
         extensions
         """
-        self.setup_extension(TestExtension, enable=False)
+        self.setup_extension(MyTestExtension, enable=False)
 
         self.assertEqual(self.manager.get_installed_extensions(),
-                         [TestExtension])
+                         [MyTestExtension])
         self.assertEqual(len(self.manager.get_enabled_extensions()), 0)
-        self.assertTrue(hasattr(TestExtension, 'info'))
-        self.assertEqual(TestExtension.info.name, self.test_project_name)
-        self.assertTrue(hasattr(TestExtension, 'registration'))
-        self.assertEqual(TestExtension.registration.name,
+        self.assertTrue(hasattr(MyTestExtension, 'info'))
+        self.assertEqual(MyTestExtension.info.name, self.test_project_name)
+        self.assertTrue(hasattr(MyTestExtension, 'registration'))
+        self.assertEqual(MyTestExtension.registration.name,
                          self.test_project_name)
 
     def test_load_full_reload_hooks(self):
@@ -89,7 +89,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         # NOTE: We're not using HooksTestExtension here, because we want to
         #       manually set up a hook and not have to return once we
         #       perform a reload.
-        extension = self.setup_extension(TestExtension)
+        extension = self.setup_extension(MyTestExtension)
 
         self.assertEqual(len(self.manager.get_installed_extensions()), 1)
         self.assertEqual(len(self.manager.get_enabled_extensions()), 1)
@@ -128,7 +128,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         # Enable one extension. This extension's state will get a bit messed
         # up if the thread locking fails. We only need one to trigger this.
-        self.setup_extension(TestExtension)
+        self.setup_extension(MyTestExtension)
 
         self.spy_on(self.manager._load_extensions)
         self._spy_sleep_and_call(self.manager._init_extension)
@@ -142,58 +142,58 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertEqual(self.exceptions, [])
 
     @override_settings(EXTENSIONS_ENABLED_BY_DEFAULT=[
-        'djblets.extensions.tests.test_extension_manager.TestExtension',
+        'djblets.extensions.tests.test_extension_manager.MyTestExtension',
     ])
     def test_load_with_enabled_by_default(self):
         """Testing ExtensionManager.load with
         settings.EXTENSIONS_ENABLED_BY_DEFAULT
         """
-        self.setup_extension(TestExtension, enable=False)
+        self.setup_extension(MyTestExtension, enable=False)
 
         self.assertEqual(self.manager.get_installed_extensions(),
-                         [TestExtension])
+                         [MyTestExtension])
 
         enabled_extensions = self.manager.get_enabled_extensions()
         self.assertEqual(len(enabled_extensions), 1)
-        self.assertIsInstance(enabled_extensions[0], TestExtension)
+        self.assertIsInstance(enabled_extensions[0], MyTestExtension)
 
-        self.assertTrue(hasattr(TestExtension, 'info'))
-        self.assertEqual(TestExtension.info.name, self.test_project_name)
-        self.assertIsNotNone(TestExtension.instance)
-        self.assertTrue(hasattr(TestExtension, 'registration'))
-        self.assertEqual(TestExtension.registration.name,
+        self.assertTrue(hasattr(MyTestExtension, 'info'))
+        self.assertEqual(MyTestExtension.info.name, self.test_project_name)
+        self.assertIsNotNone(MyTestExtension.instance)
+        self.assertTrue(hasattr(MyTestExtension, 'registration'))
+        self.assertEqual(MyTestExtension.registration.name,
                          self.test_project_name)
-        self.assertTrue(TestExtension.registration.enabled)
+        self.assertTrue(MyTestExtension.registration.enabled)
 
     def test_load_with_admin_site_failure(self):
         """Testing ExtensionManager.load with extension error setting up
         admin site
         """
-        class AdminSiteTestExtension(HooksTestExtension):
+        class AdminSiteMyTestExtension(HooksTestExtension):
             has_admin_site = True
 
         def _init_admin_site(*args, **kwargs):
             raise Exception('admin site failed!')
 
-        extension = self.setup_extension(AdminSiteTestExtension)
+        extension = self.setup_extension(AdminSiteMyTestExtension)
         manager = self.manager
 
         self.assertEqual(manager.get_installed_extensions(),
-                         [AdminSiteTestExtension])
+                         [AdminSiteMyTestExtension])
         self.assertEqual(manager.get_enabled_extensions(), [extension])
-        self.assertIs(AdminSiteTestExtension.instance, extension)
+        self.assertIs(AdminSiteMyTestExtension.instance, extension)
         self.assertEqual(len(URLHook.hooks), 1)
 
-        self.spy_on(TestExtensionManager._init_admin_site,
-                    owner=TestExtensionManager,
+        self.spy_on(MyTestExtensionManager._init_admin_site,
+                    owner=MyTestExtensionManager,
                     call_fake=_init_admin_site)
 
         self.manager.load(full_reload=True)
 
         self.assertEqual(manager.get_installed_extensions(),
-                         [AdminSiteTestExtension])
+                         [AdminSiteMyTestExtension])
         self.assertEqual(manager.get_enabled_extensions(), [])
-        self.assertIsNone(AdminSiteTestExtension.instance)
+        self.assertIsNone(AdminSiteMyTestExtension.instance)
         self.assertEqual(len(URLHook.hooks), 0)
         self.assertTrue(manager._load_errors[extension.id].startswith(
             'admin site failed!\n\nTraceback'))
@@ -215,8 +215,8 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertEqual(len(URLHook.hooks), 1)
         self.assertEqual(manager._load_errors, {})
 
-        self.spy_on(TestExtensionManager._install_admin_urls,
-                    owner=TestExtensionManager,
+        self.spy_on(MyTestExtensionManager._install_admin_urls,
+                    owner=MyTestExtensionManager,
                     call_fake=_install_admin_urls)
 
         self.manager.load(full_reload=True)
@@ -234,7 +234,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager synchronizes database when no version
         found in settings (new install)
         """
-        extension = self.setup_extension(TestExtension, enable=False)
+        extension = self.setup_extension(MyTestExtension, enable=False)
         extension.registration.installed = True
         extension.registration.save()
 
@@ -242,7 +242,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         self.spy_on(self.manager._sync_database, call_original=False)
 
-        extension = self.manager.enable_extension(TestExtension.id)
+        extension = self.manager.enable_extension(MyTestExtension.id)
 
         self.assertTrue(extension.registration.installed)
         self.assertTrue(self.manager._sync_database.called)
@@ -254,7 +254,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager synchronizes database when old version
         found in settings (upgrade)
         """
-        extension = self.setup_extension(TestExtension, enable=False)
+        extension = self.setup_extension(MyTestExtension, enable=False)
         extension.registration.installed = True
         extension.registration.save()
 
@@ -264,7 +264,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         self.spy_on(self.manager._sync_database, call_original=False)
 
-        extension = self.manager.enable_extension(TestExtension.id)
+        extension = self.manager.enable_extension(MyTestExtension.id)
 
         self.assertTrue(extension.registration.installed)
         self.assertTrue(self.manager._sync_database.called)
@@ -276,7 +276,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager doesn't synchronize database when current
         version found in settings
         """
-        extension = self.setup_extension(TestExtension, enable=False)
+        extension = self.setup_extension(MyTestExtension, enable=False)
         extension.registration.installed = True
         extension.registration.save()
 
@@ -287,7 +287,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         self.spy_on(self.manager._sync_database, call_original=False)
 
-        extension = self.manager.enable_extension(TestExtension.id)
+        extension = self.manager.enable_extension(MyTestExtension.id)
 
         self.assertTrue(extension.registration.installed)
         self.assertFalse(self.manager._sync_database.called)
@@ -299,7 +299,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager doesn't synchronize database when newer
         version found in settings (downgrade)
         """
-        extension = self.setup_extension(TestExtension, enable=False)
+        extension = self.setup_extension(MyTestExtension, enable=False)
         extension.registration.installed = True
         extension.registration.save()
 
@@ -310,7 +310,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.spy_on(self.manager._sync_database, call_original=False)
         self.spy_on(manager_logger.warning)
 
-        extension = self.manager.enable_extension(TestExtension.id)
+        extension = self.manager.enable_extension(MyTestExtension.id)
 
         self.assertTrue(extension.registration.installed)
         self.assertFalse(self.manager._sync_database.called)
@@ -324,11 +324,11 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager installs media when no version file exists
         in the media directory (new install or upgrade from pre-version file)
         """
-        extension = self.setup_extension(TestExtension, enable=False)
+        extension = self.setup_extension(MyTestExtension, enable=False)
         extension.registration.installed = True
         extension.registration.enabled = True
         extension.registration.save()
-        TestExtension.instance = extension
+        MyTestExtension.instance = extension
 
         self._rebuild_media_dirs(extension)
 
@@ -344,7 +344,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertFalse(os.path.exists(version_filename))
 
         # Enable the extension. We shouldn't install anything.
-        extension = self.manager.enable_extension(TestExtension.id)
+        extension = self.manager.enable_extension(MyTestExtension.id)
         self.assertTrue(extension.registration.installed)
 
         self.assertEqual(len(self.manager.install_extension_media.calls), 1)
@@ -358,11 +358,11 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager installs media when version file is
         older than the current version (upgrade)
         """
-        extension = self.setup_extension(TestExtension, enable=False)
+        extension = self.setup_extension(MyTestExtension, enable=False)
         extension.registration.installed = True
         extension.registration.enabled = True
         extension.registration.save()
-        TestExtension.instance = extension
+        MyTestExtension.instance = extension
 
         self._rebuild_media_dirs(extension)
 
@@ -380,7 +380,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
             fp.write('0.5\n')
 
         # Enable the extension. We shouldn't install anything.
-        extension = self.manager.enable_extension(TestExtension.id)
+        extension = self.manager.enable_extension(MyTestExtension.id)
         self.assertTrue(extension.registration.installed)
 
         self.assertEqual(len(self.manager.install_extension_media.calls), 1)
@@ -394,11 +394,11 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager installs media when version file is
         newer than the current version (downgrade)
         """
-        extension = self.setup_extension(TestExtension, enable=False)
+        extension = self.setup_extension(MyTestExtension, enable=False)
         extension.registration.installed = True
         extension.registration.enabled = True
         extension.registration.save()
-        TestExtension.instance = extension
+        MyTestExtension.instance = extension
 
         self._rebuild_media_dirs(extension)
 
@@ -416,7 +416,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
             fp.write('100.0\n')
 
         # Enable the extension. We shouldn't install anything.
-        extension = self.manager.enable_extension(TestExtension.id)
+        extension = self.manager.enable_extension(MyTestExtension.id)
         self.assertTrue(extension.registration.installed)
 
         self.assertEqual(len(self.manager.install_extension_media.calls), 1)
@@ -535,11 +535,11 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         # Manually mark the extension as installed and enabled without going
         # through the enable process, since we don't want to trigger any
         # static media saving yet.
-        extension = self.setup_extension(TestExtension, enable=False)
+        extension = self.setup_extension(MyTestExtension, enable=False)
         extension.registration.installed = True
         extension.registration.enabled = True
         extension.registration.save()
-        TestExtension.instance = extension
+        MyTestExtension.instance = extension
 
         self._rebuild_media_dirs(extension)
 
@@ -571,11 +571,11 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager doesn't install media when version file
         matches current version
         """
-        extension = self.setup_extension(TestExtension, enable=False)
+        extension = self.setup_extension(MyTestExtension, enable=False)
         extension.registration.installed = True
         extension.registration.enabled = True
         extension.registration.save()
-        TestExtension.instance = extension
+        MyTestExtension.instance = extension
 
         self._rebuild_media_dirs(extension)
 
@@ -593,7 +593,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
             fp.write('%s\n' % extension.info.version)
 
         # Enable the extension. We shouldn't install anything.
-        extension = self.manager.enable_extension(TestExtension.id)
+        extension = self.manager.enable_extension(MyTestExtension.id)
         self.assertTrue(extension.registration.installed)
 
         self.assertEqual(len(self.manager.install_extension_media.calls), 1)
@@ -606,7 +606,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
     def test_enable_extension_registers_static_bundles(self):
         """Testing ExtensionManager.enable_extension registers static bundles
         """
-        class TestExtensionWithBundles(Extension):
+        class MyTestExtensionWithBundles(Extension):
             css_bundles = {
                 'default': {
                     'source_filenames': ['test.css'],
@@ -622,7 +622,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         pipeline_settings.STYLESHEETS = {}
         pipeline_settings.JAVASCRIPT = {}
 
-        extension = self.setup_extension(TestExtensionWithBundles)
+        extension = self.setup_extension(MyTestExtensionWithBundles)
 
         self.assertEqual(len(pipeline_settings.STYLESHEETS), 1)
         self.assertEqual(len(pipeline_settings.JAVASCRIPT), 1)
@@ -654,7 +654,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager.enable_extension registers template
         context processors
         """
-        class TestExtensionWithContextProcessors(Extension):
+        class MyTestExtensionWithContextProcessors(Extension):
             context_processors = ['my_custom_processor']
 
         # Back up the list, so we can replace it later.
@@ -670,7 +670,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         try:
             extension = self.setup_extension(
-                TestExtensionWithContextProcessors)
+                MyTestExtensionWithContextProcessors)
 
             # We have to re-fetch these lists now, since they may have
             # been normalized to lists.
@@ -699,7 +699,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
     def test_enable_extension_registers_template_tags(self):
         """Testing ExtensionManager.enable_extension registers template tags"""
-        class TestExtensionWithModule(Extension):
+        class MyTestExtensionWithModule(Extension):
             __module__ = ('djblets.extensions.tests.apps'
                           '.templatetag_tests.__init__')
 
@@ -727,7 +727,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         # Enabling the extension should register the template tags module and
         # clear the cache.
-        extension = self.setup_extension(TestExtensionWithModule)
+        extension = self.setup_extension(MyTestExtensionWithModule)
 
         _check_state(enabled=True)
 
@@ -748,26 +748,26 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.spy_on(Evolver.evolve,
                     owner=Evolver)
 
-        class TestExtensionWithApps(Extension):
+        class MyTestExtensionWithApps(Extension):
             apps = [
                 'djblets.extensions.tests.apps.model_tests',
             ]
 
-        extension = self.setup_extension(TestExtensionWithApps)
+        extension = self.setup_extension(MyTestExtensionWithApps)
 
         self.assertTrue(Evolver.evolve.called)
 
         from djblets.extensions.tests.apps.model_tests.models import \
-            TestExtensionModel
+            MyTestExtensionModel
 
         # We should be able to create entries and query them.
-        TestExtensionModel.objects.create(test_field='test')
-        self.assertEqual(TestExtensionModel.objects.count(), 1)
+        MyTestExtensionModel.objects.create(test_field='test')
+        self.assertEqual(MyTestExtensionModel.objects.count(), 1)
 
         # Re-enabling shouldn't break anything.
         self.manager.disable_extension(extension.id)
         self.manager.enable_extension(extension.id)
-        self.assertEqual(TestExtensionModel.objects.count(), 1)
+        self.assertEqual(MyTestExtensionModel.objects.count(), 1)
 
     def test_enable_extension_evolve_without_models(self):
         """Testing ExtensionManager.enable_extension does not synchronize
@@ -776,12 +776,12 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.spy_on(Evolver.evolve,
                     owner=Evolver)
 
-        class TestExtensionWithApps(Extension):
+        class MyTestExtensionWithApps(Extension):
             apps = [
                 'djblets.extensions.tests.apps',
             ]
 
-        self.setup_extension(TestExtensionWithApps)
+        self.setup_extension(MyTestExtensionWithApps)
 
         self.assertFalse(Evolver.evolve.called)
 
@@ -795,7 +795,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.spy_on(Evolver.evolve,
                     owner=Evolver)
 
-        class TestExtensionWithApps(Extension):
+        class MyTestExtensionWithApps(Extension):
             apps = [
                 'djblets.extensions.tests.apps.evolve_tests',
             ]
@@ -823,7 +823,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         latest_version.save()
 
         # We can now enable the extension, which will perform an evolution.
-        extension = self.setup_extension(TestExtensionWithApps)
+        extension = self.setup_extension(MyTestExtensionWithApps)
 
         self.assertTrue(Evolver.evolve.called)
 
@@ -854,7 +854,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.spy_on(Evolver.evolve,
                     owner=Evolver)
 
-        class TestExtensionWithApps(Extension):
+        class MyTestExtensionWithApps(Extension):
             apps = [
                 'djblets.extensions.tests.apps.evolve_tests',
             ]
@@ -868,12 +868,12 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
             ')')
 
         from djblets.extensions.tests.apps.model_tests.models import \
-            TestExtensionModel
+            MyTestExtensionModel
 
         latest_version = Version.objects.current_version()
         signature = latest_version.signature.clone()
 
-        model_sig = ModelSignature.from_model(TestExtensionModel)
+        model_sig = ModelSignature.from_model(MyTestExtensionModel)
         model_sig.model_name = 'TestEvolveExtensionModel'
         model_sig.table_name = 'evolve_tests_testevolveextensionmodel'
 
@@ -887,7 +887,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
                                  label='add_new_field')
 
         # We can now enable the extension, which will perform an evolution.
-        self.setup_extension(TestExtensionWithApps)
+        self.setup_extension(MyTestExtensionWithApps)
 
         self.assertFalse(Evolver.evolve.called)
 
@@ -895,7 +895,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager unregisters static bundles when disabling
         extension
         """
-        class TestExtensionWithBundles(Extension):
+        class MyTestExtensionWithBundles(Extension):
             css_bundles = {
                 'default': {
                     'source_filenames': ['test.css'],
@@ -911,7 +911,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         pipeline_settings.STYLESHEETS = {}
         pipeline_settings.JAVASCRIPT = {}
 
-        extension = self.setup_extension(TestExtensionWithBundles)
+        extension = self.setup_extension(MyTestExtensionWithBundles)
 
         self.assertEqual(len(pipeline_settings.STYLESHEETS), 1)
         self.assertEqual(len(pipeline_settings.JAVASCRIPT), 1)
@@ -926,11 +926,11 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         cross-process
         """
         key = 'extension-list-sync'
-        fake_entry_point = FakeEntryPoint(TestExtension,
+        fake_entry_point = FakeEntryPoint(MyTestExtension,
                                           project_name=self.test_project_name)
 
-        manager1 = TestExtensionManager([fake_entry_point], key)
-        manager2 = TestExtensionManager([fake_entry_point], key)
+        manager1 = MyTestExtensionManager([fake_entry_point], key)
+        manager2 = MyTestExtensionManager([fake_entry_point], key)
 
         manager1.load()
         manager2.load()
@@ -940,7 +940,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertEqual(len(manager1.get_enabled_extensions()), 0)
         self.assertEqual(len(manager2.get_enabled_extensions()), 0)
 
-        manager1.enable_extension(TestExtension.id)
+        manager1.enable_extension(MyTestExtension.id)
         self.assertEqual(len(manager1.get_enabled_extensions()), 1)
         self.assertEqual(len(manager2.get_enabled_extensions()), 0)
 
@@ -961,22 +961,22 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         key = 'extension-settings-sync'
         setting_key = 'foo'
         setting_val = 'abc123'
-        fake_entry_point = FakeEntryPoint(TestExtension,
+        fake_entry_point = FakeEntryPoint(MyTestExtension,
                                           project_name=self.test_project_name)
 
-        manager1 = TestExtensionManager([fake_entry_point], key)
-        manager2 = TestExtensionManager([fake_entry_point], key)
+        manager1 = MyTestExtensionManager([fake_entry_point], key)
+        manager2 = MyTestExtensionManager([fake_entry_point], key)
 
         manager1.load()
 
-        extension1 = manager1.enable_extension(TestExtension.id)
+        extension1 = manager1.enable_extension(MyTestExtension.id)
 
         manager2.load()
 
         self.assertFalse(manager1.is_expired())
         self.assertFalse(manager2.is_expired())
 
-        extension2 = manager2.get_enabled_extension(TestExtension.id)
+        extension2 = manager2.get_enabled_extension(MyTestExtension.id)
         self.assertNotEqual(extension2, None)
 
         self.assertNotIn(setting_key, extension1.settings)
@@ -990,7 +990,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertTrue(manager2.is_expired())
 
         manager2.load(full_reload=True)
-        extension2 = manager2.get_enabled_extension(TestExtension.id)
+        extension2 = manager2.get_enabled_extension(MyTestExtension.id)
 
         self.assertFalse(manager1.is_expired())
         self.assertFalse(manager2.is_expired())
@@ -1004,24 +1004,24 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         number
         """
         key = 'check-expired-test'
-        fake_entry_point = FakeEntryPoint(TestExtension,
+        fake_entry_point = FakeEntryPoint(MyTestExtension,
                                           project_name=self.test_project_name)
 
-        manager1 = TestExtensionManager([fake_entry_point], key)
-        manager2 = TestExtensionManager([fake_entry_point], key)
+        manager1 = MyTestExtensionManager([fake_entry_point], key)
+        manager2 = MyTestExtensionManager([fake_entry_point], key)
 
         manager1.load()
-        manager1.enable_extension(TestExtension.id)
+        manager1.enable_extension(MyTestExtension.id)
         manager2.load()
 
         self.assertEqual(manager1._gen_sync.sync_gen,
                          manager2._gen_sync.sync_gen)
 
         # Trigger a save whenever the extension initializes.
-        TestExtension.initialize = lambda ext: ext.settings.save()
+        MyTestExtension.initialize = lambda ext: ext.settings.save()
 
         # Bump the generation number.
-        extension = manager2.get_enabled_extension(TestExtension.id)
+        extension = manager2.get_enabled_extension(MyTestExtension.id)
         extension.settings.save()
         self.assertNotEqual(manager1._gen_sync.sync_gen,
                             manager2._gen_sync.sync_gen)
@@ -1049,7 +1049,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         if os.path.exists(path):
             shutil.rmtree(path)
 
-        os.mkdir(extension.info.installed_static_path, 0o755)
+        os.makedirs(extension.info.installed_static_path, 0o755)
 
     def _run_thread_test(self, main_func):
         def _thread_main(main_connection, main_func, sleep_time):
