@@ -57,7 +57,7 @@ import traceback
 import pytz
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.paginator import InvalidPage, QuerySetPaginator
+from django.core.paginator import InvalidPage, Paginator
 from django.http import Http404, HttpResponse
 from django.template.defaultfilters import date, timesince
 from django.template.loader import get_template, render_to_string
@@ -1550,8 +1550,7 @@ class DataGrid(object):
         Returns:
             A populated paginator object.
         """
-        return QuerySetPaginator(queryset, self.paginate_by,
-                                 self.paginate_orphans)
+        return Paginator(queryset, self.paginate_by, self.paginate_orphans)
 
     def _build_render_context(self):
         """Build a dictionary containing RequestContext contents.
