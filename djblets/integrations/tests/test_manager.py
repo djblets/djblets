@@ -55,17 +55,16 @@ class IntegrationManagerTests(IntegrationsTestCase):
 
     def test_init_without_middleware(self):
         """Testing IntegrationManager initialization without
-        MIDDLEWARE_CLASSES
+        MIDDLEWARE
         """
         msg = ('IntegrationManager requires djblets.integrations.middleware.'
-               'IntegrationsMiddleware to be listed in settings.MIDDLEWARE '
-               'or settings.MIDDLEWARE_CLASSES')
+               'IntegrationsMiddleware to be listed in settings.MIDDLEWARE')
 
-        middleware_classes = list(settings.MIDDLEWARE_CLASSES)
+        middleware_classes = list(settings.MIDDLEWARE)
         middleware_classes.remove('djblets.integrations.middleware.'
                                   'IntegrationsMiddleware')
 
-        with self.settings(MIDDLEWARE_CLASSES=middleware_classes):
+        with self.settings(MIDDLEWARE=middleware_classes):
             with self.assertRaisesMessage(ImproperlyConfigured, msg):
                 IntegrationManager(IntegrationConfig)
 

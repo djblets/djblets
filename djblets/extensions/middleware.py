@@ -107,96 +107,120 @@ class ExtensionsMiddlewareRunner(MiddlewareMixin):
     middleware is run.
     """
 
-    def process_request(self, request):
-        return self._call_until('process_request', False, request)
-
     def process_view(self, request, view_func, view_args, view_kwargs):
-        return self._call_until('process_view', False, request, view_func,
-                                view_args, view_kwargs)
+        """Process a view through extension middleware.
+
+        Args:
+            request (django.http.HttpRequest):
+                The request object.
+
+            view_func (callable):
+                The view callable.
+
+            view_args (list):
+                Positional arguments to pass to the view.
+
+            view_kwargs (dict):
+                Keyword arguments to pass to the view.
+
+        Returns:
+            django.http.HttpResponse or None:
+            Either a response object (in which case other middleware will not
+            be run), or None.
+        """
+        for cls in self._middleware_classes:
+            middleware = cls(self.get_response)
+
+            if hasattr(middleware, 'process_view'):
+                result = middleware.process_view(request, view_func, view_args,
+                                                 view_kwargs)
+
+                if result:
+                    return result
+
+        return None
 
     def process_template_response(self, request, response):
-        return self._call_chain_response('process_template_response', request,
-                                         response)
+        """Process a template response through extension middleware.
 
-    def process_response(self, request, response):
-        return self._call_chain_response('process_response', request, response)
+        Args:
+            request (django.http.HttpRequest):
+                The request object.
+
+            response (django.http.HttpResponse):
+                The response from the view.
+
+        Returns:
+            django.template.response.TemplateResponse:
+            A new template response to execute.
+        """
+        for cls in self._middleware_classes:
+            middleware = cls(self.get_response)
+
+            if hasattr(middleware, 'process_template_response'):
+                response = middleware.process_template_response(
+                    request, response)
+
+        return response
 
     def process_exception(self, request, exception):
-        return self._call_until('process_exception', True, request, exception)
+        """Process an exception through extension middleware.
+
+        Args:
+            request (django.http.HttpRequest):
+                The request object.
+
+            exception (Exception):
+                The exception to process.
+
+        Returns:
+            django.http.HttpResponse or None:
+            Either a response object (in which case other middleware will not
+            be run), or None.
+        """
+        for cls in self._middleware_classes:
+            middleware = cls(self.get_response)
+
+            if hasattr(middleware, 'process_exception'):
+                result = middleware.process_exception(request, exception)
+
+                if result:
+                    return result
+
+        return None
 
     def __call__(self, request):
-        """Run as new-style (Django 1.10+) middleware.
+        """Run extension middleware.
 
         Args:
             request (django.http.HttpRequest):
                 The HTTP request object.
 
         Returns:
-            django.http.HttpResponse
+            django.http.HttpResponse:
             The HTTP response.
         """
-        middleware = []
-
-        for mgr in get_extension_managers():
-            middleware += mgr.middleware_classes
-
+        middleware = list(self._middleware_classes)
         middleware.reverse()
 
-        # Run old-style middleware process_request first.
-        response = self.process_request(request)
+        def _get_response_iter(request, middleware=middleware):
+            try:
+                next_method = middleware.pop(0)(_get_response_iter)
+            except IndexError:
+                next_method = self.get_response
 
-        # Do all new-style middleware.
-        if not response:
-            def _get_response_iter(request, middleware=middleware):
-                try:
-                    next_method = middleware.pop(0)(_get_response_iter)
-                except IndexError:
-                    next_method = self.get_response
+            return next_method(request)
 
-                return next_method(request)
+        return _get_response_iter(request)
 
-            response = _get_response_iter(request)
+    @property
+    def _middleware_classes(self):
+        """All extension-provided middleware.
 
-        # Run old-style middleware process_response.
-        response = self.process_response(request, response)
-
-        return response
-
-    def _call_until(self, func_name, reverse, *args, **kwargs):
-        """Call extension middleware until a truthy value is returned."""
-        r = None
-
-        for f in self._middleware_funcs(func_name, reverse):
-            r = f(*args, **kwargs)
-
-            if r:
-                break
-
-        return r
-
-    def _call_chain_response(self, func_name, request, response):
-        """Call extension middleware, passing response from one to the next."""
-        for f in self._middleware_funcs(func_name, True):
-            response = f(request, response)
-
-        return response
-
-    def _middleware_funcs(self, func_name, reverse=False):
-        """Generator yielding the given middleware function for all extensions.
-
-        If an extension's middleware does not implement 'func_name', it is
-        skipped.
+        Yields:
+            callable:
+            Extension-provided middleware (either class or function).
         """
-        middleware = []
-
         for mgr in get_extension_managers():
-            middleware += mgr.legacy_middleware_instances
-
-        if reverse:
-            middleware.reverse()
-
-        for m in middleware:
-            f = getattr(m, func_name, None)
-
-            if f:
-                yield f
+            for middleware in mgr.middleware_classes:
+                yield middleware

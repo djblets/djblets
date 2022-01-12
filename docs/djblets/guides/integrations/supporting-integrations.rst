@@ -77,7 +77,7 @@ Now add the middleware:
 
 .. code-block:: python
 
-   MIDDLEWARE_CLASSES = [
+   MIDDLEWARE = [
        ...
        'djblets.integrations.middleware.IntegrationsMiddleware',
        ...
@@ -88,7 +88,7 @@ If you're also using :py:mod:`djblets.extensions`, make sure to include this
 
 .. code-block:: python
 
-   MIDDLEWARE_CLASSES = [
+   MIDDLEWARE = [
        ...
        'djblets.extensions.middleware.ExtensionsMiddleware',
        'djblets.integrations.middleware.IntegrationsMiddleware',

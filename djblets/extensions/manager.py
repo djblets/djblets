@@ -278,7 +278,6 @@ class ExtensionManager(object):
 
         # Extension middleware instances, ordered by dependencies.
         self.middleware_classes = []
-        self.legacy_middleware_instances = []
 
         # Wrap the INSTALLED_APPS and TEMPLATE_CONTEXT_PROCESSORS settings
         # to allow for ref-counted add/remove operations.
@@ -1563,13 +1562,10 @@ class ExtensionManager(object):
         Django settings and will be used for future requests.
         """
         self.middleware_classes = []
-        self.legacy_middleware_instances = []
         done = set()
 
         for e in self.get_enabled_extensions():
-            mw, legacy_mw = self._get_extension_middleware(e, done)
-            self.middleware_classes += mw
-            self.legacy_middleware_instances += legacy_mw
+            self.middleware_classes += self._get_extension_middleware(e, done)
 
     def _get_extension_middleware(self, extension, done):
         """Return a list of middleware for an extension and its dependencies.
@@ -1588,13 +1584,10 @@ class ExtensionManager(object):
                 found that exist in this set will be ignored.
 
         Returns:
-            tuple of list:
-            A 2-tuple of lists. The first list is a list of classes for
-            new-style (Django 1.10+) middleware. The second list is a list of
-            instances for old-style middleware.
+            list:
+            A list of classes for middleware.
         """
         middleware = []
-        legacy_middleware = []
 
         if extension in done:
             return middleware
@@ -1605,13 +1598,10 @@ class ExtensionManager(object):
             e = self.get_enabled_extension(req)
 
             if e:
-                mw, legacy_mw = self._get_extension_middleware(e, done)
-                middleware += mw
-                legacy_middleware += legacy_mw
+                middleware += self._get_extension_middleware(e, done)
 
         middleware.extend(extension.middleware_classes)
-        legacy_middleware.extend(extension.legacy_middleware_instances)
-        return middleware, legacy_middleware
+        return middleware
 
     @contextmanager
     def _open_lock_file(self, ext_class, filename,

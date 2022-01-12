@@ -15,8 +15,8 @@ class IntegrationsTestCase(TestModelsLoaderMixin, TestCase):
     def setUp(self):
         super(IntegrationsTestCase, self).setUp()
 
-        self.old_middleware_classes = list(settings.MIDDLEWARE_CLASSES)
-        settings.MIDDLEWARE_CLASSES = self.old_middleware_classes + [
+        self.old_middleware_classes = list(settings.MIDDLEWARE)
+        settings.MIDDLEWARE = self.old_middleware_classes + [
             'djblets.integrations.middleware.IntegrationsMiddleware',
         ]
 
@@ -25,6 +25,6 @@ class IntegrationsTestCase(TestModelsLoaderMixin, TestCase):
     def tearDown(self):
         super(IntegrationsTestCase, self).tearDown()
 
-        settings.MIDDLEWARE_CLASSES = self.old_middleware_classes
+        settings.MIDDLEWARE = self.old_middleware_classes
 
         shutdown_integration_managers()
