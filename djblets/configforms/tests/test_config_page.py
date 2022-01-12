@@ -69,7 +69,7 @@ class ConfigPageTests(TestCase):
     def test_render(self):
         """Testing ConfigPage.render"""
         # Filter out the CSRF token, since it's hard to match.
-        rendered = re.sub(r"<input.+name='csrfmiddlewaretoken'.*>",
+        rendered = re.sub(r'<input.+name="csrfmiddlewaretoken".*>',
                           '',
                           self.page.render())
 
