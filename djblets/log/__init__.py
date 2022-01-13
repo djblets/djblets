@@ -114,9 +114,6 @@ from functools import update_wrapper
 from django.conf import settings
 
 
-default_app_config = 'djblets.log.apps.LogAppConfig'
-
-
 _logging_setup = False
 _profile_log = None
 

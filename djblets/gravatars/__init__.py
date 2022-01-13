@@ -31,9 +31,6 @@ from urllib.parse import urlencode
 from django.conf import settings
 
 
-default_app_config = 'djblets.gravatars.apps.GravatarsAppConfig'
-
-
 def get_gravatar_url_for_email(email=None, size=None):
     """Return the Gravatar URL for an e-mail address.
 

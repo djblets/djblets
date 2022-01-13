@@ -9,9 +9,6 @@ from xml.dom.minidom import parseString
 from markdown import markdownFromFile
 
 
-default_app_config = 'djblets.markdown.apps.MarkdownAppConfig'
-
-
 MARKDOWN_ALL_ESCAPED_CHARS = (
     '\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '>', '#',
     '+', '-', '.', '!',
