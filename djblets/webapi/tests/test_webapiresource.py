@@ -9,6 +9,7 @@ from django.http import HttpResponseNotModified
 from django.test.client import RequestFactory
 from django.utils import six
 
+from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
 from djblets.util.http import encode_etag
 from djblets.webapi.fields import (ResourceFieldType,
@@ -360,14 +361,15 @@ class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
         resource = WebAPIResource()
         obj = TestObject()
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        expected_message = (
+            'WebAPIResource.generate_etag is deprecated and no longer called '
+            'by default. Please provide your own ETag generation in '
+            'get_etag().'
+        )
+
+        with self.assertWarns(RemovedInDjblets30Warning, expected_message):
             etag = resource.generate_etag(obj, ['my_field'], request,
                                           encode_etag=True)
-
-        self.assertEqual(len(w), 1)
-        self.assertIn('generate_etag is deprecated',
-                      six.text_type(w[0].message))
 
         self.assertEqual(
             etag,
@@ -385,14 +387,15 @@ class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
         resource = WebAPIResource()
         obj = TestObject()
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        expected_message = (
+            'WebAPIResource.generate_etag is deprecated and no longer called '
+            'by default. Please provide your own ETag generation in '
+            'get_etag().'
+        )
+
+        with self.assertWarns(RemovedInDjblets30Warning, expected_message):
             etag = resource.generate_etag(obj, None, request,
                                           encode_etag=False)
-
-        self.assertEqual(len(w), 1)
-        self.assertIn('generate_etag is deprecated',
-                      six.text_type(w[0].message))
 
         self.assertEqual(
             etag,

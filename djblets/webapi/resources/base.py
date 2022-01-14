@@ -15,6 +15,7 @@ from django.http import (HttpResponseNotAllowed, HttpResponse,
 from django.utils import six
 from django.views.decorators.vary import vary_on_headers
 
+from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.auth.ratelimit import (RATE_LIMIT_API_ANONYMOUS,
                                     RATE_LIMIT_API_AUTHENTICATED,
                                     get_usage_count)
@@ -1291,7 +1292,7 @@ class WebAPIResource(object):
             'WebAPIResource.generate_etag is deprecated and no longer called '
             'by default. Please provide your own ETag generation in '
             'get_etag().',
-            DeprecationWarning)
+            RemovedInDjblets30Warning)
 
         etag = repr(self.serialize_object(obj, request=request, **kwargs))
 

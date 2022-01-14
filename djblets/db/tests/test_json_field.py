@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import json
-import warnings
 
 from django.contrib.sites.models import Site
 from django.core.exceptions import ValidationError
@@ -30,15 +29,13 @@ class JSONFieldTests(TestCase):
             def default(self, o):
                 return self.default_msg
 
-        with warnings.catch_warnings(record=True) as w:
-            field = JSONField(
-                encoder_cls=MyEncoder,
-                encoder_kwargs={
-                    'default_msg': 'What even is this?',
-                })
+        field = JSONField(
+            encoder_cls=MyEncoder,
+            encoder_kwargs={
+                'default_msg': 'What even is this?',
+            })
 
         self.assertEqual(field.dumps(MyEncoder), '"What even is this?"')
-        self.assertEqual(len(w), 0)
 
     def test_init_with_dict_value(self):
         """Testing JSONField initialization with initial dict value"""
