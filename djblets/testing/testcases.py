@@ -281,6 +281,14 @@ class TestCase(testcases.TestCase):
             # Some warnings such as DeprecationWarning are filtered by
             # default, stop filtering them.
             warnings.simplefilter('always')
+
+            # We do need to ignore this one, though, or a lot of things will
+            # fail. This is specific to Python 3.10 and the versions of six
+            # in Django.
+            warnings.filterwarnings(
+                'ignore',
+                r'_SixMetaPathImporter.find_spec\(\) not found')
+
             self.assertEqual(len(w), 0)
 
             yield
@@ -302,6 +310,14 @@ class TestCase(testcases.TestCase):
             # Some warnings such as DeprecationWarning are filtered by
             # default, stop filtering them.
             warnings.simplefilter('always')
+
+            # We do need to ignore this one, though, or a lot of things will
+            # fail. This is specific to Python 3.10 and the versions of six
+            # in Django.
+            warnings.filterwarnings(
+                'ignore',
+                r'_SixMetaPathImporter.find_spec\(\) not found')
+
             self.assertEqual(len(w), 0)
 
             yield
