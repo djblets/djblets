@@ -570,6 +570,7 @@ class ExtensionManager(object):
 
             registration = extension.registration
         else:
+            extension = None
             del self._load_errors[extension_id]
 
             if extension_id in self._extension_classes:
@@ -588,7 +589,9 @@ class ExtensionManager(object):
         self._bump_sync_gen()
         self._recalculate_middleware()
 
-        extension_disabled.send_robust(sender=self, extension=extension)
+        if extension is not None:
+            extension_disabled.send_robust(sender=self,
+                                           extension=extension)
 
     def install_extension(self, install_url, package_name):
         """Install an extension from a remote source.

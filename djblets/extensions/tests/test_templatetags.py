@@ -13,6 +13,7 @@ from django.urls import ResolverMatch
 from django.utils.safestring import mark_safe
 from kgb import SpyAgency
 
+from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.extensions.extension import Extension, ExtensionInfo, JSExtension
 from djblets.extensions.hooks import TemplateHook
 from djblets.extensions.tests.base import ExtensionTestsMixin
@@ -311,11 +312,18 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         self.request.resolver_match = ResolverMatch(None, None, None, 'foo')
 
-        content = t.render(Context({
-            'ext': self.extension,
-            'manager_id': self.key,
-            'request': self.request,
-        }))
+        # This warning checks for MyTestJSExtensionDeprecated.get_model_data.
+        expected_message = (
+            'MyTestJSExtensionDeprecated.get_model_data will need to take '
+            'keyword arguments. The old function signature is deprecated.'
+        )
+
+        with self.assertWarns(RemovedInDjblets30Warning, expected_message):
+            content = t.render(Context({
+                'ext': self.extension,
+                'manager_id': self.key,
+                'request': self.request,
+            }))
 
         self.assertIsNotNone(re.search(
             r'new FooNew\({\s+"test": "new",',

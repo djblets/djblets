@@ -22,6 +22,7 @@ from django.utils.translation import ugettext as _
 from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.extensions.errors import InstallExtensionMediaError
 from djblets.extensions.settings import ExtensionSettings
+from djblets.util.compat.django.utils.inspect import getargspec
 from djblets.util.decorators import cached_property
 
 
@@ -291,7 +292,8 @@ class Extension(object):
             middleware_cls = import_string(middleware_path)
 
             try:
-                arg_spec = inspect.getargspec(middleware_cls.__init__)
+                arg_spec = getargspec(middleware_cls.__init__)
+                arg_spec_args = arg_spec[0]
             except (AttributeError, TypeError):
                 # There's no custom __init__ here. It may not exist
                 # in the case of an old-style object, in which case we'll
@@ -305,12 +307,12 @@ class Extension(object):
             # arguments or can take the extension instance.
             if (inspect.isfunction(middleware_cls) or
                 (arg_spec and
-                 len(arg_spec.args) == 2 and
-                 arg_spec.args[1] == 'get_response')):
+                 len(arg_spec_args) == 2 and
+                 arg_spec_args[1] == 'get_response')):
                 self.middleware_classes.append(middleware_cls)
             else:
-                if (arg_spec and len(arg_spec.args) == 2 and
-                    arg_spec.args[1] == 'extension'):
+                if (arg_spec and len(arg_spec_args) == 2 and
+                    arg_spec_args[1] == 'extension'):
                     middleware_instance = middleware_cls(self)
                 else:
                     middleware_instance = middleware_cls()

@@ -26,12 +26,14 @@
 #
 
 from __future__ import unicode_literals
+
 from functools import update_wrapper, wraps
-from inspect import getargspec
 
 from django import template
 from django.template import TemplateSyntaxError, Variable
 from django.utils.functional import cached_property as django_cached_property
+
+from djblets.util.compat.django.utils.inspect import getargspec
 
 
 # The decorator decorator.  This is copyright unknown, verbatim from

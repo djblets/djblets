@@ -9,13 +9,13 @@ from __future__ import absolute_import, unicode_literals
 
 import re
 from collections import OrderedDict
+from xml.etree.ElementTree import SubElement
 
 import markdown
 from django.utils.six.moves import range
 from markdown.blockprocessors import BlockProcessor, OListProcessor
 from markdown.postprocessors import RawHtmlPostprocessor
 from markdown.treeprocessors import Treeprocessor
-from markdown.util import etree
 
 
 class SmartEmptyBlockProcessor(BlockProcessor):
@@ -51,12 +51,12 @@ class SmartEmptyBlockProcessor(BlockProcessor):
         # starting with a newline. We'll add a paragraph in this case, and
         # continue on.
         while self.test(parent, block):
-            etree.SubElement(parent, 'p')
+            SubElement(parent, 'p')
 
             if block:
                 block = block[1:]
             else:
-                etree.SubElement(parent, 'p')
+                SubElement(parent, 'p')
                 return
 
         # Add remaining lines to master blocks for later.
@@ -159,7 +159,7 @@ class TrimmedRawHtmlPostprocessor(RawHtmlPostprocessor):
             unicode:
             The processed text.
         """
-        html_stash = self.markdown.htmlStash
+        html_stash = self.md.htmlStash
 
         if html_stash.html_counter == 0:
             return text
@@ -210,23 +210,39 @@ class WysiwygFormattingExtension(markdown.Extension):
         }
     """
 
-    def extendMarkdown(self, md, md_globals):
+    def extendMarkdown(self, md):
         """Extend the list of Markdown processors.
 
         Each processor in this file will be registered in the order
         necessary for the smarter formatting.
+
+        Args:
+            md (markdown.Markdown):
+                The Markdown instance.
         """
-        md.parser.blockprocessors['olist'] = \
-            PreserveStartOListBlockProcessor(md.parser)
-        md.parser.blockprocessors.add(
-            'smart-empty',
+        # Make this the highest priority.
+        md.parser.blockprocessors.register(
+            PreserveStartOListBlockProcessor(md.parser),
+            'olist',
+            priority=999)
+
+        # Place this 5 higher than "empty"'s priority.
+        md.parser.blockprocessors.register(
             SmartEmptyBlockProcessor(md.parser),
-            '<empty')
-        md.treeprocessors.add(
-            'trim_empty_p',
+            'smart-empty',
+            priority=105)
+
+        # Place this 5 higher than "prettify"'s priority.
+        md.treeprocessors.register(
             TrimTrailingEmptyParagraphs(md),
-            '<prettify')
-        md.postprocessors['raw_html'] = TrimmedRawHtmlPostprocessor(md)
+            'trim_empty_p',
+            priority=15)
+
+        # Make this the highest priority.
+        md.postprocessors.register(
+            TrimmedRawHtmlPostprocessor(md),
+            'raw_html',
+            priority=999)
 
 
 def makeExtension(*args, **kwargs):
@@ -238,5 +254,9 @@ def makeExtension(*args, **kwargs):
 
         **kwargs (dict):
             Keyword arguments for the extension.
+
+    Returns:
+        WysiwygFormattingExtension:
+        The extension instance.
     """
     return WysiwygFormattingExtension(*args, **kwargs)
