@@ -24,7 +24,7 @@ class TimeZoneField(forms.ChoiceField):
     """A form field that only allows pytz common timezones as the choices."""
 
     def __init__(self, choices=TIMEZONE_CHOICES, *args, **kwargs):
-        super(TimeZoneField, self).__init__(choices, *args, **kwargs)
+        super(TimeZoneField, self).__init__(choices=choices, *args, **kwargs)
 
 
 class ConditionsField(forms.Field):
