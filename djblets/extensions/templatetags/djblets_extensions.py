@@ -260,6 +260,7 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
         The HTML used to include the bundled content.
     """
     request = context['request']
+
     if not getattr(request, 'resolver_match', None):
         return
 
@@ -356,7 +357,7 @@ def init_js_extensions(context, extension_manager_key):
     """
     request = context['request']
 
-    if not request.resolver_match:
+    if not getattr(request, 'resolver_match', None):
         # In some cases, this can get called from within middleware (typically
         # if the middleware is bailing out of the usual call chain for some
         # reason). In that case, we don't have access to the resolver match,
