@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.contrib.messages import get_messages
 from django.contrib.messages.middleware import MessageMiddleware
 from django.contrib.sessions.middleware import SessionMiddleware
+from django.http import HttpResponse
 from django.test.client import RequestFactory
 
 from djblets.configforms.forms import ConfigPageForm
@@ -69,8 +70,10 @@ class ConsentConfigPageFormMixinTests(ConsentTestCase):
         self.request.user = self.user
 
         # Enable support for messages.
-        SessionMiddleware().process_request(self.request)
-        MessageMiddleware().process_request(self.request)
+        middleware = SessionMiddleware(
+            MessageMiddleware(
+                lambda request: HttpResponse('')))
+        middleware(self.request)
 
         self.page = MyPage(config_view=ConfigPagesView(),
                            request=self.request,

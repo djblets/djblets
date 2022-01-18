@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.cache import cache
 from django.db import models
+from django.http import HttpResponse
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
 from django.utils.translation import gettext_lazy as _
@@ -45,7 +46,9 @@ class WebAPITokenAuthBackendTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         super(WebAPITokenAuthBackendTests, self).setUp()
         self.api_token_auth_backend = WebAPITokenAuthBackend()
         self.request = RequestFactory().get('/')
-        SessionMiddleware().process_request(self.request)
+
+        middleware = SessionMiddleware(lambda request: HttpResponse(''))
+        middleware(self.request)
 
     def tearDown(self):
         super(WebAPITokenAuthBackendTests, self).tearDown()
