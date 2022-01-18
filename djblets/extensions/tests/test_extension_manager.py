@@ -750,9 +750,9 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
                     Template(template_str).render(Context({})),
                     'Hello, world!')
             else:
-                with self.assertRaisesRegexp(TemplateSyntaxError,
-                                             'is not a (valid|registered) tag '
-                                             'library'):
+                with self.assertRaisesRegex(TemplateSyntaxError,
+                                            'is not a (valid|registered) tag '
+                                            'library'):
                     Template(template_str).render(Context({}))
 
         template_str = (

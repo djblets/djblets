@@ -651,11 +651,11 @@ class ConditionsWidgetTests(TestCase):
         self.assertIn('<input type="hidden" name="my_conditions_last_id"'
                       ' value="1">',
                       rendered)
-        self.assertRegexpMatches(
+        self.assertRegex(
             rendered,
             '<option value="my-choice" selected(="selected")?>My Choice'
             '</option>')
-        self.assertRegexpMatches(
+        self.assertRegex(
             rendered,
             '<option value="my-op" selected(="selected")?>My Op</option>')
         self.assertIn('<span class="conditions-field-value"></span>',

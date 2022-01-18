@@ -29,7 +29,7 @@ class PrePostDispatchViewMixinTests(TestCase):
         view = MyView.as_view()
         response = view(RequestFactory().request())
 
-        self.assertEquals(seen, {'pre_dispatch', 'post_dispatch'})
+        self.assertEqual(seen, {'pre_dispatch', 'post_dispatch'})
         self.assertIsInstance(response, HttpResponse)
 
     def test_dispatch_with_pre_dispatch_response(self):

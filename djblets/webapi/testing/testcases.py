@@ -306,7 +306,7 @@ class WebAPITestCaseMixin(TestCase):
                 If set, this will assert that the response has a
                 ``ETag`` header.
         """
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
         if check_last_modified:
             self.assertIn('Last-Modified', response)
@@ -321,8 +321,8 @@ class WebAPITestCaseMixin(TestCase):
             response (django.http.HttpResponse):
                 The HTTP response from the API.
         """
-        self.assertEquals(response.status_code, 304)
-        self.assertEquals(response.content, b'')
+        self.assertEqual(response.status_code, 304)
+        self.assertEqual(response.content, b'')
 
     def api_call(self, client_http_method, path, data=None,
                  follow_redirects=False, expected_status=200,
