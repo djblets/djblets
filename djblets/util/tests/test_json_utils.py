@@ -1,7 +1,5 @@
 """Unit tests for djblets.util.json_utils."""
 
-from __future__ import unicode_literals
-
 from djblets.testing.testcases import TestCase
 from djblets.util.json_utils import (JSONPatchError,
                                      JSONPatchPathError,

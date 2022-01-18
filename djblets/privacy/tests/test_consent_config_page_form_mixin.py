@@ -1,7 +1,5 @@
 """Unit tests for djblets.privacy.consent.forms.ConsentConfigPageFormMixin."""
 
-from __future__ import unicode_literals
-
 from django.contrib.auth.models import User
 from django.contrib.messages import get_messages
 from django.contrib.messages.middleware import MessageMiddleware

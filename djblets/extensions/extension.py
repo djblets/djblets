@@ -1,7 +1,5 @@
 """Base classes for implementing extensions."""
 
-from __future__ import unicode_literals
-
 import inspect
 import locale
 import logging

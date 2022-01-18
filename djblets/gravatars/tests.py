@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
 """Tests for djblets.gravatars."""
-
-from __future__ import unicode_literals
 
 from hashlib import md5
 

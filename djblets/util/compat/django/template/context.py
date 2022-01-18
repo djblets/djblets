@@ -3,8 +3,6 @@
 #
 """Compatibility functions for working with template contexts."""
 
-from __future__ import unicode_literals
-
 from django.template.context import Context
 
 

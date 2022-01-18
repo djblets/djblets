@@ -4,8 +4,6 @@ This module contains widgets that correspond to fields provided in
 :py:mod:`djblets.forms.fields`.
 """
 
-from __future__ import unicode_literals
-
 import copy
 from contextlib import contextmanager
 

@@ -1,7 +1,5 @@
 """Unit tests for djblets.privacy.consent.hooks.ConsentRequirementHook."""
 
-from __future__ import unicode_literals
-
 from djblets.extensions.extension import Extension
 from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.privacy.consent import (BaseConsentRequirement,

@@ -1,7 +1,5 @@
 """Compatibility module for management commands."""
 
-from __future__ import unicode_literals
-
 from optparse import OptionParser
 
 from django.core.management.base import BaseCommand as DjangoBaseCommand

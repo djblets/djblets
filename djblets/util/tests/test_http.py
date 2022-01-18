@@ -1,7 +1,5 @@
 """Unit tests for djblets.util.http."""
 
-from __future__ import unicode_literals
-
 from django.http import HttpRequest, HttpResponse, HttpResponseNotModified
 
 from djblets.testing.testcases import TestCase

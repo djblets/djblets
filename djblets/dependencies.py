@@ -7,8 +7,6 @@ The contents in this file might change substantially between releases. If
 you're going to make use of data from this file, code defensively.
 """
 
-from __future__ import unicode_literals
-
 # NOTE: This file may not import other files! It's used for packaging and
 #       may be needed before any dependencies have been installed.
 

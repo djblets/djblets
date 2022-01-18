@@ -1,7 +1,5 @@
 """Unit tests for djblets.forms.widgets.ListEditWidget."""
 
-from __future__ import unicode_literals
-
 from django import forms
 
 from djblets.forms.widgets import ListEditWidget

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from http.client import HTTPException
 from urllib.error import URLError
 from urllib.request import urlopen

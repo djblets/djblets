@@ -1,7 +1,4 @@
-# coding: utf-8
 """Unit tests for djblets.db.fields.base64_field."""
-
-from __future__ import unicode_literals
 
 from django.db import connection, models
 

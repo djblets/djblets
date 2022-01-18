@@ -6,8 +6,6 @@ Deprecated::
     for removal in Djblets 3.0.
 """
 
-from __future__ import unicode_literals
-
 import warnings
 
 from django import template

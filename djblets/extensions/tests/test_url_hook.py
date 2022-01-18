@@ -1,7 +1,5 @@
 """Unit tests for djblets.extensions.hooks.URLHook."""
 
-from __future__ import unicode_literals
-
 from django.urls import include, path
 
 from djblets.extensions.extension import Extension

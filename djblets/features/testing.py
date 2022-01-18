@@ -1,7 +1,5 @@
 """Helpers for unit tests working with features."""
 
-from __future__ import unicode_literals
-
 from contextlib import contextmanager
 
 from djblets.features.feature import Feature

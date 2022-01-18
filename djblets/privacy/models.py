@@ -1,7 +1,5 @@
 """Database models for privacy-related data storage."""
 
-from __future__ import unicode_literals
-
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils.translation import gettext_lazy as _

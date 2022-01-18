@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from itertools import chain
 
 from django.core.management.base import BaseCommand, CommandError

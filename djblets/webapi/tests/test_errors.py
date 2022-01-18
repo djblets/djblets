@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from djblets.testing.testcases import TestCase
 from djblets.webapi.errors import WebAPIError
 

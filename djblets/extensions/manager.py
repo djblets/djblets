@@ -1,7 +1,5 @@
 """Extension manager class for supporting extensions to an application."""
 
-from __future__ import unicode_literals
-
 import atexit
 import errno
 import logging

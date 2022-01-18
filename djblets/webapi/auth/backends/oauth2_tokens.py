@@ -1,7 +1,5 @@
 """Web API support for OAuth2 authentication."""
 
-from __future__ import unicode_literals
-
 import logging
 from importlib import import_module
 

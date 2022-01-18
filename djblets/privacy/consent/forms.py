@@ -1,7 +1,5 @@
 """Forms, fields, and widgets for gathering and displaying consent."""
 
-from __future__ import unicode_literals
-
 from django import forms
 from django.contrib import messages
 from django.forms.widgets import MultiWidget, Widget

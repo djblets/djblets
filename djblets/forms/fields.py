@@ -1,7 +1,5 @@
 """Additional fields for Django forms."""
 
-from __future__ import unicode_literals
-
 import logging
 
 from django import forms

@@ -1,12 +1,6 @@
 """Middleware for managing site configurations."""
 
-from __future__ import unicode_literals
-
-try:
-    # Django >= 1.10
-    from django.utils.deprecation import MiddlewareMixin
-except ImportError:
-    MiddlewareMixin = object
+from django.utils.deprecation import MiddlewareMixin
 
 from djblets.siteconfig.models import SiteConfiguration
 

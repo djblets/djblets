@@ -1,7 +1,5 @@
 """App configuration for djblets.privacy."""
 
-from __future__ import unicode_literals
-
 from django.apps import AppConfig
 
 

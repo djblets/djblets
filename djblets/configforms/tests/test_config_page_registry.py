@@ -1,7 +1,5 @@
 """Unit tests for djblets.configforms.registry.ConfigPageRegistry."""
 
-from __future__ import unicode_literals
-
 from kgb import SpyAgency
 
 from djblets.configforms.forms import ConfigPageForm

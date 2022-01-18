@@ -1,7 +1,5 @@
 """A registry for managing avatar services."""
 
-from __future__ import unicode_literals
-
 import logging
 
 from django.utils.translation import gettext_lazy as _

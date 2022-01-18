@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from djblets.extensions.hooks import ExtensionHookPoint
 from djblets.integrations.hooks import BaseIntegrationHook
 from djblets.integrations.integration import Integration

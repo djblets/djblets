@@ -1,7 +1,5 @@
 """Mixins for integrating token-based authentication into an API."""
 
-from __future__ import unicode_literals
-
 from django.contrib import auth
 
 from djblets.webapi.errors import PERMISSION_DENIED

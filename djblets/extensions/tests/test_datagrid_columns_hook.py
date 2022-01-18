@@ -1,7 +1,5 @@
 """Unit tests for djblets.extensions.hooks.DataGridColumnsHook."""
 
-from __future__ import unicode_literals
-
 from kgb import SpyAgency
 
 from djblets.datagrid.grids import Column, DataGrid

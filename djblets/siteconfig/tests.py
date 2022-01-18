@@ -1,7 +1,5 @@
 """Unit tests for djblets.siteconfig."""
 
-from __future__ import unicode_literals
-
 import hmac
 
 from django.conf import settings

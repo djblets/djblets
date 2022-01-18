@@ -1,7 +1,5 @@
 """Views for working with site configurations."""
 
-from __future__ import unicode_literals
-
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import render

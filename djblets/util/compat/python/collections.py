@@ -7,8 +7,6 @@ Version Added:
     2.2.4
 """
 
-from __future__ import unicode_literals
-
 import sys
 
 

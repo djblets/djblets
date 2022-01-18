@@ -10,8 +10,6 @@ code over to the new function signatures without breaking older versions of
 Django.
 """
 
-from __future__ import unicode_literals
-
 from django.template import Context, RequestContext, Template
 from django.template.loader import render_to_string as _render_to_string
 

@@ -1,7 +1,5 @@
 """Tests for authentication-related views."""
 
-from __future__ import unicode_literals
-
 from django.core.cache import cache
 from django.http import HttpResponseRedirect
 from django.shortcuts import render

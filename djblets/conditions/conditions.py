@@ -1,7 +1,5 @@
 """Conditions and sets of conditions."""
 
-from __future__ import unicode_literals
-
 import logging
 
 from django.utils.translation import gettext as _

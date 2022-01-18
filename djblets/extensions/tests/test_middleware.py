@@ -1,7 +1,5 @@
 """Unit tests for extension middleware."""
 
-from __future__ import unicode_literals
-
 import kgb
 from django.test import override_settings
 

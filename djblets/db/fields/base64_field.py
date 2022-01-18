@@ -3,16 +3,8 @@
 See :py:class:`Base64Field` for the main field type and usage instructions.
 """
 
-from __future__ import unicode_literals
-
-try:
-    # Python >= 3.1
-    from base64 import (decodebytes as base64_decode,
-                        encodebytes as base64_encode)
-except ImportError:
-    # Python < 3.1
-    from base64 import (decodestring as base64_decode,
-                        encodestring as base64_encode)
+from base64 import (decodebytes as base64_decode,
+                    encodebytes as base64_encode)
 
 from django.db import models
 from django.utils.encoding import force_str, smart_str

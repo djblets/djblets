@@ -1,7 +1,5 @@
 """Unit tests for djblets.privacy.consent.views."""
 
-from __future__ import unicode_literals
-
 from urllib.parse import quote
 
 from django.contrib.auth.models import AnonymousUser, User

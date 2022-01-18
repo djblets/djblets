@@ -1,7 +1,5 @@
 """Unit tests for djblets.extensions.hooks.ExtensionHook."""
 
-from __future__ import unicode_literals
-
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import ExtensionHook, ExtensionHookPoint
 from djblets.extensions.testing import ExtensionTestCaseMixin

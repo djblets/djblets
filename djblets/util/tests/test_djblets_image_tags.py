@@ -1,7 +1,5 @@
 """Unit tests for djblets.util.templatetags.djblets_images."""
 
-from __future__ import unicode_literals
-
 from collections import OrderedDict
 
 from django.template import Context, Template, TemplateSyntaxError

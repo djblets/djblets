@@ -1,7 +1,5 @@
 """Unit tests for ETagViewMixin."""
 
-from __future__ import unicode_literals
-
 from django.http import HttpResponse, HttpResponseNotModified
 from django.test.client import RequestFactory
 from django.views.generic.base import View

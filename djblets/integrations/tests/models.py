@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from djblets.integrations.models import BaseIntegrationConfig
 
 

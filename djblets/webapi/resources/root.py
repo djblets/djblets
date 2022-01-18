@@ -1,7 +1,5 @@
 """A flexible resource for the root of your API resource tree."""
 
-from __future__ import unicode_literals
-
 from collections import namedtuple
 
 from django.http import HttpResponseNotModified

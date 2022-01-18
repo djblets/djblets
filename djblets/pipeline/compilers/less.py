@@ -1,7 +1,5 @@
 """A specialization of pipeline's LessCompiler."""
 
-from __future__ import unicode_literals
-
 import logging
 import os
 import subprocess

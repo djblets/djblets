@@ -1,7 +1,5 @@
 """Unit tests for the web API token auth backend."""
 
-from __future__ import unicode_literals
-
 import logging
 
 from django.contrib.auth.models import User

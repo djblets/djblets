@@ -1,7 +1,5 @@
 """Tests for the utilities for rate-limiting login attempts."""
 
-from __future__ import unicode_literals
-
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured

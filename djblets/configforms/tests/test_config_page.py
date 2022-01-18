@@ -1,7 +1,5 @@
 """Unit tests for djblets.configforms.pages.ConfigPage."""
 
-from __future__ import unicode_literals
-
 import re
 
 from django.contrib.auth.models import User

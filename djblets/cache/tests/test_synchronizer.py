@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from django.core.cache import cache
 
 from djblets.cache.synchronizer import GenerationSynchronizer

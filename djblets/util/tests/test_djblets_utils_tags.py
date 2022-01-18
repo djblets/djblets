@@ -1,7 +1,5 @@
 """Unit tests for djblets.util.templatetags.djblets_utils."""
 
-from __future__ import unicode_literals
-
 import warnings
 from collections import OrderedDict
 from datetime import datetime, timedelta

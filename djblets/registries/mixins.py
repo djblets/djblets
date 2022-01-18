@@ -1,7 +1,5 @@
 """Utility mixins for registries."""
 
-from __future__ import unicode_literals
-
 from djblets.registries.errors import ItemLookupError
 
 

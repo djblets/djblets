@@ -1,7 +1,5 @@
 """Mixins for test cases that need to test enabled extensions."""
 
-from __future__ import unicode_literals
-
 import pkg_resources
 import uuid
 import weakref

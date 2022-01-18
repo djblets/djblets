@@ -1,7 +1,5 @@
 """A manager for tracking and working with integrations."""
 
-from __future__ import unicode_literals
-
 import atexit
 import logging
 import threading

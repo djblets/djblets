@@ -6,8 +6,6 @@ install and caching more complex data efficiently (such as the results of
 iterators and large data normally too big for the cache).
 """
 
-from __future__ import unicode_literals
-
 import io
 import logging
 import pickle

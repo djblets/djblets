@@ -8,8 +8,6 @@ one of our authentication backends, such as
 :py:class:`djblets.webapi.auth.backends.basic.WebAPIBasicAuthBackend`.
 """
 
-from __future__ import unicode_literals
-
 from django.contrib import auth
 from django.views.decorators.http import require_POST
 

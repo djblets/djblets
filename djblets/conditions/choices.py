@@ -1,7 +1,5 @@
 """Base support and standard choices for conditions."""
 
-from __future__ import unicode_literals
-
 from django.utils.translation import gettext_lazy as _
 
 from djblets.conditions.errors import (ConditionChoiceConflictError,

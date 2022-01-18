@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from kgb import SpyAgency
 
 from djblets.registries.errors import (AlreadyRegisteredError,

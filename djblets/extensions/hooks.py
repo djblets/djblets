@@ -15,8 +15,6 @@ It also provides some built-in hooks for applications and extensions to use:
 * :py:class:`URLHook`
 """
 
-from __future__ import unicode_literals
-
 import logging
 import uuid
 

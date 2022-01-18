@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from django.http import HttpResponse
 from django.utils.encoding import force_str
 from djblets.util.http import (get_http_requested_mimetype,

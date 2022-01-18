@@ -1,7 +1,5 @@
 """Base support and standard value field wrappers for conditions."""
 
-from __future__ import unicode_literals
-
 import re
 
 from django import forms

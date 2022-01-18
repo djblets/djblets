@@ -7,8 +7,6 @@ This module contains convenience imports for:
 * :py:class:`~djblets.features.registry.get_features_registry`
 """
 
-from __future__ import unicode_literals
-
 from djblets.features.feature import Feature, FeatureLevel
 from djblets.features.registry import get_features_registry
 

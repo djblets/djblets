@@ -1,7 +1,5 @@
 """Unit tests for djblets.extensions.manager.SettingListWrapper."""
 
-from __future__ import unicode_literals
-
 from django.conf import settings
 
 from djblets.extensions.manager import SettingListWrapper

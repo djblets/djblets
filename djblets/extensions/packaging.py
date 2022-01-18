@@ -1,7 +1,5 @@
 """Packaging support for extensions."""
 
-from __future__ import print_function, unicode_literals
-
 import inspect
 import json
 import os

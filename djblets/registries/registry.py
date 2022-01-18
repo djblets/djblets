@@ -6,8 +6,6 @@ For information on writing registries, see
 :ref:`the guide on writing registries <writing-registries>`.
 """
 
-from __future__ import unicode_literals
-
 import logging
 
 from django.utils.translation import gettext_lazy as _

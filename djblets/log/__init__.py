@@ -101,8 +101,6 @@ Whether to log output to stdout. This would be in addition to any other
 configured logging, and is intended for environments like Docker.
 """
 
-from __future__ import unicode_literals
-
 import inspect
 import logging
 import logging.handlers

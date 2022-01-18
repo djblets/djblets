@@ -1,7 +1,5 @@
 """General utility functions for working with e-mail."""
 
-from __future__ import unicode_literals
-
 from email.utils import escapesre, parseaddr, specialsre
 
 from django.conf import settings

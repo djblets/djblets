@@ -1,7 +1,5 @@
 """Specialized descriptors/properties for classes."""
 
-from __future__ import unicode_literals
-
 import warnings
 
 

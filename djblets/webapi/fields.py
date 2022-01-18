@@ -1,7 +1,5 @@
 """Representations of field types in the API."""
 
-from __future__ import unicode_literals
-
 import json
 from datetime import datetime
 from importlib import import_module

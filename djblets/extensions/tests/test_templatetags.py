@@ -1,7 +1,5 @@
 """Tests for djblets.extensions.templatetags."""
 
-from __future__ import unicode_literals
-
 import os
 import re
 import uuid

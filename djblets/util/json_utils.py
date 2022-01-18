@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from copy import deepcopy
 
 from django.utils.translation import gettext as _

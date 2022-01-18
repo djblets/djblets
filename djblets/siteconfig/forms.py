@@ -1,7 +1,5 @@
 """A base form for working with settings stored on SiteConfigurations."""
 
-from __future__ import unicode_literals
-
 from djblets.forms.forms import KeyValueForm
 
 

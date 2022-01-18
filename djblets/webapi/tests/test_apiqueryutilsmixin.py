@@ -1,5 +1,3 @@
-from __future__ import print_function, unicode_literals
-
 from django.db.models import Q
 from django.test.client import RequestFactory
 

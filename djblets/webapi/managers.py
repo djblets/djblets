@@ -1,7 +1,5 @@
 """Managers for API-related database models."""
 
-from __future__ import unicode_literals
-
 import hashlib
 import json
 import logging

@@ -1,7 +1,5 @@
 """Template loaders for extensions."""
 
-from __future__ import unicode_literals
-
 from django.template import Origin, TemplateDoesNotExist
 from django.template.loaders.base import Loader as BaseLoader
 from pkg_resources import _manager as manager

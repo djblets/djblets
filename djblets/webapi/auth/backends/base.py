@@ -1,7 +1,5 @@
 """The base class for an API authentication backend."""
 
-from __future__ import unicode_literals
-
 import logging
 import re
 

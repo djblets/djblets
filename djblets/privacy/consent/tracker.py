@@ -1,7 +1,5 @@
 """Consent tracking and storage capabilities."""
 
-from __future__ import unicode_literals
-
 import hashlib
 from importlib import import_module
 

@@ -1,7 +1,5 @@
 """Testing utilities for mail-related unit tests."""
 
-from __future__ import unicode_literals
-
 from django.core.cache import cache
 from dns import resolver as dns_resolver
 from dns.rdtypes.ANY.TXT import TXT

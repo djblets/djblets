@@ -1,7 +1,5 @@
 """Unit tests for djblets.privacy.consent.base.BaseConsentRequirement."""
 
-from __future__ import unicode_literals
-
 from datetime import datetime
 
 from django.contrib.auth.models import User

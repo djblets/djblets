@@ -1,7 +1,5 @@
 """Base support for djblets.extensions unit tests."""
 
-from __future__ import unicode_literals
-
 import pkg_resources
 
 from djblets.extensions.manager import ExtensionManager

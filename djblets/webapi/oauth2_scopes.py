@@ -1,7 +1,5 @@
 """OAuth2 scope generation for WebAPI resources."""
 
-from __future__ import unicode_literals
-
 import logging
 import threading
 from collections import defaultdict

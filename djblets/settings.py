@@ -1,11 +1,10 @@
-#
-# Settings for djblets.
-#
-# This is meant for internal use only. We use it primarily for building
-# static media to bundle with djblets.
-#
-# This should generally not be used in a project.
-from __future__ import unicode_literals
+"""Settings for djblets.
+
+This is meant for internal use only. We use it primarily for building
+static media to bundle with djblets.
+
+This should generally not be used in a project.
+"""
 
 import os
 
