@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 
-from django.templatetags import static
+from django.templatetags.static import static
 from django.utils.functional import lazy
 
 
