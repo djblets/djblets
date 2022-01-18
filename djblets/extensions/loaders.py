@@ -2,11 +2,40 @@
 
 from __future__ import unicode_literals
 
-from django.template import TemplateDoesNotExist
-from pkg_resources import _manager as manager
+from django.template import Origin, TemplateDoesNotExist
 from django.template.loaders.base import Loader as BaseLoader
+from pkg_resources import _manager as manager
 
 from djblets.extensions.manager import get_extension_managers
+
+
+class ExtensionOrigin(Origin):
+    """An origin for a template in an extension.
+
+    Version Added:
+        3.0
+    """
+
+    def __init__(self, package, resource, *args, **kwargs):
+        """Initialize the origin.
+
+        Args:
+            package (unicode):
+                The name of the package providing the template.
+
+            resource (unicode):
+                The resource path within the package.
+
+            *args (tuple):
+                Positional arguments to pass to the parent.
+
+            **kwargs (dict):
+                Keyword arguments to pass to the parent.
+        """
+        self.package = package
+        self.resource = resource
+
+        super(ExtensionOrigin, self).__init__(*args, **kwargs)
 
 
 class Loader(BaseLoader):
@@ -23,8 +52,37 @@ class Loader(BaseLoader):
 
     is_usable = manager is not None
 
-    def load_template_source(self, template_name, template_dirs=None):
-        """Load templates from enabled extensions."""
+    def get_contents(self, origin):
+        """Return the contents of a template.
+
+        Args:
+            origin (ExtensionOrigin):
+                The origin of the template.
+
+        Returns:
+            unicode:
+            The resulting template contents.
+
+        Raises:
+            TemplateDoesNotExist:
+                The template could not be found.
+        """
+        try:
+            return manager.resource_string(origin.package, origin.resource)
+        except Exception:
+            raise TemplateDoesNotExist(origin)
+
+    def get_template_sources(self, template_name):
+        """Load templates from enabled extensions.
+
+        Args:
+            template_name (unicode):
+                The name of the template to load.
+
+        Yields:
+            ExtensionOrigin:
+            Each possible location for the template.
+        """
         if manager:
             resource = "templates/" + template_name
 
@@ -32,10 +90,9 @@ class Loader(BaseLoader):
                 for ext in extmgr.get_enabled_extensions():
                     package = ext.info.app_name
 
-                    try:
-                        return (manager.resource_string(package, resource),
-                                'extension:%s:%s ' % (package, resource))
-                    except Exception:
-                        pass
-
-        raise TemplateDoesNotExist(template_name)
+                    yield ExtensionOrigin(
+                        package=package,
+                        resource=resource,
+                        name='extension:%s:%s' % (package, resource),
+                        template_name=template_name,
+                        loader=self)
