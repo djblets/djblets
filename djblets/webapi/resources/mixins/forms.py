@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 from django.core.exceptions import ValidationError
 from django.forms.forms import NON_FIELD_ERRORS
 from django.forms.models import model_to_dict
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from djblets.webapi.errors import INVALID_FORM_DATA
 
@@ -279,7 +279,7 @@ class UpdateFormMixin(object):
 
         if form is not None:
             return {
-                field_name: [force_text(e) for e in field_errors]
+                field_name: [force_str(e) for e in field_errors]
                 for field_name, field_errors in form.errors.items()
             }
         else:

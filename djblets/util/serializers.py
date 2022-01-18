@@ -3,7 +3,7 @@
 import datetime
 
 from django.core.serializers.json import DjangoJSONEncoder
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.functional import Promise
 
 
@@ -55,7 +55,7 @@ class DjbletsJSONEncoder(DjangoJSONEncoder):
         """
         if isinstance(obj, Promise):
             # Handles initializing lazily created gettext messages.
-            return force_text(obj)
+            return force_str(obj)
         elif isinstance(obj, datetime.datetime) and self.strip_datetime_ms:
             # This is like DjangoJSONEncoder's datetime encoding
             # implementation, except that it filters out the milliseconds

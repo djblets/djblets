@@ -8,7 +8,7 @@ from email.utils import parseaddr
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.utils.datastructures import MultiValueDict
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from djblets.mail.dmarc import is_email_allowed_by_dmarc
 from djblets.mail.utils import build_email_address_via_service
@@ -261,7 +261,7 @@ class EmailMessage(EmailMultiAlternatives):
         # when communicating with the SMTP server.
         super(EmailMessage, self).__init__(
             subject=subject,
-            body=force_text(text_body),
+            body=force_str(text_body),
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=to,
             cc=cc,
@@ -279,7 +279,7 @@ class EmailMessage(EmailMultiAlternatives):
         self._headers = headers
 
         if html_body:
-            self.attach_alternative(force_text(html_body), 'text/html')
+            self.attach_alternative(force_str(html_body), 'text/html')
 
     def message(self):
         """Construct an outgoing message for the e-mail.

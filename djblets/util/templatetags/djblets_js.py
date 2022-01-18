@@ -31,7 +31,7 @@ from django import template
 from django.core.serializers import serialize
 from django.db.models.query import QuerySet
 from django.template.defaultfilters import escapejs
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.safestring import mark_safe
 
 from djblets.util.serializers import DjbletsJSONEncoder
@@ -85,7 +85,7 @@ def json_dumps(value, indent=None):
                             cls=DjbletsJSONEncoder,
                             sort_keys=True)
 
-    return mark_safe(force_text(result).translate(_safe_js_escapes))
+    return mark_safe(force_str(result).translate(_safe_js_escapes))
 
 
 @register.filter

@@ -15,7 +15,7 @@ except ImportError:
                         encodestring as base64_encode)
 
 from django.db import models
-from django.utils.encoding import force_text, smart_text
+from django.utils.encoding import force_str, smart_str
 from django.utils.translation import gettext as _
 
 
@@ -87,7 +87,7 @@ class Base64FieldCreator(object):
                 raise Base64TypeError(value)
 
             pk_val = obj._get_pk_val(obj.__class__._meta)
-            pk_set = pk_val is not None and smart_text(pk_val) != ''
+            pk_set = pk_val is not None and smart_str(pk_val) != ''
 
             if isinstance(value, str):
                 if value == r'\x':
@@ -217,7 +217,7 @@ class Base64Field(models.TextField):
             elif isinstance(value, bytes):
                 value = value.decode('utf-8')
             elif isinstance(value, memoryview):
-                value = force_text(bytes(value))
+                value = force_str(bytes(value))
             elif not isinstance(value, str):
                 raise Base64TypeError(value)
 

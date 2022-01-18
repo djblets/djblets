@@ -31,7 +31,7 @@ from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.http import HttpRequest
 from django.test.client import RequestFactory
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.safestring import SafeText
 from kgb import SpyAgency
 
@@ -158,7 +158,7 @@ class DataGridTests(SpyAgency, TestCase):
         response = self.datagrid.render_listview_to_response()
         self.assertEqual(response.status_code, 200)
 
-        content = force_text(response.content)
+        content = force_str(response.content)
 
         self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">',
                       content)
