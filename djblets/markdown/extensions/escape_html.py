@@ -18,7 +18,7 @@ class EscapeHTMLExtension(Extension):
     ``safe_mode='escape'``.
     """
 
-    def extendMarkdown(self, md, md_globals):
+    def extendMarkdown(self, md):
         """Extend the list of Markdown processors.
 
         Rather than extending, this will actually remove all HTML-based
@@ -28,9 +28,6 @@ class EscapeHTMLExtension(Extension):
         Args:
             md (markdown.Markdown):
                 The Markdown renderer.
-
-            md_globals (dict):
-                Global variables from the :py:mod:`markdown` module.
         """
         md.preprocessors.deregister('html_block')
         md.inlinePatterns.deregister('html')
@@ -45,5 +42,9 @@ def makeExtension(*args, **kwargs):
 
         **kwargs (dict):
             Keyword arguments for the extension.
+
+    Returns:
+        EscapeHTMLExtension:
+        The extension instance.
     """
     return EscapeHTMLExtension(*args, **kwargs)
