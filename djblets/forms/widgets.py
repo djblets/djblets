@@ -197,7 +197,7 @@ class ConditionsWidget(widgets.Widget):
             'conditions': conditions,
         }
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         """Render the widget to HTML.
 
         This will serialize all the choices, operators, and existing
@@ -213,6 +213,9 @@ class ConditionsWidget(widgets.Widget):
 
             attrs (dict, optional):
                 Additional HTML element attributes for the fields.
+
+            renderer (django.forms.renderers.BaseRenderer, optional):
+                The form renderer.
 
         Returns:
             django.utils.safestring.SafeText:
@@ -575,7 +578,7 @@ class CopyableTextInput(widgets.TextInput):
 
     template_name = 'djblets_forms/copyable_text_input.html'
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         """Render the widget.
 
         Args:
@@ -588,11 +591,15 @@ class CopyableTextInput(widgets.TextInput):
             attrs (dict):
                 The attributes of the widget.
 
+            renderer (django.forms.renderers.BaseRenderer, optional):
+                The form renderer.
+
         Returns:
             django.utils.safestring.SafeText:
             The rendered widget.
         """
-        field = super(CopyableTextInput, self).render(name, value, attrs)
+        field = super(CopyableTextInput, self).render(name, value, attrs,
+                                                      renderer)
 
         return render_to_string(
             self.template_name,
@@ -625,7 +632,7 @@ class ListEditWidget(widgets.Widget):
 
         self._sep = sep
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         """Render the widget.
 
         Args:
@@ -637,6 +644,9 @@ class ListEditWidget(widgets.Widget):
 
             attrs (dict, optional):
                 Additional attributes.
+
+            renderer (django.forms.renderers.BaseRenderer, optional):
+                The form renderer.
 
         Returns:
             django.utils.safestring.SafeText:

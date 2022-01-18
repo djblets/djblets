@@ -43,7 +43,7 @@ class ConsentRequirementWidget(Widget):
 
         self.consent_requirement = consent_requirement
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         """Render the widget.
 
         Args:
@@ -57,6 +57,9 @@ class ConsentRequirementWidget(Widget):
             attrs (dict, optional):
                 HTML attributes for the widget. This is used only to set an
                 ``id`` attribute for the field.
+
+            renderer (django.forms.renderers.BaseRenderer, optional):
+                The form renderer.
 
         Returns:
             django.utils.safestring.SafeText:
@@ -129,7 +132,7 @@ class MultiConsentRequirementsWidget(MultiWidget):
             ],
             attrs=attrs)
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         """Render the widget.
 
         Args:
@@ -143,6 +146,9 @@ class MultiConsentRequirementsWidget(MultiWidget):
             attrs (dict, optional):
                 HTML attributes for the widget. This is used only to set a
                 base ``id`` attribute for the fields.
+
+            renderer (django.forms.renderers.BaseRenderer, optional):
+                The form renderer.
 
         Returns:
             django.utils.safestring.SafeText:
@@ -169,7 +175,8 @@ class MultiConsentRequirementsWidget(MultiWidget):
                                    id='%s_%s' % (field_id, requirement_id))
 
             rendered = widget.render('%s_%s' % (name, requirement_id),
-                                     widget_value, final_attrs)
+                                     widget_value, final_attrs,
+                                     renderer=renderer)
             output.append((rendered,))
 
         return format_html_join('', '{0}', output)
