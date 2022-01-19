@@ -1035,7 +1035,7 @@ class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
                         'dependency': {
                             'href': None,
                             'method': 'GET',
-                            'title': 'TestObject object',
+                            'title': 'TestObject object (1)',
                         },
                         'self': {
                             'href': 'http://testserver/api/test/?expand=dependency',
