@@ -6,6 +6,7 @@ and exception logging.
 
 from __future__ import unicode_literals
 
+import io
 import logging
 import sys
 import traceback
@@ -18,7 +19,6 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from django.http import Http404
 from django.utils import six
 from django.utils.deprecation import MiddlewareMixin
-from django.utils.six.moves import cStringIO as StringIO
 
 from djblets.log import init_logging, init_profile_logger, log_timed
 
@@ -176,7 +176,7 @@ class LoggingMiddleware(MiddlewareMixin):
             self.profiler.create_stats()
 
             # Capture the stats
-            out = StringIO()
+            out = io.StringIO()
             old_stdout, sys.stdout = sys.stdout, out
             self.profiler.print_stats(1)
             sys.stdout = old_stdout

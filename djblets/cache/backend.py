@@ -10,13 +10,13 @@ from __future__ import unicode_literals
 from hashlib import md5
 import io
 import logging
+import pickle
 import zlib
 
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib.sites.models import Site
 from django.utils import six
-from django.utils.six.moves import range, cPickle as pickle
 
 from djblets.cache.errors import MissingChunkError
 

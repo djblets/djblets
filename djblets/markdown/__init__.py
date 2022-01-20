@@ -3,11 +3,10 @@ from __future__ import absolute_import, unicode_literals
 import io
 import re
 import sys
+from html.entities import name2codepoint
 from xml.dom.minidom import parseString
 
 from django.utils import six
-from django.utils.six.moves import cStringIO as StringIO, range
-from django.utils.six.moves.html_entities import name2codepoint
 from markdown import markdownFromFile
 
 

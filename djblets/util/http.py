@@ -26,11 +26,11 @@
 from __future__ import unicode_literals
 
 import hashlib
+from urllib.parse import urlencode
 
 from django.http import HttpResponse, HttpResponseNotModified
 from django.utils import six
 from django.utils.encoding import force_bytes
-from django.utils.six.moves.urllib.parse import urlencode
 
 from djblets.util.dates import http_date
 

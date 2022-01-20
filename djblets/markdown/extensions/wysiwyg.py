@@ -12,7 +12,6 @@ from collections import OrderedDict
 from xml.etree.ElementTree import SubElement
 
 import markdown
-from django.utils.six.moves import range
 from markdown.blockprocessors import BlockProcessor, OListProcessor
 from markdown.postprocessors import RawHtmlPostprocessor
 from markdown.treeprocessors import Treeprocessor

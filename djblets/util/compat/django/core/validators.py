@@ -33,11 +33,12 @@
 
 import re
 
+from urllib.parse import urlsplit, urlunsplit
+
 from django.core.exceptions import ValidationError
 from django.core.validators import (RegexValidator, URLValidator,
                                     validate_ipv6_address)
 from django.utils.translation import gettext_lazy as _
-from django.utils.six.moves.urllib.parse import urlsplit, urlunsplit
 
 
 # Prior to Django 1.8, URLValidator couldn't parse URLs that included inline

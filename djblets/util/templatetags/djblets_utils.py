@@ -29,6 +29,7 @@ import datetime
 import os
 import re
 import warnings
+from urllib.parse import urlencode
 
 from django import template
 from django.http import QueryDict
@@ -38,8 +39,6 @@ from django.template.loader import render_to_string
 from django.utils import six
 from django.utils.html import escape, format_html, strip_spaces_between_tags
 from django.utils.safestring import mark_safe
-from django.utils.six.moves import range
-from django.utils.six.moves.urllib.parse import urlencode
 from django.utils.timezone import is_aware
 
 from djblets.deprecation import RemovedInDjblets30Warning

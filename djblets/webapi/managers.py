@@ -10,7 +10,6 @@ from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Manager
 from django.utils import six, timezone
-from django.utils.six.moves import range
 from django.utils.translation import ugettext_lazy as _
 
 from djblets.webapi.errors import WebAPITokenGenerationError

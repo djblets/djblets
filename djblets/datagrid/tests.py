@@ -33,7 +33,6 @@ from django.http import HttpRequest
 from django.test.client import RequestFactory
 from django.utils.encoding import force_text
 from django.utils.safestring import SafeText
-from django.utils.six.moves import range
 from kgb import SpyAgency
 
 from djblets.datagrid.grids import (CheckboxColumn, Column, DataGrid,

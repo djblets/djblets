@@ -26,10 +26,10 @@
 from __future__ import unicode_literals
 
 from hashlib import md5
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.utils import six
-from django.utils.six.moves.urllib.parse import urlencode
 
 
 default_app_config = 'djblets.gravatars.apps.GravatarsAppConfig'

@@ -1,9 +1,9 @@
 from __future__ import print_function, unicode_literals
 
 import io
+from html.entities import codepoint2name
 
 from django.utils import six
-from django.utils.six.moves.html_entities import codepoint2name
 from markdown import __version_info__ as markdown_version, markdown
 
 from djblets.testing.testcases import TestCase
