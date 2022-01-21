@@ -31,7 +31,7 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
 )
 
-STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
+STATICFILES_STORAGE = 'djblets.pipeline.storage.PipelineStorage'
 
 
 NODE_PATH = os.path.abspath(os.path.join(DJBLETS_ROOT, '..', 'node_modules'))
