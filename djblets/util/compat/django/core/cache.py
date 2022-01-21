@@ -1,6 +1,3 @@
-# TODO: Remove this file once we no longer support a version of Django
-#       prior to 1.7.
-#
 # This is Django 1.6.11's django/core/cache.py.
 #
 # Copyright (c) Django Software Foundation and individual contributors.  All

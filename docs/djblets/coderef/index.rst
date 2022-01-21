@@ -464,13 +464,6 @@ Generic Utilities
    :toctree: python
 
    djblets.util.compat.django.core.cache
-   djblets.util.compat.django.core.files.locks
-   djblets.util.compat.django.core.management.base
-   djblets.util.compat.django.core.validators
-   djblets.util.compat.django.shortcuts
-   djblets.util.compat.django.template.context
-   djblets.util.compat.django.template.loader
-   djblets.util.compat.django.utils.functional
    djblets.util.compat.python.past
    djblets.util.contextmanagers
    djblets.util.dates

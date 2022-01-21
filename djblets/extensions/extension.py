@@ -18,7 +18,6 @@ from django.utils.translation import gettext as _
 from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.extensions.errors import InstallExtensionMediaError
 from djblets.extensions.settings import ExtensionSettings
-from djblets.util.compat.django.utils.inspect import getargspec
 from djblets.util.decorators import cached_property
 
 

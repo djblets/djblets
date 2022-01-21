@@ -1,33 +1,18 @@
 """Base class for test cases in Django-based applications."""
 
-import importlib
 import inspect
 import os
 import re
 import socket
 import sys
 import threading
-import types
 import warnings
 from collections import OrderedDict
 from contextlib import contextmanager
 from importlib import import_module
+from importlib.machinery import ModuleSpec
+from importlib.util import module_from_spec
 from unittest.util import safe_repr
-
-try:
-    # Python >= 3.4
-    from importlib.machinery import ModuleSpec
-
-    try:
-        # Python >= 3.5
-        from importlib.util import module_from_spec
-    except ImportError:
-        # Python < 3.5
-        module_from_spec = None
-except ImportError:
-    # Python < 3.4
-    ModuleSpec = None
-    module_from_spec = None
 
 from django.apps import apps
 from django.conf import settings
@@ -325,33 +310,18 @@ class TestModelsLoaderMixin(object):
         except ImportError:
             # Set up a 'models' module, containing any models local to the
             # module that this TestCase is in.
-            if ModuleSpec:
-                # Python >= 3.4
-                #
-                # It's not enough to simply create a module type. We need to
-                # create a basic spec, and then we need to have the module
-                # system create a module from it. There's a handy public
-                # function to do this on Python 3.5, but Python 3.4 lacks a
-                # public function. Fortunately, it's easy to call a private
-                # one.
-                spec = ModuleSpec(name=models_mod_name,
-                                  loader=None)
 
-                if module_from_spec:
-                    # Python >= 3.5
-                    models_mod = module_from_spec(spec)
-                else:
-                    # Python == 3.4
-                    models_mod = \
-                        importlib._bootstrap._SpecMethods(spec).create()
+            # It's not enough to simply create a module type. We need to
+            # create a basic spec, and then we need to have the module
+            # system create a module from it. There's a handy public
+            # function to do this on Python 3.5, but Python 3.4 lacks a
+            # public function. Fortunately, it's easy to call a private
+            # one.
+            spec = ModuleSpec(name=models_mod_name,
+                              loader=None)
 
-                assert models_mod
-            else:
-                # Python < 3.4
-                models_mod = types.ModuleType(str(models_mod_name))
-
-                # Django needs a value here. Doesn't matter what it is.
-                models_mod.__file__ = ''
+            models_mod = module_from_spec(spec)
+            assert models_mod
 
             # Transfer all the models over into this new module.
             module_name = cls.__module__
