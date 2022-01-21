@@ -418,7 +418,7 @@ class QuerystringTagTests(TestCase):
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
-                         QueryDict('a=1&;b=2&;foo=bar'))
+                         QueryDict('a=1&b=2&foo=bar'))
 
     def test_update_with_existing_query_override(self):
         """Testing {% querystring "update" %} with an existing query that gets
