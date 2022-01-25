@@ -16,7 +16,8 @@ from kgb import SpyAgency
 from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.extensions.extension import Extension, ExtensionInfo, JSExtension
 from djblets.extensions.hooks import TemplateHook
-from djblets.extensions.tests.base import ExtensionTestsMixin
+from djblets.extensions.manager import ExtensionManager
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 from pipeline.conf import settings as pipeline_settings
 
@@ -35,39 +36,46 @@ class MyTestJSExtensionDeprecated(JSExtension):
         return {'test': 'old'}
 
 
-class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
+class MyTestExtensionManager(ExtensionManager):
+    should_install_static_media = True
+
+
+class MyTestExtension(Extension):
+    # While normally these would be plain dictionaries, we want to ensure
+    # order for testing, so we'll be doing this a bit differently.
+    css_bundles = OrderedDict()
+    css_bundles['default'] = {
+        'source_filenames': (
+            'css/default-test.css',
+        ),
+    }
+    css_bundles['optional'] = {
+        'source_filenames': (
+            'css/optional-test.css',
+        ),
+        'apply_to': ['foo'],
+    }
+
+    js_bundles = OrderedDict()
+    js_bundles['default'] = {
+        'source_filenames': (
+            'js/default-test.js',
+        ),
+    }
+    js_bundles['optional'] = {
+        'source_filenames': (
+            'js/optional-test.js',
+        ),
+        'apply_to': ['foo'],
+    }
+
+    js_extensions = [MyTestJSExtension, MyTestJSExtensionDeprecated]
+
+
+class TemplateTagTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
     """Tests for djblets.extensions.templatetags."""
 
-    class TestExtension(Extension):
-        # While normally these would be plain dictionaries, we want to ensure
-        # order for testing, so we'll be doing this a bit differently.
-        css_bundles = OrderedDict()
-        css_bundles['default'] = {
-            'source_filenames': (
-                'css/default-test.css',
-            ),
-        }
-        css_bundles['optional'] = {
-            'source_filenames': (
-                'css/optional-test.css',
-            ),
-            'apply_to': ['foo'],
-        }
-
-        js_bundles = OrderedDict()
-        js_bundles['default'] = {
-            'source_filenames': (
-                'js/default-test.js',
-            ),
-        }
-        js_bundles['optional'] = {
-            'source_filenames': (
-                'js/optional-test.js',
-            ),
-            'apply_to': ['foo'],
-        }
-
-        js_extensions = [MyTestJSExtension, MyTestJSExtensionDeprecated]
+    default_extension_manager_cls = MyTestExtensionManager
 
     def setUp(self):
         def _has_resource(self, path):
@@ -81,8 +89,6 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         super(TemplateTagTests, self).setUp()
 
-        self.key = uuid.uuid4()
-
         self.spy_on(ExtensionInfo.has_resource,
                     owner=ExtensionInfo,
                     call_fake=_has_resource)
@@ -90,8 +96,7 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
                     owner=ExtensionInfo,
                     call_fake=_extract_resource)
 
-        self.extension = self.setup_extension(self.TestExtension,
-                                              manager_key=self.key)
+        self.extension = self.setup_extension(MyTestExtension)
         self.request = HttpRequest()
 
         self._old_pipeline_enabled = pipeline_settings.PIPELINE_ENABLED
@@ -140,7 +145,7 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
                 'ext': self.extension,
                 'request': self.request,
             })),
-            '/ext/djblets.extensions.tests.test_templatetags.TestExtension/'
+            '/ext/djblets.extensions.tests.test_templatetags.MyTestExtension/'
             'css/default-test.dad0c9b31e59.css')
 
     def test_ext_css_bundle_tag_with_pipeline_enabled(self):
@@ -156,7 +161,7 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
                 'request': self.request,
             })),
             '<link href="/ext/djblets.extensions.tests.test_templatetags'
-            '.TestExtension/css/default.min.dad0c9b31e59.css" '
+            '.MyTestExtension/css/default.min.dad0c9b31e59.css" '
             'rel="stylesheet" type="text/css" />')
 
     def test_ext_css_bundle_tag_with_pipeline_disabled(self):
@@ -172,7 +177,7 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
                 'request': self.request,
             })),
             '<link href="/ext/djblets.extensions.tests.test_templatetags.'
-            'TestExtension/css/default-test.dad0c9b31e59.css" '
+            'MyTestExtension/css/default-test.dad0c9b31e59.css" '
             'rel="stylesheet" type="text/css" />')
 
     def test_ext_js_bundle_tag_with_pipeline_enabled(self):
@@ -189,7 +194,7 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
             })),
             '<script type="text/javascript" '
             'src="/ext/djblets.extensions.tests.test_templatetag'
-            's.TestExtension/js/default.min.dad0c9b31e59.js" '
+            's.MyTestExtension/js/default.min.dad0c9b31e59.js" '
             'charset="utf-8"></script>')
 
     def test_ext_js_bundle_tag_with_pipeline_disabled(self):
@@ -206,7 +211,7 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
             })),
             '<script type="text/javascript" '
             'src="/ext/djblets.extensions.tests.test_templatetag'
-            's.TestExtension/js/default-test.dad0c9b31e59.js" '
+            's.MyTestExtension/js/default-test.dad0c9b31e59.js" '
             'charset="utf-8"></script>')
 
     def test_load_extensions_css_tag_with_pipline_enabled(self):
@@ -222,14 +227,14 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertHTMLEqual(
             t.render(Context({
                 'ext': self.extension,
-                'manager_id': self.key,
+                'manager_id': self.extension_mgr.key,
                 'request': self.request,
             })),
             '<link href="/ext/djblets.extensions.tests.test_templatetags'
-            '.TestExtension/css/default.min.dad0c9b31e59.css" '
+            '.MyTestExtension/css/default.min.dad0c9b31e59.css" '
             'rel="stylesheet" type="text/css" />'
             '<link href="/ext/djblets.extensions.tests.test_templatetags'
-            '.TestExtension/css/optional.min.dad0c9b31e59.css" '
+            '.MyTestExtension/css/optional.min.dad0c9b31e59.css" '
             'rel="stylesheet" type="text/css" />')
 
     def test_load_extensions_css_tag_with_pipline_disabled(self):
@@ -245,14 +250,14 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertHTMLEqual(
             t.render(Context({
                 'ext': self.extension,
-                'manager_id': self.key,
+                'manager_id': self.extension_mgr.key,
                 'request': self.request,
             })),
             '<link href="/ext/djblets.extensions.tests.test_templatetags'
-            '.TestExtension/css/default-test.dad0c9b31e59.css" '
+            '.MyTestExtension/css/default-test.dad0c9b31e59.css" '
             'rel="stylesheet" type="text/css" />'
             '<link href="/ext/djblets.extensions.tests.test_templatetags'
-            '.TestExtension/css/optional-test.dad0c9b31e59.css" '
+            '.MyTestExtension/css/optional-test.dad0c9b31e59.css" '
             'rel="stylesheet" type="text/css" />')
 
     def test_load_extensions_js_tag_with_pipeline_enabled(self):
@@ -268,16 +273,16 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertHTMLEqual(
             t.render(Context({
                 'ext': self.extension,
-                'manager_id': self.key,
+                'manager_id': self.extension_mgr.key,
                 'request': self.request,
             })),
             '<script type="text/javascript" '
             'src="/ext/djblets.extensions.tests.test_templatetags'
-            '.TestExtension/js/default.min.dad0c9b31e59.js" '
+            '.MyTestExtension/js/default.min.dad0c9b31e59.js" '
             'charset="utf-8"></script>'
             '<script type="text/javascript" '
             'src="/ext/djblets.extensions.tests.test_templatetags'
-            '.TestExtension/js/optional.min.dad0c9b31e59.js" '
+            '.MyTestExtension/js/optional.min.dad0c9b31e59.js" '
             'charset="utf-8"></script>')
 
     def test_load_extensions_js_tag_with_pipeline_disabled(self):
@@ -293,16 +298,16 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertHTMLEqual(
             t.render(Context({
                 'ext': self.extension,
-                'manager_id': self.key,
+                'manager_id': self.extension_mgr.key,
                 'request': self.request,
             })),
             '<script type="text/javascript" '
             'src="/ext/djblets.extensions.tests.test_templatetags'
-            '.TestExtension/js/default-test.dad0c9b31e59.js" '
+            '.MyTestExtension/js/default-test.dad0c9b31e59.js" '
             'charset="utf-8"></script>'
             '<script type="text/javascript" '
             'src="/ext/djblets.extensions.tests.test_templatetags'
-            '.TestExtension/js/optional-test.dad0c9b31e59.js" '
+            '.MyTestExtension/js/optional-test.dad0c9b31e59.js" '
             'charset="utf-8"></script>')
 
     def test_init_js_extensions(self):
@@ -321,7 +326,7 @@ class TemplateTagTests(SpyAgency, ExtensionTestsMixin, TestCase):
         with self.assertWarns(RemovedInDjblets30Warning, expected_message):
             content = t.render(Context({
                 'ext': self.extension,
-                'manager_id': self.key,
+                'manager_id': self.extension_mgr.key,
                 'request': self.request,
             }))
 

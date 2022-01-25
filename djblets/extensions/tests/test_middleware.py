@@ -10,7 +10,7 @@ from django.test import override_settings
 
 from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.extensions.extension import Extension
-from djblets.extensions.tests.base import ExtensionTestsMixin
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
@@ -61,7 +61,7 @@ class MyTestExtension3(Extension):
     ]
 
 
-class MiddlewareTests(kgb.SpyAgency, ExtensionTestsMixin, TestCase):
+class MiddlewareTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
     """Unit tests for extension middleware."""
 
     @override_settings(MIDDLEWARE_CLASSES=MIDDLEWARE,
@@ -75,7 +75,7 @@ class MiddlewareTests(kgb.SpyAgency, ExtensionTestsMixin, TestCase):
 
         message = (
             'Application is running with old-style MIDDLEWARE_CLASSES '
-            'setting but extension TestProject defines the following '
+            'setting but extension TestPackage defines the following '
             'new-style (Django 1.10+) middleware entries:\n'
             '*  <class \'djblets.extensions.tests.test_middleware.'
             'NewStyleMiddleware\'>'
@@ -134,7 +134,7 @@ class MiddlewareTests(kgb.SpyAgency, ExtensionTestsMixin, TestCase):
 
         message = (
             "Application is running with new-style MIDDLEWARE setting "
-            "but extension TestProject defined the following old-style "
+            "but extension TestPackage defined the following old-style "
             "(pre-Django 1.10) middleware entries:\n"
             "*  <class 'djblets.extensions.tests.test_middleware."
             "OldStyleMiddleware'>"
@@ -163,7 +163,7 @@ class MiddlewareTests(kgb.SpyAgency, ExtensionTestsMixin, TestCase):
 
         message = (
             "Application is running with old-style MIDDLEWARE_CLASSES "
-            "setting but extension TestProject defines the following "
+            "setting but extension TestPackage defines the following "
             "new-style (Django 1.10+) middleware entries:\n"
             "*  <class 'djblets.extensions.tests.test_middleware."
             "NewStyleMiddleware'>"
@@ -193,7 +193,7 @@ class MiddlewareTests(kgb.SpyAgency, ExtensionTestsMixin, TestCase):
 
         message = (
             "Application is running with new-style MIDDLEWARE setting "
-            "but extension TestProject defined the following old-style "
+            "but extension TestPackage defined the following old-style "
             "(pre-Django 1.10) middleware entries:\n"
             "*  <class 'djblets.extensions.tests.test_middleware."
             "OldStyleMiddleware'>"

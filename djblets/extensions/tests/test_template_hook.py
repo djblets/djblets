@@ -9,7 +9,7 @@ from mock import Mock
 
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import TemplateHook
-from djblets.extensions.tests.base import ExtensionTestsMixin
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
@@ -35,13 +35,13 @@ class MyTestExtension(Extension):
         )
 
 
-class TemplateHookTests(SpyAgency, ExtensionTestsMixin, TestCase):
+class TemplateHookTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.hooks.TemplateHook."""
+
+    extension_class = MyTestExtension
 
     def setUp(self):
         super(TemplateHookTests, self).setUp()
-
-        self.extension = self.setup_extension(MyTestExtension)
 
         self.request = Mock()
         self.request._djblets_extensions_kwargs = {}

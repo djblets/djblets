@@ -10,12 +10,12 @@ import tempfile
 import threading
 import time
 
+import kgb
 from django.conf import settings
 from django.db import connection
 from django.template import Context, Template, TemplateSyntaxError
 from django.test.utils import override_settings
 from django_evolution.evolve import Evolver
-from kgb import SpyAgency
 from pipeline.conf import settings as pipeline_settings
 
 try:
@@ -28,11 +28,10 @@ except ImportError:
 from djblets.extensions.errors import EnablingExtensionError
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import URLHook
-from djblets.extensions.manager import (get_extension_managers,
+from djblets.extensions.manager import (ExtensionManager,
+                                        get_extension_managers,
                                         logger as manager_logger)
-from djblets.extensions.tests.base import (ExtensionTestsMixin,
-                                           FakeEntryPoint,
-                                           MyTestExtensionManager)
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
@@ -54,7 +53,7 @@ class HooksTestExtension(MyTestExtension):
         self.url_hook = URLHook(self, ())
 
 
-class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
+class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.manager.ExtensionManager."""
 
     def tearDown(self):
@@ -64,17 +63,17 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
     def test_added_to_extension_managers(self):
         """Testing ExtensionManager registration"""
-        self.manager = MyTestExtensionManager([], '')
-        self.assertIn(self.manager, get_extension_managers())
+        manager = ExtensionManager('unit-tests')
+        self.assertIn(manager, get_extension_managers())
 
     def test_get_enabled_extensions_returns_empty(self):
         """Testing ExtensionManager.get_enabled_extensions with no
         extensions
         """
-        self.manager = MyTestExtensionManager([], '')
-        self.manager.load()
+        manager = ExtensionManager('unit-tests')
+        manager.load()
 
-        self.assertEqual(len(self.manager.get_enabled_extensions()), 0)
+        self.assertEqual(len(manager.get_enabled_extensions()), 0)
 
     def test_load(self):
         """Testing ExtensionManager.get_installed_extensions with loaded
@@ -82,14 +81,15 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """
         self.setup_extension(MyTestExtension, enable=False)
 
-        self.assertEqual(self.manager.get_installed_extensions(),
+        self.assertEqual(self.extension_mgr.get_installed_extensions(),
                          [MyTestExtension])
-        self.assertEqual(len(self.manager.get_enabled_extensions()), 0)
+        self.assertEqual(len(self.extension_mgr.get_enabled_extensions()), 0)
         self.assertTrue(hasattr(MyTestExtension, 'info'))
-        self.assertEqual(MyTestExtension.info.name, self.test_project_name)
+        self.assertEqual(MyTestExtension.info.name,
+                         self.extension_package_name)
         self.assertTrue(hasattr(MyTestExtension, 'registration'))
         self.assertEqual(MyTestExtension.registration.name,
-                         self.test_project_name)
+                         self.extension_package_name)
 
     def test_load_full_reload_hooks(self):
         """Testing ExtensionManager.load with full_reload=True"""
@@ -98,14 +98,15 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         #       perform a reload.
         extension = self.setup_extension(MyTestExtension)
 
-        self.assertEqual(len(self.manager.get_installed_extensions()), 1)
-        self.assertEqual(len(self.manager.get_enabled_extensions()), 1)
+        self.assertEqual(len(self.extension_mgr.get_installed_extensions()), 1)
+        self.assertEqual(len(self.extension_mgr.get_enabled_extensions()), 1)
 
         URLHook(extension, ())
         self.assertEqual(len(URLHook.hooks), 1)
         self.assertEqual(URLHook.hooks[0].extension, extension)
 
-        self.manager.load(full_reload=True)
+        with self.scanned_extensions([MyTestExtension]):
+            self.extension_mgr.load(full_reload=True)
 
         self.assertEqual(len(URLHook.hooks), 0)
 
@@ -132,20 +133,22 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         #
         # With proper locking, these issues don't come up. That's what
         # this test case is attempting to check for.
+        extension_mgr = self.extension_mgr
 
         # Enable one extension. This extension's state will get a bit messed
         # up if the thread locking fails. We only need one to trigger this.
         self.setup_extension(MyTestExtension)
 
-        self.spy_on(self.manager._load_extensions)
-        self._spy_sleep_and_call(self.manager._init_extension)
-        self._spy_sleep_and_call(self.manager._uninit_extension)
+        self.spy_on(extension_mgr._load_extensions)
+        self._spy_sleep_and_call(extension_mgr._init_extension)
+        self._spy_sleep_and_call(extension_mgr._uninit_extension)
 
-        self._run_thread_test(lambda: self.manager.load(full_reload=True))
+        with self.scanned_extensions([MyTestExtension]):
+            self._run_thread_test(lambda: extension_mgr.load(full_reload=True))
 
-        self.assertEqual(len(self.manager._load_extensions.calls), 2)
-        self.assertEqual(len(self.manager._uninit_extension.calls), 2)
-        self.assertEqual(len(self.manager._init_extension.calls), 2)
+        self.assertSpyCallCount(extension_mgr._load_extensions, 2)
+        self.assertSpyCallCount(extension_mgr._uninit_extension, 2)
+        self.assertSpyCallCount(extension_mgr._init_extension, 2)
         self.assertEqual(self.exceptions, [])
 
     @override_settings(EXTENSIONS_ENABLED_BY_DEFAULT=[
@@ -155,21 +158,27 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager.load with
         settings.EXTENSIONS_ENABLED_BY_DEFAULT
         """
+        extension_mgr = self.extension_mgr
+
         self.setup_extension(MyTestExtension, enable=False)
 
-        self.assertEqual(self.manager.get_installed_extensions(),
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        self.assertEqual(extension_mgr.get_installed_extensions(),
                          [MyTestExtension])
 
-        enabled_extensions = self.manager.get_enabled_extensions()
+        enabled_extensions = extension_mgr.get_enabled_extensions()
         self.assertEqual(len(enabled_extensions), 1)
         self.assertIsInstance(enabled_extensions[0], MyTestExtension)
 
         self.assertTrue(hasattr(MyTestExtension, 'info'))
-        self.assertEqual(MyTestExtension.info.name, self.test_project_name)
+        self.assertEqual(MyTestExtension.info.name,
+                         self.extension_package_name)
         self.assertIsNotNone(MyTestExtension.instance)
         self.assertTrue(hasattr(MyTestExtension, 'registration'))
         self.assertEqual(MyTestExtension.registration.name,
-                         self.test_project_name)
+                         self.extension_package_name)
         self.assertTrue(MyTestExtension.registration.enabled)
 
     def test_load_with_admin_site_failure(self):
@@ -179,11 +188,8 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         class AdminSiteMyTestExtension(HooksTestExtension):
             has_admin_site = True
 
-        def _init_admin_site(*args, **kwargs):
-            raise Exception('admin site failed!')
-
         extension = self.setup_extension(AdminSiteMyTestExtension)
-        manager = self.manager
+        manager = self.extension_mgr
 
         self.assertEqual(manager.get_installed_extensions(),
                          [AdminSiteMyTestExtension])
@@ -191,11 +197,12 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertIs(AdminSiteMyTestExtension.instance, extension)
         self.assertEqual(len(URLHook.hooks), 1)
 
-        self.spy_on(MyTestExtensionManager._init_admin_site,
-                    owner=MyTestExtensionManager,
-                    call_fake=_init_admin_site)
+        @self.spy_for(manager._init_admin_site)
+        def _init_admin_site(*args, **kwargs):
+            raise Exception('admin site failed!')
 
-        self.manager.load(full_reload=True)
+        with self.scanned_extensions([AdminSiteMyTestExtension]):
+            self.extension_mgr.load(full_reload=True)
 
         self.assertEqual(manager.get_installed_extensions(),
                          [AdminSiteMyTestExtension])
@@ -209,11 +216,8 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager.load with extension error setting up
         admin URLs
         """
-        def _install_admin_urls(*args, **kwargs):
-            raise Exception('admin URLs failed!')
-
         extension = self.setup_extension(HooksTestExtension)
-        manager = self.manager
+        manager = self.extension_mgr
 
         self.assertEqual(manager.get_installed_extensions(),
                          [HooksTestExtension])
@@ -222,11 +226,12 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertEqual(len(URLHook.hooks), 1)
         self.assertEqual(manager._load_errors, {})
 
-        self.spy_on(MyTestExtensionManager._install_admin_urls,
-                    owner=MyTestExtensionManager,
-                    call_fake=_install_admin_urls)
+        @self.spy_for(manager._install_admin_urls)
+        def _install_admin_urls(*args, **kwargs):
+            raise Exception('admin URLs failed!')
 
-        self.manager.load(full_reload=True)
+        with self.scanned_extensions([HooksTestExtension]):
+            self.extension_mgr.load(full_reload=True)
 
         self.assertEqual(manager.get_installed_extensions(),
                          [HooksTestExtension])
@@ -241,89 +246,109 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager synchronizes database when no version
         found in settings (new install)
         """
-        extension = self.setup_extension(MyTestExtension, enable=False)
+        extension_mgr = self.extension_mgr
+
+        self.setup_extension(MyTestExtension, enable=False)
+        extension = MyTestExtension(extension_mgr)
         extension.registration.installed = True
         extension.registration.save()
 
-        self.assertNotIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
+        self.assertNotIn(extension_mgr.VERSION_SETTINGS_KEY,
+                         extension.settings)
 
-        self.spy_on(self.manager._sync_database, call_original=False)
+        self.spy_on(extension_mgr._sync_database, call_original=False)
 
-        extension = self.manager.enable_extension(MyTestExtension.id)
+        extension = extension_mgr.enable_extension(MyTestExtension.id)
 
         self.assertTrue(extension.registration.installed)
-        self.assertTrue(self.manager._sync_database.called)
-        self.assertIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
-        self.assertEqual(extension.settings[self.manager.VERSION_SETTINGS_KEY],
-                         extension.info.version)
+        self.assertSpyCalled(extension_mgr._sync_database)
+        self.assertIn(extension_mgr.VERSION_SETTINGS_KEY, extension.settings)
+        self.assertEqual(
+            extension.settings[extension_mgr.VERSION_SETTINGS_KEY],
+            extension.info.version)
 
     def test_sync_database_with_old_settings_version(self):
         """Testing ExtensionManager synchronizes database when old version
         found in settings (upgrade)
         """
-        extension = self.setup_extension(MyTestExtension, enable=False)
+        extension_mgr = self.extension_mgr
+
+        self.setup_extension(MyTestExtension, enable=False)
+        extension = MyTestExtension(extension_mgr)
         extension.registration.installed = True
         extension.registration.save()
 
-        self.assertNotIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
-        extension.settings.set(self.manager.VERSION_SETTINGS_KEY, '0.5')
+        self.assertNotIn(extension_mgr.VERSION_SETTINGS_KEY,
+                         extension.settings)
+        extension.settings.set(extension_mgr.VERSION_SETTINGS_KEY, '0.5')
         extension.settings.save()
 
-        self.spy_on(self.manager._sync_database, call_original=False)
+        self.spy_on(extension_mgr._sync_database, call_original=False)
 
-        extension = self.manager.enable_extension(MyTestExtension.id)
+        extension = extension_mgr.enable_extension(MyTestExtension.id)
 
         self.assertTrue(extension.registration.installed)
-        self.assertTrue(self.manager._sync_database.called)
-        self.assertIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
-        self.assertEqual(extension.settings[self.manager.VERSION_SETTINGS_KEY],
-                         extension.info.version)
+        self.assertSpyCalled(extension_mgr._sync_database)
+        self.assertIn(extension_mgr.VERSION_SETTINGS_KEY, extension.settings)
+        self.assertEqual(
+            extension.settings[extension_mgr.VERSION_SETTINGS_KEY],
+            extension.info.version)
 
     def test_sync_database_with_current_settings_version(self):
         """Testing ExtensionManager doesn't synchronize database when current
         version found in settings
         """
-        extension = self.setup_extension(MyTestExtension, enable=False)
+        extension_mgr = self.extension_mgr
+
+        self.setup_extension(MyTestExtension, enable=False)
+        extension = MyTestExtension(extension_mgr)
         extension.registration.installed = True
         extension.registration.save()
 
-        self.assertNotIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
-        extension.settings.set(self.manager.VERSION_SETTINGS_KEY,
+        self.assertNotIn(extension_mgr.VERSION_SETTINGS_KEY,
+                         extension.settings)
+        extension.settings.set(extension_mgr.VERSION_SETTINGS_KEY,
                                extension.info.version)
         extension.settings.save()
 
-        self.spy_on(self.manager._sync_database, call_original=False)
+        self.spy_on(extension_mgr._sync_database, call_original=False)
 
-        extension = self.manager.enable_extension(MyTestExtension.id)
+        extension = extension_mgr.enable_extension(MyTestExtension.id)
 
         self.assertTrue(extension.registration.installed)
-        self.assertFalse(self.manager._sync_database.called)
-        self.assertIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
-        self.assertEqual(extension.settings[self.manager.VERSION_SETTINGS_KEY],
-                         extension.info.version)
+        self.assertSpyNotCalled(extension_mgr._sync_database)
+        self.assertIn(extension_mgr.VERSION_SETTINGS_KEY, extension.settings)
+        self.assertEqual(
+            extension.settings[extension_mgr.VERSION_SETTINGS_KEY],
+            extension.info.version)
 
     def test_sync_database_with_newer_settings_version(self):
         """Testing ExtensionManager doesn't synchronize database when newer
         version found in settings (downgrade)
         """
-        extension = self.setup_extension(MyTestExtension, enable=False)
+        extension_mgr = self.extension_mgr
+
+        self.setup_extension(MyTestExtension, enable=False)
+        extension = MyTestExtension(extension_mgr)
         extension.registration.installed = True
         extension.registration.save()
 
-        self.assertNotIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
-        extension.settings.set(self.manager.VERSION_SETTINGS_KEY, '100.0')
+        self.assertNotIn(extension_mgr.VERSION_SETTINGS_KEY,
+                         extension.settings)
+        extension.settings.set(extension_mgr.VERSION_SETTINGS_KEY, '100.0')
         extension.settings.save()
 
-        self.spy_on(self.manager._sync_database, call_original=False)
+        self.spy_on(extension_mgr._sync_database, call_original=False)
         self.spy_on(manager_logger.warning)
 
-        extension = self.manager.enable_extension(MyTestExtension.id)
+        extension = extension_mgr.enable_extension(MyTestExtension.id)
 
         self.assertTrue(extension.registration.installed)
-        self.assertFalse(self.manager._sync_database.called)
-        self.assertIn(self.manager.VERSION_SETTINGS_KEY, extension.settings)
-        self.assertEqual(extension.settings[self.manager.VERSION_SETTINGS_KEY],
-                         '100.0')
+        self.assertSpyNotCalled(extension_mgr._sync_database)
+        self.assertIn(extension_mgr.VERSION_SETTINGS_KEY, extension.settings)
+        self.assertEqual(
+            extension.settings[extension_mgr.VERSION_SETTINGS_KEY],
+            '100.0')
         self.assertIn('is older than the version recorded',
                       manager_logger.warning.spy.calls[-1].args[0])
 
@@ -331,7 +356,10 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager installs media when no version file exists
         in the media directory (new install or upgrade from pre-version file)
         """
-        extension = self.setup_extension(MyTestExtension, enable=False)
+        extension_mgr = self.extension_mgr
+
+        self.setup_extension(MyTestExtension, enable=False)
+        extension = MyTestExtension(extension_mgr)
         extension.registration.installed = True
         extension.registration.enabled = True
         extension.registration.save()
@@ -339,10 +367,10 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         self._rebuild_media_dirs(extension)
 
-        self.manager.should_install_static_media = True
+        extension_mgr.should_install_static_media = True
 
-        self.spy_on(self.manager.install_extension_media)
-        self.spy_on(self.manager._install_extension_media_internal,
+        self.spy_on(extension_mgr.install_extension_media)
+        self.spy_on(extension_mgr._install_extension_media_internal,
                     call_original=False)
 
         # Fake the current version being installed.
@@ -351,12 +379,12 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertFalse(os.path.exists(version_filename))
 
         # Enable the extension. We shouldn't install anything.
-        extension = self.manager.enable_extension(MyTestExtension.id)
+        extension = extension_mgr.enable_extension(MyTestExtension.id)
         self.assertTrue(extension.registration.installed)
 
-        self.assertEqual(len(self.manager.install_extension_media.calls), 1)
-        self.assertEqual(
-            len(self.manager._install_extension_media_internal.calls), 1)
+        self.assertSpyCallCount(extension_mgr.install_extension_media, 1)
+        self.assertSpyCallCount(
+            extension_mgr._install_extension_media_internal, 1)
 
         with open(version_filename, 'r') as fp:
             self.assertEqual(fp.read().strip(), extension.info.version)
@@ -365,7 +393,10 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager installs media when version file is
         older than the current version (upgrade)
         """
-        extension = self.setup_extension(MyTestExtension, enable=False)
+        extension_mgr = self.extension_mgr
+
+        self.setup_extension(MyTestExtension, enable=False)
+        extension = MyTestExtension(extension_mgr)
         extension.registration.installed = True
         extension.registration.enabled = True
         extension.registration.save()
@@ -373,10 +404,10 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         self._rebuild_media_dirs(extension)
 
-        self.manager.should_install_static_media = True
+        extension_mgr.should_install_static_media = True
 
-        self.spy_on(self.manager.install_extension_media)
-        self.spy_on(self.manager._install_extension_media_internal,
+        self.spy_on(extension_mgr.install_extension_media)
+        self.spy_on(extension_mgr._install_extension_media_internal,
                     call_original=False)
 
         # Fake the current version being installed.
@@ -387,12 +418,12 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
             fp.write('0.5\n')
 
         # Enable the extension. We shouldn't install anything.
-        extension = self.manager.enable_extension(MyTestExtension.id)
+        extension = extension_mgr.enable_extension(MyTestExtension.id)
         self.assertTrue(extension.registration.installed)
 
-        self.assertEqual(len(self.manager.install_extension_media.calls), 1)
-        self.assertEqual(
-            len(self.manager._install_extension_media_internal.calls), 1)
+        self.assertSpyCallCount(extension_mgr.install_extension_media, 1)
+        self.assertSpyCallCount(
+            extension_mgr._install_extension_media_internal, 1)
 
         with open(version_filename, 'r') as fp:
             self.assertEqual(fp.read().strip(), extension.info.version)
@@ -401,7 +432,10 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager installs media when version file is
         newer than the current version (downgrade)
         """
-        extension = self.setup_extension(MyTestExtension, enable=False)
+        extension_mgr = self.extension_mgr
+
+        self.setup_extension(MyTestExtension, enable=False)
+        extension = MyTestExtension(extension_mgr)
         extension.registration.installed = True
         extension.registration.enabled = True
         extension.registration.save()
@@ -409,10 +443,10 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         self._rebuild_media_dirs(extension)
 
-        self.manager.should_install_static_media = True
+        extension_mgr.should_install_static_media = True
 
-        self.spy_on(self.manager.install_extension_media)
-        self.spy_on(self.manager._install_extension_media_internal,
+        self.spy_on(extension_mgr.install_extension_media)
+        self.spy_on(extension_mgr._install_extension_media_internal,
                     call_original=False)
 
         # Fake the current version being installed.
@@ -423,12 +457,12 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
             fp.write('100.0\n')
 
         # Enable the extension. We shouldn't install anything.
-        extension = self.manager.enable_extension(MyTestExtension.id)
+        extension = extension_mgr.enable_extension(MyTestExtension.id)
         self.assertTrue(extension.registration.installed)
 
-        self.assertEqual(len(self.manager.install_extension_media.calls), 1)
-        self.assertEqual(
-            len(self.manager._install_extension_media_internal.calls), 1)
+        self.assertSpyCallCount(extension_mgr.install_extension_media, 1)
+        self.assertSpyCallCount(
+            extension_mgr._install_extension_media_internal, 1)
 
         with open(version_filename, 'r') as fp:
             self.assertEqual(fp.read().strip(), extension.info.version)
@@ -437,25 +471,25 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager media installation with permission error
         when copying media files
         """
-        self.assertEqual(len(URLHook.hooks), 0)
-        extension = self.setup_extension(HooksTestExtension, enable=False)
-        extension.shutdown()
+        extension_mgr = self.extension_mgr
 
-        manager = self.manager
+        self.setup_extension(HooksTestExtension, enable=False)
+        extension = HooksTestExtension(extension_mgr)
+        extension.shutdown()
 
         self.assertEqual(len(URLHook.hooks), 0)
 
         self._rebuild_media_dirs(extension)
 
-        manager.should_install_static_media = True
+        extension_mgr.should_install_static_media = True
 
+        @self.spy_for(shutil.copytree)
         def _copytree(*args, **kwargs):
             raise shutil.Error()
 
-        self.spy_on(manager.install_extension_media)
+        self.spy_on(extension_mgr.install_extension_media)
         self.spy_on(extension.info.has_resource,
-                    call_fake=lambda *args, **kwargs: True)
-        self.spy_on(shutil.copytree, call_fake=_copytree)
+                    op=kgb.SpyOpReturn(True))
 
         message = (
             'Unable to install static media files for this extension. '
@@ -469,15 +503,14 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         )
 
         with self.assertRaisesMessage(EnablingExtensionError, message):
-            manager.enable_extension(HooksTestExtension.id)
+            extension_mgr.enable_extension(HooksTestExtension.id)
 
-        self.assertFalse(extension.registration.installed)
-        self.assertEqual(len(manager.install_extension_media.calls), 1)
+        self.assertSpyCallCount(extension_mgr.install_extension_media, 1)
         self.assertFalse(os.path.exists(
             os.path.join(extension.info.installed_static_path, '.version')))
-        self.assertEqual(manager.get_installed_extensions(),
+        self.assertEqual(extension_mgr.get_installed_extensions(),
                          [HooksTestExtension])
-        self.assertEqual(manager.get_enabled_extensions(), [])
+        self.assertEqual(extension_mgr.get_enabled_extensions(), [])
         self.assertIsNone(HooksTestExtension.instance)
         self.assertEqual(len(URLHook.hooks), 0)
 
@@ -485,24 +518,24 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager media installation with error when locking
         static directory
         """
-        extension = self.setup_extension(HooksTestExtension, enable=False)
-        extension.shutdown()
+        extension_mgr = self.extension_mgr
 
-        manager = self.manager
+        self.setup_extension(HooksTestExtension, enable=False)
+        extension = HooksTestExtension(extension_mgr)
+        extension.shutdown()
 
         self._rebuild_media_dirs(extension)
 
-        manager.should_install_static_media = True
-        manager._MEDIA_LOCK_SLEEP_TIME_SECS = 0
+        extension_mgr.should_install_static_media = True
+        extension_mgr._MEDIA_LOCK_SLEEP_TIME_SECS = 0
 
+        @self.spy_for(extension_mgr._open_lock_file)
         def _open_lock_file(*args, **kwargs):
             raise IOError(errno.EAGAIN, 'Try again')
 
-        self.spy_on(manager.install_extension_media)
-        self.spy_on(manager._install_extension_media_internal,
+        self.spy_on(extension_mgr.install_extension_media)
+        self.spy_on(extension_mgr._install_extension_media_internal,
                     call_original=False)
-        self.spy_on(manager._open_lock_file,
-                    call_fake=_open_lock_file)
 
         message = (
             'Unable to install static media files for this extension. There '
@@ -519,19 +552,18 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         )
 
         with self.assertRaisesMessage(EnablingExtensionError, message):
-            manager.enable_extension(HooksTestExtension.id)
+            extension_mgr.enable_extension(HooksTestExtension.id)
 
-        self.assertFalse(extension.registration.installed)
-
-        self.assertEqual(len(manager.install_extension_media.calls), 1)
-        self.assertFalse(manager._install_extension_media_internal.called)
+        self.assertSpyCallCount(extension_mgr.install_extension_media, 1)
+        self.assertSpyNotCalled(
+            extension_mgr._install_extension_media_internal)
 
         self.assertFalse(os.path.exists(
             os.path.join(extension.info.installed_static_path, '.version')))
 
-        self.assertEqual(manager.get_installed_extensions(),
+        self.assertEqual(extension_mgr.get_installed_extensions(),
                          [HooksTestExtension])
-        self.assertEqual(manager.get_enabled_extensions(), [])
+        self.assertEqual(extension_mgr.get_enabled_extensions(), [])
         self.assertIsNone(HooksTestExtension.instance)
         self.assertEqual(len(URLHook.hooks), 0)
 
@@ -539,10 +571,13 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager installs media safely with multiple
         threads
         """
+        extension_mgr = self.extension_mgr
+
         # Manually mark the extension as installed and enabled without going
         # through the enable process, since we don't want to trigger any
         # static media saving yet.
-        extension = self.setup_extension(MyTestExtension, enable=False)
+        self.setup_extension(MyTestExtension, enable=False)
+        extension = MyTestExtension(extension_mgr)
         extension.registration.installed = True
         extension.registration.enabled = True
         extension.registration.save()
@@ -550,22 +585,22 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         self._rebuild_media_dirs(extension)
 
-        self.manager.should_install_static_media = True
+        extension_mgr.should_install_static_media = True
 
-        self.assertEqual(len(self.manager.get_installed_extensions()), 1)
+        self.assertEqual(len(extension_mgr.get_installed_extensions()), 1)
 
-        self.spy_on(self.manager.install_extension_media)
-        self.spy_on(self.manager._install_extension_media_internal,
+        self.spy_on(extension_mgr.install_extension_media)
+        self.spy_on(extension_mgr._install_extension_media_internal,
                     call_original=False)
 
         # Simulate numerous simultaneous attempts at installing static media.
         self._run_thread_test(
-            lambda: self.manager.install_extension_media(extension.__class__))
+            lambda: extension_mgr.install_extension_media(extension.__class__))
 
         self.assertEqual(
-            len(self.manager.install_extension_media.calls), 2)
+            len(extension_mgr.install_extension_media.calls), 2)
         self.assertEqual(
-            len(self.manager._install_extension_media_internal.calls), 1)
+            len(extension_mgr._install_extension_media_internal.calls), 1)
         self.assertEqual(self.exceptions, [])
 
         version_filename = os.path.join(extension.info.installed_static_path,
@@ -578,18 +613,21 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         """Testing ExtensionManager doesn't install media when version file
         matches current version
         """
-        extension = self.setup_extension(MyTestExtension, enable=False)
-        extension.registration.installed = True
-        extension.registration.enabled = True
-        extension.registration.save()
+        extension_mgr = self.extension_mgr
+
+        self.setup_extension(MyTestExtension, enable=False)
+        extension = MyTestExtension(extension_mgr)
+        MyTestExtension.registration.installed = True
+        MyTestExtension.registration.enabled = True
+        MyTestExtension.registration.save()
         MyTestExtension.instance = extension
 
         self._rebuild_media_dirs(extension)
 
-        self.manager.should_install_static_media = True
+        extension_mgr.should_install_static_media = True
 
-        self.spy_on(self.manager.install_extension_media)
-        self.spy_on(self.manager._install_extension_media_internal,
+        self.spy_on(extension_mgr.install_extension_media)
+        self.spy_on(extension_mgr._install_extension_media_internal,
                     call_original=False)
 
         # Fake the current version being installed.
@@ -600,12 +638,12 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
             fp.write('%s\n' % extension.info.version)
 
         # Enable the extension. We shouldn't install anything.
-        extension = self.manager.enable_extension(MyTestExtension.id)
+        extension = extension_mgr.enable_extension(MyTestExtension.id)
         self.assertTrue(extension.registration.installed)
 
-        self.assertEqual(len(self.manager.install_extension_media.calls), 1)
+        self.assertEqual(len(extension_mgr.install_extension_media.calls), 1)
         self.assertEqual(
-            len(self.manager._install_extension_media_internal.calls), 0)
+            len(extension_mgr._install_extension_media_internal.calls), 0)
 
         with open(version_filename, 'r') as fp:
             self.assertEqual(fp.read().strip(), extension.info.version)
@@ -693,7 +731,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
             # Shutting down the extension should remove the context
             # processor.
-            self.manager.disable_extension(extension.id)
+            self.extension_mgr.disable_extension(extension.id)
             self.assertNotIn('my_custom_processor',
                              context_processors_list)
         finally:
@@ -748,7 +786,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         # Shutting down the extension should remove the template tags module
         # and clear the cache.
-        self.manager.disable_extension(extension.id)
+        self.extension_mgr.disable_extension(extension.id)
 
         _check_state(enabled=False)
 
@@ -780,8 +818,8 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertEqual(MyTestExtensionModel.objects.count(), 1)
 
         # Re-enabling shouldn't break anything.
-        self.manager.disable_extension(extension.id)
-        self.manager.enable_extension(extension.id)
+        self.extension_mgr.disable_extension(extension.id)
+        self.extension_mgr.enable_extension(extension.id)
         self.assertEqual(MyTestExtensionModel.objects.count(), 1)
 
     def test_enable_extension_evolve_without_models(self):
@@ -848,9 +886,9 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         # We're now going to shut down and re-enable, but with a different
         # version of the model. This should trigger an evolution sequence.
-        self.manager.disable_extension(extension.id)
+        self.extension_mgr.disable_extension(extension.id)
 
-        self.manager.enable_extension(extension.id)
+        self.extension_mgr.enable_extension(extension.id)
 
         TestEvolveExtensionModel.objects.create(test_field='test',
                                                 new_field=100)
@@ -931,7 +969,7 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertEqual(len(pipeline_settings.STYLESHEETS), 1)
         self.assertEqual(len(pipeline_settings.JAVASCRIPT), 1)
 
-        self.manager.disable_extension(extension.id)
+        self.extension_mgr.disable_extension(extension.id)
 
         self.assertEqual(len(pipeline_settings.STYLESHEETS), 0)
         self.assertEqual(len(pipeline_settings.JAVASCRIPT), 0)
@@ -941,14 +979,17 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         cross-process
         """
         key = 'extension-list-sync'
-        fake_entry_point = FakeEntryPoint(MyTestExtension,
-                                          project_name=self.test_project_name)
 
-        manager1 = MyTestExtensionManager([fake_entry_point], key)
-        manager2 = MyTestExtensionManager([fake_entry_point], key)
+        manager1 = ExtensionManager(key)
+        manager2 = ExtensionManager(key)
 
-        manager1.load()
-        manager2.load()
+        with self.scanned_extensions([MyTestExtension],
+                                     extension_mgr=manager1):
+            manager1.load()
+
+        with self.scanned_extensions([MyTestExtension],
+                                     extension_mgr=manager2):
+            manager2.load()
 
         self.assertEqual(len(manager1.get_installed_extensions()), 1)
         self.assertEqual(len(manager2.get_installed_extensions()), 1)
@@ -962,8 +1003,10 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertFalse(manager1.is_expired())
         self.assertTrue(manager2.is_expired())
 
-        print('*** Reloading')
-        manager2.load(full_reload=True)
+        with self.scanned_extensions([MyTestExtension],
+                                     extension_mgr=manager2):
+            manager2.load(full_reload=True)
+
         self.assertEqual(len(manager1.get_enabled_extensions()), 1)
         self.assertEqual(len(manager2.get_enabled_extensions()), 1)
         self.assertFalse(manager1.is_expired())
@@ -976,17 +1019,19 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         key = 'extension-settings-sync'
         setting_key = 'foo'
         setting_val = 'abc123'
-        fake_entry_point = FakeEntryPoint(MyTestExtension,
-                                          project_name=self.test_project_name)
 
-        manager1 = MyTestExtensionManager([fake_entry_point], key)
-        manager2 = MyTestExtensionManager([fake_entry_point], key)
+        manager1 = ExtensionManager(key)
+        manager2 = ExtensionManager(key)
 
-        manager1.load()
+        with self.scanned_extensions([MyTestExtension],
+                                     extension_mgr=manager1):
+            manager1.load()
 
         extension1 = manager1.enable_extension(MyTestExtension.id)
 
-        manager2.load()
+        with self.scanned_extensions([MyTestExtension],
+                                     extension_mgr=manager2):
+            manager2.load()
 
         self.assertFalse(manager1.is_expired())
         self.assertFalse(manager2.is_expired())
@@ -1004,7 +1049,10 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         self.assertFalse(manager1.is_expired())
         self.assertTrue(manager2.is_expired())
 
-        manager2.load(full_reload=True)
+        with self.scanned_extensions([MyTestExtension],
+                                     extension_mgr=manager2):
+            manager2.load(full_reload=True)
+
         extension2 = manager2.get_enabled_extension(MyTestExtension.id)
 
         self.assertFalse(manager1.is_expired())
@@ -1019,15 +1067,18 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
         number
         """
         key = 'check-expired-test'
-        fake_entry_point = FakeEntryPoint(MyTestExtension,
-                                          project_name=self.test_project_name)
+        manager1 = ExtensionManager(key)
+        manager2 = ExtensionManager(key)
 
-        manager1 = MyTestExtensionManager([fake_entry_point], key)
-        manager2 = MyTestExtensionManager([fake_entry_point], key)
+        with self.scanned_extensions([MyTestExtension],
+                                     extension_mgr=manager1):
+            manager1.load()
 
-        manager1.load()
         manager1.enable_extension(MyTestExtension.id)
-        manager2.load()
+
+        with self.scanned_extensions([MyTestExtension],
+                                     extension_mgr=manager2):
+            manager2.load()
 
         self.assertEqual(manager1._gen_sync.sync_gen,
                          manager2._gen_sync.sync_gen)
@@ -1043,7 +1094,10 @@ class ExtensionManagerTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
         # Loading now should retain the new sync generation number, instead
         # of bumping it.
-        manager1.load(full_reload=True)
+        with self.scanned_extensions([MyTestExtension],
+                                     extension_mgr=manager1):
+            manager1.load(full_reload=True)
+
         self.assertEqual(manager1._gen_sync.sync_gen,
                          manager2._gen_sync.sync_gen)
 

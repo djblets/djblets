@@ -6,7 +6,7 @@ from django.conf.urls import include, url
 
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import URLHook
-from djblets.extensions.tests.base import ExtensionTestsMixin
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
@@ -19,13 +19,10 @@ class MyTestExtension(Extension):
         self.url_hook = URLHook(self, self.patterns)
 
 
-class URLHookTest(ExtensionTestsMixin, TestCase):
+class URLHookTest(ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.hooks.URLHook."""
 
-    def setUp(self):
-        super(URLHookTest, self).setUp()
-
-        self.extension = self.setup_extension(MyTestExtension)
+    extension_class = MyTestExtension
 
     def test_url_registration(self):
         """Testing URLHook URL registration"""
