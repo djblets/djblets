@@ -348,26 +348,24 @@ class QuerystringWithTagTests(TestCase):
         t = Template('{% load djblets_utils %}'
                      '{% querystring_with "foo" "bar" %}')
 
-        with warnings.catch_warnings(record=True) as w:
+        expected_message = (
+            '{% querystring_with "foo" "bar" %} is deprecated and will be '
+            'removed in a future version of Djblets. Please use '
+            '{% querystring "mode" "foo=bar" %} instead.'
+        )
+
+        with self.assertWarns(cls=RemovedInDjblets30Warning,
+                              message=expected_message):
             t.render(Context({
                 'request': self.request,
             }))
 
-        self.assertEqual(len(w), 1)
-        deprecation_message = w[0].message
-
-        self.assertIsInstance(deprecation_message, RemovedInDjblets30Warning)
-        self.assertEqual(
-            six.text_type(deprecation_message),
-            '{% querystring_with "foo" "bar" %} is deprecated and will be '
-            'removed in a future version of Djblets. Please use '
-            '{% querystring "mode" "foo=bar" %} instead.')
-
-        self.assertEqual(
-            t.render(Context({
-                'request': HttpRequest(),
-            })),
-            '?foo=bar')
+        with self.assertWarns(cls=RemovedInDjblets30Warning):
+            self.assertEqual(
+                t.render(Context({
+                    'request': HttpRequest(),
+                })),
+                '?foo=bar')
 
     def test_with_tag_existing_query(self):
         """Testing {% querystring_with %} with an existing query"""
@@ -379,11 +377,12 @@ class QuerystringWithTagTests(TestCase):
             ('b', '2'),
         ])
 
-        self.assertEqual(
-            t.render(Context({
-                'request': self.request,
-            })),
-            '?a=1&amp;b=2&amp;foo=bar')
+        with self.assertWarns(cls=RemovedInDjblets30Warning):
+            self.assertEqual(
+                t.render(Context({
+                    'request': self.request,
+                })),
+                '?a=1&amp;b=2&amp;foo=bar')
 
     def test_with_existing_query_override(self):
         """Testing {% querystring_with %} with an existing query that gets
@@ -397,10 +396,11 @@ class QuerystringWithTagTests(TestCase):
             'bar': 'baz',
         }
 
-        self.assertEqual(
-            t.render(Context({
-                'request': self.request,
-            })), '?bar=baz&amp;foo=bar')
+        with self.assertWarns(cls=RemovedInDjblets30Warning):
+            self.assertEqual(
+                t.render(Context({
+                    'request': self.request,
+                })), '?bar=baz&amp;foo=bar')
 
 
 class QuerystringTagTests(TestCase):

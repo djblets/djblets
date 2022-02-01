@@ -34,11 +34,18 @@ class TokenAuthBackendMixin(object):
     #: The API token model to use for any token lookups.
     api_token_model = None
 
-    def authenticate(self, token=None, **kwargs):
+    def authenticate(self, request, token=None, **kwargs):
         """Authenticate a user, given a token ID.
 
         Args:
-            token (unicode): The API token ID to authenticate with.
+            request (django.http.HttpRequest):
+                The request object.
+
+            token (unicode, optional):
+                The API token ID to authenticate with.
+
+            **kwargs (dict):
+                Keyword arguments for future expansion.
 
         Returns:
             User:

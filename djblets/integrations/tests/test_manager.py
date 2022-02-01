@@ -58,8 +58,8 @@ class IntegrationManagerTests(IntegrationsTestCase):
         MIDDLEWARE_CLASSES
         """
         msg = ('IntegrationManager requires djblets.integrations.middleware.'
-               'IntegrationsMiddleware to be listed in '
-               'settings.MIDDLEWARE_CLASSES')
+               'IntegrationsMiddleware to be listed in settings.MIDDLEWARE '
+               'or settings.MIDDLEWARE_CLASSES')
 
         middleware_classes = list(settings.MIDDLEWARE_CLASSES)
         middleware_classes.remove('djblets.integrations.middleware.'

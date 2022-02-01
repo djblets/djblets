@@ -4,13 +4,19 @@ from django.utils import six
 
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import ExtensionHookPoint, BaseRegistryHook
-from djblets.extensions.tests.base import ExtensionTestsMixin
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.registries.registry import Registry
 from djblets.testing.testcases import TestCase
 
 
-class BaseRegistryHookTests(ExtensionTestsMixin, TestCase):
+class MyTestExtension(Extension):
+    pass
+
+
+class BaseRegistryHookTests(ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.hooks.BaseRegistryHook."""
+
+    extension_class = MyTestExtension
 
     class DummyRegistry(Registry):
         lookup_attrs = ('foo_id',)
@@ -28,12 +34,7 @@ class BaseRegistryHookTests(ExtensionTestsMixin, TestCase):
         class DummyRegistryHook(BaseRegistryHook):
             registry = self.registry
 
-        class TestExtension(Extension):
-            pass
-
         self.hook_cls = DummyRegistryHook
-
-        self.extension = self.setup_extension(TestExtension)
 
     def test_hook_register(self):
         """Testing BaseRegistryHook item registration"""

@@ -7,21 +7,21 @@ from kgb import SpyAgency
 
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import SignalHook
-from djblets.extensions.tests.base import ExtensionTestsMixin
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
-class TestExtension(Extension):
+class MyTestExtension(Extension):
     pass
 
 
-class SignalHookTests(SpyAgency, ExtensionTestsMixin, TestCase):
+class SignalHookTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.hooks.SignalHook."""
+
+    extension_class = MyTestExtension
 
     def setUp(self):
         super(SignalHookTests, self).setUp()
-
-        self.test_extension = self.setup_extension(TestExtension)
 
         self.signal = Signal()
         self.spy_on(self._on_signal_fired)
@@ -29,7 +29,7 @@ class SignalHookTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
     def test_initialize(self):
         """Testing SignalHook initialization connects to signal"""
-        SignalHook(self.test_extension, self.signal, self._on_signal_fired)
+        SignalHook(self.extension, self.signal, self._on_signal_fired)
 
         self.assertEqual(len(self._on_signal_fired.calls), 0)
         self.signal.send(self)
@@ -37,7 +37,7 @@ class SignalHookTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
     def test_shutdown(self):
         """Testing SignalHook.shutdown disconnects from signal"""
-        hook = SignalHook(self.test_extension, self.signal,
+        hook = SignalHook(self.extension, self.signal,
                           self._on_signal_fired)
         hook.disable_hook()
 
@@ -47,7 +47,7 @@ class SignalHookTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
     def test_shutdown_with_sender(self):
         """Testing SignalHook.shutdown disconnects when a sender was set"""
-        hook = SignalHook(self.test_extension, self.signal,
+        hook = SignalHook(self.extension, self.signal,
                           self._on_signal_fired, sender=self)
         hook.disable_hook()
 
@@ -62,7 +62,7 @@ class SignalHookTests(SpyAgency, ExtensionTestsMixin, TestCase):
         def callback(**kwargs):
             seen_kwargs.update(kwargs)
 
-        SignalHook(self.test_extension, self.signal, callback)
+        SignalHook(self.extension, self.signal, callback)
         self.signal.send(sender=self, foo=1, bar=2)
 
         self.assertTrue('foo', seen_kwargs)
@@ -72,7 +72,7 @@ class SignalHookTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
     def test_sandbox_errors_true(self):
         """Testing SignalHook with sandbox_errors set to True logs errors"""
-        SignalHook(self.test_extension, self.signal, self._on_signal_exception,
+        SignalHook(self.extension, self.signal, self._on_signal_exception,
                    sandbox_errors=True)
 
         self.assertEqual(len(self._on_signal_exception.calls), 0)
@@ -81,7 +81,7 @@ class SignalHookTests(SpyAgency, ExtensionTestsMixin, TestCase):
 
     def test_sandbox_errors_false(self):
         """Testing SignalHook with sandbox_errors set to False"""
-        SignalHook(self.test_extension, self.signal, self._on_signal_exception,
+        SignalHook(self.extension, self.signal, self._on_signal_exception,
                    sandbox_errors=False)
 
         self.assertEqual(len(self._on_signal_exception.calls), 0)

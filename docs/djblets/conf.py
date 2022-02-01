@@ -69,8 +69,8 @@ source_suffix = '.rst'
 master_doc = 'contents'
 
 # General information about the project.
-project = u'Djblets Documentation'
-copyright = u'2015-%s, Beanbag, Inc.' % datetime.now().year
+project = 'Djblets Documentation'
+copyright = '2009-%s, Beanbag, Inc.' % datetime.now().year
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

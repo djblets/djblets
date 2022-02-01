@@ -7,41 +7,35 @@ from django.conf.urls import url
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.test.utils import override_settings
-from kgb import SpyAgency
 
 from djblets.extensions.extension import Extension
 from djblets.extensions.forms import SettingsForm
-from djblets.extensions.tests.base import ExtensionTestsMixin
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.extensions.views import configure_extension
 from djblets.testing.testcases import TestCase
 
 
-class ViewTests(SpyAgency, ExtensionTestsMixin, TestCase):
+class MyTestExtension(Extension):
+    admin_urlconf = []
+    is_configurable = True
+
+
+class ViewTests(ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.views."""
 
-    def setUp(self):
-        class TestExtension(Extension):
-            admin_urlconf = []
-            is_configurable = True
-
-        super(ViewTests, self).setUp()
-
-        self.extension = self.setup_extension(TestExtension)
+    extension_class = MyTestExtension
 
     def test_configure_extension_saving(self):
         """Testing configure_extension with saving settings"""
         class TestSettingsForm(SettingsForm):
             mykey = forms.CharField(max_length=100)
 
-        self.spy_on(self.manager.get_enabled_extension,
-                    call_fake=lambda *args: self.extension)
-
         urlpatterns[:] = [
             url('^config/$', configure_extension,
                 {
                     'ext_class': type(self.extension),
                     'form_class': TestSettingsForm,
-                    'extension_manager': self.manager,
+                    'extension_manager': self.extension_mgr,
                 }),
             url('', admin.site.urls),
         ]

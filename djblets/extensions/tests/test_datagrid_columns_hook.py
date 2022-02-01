@@ -7,21 +7,18 @@ from kgb import SpyAgency
 from djblets.datagrid.grids import Column, DataGrid
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import DataGridColumnsHook
-from djblets.extensions.tests.base import ExtensionTestsMixin
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
-class TestExtension(Extension):
+class MyTestExtension(Extension):
     pass
 
 
-class DataGridColumnsHookTest(SpyAgency, ExtensionTestsMixin, TestCase):
+class DataGridColumnsHookTest(SpyAgency, ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.hooks.DataGridColumnsHook."""
 
-    def setUp(self):
-        super(DataGridColumnsHookTest, self).setUp()
-
-        self.extension = self.setup_extension(TestExtension)
+    extension_class = MyTestExtension
 
     def test_add_column(self):
         """Testing DataGridColumnsHook registers column"""

@@ -114,9 +114,17 @@ class WysiwygEMailExtension(Extension):
         }
     """
 
-    def extendMarkdown(self, md, md_globals):
-        """Extend the list of Markdown processors."""
-        md.treeprocessors.add('inlinestyle', InlineStyleProcessor(), '_end')
+    def extendMarkdown(self, md):
+        """Extend the list of Markdown processors.
+
+        Args:
+            md (markdown.Markdown):
+                The Markdown instance.
+        """
+        md.treeprocessors.register(
+            InlineStyleProcessor(),
+            'inlinestyle',
+            priority=0)
 
 
 def makeExtension(*args, **kwargs):
@@ -128,5 +136,9 @@ def makeExtension(*args, **kwargs):
 
         **kwargs (dict):
             Keyword arguments for the extension.
+
+    Returns:
+        WysiwygEMailExtension:
+        The extension instance.
     """
     return WysiwygEMailExtension(*args, **kwargs)

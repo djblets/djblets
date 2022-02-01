@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 from djblets.extensions.extension import Extension
-from djblets.extensions.tests.base import ExtensionTestsMixin
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.privacy.consent import (BaseConsentRequirement,
                                      get_consent_requirements_registry)
 from djblets.privacy.consent.hooks import ConsentRequirementHook
@@ -22,7 +22,7 @@ class MyConsentRequirement(BaseConsentRequirement):
     data_use_description = 'Sending all the things.'
 
 
-class ConsentRequirementHookTests(ExtensionTestsMixin, TestCase):
+class ConsentRequirementHookTests(ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.privacy.consent.hooks.ConsentRequirementHook."""
 
     extension_class = MyExtension
@@ -31,7 +31,6 @@ class ConsentRequirementHookTests(ExtensionTestsMixin, TestCase):
         super(ConsentRequirementHookTests, self).setUp()
 
         self.registry = get_consent_requirements_registry()
-        self.extension = self.setup_extension(MyExtension)
         self.consent_requirement = MyConsentRequirement()
         self.consent_requirement_id = self.consent_requirement.requirement_id
 

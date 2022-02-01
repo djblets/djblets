@@ -6,26 +6,23 @@ from django.utils import six
 
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import ExtensionHook, ExtensionHookPoint
-from djblets.extensions.tests.base import ExtensionTestsMixin
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
 @six.add_metaclass(ExtensionHookPoint)
-class TestExtensionHook(ExtensionHook):
+class MyTestExtensionHook(ExtensionHook):
     pass
 
 
-class TestExtension(Extension):
+class MyTestExtension(Extension):
     pass
 
 
-class ExtensionHookTest(ExtensionTestsMixin, TestCase):
+class ExtensionHookTest(ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.hooks.ExtensionHook."""
 
-    def setUp(self):
-        super(ExtensionHookTest, self).setUp()
-
-        self.extension = self.setup_extension(TestExtension)
+    extension_class = MyTestExtension
 
     def test_init_hook_states(self):
         """Testing ExtensionHook enabling hook states"""
@@ -67,7 +64,7 @@ class ExtensionHookTest(ExtensionTestsMixin, TestCase):
 
     def test_registration(self):
         """Testing ExtensionHook registration"""
-        extension_hook = TestExtensionHook(self.extension)
+        extension_hook = MyTestExtensionHook(self.extension)
 
         self.assertEqual(self.extension, extension_hook.extension)
         self.assertIn(extension_hook, self.extension.hooks)
@@ -75,7 +72,7 @@ class ExtensionHookTest(ExtensionTestsMixin, TestCase):
 
     def test_shutdown(self):
         """Testing ExtensionHook.shutdown"""
-        extension_hook = TestExtensionHook(self.extension)
+        extension_hook = MyTestExtensionHook(self.extension)
         extension_hook.disable_hook()
 
         self.assertNotIn(extension_hook, extension_hook.__class__.hooks)

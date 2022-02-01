@@ -2,10 +2,16 @@
 
 from __future__ import unicode_literals
 
+try:
+    # Django >= 1.10
+    from django.utils.deprecation import MiddlewareMixin
+except ImportError:
+    MiddlewareMixin = object
+
 from djblets.siteconfig.models import SiteConfiguration
 
 
-class SettingsMiddleware(object):
+class SettingsMiddleware(MiddlewareMixin):
     """Middleware for performing expiration checks for site configuration.
 
     This will check the site configuration before each request is handled in

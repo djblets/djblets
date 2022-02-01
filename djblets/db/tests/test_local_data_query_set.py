@@ -7,7 +7,7 @@ from djblets.db.query import LocalDataQuerySet
 from djblets.testing.testcases import TestCase
 
 
-class TestObjectsForOrder(object):
+class MyTestObjectsForOrder(object):
     """Object used for testing"""
 
     def __init__(self, param1, param2, param3, param4):
@@ -192,13 +192,13 @@ class LocalDataQuerySetTests(TestCase):
 
     def test_order_by(self):
         """Testing LocalDataQuerySet.order_by"""
-        obj1 = TestObjectsForOrder(2, 'first', 'string', 0)
-        obj2 = TestObjectsForOrder(1, 'second', 'string', 0)
-        obj3 = TestObjectsForOrder(4, 'test', 'string', 3)
-        obj4 = TestObjectsForOrder(1, 'first', 'string', 0)
-        obj5 = TestObjectsForOrder(2, 'second', 'string', 0)
-        obj6 = TestObjectsForOrder(4, 'test', 'string', 0)
-        obj7 = TestObjectsForOrder(2, 'third', 'string', 0)
+        obj1 = MyTestObjectsForOrder(2, 'first', 'string', 0)
+        obj2 = MyTestObjectsForOrder(1, 'second', 'string', 0)
+        obj3 = MyTestObjectsForOrder(4, 'test', 'string', 3)
+        obj4 = MyTestObjectsForOrder(1, 'first', 'string', 0)
+        obj5 = MyTestObjectsForOrder(2, 'second', 'string', 0)
+        obj6 = MyTestObjectsForOrder(4, 'test', 'string', 0)
+        obj7 = MyTestObjectsForOrder(2, 'third', 'string', 0)
 
         data = [obj1, obj2, obj3, obj4, obj5, obj6, obj7]
         answer = [obj2, obj4, obj7, obj5, obj1, obj3, obj6]

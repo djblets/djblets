@@ -279,7 +279,8 @@ class ExtensionManager(object):
         self._extension_list_url = None
 
         # Extension middleware instances, ordered by dependencies.
-        self.middleware = []
+        self.middleware_classes = []
+        self.legacy_middleware_instances = []
 
         # Wrap the INSTALLED_APPS and TEMPLATE_CONTEXT_PROCESSORS settings
         # to allow for ref-counted add/remove operations.
@@ -569,6 +570,7 @@ class ExtensionManager(object):
 
             registration = extension.registration
         else:
+            extension = None
             del self._load_errors[extension_id]
 
             if extension_id in self._extension_classes:
@@ -587,7 +589,9 @@ class ExtensionManager(object):
         self._bump_sync_gen()
         self._recalculate_middleware()
 
-        extension_disabled.send_robust(sender=self, extension=extension)
+        if extension is not None:
+            extension_disabled.send_robust(sender=self,
+                                           extension=extension)
 
     def install_extension(self, install_url, package_name):
         """Install an extension from a remote source.
@@ -1380,7 +1384,7 @@ class ExtensionManager(object):
         if getattr(extension, 'admin_site', None):
             extension.admin_site_urlpatterns = [
                 url(r'^%s%s/db/' % (prefix, extension.id),
-                    include(extension.admin_site.urls)),
+                    extension.admin_site.urls)
             ]
 
             self.dynamic_urls.add_patterns(extension.admin_site_urlpatterns)
@@ -1560,11 +1564,14 @@ class ExtensionManager(object):
         All middleware provided by extensions will be registered in the
         Django settings and will be used for future requests.
         """
-        self.middleware = []
+        self.middleware_classes = []
+        self.legacy_middleware_instances = []
         done = set()
 
         for e in self.get_enabled_extensions():
-            self.middleware.extend(self._get_extension_middleware(e, done))
+            mw, legacy_mw = self._get_extension_middleware(e, done)
+            self.middleware_classes += mw
+            self.legacy_middleware_instances += legacy_mw
 
     def _get_extension_middleware(self, extension, done):
         """Return a list of middleware for an extension and its dependencies.
@@ -1583,10 +1590,13 @@ class ExtensionManager(object):
                 found that exist in this set will be ignored.
 
         Returns:
-            list of type:
-            The list of middleware classes for the extension.
+            tuple of list:
+            A 2-tuple of lists. The first list is a list of classes for
+            new-style (Django 1.10+) middleware. The second list is a list of
+            instances for old-style middleware.
         """
         middleware = []
+        legacy_middleware = []
 
         if extension in done:
             return middleware
@@ -1597,10 +1607,13 @@ class ExtensionManager(object):
             e = self.get_enabled_extension(req)
 
             if e:
-                middleware.extend(self._get_extension_middleware(e, done))
+                mw, legacy_mw = self._get_extension_middleware(e, done)
+                middleware += mw
+                legacy_middleware += legacy_mw
 
-        middleware.extend(extension.middleware_instances)
-        return middleware
+        middleware.extend(extension.middleware_classes)
+        legacy_middleware.extend(extension.legacy_middleware_instances)
+        return middleware, legacy_middleware
 
     @contextmanager
     def _open_lock_file(self, ext_class, filename,

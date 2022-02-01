@@ -11,8 +11,10 @@ from django.utils.safestring import mark_safe
 from pipeline.conf import settings as pipeline_settings
 from pipeline.templatetags.pipeline import JavascriptNode, StylesheetNode
 
+from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.extensions.hooks import TemplateHook
 from djblets.extensions.manager import get_extension_managers
+from djblets.util.compat.django.utils.inspect import func_accepts_kwargs
 
 
 logger = logging.getLogger(__name__)
@@ -354,6 +356,14 @@ def init_js_extensions(context, extension_manager_key):
     and their JavaScript-side Extension subclasses will be instantiated.
     """
     request = context['request']
+
+    if not request.resolver_match:
+        # In some cases, this can get called from within middleware (typically
+        # if the middleware is bailing out of the usual call chain for some
+        # reason). In that case, we don't have access to the resolver match,
+        # but we also almost certainly don't want to be enabling JS extensions.
+        return {}
+
     url_name = request.resolver_match.url_name
 
     for manager in get_extension_managers():
@@ -370,13 +380,12 @@ def init_js_extensions(context, extension_manager_key):
             js_extension_items = []
 
             for js_extension in js_extensions:
-                arg_spec = inspect.getargspec(js_extension.get_model_data)
-
-                if arg_spec.keywords is None:
+                if not func_accepts_kwargs(js_extension.get_model_data):
                     warnings.warn(
                         '%s.get_model_data will need to take keyword '
                         'arguments. The old function signature is deprecated.'
-                        % js_extension_cls.__name__)
+                        % js_extension_cls.__name__,
+                        RemovedInDjblets30Warning)
 
                     model_data = js_extension.get_model_data()
                 else:

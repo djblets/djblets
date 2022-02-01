@@ -13,17 +13,17 @@ from djblets.configforms.views import ConfigPagesView
 from djblets.testing.testcases import TestCase
 
 
-class TestForm1(ConfigPageForm):
+class MyTestForm1(ConfigPageForm):
     form_id = 'my-form-1'
     form_title = 'Form 1'
 
 
-class TestForm2(ConfigPageForm):
+class MyTestForm2(ConfigPageForm):
     form_id = 'my-form-2'
     form_title = 'Form 2'
 
 
-class TestForm3(ConfigPageForm):
+class MyTestForm3(ConfigPageForm):
     form_id = 'my-form-3'
     form_title = 'Form 3'
 
@@ -31,9 +31,9 @@ class TestForm3(ConfigPageForm):
         return False
 
 
-class TestPage(ConfigPage):
+class MyTestPage(ConfigPage):
     page_id = 'my-page'
-    form_classes = [TestForm1, TestForm2, TestForm3]
+    form_classes = [MyTestForm1, MyTestForm2, MyTestForm3]
 
 
 class ConfigPageTests(TestCase):
@@ -45,13 +45,13 @@ class ConfigPageTests(TestCase):
         self.request = RequestFactory().request()
         self.user = User.objects.create_user(username='test-user',
                                              password='test-user')
-        self.page = TestPage(ConfigPagesView, self.request, self.user)
+        self.page = MyTestPage(ConfigPagesView, self.request, self.user)
 
     def test_initial_state(self):
         """Testing ConfigPage initial state"""
         self.assertEqual(len(self.page.forms), 2)
-        self.assertIsInstance(self.page.forms[0], TestForm1)
-        self.assertIsInstance(self.page.forms[1], TestForm2)
+        self.assertIsInstance(self.page.forms[0], MyTestForm1)
+        self.assertIsInstance(self.page.forms[1], MyTestForm2)
 
     def test_is_visible_with_visible_forms(self):
         """Testing ConfigPage.is_visible with visible forms"""
@@ -59,11 +59,11 @@ class ConfigPageTests(TestCase):
 
     def test_is_visible_with_no_visible_forms(self):
         """Testing ConfigPage.is_visible without visible forms"""
-        class TestPage(ConfigPage):
+        class MyTestPage(ConfigPage):
             page_id = 'my-page'
-            form_classes = [TestForm3]
+            form_classes = [MyTestForm3]
 
-        page = TestPage(ConfigPagesView, self.request, self.user)
+        page = MyTestPage(ConfigPagesView, self.request, self.user)
         self.assertFalse(page.is_visible())
 
     def test_render(self):
