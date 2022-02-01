@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import gc
 
 import django
-import nose
 from django.db import models, transaction
 from kgb import SpyAgency
 
