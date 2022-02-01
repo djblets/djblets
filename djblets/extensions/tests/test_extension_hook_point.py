@@ -7,7 +7,7 @@ from mock import Mock
 
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import ExtensionHook, ExtensionHookPoint
-from djblets.extensions.tests.base import ExtensionTestsMixin
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
@@ -20,13 +20,14 @@ class MyTestExtension(Extension):
     pass
 
 
-class ExtensionHookPointTest(ExtensionTestsMixin, TestCase):
+class ExtensionHookPointTest(ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.hooks.ExtensionHookPoint."""
+
+    extension_class = MyTestExtension
 
     def setUp(self):
         super(ExtensionHookPointTest, self).setUp()
 
-        self.extension = self.setup_extension(MyTestExtension)
         self.extension_hook_class = MyTestExtensionHook
         self.dummy_hook = Mock()
         self.extension_hook_class.add_hook(self.dummy_hook)

@@ -7,7 +7,7 @@ from django.utils import six
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import (ExtensionHookPoint,
                                       BaseRegistryMultiItemHook)
-from djblets.extensions.tests.base import ExtensionTestsMixin
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.registries.errors import AlreadyRegisteredError
 from djblets.registries.registry import Registry
 from djblets.testing.testcases import TestCase
@@ -22,8 +22,14 @@ class DummyItem(object):
         self.foo_id = foo_id
 
 
-class BaseRegistryMultiItemHookTests(ExtensionTestsMixin, TestCase):
+class MyTestExtension(Extension):
+    pass
+
+
+class BaseRegistryMultiItemHookTests(ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.hooks.BaseRegistryMultiItemsHook."""
+
+    extension_class = MyTestExtension
 
     def setUp(self):
         super(BaseRegistryMultiItemHookTests, self).setUp()
@@ -34,12 +40,7 @@ class BaseRegistryMultiItemHookTests(ExtensionTestsMixin, TestCase):
         class DummyRegistryHook(BaseRegistryMultiItemHook):
             registry = self.registry
 
-        class TestExtension(Extension):
-            pass
-
         self.hook_cls = DummyRegistryHook
-
-        self.extension = self.setup_extension(TestExtension)
 
     def test_initialize(self):
         """Testing BaseRegistryMultiItemHook.initialize"""

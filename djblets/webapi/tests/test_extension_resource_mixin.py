@@ -66,12 +66,11 @@ class ExtensionRootResourceMixinTests(ExtensionTestCaseMixin, TestCase):
     extension_class = MyTestExtension
 
     def setUp(self):
-        self.mgr = ExtensionManager('')
-        self.ext_resource = ExtensionResource(self.mgr)
+        super(ExtensionRootResourceMixinTests, self).setUp()
+
+        self.ext_resource = ExtensionResource(self.extension_mgr)
         self.root_resource = MyTestRootResource([self.ext_resource])
         self.request = RequestFactory().get('/')
-
-        super(ExtensionRootResourceMixinTests, self).setUp()
 
     def test_generate_extension_uris_for_template(self):
         """Testing ExtensionRootResourceMixin generates URI templates when

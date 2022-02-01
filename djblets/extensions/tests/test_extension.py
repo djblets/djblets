@@ -9,7 +9,7 @@ from kgb import SpyAgency
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import ExtensionHook, ExtensionHookPoint
 from djblets.extensions.settings import ExtensionSettings
-from djblets.extensions.tests.base import ExtensionTestsMixin
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
@@ -22,7 +22,7 @@ class DummyHook(ExtensionHook):
         self.foo.pop()
 
 
-class ExtensionTest(SpyAgency, ExtensionTestsMixin, TestCase):
+class ExtensionTest(SpyAgency, ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.extension.Extension."""
 
     def test_extension_constructor(self):
@@ -80,7 +80,7 @@ class ExtensionTest(SpyAgency, ExtensionTestsMixin, TestCase):
         class TestExtension(Extension):
             __module__ = 'djblets.extensions.tests.apps.test'
 
-        extension = self.setup_extension(TestExtension, enable=False)
+        extension = self.setup_extension(TestExtension)
 
         try:
             extension.admin_urlconf

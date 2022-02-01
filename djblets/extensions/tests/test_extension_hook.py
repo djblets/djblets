@@ -6,7 +6,7 @@ from django.utils import six
 
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import ExtensionHook, ExtensionHookPoint
-from djblets.extensions.tests.base import ExtensionTestsMixin
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
@@ -19,13 +19,10 @@ class MyTestExtension(Extension):
     pass
 
 
-class ExtensionHookTest(ExtensionTestsMixin, TestCase):
+class ExtensionHookTest(ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.hooks.ExtensionHook."""
 
-    def setUp(self):
-        super(ExtensionHookTest, self).setUp()
-
-        self.extension = self.setup_extension(MyTestExtension)
+    extension_class = MyTestExtension
 
     def test_init_hook_states(self):
         """Testing ExtensionHook enabling hook states"""
