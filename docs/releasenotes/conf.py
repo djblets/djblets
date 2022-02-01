@@ -22,6 +22,7 @@
 # absolute, like shown here.
 import os
 import sys
+from datetime import datetime
 sys.path.append(os.path.abspath('_ext'))
 
 
@@ -62,8 +63,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Release Notes'
-copyright = u'2014 Beanbag, Inc.'
+project = 'Release Notes'
+copyright = '2009-%s, Beanbag, Inc.' % datetime.now().year
 bugtracker_url = 'https://www.reviewboard.org/bugs/%s'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -194,8 +195,7 @@ htmlhelp_basename = 'ReleaseNotes'
 # (source start file, target name, title, author, document class
 # [howto/manual]).
 latex_documents = [
-  ('index', 'ReleaseNotes.tex', ur'Release Notes',
-   ur'Christian Hammond', 'manual'),
+  ('index', 'ReleaseNotes.tex', 'Release Notes', 'Beanbag, Inc.', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top

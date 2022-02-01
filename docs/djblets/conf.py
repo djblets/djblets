@@ -69,8 +69,8 @@ source_suffix = '.rst'
 master_doc = 'contents'
 
 # General information about the project.
-project = u'Djblets Documentation'
-copyright = u'2015-%s, Beanbag, Inc.' % datetime.now().year
+project = 'Djblets Documentation'
+copyright = '2009-%s, Beanbag, Inc.' % datetime.now().year
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -201,8 +201,8 @@ htmlhelp_basename = 'DjbletsDocs'
 # (source start file, target name, title, author, document class
 # [howto/manual]).
 latex_documents = [
-  ('index', 'docs.tex', ur'Djblets Documentation',
-   ur'Beanbag, Inc.', 'manual', False),
+  ('index', 'docs.tex', 'Djblets Documentation',
+   'Beanbag, Inc.', 'manual', False),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
