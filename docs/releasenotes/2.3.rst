@@ -5,7 +5,7 @@
 Djblets 2.3 Release Notes
 =========================
 
-**Release date**: TBD
+**Release date**: February 8, 2022
 
 
 Packaging
