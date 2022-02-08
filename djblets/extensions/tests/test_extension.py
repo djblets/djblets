@@ -74,7 +74,7 @@ class ExtensionTest(SpyAgency, ExtensionTestCaseMixin, TestCase):
     def test_admin_urlconf(self):
         """Testing Extension with admin URLConfs"""
         class TestExtension(Extension):
-            __module__ = 'djblets.extensions.tests.apps.test'
+            __module__ = 'djblets.extensions.tests.apps.model_tests'
 
         extension = self.setup_extension(TestExtension)
 

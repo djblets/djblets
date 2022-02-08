@@ -1,0 +1,96 @@
+.. default-intersphinx:: django1.11 djblets2.x
+
+
+=========================
+Djblets 2.3 Release Notes
+=========================
+
+**Release date**: February 8, 2022
+
+
+Packaging
+=========
+
+* Bumped the version of the packaging-only dependency babel_ to 7.x.
+
+* Bumped the version of the packaging-only dependency babel-plugin-dedent_ to
+  2.x (2.1+).
+
+
+.. _babel: https://babeljs.io/
+.. _babel-plugin-dedent: https://www.npmjs.com/package/babel-plugin-dedent
+
+
+Compatibility
+=============
+
+* Added compatibility shims to allow Django 1.11 to work on Python 3.10.
+
+  Python 3.10 removed some legacy imports in the :py:mod:`collections` module,
+  which were still being used in Django 1.11. Now, so long as the
+  :py:mod:`djblets` module is imported early enough, Django 1.11 will continue
+  to work.
+
+* Updated all Djblets-provided Django middleware to work as old-style
+  middleware or new-style middleware.
+
+  This allows the middleware to be used in the old
+  :setting:`django1.6:MIDDLEWARE_CLASSES` setting, or in the modern
+  :setting:`MIDDLEWARE` setting.
+
+  Support for working as old-style middleware will be removed in Djblets 3.0.
+
+
+djblets.cache
+=============
+
+* Fixed :py:func:`~djblets.cache.backend.cache_memoize` with values that
+  don't have a length.
+
+  This fixes storing booleans, integers, and other such values as cached
+  data without first having to cast to a string or store in a list.
+
+
+djblets.extensions
+==================
+
+* Extensions can now provide modern Django middleware.
+
+  Before, only legacy Django middleware were supported.
+
+  Support for legacy middleware will be removed in Djblets 3.0.
+
+* Babel_ 7.x is now used for building ES6-compatible JavaScript in extensions.
+
+  This shouldn't impose any backwards-compatibility issues.
+
+* Added new extension state management capabilities for unit tests using
+  :py:class:`~djblets.extensions.testing.testcases.ExtensionTestCaseMixin`.
+
+* Fixed a crash with attempting to disable an extension with load errors.
+
+* Fixed extension state cleanup issues in unit tests using
+  :py:class:`~djblets.extensions.testing.testcases.ExtensionTestCaseMixin`.
+
+
+djblets.markdown
+================
+
+* Updated the Markdown extensions to stop using deprecated
+  :pypi:`Python-Markdown` 2.x code.
+
+  The following extensions are now fully compatible with Python-Markdown
+  3.x:
+
+  * :py:mod:`djblets.markdown.extensions.escape_html`
+  * :py:mod:`djblets.markdown.extensions.wysiwyg`
+  * :py:mod:`djblets.markdown.extensions.wysiwyg_email`
+
+* Fixed :py:func:`~djblets.markdown.render_markdown_from_file` on Python 3.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
