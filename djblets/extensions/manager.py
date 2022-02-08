@@ -1,7 +1,5 @@
 """Extension manager class for supporting extensions to an application."""
 
-from __future__ import unicode_literals
-
 import atexit
 import errno
 import logging
@@ -16,19 +14,16 @@ import traceback
 import warnings
 import weakref
 from contextlib import contextmanager
-from importlib import import_module
+from importlib import import_module, reload
 
 from django.apps.registry import apps
 from django.conf import settings
-from django.conf.urls import include, url
 from django.contrib.admin.sites import AdminSite
 from django.core.files import locks
 from django.db import IntegrityError
-from django.urls import reverse
-from django.utils import six
+from django.urls import include, path, reverse
 from django.utils.module_loading import module_has_submodule
-from django.utils.six.moves import reload_module
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.conf import settings as pipeline_settings
 from setuptools.command import easy_install
 
@@ -280,7 +275,6 @@ class ExtensionManager(object):
 
         # Extension middleware instances, ordered by dependencies.
         self.middleware_classes = []
-        self.legacy_middleware_instances = []
 
         # Wrap the INSTALLED_APPS and TEMPLATE_CONTEXT_PROCESSORS settings
         # to allow for ref-counted add/remove operations.
@@ -459,7 +453,7 @@ class ExtensionManager(object):
         """
         # This will raise InvalidExtensionError if not found.
         dependency = self.get_installed_extension(dependency_extension_id)
-        extension_classes = six.iteritems(self._extension_classes)
+        extension_classes = self._extension_classes.items()
 
         return [
             extension_id
@@ -771,7 +765,7 @@ class ExtensionManager(object):
 
         # Now we have all the RegisteredExtension instances. Go through
         # and initialize each of them.
-        for class_name, registered_ext in six.iteritems(found_registrations):
+        for class_name, registered_ext in found_registrations.items():
             ext_class = found_extensions[class_name]
             ext_class.registration = registered_ext
 
@@ -795,7 +789,7 @@ class ExtensionManager(object):
         # While we're at it, since we're at a point where we've seen all
         # extensions, we can set the ExtensionInfo.requirements for
         # each extension
-        for class_name, ext_class in six.iteritems(self._extension_classes):
+        for class_name, ext_class in self._extension_classes.items():
             if class_name not in found_extensions:
                 if class_name in self._extension_instances:
                     self.disable_extension(class_name)
@@ -1012,7 +1006,7 @@ class ExtensionManager(object):
                                  ext_class.id, e)
 
                 raise InstallExtensionError(
-                    six.text_type(e),
+                    str(e),
                     self._store_load_error(ext_class.id, e))
 
     def _get_app_modules_with_models(self, app_names):
@@ -1375,16 +1369,16 @@ class ExtensionManager(object):
 
             if hasattr(urlconf, 'urlpatterns'):
                 extension.admin_urlpatterns = [
-                    url(r'^%s%s/config/' % (prefix, extension.id),
-                        include(urlconf.__name__)),
+                    path('%s%s/config/' % (prefix, extension.id),
+                         include(urlconf.__name__)),
                 ]
 
                 self.dynamic_urls.add_patterns(extension.admin_urlpatterns)
 
         if getattr(extension, 'admin_site', None):
             extension.admin_site_urlpatterns = [
-                url(r'^%s%s/db/' % (prefix, extension.id),
-                    extension.admin_site.urls)
+                path('%s%s/db/' % (prefix, extension.id),
+                     extension.admin_site.urls)
             ]
 
             self.dynamic_urls.add_patterns(extension.admin_site_urlpatterns)
@@ -1405,7 +1399,7 @@ class ExtensionManager(object):
 
         def _add_bundles(pipeline_bundles, extension_bundles, default_dir,
                          ext):
-            for name, bundle in six.iteritems(extension_bundles):
+            for name, bundle in extension_bundles.items():
                 new_bundle = bundle.copy()
 
                 new_bundle['source_filenames'] = [
@@ -1437,7 +1431,7 @@ class ExtensionManager(object):
                 unregister.
         """
         def _remove_bundles(pipeline_bundles, extension_bundles):
-            for name, bundle in six.iteritems(extension_bundles):
+            for name, bundle in extension_bundles.items():
                 try:
                     del pipeline_bundles[extension.get_bundle_id(name)]
                 except KeyError:
@@ -1474,7 +1468,7 @@ class ExtensionManager(object):
                 # If the extension has been loaded previously and we are
                 # re-enabling it, we must reload the module. Just importing
                 # again will not cause the ModelAdmins to be registered.
-                reload_module(sys.modules[admin_module_name])
+                reload(sys.modules[admin_module_name])
             else:
                 import_module(admin_module_name)
         except ImportError:
@@ -1565,13 +1559,10 @@ class ExtensionManager(object):
         Django settings and will be used for future requests.
         """
         self.middleware_classes = []
-        self.legacy_middleware_instances = []
         done = set()
 
         for e in self.get_enabled_extensions():
-            mw, legacy_mw = self._get_extension_middleware(e, done)
-            self.middleware_classes += mw
-            self.legacy_middleware_instances += legacy_mw
+            self.middleware_classes += self._get_extension_middleware(e, done)
 
     def _get_extension_middleware(self, extension, done):
         """Return a list of middleware for an extension and its dependencies.
@@ -1590,13 +1581,10 @@ class ExtensionManager(object):
                 found that exist in this set will be ignored.
 
         Returns:
-            tuple of list:
-            A 2-tuple of lists. The first list is a list of classes for
-            new-style (Django 1.10+) middleware. The second list is a list of
-            instances for old-style middleware.
+            list:
+            A list of classes for middleware.
         """
         middleware = []
-        legacy_middleware = []
 
         if extension in done:
             return middleware
@@ -1607,13 +1595,10 @@ class ExtensionManager(object):
             e = self.get_enabled_extension(req)
 
             if e:
-                mw, legacy_mw = self._get_extension_middleware(e, done)
-                middleware += mw
-                legacy_middleware += legacy_mw
+                middleware += self._get_extension_middleware(e, done)
 
         middleware.extend(extension.middleware_classes)
-        legacy_middleware.extend(extension.legacy_middleware_instances)
-        return middleware, legacy_middleware
+        return middleware
 
     @contextmanager
     def _open_lock_file(self, ext_class, filename,
@@ -1682,7 +1667,7 @@ def get_extension_managers():
         list of ExtensionManager:
         The list of all extension manager instances currently registered.
     """
-    return list(six.itervalues(_extension_managers))
+    return list(_extension_managers.values())
 
 
 def shutdown_extension_managers():

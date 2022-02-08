@@ -1,14 +1,11 @@
 """Consent tracking and storage capabilities."""
 
-from __future__ import unicode_literals
-
 import hashlib
 from importlib import import_module
 
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
-from django.utils import six
 
 from djblets.cache.backend import cache_memoize, make_cache_key
 from djblets.db.query import get_object_or_none
@@ -249,7 +246,7 @@ class DatabaseConsentTracker(BaseConsentTracker):
         result = {}
 
         if stored_consent:
-            for key, value in six.iteritems(stored_consent.consent_grants):
+            for key, value in stored_consent.consent_grants.items():
                 if value:
                     result[key] = Consent.GRANTED
                 else:

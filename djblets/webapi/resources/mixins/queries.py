@@ -1,7 +1,5 @@
 """Mixins for helping with lookups from HTTP GET query strings."""
 
-from __future__ import unicode_literals
-
 from django.db.models import Q
 
 

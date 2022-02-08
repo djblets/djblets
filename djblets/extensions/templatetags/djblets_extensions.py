@@ -1,12 +1,10 @@
-from __future__ import unicode_literals
-
 import inspect
 import logging
 import warnings
 
 from django import template
-from django.utils import six
 from django.utils.html import format_html_join
+from django.utils.inspect import func_accepts_kwargs
 from django.utils.safestring import mark_safe
 from pipeline.conf import settings as pipeline_settings
 from pipeline.templatetags.pipeline import JavascriptNode, StylesheetNode
@@ -14,7 +12,6 @@ from pipeline.templatetags.pipeline import JavascriptNode, StylesheetNode
 from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.extensions.hooks import TemplateHook
 from djblets.extensions.manager import get_extension_managers
-from djblets.util.compat.django.utils.inspect import func_accepts_kwargs
 
 
 logger = logging.getLogger(__name__)
@@ -261,6 +258,7 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
         The HTML used to include the bundled content.
     """
     request = context['request']
+
     if not getattr(request, 'resolver_match', None):
         return
 
@@ -274,7 +272,7 @@ def _get_extension_bundles(extension_manager_key, context, bundle_attr,
         for extension in manager.get_enabled_extensions():
             bundles = getattr(extension, bundle_attr, {})
 
-            for bundle_name, bundle in six.iteritems(bundles):
+            for bundle_name, bundle in bundles.items():
                 if (bundle_name in default_bundles or
                     requested_url_name in bundle.get('apply_to', [])):
                     for include_bundle in bundle.get('include_bundles', []):
@@ -357,7 +355,7 @@ def init_js_extensions(context, extension_manager_key):
     """
     request = context['request']
 
-    if not request.resolver_match:
+    if not getattr(request, 'resolver_match', None):
         # In some cases, this can get called from within middleware (typically
         # if the middleware is bailing out of the usual call chain for some
         # reason). In that case, we don't have access to the resolver match,
@@ -384,7 +382,7 @@ def init_js_extensions(context, extension_manager_key):
                     warnings.warn(
                         '%s.get_model_data will need to take keyword '
                         'arguments. The old function signature is deprecated.'
-                        % js_extension_cls.__name__,
+                        % js_extension.__class__.__name__,
                         RemovedInDjblets30Warning)
 
                     model_data = js_extension.get_model_data()

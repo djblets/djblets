@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import functools
 import re
 
@@ -8,7 +6,6 @@ from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db.models.query import QuerySet
 from django.db.models.manager import Manager
 from django.db.models.query_utils import Q
-from django.utils import six
 
 
 class LocalDataQuerySet(object):
@@ -171,7 +168,7 @@ class LocalDataQuerySet(object):
         for item in self:
             match = True
 
-            for key, value in six.iteritems(kwargs):
+            for key, value in kwargs.items():
                 if getattr(item, key) != value:
                     match = False
                     break

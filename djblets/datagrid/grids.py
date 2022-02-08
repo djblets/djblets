@@ -1,28 +1,3 @@
-#
-# grids.py -- Basic definitions for datagrids
-#
-# Copyright (c) 2008-2009  Christian Hammond
-# Copyright (c) 2008-2009  David Trowbridge
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
 """Components for creating customizable datagrids from database data.
 
 Datagrids are used to display a table-based view of data from a database,
@@ -47,8 +22,6 @@ There are two main types of datagrids:
 All datagrids are meant to be subclassed.
 """
 
-from __future__ import unicode_literals
-
 import logging
 import re
 import string
@@ -57,15 +30,14 @@ import traceback
 import pytz
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.paginator import InvalidPage, QuerySetPaginator
+from django.core.paginator import InvalidPage, Paginator
 from django.http import Http404, HttpResponse
 from django.template.defaultfilters import date, timesince
 from django.template.loader import get_template, render_to_string
-from django.utils import six
 from django.utils.cache import patch_cache_control
 from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from djblets.template.context import get_default_template_context_processors
 from djblets.util.decorators import cached_property
@@ -461,13 +433,13 @@ class Column(object):
                 url = render_context.get('_datagrid_object_url')
 
         if self.css_class:
-            if six.callable(self.css_class):
+            if callable(self.css_class):
                 css_class = self.css_class(obj)
             else:
                 css_class = self.css_class
 
         if self.link_css_class:
-            if six.callable(self.link_css_class):
+            if callable(self.link_css_class):
                 link_css_class = self.link_css_class(obj)
             else:
                 link_css_class = self.link_css_class
@@ -535,7 +507,7 @@ class Column(object):
                 if field_name:
                     value = getattr(value, field_name)
 
-                    if six.callable(value):
+                    if callable(value):
                         value = value()
 
             return escape(value)
@@ -888,7 +860,7 @@ class DataGrid(object):
         """
         cls._populate_columns()
 
-        return six.itervalues(_column_registry[cls])
+        return _column_registry[cls].values()
 
     @classmethod
     def _populate_columns(cls):
@@ -1445,7 +1417,7 @@ class DataGrid(object):
             HttpResponse: The HTTP response to send to the client.
         """
         response = HttpResponse(
-            six.text_type(self.render_listview(render_context)))
+            str(self.render_listview(render_context)))
         patch_cache_control(response, no_cache=True, no_store=True, max_age=0,
                             must_revalidate=True)
         return response
@@ -1551,8 +1523,7 @@ class DataGrid(object):
         Returns:
             A populated paginator object.
         """
-        return QuerySetPaginator(queryset, self.paginate_by,
-                                 self.paginate_orphans)
+        return Paginator(queryset, self.paginate_by, self.paginate_orphans)
 
     def _build_render_context(self):
         """Build a dictionary containing RequestContext contents.

@@ -1,10 +1,9 @@
 """Unit tests for djblets.auth.util."""
 
-from __future__ import unicode_literals
-
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.sessions.middleware import SessionMiddleware
+from django.http import HttpResponse
 from django.test.client import RequestFactory
 
 from djblets.auth.util import validate_old_password, validate_test_cookie
@@ -111,7 +110,9 @@ class ValidateTestCookieTests(TestCase):
         self.form = DummyForm()
 
         self.request = RequestFactory().post('/')
-        SessionMiddleware().process_request(self.request)
+
+        middleware = SessionMiddleware(lambda request: HttpResponse(''))
+        middleware(self.request)
 
     def test_with_test_cookie(self):
         """Testing validate_test_cookie with test cookie set"""

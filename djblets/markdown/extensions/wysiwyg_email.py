@@ -5,10 +5,7 @@ text and the rendered content looks roughly the same. It's meant to help ensure
 that what's typed is very close to what's viewed when rendered.
 """
 
-from __future__ import absolute_import, unicode_literals
-
 from django import template
-from django.utils import six
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
 
@@ -73,7 +70,7 @@ class InlineStyleProcessor(Treeprocessor):
         # Create a valid CSS string and set it as the style attribute
         el.set('style', ''.join(
             '%s: %s;' % (k, v)
-            for k, v in six.iteritems(style)
+            for k, v in style.items()
         ))
 
         # Recurse into children

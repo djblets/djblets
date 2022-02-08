@@ -1,13 +1,13 @@
-from __future__ import unicode_literals
-
 import os
 from importlib import import_module
 
-from django.template import TemplateDoesNotExist
-from django.template.loaders import app_directories
+from django.core.exceptions import SuspiciousFileOperation
+from django.template import Origin, TemplateDoesNotExist
+from django.template.loaders.app_directories import Loader as AppDirsLoader
+from django.utils._os import safe_join
 
 
-class Loader(app_directories.Loader):
+class Loader(AppDirsLoader):
     """Looks for templates in app directories, optionally with a namespace.
 
     This extends the standard Django 'app_directories' template loader by
@@ -23,7 +23,7 @@ class Loader(app_directories.Loader):
 
         self._cache = {}
 
-    def get_template_sources(self, template_name, template_dirs=None):
+    def get_template_sources(self, template_name):
         parts = template_name.split(':')
 
         if len(parts) == 2:
@@ -43,6 +43,16 @@ class Loader(app_directories.Loader):
 
             template_name = parts[1]
             template_dirs = [template_dir]
+        else:
+            template_dirs = self.get_dirs()
 
-        return super(Loader, self).get_template_sources(template_name,
-                                                        template_dirs)
+        for template_dir in template_dirs:
+            try:
+                name = safe_join(template_dir, template_name)
+            except SuspiciousFileOperation:
+                continue
+
+            yield Origin(
+                name=name,
+                template_name=template_name,
+                loader=self)

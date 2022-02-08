@@ -1,45 +1,18 @@
-#
-# djblets_utils.py -- Various utility template tags
-#
-# Copyright (c) 2007-2009  Christian Hammond
-# Copyright (c) 2007-2009  David Trowbridge
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-from __future__ import unicode_literals
+"""Miscellaneous utility template tags."""
 
 import datetime
 import os
 import re
 import warnings
+from urllib.parse import urlencode
 
 from django import template
 from django.http import QueryDict
 from django.template import TemplateSyntaxError, Variable
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
-from django.utils import six
 from django.utils.html import escape, format_html, strip_spaces_between_tags
 from django.utils.safestring import mark_safe
-from django.utils.six.moves import range
-from django.utils.six.moves.urllib.parse import urlencode
 from django.utils.timezone import is_aware
 
 from djblets.deprecation import RemovedInDjblets30Warning
@@ -127,8 +100,7 @@ def definevar(context, nodelist, varname, *options):
         result = result.strip()
 
     if 'unsafe' in options:
-        # Unicode strings are inherently "unsafe".
-        result = six.text_type(result)
+        result = escape(result)
     else:
         result = mark_safe(result)
 
@@ -329,7 +301,7 @@ def attr(context, nodelist, attrname, *options):
     if not content:
         return ''
 
-    return format_html(' {0}="{1}"', attrname, six.text_type(content))
+    return format_html(' {0}="{1}"', attrname, str(content))
 
 
 @register.filter

@@ -4,8 +4,7 @@ The middleware sets up some advanced logging capabilities for profiling
 and exception logging.
 """
 
-from __future__ import unicode_literals
-
+import io
 import logging
 import sys
 import traceback
@@ -16,9 +15,7 @@ from django.db import connection
 from django.db.backends import utils as db_backend_utils
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.http import Http404
-from django.utils import six
 from django.utils.deprecation import MiddlewareMixin
-from django.utils.six.moves import cStringIO as StringIO
 
 from djblets.log import init_logging, init_profile_logger, log_timed
 
@@ -176,7 +173,7 @@ class LoggingMiddleware(MiddlewareMixin):
             self.profiler.create_stats()
 
             # Capture the stats
-            out = StringIO()
+            out = io.StringIO()
             old_stdout, sys.stdout = sys.stdout, out
             self.profiler.print_stats(1)
             sys.stdout = old_stdout
@@ -202,14 +199,14 @@ class LoggingMiddleware(MiddlewareMixin):
                     queries[sql] = [(time, stack)]
 
             times = {}
-            for sql, entries in six.iteritems(queries):
+            for sql, entries in queries.items():
                 time = sum((float(entry[0]) for entry in entries))
                 tracebacks = '\n\n'.join((entry[1] for entry in entries))
                 times[time] = \
                     'SQL Query profile (%d times, %.3fs average)\n%s\n\n%s\n\n' % \
                     (len(entries), time / len(entries), sql, tracebacks)
 
-            sorted_times = sorted(six.iterkeys(times), reverse=1)
+            sorted_times = sorted(times.keys(), reverse=1)
             for time in sorted_times:
                 profile_log.log(logging.INFO, times[time])
 

@@ -1,9 +1,6 @@
 """A form for working with key/value stores."""
 
-from __future__ import unicode_literals
-
 from django import forms
-from django.utils import six
 
 
 class KeyValueForm(forms.Form):
@@ -125,7 +122,7 @@ class KeyValueForm(forms.Form):
         load_blacklist = self.get_load_blacklist()
         disabled_fields = set(self.disabled_fields)
 
-        for field_name, field in six.iteritems(self.fields):
+        for field_name, field in self.fields.items():
             if self.instance is not None and field_name not in load_blacklist:
                 value = self.get_key_value(field_name, default=field.initial)
                 deserialize_func = getattr(self,
@@ -171,7 +168,7 @@ class KeyValueForm(forms.Form):
 
         blacklist = set(extra_save_blacklist) | set(self.get_save_blacklist())
 
-        for key, value in six.iteritems(self.cleaned_data):
+        for key, value in self.cleaned_data.items():
             if key not in blacklist:
                 serialize_func = getattr(self, 'serialize_%s_field' % key,
                                          None)

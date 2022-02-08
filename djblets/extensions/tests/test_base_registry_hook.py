@@ -1,7 +1,5 @@
 """Unit tests for djblets.extensions.hooks.BaseRegistryHook."""
 
-from django.utils import six
-
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import ExtensionHookPoint, BaseRegistryHook
 from djblets.extensions.testing import ExtensionTestCaseMixin
@@ -30,8 +28,8 @@ class BaseRegistryHookTests(ExtensionTestCaseMixin, TestCase):
 
         self.registry = self.DummyRegistry()
 
-        @six.add_metaclass(ExtensionHookPoint)
-        class DummyRegistryHook(BaseRegistryHook):
+        class DummyRegistryHook(BaseRegistryHook,
+                                metaclass=ExtensionHookPoint):
             registry = self.registry
 
         self.hook_cls = DummyRegistryHook

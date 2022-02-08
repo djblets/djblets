@@ -1,9 +1,6 @@
-from __future__ import unicode_literals
-
 from copy import deepcopy
 
-from django.utils import six
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 
 class JSONPatchError(Exception):
@@ -246,7 +243,7 @@ def json_merge_patch(doc, patch, can_write_key_func=None):
                 # dictionary, which will then be populated.
                 new_doc = {}
 
-            for key, value in six.iteritems(cur_patch):
+            for key, value in cur_patch.items():
                 path = parent_path + (key,)
 
                 if (can_write_key_func and

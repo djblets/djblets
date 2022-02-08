@@ -1,7 +1,5 @@
 """Base classes for implementing extensions."""
 
-from __future__ import unicode_literals
-
 import inspect
 import locale
 import logging
@@ -14,15 +12,12 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.templatetags.static import static
 from django.urls import get_mod_func
-from django.utils import six
-from django.utils.encoding import python_2_unicode_compatible
 from django.utils.module_loading import import_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.extensions.errors import InstallExtensionMediaError
 from djblets.extensions.settings import ExtensionSettings
-from djblets.util.compat.django.utils.inspect import getargspec
 from djblets.util.decorators import cached_property
 
 
@@ -145,13 +140,6 @@ class Extension(object):
             Version Added:
                 2.2.4
 
-        legacy_middleware_instances (list of object):
-            The list of legacy (pre-Django 1.10) middleware instances. Each
-            will be an instance of a class listed in :py:attr:`middleware`.
-
-            Version Added:
-                2.2.4
-
         settings (djblets.extensions.settings.ExtensionSettings):
             The settings for the extension.
     """
@@ -232,9 +220,8 @@ class Extension(object):
     #: A list of Django middleware to load.
     #:
     #: Each of these will be run as if they were part of
-    #: :django:setting:`MIDDLEWARE` (or :django:setting:`MIDDLEWARE_CLASSES`
-    #: depending on your setup) while the extension is enabled. It follows the
-    #: same format as that setting.
+    #: :django:setting:`MIDDLEWARE` depending on your setup) while the
+    #: extension is enabled. It follows the same format as that setting.
     middleware = []
 
     #: A dictionary of CSS bundles to include in the package.
@@ -286,63 +273,9 @@ class Extension(object):
         self.admin_site = None
 
         self.middleware_classes = []
-        self.legacy_middleware_instances = []
 
         for middleware_path in self.middleware:
-            middleware_cls = import_string(middleware_path)
-
-            try:
-                arg_spec = getargspec(middleware_cls.__init__)
-                arg_spec_args = arg_spec[0]
-            except (AttributeError, TypeError):
-                # There's no custom __init__ here. It may not exist
-                # in the case of an old-style object, in which case we'll
-                # get an AttributeError. Or, it may be a new-style object
-                # with no custom __init__, in which case we'll get a TypeError.
-                arg_spec = None
-
-            # New-style middleware can either be a class which accepts a
-            # get_response argument in its __init__ method, or a function.
-            # Legacy middleware will always be a class, which either takes no
-            # arguments or can take the extension instance.
-            if (inspect.isfunction(middleware_cls) or
-                (arg_spec and
-                 len(arg_spec_args) == 2 and
-                 arg_spec_args[1] == 'get_response')):
-                self.middleware_classes.append(middleware_cls)
-            else:
-                if (arg_spec and len(arg_spec_args) == 2 and
-                    arg_spec_args[1] == 'extension'):
-                    middleware_instance = middleware_cls(self)
-                else:
-                    middleware_instance = middleware_cls()
-
-                self.legacy_middleware_instances.append(middleware_instance)
-
-        if (getattr(settings, 'MIDDLEWARE_CLASSES', None) and
-            self.middleware_classes):
-            warnings.warn(
-                'Application is running with old-style MIDDLEWARE_CLASSES '
-                'setting but extension %s defines the following new-style '
-                '(Django 1.10+) middleware entries:\n'
-                '%s'
-                % (self.info.name, '\n'.join(
-                    '*  %r' % mw_class
-                    for mw_class in self.middleware_classes)),
-                RemovedInDjblets30Warning)
-            self.middleware_classes = []
-
-        if (getattr(settings, 'MIDDLEWARE', None) and
-            self.legacy_middleware_instances):
-            warnings.warn(
-                'Application is running with new-style MIDDLEWARE setting '
-                'but extension %s defined the following old-style (pre-Django '
-                '1.10) middleware entries:\n'
-                '%s'
-                % (self.info.name, '\n'.join(
-                    '*  %r' % type(mw_class)
-                    for mw_class in self.legacy_middleware_instances)),
-                RemovedInDjblets30Warning)
+            self.middleware_classes.append(import_string(middleware_path))
 
         self.initialize()
 
@@ -415,7 +348,6 @@ class Extension(object):
                 (name, e))
 
 
-@six.python_2_unicode_compatible
 class ExtensionInfo(object):
     """Information on an extension.
 
@@ -514,8 +446,7 @@ class ExtensionInfo(object):
         p.feed(data)
         pkg_info = p.close()
 
-        # Convert from a Message to a dictionary. Note that items() is correct
-        # here. six.iteritems() will not work.
+        # Convert from a Message to a dictionary.
         return dict(pkg_info.items())
 
     def __init__(self, ext_class, package_name, metadata={}):

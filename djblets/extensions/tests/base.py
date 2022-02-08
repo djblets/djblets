@@ -1,9 +1,6 @@
 """Base support for djblets.extensions unit tests."""
 
-from __future__ import unicode_literals
-
 import pkg_resources
-from django.utils import six
 
 from djblets.extensions.manager import ExtensionManager
 
@@ -106,7 +103,7 @@ class FakeProvider(pkg_resources.DefaultProvider):
         """
         return ''.join(
             '%s: %s\n' % (field_name, value)
-            for field_name, value in six.iteritems(self.metadata)
+            for field_name, value in self.metadata.items()
         ).encode('utf-8')
 
 

@@ -1,15 +1,8 @@
 """Middleware for working with integrations."""
 
-from __future__ import unicode_literals
-
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-
-try:
-    # Django >= 1.10
-    from django.utils.deprecation import MiddlewareMixin
-except ImportError:
-    MiddlewareMixin = object
+from django.utils.deprecation import MiddlewareMixin
 
 from djblets.integrations.manager import get_integration_managers
 

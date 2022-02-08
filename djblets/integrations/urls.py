@@ -1,6 +1,4 @@
-from __future__ import unicode_literals
-
-from django.conf.urls import include, url
+from django.urls import include, path, re_path
 
 
 def build_integration_urlpatterns(list_view_cls, config_form_view_cls,
@@ -46,22 +44,19 @@ def build_integration_urlpatterns(list_view_cls, config_form_view_cls,
 
     if list_view_cls is not None:
         urlpatterns.append(
-            url('^$',
-                list_view_cls.as_view(),
-                name='integration-list'))
+            path('', list_view_cls.as_view(), name='integration-list'))
 
     if config_form_view_cls is not None:
         urlpatterns.append(
-            url('^(?P<integration_id>[A-Za-z0-9_\.]+)/configs/', include([
-                url('^add/$',
-                    config_form_view_cls.as_view(),
-                    name='integration-add-config'),
-                url('^(?P<config_id>[0-9]+)/$',
-                    config_form_view_cls.as_view(),
-                    name='integration-change-config'),
+            re_path(r'^(?P<integration_id>[A-Za-z0-9_\.]+)/configs/', include([
+                path('add/',
+                     config_form_view_cls.as_view(),
+                     name='integration-add-config'),
+                path('<int:config_id>/',
+                     config_form_view_cls.as_view(),
+                     name='integration-change-config'),
             ])))
 
     return [
-        url('', include(urlpatterns,
-                        namespace=namespace)),
+        path('', include(urlpatterns, namespace=namespace)),
     ]

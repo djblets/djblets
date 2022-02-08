@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-
-
 class FeatureLevel(object):
     """Possible stability levels for features."""
 

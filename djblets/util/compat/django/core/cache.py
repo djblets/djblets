@@ -1,6 +1,3 @@
-# TODO: Remove this file once we no longer support a version of Django
-#       prior to 1.7.
-#
 # This is Django 1.6.11's django/core/cache.py.
 #
 # Copyright (c) Django Software Foundation and individual contributors.  All
@@ -32,8 +29,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from urllib.parse import parse_qsl
+
 from django.core.cache.backends.base import InvalidCacheBackendError
-from django.utils.six.moves.urllib.parse import parse_qsl
 
 
 def parse_backend_uri(backend_uri):

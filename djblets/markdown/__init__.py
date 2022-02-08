@@ -1,17 +1,10 @@
-from __future__ import absolute_import, unicode_literals
-
 import io
 import re
 import sys
+from html.entities import name2codepoint
 from xml.dom.minidom import parseString
 
-from django.utils import six
-from django.utils.six.moves import cStringIO as StringIO, range
-from django.utils.six.moves.html_entities import name2codepoint
 from markdown import markdownFromFile
-
-
-default_app_config = 'djblets.markdown.apps.MarkdownAppConfig'
 
 
 MARKDOWN_ALL_ESCAPED_CHARS = (
@@ -280,7 +273,7 @@ def sanitize_illegal_chars_for_xml(s):
 
     if ILLEGAL_XML_CHARS_RE is None:
         ILLEGAL_XML_CHARS_RE = re.compile('[%s]' % ''.join(
-            '%s-%s' % (six.unichr(low), six.unichr(high))
+            '%s-%s' % (chr(low), chr(high))
             for low, high in _get_illegal_chars_for_xml()
         ))
 

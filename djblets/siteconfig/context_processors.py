@@ -1,7 +1,5 @@
 """Template context processors for SiteConfiguration information."""
 
-from __future__ import unicode_literals
-
 import logging
 
 from django.conf import settings

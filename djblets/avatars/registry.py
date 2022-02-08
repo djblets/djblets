@@ -1,10 +1,8 @@
 """A registry for managing avatar services."""
 
-from __future__ import unicode_literals
-
 import logging
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from djblets.avatars.errors import (AvatarServiceNotFoundError,
                                     DisabledServiceError)

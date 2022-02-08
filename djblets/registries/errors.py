@@ -1,8 +1,5 @@
 """Exception classes for dealing with Djblets registries."""
 
-from __future__ import unicode_literals
-
-
 class ItemLookupError(Exception):
     """An error that occurs during item lookup."""
 

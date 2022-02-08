@@ -1,37 +1,10 @@
-#
-# decorators.py -- Decorators used for webapi views
-#
-# Copyright (c) 2007-2009  Christian Hammond
-# Copyright (c) 2007-2009  David Trowbridge
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
-
-from __future__ import unicode_literals
+"""Decorators used for WebAPI views."""
 
 import inspect
 import logging
 
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest
-from django.utils import six
 
 from djblets.webapi.errors import (NOT_LOGGED_IN, PERMISSION_DENIED,
                                    INVALID_FORM_DATA)
@@ -91,7 +64,7 @@ def _convert_legacy_field_type(legacy_type, field_info):
     new_type = None
 
     if inspect.isclass(legacy_type):
-        if issubclass(legacy_type, (six.binary_type, six.text_type)):
+        if issubclass(legacy_type, (bytes, str)):
             new_type = StringFieldType
         elif issubclass(legacy_type, bool):
             new_type = BooleanFieldType
@@ -295,7 +268,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
             extra_fields = {}
             invalid_fields = {}
 
-            for field_name, field_value in six.iteritems(request_fields):
+            for field_name, field_value in request_fields.items():
                 if field_name in SPECIAL_PARAMS:
                     # These are special names and can be ignored.
                     continue
@@ -314,7 +287,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
 
             for fields_dict, is_required in ((required, True),
                                              (optional, False)):
-                for field_name, field_info in six.iteritems(fields_dict):
+                for field_name, field_info in fields_dict.items():
                     field_type_cls = field_info['type']
 
                     if not hasattr(field_type_cls, 'clean_value'):

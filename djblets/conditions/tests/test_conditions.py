@@ -1,7 +1,4 @@
-from __future__ import unicode_literals
-
 from django import forms
-from django.utils import six
 from kgb import SpyAgency
 
 from djblets.conditions.choices import BaseConditionChoice, ConditionChoices
@@ -148,7 +145,7 @@ class ConditionTests(SpyAgency, TestCase):
                 condition_index=1)
 
         e = cm.exception
-        self.assertEqual(six.text_type(e), 'A choice is required.')
+        self.assertEqual(str(e), 'A choice is required.')
         self.assertEqual(e.condition_index, 1)
 
     def test_deserialize_with_missing_operator(self):
@@ -165,7 +162,7 @@ class ConditionTests(SpyAgency, TestCase):
                 condition_index=1)
 
         e = cm.exception
-        self.assertEqual(six.text_type(e), 'An operator is required.')
+        self.assertEqual(str(e), 'An operator is required.')
         self.assertEqual(e.condition_index, 1)
 
     def test_deserialize_with_missing_value(self):
@@ -182,7 +179,7 @@ class ConditionTests(SpyAgency, TestCase):
                 condition_index=1)
 
         e = cm.exception
-        self.assertEqual(six.text_type(e), 'A value is required.')
+        self.assertEqual(str(e), 'A value is required.')
         self.assertEqual(e.condition_index, 1)
 
     def test_deserialize_with_invalid_choice(self):
@@ -200,7 +197,7 @@ class ConditionTests(SpyAgency, TestCase):
                 condition_index=1)
 
         e = cm.exception
-        self.assertEqual(six.text_type(e),
+        self.assertEqual(str(e),
                          'No condition choice was found matching '
                          '"invalid-choice".')
         self.assertEqual(e.choice_id, 'invalid-choice')
@@ -225,7 +222,7 @@ class ConditionTests(SpyAgency, TestCase):
                 condition_index=1)
 
         e = cm.exception
-        self.assertEqual(six.text_type(e),
+        self.assertEqual(str(e),
                          'No operator was found matching '
                          '"invalid-op".')
         self.assertEqual(e.operator_id, 'invalid-op')
@@ -251,7 +248,7 @@ class ConditionTests(SpyAgency, TestCase):
                 condition_index=1)
 
         e = cm.exception
-        self.assertEqual(six.text_type(e), 'Enter a whole number.')
+        self.assertEqual(str(e), 'Enter a whole number.')
         self.assertEqual(e.code, 'invalid')
         self.assertEqual(e.condition_index, 1)
 

@@ -1,8 +1,6 @@
 """Registry for managing feature registrations."""
 
-from __future__ import unicode_literals
-
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from djblets.features.errors import FeatureConflictError, FeatureNotFoundError
 from djblets.registries.registry import (ALREADY_REGISTERED,

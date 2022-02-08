@@ -1,11 +1,8 @@
 """Conditions and sets of conditions."""
 
-from __future__ import unicode_literals
-
 import logging
 
-from django.utils import six
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from djblets.conditions.errors import (ConditionChoiceNotFoundError,
                                        ConditionOperatorNotFoundError,
@@ -107,7 +104,7 @@ class Condition(object):
                           choice_id, data)
 
             raise ConditionChoiceNotFoundError(
-                six.text_type(e),
+                str(e),
                 choice_id=choice_id,
                 condition_index=condition_index)
 
@@ -120,7 +117,7 @@ class Condition(object):
                           operator_id, data)
 
             raise ConditionOperatorNotFoundError(
-                six.text_type(e),
+                str(e),
                 operator_id=operator_id,
                 condition_index=condition_index)
 

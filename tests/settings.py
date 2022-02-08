@@ -41,6 +41,8 @@ USE_TZ = True
 STATIC_ROOT = os.path.abspath(os.path.join(__file__, '..', 'static'))
 MEDIA_ROOT = os.path.abspath(os.path.join(__file__, '..', 'media'))
 
+MEDIA_URL = '/media/'
+
 # URL that handles the media served from STATIC_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
 # Examples: "http://media.lawrence.com", "http://example.com/media/"
@@ -80,11 +82,11 @@ TEMPLATES = [
     },
 ]
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-)
+]
 
 ROOT_URLCONF = 'djblets.testing.urls'
 
@@ -148,7 +150,7 @@ STATICFILES_FINDERS = (
     'pipeline.finders.PipelineFinder',
 )
 
-STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
+STATICFILES_STORAGE = 'djblets.pipeline.storage.PipelineStorage'
 
 
 for entry in os.listdir(base_path):

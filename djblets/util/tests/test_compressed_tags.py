@@ -1,7 +1,5 @@
 """Unit tests for djblets.util.templatetags.djblets_forms."""
 
-from __future__ import unicode_literals
-
 import os
 
 from django.conf import settings
@@ -30,8 +28,8 @@ class CompressedTagsTests(TestCase):
 
         self.assertHTMLEqual(
             t.render(Context({'test': 'test'})),
-            '<link href="/test.d41d8cd98f00.css" rel="stylesheet"'
-            ' type="text/css" />')
+            '<link href="/test.d41d8cd98f00.css" media="all" rel="stylesheet"'
+            ' type="text/css">')
 
     def test_compressed_js_tag(self):
         """Testing {% compressed_js %}"""

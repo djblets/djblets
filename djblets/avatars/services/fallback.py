@@ -1,9 +1,7 @@
 """An avatar service used as a fallback to show something basic for a user."""
 
-from __future__ import division, unicode_literals
-
 from django.template.loader import render_to_string
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from djblets.avatars.services.base import AvatarService
 

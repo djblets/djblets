@@ -1,12 +1,10 @@
 """Unit tests for API rate limiting."""
 
-from __future__ import unicode_literals
-
 import json
 
 from django.test.utils import override_settings
 from django.test.client import RequestFactory
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from djblets.testing.testcases import TestCase
 from djblets.webapi.errors import RATE_LIMIT_EXCEEDED
@@ -45,5 +43,5 @@ class WebAPIRateLimitTests(TestCase):
         self.assertEqual(response.status_code, 429)
         self.assertEqual(response['X-RateLimit-Limit'], '2')
 
-        rsp = json.loads(force_text(response.content))
+        rsp = json.loads(force_str(response.content))
         self.assertEqual(rsp['err']['code'], RATE_LIMIT_EXCEEDED.code)

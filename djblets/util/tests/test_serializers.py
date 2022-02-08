@@ -1,7 +1,5 @@
 """Unit tests for djblets.util.serializers."""
 
-from __future__ import unicode_literals
-
 from datetime import datetime
 
 from djblets.testing.testcases import TestCase

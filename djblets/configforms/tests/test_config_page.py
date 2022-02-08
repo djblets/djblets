@@ -1,7 +1,5 @@
 """Unit tests for djblets.configforms.pages.ConfigPage."""
 
-from __future__ import unicode_literals
-
 import re
 
 from django.contrib.auth.models import User
@@ -69,7 +67,7 @@ class ConfigPageTests(TestCase):
     def test_render(self):
         """Testing ConfigPage.render"""
         # Filter out the CSRF token, since it's hard to match.
-        rendered = re.sub(r"<input.+name='csrfmiddlewaretoken'.*>",
+        rendered = re.sub(r'<input.+name="csrfmiddlewaretoken".*>',
                           '',
                           self.page.render())
 

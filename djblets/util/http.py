@@ -1,36 +1,10 @@
-#
-# http.py -- HTTP-related utilities.
-#
-# Copyright (c) 2008-2009  Christian Hammond
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
-
-from __future__ import unicode_literals
+"""HTTP-related utilities."""
 
 import hashlib
+from urllib.parse import urlencode
 
 from django.http import HttpResponse, HttpResponseNotModified
-from django.utils import six
 from django.utils.encoding import force_bytes
-from django.utils.six.moves.urllib.parse import urlencode
 
 from djblets.util.dates import http_date
 
@@ -60,7 +34,7 @@ def get_modified_since(request, last_modified):
     if_modified_since = request.META.get('HTTP_IF_MODIFIED_SINCE', None)
 
     if if_modified_since is not None:
-        if six.callable(last_modified):
+        if callable(last_modified):
             last_modified = last_modified()
 
         return (if_modified_since == http_date(last_modified))
@@ -253,6 +227,6 @@ def get_url_params_except(query, *params):
     """
     return urlencode([
         (key.encode('utf-8'), value.encode('utf-8'))
-        for key, value in six.iteritems(query)
+        for key, value in query.items()
         if key not in params
     ])

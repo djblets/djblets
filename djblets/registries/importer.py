@@ -1,7 +1,5 @@
 """Import utilities for registries."""
 
-from __future__ import unicode_literals
-
 from importlib import import_module
 
 from django.utils.functional import SimpleLazyObject

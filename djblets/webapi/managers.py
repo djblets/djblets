@@ -1,7 +1,5 @@
 """Managers for API-related database models."""
 
-from __future__ import unicode_literals
-
 import hashlib
 import json
 import logging
@@ -9,9 +7,8 @@ import logging
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Manager
-from django.utils import six, timezone
-from django.utils.six.moves import range
-from django.utils.translation import ugettext_lazy as _
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from djblets.webapi.errors import WebAPITokenGenerationError
 from djblets.webapi.signals import webapi_token_created
@@ -69,13 +66,13 @@ class WebAPITokenManager(Manager):
                 The token was not able to be generated after ``max_attempts``
                 number of collisions were hit.
         """
-        prefix = settings.SECRET_KEY + six.text_type(user.pk) + user.password
+        prefix = settings.SECRET_KEY + str(user.pk) + user.password
 
         if isinstance(policy, dict):
             policy = json.dumps(policy)
 
         for attempt in range(max_attempts):
-            raw_token = (prefix + six.text_type(attempt) +
+            raw_token = (prefix + str(attempt) +
                          timezone.now().isoformat())
             sha = hashlib.sha1(raw_token.encode('utf-8'))
             token = sha.hexdigest()

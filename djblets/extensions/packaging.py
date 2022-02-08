@@ -1,7 +1,5 @@
 """Packaging support for extensions."""
 
-from __future__ import print_function, unicode_literals
-
 import inspect
 import json
 import os
@@ -13,7 +11,6 @@ from fnmatch import fnmatch
 import django
 import pkg_resources
 from django.core.management import call_command
-from django.utils import six
 from setuptools.command.build_py import build_py
 from setuptools import Command
 
@@ -205,7 +202,7 @@ class BuildStaticFiles(Command):
             ``True`` if a filename in one or more bundles matches the pattern.
             ``False`` if no filenames match.
         """
-        for bundle_name, bundle_info in six.iteritems(bundles):
+        for bundle_name, bundle_info in bundles.items():
             for filename in bundle_info.get('source_filenames', []):
                 if fnmatch(filename, pattern):
                     return True
@@ -302,7 +299,7 @@ class BuildStaticFiles(Command):
 
         # Begin building pipeline bundles for each of the bundles defined
         # in the extension.
-        for ep_name, entrypoint in six.iteritems(extension_entrypoints):
+        for ep_name, entrypoint in extension_entrypoints.items():
             try:
                 extension = entrypoint.load(require=False)
             except ImportError:
@@ -403,7 +400,7 @@ class BuildStaticFiles(Command):
             '^--(include-path=|global-var="?(%s)=)'
             % '|'.join(
                 re.escape(global_var)
-                for global_var in six.iterkeys(lessc_global_vars)
+                for global_var in lessc_global_vars.keys()
             ))
 
         lessc_args = [
@@ -420,12 +417,12 @@ class BuildStaticFiles(Command):
         ] + [
             '--global-var=%s=%s'
             % (key, self._serialize_lessc_value(value))
-            for key, value in six.iteritems(lessc_global_vars)
+            for key, value in lessc_global_vars.items()
         ]
 
     def _add_bundle(self, pipeline_bundles, extension_bundles, default_dir,
                     ext):
-        for name, bundle in six.iteritems(extension_bundles):
+        for name, bundle in extension_bundles.items():
             if 'output_filename' not in bundle:
                 bundle['output_filename'] = \
                     '%s/%s.min%s' % (default_dir, name, ext)
@@ -461,7 +458,7 @@ class BuildStaticFiles(Command):
                     pass
 
     def _serialize_lessc_value(self, value):
-        if isinstance(value, six.text_type):
+        if isinstance(value, str):
             return '"%s"' % value
         elif isinstance(value, bool):
             if value:

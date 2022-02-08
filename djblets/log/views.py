@@ -1,29 +1,4 @@
-#
-# views.py -- Views for the log app
-#
-# Copyright (c) 2009  Christian Hammond
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
-
-from __future__ import unicode_literals
+"""Views for the log app."""
 
 import calendar
 import codecs
@@ -32,14 +7,13 @@ import logging
 import os
 import re
 import time
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404
 from django.shortcuts import render
-from django.utils import six
-from django.utils.six.moves.urllib.parse import urlencode
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 
 LEVELS = (
@@ -82,13 +56,13 @@ def build_query_string(request, params):
     """
     query_parts = []
 
-    for key, value in six.iteritems(request.GET):
+    for key, value in request.GET.items():
         if key not in params:
             query_parts.append(urlencode({
                 key: value
             }))
 
-    for key, value in six.iteritems(params):
+    for key, value in params.items():
         if value is not None:
             query_parts.append(urlencode({
                 key: value

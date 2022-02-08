@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from djblets.features import Feature
 from djblets.features.errors import FeatureConflictError
 from djblets.features.registry import FeaturesRegistry

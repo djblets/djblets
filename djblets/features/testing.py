@@ -1,10 +1,6 @@
 """Helpers for unit tests working with features."""
 
-from __future__ import unicode_literals
-
 from contextlib import contextmanager
-
-from django.utils import six
 
 from djblets.features.feature import Feature
 from djblets.features.registry import get_features_registry
@@ -48,7 +44,7 @@ def override_feature_checks(feature_states):
     registry = get_features_registry()
     old_state = []
 
-    for feature, enabled in six.iteritems(feature_states):
+    for feature, enabled in feature_states.items():
         if not isinstance(feature, Feature):
             feature = registry.get_feature(feature)
 

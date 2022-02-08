@@ -1,17 +1,12 @@
 """Unit tests for djblets.extensions.hooks.ExtensionHook."""
 
-from __future__ import unicode_literals
-
-from django.utils import six
-
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import ExtensionHook, ExtensionHookPoint
 from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
-@six.add_metaclass(ExtensionHookPoint)
-class MyTestExtensionHook(ExtensionHook):
+class MyTestExtensionHook(ExtensionHook, metaclass=ExtensionHookPoint):
     pass
 
 
@@ -26,8 +21,7 @@ class ExtensionHookTest(ExtensionTestCaseMixin, TestCase):
 
     def test_init_hook_states(self):
         """Testing ExtensionHook enabling hook states"""
-        @six.add_metaclass(ExtensionHookPoint)
-        class InitTestHook(ExtensionHook):
+        class InitTestHook(ExtensionHook, metaclass=ExtensionHookPoint):
             def initialize(hook):
                 self.assertFalse(hook.initialized)
                 self.assertEqual(hook.hook_state,
@@ -39,8 +33,7 @@ class ExtensionHookTest(ExtensionTestCaseMixin, TestCase):
 
     def test_disable_hook_states(self):
         """Testing ExtensionHook disabling states"""
-        @six.add_metaclass(ExtensionHookPoint)
-        class InitTestHook(ExtensionHook):
+        class InitTestHook(ExtensionHook, metaclass=ExtensionHookPoint):
             def shutdown(hook):
                 self.assertFalse(hook.initialized)
                 self.assertEqual(hook.hook_state,
@@ -53,8 +46,7 @@ class ExtensionHookTest(ExtensionTestCaseMixin, TestCase):
 
     def test_init_with_start_enabled_false(self):
         """Testing ExtensionHook construction with start_enabled=False"""
-        @six.add_metaclass(ExtensionHookPoint)
-        class InitTestHook(ExtensionHook):
+        class InitTestHook(ExtensionHook, metaclass=ExtensionHookPoint):
             def initialize(hook):
                 self.fail('initialize() should not have been reached')
 

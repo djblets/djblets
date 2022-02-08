@@ -1,14 +1,11 @@
 """Unit tests for djblets.util.templatetags.djblets_utils."""
 
-from __future__ import unicode_literals
-
 import warnings
 from collections import OrderedDict
 from datetime import datetime, timedelta
 
 from django.http import HttpRequest, QueryDict
 from django.template import Context, Template
-from django.utils import six
 
 from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.testing.testcases import TagTest, TestCase
@@ -421,7 +418,7 @@ class QuerystringTagTests(TestCase):
 
         self.assertTrue(rendered_result.startswith('?'))
         self.assertEqual(QueryDict(rendered_result[1:]),
-                         QueryDict('a=1&;b=2&;foo=bar'))
+                         QueryDict('a=1&b=2&foo=bar'))
 
     def test_update_with_existing_query_override(self):
         """Testing {% querystring "update" %} with an existing query that gets

@@ -1,11 +1,8 @@
 """Unit tests for WebAPI decorators."""
 
-from __future__ import unicode_literals
-
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
-from django.utils import six
 
 from djblets.testing.testcases import TestCase
 from djblets.util.decorators import augment_method_from
@@ -434,7 +431,7 @@ class WebAPIDecoratorTests(TestCase):
                     'type': int,
                 },
                 'required_unicode_str': {
-                    'type': six.text_type,
+                    'type': str,
                 },
                 'required_native_str': {
                     'type': str,

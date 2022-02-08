@@ -1,13 +1,10 @@
 """Additional fields for Django forms."""
 
-from __future__ import unicode_literals
-
 import logging
 
 from django import forms
-from django.utils import six
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _, ugettext
+from django.utils.translation import gettext_lazy as _, gettext
 import pytz
 
 from djblets.conditions.conditions import ConditionSet
@@ -25,7 +22,7 @@ class TimeZoneField(forms.ChoiceField):
     """A form field that only allows pytz common timezones as the choices."""
 
     def __init__(self, choices=TIMEZONE_CHOICES, *args, **kwargs):
-        super(TimeZoneField, self).__init__(choices, *args, **kwargs)
+        super(TimeZoneField, self).__init__(choices=choices, *args, **kwargs)
 
 
 class ConditionsField(forms.Field):
@@ -176,7 +173,7 @@ class ConditionsField(forms.Field):
 
         if not isinstance(data, dict):
             raise ValueError(
-                ugettext('%r is not a valid value for a %s')
+                gettext('%r is not a valid value for a %s')
                 % (data, self.__class__.__name__))
 
         return data
@@ -206,7 +203,7 @@ class ConditionsField(forms.Field):
                 value,
                 choice_kwargs=self.widget.choice_kwargs)
         except InvalidConditionModeError as e:
-            raise forms.ValidationError(six.text_type(e),
+            raise forms.ValidationError(str(e),
                                         code='invalid_mode')
         except (ConditionChoiceNotFoundError,
                 ConditionOperatorNotFoundError,
@@ -215,8 +212,7 @@ class ConditionsField(forms.Field):
                 self.widget.condition_errors[e.condition_index] = \
                     self.error_messages['value_required']
             else:
-                self.widget.condition_errors[e.condition_index] = \
-                    six.text_type(e)
+                self.widget.condition_errors[e.condition_index] =  str(e)
 
             raise forms.ValidationError(
                 self.error_messages['condition_errors'],

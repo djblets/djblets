@@ -1,29 +1,4 @@
-#
-# djblets_images.py -- Image-related template tags
-#
-# Copyright (c) 2007-2009  Christian Hammond
-# Copyright (c) 2007-2009  David Trowbridge
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-from __future__ import division, unicode_literals
+"""Image-related template tags."""
 
 import io
 import logging
@@ -32,9 +7,8 @@ import re
 
 from django import template
 from django.template import TemplateSyntaxError
-from django.utils import six
 from django.utils.html import format_html, format_html_join
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from PIL import Image
 from PIL.Image import registered_extensions
 
@@ -104,7 +78,7 @@ def thumbnail(f, size='400x100'):
     if ext not in registered_extensions():
         return storage.url(f.name)
 
-    if isinstance(size, six.string_types):
+    if isinstance(size, str):
         x, y = (int(x) for x in size.split('x'))
         size_str = size
     elif isinstance(size, tuple):
@@ -168,7 +142,7 @@ def build_srcset(sources):
     """
     sources_info = []
 
-    for descriptor, url in six.iteritems(sources):
+    for descriptor, url in sources.items():
         if not url:
             continue
 
@@ -226,7 +200,7 @@ def srcset(sources):
     try:
         return build_srcset(sources)
     except ValueError as e:
-        raise TemplateSyntaxError(six.text_type(e))
+        raise TemplateSyntaxError(str(e))
 
 
 @register.tag

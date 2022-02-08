@@ -1,10 +1,6 @@
-from __future__ import unicode_literals
-
-from django.conf.urls import include, url
 from django.core.exceptions import ObjectDoesNotExist
-from django.urls import reverse
-from django.utils import six
-from django.utils.translation import ugettext as _
+from django.urls import include, path, reverse
+from django.utils.translation import gettext as _
 
 from djblets.extensions.errors import (DisablingExtensionError,
                                        EnablingExtensionError,
@@ -226,19 +222,19 @@ class ExtensionResource(WebAPIResource):
             try:
                 self._extension_manager.enable_extension(extension_id)
             except EnablingExtensionError as e:
-                err = ENABLE_EXTENSION_FAILED.with_message(six.text_type(e))
+                err = ENABLE_EXTENSION_FAILED.with_message(str(e))
 
                 return err, {
                     'load_error': e.load_error,
                     'needs_reload': e.needs_reload,
                 }
             except InvalidExtensionError as e:
-                return ENABLE_EXTENSION_FAILED.with_message(six.text_type(e))
+                return ENABLE_EXTENSION_FAILED.with_message(str(e))
         else:
             try:
                 self._extension_manager.disable_extension(extension_id)
             except (DisablingExtensionError, InvalidExtensionError) as e:
-                return DISABLE_EXTENSION_FAILED.with_message(six.text_type(e))
+                return DISABLE_EXTENSION_FAILED.with_message(str(e))
 
         # Refetch extension, since the ExtensionManager may have changed
         # the model.
@@ -311,8 +307,8 @@ class ExtensionResource(WebAPIResource):
         # For each resource, generate the URLs
         for resource in extension.resources:
             self._resource_url_patterns_map[extension].extend([
-                url(r'^%s/%s/' % (extension.id, resource.uri_name),
-                    include(resource.get_url_patterns())),
+                path('%s/%s/' % (extension.id, resource.uri_name),
+                     include(resource.get_url_patterns())),
             ])
 
         self._dynamic_patterns.add_patterns(

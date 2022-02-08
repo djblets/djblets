@@ -1,12 +1,11 @@
 """Unit tests for the web API basic auth backend."""
 
-from __future__ import unicode_literals
-
 import base64
 import logging
 
 from django.contrib.auth.models import AnonymousUser, User
 from django.contrib.sessions.middleware import SessionMiddleware
+from django.http import HttpResponse
 from django.test.client import RequestFactory
 from kgb import SpyAgency
 
@@ -22,7 +21,10 @@ class WebAPIBasicAuthBackendTests(SpyAgency, TestCase):
 
         self.basic_auth_backend = WebAPIBasicAuthBackend()
         self.request = RequestFactory().get('/')
-        SessionMiddleware().process_request(self.request)
+
+        middleware = SessionMiddleware(lambda request: HttpResponse(''))
+        middleware(self.request)
+
         self.request.user = AnonymousUser()
         self.user = User.objects.create_user(
             username='testuser',

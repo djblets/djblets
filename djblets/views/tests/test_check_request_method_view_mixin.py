@@ -1,7 +1,5 @@
 """Unit tests for CheckRequestMethodViewMixin."""
 
-from __future__ import unicode_literals
-
 from django.http import HttpResponse
 from django.test.client import RequestFactory
 from django.views.generic.base import View

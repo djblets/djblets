@@ -1,9 +1,6 @@
 """Mixins for integrating token-based authentication into an API."""
 
-from __future__ import unicode_literals
-
 from django.contrib import auth
-from django.utils import six
 
 from djblets.webapi.errors import PERMISSION_DENIED
 
@@ -180,7 +177,7 @@ class ResourceAPITokenMixin(object):
                 if resource_policy:
                     resource_ids = [
                         resource_id
-                        for resource_id in six.iterkeys(resource_policy)
+                        for resource_id in resource_policy.keys()
                         if (resource_id != '*' and
                             not self.__check_resource_policy(
                                 resources_policy, self.policy_id, 'GET',

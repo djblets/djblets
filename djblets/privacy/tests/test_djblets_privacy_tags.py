@@ -1,7 +1,5 @@
 """Unit tests for djblets.privacy.templatetags.djblets_privacy."""
 
-from __future__ import unicode_literals
-
 from django.template import Context, Template
 from django.test.client import RequestFactory
 from django.urls import ResolverMatch

@@ -4,8 +4,6 @@ This module contains widgets that correspond to fields provided in
 :py:mod:`djblets.forms.fields`.
 """
 
-from __future__ import unicode_literals
-
 import copy
 from contextlib import contextmanager
 
@@ -13,10 +11,8 @@ from django.forms import widgets
 from django.forms.widgets import HiddenInput
 from django.template.context import Context
 from django.template.loader import render_to_string
-from django.utils import six
 from django.utils.html import format_html_join
-from django.utils.six.moves import filter, range
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from djblets.conditions import ConditionSet
 from djblets.conditions.errors import (ConditionChoiceNotFoundError,
@@ -199,7 +195,7 @@ class ConditionsWidget(widgets.Widget):
             'conditions': conditions,
         }
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         """Render the widget to HTML.
 
         This will serialize all the choices, operators, and existing
@@ -215,6 +211,9 @@ class ConditionsWidget(widgets.Widget):
 
             attrs (dict, optional):
                 Additional HTML element attributes for the fields.
+
+            renderer (django.forms.renderers.BaseRenderer, optional):
+                The form renderer.
 
         Returns:
             django.utils.safestring.SafeText:
@@ -516,7 +515,7 @@ class ConditionsWidget(widgets.Widget):
             djblets.conditions.values.BaseConditionValueField:
             The resulting value field.
         """
-        if six.callable(value_field):
+        if callable(value_field):
             value_field = value_field()
 
         return value_field
@@ -577,7 +576,7 @@ class CopyableTextInput(widgets.TextInput):
 
     template_name = 'djblets_forms/copyable_text_input.html'
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         """Render the widget.
 
         Args:
@@ -590,11 +589,15 @@ class CopyableTextInput(widgets.TextInput):
             attrs (dict):
                 The attributes of the widget.
 
+            renderer (django.forms.renderers.BaseRenderer, optional):
+                The form renderer.
+
         Returns:
             django.utils.safestring.SafeText:
             The rendered widget.
         """
-        field = super(CopyableTextInput, self).render(name, value, attrs)
+        field = super(CopyableTextInput, self).render(name, value, attrs,
+                                                      renderer)
 
         return render_to_string(
             self.template_name,
@@ -627,7 +630,7 @@ class ListEditWidget(widgets.Widget):
 
         self._sep = sep
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         """Render the widget.
 
         Args:
@@ -639,6 +642,9 @@ class ListEditWidget(widgets.Widget):
 
             attrs (dict, optional):
                 Additional attributes.
+
+            renderer (django.forms.renderers.BaseRenderer, optional):
+                The form renderer.
 
         Returns:
             django.utils.safestring.SafeText:
@@ -663,7 +669,7 @@ class ListEditWidget(widgets.Widget):
                 'name': name,
                 'value': value,
                 'attrs': format_html_join('', ' {0}="{1}"',
-                                          sorted(six.iteritems(attrs))),
+                                          sorted(attrs.items())),
                 'id': id_,
                 'remove_text': _('Remove this item.'),
                 'sep': self._sep,

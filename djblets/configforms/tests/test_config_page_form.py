@@ -1,7 +1,5 @@
 """Unit tests for djblets.configforms.forms.ConfigPageForm."""
 
-from __future__ import unicode_literals
-
 from django import forms
 from django.contrib.auth.models import User
 from django.test.client import RequestFactory

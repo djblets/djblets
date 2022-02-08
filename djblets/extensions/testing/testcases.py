@@ -1,13 +1,9 @@
 """Mixins for test cases that need to test enabled extensions."""
 
-from __future__ import unicode_literals
-
 import pkg_resources
 import uuid
 import weakref
 from contextlib import contextmanager
-
-from django.utils import six
 
 from djblets.extensions.extension import ExtensionInfo
 from djblets.extensions.manager import (ExtensionManager,
@@ -80,7 +76,7 @@ class _FakeProvider(pkg_resources.DefaultProvider):
         """
         return ''.join(
             '%s: %s\n' % (field_name, value)
-            for field_name, value in six.iteritems(self.metadata)
+            for field_name, value in self.metadata.items()
         ).encode('utf-8')
 
 

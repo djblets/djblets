@@ -1,11 +1,10 @@
-#
-# Settings for djblets.
-#
-# This is meant for internal use only. We use it primarily for building
-# static media to bundle with djblets.
-#
-# This should generally not be used in a project.
-from __future__ import unicode_literals
+"""Settings for djblets.
+
+This is meant for internal use only. We use it primarily for building
+static media to bundle with djblets.
+
+This should generally not be used in a project.
+"""
 
 import os
 
@@ -32,7 +31,7 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
 )
 
-STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
+STATICFILES_STORAGE = 'djblets.pipeline.storage.PipelineStorage'
 
 
 NODE_PATH = os.path.abspath(os.path.join(DJBLETS_ROOT, '..', 'node_modules'))

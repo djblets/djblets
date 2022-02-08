@@ -1,7 +1,7 @@
 {% load i18n %}
 <div class="paginator">
 {% for letter in letters %}
-{%  ifequal current_letter letter %}
+{%  if current_letter == letter %}
  <span class="current-letter">
  <span class="current-page">{% if letter == "all" %}{% trans "All" %}{% else %}{{letter}}{% endif %}</span>
 {%   if show_first %}
@@ -29,6 +29,6 @@
  </span>
 {%  else %}
  <a href="?{{extra_query}}letter={{letter}}&page=1" title="{% blocktrans %}{{letter}}{% endblocktrans %}">{% if letter == "all" %}{% trans "All" %}{% else %}{{letter}}{% endif %}</a>
-{%  endifequal %}
+{%  endif %}
 {% endfor %}
 </div>

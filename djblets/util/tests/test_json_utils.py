@@ -1,9 +1,5 @@
 """Unit tests for djblets.util.json_utils."""
 
-from __future__ import unicode_literals
-
-from django.utils import six
-
 from djblets.testing.testcases import TestCase
 from djblets.util.json_utils import (JSONPatchError,
                                      JSONPatchPathError,
@@ -2886,8 +2882,7 @@ class JSONGetPointerInfoTests(TestCase):
                 'unresolved_tokens': ['c'],
                 'lookup_error': (
                     'Cannot resolve path within unsupported type '
-                    '"%s" at "/a/b"'
-                    % six.text_type.__name__
+                    '"str" at "/a/b"'
                 ),
             })
 
@@ -3059,10 +3054,8 @@ class JSONResolvePointerTests(TestCase):
             },
         }
 
-        message = (
-            'Cannot resolve path within unsupported type "%s" at "/a/b"'
-            % six.text_type.__name__
-        )
+        message = \
+            'Cannot resolve path within unsupported type "str" at "/a/b"'
 
         with self.assertRaisesMessage(JSONPointerLookupError, message):
             json_resolve_pointer(obj, '/a/b/c')

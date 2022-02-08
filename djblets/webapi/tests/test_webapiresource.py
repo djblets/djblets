@@ -1,5 +1,3 @@
-from __future__ import print_function, unicode_literals
-
 import warnings
 from collections import OrderedDict
 
@@ -7,7 +5,6 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.http import HttpResponseNotModified
 from django.test.client import RequestFactory
-from django.utils import six
 
 from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
@@ -1036,7 +1033,7 @@ class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
                         'dependency': {
                             'href': None,
                             'method': 'GET',
-                            'title': 'TestObject object',
+                            'title': 'TestObject object (1)',
                         },
                         'self': {
                             'href': 'http://testserver/api/test/?expand=dependency',

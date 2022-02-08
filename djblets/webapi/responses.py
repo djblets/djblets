@@ -1,8 +1,5 @@
-from __future__ import unicode_literals
-
 from django.http import HttpResponse
-from django.utils import six
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from djblets.util.http import (get_http_requested_mimetype,
                                get_url_params_except,
                                is_mimetype_a)
@@ -56,7 +53,7 @@ class WebAPIResponse(HttpResponse):
         self.encoders = encoders or get_registered_encoders()
         self.encoder_kwargs = encoder_kwargs
 
-        for header, value in six.iteritems(headers):
+        for header, value in headers.items():
             self[header] = value
 
         # Prevent IE8 from trying to download some AJAX responses as if they
@@ -297,7 +294,7 @@ class WebAPIResponseFormError(WebAPIResponseError):
         fields = {}
 
         for field in form.errors:
-            fields[field] = [force_text(e) for e in form.errors[field]]
+            fields[field] = [force_str(e) for e in form.errors[field]]
 
         super(WebAPIResponseFormError, self).__init__(
             request, INVALID_FORM_DATA,

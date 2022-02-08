@@ -1,7 +1,5 @@
 """Unit tests for djblets.extensions.extension.ExtensionInfo."""
 
-from __future__ import unicode_literals
-
 import os
 
 from django.conf import settings

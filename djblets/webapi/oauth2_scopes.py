@@ -1,7 +1,5 @@
 """OAuth2 scope generation for WebAPI resources."""
 
-from __future__ import unicode_literals
-
 import logging
 import threading
 from collections import defaultdict
@@ -9,8 +7,7 @@ from importlib import import_module
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.utils import six
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from djblets.extensions.manager import get_extension_managers
 from djblets.extensions.signals import (extension_enabled,
@@ -144,7 +141,7 @@ class WebAPIScopeDictionary(object):
             unicode:
             The key for each scope.
         """
-        return six.iterkeys(self.scope_dict)
+        return self.scope_dict.keys()
 
     def clear(self):
         """Clear all scopes from the dictionary.
@@ -198,7 +195,7 @@ class WebAPIScopeDictionary(object):
 
                 scope_to_methods[suffix].append(method)
 
-            for suffix, methods in six.iteritems(scope_to_methods):
+            for suffix, methods in scope_to_methods.items():
                 scope_name = '%s:%s' % (resource.scope_name, suffix)
 
                 self._scope_dict[scope_name] = (
@@ -248,7 +245,7 @@ class WebAPIScopeDictionary(object):
             A string representation of this object.
         """
         return '%s(%r)' % (type(self).__name__,
-                           list(six.iterkeys(self.scope_dict)))
+                           list(self.scope_dict.keys()))
 
 
 class ExtensionEnabledWebAPIScopeDictionary(WebAPIScopeDictionary):

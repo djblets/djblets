@@ -29,7 +29,7 @@
  <table id="log-entries">
   <thead>
    <tr>
-    <th scope="col"{% if sort_type %} class="sorted sortable {% ifequal sort_type 'asc' %}ascending{% else %}descending{% endifequal %}"{% endif %}>
+    <th scope="col"{% if sort_type %} class="sorted sortable {% if sort_type == 'asc' %}ascending{% else %}descending{% endif %}"{% endif %}>
      <div class="text">
       <a href="{{sort_url}}">{% trans "Timestamp" %}</a>
      </div>

@@ -1,15 +1,9 @@
-from __future__ import unicode_literals
-
 import threading
 
-from django.urls import clear_url_caches, get_resolver
-
-try:
-    # Django >= 2.0
-    from django.urls import URLResolver
-except ImportError:
-    # Django <= 1.11
-    from django.urls import RegexURLResolver as URLResolver
+from django.urls import (URLResolver,
+                         clear_url_caches,
+                         get_resolver)
+from django.urls.resolvers import RegexPattern
 
 
 class DynamicURLResolver(URLResolver):
@@ -52,7 +46,7 @@ class DynamicURLResolver(URLResolver):
             namespace (unicode, optional):
                 The instance namespace for any child URLs.
         """
-        super(DynamicURLResolver, self).__init__(regex,
+        super(DynamicURLResolver, self).__init__(pattern=RegexPattern(regex),
                                                  urlconf_name=[],
                                                  app_name=app_name,
                                                  namespace=namespace)

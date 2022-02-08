@@ -1,7 +1,5 @@
 """Unit tests for djblets.auth.forms.RegistrationForm."""
 
-from __future__ import unicode_literals
-
 from django.contrib.auth.models import User
 
 from djblets.auth.forms import RegistrationForm

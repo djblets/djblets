@@ -1,7 +1,5 @@
 """Unit tests for djblets.extensions.hooks.TemplateHook."""
 
-from __future__ import unicode_literals
-
 from django.template import Context, RequestContext, Template
 from django.test.client import RequestFactory
 from kgb import SpyAgency

@@ -6,14 +6,11 @@ a number of useful helpers for calling APIs and validating results, along
 with generating consistent docstrings.
 """
 
-from __future__ import print_function, unicode_literals
-
 import json
 import pprint
 
 from django.test.client import BOUNDARY, MULTIPART_CONTENT, encode_multipart
-from django.utils import six
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from djblets.testing.testcases import TestCase
 
@@ -307,7 +304,7 @@ class WebAPITestCaseMixin(TestCase):
                 If set, this will assert that the response has a
                 ``ETag`` header.
         """
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
         if check_last_modified:
             self.assertIn('Last-Modified', response)
@@ -322,8 +319,8 @@ class WebAPITestCaseMixin(TestCase):
             response (django.http.HttpResponse):
                 The HTTP response from the API.
         """
-        self.assertEquals(response.status_code, 304)
-        self.assertEquals(response.content, b'')
+        self.assertEqual(response.status_code, 304)
+        self.assertEqual(response.content, b'')
 
     def api_call(self, client_http_method, path, data=None,
                  follow_redirects=False, expected_status=200,
@@ -429,7 +426,7 @@ class WebAPITestCaseMixin(TestCase):
             rsp = None
         else:
             if expected_status != 302 and expected_json:
-                rsp = json.loads(force_text(response.content))
+                rsp = json.loads(force_str(response.content))
             else:
                 rsp = response.content
 
@@ -460,7 +457,7 @@ class WebAPITestCaseMixin(TestCase):
                                  self.base_url + expected_redirects[0])
 
         # Check that all the expected headers are present in the response.
-        for header, value in six.iteritems(expected_headers):
+        for header, value in expected_headers.items():
             self.assertIn(header, response)
             self.assertEqual(response[header], value)
 

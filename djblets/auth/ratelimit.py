@@ -1,7 +1,5 @@
 """Utilities for rate-limiting login attempts."""
 
-from __future__ import unicode_literals
-
 import logging
 import re
 import time
@@ -9,7 +7,6 @@ import time
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
-from django.utils import six
 
 from djblets.cache.backend import make_cache_key
 
@@ -62,7 +59,7 @@ def get_user_id_or_ip(request):
         Otherwise, the IP address of the client is returned instead.
     """
     if hasattr(request, 'user') and request.user.is_authenticated:
-        return six.text_type(request.user.pk)
+        return str(request.user.pk)
 
     try:
         return request.META['HTTP_X_REAL_IP']

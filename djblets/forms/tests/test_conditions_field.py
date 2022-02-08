@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from django.forms import Form, ValidationError
 
 from djblets.conditions.choices import (BaseConditionChoice,

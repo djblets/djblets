@@ -1,13 +1,9 @@
-# coding: utf-8
 """Unit tests for djblets.mail."""
-
-from __future__ import unicode_literals
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
 from django.test.utils import override_settings
-from django.utils import six
 from django.utils.datastructures import MultiValueDict
 from dns import resolver as dns_resolver
 
@@ -302,7 +298,7 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
                              to=['sleepy@example.com'])
 
         self.assertEqual(email.body, 'This is a test.')
-        self.assertIsInstance(email.body, six.text_type)
+        self.assertIsInstance(email.body, str)
 
     def test_init_with_text_body_as_bytes(self):
         """Testing EmailMessage.__init__ with text_body=<bytes>"""
@@ -314,7 +310,7 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
                              to=['sleepy@example.com'])
 
         self.assertEqual(email.body, 'This is a test.')
-        self.assertIsInstance(email.body, six.text_type)
+        self.assertIsInstance(email.body, str)
 
     def test_init_with_html_body_as_unicode(self):
         """Testing EmailMessage.__init__ with html_body=<unicode>"""
@@ -328,7 +324,7 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
 
         self.assertEqual(email.alternatives,
                          [('<p>This is a test.</p>', 'text/html')])
-        self.assertIsInstance(email.alternatives[0][0], six.text_type)
+        self.assertIsInstance(email.alternatives[0][0], str)
 
     def test_init_with_html_body_as_bytes(self):
         """Testing EmailMessage.__init__ with html_body=<bytes>"""
@@ -342,7 +338,7 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
 
         self.assertEqual(email.alternatives,
                          [('<p>This is a test.</p>', 'text/html')])
-        self.assertIsInstance(email.alternatives[0][0], six.text_type)
+        self.assertIsInstance(email.alternatives[0][0], str)
 
     def test_message_with_from(self):
         """Testing EmailMessage.message with from_email="""

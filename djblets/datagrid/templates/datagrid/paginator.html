@@ -8,11 +8,11 @@
  <a href="?{{extra_query}}page={{previous}}" title="{% trans "Previous Page" %}">&lt;</a>
 {%  endif %}
 {%  for pagenum in page_numbers %}
-{%   ifequal pagenum page %}
+{%   if pagenum == page %}
  <span class="current-page">{{pagenum}}</span>
 {%   else %}
  <a href="?{{extra_query}}page={{pagenum}}" title="{% blocktrans %}Page {{pagenum}}{% endblocktrans %}">{{pagenum}}</a>
-{%   endifequal %}
+{%   endif %}
 {%  endfor %}
 {%  if has_next %}
  <a href="?{{extra_query}}page={{next}}" title="{% trans "Next Page" %}">&gt;</a>

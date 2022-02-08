@@ -1,16 +1,12 @@
 """Database models for privacy-related data storage."""
 
-from __future__ import unicode_literals
-
 from django.contrib.auth.models import User
 from django.db import models
-from django.utils import six
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from djblets.db.fields import JSONField
 
 
-@six.python_2_unicode_compatible
 class StoredConsentData(models.Model):
     """Stored information about a user's current and past consent decisions.
 

@@ -1,11 +1,10 @@
-from __future__ import unicode_literals
+from http.client import HTTPException
+from urllib.error import URLError
+from urllib.request import urlopen
 
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
-from django.utils.six.moves import http_client
-from django.utils.six.moves.urllib.error import URLError
-from django.utils.six.moves.urllib.request import urlopen
 
 from djblets.cache.backend import cache_memoize
 
@@ -37,7 +36,7 @@ def view_feed(request, url, template_name="feedview/feed-page.html",
         return HttpResponse(cache_memoize("feed-%s" % url, fetch_feed,
                             cache_expiration,
                             force_overwrite=('reload' in request.GET)))
-    except (URLError, http_client.HTTPException) as e:
+    except (URLError, HTTPException) as e:
         context = {
             'error': e,
         }

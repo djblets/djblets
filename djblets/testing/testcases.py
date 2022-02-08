@@ -1,59 +1,18 @@
-#
-# testing.py -- Some classes useful for unit testing django-based applications
-#
-# Copyright (c) 2007-2010  Christian Hammond
-# Copyright (c) 2007-2010  David Trowbridge
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
+"""Base class for test cases in Django-based applications."""
 
-from __future__ import print_function, unicode_literals
-
-import importlib
 import inspect
 import os
 import re
 import socket
 import sys
 import threading
-import types
 import warnings
 from collections import OrderedDict
 from contextlib import contextmanager
 from importlib import import_module
+from importlib.machinery import ModuleSpec
+from importlib.util import module_from_spec
 from unittest.util import safe_repr
-
-try:
-    # Python >= 3.4
-    from importlib.machinery import ModuleSpec
-
-    try:
-        # Python >= 3.5
-        from importlib.util import module_from_spec
-    except ImportError:
-        # Python < 3.5
-        module_from_spec = None
-except ImportError:
-    # Python < 3.4
-    ModuleSpec = None
-    module_from_spec = None
 
 from django.apps import apps
 from django.conf import settings
@@ -67,7 +26,6 @@ from django.db import (DatabaseError, DEFAULT_DB_ALIAS, IntegrityError,
 from django.db.models import Model
 from django.template import Node
 from django.test import testcases
-from django.utils import six
 
 try:
     from django_evolution.models import Evolution, Version
@@ -155,7 +113,7 @@ class TestCase(testcases.TestCase):
 
         old_settings = {}
 
-        for key, value in six.iteritems(settings):
+        for key, value in settings.items():
             old_settings[key] = siteconfig.get(key)
             siteconfig.set(key, value)
 
@@ -164,7 +122,7 @@ class TestCase(testcases.TestCase):
         try:
             yield
         finally:
-            for key, value in six.iteritems(old_settings):
+            for key, value in old_settings.items():
                 siteconfig.set(key, value)
 
             siteconfig.save()
@@ -190,7 +148,7 @@ class TestCase(testcases.TestCase):
             AssertionError:
                 An attribute was not found or the value did not match.
         """
-        for key, value in six.iteritems(attrs):
+        for key, value in attrs.items():
             try:
                 attr_value = getattr(obj, key)
 
@@ -227,7 +185,7 @@ class TestCase(testcases.TestCase):
                 Additional keyword arguments to pass to
                 :py:meth:`assertRaisesMessage`.
         """
-        if isinstance(expected_messages, six.string_types):
+        if isinstance(expected_messages, str):
             expected_messages = [expected_messages]
 
         return self.assertRaisesMessage(ValidationError,
@@ -247,9 +205,9 @@ class TestCase(testcases.TestCase):
         # passing it down to assertRaisesRegex. Python 2.7.9/10's
         # implementation defaults callable_obj to a special value, which
         # Django overrides.
-        return six.assertRaisesRegex(
-            self, expected_exception, re.escape(expected_message),
-            *args, **kwargs)
+        return self.assertRaisesRegex(expected_exception,
+                                      re.escape(expected_message),
+                                      *args, **kwargs)
 
     @contextmanager
     def assertWarns(self, cls=DeprecationWarning, message=None):
@@ -289,7 +247,7 @@ class TestCase(testcases.TestCase):
             self.assertTrue(issubclass(w[-1].category, cls))
 
             if message is not None:
-                self.assertEqual(message, six.text_type(w[-1].message))
+                self.assertEqual(message, str(w[-1].message))
 
     @contextmanager
     def assertNoWarnings(self):
@@ -352,39 +310,24 @@ class TestModelsLoaderMixin(object):
         except ImportError:
             # Set up a 'models' module, containing any models local to the
             # module that this TestCase is in.
-            if ModuleSpec:
-                # Python >= 3.4
-                #
-                # It's not enough to simply create a module type. We need to
-                # create a basic spec, and then we need to have the module
-                # system create a module from it. There's a handy public
-                # function to do this on Python 3.5, but Python 3.4 lacks a
-                # public function. Fortunately, it's easy to call a private
-                # one.
-                spec = ModuleSpec(name=models_mod_name,
-                                  loader=None)
 
-                if module_from_spec:
-                    # Python >= 3.5
-                    models_mod = module_from_spec(spec)
-                else:
-                    # Python == 3.4
-                    models_mod = \
-                        importlib._bootstrap._SpecMethods(spec).create()
+            # It's not enough to simply create a module type. We need to
+            # create a basic spec, and then we need to have the module
+            # system create a module from it. There's a handy public
+            # function to do this on Python 3.5, but Python 3.4 lacks a
+            # public function. Fortunately, it's easy to call a private
+            # one.
+            spec = ModuleSpec(name=models_mod_name,
+                              loader=None)
 
-                assert models_mod
-            else:
-                # Python < 3.4
-                models_mod = types.ModuleType(str(models_mod_name))
-
-                # Django needs a value here. Doesn't matter what it is.
-                models_mod.__file__ = ''
+            models_mod = module_from_spec(spec)
+            assert models_mod
 
             # Transfer all the models over into this new module.
             module_name = cls.__module__
             test_module = sys.modules[module_name]
 
-            for key, value in six.iteritems(test_module.__dict__):
+            for key, value in test_module.__dict__.items():
                 if (inspect.isclass(value) and
                     issubclass(value, Model) and
                     value.__module__ == module_name):
@@ -417,7 +360,7 @@ class TestModelsLoaderMixin(object):
         if models_mod:
             app_label = app_config.label
 
-            for key, value in six.iteritems(models_mod.__dict__):
+            for key, value in models_mod.__dict__.items():
                 if inspect.isclass(value) and issubclass(value, Model):
                     # The model was likely registered under another app,
                     # so we need to remove the old one and add the new
@@ -642,7 +585,7 @@ class FixturesCompilerMixin(object):
                 # everything matching the deserialized objects' IDs and then
                 # bulk-create new entries.
                 try:
-                    for model_cls, objs in six.iteritems(to_save):
+                    for model_cls, objs in to_save.items():
                         obj_ids = [
                             _obj.pk
                             for _obj in objs
@@ -672,7 +615,7 @@ class FixturesCompilerMixin(object):
                 # need to clear the old list first.
                 for obj, m2m_data in to_save_m2m:
                     try:
-                        for m2m_attr, m2m_objs in six.iteritems(m2m_data):
+                        for m2m_attr, m2m_objs in m2m_data.items():
                             getattr(obj, m2m_attr).add(*m2m_objs)
                     except (DatabaseError, IntegrityError) as e:
                         meta = obj._meta

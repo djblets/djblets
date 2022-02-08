@@ -7,8 +7,6 @@ The contents in this file might change substantially between releases. If
 you're going to make use of data from this file, code defensively.
 """
 
-from __future__ import unicode_literals
-
 # NOTE: This file may not import other files! It's used for packaging and
 #       may be needed before any dependencies have been installed.
 
@@ -24,13 +22,13 @@ PYTHON_3_RANGE = ">='%s'" % PYTHON_3_MIN_VERSION_STR
 
 
 #: The major version of Django we're using for documentation.
-django_doc_major_version = '1.6'
+django_doc_major_version = '3.2'
 
 #: The major version of Review Board we're using for documentation.
 reviewboard_doc_major_version = 'dev'
 
 #: The version range required for Django.
-django_version = '>=1.11.29,<1.11.999'
+django_version = '~=3.2.11'
 
 #: Dependencies required for LessCSS pipelining.
 lesscss_npm_dependencies = {
@@ -61,7 +59,7 @@ npm_dependencies.update(babel_npm_dependencies)
 #: All dependencies required to install Djblets.
 package_dependencies = {
     'Django': django_version,
-    'django-pipeline': '~=1.6.14',
+    'django-pipeline': '~=2.0.8',
     'dnspython': '>=1.14.0',
     'feedparser': '>=5.1.2',
     'Pillow': '>=6.2',

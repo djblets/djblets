@@ -6,17 +6,15 @@ install and caching more complex data efficiently (such as the results of
 iterators and large data normally too big for the cache).
 """
 
-from __future__ import unicode_literals
-from hashlib import md5
 import io
 import logging
+import pickle
 import zlib
+from hashlib import md5
 
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib.sites.models import Site
-from django.utils import six
-from django.utils.six.moves import range, cPickle as pickle
 
 from djblets.cache.errors import MissingChunkError
 
@@ -60,7 +58,7 @@ def _cache_fetch_large_data(cache, key, compress_large_data):
     # pass an error about missing keys to the caller up-front before we
     # generate anything.
     if len(chunks) != chunk_count:
-        missing_keys = sorted(set(chunk_keys) - set(six.iterkeys(chunks)))
+        missing_keys = sorted(set(chunk_keys) - set(chunks.keys()))
         logger.debug('Cache miss for key(s): %s.' % ', '.join(missing_keys))
 
         raise MissingChunkError
@@ -341,7 +339,7 @@ def cache_memoize(key,
         # in cache. It's still possible to attempt to store large data
         # structures (where len(data) might be something like '6' but the
         # serialized value is huge), where this can still fail.
-        if (isinstance(data, six.string_types) and
+        if (isinstance(data, str) and
             len(data) >= CACHE_CHUNK_SIZE):
             logger.warning('Cache data for key "%s" (length %s) may be too '
                            'big for the cache.' % (key, len(data)))

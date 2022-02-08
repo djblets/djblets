@@ -1,7 +1,5 @@
 """Unit tests for djblets.util.dates."""
 
-from __future__ import unicode_literals
-
 from datetime import datetime
 
 import pytz

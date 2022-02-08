@@ -8,8 +8,6 @@ Version Added:
     2.1
 """
 
-from __future__ import unicode_literals
-
 import os
 
 from django.core.exceptions import ImproperlyConfigured

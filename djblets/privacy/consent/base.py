@@ -1,17 +1,10 @@
 """Base support for consent types, data, and requirements."""
 
-from __future__ import unicode_literals
-
-try:
-    # Python >= 3.4
-    from enum import Enum
-except ImportError:
-    # Python < 3.4
-    Enum = object
+from enum import Enum
 
 import dateutil.parser
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 
 class Consent(Enum):

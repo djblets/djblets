@@ -1,4 +1,4 @@
-{% load datagrid i18n static %}
+{% load i18n static %}
 
 <div class="datagrid-wrapper" id="{{datagrid.id}}">
 {% block datagrid_titlebox %}
@@ -13,7 +13,7 @@
    <table class="datagrid-head" style="display: none;">
     <colgroup>
 {% for column in datagrid.columns %}
-     <col class="{{column.id}}"{% ifnotequal column.width 0 %} width="{{column.width}}%"{% endifnotequal %} />
+     <col class="{{column.id}}"{% if column.width != 0 %} width="{{column.width}}%"{% endif %} />
 {% endfor %}
      <col class="datagrid-customize" />
     </colgroup>
@@ -23,7 +23,7 @@
     <table class="datagrid-body">
      <colgroup>
 {% for column in datagrid.columns %}
-      <col class="{{column.id}}"{% ifnotequal column.width 0 %} width="{{column.width}}%"{% endifnotequal %} />
+      <col class="{{column.id}}"{% if column.width != 0 %} width="{{column.width}}%"{% endif %} />
 {% endfor %}
       <col class="datagrid-customize" />
      </colgroup>

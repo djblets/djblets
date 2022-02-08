@@ -1,11 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import inspect
+import pickle
 import zlib
 
 from django.core.cache import cache
-from django.utils.six.moves import cPickle as pickle
 from kgb import SpyAgency
 
 from djblets.cache.backend import (cache_memoize, cache_memoize_iter,

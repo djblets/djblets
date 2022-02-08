@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-
-
 class NeedsIntegrationManagerMixin(object):
     """Mixin for classes that require an integration manager to be defined.
 

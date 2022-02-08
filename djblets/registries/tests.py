@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-
-from django.utils import six
 from kgb import SpyAgency
 
 from djblets.registries.errors import (AlreadyRegisteredError,
@@ -23,7 +20,7 @@ class Item(object):
         """
         self._attrs = set(attr_name for attr_name in attrs)
 
-        for attr_name, attr_value in six.iteritems(attrs):
+        for attr_name, attr_value in attrs.items():
             setattr(self, attr_name, attr_value)
 
     def __repr__(self):

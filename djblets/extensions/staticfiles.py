@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import os
 
 from django.contrib.staticfiles.finders import (BaseFinder, FileSystemFinder,
@@ -7,10 +5,10 @@ from django.contrib.staticfiles.finders import (BaseFinder, FileSystemFinder,
 from django.contrib.staticfiles.utils import get_files
 from django.core.files.storage import FileSystemStorage
 from pipeline.finders import PipelineFinder
-from pipeline.storage import PipelineCachedStorage
 from pkg_resources import resource_filename
 
 from djblets.extensions.manager import get_extension_managers
+from djblets.pipeline.storage import PipelineStorage
 
 
 class ExtensionStaticStorage(FileSystemStorage):
@@ -123,7 +121,7 @@ class ExtensionFinder(BaseFinder):
         return storage
 
 
-class PackagingCachedFilesStorage(PipelineCachedStorage):
+class PackagingCachedFilesStorage(PipelineStorage):
     """Looks up referenced static files from the current storage.
 
     When one static file references another, Django assumes that the
@@ -181,7 +179,7 @@ class PackagingCachedFilesStorage(PipelineCachedStorage):
         if storage.location in self._cached_storages:
             storage = self._cached_storages[storage.location]
         else:
-            storage = PipelineCachedStorage(location=storage.location)
+            storage = PipelineStorage(location=storage.location)
             self._cached_storages[storage.location] = storage
 
         return storage.hashed_name(matched_path, content)

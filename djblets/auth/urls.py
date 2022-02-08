@@ -1,11 +1,9 @@
-from __future__ import unicode_literals
-
-from django.conf.urls import url
+from django.urls import path
 
 from djblets.auth.views import register
 
+
 urlpatterns = [
-    url(r'register/', register, kwargs={
-        'next_page': 'test',
-    }, name='register')
+    path('register/', register, kwargs={'next_page': 'test'},
+         name='register'),
 ]

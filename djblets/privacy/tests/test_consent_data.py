@@ -1,7 +1,5 @@
 """Unit tests for djblets.privacy.consent.base.ConsentData."""
 
-from __future__ import unicode_literals
-
 from datetime import datetime
 
 from django.utils import timezone

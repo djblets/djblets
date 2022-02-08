@@ -1,7 +1,5 @@
 """Tests for djblets.extensions.templatetags."""
 
-from __future__ import unicode_literals
-
 import os
 import re
 import uuid
@@ -162,7 +160,7 @@ class TemplateTagTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
             })),
             '<link href="/ext/djblets.extensions.tests.test_templatetags'
             '.MyTestExtension/css/default.min.dad0c9b31e59.css" '
-            'rel="stylesheet" type="text/css" />')
+            'media="all" rel="stylesheet" type="text/css" />')
 
     def test_ext_css_bundle_tag_with_pipeline_disabled(self):
         """Testing ext_css_bundle template tag with PIPELINE_ENABLED=False"""
@@ -178,7 +176,7 @@ class TemplateTagTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
             })),
             '<link href="/ext/djblets.extensions.tests.test_templatetags.'
             'MyTestExtension/css/default-test.dad0c9b31e59.css" '
-            'rel="stylesheet" type="text/css" />')
+            'media="all" rel="stylesheet" type="text/css">')
 
     def test_ext_js_bundle_tag_with_pipeline_enabled(self):
         """Testing ext_js_bundle template tag with PIPELINE_ENABLED=True"""
@@ -232,10 +230,10 @@ class TemplateTagTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
             })),
             '<link href="/ext/djblets.extensions.tests.test_templatetags'
             '.MyTestExtension/css/default.min.dad0c9b31e59.css" '
-            'rel="stylesheet" type="text/css" />'
+            'rel="stylesheet" media="all" type="text/css">'
             '<link href="/ext/djblets.extensions.tests.test_templatetags'
             '.MyTestExtension/css/optional.min.dad0c9b31e59.css" '
-            'rel="stylesheet" type="text/css" />')
+            'rel="stylesheet" media="all" type="text/css">')
 
     def test_load_extensions_css_tag_with_pipline_disabled(self):
         """Testing load_extensions_css template tag with PIPELINE_ENABLED=False
@@ -255,10 +253,10 @@ class TemplateTagTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
             })),
             '<link href="/ext/djblets.extensions.tests.test_templatetags'
             '.MyTestExtension/css/default-test.dad0c9b31e59.css" '
-            'rel="stylesheet" type="text/css" />'
+            'rel="stylesheet" media="all" type="text/css">'
             '<link href="/ext/djblets.extensions.tests.test_templatetags'
             '.MyTestExtension/css/optional-test.dad0c9b31e59.css" '
-            'rel="stylesheet" type="text/css" />')
+            'rel="stylesheet" media="all" type="text/css">')
 
     def test_load_extensions_js_tag_with_pipeline_enabled(self):
         """Testing load_extensions_js template tag with PIPELINE_ENABLED=True

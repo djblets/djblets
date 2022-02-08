@@ -1,7 +1,5 @@
 """Utility functions for working with template-related caches."""
 
-from __future__ import unicode_literals
-
 from django.template import Engine, engines
 
 

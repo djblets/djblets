@@ -1,7 +1,5 @@
 """Unit tests for djblets.extensions.manager.ExtensionManager."""
 
-from __future__ import unicode_literals
-
 import errno
 import logging
 import os
@@ -48,6 +46,16 @@ class HooksTestExtension(MyTestExtension):
 
 class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.manager.ExtensionManager."""
+
+    @classmethod
+    def setUpClass(cls):
+        connection.disable_constraint_checking()
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        connection.enable_constraint_checking()
 
     def tearDown(self):
         super(ExtensionManagerTests, self).tearDown()
@@ -750,9 +758,9 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
                     Template(template_str).render(Context({})),
                     'Hello, world!')
             else:
-                with self.assertRaisesRegexp(TemplateSyntaxError,
-                                             'is not a (valid|registered) tag '
-                                             'library'):
+                with self.assertRaisesRegex(TemplateSyntaxError,
+                                            'is not a (valid|registered) tag '
+                                            'library'):
                     Template(template_str).render(Context({}))
 
         template_str = (
@@ -1122,18 +1130,22 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
         from django.db import connections
 
         main_connection = connections['default']
-        main_connection.allow_thread_sharing = True
 
-        self.exceptions = []
+        try:
+            main_connection.inc_thread_sharing()
 
-        t1 = threading.Thread(target=_thread_main,
-                              args=[main_connection, main_func, 0.2])
-        t2 = threading.Thread(target=_thread_main,
-                              args=[main_connection, main_func, 0.1])
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
+            self.exceptions = []
+
+            t1 = threading.Thread(target=_thread_main,
+                                  args=[main_connection, main_func, 0.2])
+            t2 = threading.Thread(target=_thread_main,
+                                  args=[main_connection, main_func, 0.1])
+            t1.start()
+            t2.start()
+            t1.join()
+            t2.join()
+        finally:
+            main_connection.dec_thread_sharing()
 
     def _sleep_and_call(self, manager, orig_func, *args, **kwargs):
         # This works well enough to throw a monkey wrench into things.

@@ -19,8 +19,6 @@ import them all from one place. The following are provided:
    ~djblets.db.fields.relation_counter_field.RelationCounterField
 """
 
-from __future__ import unicode_literals
-
 from djblets.db.fields.base64_field import (Base64DecodedValue,
                                             Base64FieldCreator, Base64Field)
 from djblets.db.fields.counter_field import CounterField

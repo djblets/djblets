@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
-
 import json
 
 from django.test.client import RequestFactory
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from djblets.testing.testcases import TestCase
 from djblets.webapi.resources.registry import unregister_resource
@@ -33,6 +31,6 @@ class WebAPIResponsePaginatedTests(TestCase):
         request = self.factory.get('/api/users/?q=%D0%B5')
         response = self.user_resource(request)
 
-        rsp = json.loads(force_text(response.content))
+        rsp = json.loads(force_str(response.content))
         self.assertEqual(rsp['links']['self']['href'],
                          'http://testserver/api/users/?q=%D0%B5')

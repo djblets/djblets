@@ -1,10 +1,7 @@
 """Model and cache management for SiteConfiguration."""
 
-from __future__ import unicode_literals
-
 from django.contrib.sites.models import Site
 from django.db import models
-from django.utils import six
 
 from djblets.siteconfig.signals import siteconfig_reloaded
 
@@ -103,7 +100,7 @@ class SiteConfigurationManager(models.Manager):
         """
         send_signal = siteconfig_reloaded.has_listeners()
 
-        for site_id, siteconfig in six.iteritems(_SITECONFIG_CACHE.copy()):
+        for site_id, siteconfig in _SITECONFIG_CACHE.copy().items():
             if siteconfig.is_expired():
                 try:
                     # This is stale. Get rid of it so we can load it next time.

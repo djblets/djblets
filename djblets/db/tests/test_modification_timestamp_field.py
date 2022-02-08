@@ -1,7 +1,5 @@
 """Unit tests for djblets.db.fields.modification_timestamp_field."""
 
-from __future__ import unicode_literals
-
 from datetime import datetime, timedelta
 
 from django.db import models

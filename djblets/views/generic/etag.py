@@ -1,7 +1,5 @@
 """Mixin for class-based views that support ETags."""
 
-from __future__ import unicode_literals
-
 from django.http import HttpResponseNotModified
 
 from djblets.util.http import encode_etag, set_etag, etag_if_none_match

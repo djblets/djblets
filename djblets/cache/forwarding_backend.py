@@ -1,7 +1,5 @@
 """A cache backend that forwards to other dynamically-configured backends."""
 
-from __future__ import unicode_literals
-
 import threading
 
 from django.core.signals import request_finished

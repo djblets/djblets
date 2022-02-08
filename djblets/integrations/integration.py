@@ -1,7 +1,5 @@
 """Base support for creating service integrations."""
 
-from __future__ import unicode_literals
-
 from djblets.integrations.forms import IntegrationConfigForm
 
 

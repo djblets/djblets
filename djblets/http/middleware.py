@@ -1,14 +1,7 @@
 """Middleware for HTTP-related processing."""
 
-from __future__ import unicode_literals
-
 import django
-
-try:
-    # Django >= 1.10
-    from django.utils.deprecation import MiddlewareMixin
-except ImportError:
-    MiddlewareMixin = object
+from django.utils.deprecation import MiddlewareMixin
 
 
 _uses_relative_redirects = (django.VERSION >= (1, 9))

@@ -1,9 +1,6 @@
 """Unit tests for djblets.extensions.extension.Extension."""
 
-from __future__ import unicode_literals
-
 from django.core.exceptions import ImproperlyConfigured
-from django.utils import six
 from kgb import SpyAgency
 
 from djblets.extensions.extension import Extension
@@ -13,8 +10,7 @@ from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
-@six.add_metaclass(ExtensionHookPoint)
-class DummyHook(ExtensionHook):
+class DummyHook(ExtensionHook, metaclass=ExtensionHookPoint):
     def initialize(self):
         self.foo = [1]
 
@@ -78,7 +74,7 @@ class ExtensionTest(SpyAgency, ExtensionTestCaseMixin, TestCase):
     def test_admin_urlconf(self):
         """Testing Extension with admin URLConfs"""
         class TestExtension(Extension):
-            __module__ = 'djblets.extensions.tests.apps.test'
+            __module__ = 'djblets.extensions.tests.apps.model_tests'
 
         extension = self.setup_extension(TestExtension)
 

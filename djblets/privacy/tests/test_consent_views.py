@@ -1,13 +1,12 @@
 """Unit tests for djblets.privacy.consent.views."""
 
-from __future__ import unicode_literals
+from urllib.parse import quote
 
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.cache import cache
 from django.http import HttpResponse, HttpResponseRedirect
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
-from django.utils.six.moves.urllib.parse import quote
 from django.views.generic.base import View
 
 from djblets.privacy.consent import (BaseConsentRequirement,

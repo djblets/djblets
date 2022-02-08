@@ -15,13 +15,10 @@ It also provides some built-in hooks for applications and extensions to use:
 * :py:class:`URLHook`
 """
 
-from __future__ import unicode_literals
-
 import logging
 import uuid
 
 from django.template.loader import render_to_string
-from django.utils import six
 
 
 logger = logging.getLogger(__name__)
@@ -44,13 +41,13 @@ class ExtensionHook(object):
     Example:
         .. code-block:: python
 
-           from django.utils import six
+           from djblets.extensions.hooks import (ExtensionHook,
+                                                 ExtensionHookPoint)
 
            from myproject.nav import register_thing, unregister_thing_id
 
 
-           @six.add_metaclass(ExtensionHookPoint)
-           class ThingHook(ExtensionHook):
+           class ThingHook(ExtensionHook, metaclass=ExtensionHookPoint):
                def initialize(self, thing_id):
                    self.thing_id = thing_id
                    register_thing(self.thing_id)
@@ -157,8 +154,7 @@ class ExtensionHook(object):
         Example:
             .. code-block:: python
 
-               @six.add_metaclass(ExtensionHookPoint)
-               class ThingHook(ExtensionHook):
+               class ThingHook(ExtensionHook, metaclass=ExtensionHookPoint):
                    def initialize(self, thing_id):
                        self.thing_id = thing_id
                        register_thing(self.thing_id)
@@ -186,8 +182,7 @@ class ExtensionHook(object):
 
             .. code-block:: python
 
-               @six.add_metaclass(ExtensionHookPoint)
-               class ThingHook(ExtensionHook):
+               class ThingHook(ExtensionHook, metaclass=ExtensionHookPoint):
                    def shutdown(self):
                        unregister_thing(self.thing_id)
         """
@@ -311,8 +306,7 @@ class AppliesToURLMixin(object):
                  request.resolver_match.url_name in self.apply_to))
 
 
-@six.add_metaclass(ExtensionHookPoint)
-class DataGridColumnsHook(ExtensionHook):
+class DataGridColumnsHook(ExtensionHook, metaclass=ExtensionHookPoint):
     """Adds columns to a datagrid.
 
     This hook allows an extension to register new columns to any datagrid.
@@ -345,8 +339,7 @@ class DataGridColumnsHook(ExtensionHook):
             self.datagrid_cls.remove_column(column)
 
 
-@six.add_metaclass(ExtensionHookPoint)
-class URLHook(ExtensionHook):
+class URLHook(ExtensionHook, metaclass=ExtensionHookPoint):
     """Custom URL hook.
 
     A hook that installs custom URLs. These URLs reside in a project-specified
@@ -358,7 +351,7 @@ class URLHook(ExtensionHook):
 
         Args:
             patterns (list):
-                The list of :py:func:`~django.conf.urls.url` entries
+                The list of :py:func:`~django.urls.path` entries
                 comprising the URLs to register.
         """
         self.patterns = patterns
@@ -369,8 +362,7 @@ class URLHook(ExtensionHook):
         self.dynamic_urls.remove_patterns(self.patterns)
 
 
-@six.add_metaclass(ExtensionHookPoint)
-class SignalHook(ExtensionHook):
+class SignalHook(ExtensionHook, metaclass=ExtensionHookPoint):
     """Connects to a Django signal.
 
     This will handle connecting to a signal, calling the specified callback
@@ -431,8 +423,8 @@ class SignalHook(ExtensionHook):
                 raise
 
 
-@six.add_metaclass(ExtensionHookPoint)
-class TemplateHook(AppliesToURLMixin, ExtensionHook):
+class TemplateHook(AppliesToURLMixin, ExtensionHook,
+                   metaclass=ExtensionHookPoint):
     """Custom templates hook.
 
     A hook that renders a template at hook points defined in another template.

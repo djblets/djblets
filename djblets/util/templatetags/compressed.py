@@ -5,7 +5,6 @@ template tags to ``stylesheet`` and ``javascript``. While this change makes a
 lot of sense, it's possible that third-party users will still have templates
 relying on the old names.
 """
-from __future__ import unicode_literals
 
 from django import template
 from pipeline.templatetags.pipeline import javascript, stylesheet

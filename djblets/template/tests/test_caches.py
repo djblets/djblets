@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from django.apps.registry import apps
 from django.conf import settings
 from django.template import Context, Template, TemplateSyntaxError, engines
@@ -23,9 +21,9 @@ class CachesTests(TestCase):
                     Template(template_str).render(Context({})),
                     'Hello, world!')
             else:
-                with self.assertRaisesRegexp(TemplateSyntaxError,
-                                             'is not a (valid|registered) tag '
-                                             'library'):
+                with self.assertRaisesRegex(TemplateSyntaxError,
+                                            'is not a (valid|registered) tag '
+                                            'library'):
                     Template(template_str).render(Context({}))
 
         templatetags_module_name = 'djblets.template.tests.templatetags'

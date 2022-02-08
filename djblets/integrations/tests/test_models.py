@@ -1,7 +1,3 @@
-from __future__ import unicode_literals
-
-from django.utils import six
-
 from djblets.integrations.integration import Integration
 from djblets.integrations.manager import IntegrationManager
 from djblets.integrations.tests.models import IntegrationConfig
@@ -56,12 +52,12 @@ class IntegrationConfigTests(IntegrationsTestCase):
 
     def test_str_with_available_integration(self):
         """Testing BaseIntegrationConfig.__str__ with available integration"""
-        self.assertEqual(six.text_type(self.config), 'Test Config (Dummy)')
+        self.assertEqual(str(self.config), 'Test Config (Dummy)')
 
     def test_str_without_available_integration(self):
         """Testing BaseIntegrationConfig.__str__ without available integration
         """
         self.config.integration_id = 'foo.bar.BadIntegration'
 
-        self.assertEqual(six.text_type(self.config),
+        self.assertEqual(str(self.config),
                          'Test Config (foo.bar.BadIntegration)')

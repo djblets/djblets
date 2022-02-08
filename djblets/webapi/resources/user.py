@@ -1,7 +1,5 @@
 """Built-in resource representing the User model."""
 
-from __future__ import unicode_literals
-
 from django.contrib.auth.models import User
 
 from djblets.util.decorators import augment_method_from

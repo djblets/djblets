@@ -1,11 +1,8 @@
 """Functions for safeguarding personally identifiable information."""
 
-from __future__ import unicode_literals
-
 import re
 
 from django.conf import settings
-from django.utils import six
 
 
 #: A default list of unsafe keywords for URL patterns and querysets.
@@ -53,8 +50,8 @@ def build_pii_safe_page_url(url, url_kwargs=None, query_dict=None,
     def _build_unsafe_keys(d):
         unsafe_keys = set()
 
-        for key, value in six.iteritems(d):
-            if isinstance(value, six.text_type):
+        for key, value in d.items():
+            if isinstance(value, str):
                 if '@' in value:
                     # This might be an e-mail address. Redact it.
                     unsafe_keys.add(key)
