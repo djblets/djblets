@@ -1,11 +1,11 @@
 """Unit tests for djblets.mail."""
 
+import dns.resolver
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
 from django.test.utils import override_settings
 from django.utils.datastructures import MultiValueDict
-from dns import resolver as dns_resolver
 
 from djblets.mail.dmarc import (DmarcPolicy, get_dmarc_record,
                                 is_email_allowed_by_dmarc)
@@ -234,7 +234,7 @@ class DmarcTests(DmarcDnsTestsMixin, TestCase):
         record2 = get_dmarc_record('example.com', use_cache=True)
         self.assertEqual(record1, record2)
 
-        self.assertEqual(len(dns_resolver.query.spy.calls), 1)
+        self.assertEqual(len(dns.resolver.resolve.spy.calls), 1)
 
     def test_is_email_allowed_by_dmarc_with_domain_policy_none(self):
         """Testing is_email_allowed_by_dmarc with domain policy=none"""
