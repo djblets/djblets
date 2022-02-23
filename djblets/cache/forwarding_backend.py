@@ -50,7 +50,7 @@ class ForwardingCacheBackend(object):
         if self._backend:
             try:
                 self._backend.close()
-            except:
+            except Exception:
                 # We don't really care if this fails. We just want the new
                 # configuration.
                 pass

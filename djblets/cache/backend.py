@@ -346,7 +346,7 @@ def cache_memoize(key,
 
         try:
             cache.set(key, data, expiration)
-        except:
+        except Exception:
             pass
 
         return data
@@ -378,7 +378,7 @@ def make_cache_key(key):
             key = '%s:%s:%s' % (site.domain, site_root, key)
         else:
             key = '%s:%s' % (site.domain, key)
-    except:
+    except Exception:
         # The install doesn't have a Site app, so use the key as-is.
         pass
 

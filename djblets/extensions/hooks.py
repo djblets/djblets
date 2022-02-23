@@ -563,7 +563,7 @@ class BaseRegistryMultiItemHook(ExtensionHook):
                 for item in registered_items:
                     try:
                         self.registry.unregister(item)
-                    except:
+                    except Exception:
                         pass
 
                 raise
