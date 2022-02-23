@@ -9,7 +9,6 @@ from contextlib import contextmanager
 
 from django.forms import widgets
 from django.forms.widgets import HiddenInput
-from django.template.context import Context
 from django.template.loader import render_to_string
 from django.utils.html import format_html_join
 from django.utils.translation import gettext as _

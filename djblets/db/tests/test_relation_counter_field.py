@@ -1,6 +1,5 @@
 import gc
 
-import django
 from django.db import models, transaction
 from kgb import SpyAgency
 

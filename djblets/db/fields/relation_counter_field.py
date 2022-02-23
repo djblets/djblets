@@ -2,7 +2,6 @@ import threading
 import weakref
 from contextlib import contextmanager
 
-import django
 from django.db.models import F, Q
 from django.db.models.signals import (m2m_changed, post_delete, post_save,
                                       pre_delete)
