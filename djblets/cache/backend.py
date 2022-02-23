@@ -59,7 +59,8 @@ def _cache_fetch_large_data(cache, key, compress_large_data):
     # generate anything.
     if len(chunks) != chunk_count:
         missing_keys = sorted(set(chunk_keys) - set(chunks.keys()))
-        logger.debug('Cache miss for key(s): %s.' % ', '.join(missing_keys))
+        missing_keys_str = b', '.join(missing_keys).decode('utf-8')
+        logger.debug('Cache miss for key(s): %s.' % missing_keys_str)
 
         raise MissingChunkError
 
@@ -363,7 +364,7 @@ def make_cache_key(key):
             The base key to generate a cache key from.
 
     Returns:
-        unicode:
+        bytes:
         A cache key suitable for use with the cache backend.
     """
     try:
