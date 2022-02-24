@@ -69,7 +69,7 @@ class BaseWebAPIToken(models.Model):
             webapi_token_updated.send(instance=self, sender=type(self))
 
     @classmethod
-    def get_root_resource(self):
+    def get_root_resource(cls):
         raise NotImplementedError
 
     @classmethod

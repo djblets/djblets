@@ -11,6 +11,7 @@ from djblets.webapi.errors import INVALID_FORM_DATA
 
 class WebAPIResponse(HttpResponse):
     """An API response, formatted for the desired file format."""
+
     supported_mimetypes = [
         'application/json',
         'application/xml',

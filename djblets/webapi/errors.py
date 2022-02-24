@@ -1,5 +1,6 @@
 """Error classes and codes for WebAPI."""
 
+
 class WebAPIError(object):
     """
     An API error, containing an error code and human readable message.

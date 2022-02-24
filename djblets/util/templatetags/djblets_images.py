@@ -113,7 +113,7 @@ def thumbnail(f, size='400x100'):
                 # Calculate height based on width
                 y = int(x * (image.size[1] / image.size[0]))
 
-            image.thumbnail([x, y], Image.ANTIALIAS)
+            image.thumbnail((x, y), Image.ANTIALIAS)
 
             save_image_to_storage(image, storage, miniature)
         except (IOError, KeyError) as e:

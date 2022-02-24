@@ -1,5 +1,6 @@
 """Functions to humanize values."""
 
+
 def humanize_list(value):
     """
     Humanizes a list of values, inserting commas and "and" where appropriate.

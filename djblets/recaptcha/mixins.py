@@ -5,7 +5,7 @@ See :ref:`using-recaptcha` for a guide on using reCAPTCHA validation.
 
 import json
 import logging
-from urllib.error import URLError
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
@@ -74,10 +74,10 @@ class RecaptchaFormMixin(forms.Form):
             try:
                 resp = urlopen(
                     'https://www.google.com/recaptcha/api/siteverify',
-                    data)
+                    data.encode('utf-8'))
 
                 payload = resp.read()
-            except URLError as e:
+            except HTTPError as e:
                 logging.exception('Could not make reCAPTCHA request: HTTP %s: '
                                   '%s',
                                   e.code, e.read())

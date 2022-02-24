@@ -197,7 +197,6 @@ class RelationCounterFieldTests(SpyAgency, TestModelsLoaderMixin, TestCase):
                                                    created=False))
         self.assertTrue(save_func.last_returned(False))
 
-
     #
     # Forward-relation ManyToManyField tests
     #

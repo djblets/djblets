@@ -206,7 +206,7 @@ class LoggingMiddleware(MiddlewareMixin):
                     'SQL Query profile (%d times, %.3fs average)\n%s\n\n%s\n\n' % \
                     (len(entries), time / len(entries), sql, tracebacks)
 
-            sorted_times = sorted(times.keys(), reverse=1)
+            sorted_times = sorted(times.keys(), reverse=True)
             for time in sorted_times:
                 profile_log.log(logging.INFO, times[time])
 

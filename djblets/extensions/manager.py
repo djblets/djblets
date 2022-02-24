@@ -1338,10 +1338,10 @@ class ExtensionManager(object):
         extension.registration.installed = False
         extension.registration.save()
 
-        for path in (extension.info.installed_htdocs_path,
-                     extension.info.installed_static_path):
-            if os.path.exists(path):
-                shutil.rmtree(path, ignore_errors=True)
+        for media_path in (extension.info.installed_htdocs_path,
+                           extension.info.installed_static_path):
+            if os.path.exists(media_path):
+                shutil.rmtree(media_path, ignore_errors=True)
 
     def _install_admin_urls(self, extension):
         """Install administration URLs.
@@ -1510,7 +1510,7 @@ class ExtensionManager(object):
                 The extension whose apps are being removed.
         """
         # Remove the extension's apps from INSTALLED_APPS.
-        removed_apps = self._installed_apps_setting.remove_list(
+        self._installed_apps_setting.remove_list(
             extension.apps or [extension.info.app_name])
 
         # Now clear the apps and their modules from any caches.

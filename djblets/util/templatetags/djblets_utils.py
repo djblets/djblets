@@ -722,6 +722,8 @@ def paragraphs(text):
             s += "<p>%s</p>\n" % line
 
     return mark_safe(s)
+
+
 paragraphs.is_safe = True
 
 

@@ -401,6 +401,7 @@ def _Logger_log(self, *args, **kwargs):
 
     _old_log(self, *args, **kwargs)
 
+
 _old_log = logging.Logger._log
 
 if _old_log is not _Logger_log:
@@ -419,6 +420,7 @@ def _has_keywords(func):
                 argspec.kwonlyargs is not None)
     else:
         return inspect.getargspec(func).keywords is not None
+
 
 if not _has_keywords(logging.exception):
     def _logging_exception(msg, *args, **kwargs):

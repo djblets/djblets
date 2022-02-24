@@ -1,5 +1,6 @@
 """Exception classes for dealing with Djblets registries."""
 
+
 class ItemLookupError(Exception):
     """An error that occurs during item lookup."""
 
