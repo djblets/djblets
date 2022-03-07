@@ -11,7 +11,7 @@ import logging
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.utils.six.moves.urllib.error import URLError
+from django.utils.six.moves.urllib.error import HTTPError
 from django.utils.six.moves.urllib.parse import urlencode
 from django.utils.six.moves.urllib.request import urlopen
 from django.utils.translation import ugettext as _
@@ -76,10 +76,10 @@ class RecaptchaFormMixin(forms.Form):
             try:
                 resp = urlopen(
                     'https://www.google.com/recaptcha/api/siteverify',
-                    data)
+                    data.encode('utf-8'))
 
                 payload = resp.read()
-            except URLError as e:
+            except HTTPError as e:
                 logging.exception('Could not make reCAPTCHA request: HTTP %s: '
                                   '%s',
                                   e.code, e.read())
