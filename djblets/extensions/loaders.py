@@ -66,7 +66,8 @@ class Loader(BaseLoader):
                 The template could not be found.
         """
         try:
-            return manager.resource_string(origin.package, origin.resource)
+            data = manager.resource_string(origin.package, origin.resource)
+            return data.decode('utf-8')
         except Exception:
             raise TemplateDoesNotExist(origin)
 

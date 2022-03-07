@@ -1,7 +1,7 @@
 """Testing utilities for mail-related unit tests."""
 
+import dns.resolver
 from django.core.cache import cache
-from dns import resolver as dns_resolver
 from dns.rdtypes.ANY.TXT import TXT
 from kgb import SpyAgency
 
@@ -30,7 +30,7 @@ class DmarcDnsTestsMixin(object):
         self.dmarc_txt_records = {}
 
         self._dmarc_spy_agency = SpyAgency()
-        self._dmarc_spy_agency.spy_on(dns_resolver.query,
+        self._dmarc_spy_agency.spy_on(dns.resolver.resolve,
                                       call_fake=self._dns_query)
         cache.clear()
 
@@ -43,4 +43,4 @@ class DmarcDnsTestsMixin(object):
         try:
             return [TXT(1, 16, [self.dmarc_txt_records[qname]])]
         except KeyError:
-            raise dns_resolver.NXDOMAIN
+            raise dns.resolver.NXDOMAIN

@@ -709,7 +709,7 @@ class WebAPIResource(object):
 
                 return self._parent_resource.has_access_permissions(
                     request, parent_obj, *args, **kwargs)
-            except:
+            except Exception:
                 # Other errors, like Does Not Exist, should be caught
                 # separately. As of here, we'll allow it to pass, so that
                 # the error isn't a Permission Denied when it should be

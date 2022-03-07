@@ -109,7 +109,7 @@ class RegistrationForm(forms.Form):
                         email=self.cleaned_data['email'],
                         first_name=self.cleaned_data['first_name'],
                         last_name=self.cleaned_data['last_name'])
-            except:
+            except Exception:
                 # We check for duplicate users here instead of clean, since
                 # it's possible that two users could race for a name.
                 if User.objects.filter(username=username).exists():

@@ -103,7 +103,7 @@ class SiteConfiguration(models.Model):
         cls.add_global_defaults({key: default_value})
 
     @classmethod
-    def remove_global_default(self, key):
+    def remove_global_default(cls, key):
         """Remove a global default value for a settings key.
 
         Args:
@@ -113,7 +113,7 @@ class SiteConfiguration(models.Model):
         _GLOBAL_DEFAULTS.pop(key)
 
     @classmethod
-    def clear_global_defaults(self):
+    def clear_global_defaults(cls):
         """Clear all default values for this site configuration.
 
         This will clear only global defaults. This will not affect defaults

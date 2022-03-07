@@ -3,7 +3,6 @@
 from django.test import RequestFactory
 
 from djblets.extensions.extension import Extension
-from djblets.extensions.manager import ExtensionManager
 from djblets.extensions.resources import (ExtensionResource,
                                           ExtensionRootResourceMixin)
 from djblets.extensions.testing import ExtensionTestCaseMixin

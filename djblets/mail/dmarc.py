@@ -3,8 +3,9 @@
 import codecs
 import logging
 
+import dns.rdatatype
+import dns.resolver
 import pkg_resources
-from dns import resolver as dns_resolver
 from publicsuffix import PublicSuffixList
 
 from djblets.cache.backend import DEFAULT_EXPIRATION_TIME, cache_memoize
@@ -198,10 +199,11 @@ def _fetch_dmarc_record(hostname, use_cache, cache_expiration):
     """
     def _fetch_record():
         try:
-            return dns_resolver.query('_dmarc.%s' % hostname,
-                                      'TXT')[0].to_text()
-        except (IndexError, dns_resolver.NXDOMAIN, dns_resolver.NoAnswer,
-                dns_resolver.NoNameservers):
+            return dns.resolver.resolve('_dmarc.%s' % hostname,
+                                        dns.rdatatype.TXT,
+                                        search=True)[0].to_text()
+        except (IndexError, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer,
+                dns.resolver.NoNameservers):
             raise ValueError
 
     try:

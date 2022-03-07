@@ -64,7 +64,7 @@ def generate_ajax_serial():
     if not AJAX_SERIAL:
         template_dirs = itertools.chain.from_iterable(
             template_settings.get('DIRS', [])
-            for template_settings in getattr(settings, 'TEMPLATES', None)
+            for template_settings in getattr(settings, 'TEMPLATES', [])
         )
 
         for template_path in template_dirs:

@@ -40,7 +40,7 @@ class RegisteredExtension(models.Model):
                         break
                     except InvalidExtensionError:
                         continue
-            except:
+            except Exception:
                 return None
 
             self._extension_class = cls

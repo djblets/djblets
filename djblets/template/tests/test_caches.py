@@ -26,7 +26,6 @@ class CachesTests(TestCase):
                                             'library'):
                     Template(template_str).render(Context({}))
 
-        templatetags_module_name = 'djblets.template.tests.templatetags'
         template_str = (
             '{% load template_tests %}'
             '{% my_test_template_tag %}'

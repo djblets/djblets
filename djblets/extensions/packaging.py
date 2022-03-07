@@ -453,7 +453,7 @@ class BuildStaticFiles(Command):
             for name in dirs:
                 try:
                     os.rmdir(os.path.join(root, name))
-                except:
+                except Exception:
                     # The directory is probably not empty yet.
                     pass
 

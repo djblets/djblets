@@ -2,7 +2,6 @@
 
 import os
 import re
-import uuid
 from collections import OrderedDict
 
 from django.http import HttpRequest

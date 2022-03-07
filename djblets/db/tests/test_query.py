@@ -1,4 +1,3 @@
-from django.contrib.auth.models import User
 from django.db.models.query_utils import Q
 
 from djblets.db.query import prefix_q

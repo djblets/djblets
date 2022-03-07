@@ -1,9 +1,7 @@
 import functools
 import re
 
-import django
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
-from django.db.models.query import QuerySet
 from django.db.models.manager import Manager
 from django.db.models.query_utils import Q
 

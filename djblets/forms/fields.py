@@ -212,7 +212,7 @@ class ConditionsField(forms.Field):
                 self.widget.condition_errors[e.condition_index] = \
                     self.error_messages['value_required']
             else:
-                self.widget.condition_errors[e.condition_index] =  str(e)
+                self.widget.condition_errors[e.condition_index] = str(e)
 
             raise forms.ValidationError(
                 self.error_messages['condition_errors'],

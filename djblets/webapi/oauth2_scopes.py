@@ -119,18 +119,6 @@ class WebAPIScopeDictionary(object):
 
         return self._scope_dict
 
-    def iterkeys(self):
-        """Iterate through all keys in the dictionary.
-
-        This is used by oauth2_provider when on Python 2.x to get the list
-        of scope keys.
-
-        Yields:
-            unicode:
-            The key for each scope.
-        """
-        return self.scope_dict.iterkeys()
-
     def keys(self):
         """Iterate through all keys in the dictionary.
 

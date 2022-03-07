@@ -59,7 +59,8 @@ def _cache_fetch_large_data(cache, key, compress_large_data):
     # generate anything.
     if len(chunks) != chunk_count:
         missing_keys = sorted(set(chunk_keys) - set(chunks.keys()))
-        logger.debug('Cache miss for key(s): %s.' % ', '.join(missing_keys))
+        missing_keys_str = b', '.join(missing_keys).decode('utf-8')
+        logger.debug('Cache miss for key(s): %s.' % missing_keys_str)
 
         raise MissingChunkError
 
@@ -186,10 +187,17 @@ def _cache_store_items(cache, key, items, expiration, compress_large_data):
     """
     # Note that we want to use pickle protocol 0 in order to be compatible
     # across both Python 2 and 3. On Python 2, 0 is the default.
-    results = (
-        (pickle.dumps(item, protocol=0), True, item)
-        for item in items
-    )
+    results = []
+    for item in items:
+        try:
+            results.append((pickle.dumps(item, protocol=0), True, item))
+        except Exception:
+            from icecream import ic
+            ic(item)
+            ic(type(item))
+            raise
+
+    results = tuple(results)
 
     if compress_large_data:
         results = _cache_compress_pickled_data(results)
@@ -346,7 +354,7 @@ def cache_memoize(key,
 
         try:
             cache.set(key, data, expiration)
-        except:
+        except Exception:
             pass
 
         return data
@@ -363,7 +371,7 @@ def make_cache_key(key):
             The base key to generate a cache key from.
 
     Returns:
-        unicode:
+        bytes:
         A cache key suitable for use with the cache backend.
     """
     try:
@@ -378,7 +386,7 @@ def make_cache_key(key):
             key = '%s:%s:%s' % (site.domain, site_root, key)
         else:
             key = '%s:%s' % (site.domain, key)
-    except:
+    except Exception:
         # The install doesn't have a Site app, so use the key as-is.
         pass
 

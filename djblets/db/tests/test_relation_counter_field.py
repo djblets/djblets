@@ -1,6 +1,5 @@
 import gc
 
-import django
 from django.db import models, transaction
 from kgb import SpyAgency
 
@@ -197,7 +196,6 @@ class RelationCounterFieldTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         self.assertTrue(save_func.last_called_with(instance=model2,
                                                    created=False))
         self.assertTrue(save_func.last_returned(False))
-
 
     #
     # Forward-relation ManyToManyField tests

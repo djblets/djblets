@@ -1,4 +1,3 @@
-import warnings
 from collections import OrderedDict
 
 from django.contrib.auth.models import User

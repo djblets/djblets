@@ -1,4 +1,3 @@
-import inspect
 import logging
 import warnings
 
@@ -128,7 +127,7 @@ def ext_static(context, extension, path):
 def _render_bundle(context, node_cls, extension, name, bundle_type):
     try:
         return node_cls('"%s"' % extension.get_bundle_id(name)).render(context)
-    except:
+    except Exception:
         logger.error('Unable to render %s bundle "%s" for extension "%s" '
                      '(%s). The extension may not be installed correctly. '
                      'Try disabling and re-installing the extension, and '

@@ -25,7 +25,7 @@ from djblets.util.humanize import humanize_list
 register = template.Library()
 
 
-WS_RE = re.compile('\s+')
+WS_RE = re.compile(r'\s+')
 
 
 @register.tag
@@ -722,6 +722,8 @@ def paragraphs(text):
             s += "<p>%s</p>\n" % line
 
     return mark_safe(s)
+
+
 paragraphs.is_safe = True
 
 
