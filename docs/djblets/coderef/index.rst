@@ -114,7 +114,6 @@ Datagrids
    :toctree: python
 
    djblets.datagrid.grids
-   djblets.datagrid.templatetags.datagrid
 
 
 .. _coderef-djblets-db:
@@ -260,7 +259,6 @@ Integrations
    djblets.integrations.manager
    djblets.integrations.mixins
    djblets.integrations.models
-   djblets.integrations.templatetags.integrations
    djblets.integrations.urls
    djblets.integrations.views
 
