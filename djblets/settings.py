@@ -20,7 +20,9 @@ DEBUG = False
 DJBLETS_ROOT = os.path.abspath(os.path.dirname(__file__))
 HTDOCS_ROOT = os.path.join(DJBLETS_ROOT, 'htdocs')
 STATIC_ROOT = os.path.join(HTDOCS_ROOT, 'static')
-STATIC_URL = '/'
+MEDIA_ROOT = os.path.join(HTDOCS_ROOT, 'media')
+STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
 LOGIN_LIMIT_RATE = '5/m'
 
 STATICFILES_DIRS = (
@@ -47,6 +49,7 @@ PIPELINE = build_pipeline_settings(
 
 
 INSTALLED_APPS = [
+    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sites',
