@@ -20,5 +20,5 @@ if __name__ == '__main__':
 
     os.chdir(os.path.dirname(djblets.__file__))
 
-    ret = call_command('compilemessages', interactive=False, verbosity=2)
+    ret = call_command('compilemessages', verbosity=2)
     sys.exit(ret)
