@@ -187,17 +187,10 @@ def _cache_store_items(cache, key, items, expiration, compress_large_data):
     """
     # Note that we want to use pickle protocol 0 in order to be compatible
     # across both Python 2 and 3. On Python 2, 0 is the default.
-    results = []
-    for item in items:
-        try:
-            results.append((pickle.dumps(item, protocol=0), True, item))
-        except Exception:
-            from icecream import ic
-            ic(item)
-            ic(type(item))
-            raise
-
-    results = tuple(results)
+    results = (
+        (pickle.dumps(item, protocol=0), True, item)
+        for item in items
+    )
 
     if compress_large_data:
         results = _cache_compress_pickled_data(results)
