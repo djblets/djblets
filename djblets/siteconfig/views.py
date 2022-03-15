@@ -53,6 +53,7 @@ def site_settings(request,
 
     context = {
         'form': form,
+        'opts': siteconfig._meta,
         'saved': request.GET.get('saved', 0)
     }
     context.update(extra_context)
