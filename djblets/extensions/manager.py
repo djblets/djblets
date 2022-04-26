@@ -884,6 +884,7 @@ class ExtensionManager(object):
             pass
 
         self._extension_instances[extension_id] = extension
+        ext_class.instance = extension
 
         try:
             if extension.has_admin_site:
@@ -918,7 +919,6 @@ class ExtensionManager(object):
             extension.info.context_processors_registered = True
 
             clear_template_tag_caches()
-            ext_class.instance = extension
 
             try:
                 self.install_extension_media(ext_class)

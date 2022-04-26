@@ -181,6 +181,31 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
                          self.extension_package_name)
         self.assertTrue(MyTestExtension.registration.enabled)
 
+    def test_load_with_admin_site(self):
+        """Testing ExtensionManager.load with has_admin_site=True"""
+        class AdminSiteMyTestExtension(HooksTestExtension):
+            has_admin_site = True
+
+        manager = self.extension_mgr
+
+        @self.spy_for(manager._init_admin_site)
+        def _init_admin_site(_self, *args, **kwargs):
+            self.assertIsNotNone(AdminSiteMyTestExtension.instance)
+            self.assertIsInstance(AdminSiteMyTestExtension.instance,
+                                  AdminSiteMyTestExtension)
+
+            return manager._init_admin_site.call_original(*args, **kwargs)
+
+        extension = self.setup_extension(AdminSiteMyTestExtension)
+
+        self.assertEqual(manager.get_installed_extensions(),
+                         [AdminSiteMyTestExtension])
+        self.assertEqual(manager.get_enabled_extensions(), [extension])
+        self.assertIs(AdminSiteMyTestExtension.instance, extension)
+
+        self.assertIsNotNone(extension.admin_site)
+        self.assertEqual(extension.admin_site.name, 'djblets.extensions.tests')
+
     def test_load_with_admin_site_failure(self):
         """Testing ExtensionManager.load with extension error setting up
         admin site
