@@ -40,7 +40,7 @@ if pyver < PYTHON_3_MIN_VERSION:
 # 3.9: October 5, 2025
 #
 # See https://endoflife.date/python
-SUPPORTED_PYVERS = ['3.7', '3.8', '3.9']
+SUPPORTED_PYVERS = ['3.7', '3.8', '3.9', '3.10']
 
 
 if '--all-pyvers' in sys.argv:
