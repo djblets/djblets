@@ -40,18 +40,20 @@ Djblets.Forms.ConditionSet = Backbone.Model.extend({
             parse: true
         });
 
+        const that = this;
+
         this.conditions = new Backbone.Collection(attributes.conditionsData, {
-            model: (attrs, options) => {
+            model: function(attrs, options) {
                 const choice = attrs.choice ||
-                               this.choices.get(attrs.choiceID);
+                               that.choices.get(attrs.choiceID);
                 const operator = attrs.operator ||
                                  (choice
                                   ? choice.operators.get(attrs.operatorID)
                                   : null);
-                const lastID = this.get('lastID');
+                const lastID = that.get('lastID');
                 const conditionID = (lastID === null ? 0 : lastID + 1);
 
-                this.set('lastID', conditionID);
+                that.set('lastID', conditionID);
 
                 return new Djblets.Forms.Condition(
                     {
