@@ -10,7 +10,6 @@ from django.urls import ResolverMatch
 from django.utils.safestring import mark_safe
 from kgb import SpyAgency
 
-from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.extensions.extension import Extension, ExtensionInfo, JSExtension
 from djblets.extensions.hooks import TemplateHook
 from djblets.extensions.manager import ExtensionManager
@@ -19,17 +18,17 @@ from djblets.testing.testcases import TestCase
 from pipeline.conf import settings as pipeline_settings
 
 
-class MyTestJSExtension(JSExtension):
-    model_class = 'FooNew'
+class MyTestJSExtension1(JSExtension):
+    model_class = 'TestExtension1'
 
     def get_model_data(self, request, **kwargs):
         return {'test': 'new'}
 
 
-class MyTestJSExtensionDeprecated(JSExtension):
-    model_class = 'FooOld'
+class MyTestJSExtension2(JSExtension):
+    model_class = 'TestExtension2'
 
-    def get_model_data(self):
+    def get_model_data(self, **kwargs):
         return {'test': 'old'}
 
 
@@ -66,7 +65,7 @@ class MyTestExtension(Extension):
         'apply_to': ['foo'],
     }
 
-    js_extensions = [MyTestJSExtension, MyTestJSExtensionDeprecated]
+    js_extensions = [MyTestJSExtension1, MyTestJSExtension2]
 
 
 class TemplateTagTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
@@ -314,23 +313,16 @@ class TemplateTagTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
 
         self.request.resolver_match = ResolverMatch(None, None, None, 'foo')
 
-        # This warning checks for MyTestJSExtensionDeprecated.get_model_data.
-        expected_message = (
-            'MyTestJSExtensionDeprecated.get_model_data will need to take '
-            'keyword arguments. The old function signature is deprecated.'
-        )
-
-        with self.assertWarns(RemovedInDjblets30Warning, expected_message):
-            content = t.render(Context({
-                'ext': self.extension,
-                'manager_id': self.extension_mgr.key,
-                'request': self.request,
-            }))
+        content = t.render(Context({
+            'ext': self.extension,
+            'manager_id': self.extension_mgr.key,
+            'request': self.request,
+        }))
 
         self.assertIsNotNone(re.search(
-            r'new FooNew\({\s+"test": "new",',
+            r'new TestExtension1\({\s+"test": "new",',
             content))
 
         self.assertIsNotNone(re.search(
-            r'new FooOld\({\s+"test": "old",',
+            r'new TestExtension2\({\s+"test": "old",',
             content))

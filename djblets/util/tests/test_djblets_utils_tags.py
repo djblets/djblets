@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from django.http import HttpRequest, QueryDict
 from django.template import Context, Template
 
-from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.testing.testcases import TagTest, TestCase
 from djblets.util.templatetags.djblets_utils import (ageid, escapespaces,
                                                      humanize_list, indent)
@@ -330,74 +329,6 @@ class IndentFilterTests(TestCase):
         """Testing {{...|indent}} with multiple lines"""
         self.assertEqual(indent('foo\nbar'),
                          '    foo\n    bar')
-
-
-class QuerystringWithTagTests(TestCase):
-    """Unit tests for the {% querystring_with %} template tag."""
-
-    def setUp(self):
-        super(QuerystringWithTagTests, self).setUp()
-        self.request = HttpRequest()
-        warnings.simplefilter('always')
-
-    def test_basic_usage(self):
-        """Testing {% querystring_with %}"""
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring_with "foo" "bar" %}')
-
-        expected_message = (
-            '{% querystring_with "foo" "bar" %} is deprecated and will be '
-            'removed in a future version of Djblets. Please use '
-            '{% querystring "mode" "foo=bar" %} instead.'
-        )
-
-        with self.assertWarns(cls=RemovedInDjblets30Warning,
-                              message=expected_message):
-            t.render(Context({
-                'request': self.request,
-            }))
-
-        with self.assertWarns(cls=RemovedInDjblets30Warning):
-            self.assertEqual(
-                t.render(Context({
-                    'request': HttpRequest(),
-                })),
-                '?foo=bar')
-
-    def test_with_tag_existing_query(self):
-        """Testing {% querystring_with %} with an existing query"""
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring_with "foo" "bar" %}')
-
-        self.request.GET = OrderedDict([
-            ('a', '1'),
-            ('b', '2'),
-        ])
-
-        with self.assertWarns(cls=RemovedInDjblets30Warning):
-            self.assertEqual(
-                t.render(Context({
-                    'request': self.request,
-                })),
-                '?a=1&amp;b=2&amp;foo=bar')
-
-    def test_with_existing_query_override(self):
-        """Testing {% querystring_with %} with an existing query that gets
-        overriden
-        """
-        t = Template('{% load djblets_utils %}'
-                     '{% querystring_with "foo" "bar" %}')
-
-        self.request.GET = {
-            'foo': 'foo',
-            'bar': 'baz',
-        }
-
-        with self.assertWarns(cls=RemovedInDjblets30Warning):
-            self.assertEqual(
-                t.render(Context({
-                    'request': self.request,
-                })), '?bar=baz&amp;foo=bar')
 
 
 class QuerystringTagTests(TestCase):

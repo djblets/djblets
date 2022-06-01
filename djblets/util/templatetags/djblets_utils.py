@@ -15,7 +15,6 @@ from django.utils.html import escape, format_html, strip_spaces_between_tags
 from django.utils.safestring import mark_safe
 from django.utils.timezone import is_aware
 
-from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.util.decorators import blocktag
 from djblets.util.dates import get_tz_aware_utcnow
 from djblets.util.http import get_url_params_except
@@ -754,60 +753,6 @@ def split(s, delim=','):
            {% endfor %}
     """
     return s.split(delim)
-
-
-@register.simple_tag(takes_context=True)
-def querystring_with(context, attr, value):
-    """Return the current page URL with a new query string argument added.
-
-    This makes it easy to add to or replace part of a query string for the
-    current page's URL, which may already contain a query string.
-
-    If the page URL already has a query string, a new item is added in the form
-    of ``&attr=value``. If it doesn't have a query string, this will start a
-    new one in the form of ``?attr=value``.
-
-    If the attribute already exists in the query string, its value will be
-    replaced.
-
-    Args:
-        context (django.template.context.RequestContext):
-            The Django template rendering context.
-
-        attr (unicode):
-            The name of the attribute for the new query string argument.
-
-        value (unicode):
-            The value of the attribute for the new query string argument.
-
-    Returns:
-        unicode:
-        The new URL with the modified query string.
-
-    Example:
-        .. code-block:: html+django
-
-           <a href="{% querystring_with "sorted" "1" %}">Sort</a>
-    """
-    warnings.warn(
-        '{%% querystring_with "%(attr)s" "%(value)s" %%} is deprecated and '
-        'will be removed in a future version of Djblets. Please use '
-        '{%% querystring "mode" "%(attr)s=%(value)s" %%} instead.'
-        % {
-            'attr': attr,
-            'value': value,
-        },
-        RemovedInDjblets30Warning)
-
-    existing_query = get_url_params_except(context['request'].GET, attr)
-    new_query = urlencode({attr.encode('utf-8'): value.encode('utf-8')})
-
-    if existing_query:
-        result = '?%s&%s' % (existing_query, new_query)
-    else:
-        result = '?%s' % new_query
-
-    return escape(result)
 
 
 @register.simple_tag(takes_context=True)
