@@ -8,7 +8,6 @@ from django.utils.safestring import mark_safe
 from pipeline.conf import settings as pipeline_settings
 from pipeline.templatetags.pipeline import JavascriptNode, StylesheetNode
 
-from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.extensions.hooks import TemplateHook
 from djblets.extensions.manager import get_extension_managers
 
@@ -377,16 +376,7 @@ def init_js_extensions(context, extension_manager_key):
             js_extension_items = []
 
             for js_extension in js_extensions:
-                if not func_accepts_kwargs(js_extension.get_model_data):
-                    warnings.warn(
-                        '%s.get_model_data will need to take keyword '
-                        'arguments. The old function signature is deprecated.'
-                        % js_extension.__class__.__name__,
-                        RemovedInDjblets30Warning)
-
-                    model_data = js_extension.get_model_data()
-                else:
-                    model_data = js_extension.get_model_data(request=request)
+                model_data = js_extension.get_model_data(request=request)
 
                 js_extension_items.append({
                     'js_extension': js_extension,

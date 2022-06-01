@@ -14,7 +14,6 @@ from django.http import (HttpResponseNotAllowed, HttpResponse,
 from django.urls import include, path, re_path, reverse
 from django.views.decorators.vary import vary_on_headers
 
-from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.auth.ratelimit import (RATE_LIMIT_API_ANONYMOUS,
                                     RATE_LIMIT_API_AUTHENTICATED,
                                     get_usage_count)
@@ -1239,50 +1238,6 @@ class WebAPIResource(object):
         information, encode it as a SHA1, and return it.
         """
         return encode_etag('%s:%s' % (request.user.username, etag))
-
-    def generate_etag(self, obj, fields, request, encode_etag=True, **kwargs):
-        """Generate an ETag from the serialized values of all given fields.
-
-        .. deprecated:: 2.0
-
-           This method is no longer called internally, as the auto-generation
-           logic for ETags has changed. It's left here for any resources that
-           may still call it, and is scheduled to be removed in a future
-           release.
-
-        Args:
-            obj (object):
-                The object being serialized.
-
-            fields (list of unicode, unused):
-                An unused list of field names. You can provide any value here.
-                It will be ignored.
-
-            request (django.http.HttpRequest):
-                The HTTP request from the client.
-
-            encode_etag (bool, optional):
-                Whether to encode the ETag to a SHA.
-
-            **kwargs (dict):
-                Extra keyword arguments for :py:meth:`serialize_object`.
-
-        Returns:
-            unicode:
-            The generated ETag.
-        """
-        warnings.warn(
-            'WebAPIResource.generate_etag is deprecated and no longer called '
-            'by default. Please provide your own ETag generation in '
-            'get_etag().',
-            RemovedInDjblets30Warning)
-
-        etag = repr(self.serialize_object(obj, request=request, **kwargs))
-
-        if encode_etag:
-            etag = self.encode_etag(request, etag)
-
-        return etag
 
     def are_cache_headers_current(self, request, last_modified=None,
                                   etag=None):

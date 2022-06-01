@@ -5,7 +5,6 @@ from django.db import models
 from django.http import HttpResponseNotModified
 from django.test.client import RequestFactory
 
-from djblets.deprecation import RemovedInDjblets30Warning
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
 from djblets.util.http import encode_etag
 from djblets.webapi.fields import (ResourceFieldType,
@@ -345,57 +344,6 @@ class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['ETag'],
                          '790fc95c3f89afe28403c272553e790274ea1d3e')
-
-    def test_generate_etag_with_encode_etag_true(self):
-        """Testing WebAPIResource.generate_etag with encode_etag=True"""
-        class TestObject(object):
-            my_field = 'abc'
-
-        request = RequestFactory().request()
-        request.user = User()
-
-        resource = WebAPIResource()
-        obj = TestObject()
-
-        expected_message = (
-            'WebAPIResource.generate_etag is deprecated and no longer called '
-            'by default. Please provide your own ETag generation in '
-            'get_etag().'
-        )
-
-        with self.assertWarns(RemovedInDjblets30Warning, expected_message):
-            etag = resource.generate_etag(obj, ['my_field'], request,
-                                          encode_etag=True)
-
-        self.assertEqual(
-            etag,
-            encode_etag(
-                ':%s' % repr(resource.serialize_object(obj, request=request))))
-
-    def test_generate_etag_with_encode_etag_false(self):
-        """Testing WebAPIResource.generate_etag with encode_etag=False"""
-        class TestObject(object):
-            my_field = 'abc'
-
-        request = RequestFactory().request()
-        request.user = User()
-
-        resource = WebAPIResource()
-        obj = TestObject()
-
-        expected_message = (
-            'WebAPIResource.generate_etag is deprecated and no longer called '
-            'by default. Please provide your own ETag generation in '
-            'get_etag().'
-        )
-
-        with self.assertWarns(RemovedInDjblets30Warning, expected_message):
-            etag = resource.generate_etag(obj, None, request,
-                                          encode_etag=False)
-
-        self.assertEqual(
-            etag,
-            repr(resource.serialize_object(obj, request=request)))
 
     def test_are_cache_headers_current_with_old_last_modified(self):
         """Testing WebAPIResource.are_cache_headers_current with old last
