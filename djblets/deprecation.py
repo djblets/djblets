@@ -18,19 +18,29 @@ class BaseRemovedInDjbletsVersionWarning(DeprecationWarning):
     version.
     """
 
+    @classmethod
+    def warn(cls, message, stacklevel=2):
+        """Emit the deprecation warning.
 
-class RemovedInDjblets20Warning(BaseRemovedInDjbletsVersionWarning):
-    """Deprecations for features removed in Djblets 2.0.
+        This is a convenience function that emits a deprecation warning using
+        this class, with a suitable default stack level. Callers can provide
+        a useful message and a custom stack level.
 
-    Note that this class will itself be removed in Djblets 2.0. If you need to
-    check against Djblets deprecation warnings, please see
-    :py:class:`BaseRemovedInDjbletsVersionWarning`. Alternatively, you can use
-    the alias for this class, :py:data:`RemovedInNextDjbletsVersionWarning`.
-    """
+        Version Added:
+            3.0
+
+        Args:
+            message (str):
+                The message to show in the deprecation warning.
+
+            stacklevel (int, optional):
+                The stack level for the warning.
+        """
+        warnings.warn(message, cls, stacklevel=stacklevel + 1)
 
 
 class RemovedInDjblets30Warning(BaseRemovedInDjbletsVersionWarning):
-    """Deprecations for features removed in Djblets 3.0.
+    """Deprecations for features scheduled for removal in Djblets 3.0.
 
     Note that this class will itself be removed in Djblets 3.0. If you need to
     check against Djblets deprecation warnings, please see
@@ -39,8 +49,28 @@ class RemovedInDjblets30Warning(BaseRemovedInDjbletsVersionWarning):
     """
 
 
+class RemovedInDjblets40Warning(BaseRemovedInDjbletsVersionWarning):
+    """Deprecations for features scheduled for removal in Djblets 4.0.
+
+    Note that this class will itself be removed in Djblets 4.0. If you need to
+    check against Djblets deprecation warnings, please see
+    :py:class:`BaseRemovedInDjbletsVersionWarning`. Alternatively, you can use
+    the alias for this class, :py:data:`RemovedInNextDjbletsVersionWarning`.
+    """
+
+
+class RemovedInDjblets50Warning(BaseRemovedInDjbletsVersionWarning):
+    """Deprecations for features scheduled for removal in Djblets 5.0.
+
+    Note that this class will itself be removed in Djblets 5.0. If you need to
+    check against Djblets deprecation warnings, please see
+    :py:class:`BaseRemovedInDjbletsVersionWarning`. Alternatively, you can use
+    the alias for this class, :py:data:`RemovedInNextDjbletsVersionWarning`.
+    """
+
+
 #: An alias for the next release of Djblets where features would be removed.
-RemovedInNextDjbletsVersionWarning = RemovedInDjblets30Warning
+RemovedInNextDjbletsVersionWarning = RemovedInDjblets40Warning
 
 
 def deprecated_arg_value(owner_name, value, old_arg_name, new_arg_name=None,
