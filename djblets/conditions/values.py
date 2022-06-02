@@ -410,6 +410,36 @@ class ConditionValueIntegerField(ConditionValueFormField):
             field=forms.IntegerField(**field_kwargs))
 
 
+class ConditionValueMultipleChoiceField(ConditionValueFormField):
+    """Condition value wrapper for multiple choice fields.
+
+    This is a convenience for condition values that want to use a
+    :py:class:`~django.forms.fields.MultipleChoiceField`. It accepts the same
+    keyword arguments in the constructor that the field itself accepts.
+
+    Example:
+        value_field = ConditionValueMultipleChoiceField(
+            choices=[
+                ('value1', 'Value 1'),
+                ('value2', 'Value 2'),
+            ])
+
+    Version Added:
+        3.0
+    """
+
+    def __init__(self, **field_kwargs):
+        """Initialize the value field.
+
+        Args:
+            **field_kwargs (dict):
+                Keyword arguments to pass to the
+                :py:class:`~django.forms.fields.MultipleChoiceField`
+                constructor.
+        """
+        super().__init__(field=forms.MultipleChoiceField(**field_kwargs))
+
+
 class ConditionValueModelField(ConditionValueFormField):
     """Condition value wrapper for single model form fields.
 
