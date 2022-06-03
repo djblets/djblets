@@ -12,7 +12,7 @@ from djblets.conditions.errors import (ConditionChoiceNotFoundError,
                                        ConditionOperatorNotFoundError,
                                        InvalidConditionModeError,
                                        InvalidConditionValueError)
-from djblets.forms.widgets import ConditionsWidget
+from djblets.forms.widgets import ConditionsWidget, ListEditWidget
 
 
 TIMEZONE_CHOICES = tuple(zip(pytz.common_timezones, pytz.common_timezones))
@@ -219,3 +219,150 @@ class ConditionsField(forms.Field):
                 code='condition_errors')
 
         return condition_set
+
+
+class ListEditField(forms.Field):
+    """A form field for customizing a string representing a list of values.
+
+    Version Added:
+        3.0
+    """
+
+    widget = ListEditWidget
+
+    def __init__(self, sep=',', *args, **kwargs):
+        """Initialize the field.
+
+        Args:
+            sep (unicode, optional):
+                The item separator.
+
+            *args (tuple):
+                Extra positional arguments for the field.
+
+            **kwargs (dict):
+                Extra keyword arguments for the field.
+        """
+        self._sep = sep
+
+        super(ListEditField, self).__init__(*args, **kwargs)
+
+    def prepare_value(self, data):
+        """Prepare the value for loading into the field.
+
+        This will take a string and split it into a list of
+        strings according to the item separator.
+
+        Args:
+            data (unicode):
+                The data as a unicode string.
+
+        Returns:
+            list:
+            A list of strings for the widget.
+
+        Raises:
+            ValueError:
+                The value provided is not valid for the widget.
+        """
+        if not isinstance(data, str):
+            raise ValueError(
+                gettext('%r is not a valid value for a %s')
+                % (data, self.__class__.__name__))
+
+        return list(item.strip() for item in data.split(self._sep))
+
+    def to_python(self, value):
+        """Return a string of values from the field's data.
+
+        This takes the list of values provided by the field's widget and
+        returns a string of the values separated by the item separator.
+
+        Args:
+            value (list):
+                The raw form data, as provided by the widget.
+
+        Returns:
+            unicode:
+            The string representing the list of values.
+        """
+        if not value:
+            return ''
+
+        return self._sep.join(v.strip() for v in value)
+
+
+class ListEditDictionaryField(ListEditField):
+    """A form field for customizing a dictionary.
+
+    Version Added:
+        3.0
+    """
+
+    default_error_messages = {
+        'duplicate_key_errors': _('All keys must be unique.')
+    }
+
+    def prepare_value(self, data):
+        """Prepare the value for loading into the field.
+
+        This will take a dictionary and split it into a list of
+        (key, value) tuples.
+
+        Args:
+            data (dict):
+                The data as a dictionary.
+
+        Returns:
+            list:
+            A list of (key, value) tuples for the widget.
+
+        Raises:
+            ValueError:
+                The value provided is not valid for the widget.
+        """
+        if not isinstance(data, dict):
+            raise ValueError(
+                gettext('%r is not a valid value for a %s')
+                % (data, self.__class__.__name__))
+
+        return_data = []
+
+        for key, value in data.items():
+            return_data.append((key, value))
+
+        return return_data
+
+    def to_python(self, value):
+        """Return a dictionary from the field's data.
+
+        This takes the list of (key, value) tuples provided by the
+        field's widget and returns a dictionary containing the keys
+        with their corresponding values.
+
+        Args:
+            value (list):
+                The raw form data, as provided by the widget.
+
+        Returns:
+            dict:
+            The dictionary representing the list of (key, value) pairs.
+
+        Raises:
+            django.forms.ValidationError:
+                The list contains duplicate keys.
+        """
+        if not value:
+            return {}
+
+        return_dict = {}
+
+        for key, val in value:
+            if key in return_dict:
+                raise forms.ValidationError(
+                    self.error_messages['duplicate_key_errors'],
+                    code='duplicate_key_errors')
+
+            return_dict[key] = val
+
+        return return_dict

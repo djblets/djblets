@@ -103,9 +103,8 @@ class ConditionsWidget(widgets.Widget):
         page will need in order to render this widget and any widgets used
         in the condition value fields.
 
-        Returns:
-            django.forms.widgets.Media:
-            The media to include on the path.
+        Type:
+            django.forms.widgets.Media
         """
         media = (widgets.Media() +
                  self.choice_widget.media +
@@ -607,7 +606,7 @@ class CopyableTextInput(widgets.TextInput):
 
 
 class ListEditWidget(widgets.Widget):
-    """A widget for editing a list of separated values.
+    """A widget for editing a list of values.
 
     .. note: The ``djblets-forms`` CSS and JS bundles are required to use this
              widget.
@@ -615,28 +614,63 @@ class ListEditWidget(widgets.Widget):
 
     template_name = 'djblets_forms/list_edit_widget.html'
 
-    def __init__(self, attrs=None, sep=','):
+    def __init__(self, attrs=None, sep=',', value_widget=widgets.TextInput):
         """Initialize the widget.
+
+        Version Changed:
+            3.0:
+            Added the ``value_widget`` parameter and the ability for this
+            widget to handle any list of values instead of only strings.
 
         Args:
             attrs (dict, optional):
-                The attributes of the ``<input>`` elements.
+                A dictionary containing HTML attributes to be set
+                on the rendered widget.
 
-            sep (unicode, optional):
+            sep (str, optional):
                 The item separator.
+
+            value_widget (django.forms.widgets.Widget, optional):
+                The widget for the values in the list.
         """
         super(ListEditWidget, self).__init__(attrs)
 
+        if isinstance(value_widget, type):
+            self._value_widget = value_widget()
+        else:
+            self._value_widget = value_widget
+
         self._sep = sep
+
+    @property
+    def media(self):
+        """Media needed for the widget.
+
+        This is used by the form to return all CSS/JavaScript media that the
+        page will need in order to render this widget and any widgets used
+        in the condition value fields.
+
+        Version Added:
+            3.0
+
+        Type:
+            django.forms.widgets.Media
+        """
+        return widgets.Media() + self._value_widget.media
 
     def render(self, name, value, attrs=None, renderer=None):
         """Render the widget.
 
+        Version Changed:
+            3.0:
+            The ``value`` parameter can be a string or a list of any
+            type of values.
+
         Args:
-            name (unicode):
+            name (str):
                 The field name.
 
-            value (unicode):
+            value (list or str):
                 The field value.
 
             attrs (dict, optional):
@@ -649,31 +683,121 @@ class ListEditWidget(widgets.Widget):
             django.utils.safestring.SafeText:
             The rendered widget.
         """
+        use_legacy_behavior = False
+
+        # If value is not a list we assume that it is a string and convert it
+        # to a list. This behaviour will be deprecated in the future.
+        if not isinstance(value, list):
+            use_legacy_behavior = True
+            value = value or ''
+            value = list(
+                filter(None, (item.strip() for item in value.split(self._sep)))
+            )
+
+        context = self.get_context(name, value, attrs)
+        context['use_legacy_behavior'] = use_legacy_behavior
+        return render_to_string(self.template_name,
+                                context)
+
+    def get_context(self, name, value, attrs):
+        """Return context for the widget.
+
+        This will serialize all the values in the list of values
+        using the value_widget.
+
+        Version Added:
+            3.0
+
+        Args:
+
+            name (str):
+                The base form field name of the widget.
+
+            value (dict):
+                The list of values.
+
+            attrs (dict):
+                Additional HTML element attributes for the fields.
+
+        Returns:
+            dict:
+            The context data for the widget.
+        """
+        value_widget = self._value_widget
         attrs = self.build_attrs(attrs)
         id_ = attrs.pop('id')
+        rendered_rows = []
 
         if 'class' in attrs:
             attrs['class'] += ' djblets-c-list-edit-widget__input'
         else:
             attrs['class'] = 'djblets-c-list-edit-widget__input'
 
-        value = value or ''
-        value_list = list(
-            filter(len, (item.strip() for item in value.split(self._sep)))
-        )
+        for i, val in enumerate(value):
+            rendered_rows.append(value_widget.render(
+                name='%s_value[%s]' % (name, i),
+                value=val,
+                attrs=attrs))
 
-        return render_to_string(
-            self.template_name,
-            {
-                'name': name,
-                'value': value,
-                'attrs': format_html_join('', ' {0}="{1}"',
-                                          sorted(attrs.items())),
-                'id': id_,
-                'remove_text': _('Remove this item.'),
-                'sep': self._sep,
-                'value_list': value_list,
-            })
+        rendered_empty_row = value_widget.render(
+            name='%s_value[0]' % (name),
+            value=None,
+            attrs=attrs)
+
+        return {
+            'name': name,
+            'id': id_,
+            'remove_text': _('Remove this item.'),
+            'rendered_rows': rendered_rows,
+            'rendered_empty_row': rendered_empty_row,
+        }
+
+    def value_from_datadict(self, data, files, name):
+        """Return a value for the field from a submitted form.
+
+        This serializes the data POSTed for the form into a format that the
+        field can use and validate.
+
+        Version Added:
+            3.0
+
+        Args:
+            data (django.http.request.QueryDict):
+                The dictionary containing form data.
+
+            files (django.http.request.QueryDict):
+                The dictionary containing uploaded files.
+
+            name (str):
+                The field name for the value to load.
+
+        Returns:
+            list or str:
+            The list of values for the field or a string of separated
+            values for legacy behavior.
+        """
+        use_legacy_behavior = data['%s_use_legacy_behavior' % name]
+
+        try:
+            num_rows = int(data['%s_num_rows' % name])
+        except (KeyError, ValueError):
+            num_rows = 0
+
+        value_widget = self._value_widget
+        values = []
+
+        for i in range(num_rows):
+            values.append(
+                value_widget.value_from_datadict(data,
+                                                 files,
+                                                 '%s_value[%s]' % (name, i)))
+
+        # Return a string of separated values if using legacy behavior.
+        # This will be deprecated in the future.
+        if use_legacy_behavior == 'True':
+            return self._sep.join(values)
+
+        return values
 
     def id_for_label(self, id_):
         """Return the main ID to use for this widget.
@@ -682,11 +806,11 @@ class ListEditWidget(widgets.Widget):
         under this widget.
 
         Args:
-            id_ (unicode):
+            id_ (str):
                 The ID of the element.
 
         Returns:
-            unicode:
+            str:
             ``None`` so that no ``for=`` attribute is rendered on the label.
         """
         return None
