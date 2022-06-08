@@ -39,6 +39,7 @@ from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
+from djblets.deprecation import RemovedInDjblets40Warning
 from djblets.template.context import get_default_template_context_processors
 from djblets.util.decorators import cached_property
 from djblets.util.http import get_url_params_except
@@ -1028,7 +1029,8 @@ class DataGrid(object):
         profile_sort_list = None
         profile_columns_list = None
         profile = None
-        profile_dirty = False
+        profile_dirty_fields = []
+        profile_dirty_fields_all = False
 
         # Get the saved settings for this grid in the profile. These will
         # work as defaults and allow us to determine if we need to save
@@ -1129,8 +1131,19 @@ class DataGrid(object):
 
         # A subclass might have some work to do for loading and saving
         # as well.
-        if self.load_extra_state(profile):
-            profile_dirty = True
+        load_state_result = self.load_extra_state(profile)
+
+        if isinstance(load_state_result, list):
+            profile_dirty_fields += load_state_result
+        else:
+            RemovedInDjblets40Warning.warn(
+                '%s.load_extra_state() returned a %s, but must return a '
+                'list of field names to save (or an empty list). This will '
+                'be required in Djblets 4.0.'
+                % (type(self).__name__, type(load_state_result)))
+
+            if load_state_result is True:
+                profile_dirty_fields_all = True
 
         # Now that we have all that, figure out if we need to save new
         # settings back to the profile.
@@ -1138,14 +1151,17 @@ class DataGrid(object):
             if (self.profile_columns_field and
                 colnames != profile_columns_list):
                 setattr(profile, self.profile_columns_field, colnames)
-                profile_dirty = True
+                profile_dirty_fields.append(self.profile_columns_field)
 
             if self.profile_sort_field and sort_str != profile_sort_list:
                 setattr(profile, self.profile_sort_field, sort_str)
-                profile_dirty = True
+                profile_dirty_fields.append(self.profile_sort_field)
 
-            if profile_dirty:
+            if profile_dirty_fields_all:
+                # This can be removed in Djblets 4.
                 profile.save()
+            elif profile_dirty_fields:
+                profile.save(update_fields=profile_dirty_fields)
 
         self.state_loaded = True
 
@@ -1173,16 +1189,26 @@ class DataGrid(object):
         This is used by subclasses that may have additional data to load
         and save.
 
+        Version Changed:
+            3.0:
+            This should now return a list of field names to save in
+            ``profile``. Any other result is deprecated and will no longer be
+            supported in Djblets 4.0.
+
         Args:
-            profile (Model):
+            profile (django.db.models.Model):
                 The profile model instance to load from, if any.
 
         Returns:
-            bool:
-                Subclasses must return ``True`` if any profile-stored
-                state has changed, or ``False`` otherwise.
+            bool or list of str:
+            A list of field names on ``profile`` that have been modified and
+            should be saved.
+
+            Djblets 3.0 and older support ``True`` to save the entire object,
+            or ``False`` if fields weren't modified. This support will be
+            removed in Djblets 4.0.
         """
-        return False
+        return []
 
     def precompute_objects(self, render_context=None):
         """Pre-compute all objects used to render the datagrid.
