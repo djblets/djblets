@@ -1,10 +1,12 @@
 {% load i18n static %}
 <div class="djblets-c-list-edit-widget list-edit-widget" id="{{id}}_container">
+ <input type="hidden" name="{{name}}_num_rows" value="{{rendered_rows|length}}">
+ <input type="hidden" name="{{name}}_use_legacy_behavior" value="{{use_legacy_behavior}}">
  <ul class="djblets-c-list-edit-widget__entries">
-{% if value_list %}
-{%  for value in value_list %}
+{% if rendered_rows %}
+{%  for val in rendered_rows %}
   <li class="djblets-c-list-edit-widget__entry" data-list-index="{{forloop.counter0}}">
-   <input value="{{value}}" type="text"{{attrs}}>
+   {{val}}
    <a href="#" class="djblets-c-list-edit-widget__remove-item" role="button" title="{% trans 'Remove this entry' %}">
     <span class="fa fa-times"></span>
    </a>
@@ -12,28 +14,27 @@
 {%  endfor %}
 {% else %}
   <li class="djblets-c-list-edit-widget__entry" data-list-index="0">
-   <input type="text"{{attrs}}>
+   {{rendered_empty_row}}
    <a href="#" class="djblets-c-list-edit-widget__remove-item" role="button" title="{% trans 'Remove this entry' %}">
     <span class="fa fa-times"></span>
    </a>
-  </li>
+ </li>
 {% endif %}
  </ul>
  <button class="djblets-c-list-edit-widget__add-item btn" role="button">
   <span class="fa fa-plus"></span>
   {% trans "Add item" %}
  </button>
- <input class="djblets-c-list-edit-widget__value"
-        name="{{name}}" id="{{id}}" value="{{value}}" type="hidden">
 </div>
 <script>
+
 (function($) {
     $(document).ready(function() {
         var view = new Djblets.Forms.ListEditView({
             el: $('#{{id|escapejs}}_container'),
-            inputAttrs: '{{attrs|escapejs}}',
             removeText: '{{remove_text|escapejs}}',
-            sep: '{{sep|escapejs}}'
+            fieldName: '{{name|escapejs}}',
+            renderedDefaultRow: '{{rendered_empty_row}}'
         });
 
         view.render();

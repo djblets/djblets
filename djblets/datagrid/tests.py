@@ -2,17 +2,18 @@
 
 from datetime import datetime, timedelta
 
+import kgb
 from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.http import HttpRequest
 from django.test.client import RequestFactory
 from django.utils.encoding import force_str
 from django.utils.safestring import SafeText
-from kgb import SpyAgency
 
 from djblets.datagrid.grids import (CheckboxColumn, Column, DataGrid,
                                     DateTimeSinceColumn, StatefulColumn,
                                     logger)
+from djblets.deprecation import RemovedInDjblets40Warning
 from djblets.testing.testcases import TestCase
 from djblets.util.dates import get_tz_aware_utcnow
 
@@ -22,9 +23,10 @@ class GroupDataGrid(DataGrid):
     name = Column('Group Name', link=True, sortable=True, expand=True)
 
     def __init__(self, request):
-        super(GroupDataGrid, self).__init__(request=request,
-                                            queryset=Group.objects.all(),
-                                            title='All Groups')
+        super(GroupDataGrid, self).__init__(
+            request=request,
+            queryset=Group.objects.order_by('pk'),
+            title='All Groups')
         self.default_sort = []
         self.default_columns = ['objid', 'name']
 
@@ -100,7 +102,7 @@ class DateTimeSinceColumnTests(TestCase):
         self.assertEqual(column.render_data(state, obj), '1\xa0week ago')
 
 
-class DataGridTests(SpyAgency, TestCase):
+class DataGridTests(kgb.SpyAgency, TestCase):
     """Unit tests for djblets.datagrid.grids.DataGrid."""
 
     def setUp(self):
@@ -201,6 +203,111 @@ class DataGridTests(SpyAgency, TestCase):
         result = self.datagrid.render_listview()
         self.assertIsInstance(result, SafeText)
         self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">', result)
+
+    def test_load_state_with_load_extra_state_fields(self):
+        """Testing DataGrid.load_state with load_extra_state returning fields
+        """
+        class MyProfile(object):
+            def save(self, **kwargs):
+                pass
+
+        class TestDataGrid(GroupDataGrid):
+            def get_user_profile(self):
+                return my_profile
+
+            def load_extra_state(self, profile):
+                return ['field1', 'field2']
+
+        my_profile = MyProfile()
+        self.spy_on(my_profile.save)
+
+        datagrid = TestDataGrid(request=self.request)
+        datagrid.load_state()
+
+        self.assertSpyCalledWith(
+            my_profile.save,
+            update_fields=['field1', 'field2'])
+
+    def test_load_state_with_load_extra_state_no_fields(self):
+        """Testing DataGrid.load_state with load_extra_state returning no
+        fields
+        """
+        class MyProfile(object):
+            def save(self, **kwargs):
+                pass
+
+        class TestDataGrid(GroupDataGrid):
+            def get_user_profile(self):
+                return my_profile
+
+            def load_extra_state(self, profile):
+                return []
+
+        my_profile = MyProfile()
+        self.spy_on(my_profile.save)
+
+        datagrid = TestDataGrid(request=self.request)
+        datagrid.load_state()
+
+        self.assertSpyNotCalled(my_profile.save)
+
+    def test_load_state_with_load_extra_state_true(self):
+        """Testing DataGrid.load_state with load_extra_state returning True"""
+        class MyProfile(object):
+            def save(self, **kwargs):
+                pass
+
+        class TestDataGrid(GroupDataGrid):
+            def get_user_profile(self):
+                return my_profile
+
+            def load_extra_state(self, profile):
+                return True
+
+        my_profile = MyProfile()
+        self.spy_on(my_profile.save)
+
+        datagrid = TestDataGrid(request=self.request)
+
+        message = (
+            "TestDataGrid.load_extra_state() returned a <class 'bool'>, but "
+            "must return a list of field names to save (or an empty list). "
+            "This will be required in Djblets 4.0."
+        )
+
+        with self.assertWarns(RemovedInDjblets40Warning, message):
+            datagrid.load_state()
+
+        self.assertSpyCalled(my_profile.save)
+
+    def test_load_state_with_load_extra_state_false(self):
+        """Testing DataGrid.load_state with load_extra_state returning False"""
+        class MyProfile(object):
+            def save(self, **kwargs):
+                pass
+
+        class TestDataGrid(GroupDataGrid):
+            def get_user_profile(self):
+                return my_profile
+
+            def load_extra_state(self, profile):
+                return False
+
+        my_profile = MyProfile()
+        self.spy_on(my_profile.save)
+
+        datagrid = TestDataGrid(request=self.request)
+
+        message = (
+            "TestDataGrid.load_extra_state() returned a <class 'bool'>, but "
+            "must return a list of field names to save (or an empty list). "
+            "This will be required in Djblets 4.0."
+        )
+
+        with self.assertWarns(RemovedInDjblets40Warning, message):
+            datagrid.load_state()
+
+        self.assertSpyNotCalled(my_profile.save)
 
     def test_precompute_objects_with_unsortable_column_ascending(self):
         """Testing DataGrid.precompute_objects with improper sort key
@@ -368,7 +475,7 @@ class DataGridTests(SpyAgency, TestCase):
                       logger.exception.last_call.args[0])
 
 
-class ColumnTests(SpyAgency, TestCase):
+class ColumnTests(kgb.SpyAgency, TestCase):
     """Unit tests for djblets.datagrid.grids.Column."""
 
     def test_render_cell_sandboxes_errors(self):
