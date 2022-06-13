@@ -23,6 +23,14 @@ class ListEditFieldTests(TestCase):
             field.prepare_value(' foo;  bar ; baz '),
             ['foo', 'bar', 'baz'])
 
+    def test_prepare_value_with_null_value(self):
+        """Testing ListEditField.prepare_value with a null value"""
+        field = ListEditField()
+
+        self.assertEqual(
+            field.prepare_value(None),
+            [''])
+
     def test_to_python(self):
         """Testing ListEditField.to_python"""
         field = ListEditField()

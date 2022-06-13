@@ -265,7 +265,9 @@ class ListEditField(forms.Field):
             ValueError:
                 The value provided is not valid for the widget.
         """
-        if not isinstance(data, str):
+        if data is None:
+            data = ''
+        elif not isinstance(data, str):
             raise ValueError(
                 gettext('%r is not a valid value for a %s')
                 % (data, self.__class__.__name__))
@@ -321,7 +323,9 @@ class ListEditDictionaryField(ListEditField):
             ValueError:
                 The value provided is not valid for the widget.
         """
-        if not isinstance(data, dict):
+        if data is None:
+            data = {}
+        elif not isinstance(data, dict):
             raise ValueError(
                 gettext('%r is not a valid value for a %s')
                 % (data, self.__class__.__name__))
