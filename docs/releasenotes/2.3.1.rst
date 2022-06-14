@@ -1,0 +1,35 @@
+.. default-intersphinx:: django1.11 djblets2.x
+
+
+===========================
+Djblets 2.3.1 Release Notes
+===========================
+
+**Release date**: June 14, 2022
+
+
+Bug Fixes
+=========
+
+djblets.extensions
+------------------
+
+* Fixed an extension initialization and state ordering bug.
+
+  The ``extension_cls.instance`` attribute was being set too late, preventing
+  it from being used in some extension-provided setup code (such as any code
+  registering objects for the Django administration UI).
+
+
+djblets.recaptcha
+-----------------
+
+* Fixed a Python 3 compatibility issue when generating data to send to
+  Google's reCAPTCHA service.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
