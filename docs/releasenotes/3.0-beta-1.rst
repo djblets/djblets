@@ -1,0 +1,150 @@
+.. default-intersphinx:: django3.2 djblets3.x
+
+================================
+Djblets 3.0 Beta 1 Release Notes
+================================
+
+**Release date**: TBD
+
+This release contains all bug fixes and features found in Djblets version
+:doc:`2.3.1 <2.3.1>`.
+
+
+Installation
+============
+
+To install this release, run the following::
+
+    $ sudo pip3 install \
+        -f https://downloads.reviewboard.org/betas/reviewboard/5.0-beta-1/ \
+        --pre -U Djblets
+
+
+We **do not** recommend upgrading a production server with this version of
+Djblets. This version is still in development, and is not guaranteed to have
+API stability.
+
+
+Packaging
+=========
+
+* Djblets 3.x supports Python 3.7-3.10.
+
+* :pypi:`Django` 3.2.x is required.
+
+* :pypi:`cryptography` 1.8.1+ is now required. This is a new dependency.
+
+* :pypi:`django-pipeline` 2.0.8 - 2.0.x is required.
+
+
+For building packages, the following Node.JS package versions are now required:
+
+* ``less`` 4.1.3 - 4.1.x
+* ``uglify-js`` 3.16.1 - 3.16.x
+* ``@babel/cli`` 7.17.10 - 7.17.x
+* ``@babel/core`` 7.18.5 - 7.18.x
+* ``@babel/preset-env`` 7.18.2 - 7.18.x
+* ``babel-plugin-django-gettext`` 1.1.1 - 1.1.x
+
+
+djblets.cache
+=============
+
+* Improved cache key normalization and hashing.
+
+  :py:func:`~djblets.cache.backend.make_cache_key` has been improved to more
+  safely handle various special characters.
+
+  Long cache keys are also now hashed using SHA256 instead of MD5, which is
+  much less likely to encounter hash collisions.
+
+* Added support for encrypting cached data.
+
+  Several methods in this module now include ``use_encryption`` and
+  ``encryption_key`` arguments, which allows encrypting cache keys and values
+  with AES.
+
+
+djblets.conditions
+==================
+
+* Added
+  :py:class:`~djblets.conditions.values.ConditionValueMultipleChoiceField`.
+
+  This new condition choice field allows choices to present a multiple choice
+  selector without being backed by a database query.
+
+
+djblets.datagrid
+================
+
+* The datagrid :py:meth:`~djblets.datagrid.grids.DataGrid.load_extra_state`
+  method is now expected to return a list of the field names to save in the
+  profile. Returning a boolean is deprecated, and support will be removed in
+  Djblets 4.0.
+
+
+djblets.extensions
+==================
+
+* Fixed the text of the instructions for reloading failed extensions.
+
+  When an extension fails to load, the management UI would show instructions
+  for how to fix it. This included an out-of-date label for the button, which
+  has been updated to reflect the correct text.
+
+
+djblets.forms
+=============
+
+* Updated :py:class:`~djblets.forms.widgets.ListEditWidget` to be able to
+  handle any type of widget and form field.
+
+  This form widget was previously limited to lists of strings. It now supports
+  lists of any type of value.
+
+
+djblets.secrets
+===============
+
+The new :py:module:`djblets.secrets` module has been introduced to hold
+utilities related to cryptography and secrets storage. Right now, this contains
+:py:module:`djblets.secrets.crypto`, which has helpers for using AES
+encryption.
+
+
+djblets.testing
+===============
+
+* Added :py:meth:`TestCase.assertQueries
+  <djblets.testing.testcases.TestCase.assert_queries>` for advanced query
+  checking.
+
+  This new test assertion builds on Django's
+  :py:meth:`django.test.TransactionTestCase.assertNumQueries` to add checking
+  for the content of the queries, not just the number that occurred. This makes
+  it possible to write tests that catch when database queries are inadvertantly
+  changed.
+
+
+djblets.util
+============
+
+* Fixed deprecation warnings when using the
+  :py:func:`~djblets.util.templatetags.djblets_images.thumbnail` template tag
+  with newer versions of the :pypi:`Pillow` library.
+
+
+djblets.webapi
+==============
+
+* :py:class:`~djblets.webapi.responses.WebAPIResponse` can now serialize data
+  that includes Python ``set`` values.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin
