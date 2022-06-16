@@ -58,6 +58,7 @@ npm_dependencies.update(babel_npm_dependencies)
 
 #: All dependencies required to install Djblets.
 package_dependencies = {
+    'cryptography': '>=1.8.1',
     'Django': django_version,
     'django-pipeline': '~=2.0.8',
     'dnspython': '>=1.14.0',

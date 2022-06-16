@@ -80,6 +80,9 @@ template tags, templates, etc. that can be used by your own codebase.
   Base support for defining in-code registries, which tracks and allows lookup
   of custom-registered objects
 
+* djblets.secrets_ -
+  Uilities and infrastructure for encryption/decryption and token generation.
+
 * djblets.siteconfig_ -
   In-database site configuration and settings, with Django settings mappings
 
