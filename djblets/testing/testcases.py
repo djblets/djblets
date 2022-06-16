@@ -614,6 +614,15 @@ class TestCase(testcases.TestCase):
             value = query_info.get('where', Q())
             executed_value = queries_to_qs.get(executed_query, Q())
 
+            if (executed_value and
+                len(executed_value.children) == 1 and
+                isinstance(executed_value.children[0], Q)):
+                # filter() created a Q() containing nothing but a nested Q().
+                # This is annoying to compare, and could always change in the
+                # future. Extract the inner Q() and use that for comparison
+                # purposes.
+                executed_value = executed_value.children[0]
+
             if value != executed_value:
                 failures.append(('where', value, executed_value))
 
