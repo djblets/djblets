@@ -6,11 +6,12 @@ install and caching more complex data efficiently (such as the results of
 iterators and large data normally too big for the cache).
 """
 
+import hashlib
 import io
 import logging
 import pickle
+import re
 import zlib
-from hashlib import md5
 
 from django.conf import settings
 from django.core.cache import cache
@@ -26,6 +27,7 @@ CACHE_CHUNK_SIZE = 2 ** 20 - 1024  # almost 1M (memcached's slab limit)
 # large data handling)
 MAX_KEY_SIZE = 240
 
+_INVALID_KEY_CHARS_RE = re.compile(r'[\x00-\x20\x7f]')
 
 logger = logging.getLogger(__name__)
 
@@ -357,14 +359,25 @@ def make_cache_key(key):
     """Create a cache key guaranteed to avoid conflicts and size limits.
 
     The cache key will be prefixed by the site's domain, and will be
-    changed to an MD5SUM if it's larger than the maximum key size.
+    changed to an SHA256 hash if it's larger than the maximum key size or
+    contains characters not compatible with the cache backend.
+
+    Version Changed:
+        3.0:
+        * Changed the hash format for keys to use SHA256 instead of MD5.
+          This will invalidate all old keys in cache, but reduces chances
+          of collision.
+        * Keys will automatically use the hash format if they contain
+          characters unsupported by the cache backend.
+        * The return type is now :py:class:`str`, to generate keys that are
+          more suitable for modern versions of Django.
 
     Args:
-        key (unicode):
+        key (str):
             The base key to generate a cache key from.
 
     Returns:
-        bytes:
+        str:
         A cache key suitable for use with the cache backend.
     """
     try:
@@ -383,18 +396,14 @@ def make_cache_key(key):
         # The install doesn't have a Site app, so use the key as-is.
         pass
 
-    # Strip out any characters that memcached doesn't like in keys
-    key = ''.join(ch for ch in key if ch not in ' \t\n\r')
+    # Normalize any invalid characters in the key.
+    key = _INVALID_KEY_CHARS_RE.sub(lambda m: '\\x%02x' % ord(m.group(0)),
+                                    key)
 
-    # Adhere to memcached key size limit
     if len(key) > MAX_KEY_SIZE:
-        digest = md5(key.encode('utf-8')).hexdigest()
+        digest = hashlib.sha256(key.encode('utf-8')).hexdigest()
 
         # Replace the excess part of the key with a digest of the key
         key = key[:MAX_KEY_SIZE - len(digest)] + digest
-
-    # Make sure this is a non-unicode string, in order to prevent errors
-    # with some backends.
-    key = key.encode('utf-8')
 
     return key

@@ -3,11 +3,16 @@ import pickle
 import zlib
 
 import kgb
+from django.contrib.sites.models import Site
 from django.core.cache import cache
+from django.core.cache.backends.base import memcache_key_warnings
+from django.test.utils import override_settings
 
-from djblets.cache.backend import (cache_memoize, cache_memoize_iter,
-                                   make_cache_key,
-                                   CACHE_CHUNK_SIZE)
+from djblets.cache.backend import (CACHE_CHUNK_SIZE,
+                                   MAX_KEY_SIZE,
+                                   cache_memoize,
+                                   cache_memoize_iter,
+                                   make_cache_key)
 from djblets.testing.testcases import TestCase
 
 
@@ -423,3 +428,82 @@ class CacheMemoizeIterTests(BaseCacheTestCase):
 
         self.assertEqual(data_yielded, [])
         self.assertSpyCallCount(cache_func, 1)
+
+
+class MakeCacheKeyTests(BaseCacheTestCase):
+    """Unit tests for make_cache_key."""
+
+    def test_default(self):
+        """Testing make_cache_key"""
+        self._check_key('test123',
+                        'example.com:test123')
+
+    @override_settings(SITE_ROOT='/subdir/')
+    def test_with_site_root(self):
+        """Testing make_cache_key with SITE_ROOT"""
+        self._check_key('test123',
+                        'example.com:/subdir/:test123')
+
+    def test_without_site(self):
+        """Testing make_cache_key without Site object."""
+        Site.objects.all().delete()
+        self._check_key('test123',
+                        'test123')
+
+    def test_with_unicode(self):
+        """Testing make_cache_key with Unicode characters"""
+        self._check_key('test🥳123',
+                        'example.com:test🥳123')
+
+    def test_with_invalid_chars(self):
+        """Testing make_cache_key with invalid characters"""
+        self._check_key('test\0\tkey !"\x7f',
+                        r'example.com:test\x00\x09key\x20!"\x7f')
+
+    def test_with_large_keys_max_length(self):
+        """Testing make_cache_key with large keys at max length"""
+        length = MAX_KEY_SIZE - len('example.com:')
+        self._check_key(
+            'x' * length,
+            'example.com:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+            'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+            'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+            'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+
+    def test_with_large_keys_overflow(self):
+        """Testing make_cache_key with large keys > max length"""
+        length = MAX_KEY_SIZE - len('example.com:') + 1
+        self._check_key(
+            'x' * length,
+            'example.com:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+            'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+            'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxedf8474a1b91e737'
+            'ec28252abe7a8aa5604539b239505e8ccad8890a44198c58')
+
+    def _check_key(self, key, expected_key):
+        """Check the results of a key, and ensure it works in cache.
+
+        Args:
+            key (str):
+                The key to build a cache key out of.
+
+            expected_key (str):
+                The expected full cache key.
+
+        Raises:
+            AssertionError:
+                The results were not equal.
+        """
+        full_cache_key = make_cache_key(key)
+
+        self.assertIsInstance(full_cache_key, str)
+        self.assertEqual(full_cache_key, expected_key)
+
+        # Validate the key.
+        self.assertEqual(
+            list(memcache_key_warnings(full_cache_key)),
+            [])
+
+        # Make sure this can be set and retrieved from cache.
+        cache.set(full_cache_key, 'test-value')
+        self.assertEqual(cache.get(full_cache_key), 'test-value')
