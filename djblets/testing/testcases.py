@@ -1,6 +1,5 @@
 """Base class for test cases in Django-based applications."""
 
-import copy
 import inspect
 import os
 import re
@@ -485,12 +484,10 @@ class TestCase(testcases.TestCase):
         # Build and track Q() objects any time they're added to a Query.
         @spy_agency.spy_for(SQLQuery.add_q, owner=SQLQuery)
         def _query_add_q(_self, q_object):
-            q_object_copy = copy.deepcopy(q_object)
-
             try:
-                queries_to_qs[_self] &= q_object_copy
+                queries_to_qs[_self] &= q_object
             except KeyError:
-                queries_to_qs[_self] = q_object_copy
+                queries_to_qs[_self] = q_object
 
             return SQLQuery.add_q.call_original(_self, q_object)
 
@@ -500,7 +497,7 @@ class TestCase(testcases.TestCase):
             result = SQLQuery.clone.call_original(_self, *args, **kwargs)
 
             try:
-                queries_to_qs[result] = copy.deepcopy(queries_to_qs[_self])
+                queries_to_qs[result] = queries_to_qs[_self]
             except KeyError:
                 pass
 
