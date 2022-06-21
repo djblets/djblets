@@ -39,3 +39,9 @@ class DjbletsJSONEncoderTests(TestCase):
         self.assertEqual(
             encoder.encode(datetime(2016, 8, 26, 3, 3, 26, 123456)),
             '"2016-08-26T03:03:26.123"')
+
+    def test_with_set(self):
+        """Testing DjbletsJSONEncoder.encode with set"""
+        encoder = DjbletsJSONEncoder()
+        self.assertEqual(encoder.encode({1, 2, 9, 4, 4, 10}),
+                         '[1, 2, 4, 9, 10]')
