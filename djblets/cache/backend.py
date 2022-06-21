@@ -7,6 +7,7 @@ iterators and large data normally too big for the cache).
 """
 
 import hashlib
+import hmac
 import io
 import logging
 import pickle
@@ -16,8 +17,14 @@ import zlib
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib.sites.models import Site
+from django.utils.encoding import force_bytes
 
 from djblets.cache.errors import MissingChunkError
+from djblets.secrets.crypto import (aes_decrypt,
+                                    aes_decrypt_iter,
+                                    aes_encrypt,
+                                    aes_encrypt_iter,
+                                    get_default_aes_encryption_key)
 
 
 logger = logging.getLogger(__name__)
@@ -50,7 +57,8 @@ class _CacheContext:
         3.0
     """
 
-    def __init__(self, cache, base_cache_key, expiration, compress_large_data):
+    def __init__(self, cache, base_cache_key, expiration, compress_large_data,
+                 use_encryption, encryption_key):
         """Initialize the context.
 
         Args:
@@ -71,11 +79,41 @@ class _CacheContext:
 
             compress_large_data (bool):
                 Whether large data will be compressed.
+
+            use_encryption (bool):
+                Whether to use encryption when storing or reading data.
+
+                This defaults to ``False``, but can be forced on for all
+                cached data by setting
+                ``settings.DJBLETS_CACHE_FORCE_ENCRYPTION=True``.
+
+            encryption_key (bytes or str):
+                An explicit AES encryption key to use when passing
+                ``use_encryption=True``.
+
+                This defaults to the value in
+                ``settings.DJBLETS_CACHE_DEFAULT_ENCRYPTION_KEY``, if set, or
+                to the default AES encryption key for the server as provided by
+                :py:func:`djblets.secrets.crypto.
+                get_default_aes_encryption_key`.
         """
+        if use_encryption is None:
+            use_encryption = _get_default_use_encryption()
+
+        if use_encryption:
+            if encryption_key:
+                assert isinstance(encryption_key, bytes)
+            else:
+                encryption_key = _get_default_encryption_key()
+        else:
+            encryption_key = None
+
         self.cache = cache
         self.expiration = expiration
         self.full_cache_key = None
         self.base_cache_key = base_cache_key
+        self.use_encryption = use_encryption
+        self.encryption_key = encryption_key
         self.compress_large_data = compress_large_data
 
         self.full_cache_key = self.make_key(base_cache_key)
@@ -94,7 +132,9 @@ class _CacheContext:
         if key == self.base_cache_key and self.full_cache_key:
             return self.full_cache_key
 
-        return make_cache_key(key)
+        return make_cache_key(key,
+                              use_encryption=self.use_encryption,
+                              encryption_key=self.encryption_key)
 
     def make_subkey(self, suffix):
         """Return a full cache key combining the main key and a suffix.
@@ -115,6 +155,9 @@ class _CacheContext:
     def prepare_value(self, full_cache_key, value):
         """Prepare a value for storage in cache.
 
+        If using encryption, this will serialize and encrypt the value.
+        Otherwise this returns the value as-is.
+
         Args:
             full_cache_key (str):
                 The full cache key where this value will be stored.
@@ -125,24 +168,49 @@ class _CacheContext:
         Returns:
             object:
             The prepared value.
+
+        Raises:
+            Exception:
+                An error occurred pickling or encrypting the value. The
+                The exception is logged and then raised as-is.
         """
+        if self.use_encryption:
+            # Normally Django's cache backends will handle pickling of data,
+            # so what we set is what we get. That doesn't work when we encrypt
+            # data, though, since the type information will be lost. Plus,
+            # we need to be able to give a bytestring representation to
+            # aes_encrypt().
+            #
+            # So we instead pickle the data before encrypting it, and then we
+            # unpickle after we decrypt it later.
+            try:
+                value = pickle.dumps(value, protocol=0)
+            except Exception as e:
+                logger.error('Failed to serialize data for cache key "%s": %s',
+                             full_cache_key, e)
+                raise
+
+            try:
+                value = aes_encrypt(value, key=self.encryption_key)
+            except Exception as e:
+                logger.error('Failed to encrypt data for cache for key '
+                             '%s: %s.',
+                             full_cache_key, e)
+                raise
+
         return value
 
-    def load_value(self, key=None, raw=False):
+    def load_value(self, key=None):
         """Load a value from cache.
 
         This will take care of converting the provided key to a full cache
-        key.
+        key, and decrypting and deserializing the value if needed.
 
         Args:
             key (str):
                 The full cache key to load from cache.
 
                 If not provided, the full main cache key will be used.
-
-            raw (bool, optional):
-                Whether the raw value from the cache should be returned
-                directly, rather than being processed.
 
         Returns:
             object:
@@ -156,7 +224,26 @@ class _CacheContext:
         if key is None:
             key = self.full_cache_key
 
-        return self.cache.get(key, _NO_RESULTS)
+        value = self.cache.get(key, _NO_RESULTS)
+
+        if value is not _NO_RESULTS and self.use_encryption:
+            try:
+                value = aes_decrypt(value, key=self.encryption_key)
+            except Exception as e:
+                logger.error('Failed to decrypt data from cache for '
+                             'key %s: %s.',
+                             key, e)
+                raise
+
+            try:
+                value = pickle.loads(value)
+            except Exception as e:
+                logger.warning('Failed to deserialize data from cache for '
+                               'key %s: %s.',
+                               key, e)
+                raise
+
+        return value
 
     def store_value(self, value, *, key=None, raw=False):
         """Store a value in cache.
@@ -208,6 +295,44 @@ class _CacheContext:
                             timeout=self.expiration)
 
 
+def _get_default_use_encryption():
+    """Return whether encryption should be enabled by default.
+
+    This will dynamically check whether encryption should be allowed, based
+    on the ``settings.DJBLETS_CACHE_FORCE_ENCRYPTION`` setting. If not set,
+    this defaults to ``False``.
+
+    Returns:
+        bool:
+        Whether encryption should be used by default.
+    """
+    return getattr(settings, 'DJBLETS_CACHE_FORCE_ENCRYPTION', False)
+
+
+def _get_default_encryption_key():
+    """Return the default AES encryption key for caching.
+
+    This will return the default encryption key used for caching, using
+    ``settings.DJBLETS_CACHE_DEFAULT_ENCRYPTION_KEY`` if set to a valid
+    AES encryption key, and falling back to
+    :py:func:`djblets.secrets.crypto.get_default_aes_encryption_key`.
+
+    Returns:
+        bytes:
+        The default encryption key.
+    """
+    key = getattr(settings, 'DJBLETS_CACHE_DEFAULT_ENCRYPTION_KEY', None)
+
+    if key:
+        if not isinstance(key, bytes):
+            key = key.encode('utf-8')
+            settings.DJBLETS_CACHE_DEFAULT_ENCRYPTION_KEY = key
+    else:
+        key = get_default_aes_encryption_key()
+
+    return key
+
+
 def _cache_fetch_large_data(cache_context, chunk_count):
     """Fetch large data from the cache.
 
@@ -224,6 +349,7 @@ def _cache_fetch_large_data(cache_context, chunk_count):
         3.0:
         * Updated to take ``cache_context`` instead of additional arguments,
           and ``chunk_count`` to save a cache hit.
+        * Added support for key/value encryption.
 
     Args:
         cache_context (_CacheContext):
@@ -264,14 +390,22 @@ def _cache_fetch_large_data(cache_context, chunk_count):
 
         raise MissingChunkError
 
-    # Process all the chunks and decompress them at once, instead of streaming
-    # the results. It's faster for any reasonably-sized data in cache. We'll
-    # stream depickles instead.
-    data = b''.join(
+    # Process all the chunks.
+    data = (
         chunks[chunk_key][0]
         for chunk_key in chunk_keys
     )
 
+    if cache_context.use_encryption:
+        # We can iteratively decrypt these and build the results into a
+        # single string below for optional decompression.
+        data = aes_decrypt_iter(data, key=cache_context.encryption_key)
+
+    data = b''.join(data)
+
+    # Decompress them all at once, instead of streaming the results. It's
+    # faster for any reasonably-sized data in cache. We'll stream depickles
+    # instead.
     if cache_context.compress_large_data:
         data = zlib.decompress(data)
 
@@ -287,6 +421,7 @@ def _cache_iter_large_data(cache_context, data):
     Version Changed:
         3.0:
         * Updated to take ``cache_context`` instead of additional arguments.
+        * Added support for key/value encryption.
 
     Args:
         cache_context (_CacheContext):
@@ -362,6 +497,89 @@ def _cache_compress_pickled_data(items):
         yield remaining, False, None
 
 
+def _cache_encrypt_data(items, encryption_key):
+    """Iteratively encrypt data from items tuples.
+
+    Version Added:
+        3.0
+
+    Args:
+        items (generator of tuple):
+            The generator of item tuples prepared in
+            :py:func:`_cache_store_items`.
+
+            Each is in the form of:
+
+            1. Byte string to encrypt
+            2. Boolean indicating if the raw data represents valid data to
+               ultimately yield to the caller in :py:func:`cache_memoize_iter`
+            3. Raw data to yield back to the caller
+
+        encryption_key (bytes, optional):
+            The AES encryption key to use.
+
+    Yields:
+        tuple:
+        Each is in the form of:
+
+        1. Byte string containing encrypted data
+        2. Boolean indicating if the raw data represents valid data to
+           ultimately yield to the caller in :py:func:`cache_memoize_iter`
+        3. Raw data to yield back to the caller
+    """
+    # We're working with a generator yielding tuples containing items.
+    # The first entry in each tuple is a piece of the data we want to
+    # encrypt. We want to encrypt iteratively, and we don't want to have
+    # to load the entire results of the generator into memory at once.
+    #
+    # So we have to feed the first index of each tuple iteratively into
+    # aes_encrypt_iter as a generator, but we also want to retain the other
+    # data in each tuple and yield it along with the encrypted results.
+    #
+    # There isn't a one-to-one mapping between what goes in and what comes
+    # out, particularly when dealing with compression.
+    #
+    # So here's the plan of attack:
+    #
+    # 1. We feed data into aes_encrypt_iter(), and keep a queue of the item
+    #    data (has_item and item).
+    #
+    # 2. As we receive results, we pull off the front of the queue and yield
+    #    it along with the data.
+    #
+    #    We then go through anything else in the queue (one item coming
+    #    in could result in multiple coming out). Those yield those
+    #    values, but without any data scheduled for storage, just scheduled
+    #    to yield as results.
+    #
+    # 3. If there was nothing in the queue when we get data, then yield the
+    #    data but with has_item=False, so it'll be stored but not yielded as
+    #    results.
+    item_queue = []
+
+    def _gen_data():
+        for data, has_item, item in items:
+            item_queue.append((has_item, item))
+            yield data
+
+    for data in aes_encrypt_iter(_gen_data(),
+                                 key=encryption_key):
+        if item_queue:
+            # There were items in the queue. Yield the first with the data,
+            # and anything else without (those will be returned as results
+            # but won't be stored in cache).
+            yield data, *item_queue[0]
+
+            for item in item_queue[1:]:
+                yield None, *item
+        else:
+            # The queue is empty. Yield what data we have for caching, but
+            # don't yield for results.
+            yield data, False, None
+
+        item_queue.clear()
+
+
 def _cache_store_chunks(cache_context, items):
     """Store a list of items as chunks in the cache.
 
@@ -372,6 +590,8 @@ def _cache_store_chunks(cache_context, items):
     Version Changed:
         3.0:
         * Updated to take ``cache_context`` instead of additional arguments.
+        * Added support for encrypting keys and data through the
+          ``use_encryption`` and ``encryption_key`` arguments.
 
     Args:
         cache_context (_CacheContext):
@@ -395,13 +615,14 @@ def _cache_store_chunks(cache_context, items):
     chunks_data = io.BytesIO()
     chunks_data_len = 0
     read_start = 0
-    item_count = 0
     i = 0
 
     for data, has_item, item in items:
         if has_item:
             yield item
-            item_count += 1
+
+        if not data:
+            continue
 
         chunks_data.write(data)
         chunks_data_len += len(data)
@@ -458,21 +679,15 @@ def _cache_store_items(cache_context, items):
     Version Changed:
         3.0:
         * Updated to take ``cache_context`` instead of additional arguments.
+        * Added support for encrypting keys and data through the
+          ``use_encryption`` and ``encryption_key`` arguments.
 
     Args:
         cache_context (_CacheContext):
             The caching operation context.
 
-        items (generator of tuple):
-            The generator of item tuples prepared in
-            :py:func:`_cache_store_items`.
-
-            Each is in the form of:
-
-            1. Raw data to store in the cache
-            2. Boolean indicating if the raw data represents valid data to
-               ultimately yield to the caller in :py:func:`cache_memoize_iter`
-            3. Raw data to yield back to the caller
+        items (generator):
+            The generator of data to store.
 
     Yields:
         tuple:
@@ -493,6 +708,14 @@ def _cache_store_items(cache_context, items):
     if cache_context.compress_large_data:
         results = _cache_compress_pickled_data(results)
 
+    if cache_context.use_encryption:
+        # Note that the order of operations here is important. We must
+        # compress and *then* encrypt. Encrypted AES data cannot be
+        # compressed.
+        results = _cache_encrypt_data(
+            results,
+            encryption_key=cache_context.encryption_key)
+
     yield from _cache_store_chunks(cache_context=cache_context,
                                    items=results)
 
@@ -500,7 +723,9 @@ def _cache_store_items(cache_context, items):
 def cache_memoize_iter(key, items_or_callable,
                        expiration=_default_expiration,
                        force_overwrite=False,
-                       compress_large_data=True):
+                       compress_large_data=True,
+                       use_encryption=None,
+                       encryption_key=None):
     """Memoize an iterable list of items inside the configured cache.
 
     If the provided list of items is a function, the function must return a
@@ -513,9 +738,20 @@ def cache_memoize_iter(key, items_or_callable,
     The data is assumed to be big enough that it must be pickled,
     optionally compressed, and stored as chunks in the cache.
 
+    Data can be encrypted using AES encryption, for safe storage of potentially
+    sensitive information or state. This adds to the processing time slightly,
+    but can be important for cache keys containing sensitive information or
+    that impact access control, particularly in the event that the cache is
+    compromised or shared between services.
+
     The result from this function is always a generator. Note that it's
     important that the generator be allowed to continue until completion, or
     the data won't be retrievable from the cache.
+
+    Version Changed:
+        3.0:
+        Added support for encrypting keys and data through the
+        ``use_encryption`` and ``encryption_key`` arguments.
 
     Args:
         key (unicode):
@@ -535,6 +771,31 @@ def cache_memoize_iter(key, items_or_callable,
         compress_large_data (bool):
             If ``True``, the data will be zlib-compressed.
 
+        use_encryption (bool, optional):
+            Whether to use encryption when storing or reading data.
+
+            If reading data, and if the data cannot be decrypted with the
+            given key, then the data will be considered to have fallen out
+            of cache.
+
+            This defaults to ``False``, but can be forced on for all cached
+            data by setting ``settings.DJBLETS_CACHE_FORCE_ENCRYPTION=True``.
+
+            Version Added:
+                3.0
+
+        encryption_key (bytes or str, optional):
+            An explicit AES encryption key to use when passing
+            ``use_encryption=True``.
+
+            This defaults the value in
+            ``settings.DJBLETS_CACHE_DEFAULT_ENCRYPTION_KEY``, if set, or to
+            the default AES encryption key for the server as provided by
+            :py:func:`djblets.secrets.crypto.get_default_aes_encryption_key`.
+
+            Version Added:
+                3.0
+
     Yields:
         object:
         The list of items from the cache or from ``items_or_callable`` if
@@ -544,7 +805,9 @@ def cache_memoize_iter(key, items_or_callable,
         cache=cache,
         base_cache_key=key,
         expiration=expiration,
-        compress_large_data=compress_large_data)
+        compress_large_data=compress_large_data,
+        use_encryption=use_encryption,
+        encryption_key=encryption_key)
     full_cache_key = cache_context.full_cache_key
 
     results = _NO_RESULTS
@@ -585,8 +848,21 @@ def cache_memoize(key,
                   force_overwrite=False,
                   large_data=False,
                   compress_large_data=True,
-                  use_generator=False):
+                  use_generator=False,
+                  use_encryption=None,
+                  encryption_key=None):
     """Memoize the results of a callable inside the configured cache.
+
+    Data can be encrypted using AES encryption, for safe storage of potentially
+    sensitive information or state. This adds to the processing time slightly,
+    but can be important for cache keys containing sensitive information or
+    that impact access control, particularly in the event that the cache is
+    compromised or shared between services.
+
+    Version Changed:
+        3.0:
+        Added support for encrypting keys and data through the
+        ``use_encryption`` and ``encryption_key`` arguments.
 
     Version Changed:
         2.2.4:
@@ -622,6 +898,31 @@ def cache_memoize(key,
             This parameter is no longer used and will be removed in Djblets
             3.0.
 
+        use_encryption (bool, optional):
+            Whether to use encryption when storing or reading data.
+
+            If reading data, and if the data cannot be decrypted with the
+            given key, then the data will be considered to have fallen out
+            of cache.
+
+            This defaults to ``False``, but can be forced on for all cached
+            data by setting ``settings.DJBLETS_CACHE_FORCE_ENCRYPTION=True``.
+
+            Version Added:
+                3.0
+
+        encryption_key (bytes or str, optional):
+            An explicit AES encryption key to use when passing
+            ``use_encryption=True``.
+
+            This defaults the value in
+            ``settings.DJBLETS_CACHE_DEFAULT_ENCRYPTION_KEY``, if set, or to
+            the default AES encryption key for the server as provided by
+            :py:func:`djblets.secrets.crypto.get_default_aes_encryption_key`.
+
+            Version Added:
+                3.0
+
     Returns:
         object:
         The cached data, or the result of ``lookup_callable`` if uncached.
@@ -632,7 +933,9 @@ def cache_memoize(key,
             lambda: [lookup_callable()],
             expiration=expiration,
             force_overwrite=force_overwrite,
-            compress_large_data=compress_large_data))
+            compress_large_data=compress_large_data,
+            use_encryption=use_encryption,
+            encryption_key=encryption_key))
 
         assert len(results) == 1
 
@@ -642,7 +945,9 @@ def cache_memoize(key,
             cache=cache,
             base_cache_key=key,
             expiration=expiration,
-            compress_large_data=compress_large_data)
+            compress_large_data=compress_large_data,
+            use_encryption=use_encryption,
+            encryption_key=encryption_key)
         full_cache_key = cache_context.full_cache_key
 
         if not force_overwrite:
@@ -689,7 +994,7 @@ def cache_memoize(key,
         return data
 
 
-def make_cache_key(key):
+def make_cache_key(key, use_encryption=None, encryption_key=None):
     """Create a cache key guaranteed to avoid conflicts and size limits.
 
     The cache key will be prefixed by the site's domain, and will be
@@ -698,6 +1003,8 @@ def make_cache_key(key):
 
     Version Changed:
         3.0:
+        * Added support for encrypting keys through the
+          ``use_encryption`` and ``encryption_key`` arguments.
         * Changed the hash format for keys to use SHA256 instead of MD5.
           This will invalidate all old keys in cache, but reduces chances
           of collision.
@@ -710,10 +1017,37 @@ def make_cache_key(key):
         key (str):
             The base key to generate a cache key from.
 
+        use_encryption (bool, optional):
+            Whether to generate an encrypted key.
+
+            This will generate a HMAC digest of the key. There will be no
+            identifying information in the resulting key.
+
+            This defaults to ``False``, but can be forced on for all cached
+            data by setting ``settings.DJBLETS_CACHE_FORCE_ENCRYPTION=True``.
+
+            Version Added:
+                3.0
+
+        encryption_key (bytes, optional):
+            An explicit AES encryption key to use when passing
+            ``use_encryption=True``.
+
+            This defaults the value in
+            ``settings.DJBLETS_CACHE_DEFAULT_ENCRYPTION_KEY``, if set, or to
+            the default AES encryption key for the server as provided by
+            :py:func:`djblets.secrets.crypto.get_default_aes_encryption_key`.
+
+            Version Added:
+                3.0
+
     Returns:
         str:
         A cache key suitable for use with the cache backend.
     """
+    if use_encryption is None:
+        use_encryption = _get_default_use_encryption()
+
     try:
         site = Site.objects.get_current()
 
@@ -730,14 +1064,27 @@ def make_cache_key(key):
         # The install doesn't have a Site app, so use the key as-is.
         pass
 
-    # Normalize any invalid characters in the key.
-    key = _INVALID_KEY_CHARS_RE.sub(lambda m: '\\x%02x' % ord(m.group(0)),
-                                    key)
+    if use_encryption:
+        if encryption_key:
+            assert isinstance(encryption_key, bytes)
+        else:
+            encryption_key = _get_default_encryption_key()
 
-    if len(key) > MAX_KEY_SIZE:
-        digest = hashlib.sha256(key.encode('utf-8')).hexdigest()
+        # Construct a HMAC digest of the key using the encryption key.
+        # The result will be a SHA256 hash.
+        key = hmac.new(
+            encryption_key,
+            msg=force_bytes(key),
+            digestmod=hashlib.sha256).hexdigest()
+    else:
+        # Normalize any invalid characters in the key.
+        key = _INVALID_KEY_CHARS_RE.sub(lambda m: '\\x%02x' % ord(m.group(0)),
+                                        key)
 
-        # Replace the excess part of the key with a digest of the key
-        key = key[:MAX_KEY_SIZE - len(digest)] + digest
+        if len(key) > MAX_KEY_SIZE:
+            digest = hashlib.sha256(key.encode('utf-8')).hexdigest()
+
+            # Replace the excess part of the key with a digest of the key
+            key = key[:MAX_KEY_SIZE - len(digest)] + digest
 
     return key

@@ -12,19 +12,25 @@ from djblets.cache.backend import (CACHE_CHUNK_SIZE,
                                    MAX_KEY_SIZE,
                                    cache_memoize,
                                    cache_memoize_iter,
-                                   make_cache_key)
+                                   make_cache_key,
+                                   _get_default_encryption_key)
+from djblets.secrets.crypto import AES_BLOCK_SIZE, aes_decrypt, aes_encrypt
 from djblets.testing.testcases import TestCase
 
 
 class BaseCacheTestCase(kgb.SpyAgency, TestCase):
     """Base class for cache-related unit tests."""
 
+    CUSTOM_ENCRYPTION_KEY = b'0123456789abcdef'
+
     def tearDown(self):
         super().tearDown()
 
         cache.clear()
 
-    def build_test_chunk_data(self, num_chunks):
+    def build_test_chunk_data(self, num_chunks, extra_len=0,
+                              use_compression=False, use_encryption=False,
+                              encryption_key=None):
         """Build enough test data to fill up the specified number of chunks.
 
         This takes into account the size of the pickle data, and will
@@ -34,20 +40,48 @@ class BaseCacheTestCase(kgb.SpyAgency, TestCase):
             num_chunks (int):
                 The number of chunks to build.
 
+            extra_len (int, optional):
+                Extra length to add to the data size.
+
+            use_compression (bool, optional):
+                Whether to compress the payload.
+
+            use_encryption (bool, optional):
+                Whether to generate a payload suitable for encryption.
+
+            encryption_key (bytes, optional):
+                An optional non-default encryption key.
+
         Returns:
             tuple:
             A 2-tuple containing:
 
-            1. The data to cache.
-            2. The resulting pickled data.
+            1. The raw generated data.
+            2. The resulting chunk data to store.
         """
-        data = 'x' * (CACHE_CHUNK_SIZE * num_chunks - 3 * num_chunks)
-        pickled_data = pickle.dumps(data, protocol=0)
+        data_len = CACHE_CHUNK_SIZE * num_chunks - 3 * num_chunks + extra_len
 
-        self.assertTrue(pickled_data.startswith(b'Vxxxxxxxx'))
-        self.assertEqual(len(pickled_data), CACHE_CHUNK_SIZE * num_chunks)
+        if use_encryption:
+            data_len -= AES_BLOCK_SIZE
 
-        return data, pickled_data
+        data = 'x' * data_len
+
+        chunk_data = pickle.dumps(data, protocol=0)
+        self.assertTrue(chunk_data.startswith(b'Vxxxxxxxx'))
+
+        if use_compression:
+            chunk_data = zlib.compress(chunk_data)
+
+        if use_encryption:
+            chunk_data = aes_encrypt(
+                chunk_data,
+                key=encryption_key or _get_default_encryption_key())
+
+        if not use_compression:
+            self.assertEqual(len(chunk_data),
+                             CACHE_CHUNK_SIZE * num_chunks + extra_len)
+
+        return data, chunk_data
 
 
 class CacheMemoizeTests(BaseCacheTestCase):
@@ -154,8 +188,8 @@ class CacheMemoizeTests(BaseCacheTestCase):
 
         # This takes into account the size of the pickle data, and will
         # get us to just barely 3 chunks of data in cache.
-        data = self.build_test_chunk_data(num_chunks=2)[0] + 'x'
-        pickled_data = pickle.dumps(data, protocol=0)
+        data, pickled_data = self.build_test_chunk_data(num_chunks=2,
+                                                        extra_len=1)
 
         def cache_func():
             return data
@@ -253,8 +287,9 @@ class CacheMemoizeTests(BaseCacheTestCase):
         """
         cache_key = 'abc123'
 
-        data, pickled_data = self.build_test_chunk_data(num_chunks=2)
-        stored_data = zlib.compress(pickled_data)
+        data, stored_data = self.build_test_chunk_data(
+            num_chunks=2,
+            use_compression=True)
         self.assertLess(len(stored_data), CACHE_CHUNK_SIZE)
 
         cache.set(make_cache_key(cache_key), '1')
@@ -290,6 +325,572 @@ class CacheMemoizeTests(BaseCacheTestCase):
 
         result = cache_memoize(cache_key, cache_func, large_data=True,
                                compress_large_data=False)
+        self.assertEqual(result, data)
+        self.assertSpyCallCount(cache_func, 1)
+
+    def test_with_use_encryption(self):
+        """Testing cache_memoize with use_encryption=True"""
+        cache_key = 'abc123'
+        test_str = 'Test 123'
+
+        def cache_func():
+            return test_str
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               use_encryption=True)
+        self.assertEqual(result, test_str)
+        self.assertSpyCallCount(cache_func, 1)
+
+        # Check what we put into cache.
+        encrypted_key = \
+            '0a3195ea908f9bd178ab3c67a257ea4e7954e4b67ac240d1c86953953cde3a0b'
+        self.assertIn(encrypted_key, cache)
+
+        cache_value = cache.get(encrypted_key)
+        self.assertNotEqual(cache_value, test_str)
+        self.assertEqual(pickle.loads(aes_decrypt(cache_value)),
+                         test_str)
+
+        # Call a second time. We should only call cache_func once.
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               use_encryption=True)
+        self.assertEqual(result, test_str)
+        self.assertSpyCallCount(cache_func, 1)
+
+    def test_with_use_encryption_and_custom_encryption_key(self):
+        """Testing cache_memoize with use_encryption=True and custom
+        encryption_key
+        """
+        cache_key = 'abc123'
+        test_str = 'Test 123'
+
+        def cache_func():
+            return test_str
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               use_encryption=True,
+                               encryption_key='0123456789abcdef')
+        self.assertEqual(result, test_str)
+        self.assertSpyCallCount(cache_func, 1)
+
+        # Check what we put into cache.
+        encrypted_key = \
+            '10c4714f5c6c49045ed25c8da7d04a4be2254fa275fc3b63bdeebe887aee52f9'
+        self.assertIn(encrypted_key, cache)
+
+        cache_value = cache.get(encrypted_key)
+        self.assertNotEqual(cache_value, test_str)
+        self.assertEqual(
+            pickle.loads(aes_decrypt(cache_value,
+                                     key=self.CUSTOM_ENCRYPTION_KEY)),
+            test_str)
+
+        # Call a second time. We should only call cache_func once.
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               use_encryption=True,
+                               encryption_key='0123456789abcdef')
+        self.assertEqual(result, test_str)
+        self.assertSpyCallCount(cache_func, 1)
+
+    def test_with_use_encryption_and_key_changed(self):
+        """Testing cache_memoize with use_encryption=True and encryption
+        key changed
+        """
+        cache_key = 'abc123'
+        test_str = 'Test 123'
+
+        def cache_func():
+            return test_str
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               use_encryption=True)
+        self.assertEqual(result, test_str)
+        self.assertSpyCallCount(cache_func, 1)
+
+        # Check what we put into cache.
+        encrypted_key = \
+            '0a3195ea908f9bd178ab3c67a257ea4e7954e4b67ac240d1c86953953cde3a0b'
+        self.assertIn(encrypted_key, cache)
+
+        cache_value = cache.get(encrypted_key)
+        self.assertNotEqual(cache_value, test_str)
+        self.assertEqual(
+            pickle.loads(aes_decrypt(cache_value)),
+            test_str)
+
+        # Call a second time. We should only call cache_func once.
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               use_encryption=True,
+                               encryption_key='0123456789abcdef')
+        self.assertEqual(result, test_str)
+        self.assertSpyCallCount(cache_func, 2)
+
+        encrypted_key = \
+            '10c4714f5c6c49045ed25c8da7d04a4be2254fa275fc3b63bdeebe887aee52f9'
+        self.assertIn(encrypted_key, cache)
+
+        cache_value = cache.get(encrypted_key)
+        self.assertNotEqual(cache_value, test_str)
+        self.assertEqual(
+            pickle.loads(aes_decrypt(cache_value,
+                                     key=self.CUSTOM_ENCRYPTION_KEY)),
+            test_str)
+
+    @override_settings(DJBLETS_CACHE_FORCE_ENCRYPTION=True)
+    def test_with_force_use_encryption(self):
+        """Testing cache_memoize with
+        settings.DJBLETS_CACHE_FORCE_ENCRYPTION=True
+        """
+        cache_key = 'abc123'
+        test_str = 'Test 123'
+
+        def cache_func():
+            return test_str
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key, cache_func)
+        self.assertEqual(result, test_str)
+        self.assertSpyCallCount(cache_func, 1)
+
+        # Check what we put into cache.
+        encrypted_key = \
+            '0a3195ea908f9bd178ab3c67a257ea4e7954e4b67ac240d1c86953953cde3a0b'
+        self.assertIn(encrypted_key, cache)
+
+        cache_value = cache.get(encrypted_key)
+        self.assertNotEqual(cache_value, test_str)
+        self.assertEqual(pickle.loads(aes_decrypt(cache_value)),
+                         test_str)
+
+        # Call a second time. We should only call cache_func once.
+        result = cache_memoize(cache_key, cache_func)
+        self.assertEqual(result, test_str)
+        self.assertSpyCallCount(cache_func, 1)
+
+    def test_with_use_encryption_and_non_string_data(self):
+        """Testing cache_memoize with use_encryption=True and non-string
+        data
+        """
+        cache_key = 'abc123'
+        test_data = {
+            'item1': True,
+            'item2': {1, 2, 3},
+            'item3': None,
+        }
+
+        def cache_func():
+            return test_data
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               use_encryption=True)
+        self.assertEqual(result, test_data)
+        self.assertSpyCallCount(cache_func, 1)
+
+        # Check what we put into cache.
+        encrypted_key = \
+            '0a3195ea908f9bd178ab3c67a257ea4e7954e4b67ac240d1c86953953cde3a0b'
+        self.assertIn(encrypted_key, cache)
+
+        cache_value = cache.get(encrypted_key)
+        self.assertNotEqual(cache_value, test_data)
+        self.assertEqual(pickle.loads(aes_decrypt(cache_value)),
+                         test_data)
+
+        # Call a second time. We should only call cache_func once.
+        result = cache_memoize(cache_key, cache_func,
+                               use_encryption=True)
+        self.assertEqual(result, test_data)
+        self.assertSpyCallCount(cache_func, 1)
+
+    def test_with_use_encryption_and_large_files_uncompressed(self):
+        """Testing cache_memoize with use_encryption=True and large files
+        without compression
+        """
+        cache_key = 'abc123'
+
+        # This takes into account the size of the encrypted pickle data, and
+        # will get us to exactly 2 chunks of data in cache.
+        data, encrypted_data = self.build_test_chunk_data(
+            num_chunks=2,
+            use_encryption=True)
+
+        def cache_func():
+            return data
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               large_data=True,
+                               compress_large_data=False,
+                               use_encryption=True)
+        self.assertEqual(result, data)
+        self.assertSpyCallCount(cache_func, 1)
+
+        # Check what we put into cache.
+        cache_key_main = make_cache_key(cache_key,
+                                        use_encryption=True)
+        cache_key_0 = make_cache_key('%s-0' % cache_key,
+                                     use_encryption=True)
+        cache_key_1 = make_cache_key('%s-1' % cache_key,
+                                     use_encryption=True)
+        cache_key_2 = make_cache_key('%s-2' % cache_key,
+                                     use_encryption=True)
+
+        self.assertIn(cache_key_main, cache)
+        self.assertIn(cache_key_0, cache)
+        self.assertIn(cache_key_1, cache)
+        self.assertNotIn(cache_key_2, cache)
+
+        # Verify the contents of the stored data.
+        stored_data = b''.join(cache.get(cache_key_0) +
+                               cache.get(cache_key_1))
+        self.assertNotEqual(stored_data, data)
+        self.assertEqual(pickle.loads(aes_decrypt(stored_data)),
+                         data)
+
+        # Call a second time. We should only call cache_func once.
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               large_data=True,
+                               compress_large_data=False,
+                               use_encryption=True)
+        self.assertEqual(result, data)
+        self.assertSpyCallCount(cache_func, 1)
+
+    def test_with_use_encryption_and_large_files_uncompressed_off_by_one(self):
+        """Testing cache_memoize with use_encryption=True and large files
+        without compression and one byte larger than an even chunk size
+        """
+        cache_key = 'abc123'
+
+        # This takes into account the size of the encrypted pickle data, and
+        # will get us to just barely 3 chunks of data in cache.
+        data, encrypted_data = self.build_test_chunk_data(
+            num_chunks=2,
+            extra_len=1,
+            use_encryption=True)
+
+        def cache_func():
+            return data
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               large_data=True,
+                               compress_large_data=False,
+                               use_encryption=True)
+        self.assertEqual(result, data)
+        self.assertSpyCallCount(cache_func, 1)
+
+        # Check what we put into cache.
+        cache_key_main = make_cache_key(cache_key,
+                                        use_encryption=True)
+        cache_key_0 = make_cache_key('%s-0' % cache_key,
+                                     use_encryption=True)
+        cache_key_1 = make_cache_key('%s-1' % cache_key,
+                                     use_encryption=True)
+        cache_key_2 = make_cache_key('%s-2' % cache_key,
+                                     use_encryption=True)
+        cache_key_3 = make_cache_key('%s-3' % cache_key,
+                                     use_encryption=True)
+
+        self.assertIn(cache_key_main, cache)
+        self.assertIn(cache_key_0, cache)
+        self.assertIn(cache_key_1, cache)
+        self.assertIn(cache_key_2, cache)
+        self.assertNotIn(cache_key_3, cache)
+
+        # Verify the contents of the stored data.
+        stored_data = b''.join(cache.get(cache_key_0) +
+                               cache.get(cache_key_1) +
+                               cache.get(cache_key_2))
+        self.assertNotEqual(stored_data, data)
+        self.assertEqual(pickle.loads(aes_decrypt(stored_data)),
+                         data)
+
+        # Call a second time. We should only call cache_func once.
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               large_data=True,
+                               compress_large_data=False,
+                               use_encryption=True)
+        self.assertEqual(result, data)
+        self.assertSpyCallCount(cache_func, 1)
+
+    def test_with_use_encryption_and_large_files_compressed(self):
+        """Testing cache_memoize with use_encryption=True and large files
+        with compression
+        """
+        cache_key = 'abc123'
+
+        # This takes into account the size of the encrypted pickle data, and
+        # will get us to just barely 3 chunks of data in cache.
+        data, encrypted_data = self.build_test_chunk_data(
+            num_chunks=2,
+            use_encryption=True)
+
+        def cache_func():
+            return data
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               large_data=True,
+                               compress_large_data=True,
+                               use_encryption=True)
+        self.assertEqual(result, data)
+        self.assertSpyCallCount(cache_func, 1)
+
+        # Check what we put into cache.
+        cache_key_main = make_cache_key(cache_key,
+                                        use_encryption=True)
+        cache_key_0 = make_cache_key('%s-0' % cache_key,
+                                     use_encryption=True)
+        cache_key_1 = make_cache_key('%s-1' % cache_key,
+                                     use_encryption=True)
+        cache_key_2 = make_cache_key('%s-2' % cache_key,
+                                     use_encryption=True)
+
+        self.assertIn(cache_key_main, cache)
+        self.assertIn(cache_key_0, cache)
+        self.assertNotIn(cache_key_1, cache)
+        self.assertNotIn(cache_key_2, cache)
+
+        # Verify the contents of the stored data.
+        stored_data = cache.get(cache_key_0)[0]
+        self.assertNotEqual(stored_data, data)
+        self.assertEqual(
+            pickle.loads(zlib.decompress(aes_decrypt(stored_data))),
+            data)
+
+        # Call a second time. We should only call cache_func once.
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               large_data=True,
+                               compress_large_data=True,
+                               use_encryption=True)
+        self.assertEqual(result, data)
+        self.assertSpyCallCount(cache_func, 1)
+
+    def test_with_use_encryption_and_large_files_load_uncompressed(self):
+        """Testing cache_memoize with use_encryption=True and large files
+        without compression and loading data
+        """
+        cache_key = 'abc123'
+
+        # This takes into account the size of the encrypted pickle data, and
+        # will get us to just barely 3 chunks of data in cache.
+        data, encrypted_data = self.build_test_chunk_data(
+            num_chunks=2,
+            use_encryption=True)
+
+        cache_key_main = make_cache_key(cache_key,
+                                        use_encryption=True)
+        cache_key_0 = make_cache_key('%s-0' % cache_key,
+                                     use_encryption=True)
+        cache_key_1 = make_cache_key('%s-1' % cache_key,
+                                     use_encryption=True)
+
+        cache.set(cache_key_main, aes_encrypt(pickle.dumps('2', protocol=0)))
+        cache.set(cache_key_0, [encrypted_data[:CACHE_CHUNK_SIZE]])
+        cache.set(cache_key_1, [encrypted_data[CACHE_CHUNK_SIZE:]])
+
+        def cache_func():
+            return ''
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               large_data=True,
+                               compress_large_data=False,
+                               use_encryption=True)
+        self.assertEqual(result, data)
+        self.assertSpyNotCalled(cache_func)
+
+    def test_with_use_encryption_and_large_files_load_compressed(self):
+        """Testing cache_memoize with use_encryption=True and large files
+        with compression and loading data
+        """
+        cache_key = 'abc123'
+
+        # This takes into account the size of the encrypted pickle data, and
+        # will get us to just barely 3 chunks of data in cache.
+        data, encrypted_data = self.build_test_chunk_data(
+            num_chunks=2,
+            use_compression=True,
+            use_encryption=True)
+        self.assertLess(len(encrypted_data), CACHE_CHUNK_SIZE)
+
+        cache_key_main = make_cache_key(cache_key,
+                                        use_encryption=True)
+        cache_key_0 = make_cache_key('%s-0' % cache_key,
+                                     use_encryption=True)
+
+        cache.set(cache_key_main, aes_encrypt(pickle.dumps('1', protocol=0)))
+        cache.set(cache_key_0, [encrypted_data])
+
+        def cache_func():
+            return ''
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               large_data=True,
+                               compress_large_data=True,
+                               use_encryption=True)
+        self.assertEqual(result, data)
+        self.assertSpyNotCalled(cache_func)
+
+    def test_with_use_encryption_and_large_files_custom_key(self):
+        """Testing cache_memoize with use_encryption=True and large files
+        with custom encryption key
+        """
+        cache_key = 'abc123'
+        encryption_key = self.CUSTOM_ENCRYPTION_KEY
+
+        # This takes into account the size of the encrypted pickle data, and
+        # will get us to just barely 3 chunks of data in cache.
+        data, encrypted_data = self.build_test_chunk_data(
+            num_chunks=2,
+            use_encryption=True,
+            encryption_key=encryption_key)
+
+        def cache_func():
+            return data
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               large_data=True,
+                               compress_large_data=True,
+                               use_encryption=True,
+                               encryption_key=encryption_key)
+        self.assertEqual(result, data)
+        self.assertSpyCallCount(cache_func, 1)
+
+        # Check what we put into cache.
+        cache_key_main = make_cache_key(cache_key,
+                                        use_encryption=True,
+                                        encryption_key=encryption_key)
+        cache_key_0 = make_cache_key('%s-0' % cache_key,
+                                     use_encryption=True,
+                                     encryption_key=encryption_key)
+        cache_key_1 = make_cache_key('%s-1' % cache_key,
+                                     use_encryption=True,
+                                     encryption_key=encryption_key)
+        cache_key_2 = make_cache_key('%s-2' % cache_key,
+                                     use_encryption=True,
+                                     encryption_key=encryption_key)
+
+        self.assertIn(cache_key_main, cache)
+        self.assertIn(cache_key_0, cache)
+        self.assertNotIn(cache_key_1, cache)
+        self.assertNotIn(cache_key_2, cache)
+
+        # Verify the contents of the stored data.
+        stored_data = cache.get(cache_key_0)[0]
+        self.assertNotEqual(stored_data, data)
+        self.assertEqual(
+            pickle.loads(zlib.decompress(
+                aes_decrypt(stored_data, key=encryption_key))),
+            data)
+
+        # Call a second time. We should only call cache_func once.
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               large_data=True,
+                               compress_large_data=True,
+                               use_encryption=True,
+                               encryption_key=encryption_key)
+        self.assertEqual(result, data)
+        self.assertSpyCallCount(cache_func, 1)
+
+    def test_with_use_encryption_and_large_files_missing_chunk(self):
+        """Testing cache_memoize with use_encryption=True and large files
+        with missing chunks
+        """
+        cache_key = 'abc123'
+
+        # This takes into account the size of the encrypted pickle data, and
+        # will get us to just barely 3 chunks of data in cache.
+        data, encrypted_data = self.build_test_chunk_data(
+            num_chunks=2,
+            use_encryption=True)
+
+        cache_key_main = make_cache_key(cache_key,
+                                        use_encryption=True)
+        cache_key_0 = make_cache_key('%s-0' % cache_key,
+                                     use_encryption=True)
+
+        cache.set(cache_key_main, aes_encrypt(pickle.dumps('2', protocol=0)))
+        cache.set(cache_key_0, [encrypted_data[:CACHE_CHUNK_SIZE]])
+
+        def cache_func():
+            return data
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               large_data=True,
+                               compress_large_data=False,
+                               use_encryption=True)
+        self.assertEqual(result, data)
+        self.assertSpyCallCount(cache_func, 1)
+
+    def test_with_use_encryption_and_large_files_bad_chunk(self):
+        """Testing cache_memoize with use_encryption=True and large files
+        with chunk failing decryption
+        """
+        cache_key = 'abc123'
+
+        # This takes into account the size of the encrypted pickle data, and
+        # will get us to just barely 3 chunks of data in cache.
+        data, encrypted_data = self.build_test_chunk_data(
+            num_chunks=2,
+            use_encryption=True,
+            encryption_key=self.CUSTOM_ENCRYPTION_KEY)
+
+        cache_key_main = make_cache_key(cache_key,
+                                        use_encryption=True)
+        cache_key_0 = make_cache_key('%s-0' % cache_key,
+                                     use_encryption=True)
+
+        cache.set(cache_key_main, aes_encrypt(pickle.dumps('2', protocol=0)))
+        cache.set(cache_key_0, [encrypted_data[:CACHE_CHUNK_SIZE]])
+
+        def cache_func():
+            return data
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               large_data=True,
+                               compress_large_data=False,
+                               use_encryption=True)
         self.assertEqual(result, data)
         self.assertSpyCallCount(cache_func, 1)
 
@@ -480,7 +1081,33 @@ class MakeCacheKeyTests(BaseCacheTestCase):
             'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxedf8474a1b91e737'
             'ec28252abe7a8aa5604539b239505e8ccad8890a44198c58')
 
-    def _check_key(self, key, expected_key):
+    def test_with_encryption(self):
+        """Testing make_cache_key with use_encryption=True"""
+        self._check_key(
+            'abc123',
+            '0a3195ea908f9bd178ab3c67a257ea4e7954e4b67ac240d1c86953953cde3a0b',
+            use_encryption=True)
+
+    def test_with_encryption_and_custom_encryption_key(self):
+        """Testing make_cache_key with use_encryption=True and custom
+        encryption_key
+        """
+        self._check_key(
+            'abc123',
+            '10c4714f5c6c49045ed25c8da7d04a4be2254fa275fc3b63bdeebe887aee52f9',
+            use_encryption=True,
+            encryption_key=self.CUSTOM_ENCRYPTION_KEY)
+
+    @override_settings(DJBLETS_CACHE_FORCE_ENCRYPTION=True)
+    def test_with_force_encryption_setting(self):
+        """Testing make_cache_key with
+        settings.DJBLETS_CACHE_FORCE_ENCRYPTION=True
+        """
+        self._check_key(
+            'abc123',
+            '0a3195ea908f9bd178ab3c67a257ea4e7954e4b67ac240d1c86953953cde3a0b')
+
+    def _check_key(self, key, expected_key, **kwargs):
         """Check the results of a key, and ensure it works in cache.
 
         Args:
@@ -490,14 +1117,22 @@ class MakeCacheKeyTests(BaseCacheTestCase):
             expected_key (str):
                 The expected full cache key.
 
+            **kwargs (dict):
+                Keyword arguments to pass to
+                :py:func:`~djblets.cache.backend.make_cache_key`.
+
         Raises:
             AssertionError:
                 The results were not equal.
         """
-        full_cache_key = make_cache_key(key)
+        full_cache_key = make_cache_key(key, **kwargs)
 
         self.assertIsInstance(full_cache_key, str)
         self.assertEqual(full_cache_key, expected_key)
+
+        # Generate a second, to be sure nothing changes.
+        full_cache_key2 = make_cache_key(key, **kwargs)
+        self.assertEqual(full_cache_key, full_cache_key2)
 
         # Validate the key.
         self.assertEqual(
