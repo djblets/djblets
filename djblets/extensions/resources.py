@@ -130,8 +130,7 @@ class ExtensionResource(WebAPIResource):
         if extension.extension_class is None:
             return _(
                 'This extension is not installed or could not be found. Try '
-                're-installing it and then click "Scan for installed '
-                'extensions."'
+                're-installing it and then click "Reload Extensions".'
             )
 
         return None
