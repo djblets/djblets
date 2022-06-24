@@ -19,3 +19,4 @@ class PipelineStorage(PipelineManifestStorage):
     """
 
     manifest_strict = False
+    keep_intermediate_files = True
