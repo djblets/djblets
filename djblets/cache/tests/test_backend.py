@@ -376,7 +376,7 @@ class CacheMemoizeTests(BaseCacheTestCase):
         result = cache_memoize(cache_key,
                                cache_func,
                                use_encryption=True,
-                               encryption_key='0123456789abcdef')
+                               encryption_key=self.CUSTOM_ENCRYPTION_KEY)
         self.assertEqual(result, test_str)
         self.assertSpyCallCount(cache_func, 1)
 
@@ -396,7 +396,7 @@ class CacheMemoizeTests(BaseCacheTestCase):
         result = cache_memoize(cache_key,
                                cache_func,
                                use_encryption=True,
-                               encryption_key='0123456789abcdef')
+                               encryption_key=self.CUSTOM_ENCRYPTION_KEY)
         self.assertEqual(result, test_str)
         self.assertSpyCallCount(cache_func, 1)
 
@@ -433,7 +433,7 @@ class CacheMemoizeTests(BaseCacheTestCase):
         result = cache_memoize(cache_key,
                                cache_func,
                                use_encryption=True,
-                               encryption_key='0123456789abcdef')
+                               encryption_key=self.CUSTOM_ENCRYPTION_KEY)
         self.assertEqual(result, test_str)
         self.assertSpyCallCount(cache_func, 2)
 
