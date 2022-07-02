@@ -113,7 +113,16 @@ def thumbnail(f, size='400x100'):
                 # Calculate height based on width
                 y = int(x * (image.size[1] / image.size[0]))
 
-            image.thumbnail((x, y), Image.ANTIALIAS)
+            # Pillow is aggressively deprecating Image.ANTIALIAS. Conditionally
+            # attempt to use the new name.
+            if hasattr(Image, 'Resampling'):
+                # 9.1.0+
+                antialias = Image.Resampling.LANCZOS
+            else:
+                # 9.0.x and below
+                antialias = Image.ANTIALIAS
+
+            image.thumbnail((x, y), antialias)
 
             save_image_to_storage(image, storage, miniature)
         except (IOError, KeyError) as e:

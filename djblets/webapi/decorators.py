@@ -225,7 +225,7 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
     fields.
 
     If any field is set in the request that is not in either ``required``
-    or ``optional`` and ``allow_unknown`` is True, the response will be an
+    or ``optional`` and ``allow_unknown`` is False, the response will be an
     INVALID_FORM_DATA error. The exceptions are the special fields
     ``method`` and ``callback``.
 

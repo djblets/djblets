@@ -390,6 +390,18 @@ Registries
    :ref:`registry-guides`
 
 
+.. _coderef-djblets-secrets:
+
+Secrets
+=======
+
+.. autosummary::
+   :toctree: python
+
+   djblets.secrets
+   djblets.secrets.crypto
+
+
 .. _coderef-djblets-siteconfig:
 
 Site Configuration

@@ -1,6 +1,5 @@
 """Base class for test cases in Django-based applications."""
 
-import copy
 import inspect
 import os
 import re
@@ -19,13 +18,14 @@ import kgb
 from django.apps import apps
 from django.conf import settings
 from django.core import serializers
-from django.core.exceptions import ValidationError
+from django.core.exceptions import EmptyResultSet, ValidationError
 from django.core.handlers.wsgi import WSGIHandler
 from django.core.management import call_command
 from django.core.servers import basehttp
 from django.db import (DatabaseError, DEFAULT_DB_ALIAS, IntegrityError,
                        connections, router)
 from django.db.models import Model, Q
+from django.db.models.query import MAX_GET_RESULTS
 from django.db.models.signals import pre_delete
 from django.db.models.sql.compiler import (SQLCompiler,
                                            SQLDeleteCompiler,
@@ -326,6 +326,9 @@ class TestCase(testcases.TestCase):
                 tuple containing the value in ``select`` and the corresponding
                 value (if any) in ``select_params``.
 
+                Values are normalized to collapse and strip whitespace, to
+                help with comparison.
+
                 The default is empty.
 
             extra_order_by (list of str, optional):
@@ -352,8 +355,29 @@ class TestCase(testcases.TestCase):
 
                 The default is ``None``.
 
+            limit (int, optional):
+                The value for a ``LIMIT`` in the ``SELECT``.
+
+                This will generally only need to be supplied if testing a
+                query using :py:meth:`QuerySet.exists()
+                <django.db.models.query.QuerySet.exists>` or when slicing
+                results.
+
+                Django itself sometimes uses a default of ``None`` and
+                sometimes a default currently of ``21`` (this exact value,
+                and when it's used, is considered an implementation detail
+                in Django). Both of these will match a caller-provided
+                ``limit`` value of ``None``.
+
+                The default is ``None``.
+
             num_joins (int, optional):
                 The number of tables JOINed.
+
+                The default is 0.
+
+            offset (int, optional):
+                The value for an ``OFFSET`` in the ``SELECT``.
 
                 The default is 0.
 
@@ -367,6 +391,11 @@ class TestCase(testcases.TestCase):
                 The ordering criteria.
 
                 The default is empty.
+
+            select_for_update (bool, optional):
+                Whether this is a select-for-update operation.
+
+                The default is ``False``.
 
             select_related (set of str, optional):
                 The table names involved in a
@@ -387,6 +416,11 @@ class TestCase(testcases.TestCase):
                 ``SELECT``, or ``UPDATE``.
 
                 The default is ``SELECT``.
+
+            values_select (list of str, optional):
+                A list of specified fields being returned using
+                :py:meth:`~django.db.models.query.QuerySet.values` or
+                :py:meth:`~django.db.models.query.QuerySet.values_list` or
 
             where (django.db.models.Q, optional):
                 The query expression objects used to represent the filter on
@@ -450,12 +484,10 @@ class TestCase(testcases.TestCase):
         # Build and track Q() objects any time they're added to a Query.
         @spy_agency.spy_for(SQLQuery.add_q, owner=SQLQuery)
         def _query_add_q(_self, q_object):
-            q_object_copy = copy.deepcopy(q_object)
-
             try:
-                queries_to_qs[_self] &= q_object_copy
+                queries_to_qs[_self] &= q_object
             except KeyError:
-                queries_to_qs[_self] = q_object_copy
+                queries_to_qs[_self] = q_object
 
             return SQLQuery.add_q.call_original(_self, q_object)
 
@@ -465,7 +497,7 @@ class TestCase(testcases.TestCase):
             result = SQLQuery.clone.call_original(_self, *args, **kwargs)
 
             try:
-                queries_to_qs[result] = copy.deepcopy(queries_to_qs[_self])
+                queries_to_qs[result] = queries_to_qs[_self]
             except KeyError:
                 pass
 
@@ -496,6 +528,42 @@ class TestCase(testcases.TestCase):
             pre_delete.disconnect(_on_pre_delete)
 
         # Make sure we received the expected number of Queries.
+        #
+        # First we have to convert each to SQL and see what we get. Any
+        # with EmptyResultSet will be skipped.
+        query_sqls = []
+        norm_executed_queries = []
+
+        for executed_query_info in executed_queries:
+            executed_query = executed_query_info[1]
+
+            # First thing we want to do is grab the SQL. This may fail, and
+            # if it does, it represents a query that we've caught that isn't
+            # actually going to be executed (likely a component of another).
+            try:
+                try:
+                    query_sqls.append([str(executed_query)])
+                except ValueError:
+                    # When doing an INSERT OR IGNORE (SQLite), the SQL
+                    # can be a list rather than a string. Query.__str__
+                    # doesn't know how to handle this, and will crash.
+                    # We'll deal with it ourselves.
+                    sql_statements = executed_query.sql_with_params()
+                    assert isinstance(sql_statements, list)
+
+                    query_sqls.append([
+                        _sql % _sql_params
+                        for _sql, _sql_params in sql_statements
+                    ])
+
+                norm_executed_queries.append(executed_query_info)
+            except EmptyResultSet:
+                # This will be skipped.
+                pass
+
+        executed_queries = norm_executed_queries
+
+        # Now we can compare numbers.
         error_lines = []
         num_queries = len(queries)
         num_executed_queries = len(executed_queries)
@@ -503,7 +571,7 @@ class TestCase(testcases.TestCase):
         if num_queries != num_executed_queries:
             error_lines += [
                 '%s queries were provided, but %s were executed.'
-                % (len(queries), len(executed_queries)),
+                % (num_queries, num_executed_queries),
 
                 '',
             ]
@@ -517,12 +585,18 @@ class TestCase(testcases.TestCase):
                 queries = queries[:num_executed_queries]
 
         # Go through each matching Query and compare state.
+        ws_re = self.ws_re
         all_failures = []
-        queries_iter = enumerate(zip(queries, executed_queries))
+        queries_iter = enumerate(zip(queries, executed_queries, query_sqls))
 
         for (i,
              (query_info,
-              (executed_query_type, executed_query))) in queries_iter:
+              (executed_query_type, executed_query),
+              query_sql)) in queries_iter:
+            # Check if this is set to be skipped, as per the above checks.
+            if query_sql is None:
+                continue
+
             failures = []
 
             executed_table_name = executed_query.model._meta.db_table
@@ -548,18 +622,46 @@ class TestCase(testcases.TestCase):
             for key, default in (('annotations', {}),
                                  ('distinct', False),
                                  ('distinct_fields', ()),
-                                 ('extra', {}),
                                  ('extra_order_by', ()),
                                  ('extra_tables', ()),
                                  ('group_by', None),
                                  ('order_by', ()),
-                                 ('values_select', ()),
-                                 ('subquery', False)):
+                                 ('select_for_update', False),
+                                 ('subquery', False),
+                                 ('values_select', ())):
                 value = query_info.get(key, default)
                 executed_value = getattr(executed_query, key)
 
                 if value != executed_value:
                     failures.append((key, value, executed_value))
+
+            # Check 'extra'.
+            value = {
+                _key: (ws_re.sub(' ', _value[0]).strip(), _value[1])
+                for _key, _value in query_info.get('extra', {}).items()
+            }
+            executed_value = {
+                _key: (ws_re.sub(' ', _value[0]).strip(), _value[1])
+                for _key, _value in executed_query.extra.items()
+            }
+
+            if value != executed_value:
+                failures.append(('extra', value, executed_value))
+
+            # Check 'offset'.
+            value = query_info.get('offset', 0)
+            executed_value = executed_query.low_mark
+
+            if value != executed_value:
+                failures.append(('offset', value, executed_value))
+
+            # Check 'limit'.
+            value = query_info.get('limit', None)
+            executed_value = executed_query.high_mark
+
+            if (value != executed_value and
+                (value is not None or executed_value != MAX_GET_RESULTS)):
+                failures.append(('limit', value, executed_value))
 
             # Check 'num_joins'.
             value = query_info.get('num_joins', 0)
@@ -614,11 +716,20 @@ class TestCase(testcases.TestCase):
             value = query_info.get('where', Q())
             executed_value = queries_to_qs.get(executed_query, Q())
 
+            if (executed_value and
+                len(executed_value.children) == 1 and
+                isinstance(executed_value.children[0], Q)):
+                # filter() created a Q() containing nothing but a nested Q().
+                # This is annoying to compare, and could always change in the
+                # future. Extract the inner Q() and use that for comparison
+                # purposes.
+                executed_value = executed_value.children[0]
+
             if value != executed_value:
                 failures.append(('where', value, executed_value))
 
             if failures:
-                all_failures.append((i, executed_query, failures))
+                all_failures.append((i, executed_query, failures, query_sql))
 
         # Check if we found any failures, and include them in an assertion.
         if all_failures:
@@ -632,7 +743,7 @@ class TestCase(testcases.TestCase):
                     % num_failures,
                 )
 
-            for i, executed_query, failures in all_failures:
+            for i, executed_query, failures, query_sql in all_failures:
                 if failures:
                     error_lines += [
                         '',
@@ -640,21 +751,10 @@ class TestCase(testcases.TestCase):
                     ] + [
                         '  %s: %s != %s' % _failure
                         for _failure in failures
+                    ] + [
+                        '  SQL: %s' % _sql
+                        for _sql in query_sql
                     ]
-
-                    try:
-                        error_lines.append('  SQL: %s' % executed_query)
-                    except ValueError:
-                        # When doing an INSERT OR IGNORE (SQLite), the SQL
-                        # can be a list rather than a string. Query.__str__
-                        # doesn't know how to handle this, and will crash.
-                        # We'll deal with it ourselves.
-                        sql_statements = executed_query.sql_with_params()
-                        assert isinstance(sql_statements, list)
-
-                        for sql, sql_params in sql_statements:
-                            error_lines.append('  SQL: %s'
-                                               % (sql % sql_params))
 
             self.fail('\n'.join(error_lines))
 

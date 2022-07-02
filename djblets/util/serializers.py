@@ -53,7 +53,9 @@ class DjbletsJSONEncoder(DjangoJSONEncoder):
             A JSON-compatible structure (e.g., a :py:class:`dict`,
             :py:class:`list`, py:class:`unicode`, or :py:class:`bytes` object).
         """
-        if isinstance(obj, Promise):
+        if isinstance(obj, set):
+            return sorted(obj)
+        elif isinstance(obj, Promise):
             # Handles initializing lazily created gettext messages.
             return force_str(obj)
         elif isinstance(obj, datetime.datetime) and self.strip_datetime_ms:

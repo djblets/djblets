@@ -32,22 +32,22 @@ django_version = '~=3.2.11'
 
 #: Dependencies required for LessCSS pipelining.
 lesscss_npm_dependencies = {
-    'less': '^3.11.0',
+    'less': '^4.1.3',
     '@beanbag/less-plugin-autoprefix': '^2.0.1',
 }
 
 #: Dependencies required for UglifyJS JavaScript compression.
 uglifyjs_npm_dependencies = {
-    'uglify-js': '^3.6.0',
+    'uglify-js': '^3.16.1',
 }
 
 #: Dependencies required for Babel for JavaScript.
 babel_npm_dependencies = {
-    '@babel/cli': '^7.15.4',
-    '@babel/core': '^7.15.5',
-    '@babel/preset-env': '^7.15.6',
+    '@babel/cli': '^7.17.10',
+    '@babel/core': '^7.18.5',
+    '@babel/preset-env': '^7.18.2',
     'babel-plugin-dedent': '^2.1.0',
-    'babel-plugin-django-gettext': '^1.1.0',
+    'babel-plugin-django-gettext': '^1.1.1',
 }
 
 #: All static media dependencies required to package/develop against  Djblets.
@@ -58,6 +58,7 @@ npm_dependencies.update(babel_npm_dependencies)
 
 #: All dependencies required to install Djblets.
 package_dependencies = {
+    'cryptography': '>=1.8.1',
     'Django': django_version,
     'django-pipeline': '~=2.0.8',
     'dnspython': '>=1.14.0',
