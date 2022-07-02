@@ -568,10 +568,10 @@ def _cache_encrypt_data(items, encryption_key):
             # There were items in the queue. Yield the first with the data,
             # and anything else without (those will be returned as results
             # but won't be stored in cache).
-            yield data, *item_queue[0]
+            yield (data,) + item_queue[0]
 
             for item in item_queue[1:]:
-                yield None, *item
+                yield (None,) + item
         else:
             # The queue is empty. Yield what data we have for caching, but
             # don't yield for results.
