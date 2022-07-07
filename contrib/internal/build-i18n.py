@@ -5,10 +5,12 @@ from __future__ import unicode_literals
 import os
 import sys
 
+# This must be called before we import from Django, to ensure collections
+# patching works.
+import djblets
+
 import django
 from django.core.management import call_command
-
-import djblets
 
 
 if __name__ == '__main__':
