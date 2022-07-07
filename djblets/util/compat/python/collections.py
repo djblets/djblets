@@ -19,6 +19,8 @@ if sys.version_info.major >= 3:
         from collections import Callable
     except ImportError:
         import collections
+        import collections.abc
+
         collections.Callable = collections.abc.Callable
         collections.Iterable = collections.abc.Iterable
         collections.Iterator = collections.abc.Iterator
