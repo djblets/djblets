@@ -5,6 +5,15 @@ Djblets Release Notes
 =====================
 
 
+3.x Releases
+============
+
+.. toctree::
+   :maxdepth: 1
+
+   3.0-beta-1
+
+
 2.x Releases
 ============
 
