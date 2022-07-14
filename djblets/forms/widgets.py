@@ -594,8 +594,9 @@ class CopyableTextInput(widgets.TextInput):
             django.utils.safestring.SafeText:
             The rendered widget.
         """
-        field = super(CopyableTextInput, self).render(name, value, attrs,
-                                                      renderer)
+        context = self.get_context(name, value, attrs)
+        field = self._render('django/forms/widgets/text.html', context,
+                             renderer)
 
         return render_to_string(
             self.template_name,
