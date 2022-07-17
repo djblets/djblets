@@ -90,8 +90,9 @@ class DjangoSettingsTests(SiteConfigTestCase):
         self.assertEqual(settings.CACHES['default']['LOCATION'],
                          'forwarded_backend')
 
-        self.assertEqual(settings.CACHES['forwarded_backend']['BACKEND'],
-                         'django.core.cache.backends.memcached.MemcachedCache')
+        self.assertEqual(
+            settings.CACHES['forwarded_backend']['BACKEND'],
+            'django.core.cache.backends.memcached.PymemcacheCache')
         self.assertEqual(settings.CACHES['forwarded_backend']['LOCATION'],
                          'localhost:12345')
 
@@ -124,8 +125,9 @@ class DjangoSettingsTests(SiteConfigTestCase):
         self.assertEqual(settings.CACHES['default']['LOCATION'],
                          'forwarded_backend')
 
-        self.assertEqual(settings.CACHES['forwarded_backend']['BACKEND'],
-                         'django.core.cache.backends.memcached.MemcachedCache')
+        self.assertEqual(
+            settings.CACHES['forwarded_backend']['BACKEND'],
+            'django.core.cache.backends.memcached.PymemcacheCache')
         self.assertEqual(settings.CACHES['forwarded_backend']['LOCATION'],
                          'localhost:12345')
 
@@ -158,8 +160,42 @@ class DjangoSettingsTests(SiteConfigTestCase):
         self.assertEqual(settings.CACHES['default']['LOCATION'],
                          'forwarded_backend')
 
-        self.assertEqual(settings.CACHES['forwarded_backend']['BACKEND'],
-                         'django.core.cache.backends.memcached.MemcachedCache')
+        self.assertEqual(
+            settings.CACHES['forwarded_backend']['BACKEND'],
+            'django.core.cache.backends.memcached.PymemcacheCache')
+        self.assertEqual(settings.CACHES['forwarded_backend']['LOCATION'],
+                         'localhost:12345')
+
+    def test_cache_backend_pymemcache(self):
+        """Testing transition of old memcached backend to pymemcache"""
+        settings.CACHES['staticfiles'] = {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'staticfiles-cache',
+        }
+
+        self.siteconfig.set('cache_backend', {
+            'default': {
+                'BACKEND':
+                    'django.core.cache.backends.memcached.MemcachedCache',
+                'LOCATION': 'localhost:12345',
+            },
+        })
+
+        apply_django_settings(self.siteconfig, cache_settings_map)
+
+        self.assertTrue('staticfiles' in settings.CACHES)
+        self.assertTrue('default' in settings.CACHES)
+        self.assertTrue('forwarded_backend' in settings.CACHES)
+
+        self.assertEqual(
+            settings.CACHES['default']['BACKEND'],
+            'djblets.cache.forwarding_backend.ForwardingCacheBackend')
+        self.assertEqual(settings.CACHES['default']['LOCATION'],
+                         'forwarded_backend')
+
+        self.assertEqual(
+            settings.CACHES['forwarded_backend']['BACKEND'],
+            'django.core.cache.backends.memcached.PymemcacheCache')
         self.assertEqual(settings.CACHES['forwarded_backend']['LOCATION'],
                          'localhost:12345')
 

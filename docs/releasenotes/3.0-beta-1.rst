@@ -113,6 +113,14 @@ utilities related to cryptography and secrets storage. Right now, this contains
 encryption.
 
 
+djblets.siteconfig
+==================
+
+Updated :py:func:`~djblets.siteconfig.django_settings.apply_django_settings` to
+migrate the old ``MemcachedCache`` cache backend to the new ``PyMemcacheCache``
+one.
+
+
 djblets.testing
 ===============
 
