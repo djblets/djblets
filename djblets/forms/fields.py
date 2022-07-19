@@ -267,6 +267,8 @@ class ListEditField(forms.Field):
         """
         if data is None:
             data = ''
+        elif isinstance(data, list):
+            return data
         elif not isinstance(data, str):
             raise ValueError(
                 gettext('%r is not a valid value for a %s')
@@ -325,6 +327,8 @@ class ListEditDictionaryField(ListEditField):
         """
         if data is None:
             data = {}
+        elif isinstance(data, list):
+            return data
         elif not isinstance(data, dict):
             raise ValueError(
                 gettext('%r is not a valid value for a %s')
