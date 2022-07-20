@@ -22,14 +22,14 @@ BACKEND_CLASSES = {
     'dummy': 'dummy.DummyCache',
     'file': 'filebased.FileBasedCache',
     'locmem': 'locmem.LocMemCache',
-    'memcached': 'memcached.PymemcacheCache',
+    'memcached': 'memcached.PyMemcacheCache',
 }
 
 RENAMED_BACKENDS = {
     'django.core.cache.backends.memcached.CacheClass':
-        'django.core.cache.backends.memcached.PymemcacheCache',
+        'django.core.cache.backends.memcached.PyMemcacheCache',
     'django.core.cache.backends.memcached.MemcachedCache':
-        'django.core.cache.backends.memcached.PymemcacheCache',
+        'django.core.cache.backends.memcached.PyMemcacheCache',
 }
 
 
