@@ -381,7 +381,7 @@ class ExtensionInfo(object):
         metadata = cls._get_metadata_from_entrypoint(entrypoint, ext_class.id)
 
         return cls(ext_class=ext_class,
-                   package_name=metadata.get('Name'),
+                   package_name=metadata.get('Name', ext_class.id),
                    metadata=metadata)
 
     @classmethod
