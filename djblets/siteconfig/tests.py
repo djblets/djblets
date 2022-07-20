@@ -92,7 +92,7 @@ class DjangoSettingsTests(SiteConfigTestCase):
 
         self.assertEqual(
             settings.CACHES['forwarded_backend']['BACKEND'],
-            'django.core.cache.backends.memcached.PymemcacheCache')
+            'django.core.cache.backends.memcached.PyMemcacheCache')
         self.assertEqual(settings.CACHES['forwarded_backend']['LOCATION'],
                          'localhost:12345')
 
@@ -127,7 +127,7 @@ class DjangoSettingsTests(SiteConfigTestCase):
 
         self.assertEqual(
             settings.CACHES['forwarded_backend']['BACKEND'],
-            'django.core.cache.backends.memcached.PymemcacheCache')
+            'django.core.cache.backends.memcached.PyMemcacheCache')
         self.assertEqual(settings.CACHES['forwarded_backend']['LOCATION'],
                          'localhost:12345')
 
@@ -162,7 +162,7 @@ class DjangoSettingsTests(SiteConfigTestCase):
 
         self.assertEqual(
             settings.CACHES['forwarded_backend']['BACKEND'],
-            'django.core.cache.backends.memcached.PymemcacheCache')
+            'django.core.cache.backends.memcached.PyMemcacheCache')
         self.assertEqual(settings.CACHES['forwarded_backend']['LOCATION'],
                          'localhost:12345')
 
@@ -195,7 +195,7 @@ class DjangoSettingsTests(SiteConfigTestCase):
 
         self.assertEqual(
             settings.CACHES['forwarded_backend']['BACKEND'],
-            'django.core.cache.backends.memcached.PymemcacheCache')
+            'django.core.cache.backends.memcached.PyMemcacheCache')
         self.assertEqual(settings.CACHES['forwarded_backend']['LOCATION'],
                          'localhost:12345')
 
