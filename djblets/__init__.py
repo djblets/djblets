@@ -38,7 +38,7 @@ import djblets.util.compat.python.collections
 #
 #   (Major, Minor, Micro, alpha/beta/rc/final, Release Number, Released)
 #
-VERSION = (2, 3, 2, 'final', 0, True)
+VERSION = (2, 3, 3, 'final', 0, True)
 
 
 def get_version_string():
@@ -60,13 +60,20 @@ def get_version_string():
 
 
 def get_package_version():
-    version = '%d.%d' % (VERSION[0], VERSION[1])
+    major, minor, micro, tag, release_num, released = VERSION
 
-    if VERSION[2]:
-        version += ".%d" % VERSION[2]
+    version = '%d.%d' % (major, minor)
 
-    if VERSION[3] != 'final':
-        version += '%s%d' % (VERSION[3], VERSION[4])
+    if micro:
+        version = '%s.%d' % (version, micro)
+
+    if tag != 'final':
+        if tag == 'alpha':
+            tag = 'a'
+        elif tag == 'beta':
+            tag = 'b'
+
+        version = '%s%s%s' % (version, tag, release_num)
 
     return version
 
