@@ -1,0 +1,18 @@
+.. default-intersphinx:: django1.11 djblets2.x
+
+
+===========================
+Djblets 2.3.3 Release Notes
+===========================
+
+**Release date**: July 26, 2022
+
+
+This is a simple re-release of Djblets 2.3.2 that fixes a packaging/release
+issue.
+
+
+Contributors
+============
+
+* Christian Hammond
