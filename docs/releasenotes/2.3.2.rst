@@ -1,0 +1,24 @@
+.. default-intersphinx:: django1.11 djblets2.x
+
+
+===========================
+Djblets 2.3.2 Release Notes
+===========================
+
+**Release date**: July 26, 2022
+
+
+Bug Fixes
+=========
+
+* Improved compatibility with Python 3.10.
+
+  Some crashes have been fixed, and Djblets can now be built on Python 3.10.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin
