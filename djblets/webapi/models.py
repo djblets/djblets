@@ -4,7 +4,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from djblets.db.fields import JSONField
+from djblets.db.fields import JSONField, ModificationTimestampField
 from djblets.webapi.managers import WebAPITokenManager
 from djblets.webapi.signals import webapi_token_updated
 
@@ -20,16 +20,53 @@ class BaseWebAPIToken(models.Model):
     restricting access to the API.
     """
 
-    user = models.ForeignKey(User,
-                             related_name='webapi_tokens',
-                             on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User,
+        related_name='webapi_tokens',
+        on_delete=models.CASCADE,
+        help_text=_('The user that owns the token.'))
 
-    token = models.CharField(max_length=40, unique=True)
-    time_added = models.DateTimeField(default=timezone.now)
-    last_updated = models.DateTimeField(default=timezone.now)
+    token = models.CharField(
+        max_length=255,
+        unique=True,
+        help_text=_('The access token.'))
+    token_generator_id = models.CharField(
+        max_length=255,
+        help_text=_('The token generator that generated the token.'))
+    time_added = models.DateTimeField(
+        default=timezone.now,
+        help_text=_('The date and time when the token was first added '
+                    'to the database.'))
+    last_updated = ModificationTimestampField(
+        default=timezone.now,
+        help_text=_('The date and time when the token was last updated.'))
+    last_used = models.DateTimeField(
+        null=True,
+        help_text=_('The date and time when the token was last used '
+                    'for authentication.'))
+    expires = models.DateTimeField(
+        null=True,
+        help_text=_('An optional field for the date and time that the token '
+                    'will expire. The token will be invalid and unusable '
+                    'for authentication after this point.'))
 
-    note = models.TextField(blank=True)
-    policy = JSONField(null=True)
+    valid = models.BooleanField(
+        default=True,
+        help_text=_('Whether the token is currently valid.'))
+    invalid_date = models.DateTimeField(
+        null=True,
+        help_text=_('The date and time at which the token became invalid.'))
+    invalid_reason = models.TextField(
+        blank=True,
+        help_text=_('A message indicating why the token is no longer valid.'))
+
+    note = models.TextField(
+        blank=True,
+        help_text=_('A message describing the token.'))
+    policy = JSONField(
+        null=True,
+        help_text=_('The policy document describing what this token can '
+                    'access in the API. If empty, this provides full access.'))
 
     extra_data = JSONField(null=True)
 
@@ -43,6 +80,19 @@ class BaseWebAPIToken(models.Model):
 
     def is_deletable_by(self, user):
         return user.is_superuser or self.user == user
+
+    def is_expired(self):
+        """Returns whether the token is expired or not.
+
+        Version Added:
+            3.0
+
+        Returns:
+            bool:
+            Whether the token is expired. This will be ``False`` if there
+            is no expiration date set.
+        """
+        return self.expires is not None and timezone.now() >= self.expires
 
     def __str__(self):
         return 'Web API token for %s' % self.user
@@ -63,7 +113,7 @@ class BaseWebAPIToken(models.Model):
         """
         is_new = self.pk is None
 
-        super(BaseWebAPIToken, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
         if not is_new:
             webapi_token_updated.send(instance=self, sender=type(self))
