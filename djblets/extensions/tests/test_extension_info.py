@@ -65,6 +65,42 @@ class ExtensionInfoTests(TestCase):
                                    extension_id=extension_id,
                                    metadata=expected_metadata)
 
+    def test_create_from_entrypoint_with_broken_metadata(self):
+        """Testing ExtensionInfo.create_from_entrypoint with broken
+        Extension.metadata
+        """
+        package_name = 'DummyExtension'
+        module_name = 'test_extension.dummy.submodule'
+        extension_id = '%s:DummyExtension' % module_name
+
+        class TestExtension(Extension):
+            __module__ = module_name
+            id = extension_id
+            metadata = {
+                'Author': 'Example Author',
+                'Author-email': 'author@example.com',
+                'Name': 'OverrideName',
+                'Version': '3.14159',
+                'Summary': 'Lorem ipsum dolor sit amet.',
+                'Description': 'Tempus fugit.',
+                'License': 'None',
+                'Home-page': 'http://127.0.0.1/',
+            }
+
+        entrypoint = FakeEntryPoint(TestExtension, project_name=package_name,
+                                    metadata={})
+        extension_info = ExtensionInfo.create_from_entrypoint(entrypoint,
+                                                              TestExtension)
+
+        expected_metadata = entrypoint.dist.metadata.copy()
+        expected_metadata.update(TestExtension.metadata)
+
+        self._check_extension_info(extension_info=extension_info,
+                                   app_name='test_extension.dummy',
+                                   package_name=extension_id,
+                                   extension_id=extension_id,
+                                   metadata=expected_metadata)
+
     def _check_extension_info(self, extension_info, app_name, package_name,
                               extension_id, metadata):
         htdocs_path = os.path.join(settings.MEDIA_ROOT, 'ext', package_name)

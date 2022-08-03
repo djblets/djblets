@@ -48,46 +48,57 @@ class FakeProvider(pkg_resources.DefaultProvider):
 
     egg_info = '/fake/path'
 
-    def __init__(self, author='Example Author',
+    def __init__(self,
+                 metadata=None,
+                 author='Example Author',
                  author_email='author@example.com',
                  description='Test description\u2049',
                  home_page='http://example.com',
-                 project_name='ExampleProject', license_name='Drivers',
-                 summary='Test summary', version='1.0'):
+                 project_name='ExampleProject',
+                 license_name='Drivers',
+                 summary='Test summary',
+                 version='1.0'):
         """Initialize the FakeDistribution.
 
         Args:
-            author (unicode):
+            metadata (dict, optional):
+                Metadata to assign to the provider. If this is provided, it
+                overrides all other arguments.
+
+            author (unicode, optional):
                 The package author.
 
-            author_email (unicode):
+            author_email (unicode, optional):
                 The package author's e-mail address.
 
-            description (unicode):
+            description (unicode, optional):
                 The package description.
 
-            home_page (unicode):
+            home_page (unicode, optional):
                 The package's URL.
 
-            project_name (unicode):
+            project_name (unicode, optional):
                 The package's name.
 
-            license_name (unicode):
+            license_name (unicode, optional):
                 The name of the package license.
 
-            summary (unicode):
+            summary (unicode, optional):
                 The package summary.
         """
-        self.metadata = {
-            'Author': author,
-            'Author-email': author_email,
-            'Description': description,
-            'Home-page': home_page,
-            'Name': project_name,
-            'License': license_name,
-            'Summary': summary,
-            'Version': version,
-        }
+        if metadata is not None:
+            self.metadata = metadata
+        else:
+            self.metadata = {
+                'Author': author,
+                'Author-email': author_email,
+                'Description': description,
+                'Home-page': home_page,
+                'Name': project_name,
+                'License': license_name,
+                'Summary': summary,
+                'Version': version,
+            }
 
     def _get(self, path):
         """Return the metadata content.

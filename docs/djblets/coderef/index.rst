@@ -400,6 +400,7 @@ Secrets
 
    djblets.secrets
    djblets.secrets.crypto
+   djblets.secrets.token_generators
 
 
 .. _coderef-djblets-siteconfig:
