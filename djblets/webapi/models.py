@@ -42,10 +42,12 @@ class BaseWebAPIToken(models.Model):
         help_text=_('The date and time when the token was last updated.'))
     last_used = models.DateTimeField(
         null=True,
+        blank=True,
         help_text=_('The date and time when the token was last used '
                     'for authentication.'))
     expires = models.DateTimeField(
         null=True,
+        blank=True,
         help_text=_('An optional field for the date and time that the token '
                     'will expire. The token will be invalid and unusable '
                     'for authentication after this point.'))
@@ -55,6 +57,7 @@ class BaseWebAPIToken(models.Model):
         help_text=_('Whether the token is currently valid.'))
     invalid_date = models.DateTimeField(
         null=True,
+        blank=True,
         help_text=_('The date and time at which the token became invalid.'))
     invalid_reason = models.TextField(
         blank=True,
