@@ -395,8 +395,8 @@ class Base64FieldTests(TestModelsLoaderMixin, TestCase):
         obj = Base64TestModel(field=b'This is a test')
         value = obj._meta.get_field('field').value_to_string(obj)
 
-        self.assertIs(type(value), bytes)
-        self.assertEqual(value, b'VGhpcyBpcyBhIHRlc3Q=\n')
+        self.assertIs(type(value), str)
+        self.assertEqual(value, 'VGhpcyBpcyBhIHRlc3Q=\n')
 
     def test_value_to_string_with_none(self):
         """Testing Base64Field.value_to_string with None"""
