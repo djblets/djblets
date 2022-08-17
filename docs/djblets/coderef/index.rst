@@ -401,6 +401,10 @@ Secrets
    djblets.secrets
    djblets.secrets.crypto
    djblets.secrets.token_generators
+   djblets.secrets.token_generators.base
+   djblets.secrets.token_generators.legacy_sha1
+   djblets.secrets.token_generators.registry
+   djblets.secrets.token_generators.vendor_checksum
 
 
 .. _coderef-djblets-siteconfig:

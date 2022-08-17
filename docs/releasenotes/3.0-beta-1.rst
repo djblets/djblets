@@ -109,9 +109,9 @@ djblets.forms
 djblets.secrets
 ===============
 
-The new :py:module:`djblets.secrets` module has been introduced to hold
+The new :py:mod:`djblets.secrets` module has been introduced to hold
 utilities related to cryptography and secrets storage. Right now, this contains
-:py:module:`djblets.secrets.crypto`, which has helpers for using AES
+:py:mod:`djblets.secrets.crypto`, which has helpers for using AES
 encryption.
 
 
