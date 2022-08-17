@@ -3,7 +3,9 @@
 from __future__ import unicode_literals
 
 import logging
+import time
 
+import kgb
 from django.contrib.auth.models import User
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.cache import cache
@@ -11,8 +13,8 @@ from django.db import models
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
 from django.utils.translation import ugettext_lazy as _
-from kgb import SpyAgency
 
+from djblets.auth.ratelimit import _get_time_int
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
 from djblets.webapi.auth.backends.api_tokens import (TokenAuthBackendMixin,
                                                      WebAPITokenAuthBackend)
@@ -36,7 +38,8 @@ class MyTestTokenAuthBackend(TokenAuthBackendMixin):
 @override_settings(AUTHENTICATION_BACKENDS=(
     'djblets.webapi.tests.test_api_auth_backend.MyTestTokenAuthBackend',
 ))
-class WebAPITokenAuthBackendTests(SpyAgency, TestModelsLoaderMixin, TestCase):
+class WebAPITokenAuthBackendTests(kgb.SpyAgency, TestModelsLoaderMixin,
+                                  TestCase):
     """Unit tests for the WebAPITokenAuthBackend."""
 
     tests_app = 'djblets.webapi.tests'
@@ -115,6 +118,9 @@ class WebAPITokenAuthBackendTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         # Send invalid token to count number of failed login attempts
         self.request.META['HTTP_AUTHORIZATION'] = 'token bad_token'
 
+        # Make sure that the time does not change during this test.
+        self.spy_on(_get_time_int, op=kgb.SpyOpReturn(int(time.time())))
+
         # First 5 should be ok.
         for i in range(5):
             result = self.api_token_auth_backend.authenticate(self.request)
@@ -138,6 +144,9 @@ class WebAPITokenAuthBackendTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         self.request.user = self.user
         self.request.META['HTTP_AUTHORIZATION'] = 'token bad_token'
 
+        # Make sure that the time does not change during this test.
+        self.spy_on(_get_time_int, op=kgb.SpyOpReturn(int(time.time())))
+
         # First 3 should be ok.
         for i in range(3):
             result = self.api_token_auth_backend.authenticate(self.request)
@@ -160,6 +169,9 @@ class WebAPITokenAuthBackendTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         MyTestWebAPITokenModel.objects.create(user=self.user, token=token)
         self.request.user = self.user
         self.request.META['HTTP_AUTHORIZATION'] = 'token bad_token'
+
+        # Make sure that the time does not change during this test.
+        self.spy_on(_get_time_int, op=kgb.SpyOpReturn(int(time.time())))
 
         # First 4 should be ok.
         for i in range(4):
