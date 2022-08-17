@@ -1,21 +1,27 @@
 """Tests for the utilities for rate-limiting login attempts."""
 
+import kgb
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
 from django.test import RequestFactory
 from django.test.utils import override_settings
 
-from djblets.auth.ratelimit import is_ratelimited, Rate
+from djblets.auth.ratelimit import (Rate,
+                                    _get_time_int,
+                                    get_usage_count,
+                                    is_ratelimited)
 from djblets.testing.testcases import TestCase
 
 
-class RateLimitTests(TestCase):
+class RateLimitTests(kgb.SpyAgency, TestCase):
     """Unit tests for djblets.auth.ratelimit."""
 
     def setUp(self):
         super(RateLimitTests, self).setUp()
         self.request_factory = RequestFactory()
+
+        self.spy_on(_get_time_int, op=kgb.SpyOpReturn(1659732041))
 
     def tearDown(self):
         super(RateLimitTests, self).tearDown()
@@ -64,3 +70,108 @@ class RateLimitTests(TestCase):
 
         self.assertFalse(is_ratelimited(request, increment=True))
         self.assertTrue(is_ratelimited(request, increment=True))
+
+    @override_settings(LOGIN_LIMIT_RATE='1/s')
+    def test_get_usage_count_at_1s(self):
+        """Testing get_usage_count at 1/s"""
+        request = self.request_factory.get('/')
+        request.user = User(pk=1)
+
+        self.assertEqual(
+            get_usage_count(request=request,
+                            increment=True),
+
+            {
+                'count': 1,
+                'limit': 1,
+                'time_left': 0,
+            })
+
+        self.assertEqual(
+            get_usage_count(request=request,
+                            increment=True),
+
+            {
+                'count': 2,
+                'limit': 1,
+                'time_left': 0,
+            })
+
+    @override_settings(LOGIN_LIMIT_RATE='1/m')
+    def test_get_usage_count_at_1m(self):
+        """Testing get_usage_count at 1/m"""
+        request = self.request_factory.get('/')
+        request.user = User(pk=1)
+
+        self.assertEqual(
+            get_usage_count(request=request,
+                            increment=True),
+
+            {
+                'count': 1,
+                'limit': 1,
+                'time_left': 19,
+            })
+
+        self.assertEqual(
+            get_usage_count(request=request,
+                            increment=True),
+
+            {
+                'count': 2,
+                'limit': 1,
+                'time_left': 19,
+            })
+
+    @override_settings(LOGIN_LIMIT_RATE='1/h')
+    def test_get_usage_count_at_1h(self):
+        """Testing get_usage_count at 1/h"""
+        request = self.request_factory.get('/')
+        request.user = User(pk=1)
+
+        self.assertEqual(
+            get_usage_count(request=request,
+                            increment=True),
+
+            {
+                'count': 1,
+                'limit': 1,
+                'time_left': 1159,
+            })
+
+        self.assertEqual(
+            get_usage_count(request=request,
+                            increment=True),
+
+            {
+                'count': 2,
+                'limit': 1,
+                'time_left': 1159,
+            })
+
+    @override_settings(LOGIN_LIMIT_RATE='1/s')
+    def test_get_usage_count_with_increment_false(self):
+        """Testing get_usage_count with increment=False"""
+        request = self.request_factory.get('/')
+        request.user = User(pk=1)
+
+        # First call will always have count=1, no matter what.
+        self.assertEqual(
+            get_usage_count(request=request,
+                            increment=False),
+
+            {
+                'count': 1,
+                'limit': 1,
+                'time_left': 0,
+            })
+
+        self.assertEqual(
+            get_usage_count(request=request,
+                            increment=False),
+
+            {
+                'count': 1,
+                'limit': 1,
+                'time_left': 0,
+            })
