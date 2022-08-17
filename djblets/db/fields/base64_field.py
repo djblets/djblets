@@ -254,13 +254,13 @@ class Base64Field(models.TextField):
                 The model instance owning the field and value.
 
         Returns:
-            bytes:
-            The Base64-encoded byte string for the stored value.
+            str:
+            The Base64-encoded string for the stored value.
         """
         value = self.value_from_object(obj)
         assert value is None or isinstance(value, Base64DecodedValue)
 
         if value is not None:
-            value = base64_encode(value)
+            value = base64_encode(value).decode('ascii')
 
         return value

@@ -1,0 +1,131 @@
+.. default-intersphinx:: django3.2 djblets3.x
+
+================================
+Djblets 3.0 Beta 2 Release Notes
+================================
+
+**Release date**: August 17, 2022
+
+This release contains all bug fixes and features found in Djblets version
+:doc:`2.3.3 <2.3.3>`.
+
+
+Installation
+============
+
+To install this release, run the following::
+
+    $ sudo pip3 install \
+        -f https://downloads.reviewboard.org/betas/reviewboard/5.0-beta-2/ \
+        --pre -U Djblets
+
+
+We **do not** recommend upgrading a production server with this version of
+Djblets. This version is still in development, and is not guaranteed to have
+API stability.
+
+
+Packaging
+=========
+
+* Djblets 3.x supports Python 3.7-3.11.
+
+
+djblets.extensions
+==================
+
+* Fixed a crash when trying to load extensions with bad packaging.
+
+  If an extension package is in a half-installed or broken state, any attempt
+  at loading the extension's metadata could cause a crash. Djblets now
+  protects against this and sets default metadata for the extension.
+
+
+djblets.secrets
+===============
+
+* Added classes and a registry for token generators.
+
+  A token generator can generate a cryptographic token, useful for APIs or
+  other purposes.
+
+  There are two built-in token generators:
+
+  * :py:class:`~djblets.secrets.token_generators.legacy_sha1.
+    LegacySHA1TokenGenerator` --
+    Generates plain SHA1 tokens seeded in part from the server and user
+    details, based on our pre-Djblets 3.0 API token generator.
+
+  * :py:class:`~djblets.secrets.token_generators.vendor_checksum.
+    VendorChecksumTokenGenerator` --
+    Generates 255-character tokens with a vendor-provided prefix, base62
+    cryptographically-random data, and a checksum, suitable for secret
+    scanning.
+
+  Custom token generators can be implemented by subclassing
+  :py:class:`~djblets.secrets.token_generators.base.BaseTokenGenerator` and
+  optionally registering in
+  :py:class:`~djblets.secrets.token_generators.registry.
+  TokenGeneratorRegistry`.
+
+  The registry is also used to fetch the default token generator (which can be
+  set via ``settings.DJBLETS_DEFAULT_API_TOKEN_GENERATOR``), fetch registered
+  token generators, or list all available token generators.
+
+
+djblets.webapi
+==============
+
+* Added enhanced support for API tokens.
+
+  We've introduced some major changes to API tokens, helping provide more
+  control over the lifetime of a token, increasing security, and allowing
+  for secret scanning to help catch leaked credentials.
+
+  API tokens now support:
+
+  * Expiration dates (tokens past an expiration date will no longer work)
+  * Invalidation (users or administrators can mark tokens as invalid and
+    specify the reason)
+  * A larger length (255 characters)
+  * The date the token was last used
+
+  This will require an evolution of any subclasses of
+  :py:class:`~djblets.webapi.models.BaseWebAPIToken`.
+
+  Along with these, the following have been added to facilitate secret
+  scanning:
+
+  * Vendored prefixes (an identifier prefixing the token hash, helping
+    differentiate one product/company's token from another)
+  * Checksums included in the token data (to verify that a token-like string
+    is in fact an API token)
+
+  That support is provided by a new token generator, which must be opted into
+  currently by passing ``token_generator_id`` and ``token_info`` to
+  :py:meth:`WebAPIToken.objects.generate_token()
+  <djblets.webapi.managers.WebAPITokenManager.generate_token>`. For example:
+
+  .. code-block:: python
+
+     token = WebAPIToken.objects.generate_token(
+         user,
+         token_generator_id='vendor_checksum',
+         token_info={'token_type': 'myprefix'},
+         ...)
+
+  Expiration can be set the same way. See the documentation for details.
+
+  Djblets 4.0 will require specifying these new arguments. For now, legacy
+  SHA1-based tokens will continue to be generated if not specifying a token
+  generator.
+
+  Custom token generators can also be used.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin
