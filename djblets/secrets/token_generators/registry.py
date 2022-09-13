@@ -4,6 +4,8 @@ Version Added:
     3.0
 """
 
+import logging
+
 from django.conf import settings
 
 from djblets.registries.registry import Registry
@@ -12,6 +14,9 @@ from djblets.secrets.token_generators.legacy_sha1 import \
     LegacySHA1TokenGenerator
 from djblets.secrets.token_generators.vendor_checksum import \
     VendorChecksumTokenGenerator
+
+
+logger = logging.getLogger(__name__)
 
 
 class TokenGeneratorRegistry(ExceptionFreeGetterMixin, Registry):
@@ -39,18 +44,31 @@ class TokenGeneratorRegistry(ExceptionFreeGetterMixin, Registry):
     def get_default(self):
         """Return the default token generator.
 
-        The default token generator class can be set in
+        The default token generator ID can be set in
         ``settings.DJBLETS_DEFAULT_API_TOKEN_GENERATOR``. If not
-        set it will default to :py:class:`~djblets.secrets.
+        set the default token generator will be :py:class:`~djblets.secrets.
         token_generators.vendor_checksum.VendorChecksumTokenGenerator`.
 
         Returns:
             djblets.secrets.token_generators.BaseTokenGenerator:
             The default token generator.
         """
-        return getattr(settings,
-                       'DJBLETS_DEFAULT_API_TOKEN_GENERATOR',
-                       VendorChecksumTokenGenerator)()
+        token_generator_id = (
+            getattr(settings, 'DJBLETS_DEFAULT_API_TOKEN_GENERATOR', None) or
+            VendorChecksumTokenGenerator.token_generator_id
+        )
+
+        token_generator = self.get_token_generator(token_generator_id)
+
+        if token_generator is None:
+            logger.error('Could not find the %s token generator in the '
+                         'registry. Using the vendor_checksum token '
+                         'generator instead.', token_generator_id)
+
+            token_generator = self.get_token_generator(
+                VendorChecksumTokenGenerator.token_generator_id)
+
+        return token_generator
 
     def get_defaults(self):
         """Return the default token generators.
