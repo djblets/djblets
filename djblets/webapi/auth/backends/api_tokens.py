@@ -19,6 +19,7 @@ from django.utils.translation import gettext as _
 
 from djblets.webapi.auth import WebAPIAuthBackend
 from djblets.webapi.errors import LOGIN_FAILED
+from djblets.webapi.signals import webapi_token_expired
 
 
 logger = logging.getLogger(__name__)
@@ -162,6 +163,9 @@ class TokenAuthBackendMixin(object):
             logger.debug('API Login failed for %s. The token is expired.',
                          webapi_token.user.username,
                          extra=log_extra)
+
+            webapi_token_expired.send(instance=webapi_token,
+                                      sender=type(webapi_token))
 
             return {
                 'error_message': (

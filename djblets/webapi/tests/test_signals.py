@@ -1,13 +1,33 @@
 """Tests for WebAPI signals."""
 
+from datetime import timedelta
+
 from django.contrib.auth.models import User
+from django.contrib.sessions.middleware import SessionMiddleware
+from django.http import HttpResponse
+from django.test.client import RequestFactory
+from django.test.utils import override_settings
+from django.utils import timezone
 from kgb import SpyAgency
 
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
-from djblets.webapi.signals import webapi_token_created, webapi_token_updated
+from djblets.webapi.auth.backends.api_tokens import (TokenAuthBackendMixin,
+                                                     WebAPITokenAuthBackend)
+from djblets.webapi.signals import (webapi_token_created,
+                                    webapi_token_expired,
+                                    webapi_token_updated)
 from djblets.webapi.tests.test_api_token import WebAPIToken
 
 
+class MyTestTokenAuthBackend(TokenAuthBackendMixin):
+    """Mock Token Auth Backend for testing purposes."""
+
+    api_token_model = WebAPIToken
+
+
+@override_settings(AUTHENTICATION_BACKENDS=(
+    'djblets.webapi.tests.test_signals.MyTestTokenAuthBackend',
+))
 class WebAPITokenSignalsTests(SpyAgency, TestModelsLoaderMixin, TestCase):
     """Tests for WebAPI token signals."""
 
@@ -16,8 +36,11 @@ class WebAPITokenSignalsTests(SpyAgency, TestModelsLoaderMixin, TestCase):
     def setUp(self):
         super(WebAPITokenSignalsTests, self).setUp()
 
-        self.user = User.objects.create_user(username='test_user',
+        self.user = User.objects.create_user(username='testuser',
                                              email='test@example.com')
+
+        self.api_token_auth_backend = WebAPITokenAuthBackend()
+        self.middleware = SessionMiddleware(lambda request: HttpResponse(''))
 
     def test_webapi_token_created(self):
         """Testing WebAPIToken.objects.generate_token() emits
@@ -26,8 +49,9 @@ class WebAPITokenSignalsTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         def on_webapi_token_created(auto_generated, **kwargs):
             self.assertFalse(auto_generated)
 
+        webapi_token_created.connect(on_webapi_token_created)
+
         try:
-            webapi_token_created.connect(on_webapi_token_created)
             self.spy_on(on_webapi_token_created)
             WebAPIToken.objects.generate_token(user=self.user)
             self.assertTrue(on_webapi_token_created.spy.called)
@@ -42,14 +66,56 @@ class WebAPITokenSignalsTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         def on_webapi_token_created(auto_generated, **kwargs):
             self.assertTrue(auto_generated)
 
+        webapi_token_created.connect(on_webapi_token_created)
+
         try:
-            webapi_token_created.connect(on_webapi_token_created)
             self.spy_on(on_webapi_token_created)
             WebAPIToken.objects.generate_token(user=self.user,
                                                auto_generated=True)
             self.assertTrue(on_webapi_token_created.spy.called)
         finally:
             webapi_token_created.disconnect(on_webapi_token_created)
+
+    def test_webapi_token_expired(self):
+        """Testing WebAPITokenAuthBackend.authenticate() emits
+        webapi_token_expired when authenticating with an expired token
+        """
+        def on_webapi_token_expired(**kwargs):
+            pass
+
+        request = RequestFactory().get('/')
+        request.user = User()
+        self.middleware(request)
+
+        webapi_token_expired.connect(on_webapi_token_expired)
+
+        try:
+            self.spy_on(on_webapi_token_expired)
+
+            # Testing that no signal is emitted when authenticating with
+            # a non expired token.
+            token = WebAPIToken.objects.generate_token(user=self.user)
+            request.META['HTTP_AUTHORIZATION'] = 'token %s' % token.token
+
+            self.api_token_auth_backend.authenticate(request)
+
+            self.assertFalse(on_webapi_token_expired.spy.called)
+
+            on_webapi_token_expired.spy.reset_calls()
+
+            # Testing that a signal is emitted when authenticating with
+            # an expired token.
+            expired_token = WebAPIToken.objects.generate_token(
+                user=self.user,
+                expires=(timezone.now() - timedelta(days=1)))
+            request.META['HTTP_AUTHORIZATION'] = ('token %s'
+                                                  % expired_token.token)
+
+            self.api_token_auth_backend.authenticate(request)
+
+            self.assertTrue(on_webapi_token_expired.spy.called)
+        finally:
+            webapi_token_expired.disconnect(on_webapi_token_expired)
 
     def test_webapi_token_updated(self):
         """Testing WebAPIToken.save() emits webapi_token_updated"""
@@ -59,10 +125,10 @@ class WebAPITokenSignalsTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         def on_webapi_token_updated(**kwargs):
             pass
 
-        try:
-            webapi_token_created.connect(on_webapi_token_created)
-            webapi_token_updated.connect(on_webapi_token_updated)
+        webapi_token_created.connect(on_webapi_token_created)
+        webapi_token_updated.connect(on_webapi_token_updated)
 
+        try:
             self.spy_on(on_webapi_token_created)
             self.spy_on(on_webapi_token_updated)
 
