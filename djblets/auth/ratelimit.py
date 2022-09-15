@@ -70,22 +70,42 @@ def get_user_id_or_ip(request):
             return request.META['REMOTE_ADDR']
 
 
-def _get_window(period):
+def _get_time_int():
+    """Return the current time as an integer rounded to the nearest second.
+
+    This is available as a convenience wrapper to help with unit testing.
+
+    Version Added:
+        2.3.4
+
+    Returns:
+        int:
+        The current time rounded to the nearest second.
+    """
+    return int(time.time())
+
+
+def _get_window(period, timestamp):
     """Return window period within the given time period.
 
     This helps determine the time left before the rate limit is over
-    for the given user (see 'time_left' variable in get_usage_count()).
+    for the given user (see ``time_left`` variable in
+    :py:func:`get_usage_count`).
 
     Args:
         period (int):
             The total time period in seconds from the rate.
 
+        timestamp (int):
+            The time in seconds used as "now" for the window calculation.
+
+            Version Added:
+                2.3.4
+
     Returns:
         int:
         The window period.
     """
-    timestamp = int(time.time())
-
     if period == 1:
         return timestamp
 
@@ -178,10 +198,12 @@ def get_usage_count(request, increment=False, limit_type=RATE_LIMIT_LOGIN):
 
     # Prepare cache key to add or update to cache and determine remaining time
     # period left.
+    now = _get_time_int()
+    window = _get_window(period, now)
     cache_key = make_cache_key('%s:%d/%d%s%s'
                                % (cache_key_prefix, limit, period,
-                                  user_id_or_ip, _get_window(period)))
-    time_left = _get_window(period) - int(time.time())
+                                  user_id_or_ip, window))
+    time_left = window - now
 
     count = None
 
