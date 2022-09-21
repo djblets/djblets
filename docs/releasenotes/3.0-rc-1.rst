@@ -1,0 +1,71 @@
+.. default-intersphinx:: django3.2 djblets3.x
+
+==============================
+Djblets 3.0 RC 1 Release Notes
+==============================
+
+**Release date**: September 20, 2022
+
+This release contains all bug fixes and features found in Djblets version
+:doc:`2.3.3 <2.3.3>`.
+
+
+Installation
+============
+
+To install this release, run the following::
+
+    $ sudo pip3 install \
+        -f https://downloads.reviewboard.org/betas/reviewboard/5.0-rc-1/ \
+        --pre -U Djblets
+
+
+We **do not** recommend upgrading a production server with this version of
+Djblets. This version is still in development, and is not guaranteed to have
+API stability.
+
+
+Packaging
+=========
+
+* Djblets 3.x supports Python 3.7-3.11.
+
+* node.js module ``@beanbag/less-plugin-autoprefix`` 3.0.x is now required
+  for building static media.
+
+
+djblets.auth
+============
+
+* Fixed a precision error that could occur in rate limiting using
+  :py:mod:`djblets.auth.ratelimit`.
+
+
+djblets.forms
+=============
+
+* Improved the presentation of
+  :py:class:`djblets.forms.widgets.ListEditWidget`.
+
+
+djblets.secrets
+===============
+
+* The default token generator can now be set by setting
+  ``settings.DJBLETS_DEFAULT_API_TOKEN_GENERATOR`` to the registered token
+  generator ID.
+
+
+djblets.webapi
+==============
+
+* Added a :py:data:`djblets.webapi.signals.webapi_token_expired` signal for
+  notifying when attempting to use an expired token.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin

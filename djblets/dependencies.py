@@ -33,7 +33,7 @@ django_version = '~=3.2.11'
 #: Dependencies required for LessCSS pipelining.
 lesscss_npm_dependencies = {
     'less': '^4.1.3',
-    '@beanbag/less-plugin-autoprefix': '^2.0.1',
+    '@beanbag/less-plugin-autoprefix': '^3.0.0',
 }
 
 #: Dependencies required for UglifyJS JavaScript compression.

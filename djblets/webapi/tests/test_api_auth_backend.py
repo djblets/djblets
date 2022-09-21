@@ -199,11 +199,13 @@ class WebAPITokenAuthBackendTests(kgb.SpyAgency,
 
         token = 'token123'
         self.user = User.objects.create_user(username='testuser')
+        invalid_date = datetime.datetime(2022, 8, 2, 5, 45)
+
         MyTestWebAPITokenModel.objects.create(
             user=self.user,
             token=token,
             valid=False,
-            invalid_date=datetime.datetime(2022, 8, 2, 5, 45))
+            invalid_date=timezone.make_aware(invalid_date))
         self.request.user = User()
         self.request.META['HTTP_AUTHORIZATION'] = 'token %s' % token
 
@@ -233,11 +235,13 @@ class WebAPITokenAuthBackendTests(kgb.SpyAgency,
 
         token = 'token123'
         self.user = User.objects.create_user(username='testuser')
+        invalid_date = datetime.datetime(2022, 8, 2, 5, 45)
+
         token_object = MyTestWebAPITokenModel.objects.create(
             user=self.user,
             token=token,
             valid=False,
-            invalid_date=datetime.datetime(2022, 8, 2, 5, 45),
+            invalid_date=timezone.make_aware(invalid_date),
             invalid_reason='Revoked.')
         self.request.user = User()
         self.request.META['HTTP_AUTHORIZATION'] = 'token %s' % token
@@ -267,10 +271,12 @@ class WebAPITokenAuthBackendTests(kgb.SpyAgency,
 
         token = 'token123'
         self.user = User.objects.create_user(username='testuser')
+        invalid_date = datetime.datetime(2022, 8, 2, 5, 45)
+
         MyTestWebAPITokenModel.objects.create(
             user=self.user,
             token=token,
-            expires=datetime.datetime(2022, 8, 2, 5, 45))
+            expires=timezone.make_aware(invalid_date))
         self.request.user = User()
         self.request.META['HTTP_AUTHORIZATION'] = 'token %s' % token
 
