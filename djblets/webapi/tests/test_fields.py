@@ -18,8 +18,7 @@ from djblets.webapi.fields import (BooleanFieldType,
                                    ListFieldType,
                                    ResourceFieldType,
                                    ResourceListFieldType,
-                                   StringFieldType,
-                                   TokenExpiresFieldType)
+                                   StringFieldType)
 from djblets.webapi.resources.user import UserResource, user_resource
 
 
@@ -617,34 +616,3 @@ class StringFieldTypeTests(TestCase):
     def test_str(self):
         """Testing StringFieldType.__str__"""
         self.assertEqual(str(self.field_type), 'String')
-
-
-class TokenExpiresFieldTypeTests(SpyAgency, TestCase):
-    """Unit tests for djblets.webapi.fields.TokenExpiresFieldType."""
-
-    def setUp(self):
-        super(TokenExpiresFieldTypeTests, self).setUp()
-
-        self.field_type = TokenExpiresFieldType({})
-
-    def test_clean_value_with_empty_string(self):
-        """Testing TokenExpiresFieldType.clean_value with an empty string
-        """
-        self.assertEqual(
-            self.field_type.clean_value(''),
-            None)
-
-    def test_clean_value_with_none(self):
-        """Testing TokenExpiresFieldType.clean_value with None
-        """
-        self.assertEqual(
-            self.field_type.clean_value(None),
-            None)
-
-    def test_clean_value_with_timestamp_string_utc(self):
-        """Testing TokenExpiresFieldType.clean_value with timestamp string with
-        UTC offset
-        """
-        self.assertEqual(
-            self.field_type.clean_value('2018-02-20T13:42:00Z'),
-            datetime(2018, 2, 20, 13, 42, 0, tzinfo=timezone.utc))

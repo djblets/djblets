@@ -559,37 +559,3 @@ class StringFieldType(BaseAPIFieldType):
             return value.decode('utf-8')
         else:
             return str(value)
-
-
-class TokenExpiresFieldType(DateTimeFieldType):
-    """A field type for the WebAPIToken's expires field.
-
-    This field acts the same as :py:class`DateTimeFieldType` except that it
-    can accept null values. This allows optional date/time fields such as the
-    expires field to be set to date/time values or null.
-    """
-
-    name = _('Nullable ISO 8601 Date/Time')
-
-    def clean_value(self, value):
-        """Validate and return a null value or datetime from an ISO 8601 value.
-
-        Args:
-            value (object):
-                The value to validate and normalize. This should be a
-                :py:class:`datetime.datetime`, an ISO 8601 date/time string
-                `None` or an empty string.
-
-        Returns:
-            datetime.datetime:
-            The resulting date/time value.
-
-        Raises:
-            django.core.exceptions.ValidationError:
-                The resulting value was not a null value, a valid ISO 8601
-                date/time string or the time was ambiguous.
-        """
-        if value is None or value == '':
-            return None
-
-        return super(TokenExpiresFieldType, self).clean_value(value)
