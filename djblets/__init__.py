@@ -12,7 +12,7 @@ import djblets.util.compat.python.collections
 #
 #   (Major, Minor, Micro, alpha/beta/rc/final, Release Number, Released)
 #
-VERSION = (3, 0, 0, 'rc', 1, True)
+VERSION = (3, 0, 0, 'rc', 2, False)
 
 
 def get_version_string():
