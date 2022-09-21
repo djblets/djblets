@@ -285,8 +285,10 @@ def linkcode_resolve(domain, info):
         branch = 'release-%s' % major
 
         if released:
+            branch += '.%s' % minor
+
             if micro:
-                branch += '%s.%s' % (minor, micro)
+                branch += '.%s' % micro
 
             if not is_final:
                 branch += tag

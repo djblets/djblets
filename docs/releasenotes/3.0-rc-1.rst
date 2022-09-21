@@ -4,7 +4,7 @@
 Djblets 3.0 RC 1 Release Notes
 ==============================
 
-**Release date**: TBD
+**Release date**: September 20, 2022
 
 This release contains all bug fixes and features found in Djblets version
 :doc:`2.3.3 <2.3.3>`.
