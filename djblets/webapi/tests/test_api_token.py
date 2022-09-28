@@ -32,6 +32,9 @@ class WebAPITokenTests(TestCase):
     def setUp(self):
         super(WebAPITokenTests, self).setUp()
 
+        self.token_generator_id = \
+            VendorChecksumTokenGenerator.token_generator_id
+        self.token_info = {'token_type': 'test'}
         self.user = User.objects.create(username='test-user')
 
     def test_is_expired_with_expired(self):
@@ -40,7 +43,9 @@ class WebAPITokenTests(TestCase):
 
         webapi_token = WebAPIToken.objects.generate_token(
             self.user,
-            expires=(now - timedelta(hours=1)))
+            expires=(now - timedelta(hours=1)),
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         self.assertTrue(webapi_token.is_expired())
 
@@ -50,7 +55,9 @@ class WebAPITokenTests(TestCase):
 
         webapi_token = WebAPIToken.objects.generate_token(
             self.user,
-            expires=(now + timedelta(hours=1)))
+            expires=(now + timedelta(hours=1)),
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         self.assertFalse(webapi_token.is_expired())
 
@@ -58,7 +65,10 @@ class WebAPITokenTests(TestCase):
         """Testing BaseWebAPIToken.is_expired with a token that has
         no expiration date set
         """
-        webapi_token = WebAPIToken.objects.generate_token(self.user)
+        webapi_token = WebAPIToken.objects.generate_token(
+            self.user,
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         self.assertFalse(webapi_token.is_expired())
 
@@ -69,6 +79,9 @@ class WebAPITokenManagerTests(kgb.SpyAgency, TestCase):
     def setUp(self):
         super(WebAPITokenManagerTests, self).setUp()
 
+        self.token_generator_id = \
+            VendorChecksumTokenGenerator.token_generator_id
+        self.token_info = {'token_type': 'test'}
         self.user = User.objects.create(username='test-user')
 
     def test_generate_token_with_defaults(self):
@@ -112,8 +125,11 @@ class WebAPITokenManagerTests(kgb.SpyAgency, TestCase):
 
     def test_generate_token_with_custom_field(self):
         """Testing WebAPITokenManager.generate_token with custom field"""
-        webapi_token = WebAPIToken.objects.generate_token(self.user,
-                                                          my_field=True)
+        webapi_token = WebAPIToken.objects.generate_token(
+            self.user,
+            my_field=True,
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         self.assertTrue(webapi_token.my_field)
 
@@ -123,8 +139,10 @@ class WebAPITokenManagerTests(kgb.SpyAgency, TestCase):
 
         webapi_token = WebAPIToken.objects.generate_token(
             self.user,
+            last_updated=(timezone.now() - timedelta(hours=1)),
             time_added=(timezone.now() - timedelta(hours=1)),
-            last_updated=(timezone.now() - timedelta(hours=1)))
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         webapi_token.save()
 
@@ -134,18 +152,15 @@ class WebAPITokenManagerTests(kgb.SpyAgency, TestCase):
         """Testing WebAPITokenManager.generate_token with specifying a
         token generator
         """
-        token_generator_id = VendorChecksumTokenGenerator.token_generator_id
-        token_info = {'token_type': 'test'}
-
         webapi_token = WebAPIToken.objects.generate_token(
             self.user,
-            token_generator_id=token_generator_id,
-            token_info=token_info)
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         self.assertEqual(webapi_token.token_generator_id,
-                         token_generator_id)
+                         self.token_generator_id)
         self.assertTrue(
-            webapi_token.token.startswith(token_info['token_type']))
+            webapi_token.token.startswith(self.token_info['token_type']))
 
     def test_generate_token_with_nonexistant_generator(self):
         """Testing WebAPITokenManager.generate_token with specifying a
@@ -173,10 +188,16 @@ class WebAPITokenManagerTests(kgb.SpyAgency, TestCase):
         """Testing WebAPITokenManager.invalidate_token"""
         self.spy_on(timezone.now, op=kgb.SpyOpReturn(timezone.now()))
 
-        webapi_token1 = WebAPIToken.objects.generate_token(self.user)
+        webapi_token1 = WebAPIToken.objects.generate_token(
+            self.user,
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         user2 = User.objects.create(username='test-user2')
-        webapi_token2 = WebAPIToken.objects.generate_token(user2)
+        webapi_token2 = WebAPIToken.objects.generate_token(
+            user2,
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         WebAPIToken.objects.invalidate_token(token=webapi_token1.token)
 
@@ -191,7 +212,10 @@ class WebAPITokenManagerTests(kgb.SpyAgency, TestCase):
         """
         self.spy_on(timezone.now, op=kgb.SpyOpReturn(timezone.now()))
 
-        webapi_token1 = WebAPIToken.objects.generate_token(self.user)
+        webapi_token1 = WebAPIToken.objects.generate_token(
+            self.user,
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         WebAPIToken.objects.invalidate_token(token=webapi_token1.token,
                                              invalid_reason='Revoked.')
@@ -202,13 +226,22 @@ class WebAPITokenManagerTests(kgb.SpyAgency, TestCase):
         """Testing WebAPITokenManager.invalidate_tokens with a list of users"""
         self.spy_on(timezone.now, op=kgb.SpyOpReturn(timezone.now()))
 
-        webapi_token1 = WebAPIToken.objects.generate_token(self.user)
+        webapi_token1 = WebAPIToken.objects.generate_token(
+            self.user,
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         user2 = User.objects.create(username='test-user2')
-        webapi_token2 = WebAPIToken.objects.generate_token(user2)
+        webapi_token2 = WebAPIToken.objects.generate_token(
+            user2,
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         user3 = User.objects.create(username='test-user3')
-        webapi_token3 = WebAPIToken.objects.generate_token(user3)
+        webapi_token3 = WebAPIToken.objects.generate_token(
+            user3,
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         WebAPIToken.objects.invalidate_tokens(users=[self.user, user2],
                                               invalid_reason='Revoked.')
@@ -225,14 +258,23 @@ class WebAPITokenManagerTests(kgb.SpyAgency, TestCase):
         """
         self.spy_on(timezone.now, op=kgb.SpyOpReturn(timezone.now()))
 
-        webapi_token1 = WebAPIToken.objects.generate_token(self.user,
-                                                           note='test')
+        webapi_token1 = WebAPIToken.objects.generate_token(
+            self.user,
+            note='test',
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         user2 = User.objects.create(username='test-user2')
-        webapi_token2 = WebAPIToken.objects.generate_token(user2)
+        webapi_token2 = WebAPIToken.objects.generate_token(
+            user2,
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         user3 = User.objects.create(username='test-user3')
-        webapi_token3 = WebAPIToken.objects.generate_token(user3)
+        webapi_token3 = WebAPIToken.objects.generate_token(
+            user3,
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         extra_query = models.Q(note='test')
 
