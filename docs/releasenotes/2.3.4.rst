@@ -1,0 +1,21 @@
+.. default-intersphinx:: django1.11 djblets2.x
+
+
+===========================
+Djblets 2.3.4 Release Notes
+===========================
+
+**Release date**: September 29, 2022
+
+
+djblets.auth
+============
+
+* Fixed a precision error that could occur in API rate limiting.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
