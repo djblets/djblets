@@ -10,6 +10,8 @@ from django.test.utils import override_settings
 from django.utils import timezone
 from kgb import SpyAgency
 
+from djblets.secrets.token_generators.vendor_checksum import \
+    VendorChecksumTokenGenerator
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
 from djblets.webapi.auth.backends.api_tokens import (TokenAuthBackendMixin,
                                                      WebAPITokenAuthBackend)
@@ -38,6 +40,9 @@ class WebAPITokenSignalsTests(SpyAgency, TestModelsLoaderMixin, TestCase):
 
         self.user = User.objects.create_user(username='testuser',
                                              email='test@example.com')
+        self.token_generator_id = \
+            VendorChecksumTokenGenerator.token_generator_id
+        self.token_info = {'token_type': 'test'}
 
         self.api_token_auth_backend = WebAPITokenAuthBackend()
         self.middleware = SessionMiddleware(lambda request: HttpResponse(''))
@@ -53,7 +58,10 @@ class WebAPITokenSignalsTests(SpyAgency, TestModelsLoaderMixin, TestCase):
 
         try:
             self.spy_on(on_webapi_token_created)
-            WebAPIToken.objects.generate_token(user=self.user)
+            WebAPIToken.objects.generate_token(
+                self.user,
+                token_generator_id=self.token_generator_id,
+                token_info=self.token_info)
             self.assertTrue(on_webapi_token_created.spy.called)
         finally:
             webapi_token_created.disconnect(on_webapi_token_created)
@@ -70,8 +78,11 @@ class WebAPITokenSignalsTests(SpyAgency, TestModelsLoaderMixin, TestCase):
 
         try:
             self.spy_on(on_webapi_token_created)
-            WebAPIToken.objects.generate_token(user=self.user,
-                                               auto_generated=True)
+            WebAPIToken.objects.generate_token(
+                self.user,
+                auto_generated=True,
+                token_generator_id=self.token_generator_id,
+                token_info=self.token_info)
             self.assertTrue(on_webapi_token_created.spy.called)
         finally:
             webapi_token_created.disconnect(on_webapi_token_created)
@@ -94,7 +105,10 @@ class WebAPITokenSignalsTests(SpyAgency, TestModelsLoaderMixin, TestCase):
 
             # Testing that no signal is emitted when authenticating with
             # a non expired token.
-            token = WebAPIToken.objects.generate_token(user=self.user)
+            token = WebAPIToken.objects.generate_token(
+                self.user,
+                token_generator_id=self.token_generator_id,
+                token_info=self.token_info)
             request.META['HTTP_AUTHORIZATION'] = 'token %s' % token.token
 
             self.api_token_auth_backend.authenticate(request)
@@ -106,8 +120,10 @@ class WebAPITokenSignalsTests(SpyAgency, TestModelsLoaderMixin, TestCase):
             # Testing that a signal is emitted when authenticating with
             # an expired token.
             expired_token = WebAPIToken.objects.generate_token(
-                user=self.user,
-                expires=(timezone.now() - timedelta(days=1)))
+                self.user,
+                expires=(timezone.now() - timedelta(days=1)),
+                token_generator_id=self.token_generator_id,
+                token_info=self.token_info)
             request.META['HTTP_AUTHORIZATION'] = ('token %s'
                                                   % expired_token.token)
 
@@ -132,7 +148,10 @@ class WebAPITokenSignalsTests(SpyAgency, TestModelsLoaderMixin, TestCase):
             self.spy_on(on_webapi_token_created)
             self.spy_on(on_webapi_token_updated)
 
-            token = WebAPIToken.objects.generate_token(user=self.user)
+            token = WebAPIToken.objects.generate_token(
+                self.user,
+                token_generator_id=self.token_generator_id,
+                token_info=self.token_info)
 
             self.assertTrue(on_webapi_token_created.spy.called)
             self.assertFalse(on_webapi_token_updated.spy.called)
