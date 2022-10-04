@@ -1,0 +1,232 @@
+.. default-intersphinx:: django3.2 djblets3.x
+
+
+=========================
+Djblets 3.0 Release Notes
+=========================
+
+**Release date**: October 4, 2022
+
+This release contains all bug fixes and features found in Djblets version
+:doc:`2.3.4 <2.3.4>`.
+
+
+Packaging
+=========
+
+* Djblets 3.x supports Python 3.7 - 3.11.
+
+* :pypi:`Django` 3.2.x is required.
+
+* :pypi:`cryptography` 1.8.1+ is now required. This is a new dependency.
+
+* :pypi:`django-pipeline` 2.0.8 - 2.0.x is required.
+
+* :pypi:`markdown` 3.3.x is required.
+
+
+For building packages, the following Node.JS package versions are now required:
+
+* ``@babel/cli`` 7.17.10 - 7.17.x
+* ``@babel/core`` 7.18.5 - 7.18.x
+* ``@babel/preset-env`` 7.18.2 - 7.18.x
+* ``@beanbag/less-plugin-autoprefix`` 3.0.x
+* ``babel-plugin-django-gettext`` 1.1.1 - 1.1.x
+* ``less`` 4.1.3 - 4.1.x
+* ``uglify-js`` 3.16.1 - 3.16.x
+
+
+djblets.cache
+=============
+
+* Added support for encrypting cached data.
+
+  Several methods in this module now include ``use_encryption`` and
+  ``encryption_key`` arguments, which allows encrypting cache keys and values
+  with AES.
+
+* Improved cache key normalization and hashing.
+
+  :py:func:`~djblets.cache.backend.make_cache_key` has been improved to more
+  safely handle various special characters.
+
+  Long cache keys are also now hashed using SHA256 instead of MD5, which is
+  much less likely to encounter hash collisions.
+
+
+djblets.conditions
+==================
+
+* Added
+  :py:class:`~djblets.conditions.values.ConditionValueMultipleChoiceField`.
+
+  This new condition choice field allows choices to present a multiple choice
+  selector without being backed by a database query.
+
+
+djblets.datagrid
+================
+
+* The datagrid :py:meth:`~djblets.datagrid.grids.DataGrid.load_extra_state`
+  method is now expected to return a list of the field names to save in the
+  profile. Returning a boolean is deprecated, and support will be removed in
+  Djblets 4.0.
+
+
+djblets.extensions
+==================
+
+* Fixed the text of the instructions for reloading failed extensions.
+
+  When an extension fails to load, the management UI would show instructions
+  for how to fix it. This included an out-of-date label for the button, which
+  has been updated to reflect the correct text.
+
+* Fixed a crash when trying to load extensions with bad packaging.
+
+  If an extension package is in a half-installed or broken state, any attempt
+  at loading the extension's metadata could cause a crash. Djblets now
+  protects against this and sets default metadata for the extension.
+
+
+djblets.forms
+=============
+
+* Updated :py:class:`~djblets.forms.widgets.ListEditWidget` to be able to
+  handle any type of widget and form field.
+
+  This form widget was previously limited to lists of strings. It now supports
+  lists of any type of value.
+
+
+djblets.secrets
+===============
+
+The new :py:mod:`djblets.secrets` module has been introduced to hold utilities
+related to cryptography, secrets storage, and token generation.
+
+* Added :py:mod:`djblets.secrets.crypto`, which contains helpers for using AES
+  encryption.
+
+* Added classes and a registry for token generators.
+
+  A token generator can generate a cryptographic token, useful for APIs or
+  other purposes.
+
+  There are two built-in token generators:
+
+  * :py:class:`~djblets.secrets.token_generators.legacy_sha1.
+    LegacySHA1TokenGenerator` --
+    Generates plain SHA1 tokens seeded in part from the server and user
+    details, based on our pre-Djblets 3.0 API token generator.
+
+  * :py:class:`~djblets.secrets.token_generators.vendor_checksum.
+    VendorChecksumTokenGenerator` --
+    Generates 255-character tokens with a vendor-provided prefix, base62
+    cryptographically-random data, and a checksum, suitable for secret
+    scanning.
+
+  Custom token generators can be implemented by subclassing
+  :py:class:`~djblets.secrets.token_generators.base.BaseTokenGenerator` and
+  optionally registering in
+  :py:class:`~djblets.secrets.token_generators.registry.
+  TokenGeneratorRegistry`.
+
+  The registry is also used to fetch the default token generator (which can be
+  set by setting ``settings.DJBLETS_DEFAULT_API_TOKEN_GENERATOR`` to the
+  string ID of a token generator), fetch registered token generators, or list
+  all available token generators.
+
+
+djblets.siteconfig
+==================
+
+* Updated :py:func:`~djblets.siteconfig.django_settings.apply_django_settings`
+  to migrate the old ``MemcachedCache`` cache backend to the modern
+  ``PyMemcacheCache`` one.
+
+
+djblets.testing
+===============
+
+* Added :py:meth:`TestCase.assertQueries()
+  <djblets.testing.testcases.TestCase.assertQueries>` for advanced query
+  checking.
+
+  This new test assertion builds on Django's
+  :py:meth:`django.test.TransactionTestCase.assertNumQueries` to add checking
+  for the content of the queries, not just the number that occurred. This makes
+  it possible to write tests that catch when database queries are inadvertently
+  changed.
+
+
+djblets.util
+============
+
+* Fixed deprecation warnings when using the
+  :py:func:`~djblets.util.templatetags.djblets_images.thumbnail` template tag
+  with newer versions of the :pypi:`Pillow` library.
+
+
+djblets.webapi
+==============
+
+* Added enhanced support for API tokens.
+
+  We've introduced some major changes to API tokens, helping provide more
+  control over the lifetime of a token, increasing security, and allowing
+  for secret scanning to help catch leaked credentials.
+
+  API tokens now support:
+
+  * Expiration dates (tokens past an expiration date will no longer work)
+  * Invalidation (users or administrators can mark tokens as invalid and
+    specify the reason)
+  * A larger length (255 characters)
+  * The date the token was last used
+
+  This will require an evolution of any subclasses of
+  :py:class:`~djblets.webapi.models.BaseWebAPIToken`.
+
+  Along with these, the following have been added to facilitate secret
+  scanning:
+
+  * Vendored prefixes (an identifier prefixing the token hash, helping
+    differentiate one product/company's token from another)
+  * Checksums included in the token data (to verify that a token-like string
+    is in fact an API token)
+
+  That support is provided by a new token generator, which must be opted into
+  currently by passing ``token_generator_id`` and ``token_info`` to
+  :py:meth:`WebAPIToken.objects.generate_token()
+  <djblets.webapi.managers.WebAPITokenManager.generate_token>`. For example:
+
+  .. code-block:: python
+
+     token = WebAPIToken.objects.generate_token(
+         user,
+         token_generator_id='vendor_checksum',
+         token_info={'token_type': 'myprefix'},
+         ...)
+
+  Expiration can be set the same way. See the documentation for details.
+
+  Djblets 4.0 will require specifying these new arguments. For now, legacy
+  SHA1-based tokens will continue to be generated if not specifying a token
+  generator.
+
+  Custom token generators can also be used.
+
+* Added a :py:data:`djblets.webapi.signals.webapi_token_expired` signal for
+  notifying when attempting to use an expired token.
+
+* :py:class:`~djblets.webapi.responses.WebAPIResponse` can now serialize data
+  that includes Python ``set`` values.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin

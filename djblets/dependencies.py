@@ -28,7 +28,7 @@ django_doc_major_version = '3.2'
 reviewboard_doc_major_version = 'dev'
 
 #: The version range required for Django.
-django_version = '~=3.2.11'
+django_version = '~=3.2.16'
 
 #: Dependencies required for LessCSS pipelining.
 lesscss_npm_dependencies = {
