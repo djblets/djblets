@@ -118,7 +118,7 @@ Djblets.
 .. _Django: https://www.djangoproject.com/
 .. _GDPR: https://www.eugdpr.org/
 .. _Gravatars: https://gravatars.com/
-.. _Pipeline: http://django-pipeline.readthedocs.io/en/latest/
+.. _Pipeline: https://django-pipeline.readthedocs.io/en/latest/
 .. _reCAPTCHA: https://www.google.com/recaptcha/
 .. _Review Board: https://www.reviewboard.org/
 .. _Splat: https://www.hellosplat.com/
@@ -166,6 +166,8 @@ Djblets.
    https://www.reviewboard.org/docs/djblets/latest/coderef/#coderef-djblets-recaptcha
 .. _djblets.registries:
    https://www.reviewboard.org/docs/djblets/latest/coderef/#coderef-djblets-registries
+.. _djblets.secrets:
+   https://www.reviewboard.org/docs/djblets/latest/coderef/#coderef-djblets-secrets
 .. _djblets.siteconfig:
    https://www.reviewboard.org/docs/djblets/latest/coderef/#coderef-djblets-siteconfig
 .. _djblets.template:
@@ -185,35 +187,36 @@ Djblets.
 Compatibility
 =============
 
-Djblets 0.9 (release-0.9.x_) supports Python 2.6 and 2.7, and Django 1.6.
+Djblets 2.0 (release-3.x_) supports Python 3.7-3.11 and Django 3.2.
+
+Djblets 2.0 (release-2.x_) supports Python 2.7, 3.5, and 3.6, and Django
+1.6, 1.8, 1.0. 1,0. and 1.11.
 
 Djblets 1.0 (release-1.0.x_) supports Python 2.7 and Django 1.6.
 
-Djblets 2.0 (release-2.0.x_) supports Python 2.7, 3.5, and 3.6, and Django
-1.6, 1.8, 1.0. 1,0. and 1.11.
+Djblets 0.9 (release-0.9.x_) supports Python 2.6 and 2.7, and Django 1.6.
 
 See the `release notes`_ for information on the latest public releases.
 
 
 .. _release-0.9.x: https://github.com/djblets/djblets/tree/release-0.9.x
 .. _release-1.0.x: https://github.com/djblets/djblets/tree/release-1.0.x
-.. _release-2.0.x: https://github.com/djblets/djblets/tree/release-2.0.x
+.. _release-2.x: https://github.com/djblets/djblets/tree/release-2.x
+.. _release-3.x: https://github.com/djblets/djblets/tree/release-3.x
 .. _release notes: https://www.reviewboard.org/docs/releasenotes/djblets/
 
 
 Installing Djblets
 ==================
 
-We provide source builds, Wheels, and Eggs for Djblets. We recommend you use
-Wheels unless you have a reason to use Eggs or source builds.
+We provide source builds and Python Wheels for Djblets.
+
+We recommend you use Wheels unless you have a reason to use source builds
+(which requires a proper build setup for static media).
 
 To install Wheels via pip::
 
     $ pip install Djblets
-
-To install Eggs via easy_install::
-
-    $ easy_install Djblets
 
 
 Getting Support
@@ -224,7 +227,7 @@ development list`_.
 
 
 .. _Review Board development list:
-   https://http://groups.google.com/group/reviewboard-dev
+   https://groups.google.com/group/reviewboard-dev
 
 
 Reporting Bugs
