@@ -18,6 +18,9 @@ from djblets.registries.errors import (AlreadyRegisteredError,
 from djblets.registries.signals import registry_populating
 
 
+logger = logging.getLogger(__name__)
+
+
 ALREADY_REGISTERED = 'already_registered'
 ATTRIBUTE_REGISTERED = 'attribute_registered'
 INVALID_ATTRIBUTE = 'invalid_attribute'
@@ -360,9 +363,9 @@ class EntryPointRegistry(Registry):
                 try:
                     yield self.process_value_from_entry_point(ep)
                 except Exception as e:
-                    logging.exception(self.format_error(LOAD_ENTRY_POINT,
-                                                        entry_point=ep.name,
-                                                        error=e))
+                    logger.exception(self.format_error(LOAD_ENTRY_POINT,
+                                                       entry_point=ep.name,
+                                                       error=e))
 
     def process_value_from_entry_point(self, entry_point):
         """Return the item to register from the entry point.

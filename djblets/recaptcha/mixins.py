@@ -17,6 +17,9 @@ from django.utils.translation import gettext as _
 from djblets.recaptcha.widgets import RecaptchaWidget
 
 
+logger = logging.getLogger(__name__)
+
+
 class RecaptchaFormMixin(forms.Form):
     """A form mixin for providing reCAPTCHA verification.
 
@@ -78,9 +81,9 @@ class RecaptchaFormMixin(forms.Form):
 
                 payload = resp.read()
             except HTTPError as e:
-                logging.exception('Could not make reCAPTCHA request: HTTP %s: '
-                                  '%s',
-                                  e.code, e.read())
+                logger.exception('Could not make reCAPTCHA request: HTTP %s: '
+                                 '%s',
+                                 e.code, e.read())
                 raise ValidationError([
                     _('Could not validate reCAPTCHA. Please contact an '
                       'administrator.'),
@@ -89,8 +92,8 @@ class RecaptchaFormMixin(forms.Form):
             try:
                 payload = json.loads(payload)
             except ValueError:
-                logging.exception('Could not parse JSON payload from %r',
-                                  payload)
+                logger.exception('Could not parse JSON payload from %r',
+                                 payload)
                 raise ValidationError([
                     _('Could not validate reCAPTCHA. Please contact an '
                       'administrator.'),
@@ -102,8 +105,8 @@ class RecaptchaFormMixin(forms.Form):
                         _('Invalid reCAPTCHA response.'),
                     ])
             except KeyError:
-                logging.exception('No "success" key in reCAPTCHA payload %r',
-                                  payload)
+                logger.exception('No "success" key in reCAPTCHA payload %r',
+                                 payload)
                 raise ValidationError([
                     _('Could not validate reCAPTCHA. Please contact an '
                       'administrator.'),
