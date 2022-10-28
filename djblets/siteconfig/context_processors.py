@@ -35,7 +35,8 @@ def siteconfig(request):
         siteconfig = SiteConfiguration.objects.get_current()
         siteconfig_settings = siteconfig.settings_wrapper
     except Exception as e:
-        logger.exception('Unable to load SiteConfiguration: %s', e)
+        logger.exception('Unable to load SiteConfiguration: %s', e,
+                         extra={'request': request})
 
         siteconfig = None
         siteconfig_settings = None

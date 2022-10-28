@@ -106,7 +106,7 @@ class ConfigPagesView(TemplateView):
 
         if form_id is None:
             logger.error('Submitted form content had no form_target.',
-                         request=request)
+                         extra={'request': request})
             return HttpResponseBadRequest()
 
         if form_id not in self.forms:
