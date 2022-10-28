@@ -1,12 +1,13 @@
 from collections import OrderedDict
 
+import kgb
 from django.contrib.auth.models import User
 from django.db import models
 from django.http import HttpResponseNotModified
 from django.test.client import RequestFactory
 
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
-from djblets.util.http import encode_etag
+from djblets.webapi.auth.backends import check_login
 from djblets.webapi.fields import (ResourceFieldType,
                                    ResourceListFieldType,
                                    StringFieldType)
@@ -87,7 +88,7 @@ class BaseTestRefUserResource(BaseTestWebAPIResource):
             return self
 
 
-class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
+class WebAPIResourceTests(kgb.SpyAgency, TestModelsLoaderMixin, TestCase):
     """Unit tests for djblets.webapi.resources.base."""
 
     tests_app = 'djblets.webapi.tests'
@@ -344,6 +345,34 @@ class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['ETag'],
                          '790fc95c3f89afe28403c272553e790274ea1d3e')
+
+    def test_get_with_auth_response_headers(self):
+        """Testing WebAPIResource with GET and ensuring that any headers
+        passed from authentication backends appear in the response
+        """
+        class TestResource(WebAPIResource):
+            allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
+            mimetype_vendor = 'djblets'
+            uri_object_key = 'id'
+            autogenerate_etags = True
+
+            def get(self, *args, **kwargs):
+                return 200, {
+                    'abc': True,
+                }
+
+        @self.spy_for(check_login)
+        def _fake_check_login(request):
+            return (True, None, {'X-test-header': 'Test'})
+
+        resource = TestResource()
+        request = self.factory.get('/api/tests/',
+                                   HTTP_ACCEPT='application/json')
+        response = resource(request)
+
+        self.assertIsInstance(response, WebAPIResponse)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['X-test-header'], 'Test')
 
     def test_are_cache_headers_current_with_old_last_modified(self):
         """Testing WebAPIResource.are_cache_headers_current with old last

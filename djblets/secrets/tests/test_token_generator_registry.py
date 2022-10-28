@@ -56,3 +56,23 @@ class TokenGeneratorRegistryTests(TestCase):
                              expected_log)
             self.assertIsInstance(token_generator,
                                   VendorChecksumTokenGenerator)
+
+    def test_get_deprecated_token_generators(self):
+        """Testing TokenGeneratorRegistry.get_deprecated_token_generators with
+        no set of deprecated generators specified in settings
+        """
+        generators = token_generator_registry.get_deprecated_token_generators()
+
+        self.assertSetEqual(generators,
+                            {LegacySHA1TokenGenerator.token_generator_id})
+
+    @override_settings(
+        DJBLETS_DEPRECATED_TOKEN_GENERATORS={'vendor_checksum'})
+    def test_get_deprecated_token_generators_when_set(self):
+        """Testing TokenGeneratorRegistry.get_deprecated_token_generators with
+        a set of deprecated generators specified in settings
+        """
+        generators = token_generator_registry.get_deprecated_token_generators()
+
+        self.assertSetEqual(generators,
+                            {VendorChecksumTokenGenerator.token_generator_id})

@@ -5,8 +5,10 @@ Version Added:
 """
 
 import logging
+from typing import Set
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 from djblets.registries.registry import Registry
 from djblets.registries.mixins import ExceptionFreeGetterMixin
@@ -81,3 +83,31 @@ class TokenGeneratorRegistry(ExceptionFreeGetterMixin, Registry):
             LegacySHA1TokenGenerator(),
             VendorChecksumTokenGenerator(),
         ]
+
+    def get_deprecated_token_generators(self) -> Set[str]:
+        """Return deprecated token generator IDs.
+
+        The set of deprecated token generator IDs can be set in
+        ``settings.DJBLETS_DEPRECATED_TOKEN_GENERATORS``. By default
+        the set will contain the :py:class:`~djblets.secrets.
+        token_generators.legacy_sha1.LegacySHA1TokenGenerator`'s ID.
+
+        Version Added:
+            3.1
+
+        Returns:
+            set of str:
+            A set of deprecated token generator IDs.
+        """
+        deprecated_token_generators = (
+            getattr(settings, 'DJBLETS_DEPRECATED_TOKEN_GENERATORS', None) or
+            {LegacySHA1TokenGenerator.token_generator_id}
+        )
+
+        if type(deprecated_token_generators) is not set:
+            raise ImproperlyConfigured(
+                'settings.DJBLETS_DEPRECATED_TOKEN_GENERATORS must be a set'
+                'of token generator ID strings.'
+            )
+
+        return deprecated_token_generators

@@ -158,8 +158,7 @@ class TokenAuthBackendMixin(object):
                 'error_message': error_message,
                 'headers': LOGIN_FAILED.headers(request).copy(),
             }
-
-        if webapi_token.is_expired():
+        elif webapi_token.is_expired():
             logger.debug('API Login failed for %s. The token is expired.',
                          webapi_token.user.username,
                          extra=log_extra)
@@ -247,6 +246,22 @@ class WebAPITokenAuthBackend(WebAPIAuthBackend):
 
             request.session['webapi_token_id'] = webapi_token.pk
             request._webapi_token = webapi_token
+
+            if webapi_token.is_deprecated():
+                deprecation_header = {
+                    'X-API-Token-Deprecated': (
+                        'This token uses a deprecated format. The token can '
+                        'still be used, but you should remove it and '
+                        'generate a new one to take advantage of security '
+                        'improvements.'
+                    )
+                }
+
+                # Keep any headers that were already set.
+                headers = result[2] or {}
+                headers.update(deprecation_header)
+
+                result = (result[0], result[1], headers)
 
         return result
 

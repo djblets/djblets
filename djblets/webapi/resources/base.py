@@ -143,9 +143,11 @@ class WebAPIResource(object):
             request._djblets_webapi_object_cache = {}
 
         auth_result = check_login(request)
+        headers = {}
 
         if isinstance(auth_result, tuple):
             auth_success, auth_message, auth_headers = auth_result
+            headers = auth_headers or {}
 
             if not auth_success:
                 err = LOGIN_FAILED
@@ -156,7 +158,7 @@ class WebAPIResource(object):
                 return WebAPIResponseError(
                     request,
                     err=err,
-                    headers=auth_headers or {},
+                    headers=headers,
                     api_format=api_format,
                     mimetype=self._build_error_mimetype(request))
 
@@ -173,13 +175,13 @@ class WebAPIResource(object):
 
         if (usage is not None and
             usage['count'] > usage['limit']):
+            headers['Retry-After'] = usage['time_left']
+            headers['X-RateLimit-Limit'] = usage['limit']
+
             return WebAPIResponseError(
                 request,
                 err=RATE_LIMIT_EXCEEDED,
-                headers={
-                    'Retry-After': usage['time_left'],
-                    'X-RateLimit-Limit': usage['limit'],
-                },
+                headers=headers,
                 api_format=api_format,
                 mimetype=self._build_error_mimetype(request))
 
@@ -237,15 +239,13 @@ class WebAPIResource(object):
                     api_format=api_format,
                     mimetype=self._build_error_mimetype(request))
             elif isinstance(result, tuple):
-                headers = {}
-
                 if method == 'GET':
                     request_params = request.GET
                 else:
                     request_params = request.POST
 
                 if len(result) == 3:
-                    headers = result[2]
+                    headers.update(result[2])
 
                 if 'Location' in headers:
                     extra_querystr = '&'.join([
@@ -264,7 +264,6 @@ class WebAPIResource(object):
                     response = WebAPIResponseError(
                         request,
                         err=result[0],
-                        headers=headers,
                         extra_params=result[1],
                         api_format=api_format,
                         mimetype=self._build_error_mimetype(request))
@@ -276,7 +275,6 @@ class WebAPIResource(object):
                         request,
                         status=result[0],
                         obj=result[1],
-                        headers=headers,
                         api_format=api_format,
                         encoder_kwargs=dict({
                             'calling_resource': self,
@@ -306,6 +304,11 @@ class WebAPIResource(object):
                         response = build_not_modified_from_response(response)
         else:
             response = HttpResponseNotAllowed(self.allowed_methods)
+
+        # Make sure any headers we've collected along the way are in the
+        # response.
+        for header_name, header_value in headers.items():
+            response.setdefault(header_name, header_value)
 
         return response
 
