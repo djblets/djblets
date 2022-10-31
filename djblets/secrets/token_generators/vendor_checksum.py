@@ -30,7 +30,7 @@ class VendorChecksumTokenGenerator(BaseTokenGenerator):
     #:
     #: Type:
     #:     str
-    CHARSET = string.digits + string.ascii_letters
+    CHARSET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
     #: The length of the checksum portion of the token.
     #:
@@ -76,28 +76,22 @@ class VendorChecksumTokenGenerator(BaseTokenGenerator):
         self._check_token_info(token_info)
 
         charset = self.CHARSET
-        checksum_length = self.CHECKSUM_LENGTH
 
         token_type = token_info['token_type']
         token_type_length = len(token_type)
-        token_entropy_length = (self.TOKEN_LENGTH - checksum_length -
+        token_entropy_length = (self.TOKEN_LENGTH - self.CHECKSUM_LENGTH -
                                 token_type_length - 1)
 
         entropy_data = ''.join(
             secrets.choice(charset)
             for _i in range(token_entropy_length)
         )
-
-        checksum_data = zlib.crc32(entropy_data.encode('utf-8')) & 0xFFFFFFFF
-        checksum = (
-            self._base62_encode(checksum_data)
-            .zfill(checksum_length)
-        )
+        checksum = self._generate_checksum(entropy_data)
 
         return '%s_%s%s' % (token_type, entropy_data, checksum)
 
     def validate_token(self, token, token_info, **kwargs):
-        """Validate the token to see if it is a valid token from this generator.
+        """Returns whether the token is a valid token from this generator.
 
         Args:
             token (str):
@@ -124,10 +118,20 @@ class VendorChecksumTokenGenerator(BaseTokenGenerator):
             return False
 
         token_type = token_info['token_type']
+        type_length = len(token_type)
+        checksum_indice = -self.CHECKSUM_LENGTH
+        token_checksum = token[-self.CHECKSUM_LENGTH:]
+        checksum = self._generate_checksum(
+            token[type_length + 1:checksum_indice])
 
+        # Djblets 3.0 generated token checksums using an incorrect
+        # base62-encoding, which resulted in capital and lowercase letters
+        # being swapped. We check against checksum.swapcase() to catch those.
         return (len(token) == 255 and
                 token.startswith(token_type) and
-                re.match(self.HASH_RE, token[len(token_type):]) is not None)
+                re.match(self.HASH_RE, token[type_length:]) is not None and
+                (token_checksum == checksum or
+                 token_checksum == checksum.swapcase()))
 
     def _base62_encode(self, num):
         """Encode the number using Base62.
@@ -175,3 +179,18 @@ class VendorChecksumTokenGenerator(BaseTokenGenerator):
             raise KeyError(
                 _('The token_info dictionary must contain a %s key.')
                 % e.args[0])
+
+    def _generate_checksum(self, data):
+        """Generate a base62-encoded CRC32 checksum for the given data.
+
+        Args:
+            data (str):
+                The data to generate a checksum for.
+
+        Returns:
+            str:
+            The base62-encoded CRC32 checksum.
+        """
+        checksum_data = zlib.crc32(data.encode('utf-8')) & 0xFFFFFFFF
+
+        return self._base62_encode(checksum_data).zfill(self.CHECKSUM_LENGTH)
