@@ -935,6 +935,93 @@ class WebAPIResourceTests(kgb.SpyAgency, TestModelsLoaderMixin, TestCase):
         data = resource.serialize_object(obj, request=request)
         self.assertIn('my_field', data)
 
+    def test_uri_template_name_default(self):
+        """Testing WebAPIResource.uri_template_name defaults to
+        WebAPIResource.name
+        """
+        class TestResource(WebAPIResource):
+            name = 'test'
+
+        resource = TestResource()
+
+        self.assertEqual(resource.uri_template_name, 'test')
+
+    def test_uri_template_name_set(self):
+        """Testing WebAPIResource.uri_template_name when set"""
+        class TestResource(WebAPIResource):
+            name = 'test'
+            uri_template_name = 'template_name'
+
+        resource = TestResource()
+
+        self.assertEqual(resource.uri_template_name, 'template_name')
+
+    def test_uri_template_name_plural_default(self):
+        """Testing WebAPIResource.uri_template_name_plural defaults to
+        WebAPIResource.name_plural
+        """
+        class TestResource(WebAPIResource):
+            name = 'test'
+
+        resource = TestResource()
+
+        self.assertEqual(resource.uri_template_name_plural, 'tests')
+
+    def test_uri_template_name_plural_set(self):
+        """Testing WebAPIResource.uri_template_name_plural when set"""
+        class TestResource(WebAPIResource):
+            name = 'test'
+            uri_template_name = 'name'
+            uri_template_name_plural = 'plural_name'
+
+        resource = TestResource()
+
+        self.assertEqual(resource.uri_template_name_plural, 'plural_name')
+
+    def test_uri_template_name_plural_none(self):
+        """Testing WebAPIResource.uri_template_name_plural is None
+        when WebAPIResource.uri_template_name is set to None
+        """
+        class TestResource(WebAPIResource):
+            name = 'test'
+            uri_template_name = None
+
+        resource = TestResource()
+
+        self.assertIsNone(resource.uri_template_name_plural)
+
+    def test_uri_template_name_plural_singleton(self):
+        """Testing WebAPIResource.uri_template_name_plural is
+        WebAPIResource.uri_template_name for singletons
+        """
+        class TestResourceA(WebAPIResource):
+            name = 'testA'
+            uri_template_name = 'singleton'
+            singleton = True
+
+        class TestResourceB(WebAPIResource):
+            name = 'testB'
+            singleton = True
+
+        resourceA = TestResourceA()
+        resourceB = TestResourceB()
+
+        self.assertEqual(resourceA.uri_template_name_plural, 'singleton')
+        self.assertEqual(resourceB.uri_template_name_plural, 'testB')
+
+    def test_uri_template_name_plural_with_uri_template_name_set(self):
+        """Testing WebAPIResource.uri_template_name_plural is
+        WebAPIResource.uri_template_name with an appended 's' for resources
+        that have a uri_template_name set
+        """
+        class TestResource(WebAPIResource):
+            name = 'test'
+            uri_template_name = 'name'
+
+        resource = TestResource()
+
+        self.assertEqual(resource.uri_template_name_plural, 'names')
+
     def _test_mimetype_responses(self, resource, url, json_mimetype,
                                  xml_mimetype, **kwargs):
         self._test_mimetype_response(resource, url, '*/*', json_mimetype,

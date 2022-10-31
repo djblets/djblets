@@ -2,6 +2,7 @@
 
 import logging
 import warnings
+from typing import Optional
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -17,6 +18,7 @@ from django.views.decorators.vary import vary_on_headers
 from djblets.auth.ratelimit import (RATE_LIMIT_API_ANONYMOUS,
                                     RATE_LIMIT_API_AUTHENTICATED,
                                     get_usage_count)
+from djblets.util.decorators import cached_property
 from djblets.util.http import (build_not_modified_from_response,
                                encode_etag,
                                etag_if_none_match,
@@ -365,6 +367,55 @@ class WebAPIResource(object):
         from the name used for the resource.
         """
         return self.name_plural
+
+    @cached_property
+    def uri_template_name(self) -> Optional[str]:
+        """Returns the name of the resource for use in URI templates.
+
+        This will be used as the key for this resource in
+        :py:class`djblets.webapi.resource.root.RootResource`'s list of URI
+        templates. This can be overridden when the URI template name for
+        this resource needs to differ from the name used for the resource.
+
+        This must be unique to the resource. If set to ``None`` this
+        resource will be excluded from the URI templates list.
+
+        Version Added:
+            3.1.0
+
+        Type:
+            str or None
+        """
+        return self.name
+
+    @cached_property
+    def uri_template_name_plural(self) -> Optional[str]:
+        """Returns the plural name of the resource for use in URI templates.
+
+        This will be used as the key for the list version of this resource in
+        :py:class`djblets.webapi.resource.root.RootResource`'s list of URI
+        templates. This can be overridden when the URI template name for
+        this resource needs to differ from the name used for the resource.
+
+        This must be unique to the resource. If set to ``None`` the list
+        version of this resource will be excluded from the URI templates list.
+
+        Version Added:
+            3.1.0
+
+        Type:
+            str or None
+        """
+        uri_template_name = self.uri_template_name
+
+        if uri_template_name is None:
+            return None
+        elif uri_template_name == self.name:
+            return self.name_plural
+        elif self.singleton:
+            return self.uri_template_name
+        else:
+            return uri_template_name + 's'
 
     def call_method_view(self, request, method, view, *args, **kwargs):
         """Calls the given method view.

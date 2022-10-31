@@ -1,14 +1,21 @@
 """A flexible resource for the root of your API resource tree."""
 
-from collections import namedtuple
+import logging
+from collections import defaultdict, namedtuple
 
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponseNotModified
+from django.utils.translation import gettext_lazy as _
 from django.urls import path
 
 from djblets.urls.patterns import never_cache_patterns
 from djblets.webapi.errors import DOES_NOT_EXIST
 from djblets.webapi.resources.base import WebAPIResource
 from djblets.webapi.responses import WebAPIResponseError
+
+
+logger = logging.getLogger(__name__)
 
 
 class RootResource(WebAPIResource):
@@ -25,10 +32,10 @@ class RootResource(WebAPIResource):
     #: A resource entry returned from :py:meth:`RootResource.walk_resources`.
     #:
     #: Attributes:
-    #:      name (unicode):
+    #:      name (str):
     #:          The name of current resource being explored.
     #:
-    #       list_href (unicode):
+    #       list_href (str):
     #:          The list_href associated with this resource.
     #:
     #       resource (djblets.webapi.resources.base.WebAPIResource):
@@ -36,8 +43,15 @@ class RootResource(WebAPIResource):
     #:
     #       is_list (bool):
     #:          Whether or not the resource is a list resource.
+    #:
+    #:      uri_template_name (str)
+    #:          The name of the resource to use in the URI templates list.
     ResourceEntry = namedtuple('ResourceEntry',
-                               ('name', 'list_href', 'resource', 'is_list'))
+                               ('name',
+                                'list_href',
+                                'resource',
+                                'is_list',
+                                'uri_template_name'))
 
     def __init__(self, child_resources=[], include_uri_templates=True):
         super(RootResource, self).__init__()
@@ -92,6 +106,20 @@ class RootResource(WebAPIResource):
         name and the data they care about to simply plug them into the
         URI template instead of trying to crawl over the whole tree. This
         can make things far more efficient.
+
+        Args:
+            request (django.http.HttpRequest):
+                The GET request for the Root resource.
+
+            *args (tuple, unused):
+                Additional unused arguments.
+
+            **kwargs (dict, unused):
+                Additional unused keyword arguments.
+
+        Returns:
+            dict:
+                A mapping of resources to their URI templates.
         """
         if not self._uri_templates:
             self._uri_templates = {}
@@ -99,24 +127,58 @@ class RootResource(WebAPIResource):
         base_href = request.build_absolute_uri()
 
         if base_href not in self._uri_templates:
-            templates = {}
+            templates = defaultdict(list)
             unassigned_templates = self._registered_uri_templates.get(
                 None, {})
 
-            for name, href in unassigned_templates.items():
-                templates[name] = href
+            for uri_template_name, href in unassigned_templates.items():
+                templates[uri_template_name].append(href)
 
             for entry in self.walk_resources(self, base_href):
-                templates[entry.name] = entry.list_href
+                uri_template_name = entry.uri_template_name
+
+                if uri_template_name is None:
+                    continue
+
+                templates[uri_template_name].append(entry.list_href)
 
                 if entry.is_list:
                     list_templates = self._registered_uri_templates.get(
                         entry.resource, {})
 
-                    for name, href in list_templates.items():
-                        templates[name] = '%s%s' % (entry.list_href, href)
+                    for uri_template_name, href in list_templates.items():
+                        templates[uri_template_name].append(
+                            '%s%s' % (entry.list_href, href))
 
-            self._uri_templates[base_href] = templates
+            final_templates = {}
+
+            for uri_template_name, uri_template in templates.items():
+                if len(uri_template) > 1:
+                    if settings.DEBUG:
+                        raise ImproperlyConfigured(
+                            _('More than one URI template was mapped to '
+                              'the "%(name)s" name: %(templates)s. Each URI '
+                              'template must be mapped to a unique URI '
+                              'template name in order to be included in the '
+                              'URI templates list. This can be set through '
+                              'the uri_template_name property.')
+                            % {
+                                'name': uri_template_name,
+                                'templates': ', '.join(uri_template)
+                            })
+                    else:
+                        logger.error(
+                            'More than one URI template was mapped to '
+                            'the "%s" name: %s. Only the first one will be '
+                            'included in the URI templates list. To '
+                            'include the other URI templates, they must '
+                            'be mapped to a unique name by setting each '
+                            'resource\'s uri_template_name property.'
+                            % (uri_template_name, ', '.join(uri_template)))
+
+                final_templates[uri_template_name] = uri_template[0]
+
+            self._uri_templates[base_href] = final_templates
 
         return self._uri_templates[base_href]
 
@@ -136,10 +198,12 @@ class RootResource(WebAPIResource):
             RootResource.ResourceEntry:
             Resource entries for all sub-resources.
         """
-        yield cls.ResourceEntry(name=resource.name_plural,
-                                list_href=list_href,
-                                resource=resource,
-                                is_list=True)
+        yield cls.ResourceEntry(
+            name=resource.name_plural,
+            list_href=list_href,
+            resource=resource,
+            is_list=True,
+            uri_template_name=resource.uri_template_name_plural)
 
         for child in resource.list_child_resources:
             child_href = '%s%s/' % (list_href, child.uri_name)
@@ -150,10 +214,12 @@ class RootResource(WebAPIResource):
         if resource.uri_object_key:
             object_href = '%s{%s}/' % (list_href, resource.uri_object_key)
 
-            yield cls.ResourceEntry(name=resource.name,
-                                    list_href=object_href,
-                                    resource=resource,
-                                    is_list=False)
+            yield cls.ResourceEntry(
+                name=resource.name,
+                list_href=object_href,
+                resource=resource,
+                is_list=False,
+                uri_template_name=resource.uri_template_name)
 
             for child in resource.item_child_resources:
                 child_href = '%s%s/' % (object_href, child.uri_name)
@@ -206,6 +272,15 @@ class RootResource(WebAPIResource):
 
         templates = self._registered_uri_templates.setdefault(
             relative_resource, {})
+
+        if name in templates:
+            logger.debug(
+                'The %s resource is already mapped to the following '
+                'URI template: %s. This will be overwritten by the new URI '
+                'template: %s.'
+                % (name, templates[name], relative_path))
+
+        # Allow the URI template to be overwritten if it already exists.
         templates[name] = relative_path
 
     def unregister_uri_template(self, name, relative_resource=None):
