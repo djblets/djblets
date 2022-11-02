@@ -1,6 +1,14 @@
 """A base form for working with settings stored on SiteConfigurations."""
 
+from __future__ import annotations
+
+from typing import Optional
+
+from django.http import HttpRequest
+
 from djblets.forms.forms import KeyValueForm
+from djblets.siteconfig.models import (SiteConfiguration,
+                                       SiteConfigurationSettingsValue)
 
 
 class SiteSettingsForm(KeyValueForm):
@@ -8,16 +16,26 @@ class SiteSettingsForm(KeyValueForm):
 
     This is meant to be subclassed for different settings pages. Any fields
     defined by the form will be loaded/saved automatically.
-
-    Attributes:
-        request (django.http.HttpRequest):
-            The HTTP request used for this form.
-
-        siteconfig (djblets.siteconfig.models.SiteConfiguration):
-            The site configuration settings are loaded from and saved to.
     """
 
-    def __init__(self, siteconfig, *args, **kwargs):
+    #: The HTTP request used for this form.
+    #:
+    #: Type:
+    #:     django.http.HttpRequest
+    request: HttpRequest
+
+    #: The site configuration settings that are loaded from and saved to.
+    #:
+    #: Type:
+    #:      djblets.siteconfig.models.SiteConfiguration
+    siteconfig: SiteConfiguration
+
+    def __init__(
+        self,
+        siteconfig: SiteConfiguration,
+        *args,
+        **kwargs,
+    ) -> None:
         """Initialize the form.
 
         Args:
@@ -33,17 +51,20 @@ class SiteSettingsForm(KeyValueForm):
         self.request = kwargs.pop('request', None)
         self.siteconfig = siteconfig
 
-        super(SiteSettingsForm, self).__init__(instance=siteconfig,
-                                               *args, **kwargs)
+        super().__init__(instance=siteconfig, *args, **kwargs)
 
-    def get_key_value(self, key, default=None):
+    def get_key_value(
+        self,
+        key: str,
+        default: Optional[SiteConfigurationSettingsValue] = None,
+    ) -> Optional[SiteConfigurationSettingsValue]:
         """Return the value for a SiteConfiguration settings key.
 
         Args:
-            key (unicode):
+            key (str):
                 The settings key.
 
-            default (object):
+            default (object, unused):
                 The default value from the form, which will be ignored,
                 so that the registered siteconfig defaults will be used.
 
@@ -51,20 +72,24 @@ class SiteSettingsForm(KeyValueForm):
             object:
             The resulting value from the settings.
         """
-        return self.instance.get(key)
+        return self.siteconfig.get(key)
 
-    def set_key_value(self, key, value):
+    def set_key_value(
+        self,
+        key: str,
+        value: SiteConfigurationSettingsValue,
+    ) -> None:
         """Set the value for a SiteConfiguration settings key.
 
         Args:
-            key (unicode):
+            key (str):
                 The settings key.
 
             value (object):
                 The settings value.
         """
-        self.instance.set(key, value)
+        self.siteconfig.set(key, value)
 
-    def save_instance(self):
+    def save_instance(self) -> None:
         """Save the SiteConfiguration instance."""
-        self.instance.save()
+        self.siteconfig.save()
