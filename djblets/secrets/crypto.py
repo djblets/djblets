@@ -6,16 +6,21 @@ Version Added:
 
 import base64
 import os
+from typing import AnyStr, Iterable, Iterator, Optional, Union, cast
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from django.conf import settings
 
 
-AES_BLOCK_SIZE = algorithms.AES.block_size // 8
+AES_BLOCK_SIZE = cast(int, algorithms.AES.block_size) // 8
 
 
-def _create_cipher(iv, *, key=None):
+def _create_cipher(
+    iv: bytes,
+    *,
+    key: Optional[bytes] = None,
+) -> Cipher:
     """Create a cipher for use in symmetric encryption/decryption.
 
     This will use AES encryption in CFB mode (using an 8-bit shift register)
@@ -51,7 +56,7 @@ def _create_cipher(iv, *, key=None):
                   default_backend())
 
 
-def get_default_aes_encryption_key():
+def get_default_aes_encryption_key() -> bytes:
     """Return the default AES encryption key for the install.
 
     The default key is the first 16 characters (128 bits) of
@@ -67,7 +72,11 @@ def get_default_aes_encryption_key():
     return settings.SECRET_KEY[:16].encode('utf-8')
 
 
-def aes_encrypt(data, *, key=None):
+def aes_encrypt(
+    data: Union[bytes, str],
+    *,
+    key: Optional[bytes] = None,
+) -> bytes:
     """Encrypt data using AES encryption.
 
     This uses AES encryption in CFB mode (using an 8-bit shift register) and a
@@ -78,7 +87,7 @@ def aes_encrypt(data, *, key=None):
         3.0
 
     Args:
-        data (bytes):
+        data (bytes or str):
             The data to encrypt. If a Unicode string is passed in, it will be
             encoded to UTF-8 first.
 
@@ -105,7 +114,11 @@ def aes_encrypt(data, *, key=None):
     return iv + encryptor.update(data) + encryptor.finalize()
 
 
-def aes_encrypt_base64(data, *, key=None):
+def aes_encrypt_base64(
+    data: AnyStr,
+    *,
+    key: Optional[bytes] = None,
+) -> str:
     """Encrypt data and encode as Base64.
 
     The result will be encrypted using AES encryption in CFB mode (using an
@@ -135,7 +148,11 @@ def aes_encrypt_base64(data, *, key=None):
     return base64.b64encode(aes_encrypt(data, key=key)).decode('utf-8')
 
 
-def aes_encrypt_iter(data_iter, *, key=None):
+def aes_encrypt_iter(
+    data_iter: Iterable[Union[bytes, str]],
+    *,
+    key: Optional[bytes] = None,
+) -> Iterator[bytes]:
     """Encrypt and yield data iteratively.
 
     This iterates through an iterable (a generator, list, or similar),
@@ -195,7 +212,11 @@ def aes_encrypt_iter(data_iter, *, key=None):
         yield iv + encryptor.finalize()
 
 
-def aes_decrypt(encrypted_data, *, key=None):
+def aes_decrypt(
+    encrypted_data: bytes,
+    *,
+    key: Optional[bytes] = None,
+) -> bytes:
     """Decrypt AES-encrypted data.
 
     This will decrypt an AES-encrypted value in CFB mode (using an 8-bit
@@ -239,7 +260,11 @@ def aes_decrypt(encrypted_data, *, key=None):
             decryptor.finalize())
 
 
-def aes_decrypt_base64(encrypted_data, *, key=None):
+def aes_decrypt_base64(
+    encrypted_data: AnyStr,
+    *,
+    key: Optional[bytes] = None,
+) -> str:
     """Decrypt an encrypted value encoded in Base64.
 
     This will decrypt a Base64-encoded encrypted value (from
@@ -272,7 +297,11 @@ def aes_decrypt_base64(encrypted_data, *, key=None):
     )
 
 
-def aes_decrypt_iter(encrypted_iter, *, key=None):
+def aes_decrypt_iter(
+    encrypted_iter: Iterable[bytes],
+    *,
+    key: Optional[bytes] = None,
+) -> Iterator[bytes]:
     """Decrypt and yield data iteratively.
 
     This iterates through an iterable (a generator, list, or similar),

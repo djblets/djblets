@@ -6,6 +6,7 @@ Version Added:
 
 import hashlib
 import re
+from typing import Any, Dict
 
 from django.conf import settings
 from django.utils import timezone
@@ -27,7 +28,11 @@ class LegacySHA1TokenGenerator(BaseTokenGenerator):
 
     token_generator_id = 'legacy_sha1'
 
-    def create_token(self, token_info, **kwargs):
+    def create_token(
+        self,
+        token_info: Dict[str, Any] = {},
+        **kwargs,
+    ) -> str:
         """Create a SHA1 token.
 
         Args:
@@ -71,12 +76,21 @@ class LegacySHA1TokenGenerator(BaseTokenGenerator):
 
         return token
 
-    def validate_token(self, token, **kwargs):
+    def validate_token(
+        self,
+        token: str,
+        token_info: Dict[str, Any] = {},
+        **kwargs,
+    ) -> bool:
         """Validate the token to see if it is a valid token from this generator.
 
         Args:
             token (str):
                 The token to validate.
+
+            token_info (dict, unused):
+                A dictionary that contains information about the
+                token.
 
             **kwargs (dict, unused):
                 Additional keyword arguments.

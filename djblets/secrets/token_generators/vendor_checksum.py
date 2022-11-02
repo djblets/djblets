@@ -8,6 +8,7 @@ import re
 import secrets
 import string
 import zlib
+from typing import Any, Dict, List
 
 from django.utils.translation import gettext_lazy as _
 
@@ -50,7 +51,11 @@ class VendorChecksumTokenGenerator(BaseTokenGenerator):
     #:     int
     TOKEN_LENGTH = 255
 
-    def create_token(self, token_info, **kwargs):
+    def create_token(
+        self,
+        token_info: Dict[str, Any] = {},
+        **kwargs,
+    ) -> str:
         """Create a token that contains a prefix and checksum.
 
         Args:
@@ -90,8 +95,13 @@ class VendorChecksumTokenGenerator(BaseTokenGenerator):
 
         return '%s_%s%s' % (token_type, entropy_data, checksum)
 
-    def validate_token(self, token, token_info, **kwargs):
-        """Returns whether the token is a valid token from this generator.
+    def validate_token(
+        self,
+        token: str,
+        token_info: Dict[str, Any] = {},
+        **kwargs,
+    ) -> bool:
+        """Return whether the token is a valid token from this generator.
 
         Args:
             token (str):
@@ -133,7 +143,10 @@ class VendorChecksumTokenGenerator(BaseTokenGenerator):
                 (token_checksum == checksum or
                  token_checksum == checksum.swapcase()))
 
-    def _base62_encode(self, num):
+    def _base62_encode(
+        self,
+        num: int,
+    ) -> str:
         """Encode the number using Base62.
 
         Args:
@@ -149,7 +162,7 @@ class VendorChecksumTokenGenerator(BaseTokenGenerator):
         if num == 0:
             return charset[0]
 
-        result = []
+        result: List[str] = []
 
         while num:
             num, remainder = divmod(num, 62)
@@ -157,7 +170,10 @@ class VendorChecksumTokenGenerator(BaseTokenGenerator):
 
         return ''.join(reversed(result))
 
-    def _check_token_info(self, token_info):
+    def _check_token_info(
+        self,
+        token_info: Dict[str, Any],
+    ) -> None:
         """Checks if all required keys are in the token info dictionary.
 
         Args:

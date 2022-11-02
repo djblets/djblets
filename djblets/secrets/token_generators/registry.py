@@ -5,13 +5,14 @@ Version Added:
 """
 
 import logging
-from typing import Set
+from typing import Optional, Set
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
 from djblets.registries.registry import Registry
 from djblets.registries.mixins import ExceptionFreeGetterMixin
+from djblets.secrets.token_generators.base import BaseTokenGenerator
 from djblets.secrets.token_generators.legacy_sha1 import \
     LegacySHA1TokenGenerator
 from djblets.secrets.token_generators.vendor_checksum import \
@@ -21,7 +22,8 @@ from djblets.secrets.token_generators.vendor_checksum import \
 logger = logging.getLogger(__name__)
 
 
-class TokenGeneratorRegistry(ExceptionFreeGetterMixin, Registry):
+class TokenGeneratorRegistry(ExceptionFreeGetterMixin[BaseTokenGenerator],
+                             Registry[BaseTokenGenerator]):
     """Registry for managing token generators.
 
     Version Added:
@@ -30,7 +32,10 @@ class TokenGeneratorRegistry(ExceptionFreeGetterMixin, Registry):
 
     lookup_attrs = ['token_generator_id']
 
-    def get_token_generator(self, token_generator_id):
+    def get_token_generator(
+        self,
+        token_generator_id: str,
+    ) -> Optional[BaseTokenGenerator]:
         """Return a token generator with the specified ID.
 
         Args:
@@ -41,9 +46,9 @@ class TokenGeneratorRegistry(ExceptionFreeGetterMixin, Registry):
             djblets.secrets.token_generators.BaseTokenGenerator:
             The token generator instance, or ``None`` if not found.
         """
-        return self.get('token_generator_id', token_generator_id)
+        return self.get_or_none('token_generator_id', token_generator_id)
 
-    def get_default(self):
+    def get_default(self) -> BaseTokenGenerator:
         """Return the default token generator.
 
         The default token generator ID can be set in
@@ -60,6 +65,8 @@ class TokenGeneratorRegistry(ExceptionFreeGetterMixin, Registry):
             VendorChecksumTokenGenerator.token_generator_id
         )
 
+        assert isinstance(token_generator_id, str)
+
         token_generator = self.get_token_generator(token_generator_id)
 
         if token_generator is None:
@@ -67,8 +74,12 @@ class TokenGeneratorRegistry(ExceptionFreeGetterMixin, Registry):
                          'registry. Using the vendor_checksum token '
                          'generator instead.', token_generator_id)
 
-            token_generator = self.get_token_generator(
-                VendorChecksumTokenGenerator.token_generator_id)
+            token_generator_id = \
+                VendorChecksumTokenGenerator.token_generator_id
+            assert token_generator_id
+
+            token_generator = self.get_token_generator(token_generator_id)
+            assert token_generator is not None
 
         return token_generator
 
