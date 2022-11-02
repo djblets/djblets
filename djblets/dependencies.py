@@ -67,6 +67,7 @@ package_dependencies = {
     'publicsuffix': '>=1.1',
     'python-dateutil': '>=2.7',
     'pytz': '',
+    'typing_extensions': '>=4.4',
 }
 
 
