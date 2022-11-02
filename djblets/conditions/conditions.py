@@ -10,6 +10,9 @@ from djblets.conditions.errors import (ConditionChoiceNotFoundError,
                                        InvalidConditionValueError)
 
 
+logger = logging.getLogger(__name__)
+
+
 class Condition(object):
     """A condition used to match state to a choice, operator, and value.
 
@@ -76,9 +79,9 @@ class Condition(object):
         try:
             choice_id = data['choice']
         except KeyError:
-            logging.debug('Condition.deserialize: Missing "choice" key for '
-                          'condition %r',
-                          data)
+            logger.debug('Condition.deserialize: Missing "choice" key for '
+                         'condition %r',
+                         data)
 
             raise ConditionChoiceNotFoundError(
                 _('A choice is required.'),
@@ -87,9 +90,9 @@ class Condition(object):
         try:
             operator_id = data['op']
         except KeyError:
-            logging.debug('Condition.deserialize: Missing "op" key for '
-                          'condition %r',
-                          data)
+            logger.debug('Condition.deserialize: Missing "op" key for '
+                         'condition %r',
+                         data)
 
             raise ConditionOperatorNotFoundError(
                 _('An operator is required.'),
@@ -99,9 +102,9 @@ class Condition(object):
         try:
             choice = choices.get_choice(choice_id, choice_kwargs=choice_kwargs)
         except ConditionChoiceNotFoundError as e:
-            logging.debug('Condition.deserialize: Invalid "choice" value '
-                          '"%s" for condition %r',
-                          choice_id, data)
+            logger.debug('Condition.deserialize: Invalid "choice" value '
+                         '"%s" for condition %r',
+                         choice_id, data)
 
             raise ConditionChoiceNotFoundError(
                 str(e),
@@ -112,9 +115,9 @@ class Condition(object):
         try:
             operator = choice.get_operator(operator_id)
         except ConditionOperatorNotFoundError as e:
-            logging.debug('Condition.deserialize: Invalid "op" value "%s" '
-                          'for condition %r',
-                          operator_id, data)
+            logger.debug('Condition.deserialize: Invalid "op" value "%s" '
+                         'for condition %r',
+                         operator_id, data)
 
             raise ConditionOperatorNotFoundError(
                 str(e),
@@ -127,17 +130,17 @@ class Condition(object):
                 raw_value = data['value']
                 value = operator.value_field.deserialize_value(raw_value)
             except KeyError:
-                logging.debug('Condition.deserialize: Missing "value" value '
-                              'for condition %r',
-                              data)
+                logger.debug('Condition.deserialize: Missing "value" value '
+                             'for condition %r',
+                             data)
 
                 raise InvalidConditionValueError(
                     _('A value is required.'),
                     condition_index=condition_index)
             except InvalidConditionValueError as e:
-                logging.debug('Condition.deserialize: Invalid "value" value '
-                              '%r for condition %r',
-                              raw_value, data)
+                logger.debug('Condition.deserialize: Invalid "value" value '
+                             '%r for condition %r',
+                             raw_value, data)
 
                 e.condition_index = condition_index
 
@@ -300,9 +303,9 @@ class ConditionSet(object):
         mode = data.get('mode')
 
         if mode not in cls.CONDITIONS:
-            logging.debug('ConditionSet.deserialize: Invalid "mode" value '
-                          '"%s" for condition set %r',
-                          mode, data)
+            logger.debug('ConditionSet.deserialize: Invalid "mode" value '
+                         '"%s" for condition set %r',
+                         mode, data)
 
             raise InvalidConditionModeError(
                 _('"%s" is not a valid condition mode.')

@@ -32,8 +32,8 @@ class VendorChecksumTokenGeneratorTests(TestCase):
         self.assertTrue(token.startswith('test'))
 
     def test_create_token_with_missing_required_key(self):
-        """Testing VendorChecksumTokenGenerator.create_token with a missing required
-        key in token info
+        """Testing VendorChecksumTokenGenerator.create_token with a missing
+        required key in token info
         """
         error_message = ('The token_info dictionary must contain a '
                          'token_type key.')
@@ -49,6 +49,20 @@ class VendorChecksumTokenGeneratorTests(TestCase):
                  'p3NKwLThndO33aVL5pBcU5da9pNnTYtiIsC4f9uLMAP8rQKZa82W91ZArtV4'
                  'WJSDpV07VTszJq6dvzmnbvcTDQvv0crBS2XDntwx5lI4xbtpMR6mquknRneV'
                  'OJxf682I208BGhs8PdGRtv2unF176tCoC3ccI8VFx31Hdb2mgQKPyPCYEtXN'
+                 '32N7RUsAX1BjxMy')
+
+        self.assertTrue(self.token_generator.validate_token(
+            token,
+            token_info={'token_type': 'test'}))
+
+    def test_validate_token_with_valid_token_wrong_base62_encode(self):
+        """Testing VendorChecksumTokenGenerator.validate_token with a valid
+        token that uses Djblets 3.0's incorrect base62-encoding for checksums
+        """
+        token = ('test_kEz3qSWeN25rOVA8RXitY0ywaiAOuey7WRHFeTDaqqR9g827qwuYFy5'
+                 'p3NKwLThndO33aVL5pBcU5da9pNnTYtiIsC4f9uLMAP8rQKZa82W91ZArtV4'
+                 'WJSDpV07VTszJq6dvzmnbvcTDQvv0crBS2XDntwx5lI4xbtpMR6mquknRneV'
+                 'OJxf682I208BGhs8PdGRtv2unF176tCoC3ccI8VFx31Hdb2mgQKPyPCYEtXN'
                  '32N7RUsAX1bJXmY')
 
         self.assertTrue(self.token_generator.validate_token(
@@ -56,8 +70,8 @@ class VendorChecksumTokenGeneratorTests(TestCase):
             token_info={'token_type': 'test'}))
 
     def test_validate_token_with_invalid_token_length(self):
-        """Testing VendorChecksumTokenGenerator.validate_token with a token that
-        has an invalid length
+        """Testing VendorChecksumTokenGenerator.validate_token with a token
+        that has an invalid length
         """
         token = 'test_1234'
 
@@ -66,28 +80,42 @@ class VendorChecksumTokenGeneratorTests(TestCase):
             token_info={'token_type': 'test'}))
 
     def test_validate_token_with_invalid_token_chars(self):
-        """Testing VendorChecksumTokenGenerator.validate_token with a token that
-        has an invalid character in it
+        """Testing VendorChecksumTokenGenerator.validate_token with a token
+        that has an invalid character in it
         """
         token = ('test_$Ez3qSWeN25rOVA8RXitY0ywaiAOuey7WRHFeTDaqqR9g827qwuYFy5'
                  'p3NKwLThndO33aVL5pBcU5da9pNnTYtiIsC4f9uLMAP8rQKZa82W91ZArtV4'
                  'WJSDpV07VTszJq6dvzmnbvcTDQvv0crBS2XDntwx5lI4xbtpMR6mquknRneV'
                  'OJxf682I208BGhs8PdGRtv2unF176tCoC3ccI8VFx31Hdb2mgQKPyPCYEtXN'
-                 '32N7RUsAX1bJXmY')
+                 '32N7RUsAX1BjxMy')
 
         self.assertFalse(self.token_generator.validate_token(
             token,
             token_info={'token_type': 'test'}))
 
     def test_validate_token_with_invalid_token_type(self):
-        """Testing VendorChecksumTokenGenerator.validate_token with a token that
-        has an invalid token type
+        """Testing VendorChecksumTokenGenerator.validate_token with a token
+        that has an invalid token type
         """
         token = ('fail_kEz3qSWeN25rOVA8RXitY0ywaiAOuey7WRHFeTDaqqR9g827qwuYFy5'
                  'p3NKwLThndO33aVL5pBcU5da9pNnTYtiIsC4f9uLMAP8rQKZa82W91ZArtV4'
                  'WJSDpV07VTszJq6dvzmnbvcTDQvv0crBS2XDntwx5lI4xbtpMR6mquknRneV'
                  'OJxf682I208BGhs8PdGRtv2unF176tCoC3ccI8VFx31Hdb2mgQKPyPCYEtXN'
-                 '32N7RUsAX1bJXmY')
+                 '32N7RUsAX1BjxMy')
+
+        self.assertFalse(self.token_generator.validate_token(
+            token,
+            token_info={'token_type': 'test'}))
+
+    def test_validate_token_with_invalid_token_checksum(self):
+        """Testing VendorChecksumTokenGenerator.validate_token with a token
+        that does not match its checksum
+        """
+        token = ('test_kEz3qSWeN25rOVA8RXitY0ywaiAOuey7WRHFeTDaqqR9g827qwuYFy5'
+                 'p3NKwLThndO33aVL5pBcU5da9pNnTYtiIsC4f9uLMAP8rQKZa82W91ZArtV4'
+                 'WJSDpV07VTszJq6dvzmnbvcTDQvv0crBS2XDntwx5lI4xbtpMR6mquknRneV'
+                 'OJxf682I208BGhs8PdGRtv2unF176tCoC3ccI8VFx31Hdb2mgQKPyPCYEtXN'
+                 '32N7RUsAX1BjxMb')
 
         self.assertFalse(self.token_generator.validate_token(
             token,
@@ -101,7 +129,7 @@ class VendorChecksumTokenGeneratorTests(TestCase):
                  'p3NKwLThndO33aVL5pBcU5da9pNnTYtiIsC4f9uLMAP8rQKZa82W91ZArtV4'
                  'WJSDpV07VTszJq6dvzmnbvcTDQvv0crBS2XDntwx5lI4xbtpMR6mquknRneV'
                  'OJxf682I208BGhs8PdGRtv2unF176tCoC3ccI8VFx31Hdb2mgQKPyPCYEtXN'
-                 '32N7RUsAX1bJXmY')
+                 '32N7RUsAX1BjxMy')
 
         self.assertFalse(self.token_generator.validate_token(token,
                                                              token_info={}))

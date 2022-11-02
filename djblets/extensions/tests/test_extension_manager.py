@@ -26,6 +26,9 @@ from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
 
+logger = logging.getLogger(__name__)
+
+
 class MyTestExtension(Extension):
     # We set this to djblets.extensions to avoid an issue unique to tests
     # involving multiple ExtensionManagers. They'd both try wrapping
@@ -1180,7 +1183,7 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
         try:
             orig_func(*args, **kwargs)
         except Exception as e:
-            logging.error('%s\n', e, exc_info=1)
+            logger.error('%s\n', e, exc_info=1)
             self.exceptions.append(e)
 
     def _spy_sleep_and_call(self, func):

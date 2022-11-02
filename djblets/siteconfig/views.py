@@ -1,7 +1,11 @@
 """Views for working with site configurations."""
 
+from __future__ import annotations
+
+from typing import Dict, Type
+
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 
@@ -11,10 +15,12 @@ from djblets.siteconfig.models import SiteConfiguration
 
 @csrf_protect
 @staff_member_required
-def site_settings(request,
-                  form_class=SiteSettingsForm,
-                  template_name='siteconfig/settings.html',
-                  extra_context={}):
+def site_settings(
+    request: HttpRequest,
+    form_class: Type[SiteSettingsForm] = SiteSettingsForm,
+    template_name: str = 'siteconfig/settings.html',
+    extra_context: Dict = {},
+) -> HttpResponse:
     """A view for customizing the site configuration's settings.
 
     This will make use of the provided form class and template, handling
@@ -29,7 +35,7 @@ def site_settings(request,
             either :py:class:`~djblets.siteconfig.forms.SiteSettingsForm` or
             a subclass of it.
 
-        template_name (unicode, optional):
+        template_name (str, optional):
             The template to render for the view.
 
         extra_context (dict, optional):

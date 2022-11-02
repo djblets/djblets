@@ -35,8 +35,8 @@ class LegacySHA1TokenGeneratorTests(TestCase):
         self.assertIsNotNone(token)
 
     def test_create_token_with_missing_required_key(self):
-        """Testing LegacySHA1TokenGenerator.create_token with a missing required
-        key in token info
+        """Testing LegacySHA1TokenGenerator.create_token with a missing
+        required key in token info
         """
         error_message = 'The token_info dictionary must contain a user key.'
 

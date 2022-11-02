@@ -1,5 +1,8 @@
 """Middleware for managing site configurations."""
 
+from __future__ import annotations
+
+from django.http import HttpRequest
 from django.utils.deprecation import MiddlewareMixin
 
 from djblets.siteconfig.models import SiteConfiguration
@@ -13,7 +16,10 @@ class SettingsMiddleware(MiddlewareMixin):
     work with the most up-to-date settings from the database.
     """
 
-    def process_request(self, request):
+    def process_request(
+        self,
+        request: HttpRequest,
+    ) -> None:
         """Process the HTTP request.
 
         This will perform an expiration check for the site configurations.

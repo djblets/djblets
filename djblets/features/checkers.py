@@ -8,6 +8,9 @@ from django.utils.translation import gettext_lazy as _
 from djblets.features.level import FeatureLevel
 
 
+logger = logging.getLogger(__name__)
+
+
 _feature_checker = None
 
 
@@ -210,9 +213,9 @@ def get_feature_checker():
         try:
             set_feature_checker(checker_class())
         except Exception as e:
-            logging.exception('Unable to instantiate feature checker '
-                              'class "%s": %s',
-                              class_path, e)
+            logger.exception('Unable to instantiate feature checker '
+                             'class "%s": %s',
+                             class_path, e)
 
             raise ImproperlyConfigured(
                 _('Unable to instantiate feature checker class "%s": %s')

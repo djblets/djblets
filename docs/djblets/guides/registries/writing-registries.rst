@@ -19,19 +19,30 @@ no two registered elements will have the same value for that attribute.
 Subclassing Registries
 ----------------------
 
-Registries are intended to be subclassed. They have attributes that subclasses
-should override to customize the behaviour:
+Registries are intended to be subclassed.
+
+In Djblets 3.1 and higher, subclasses can specify the type of item managed by
+the registry when subclassing. If not specified, any values are allowed. This
+is specified by doing:
+
+.. code-block:: python
+
+   class MyRegistry(Registry[Item]):
+       ...
+
+Registries have attributes that subclasses should override to customize the
+behaviour:
 
 * :py:attr:`~Registry.lookup_attrs`, which determine which attributes on the
   elements will be usable as lookup attributes. This should be either a
   :py:class:`tuple` or a :py:class:`list` containing strings of attribute
   names.
 
-  For example
+  For example:
 
   .. code-block:: python
 
-     class MyRegistry(Registry):
+     class MyRegistry(Registry[Item]):
          lookup_attrs = ['id', 'name']
 
      registry = MyRegistry()
@@ -71,10 +82,11 @@ For example:
 
 .. code-block:: python
 
-   from django.utils.translation import ugettext as _
+   from django.utils.translation import gettext as _
    from djblets.registries.registry import ALREADY_REGISTERED, Registry
 
-   class FooRegistry(Registry):
+
+   class FooRegistry(Registry[Item]):
         errors = {
              ALREADY_REGISTERED: _(
                 'Could not register the foo "%(attr_name)": it is already '
@@ -90,26 +102,27 @@ For example:
 
 .. code-block:: python
 
-   from django.utils.translation import ugettext as _
-   from djblets.registries.errors import DEFAULT_ERRORS as DjbletsDefaultErrors
+   from django.utils.translation import gettext as _
+   from djblets.registries.errors import DEFAULT_ERRORS
+
 
    HTTP_ERROR = 'http_error'
 
-   DEFAULT_ERRORS = DjbletsDefaultErrors.copy()
-   DEFAULT_ERRORS.update({
+   _DEFAULT_ERRORS = DEFAULT_ERRORS.copy()
+   _DEFAULT_ERRORS.update({
        HTTP_ERROR: _(
            'There was an HTTP error: %(error)s.',
        ),
    })
 
 
-   class ApiRegistry(Registry):
+   class ApiRegistry(Registry[Item]):
        """A registry that persists itself to an API."""
 
-       default_errors = DEFAULT_ERRORS
+       default_errors = _DEFAULT_ERRORS
        api_url = "http://example.com"
 
-       def save(self):
+       def save(self) -> None:
            try:
                update(api_url, list(self))
            except HttpError as e:
@@ -125,6 +138,7 @@ accessed. These default items will populate the registry whenever one of the
 following methods is called:
 
 * :py:meth:`~Registry.get`
+* :py:meth:`~Registry.get_or_none`
 * :py:meth:`~Registry.register`
 * :py:meth:`~Registry.unregister`
 * :py:meth:`~Registry.unregister_by_attr`
@@ -137,10 +151,15 @@ For example:
 
 .. code-block:: Python
 
-   class DefaultItemsRegistry(Registry):
+   from typing import Iterable
+
+   from djblets.registries.registry import Registry
+
+
+   class DefaultItemsRegistry(Registry[int]):
        """A registry that provides default items."""
 
-       def get_defaults(self):
+       def get_defaults(self) -> Iterable[int]:
            return [1, 2, 3]
 
 
@@ -166,28 +185,34 @@ default order, we can iterate through in the order the items were registered.
 
 .. code-block:: python
 
-   class OrderedRegistry(Registry):
+   class OrderedRegistry(Registry[Item]):
        """A registry which maintains the order of its items."""
 
-       def __init__(self):
+       def __init__(self) -> None:
            self._key_order = []
            self._by_id = {}
-           super(OrderedRegistry, self).__init__()
+           super().__init__()
 
-       def register(self, item):
+       def register(
+           self,
+           item: Item,
+       ) -> None:
            """Register an item and keep track of its insertion order."""
            super(OrderedRegistry, self).register(item)
            self._key_order.append(id(item))
            self._by_id[id(item)] = item
 
-       def unregister(self, item):
+       def unregister(
+           self,
+           item: Item,
+       ) -> None:
            """Unregister an item and remove it from the insertion order."""
            super(OrderedRegistry, self).unregister(item)
            key = id(item)
            del self._by_id[key]
            self._key_order.remove(key)
 
-       def __iter__(self):
+       def __iter__(self) -> Iterator[Item]:
            """Yield each registered item in insertion order."""
            for key in self._key_order:
                yield self._by_id[key]
@@ -199,6 +224,12 @@ This behavior is available in the :py:class:`OrderedRegistry` class.
 Exception-less Registries
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. deprecated:: 3.1
+
+   While still usable, it's recommended that callers call
+   :py:meth:`~Registry.get_or_none` instead. This works better with type
+   annotations and helps with consistency and readability.
+
 If :py:meth:`~Registry.get` raising an exception is not useful and instead you
 would prefer a sentinel value (e.g., ``None``) to be returned instead, the
 :py:meth:`~Registry.get` method could be overridden as in the following
@@ -206,10 +237,14 @@ example.
 
 .. code-block:: python
 
-   class SafeRegistry(Registry):
+   class SafeRegistry(Registry[Item]):
        """A registry that does not throw exceptions on item lookup failure."""
 
-       def get(self, attr_name, attr_value):
+       def get(
+           self,
+           attr_name: str,
+           attr_value: object,
+       ) -> Optional[Item]:
            """Return the item if it is registered; otherwise, return None."""
            try:
                return super(SafeRegistry, self).get(attr_name, attr_value)
@@ -224,6 +259,6 @@ as follows and is equivalent to the above code example.
 
    from djblets.registries.mixins import ExceptionFreeGetterMixin
 
-   class SafeRegistry(ExceptionFreeGetterMixin, Registry):
+   class SafeRegistry(ExceptionFreeGetterMixin[Item], Registry[Item]):
        pass
 

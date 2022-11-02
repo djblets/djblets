@@ -37,6 +37,38 @@ class WebAPITokenTests(TestCase):
         self.token_info = {'token_type': 'test'}
         self.user = User.objects.create(username='test-user')
 
+    def test_is_deprecated_with_deprecated(self):
+        """Testing BaseWebAPIToken.is_deprecated with a token from a
+        deprecated token generator
+        """
+        token_generator_id = LegacySHA1TokenGenerator.token_generator_id
+        token_info = {
+            'attempt': 0,
+            'token_type': 'test',
+            'user': self.user,
+        }
+
+        webapi_token = WebAPIToken.objects.generate_token(
+            self.user,
+            token_generator_id=token_generator_id,
+            token_info=token_info)
+
+        self.assertTrue(webapi_token.is_deprecated())
+
+    def test_is_deprecated_with_non_deprecated(self):
+        """Testing BaseWebAPIToken.is_deprecated with a token from a
+        token generator that is not deprecated
+        """
+        token_generator_id = VendorChecksumTokenGenerator.token_generator_id
+        token_info = {'token_type': 'test'}
+
+        webapi_token = WebAPIToken.objects.generate_token(
+            self.user,
+            token_generator_id=token_generator_id,
+            token_info=token_info)
+
+        self.assertFalse(webapi_token.is_deprecated())
+
     def test_is_expired_with_expired(self):
         """Testing BaseWebAPIToken.is_expired with an expired token"""
         now = timezone.now()

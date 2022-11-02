@@ -1,12 +1,13 @@
 from collections import OrderedDict
 
+import kgb
 from django.contrib.auth.models import User
 from django.db import models
 from django.http import HttpResponseNotModified
 from django.test.client import RequestFactory
 
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
-from djblets.util.http import encode_etag
+from djblets.webapi.auth.backends import check_login
 from djblets.webapi.fields import (ResourceFieldType,
                                    ResourceListFieldType,
                                    StringFieldType)
@@ -87,7 +88,7 @@ class BaseTestRefUserResource(BaseTestWebAPIResource):
             return self
 
 
-class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
+class WebAPIResourceTests(kgb.SpyAgency, TestModelsLoaderMixin, TestCase):
     """Unit tests for djblets.webapi.resources.base."""
 
     tests_app = 'djblets.webapi.tests'
@@ -344,6 +345,34 @@ class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['ETag'],
                          '790fc95c3f89afe28403c272553e790274ea1d3e')
+
+    def test_get_with_auth_response_headers(self):
+        """Testing WebAPIResource with GET and ensuring that any headers
+        passed from authentication backends appear in the response
+        """
+        class TestResource(WebAPIResource):
+            allowed_methods = ('GET', 'POST', 'PUT', 'DELETE')
+            mimetype_vendor = 'djblets'
+            uri_object_key = 'id'
+            autogenerate_etags = True
+
+            def get(self, *args, **kwargs):
+                return 200, {
+                    'abc': True,
+                }
+
+        @self.spy_for(check_login)
+        def _fake_check_login(request):
+            return (True, None, {'X-test-header': 'Test'})
+
+        resource = TestResource()
+        request = self.factory.get('/api/tests/',
+                                   HTTP_ACCEPT='application/json')
+        response = resource(request)
+
+        self.assertIsInstance(response, WebAPIResponse)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['X-test-header'], 'Test')
 
     def test_are_cache_headers_current_with_old_last_modified(self):
         """Testing WebAPIResource.are_cache_headers_current with old last
@@ -905,6 +934,93 @@ class WebAPIResourceTests(TestModelsLoaderMixin, TestCase):
 
         data = resource.serialize_object(obj, request=request)
         self.assertIn('my_field', data)
+
+    def test_uri_template_name_default(self):
+        """Testing WebAPIResource.uri_template_name defaults to
+        WebAPIResource.name
+        """
+        class TestResource(WebAPIResource):
+            name = 'test'
+
+        resource = TestResource()
+
+        self.assertEqual(resource.uri_template_name, 'test')
+
+    def test_uri_template_name_set(self):
+        """Testing WebAPIResource.uri_template_name when set"""
+        class TestResource(WebAPIResource):
+            name = 'test'
+            uri_template_name = 'template_name'
+
+        resource = TestResource()
+
+        self.assertEqual(resource.uri_template_name, 'template_name')
+
+    def test_uri_template_name_plural_default(self):
+        """Testing WebAPIResource.uri_template_name_plural defaults to
+        WebAPIResource.name_plural
+        """
+        class TestResource(WebAPIResource):
+            name = 'test'
+
+        resource = TestResource()
+
+        self.assertEqual(resource.uri_template_name_plural, 'tests')
+
+    def test_uri_template_name_plural_set(self):
+        """Testing WebAPIResource.uri_template_name_plural when set"""
+        class TestResource(WebAPIResource):
+            name = 'test'
+            uri_template_name = 'name'
+            uri_template_name_plural = 'plural_name'
+
+        resource = TestResource()
+
+        self.assertEqual(resource.uri_template_name_plural, 'plural_name')
+
+    def test_uri_template_name_plural_none(self):
+        """Testing WebAPIResource.uri_template_name_plural is None
+        when WebAPIResource.uri_template_name is set to None
+        """
+        class TestResource(WebAPIResource):
+            name = 'test'
+            uri_template_name = None
+
+        resource = TestResource()
+
+        self.assertIsNone(resource.uri_template_name_plural)
+
+    def test_uri_template_name_plural_singleton(self):
+        """Testing WebAPIResource.uri_template_name_plural is
+        WebAPIResource.uri_template_name for singletons
+        """
+        class TestResourceA(WebAPIResource):
+            name = 'testA'
+            uri_template_name = 'singleton'
+            singleton = True
+
+        class TestResourceB(WebAPIResource):
+            name = 'testB'
+            singleton = True
+
+        resourceA = TestResourceA()
+        resourceB = TestResourceB()
+
+        self.assertEqual(resourceA.uri_template_name_plural, 'singleton')
+        self.assertEqual(resourceB.uri_template_name_plural, 'testB')
+
+    def test_uri_template_name_plural_with_uri_template_name_set(self):
+        """Testing WebAPIResource.uri_template_name_plural is
+        WebAPIResource.uri_template_name with an appended 's' for resources
+        that have a uri_template_name set
+        """
+        class TestResource(WebAPIResource):
+            name = 'test'
+            uri_template_name = 'name'
+
+        resource = TestResource()
+
+        self.assertEqual(resource.uri_template_name_plural, 'names')
 
     def _test_mimetype_responses(self, resource, url, json_mimetype,
                                  xml_mimetype, **kwargs):
