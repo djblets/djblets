@@ -31,6 +31,7 @@ class Command(BaseCommand):
         path = key.split('.')
         node = siteconfig.settings
         valid_key = True
+        key_basename = ''
 
         for item in path[:-1]:
             try:

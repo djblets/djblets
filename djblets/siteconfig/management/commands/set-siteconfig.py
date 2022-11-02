@@ -1,3 +1,7 @@
+"""Management command for setting site configuration."""
+
+from typing import Type
+
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import gettext as _
 
@@ -44,6 +48,7 @@ class Command(BaseCommand):
         path = key.split('.')
         node = siteconfig.settings
         valid_key = True
+        key_basename = ''
 
         for item in path[:-1]:
             try:
@@ -61,7 +66,7 @@ class Command(BaseCommand):
             raise CommandError(_("'%s' is not a valid settings key") % key)
 
         stored_value = node[key_basename]
-        value_type = type(stored_value)
+        value_type: Type = type(stored_value)
 
         if value_type not in (str, bytes, int, bool, type(None)):
             raise CommandError(_("Cannot set %s keys") % value_type.__name__)

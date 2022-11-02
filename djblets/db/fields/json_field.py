@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import copy
 import json
 import logging
 from ast import literal_eval
+from typing import Dict
 
 from django import forms
 from django.conf import settings
@@ -9,6 +12,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_init
 from django.utils.translation import gettext_lazy as _
+from typing_extensions import TypeAlias
 
 from djblets.db.validators import validate_json
 from djblets.util.decorators import cached_property
@@ -16,6 +20,25 @@ from djblets.util.serializers import DjbletsJSONEncoder
 
 
 logger = logging.getLogger(__name__)
+
+
+#: A type indicating a valid value in JSON data.
+#:
+#: As of the time this was added, Python does not have its own JSON value
+#: definition, and type checkers do not allow for recursive definitions.
+#: This is currently very generic, but may be expanded or aliased in the
+#: future.
+#:
+#: Version Added:
+#:     3.1
+JSONValue: TypeAlias = object
+
+
+#: A type for a JSON dictionary.
+#:
+#: Version Added:
+#:     3.1
+JSONDict: TypeAlias = Dict[str, JSONValue]
 
 
 class JSONFormField(forms.CharField):

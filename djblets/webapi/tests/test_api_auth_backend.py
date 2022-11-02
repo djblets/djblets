@@ -23,9 +23,6 @@ from djblets.webapi.models import BaseWebAPIToken
 class MyTestWebAPITokenModel(BaseWebAPIToken):
     """Mock WebAPI Token Model for testing purposes."""
 
-    token_generator = None
-    token_generator_id = None
-
 
 class MyTestTokenAuthBackend(TokenAuthBackendMixin):
     """Mock Token Auth Backend for testing purposes."""
@@ -320,3 +317,34 @@ class WebAPITokenAuthBackendTests(kgb.SpyAgency,
         self.assertEqual(result, (True, None, None))
         self.assertNotEqual(self.request.META['CSRF_COOKIE'], '')
         self.assertEqual(token_object.last_used, timezone.now())
+
+    def test_authenticate_deprecated_token(self):
+        """Testing Token Auth authenticate succeeds and returns a deprecation
+        notice in a response header when using a deprecated token
+        """
+        token = 'token123'
+        self.user = User.objects.create_user(username='testuser')
+
+        MyTestWebAPITokenModel.objects.create(
+            user=self.user,
+            token=token,
+            token_generator_id='legacy_sha1')
+        self.request.user = User()
+        self.request.META['HTTP_AUTHORIZATION'] = 'token %s' % token
+
+        result = self.api_token_auth_backend.authenticate(self.request)
+
+        self.assertEqual(
+            result,
+            (
+                True,
+                None,
+                {
+                    'X-API-Token-Deprecated': (
+                        'This token uses a deprecated format. The token can '
+                        'still be used, but you should remove it and '
+                        'generate a new one to take advantage of security '
+                        'improvements.'
+                    ),
+                }
+            ))

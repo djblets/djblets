@@ -1,0 +1,113 @@
+.. default-intersphinx:: django3.2 djblets3.x
+
+
+=========================
+Djblets 3.1 Release Notes
+=========================
+
+**Release date**: November 1, 2022
+
+
+Packaging
+=========
+
+* :pypi:`typing_extensions` 4.4.x or higher is required.
+
+
+djblets.registries
+==================
+
+* Added Python type hints for the whole module.
+
+* Registries can now specify their item type using Python's type generics.
+
+  This allows a subclass to benefit from type hints, helping IDEs and type
+  checkers ensure code interfacing with the registry is written correctly.
+
+  Simply subclass using the following form:
+
+  .. code-block:: python
+
+     class MyRegistry(Registry[MyItemType]):
+         ...
+
+* Added :py:attr:`Registry.get_or_none()
+  <djblets.registries.registry.Registry.get_or_none>`, which returns ``None``
+  if the item is not present in the registry.
+
+  It's now recommended that consumers use this instead of using
+  :py:class:`~djblets.registries.mixins.ExceptionFreeGetterMixin`, in order
+  to ensure consistency in the behavior of
+  :py:meth:`~djblets.registries.registry.Registry.get`.
+
+
+
+djblets.secrets
+===============
+
+* Added Python type hints for the whole module.
+
+* Added support for deprecated tokens.
+
+  Token generators can now be marked as deprecated by setting
+  ``settings.DJBLETS_DEPRECATED_TOKEN_GENERATORS`` to a :py:class:`set` of
+  token generator IDs.
+
+  This can help with phasing out API tokens or other forms of tokens. The API
+  support has been updated to make use of this.
+
+* Fixed a generation problem with API tokens created in Djblets 3.0.
+
+  These tokens use a Base62-encoding, but the character set used was wrong.
+  This led to tokens that weren't exactly Base62.
+
+  This is fixed in this release, and only affects consumers looking to
+  validate tokens through custom code. Djblets still considers these tokens
+  valid.
+
+
+djblets.siteconfig
+==================
+
+* Added Python type hints for the whole module.
+
+
+djblets.webapi
+==============
+
+* Added support for customizing URI template names.
+
+  The new :py:attr:`WebAPIResource.uri_template_name
+  <djblets.webapi.resources.base.WebAPIResource.uri_template_name>` and
+  :py:attr:`WebAPIResource.uri_template_name_plural
+  <djblets.webapi.resources.base.WebAPIResource.uri_template_name_plural>`
+  attributes can be used to specify the names for the root resource's URI
+  template mapping.
+
+  These default to the resource's standard names, as before.
+
+* Added enforcement of unique URI template names.
+
+  URI template names must now be unique. This is enforced when building the
+  API resource tree. A conflict will log when ``settings.DEBUG`` is ``True``,
+  or raise an error if ``False``.
+
+  This may affect existing consumers that were silently getting conflicts
+  between different resources, with different mappings on different versions
+  of Python.
+
+* Added :py:meth:`BaseWebAPIToken.is_deprecated()
+  <djblets.webapi.models.BaseWebAPIToken.is_deprecated>` to check if a stored
+  token is deprecated.
+
+* API requests made with deprecated API tokens now contain a
+  :mailheader:`X-API-Token-Deprecated` HTTP header containing a message to
+  display.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin

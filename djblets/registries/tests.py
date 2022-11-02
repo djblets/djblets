@@ -1,3 +1,5 @@
+from typing import Any, Iterable
+
 from kgb import SpyAgency
 
 from djblets.registries.errors import (AlreadyRegisteredError,
@@ -8,10 +10,21 @@ from djblets.registries.signals import registry_populating
 from djblets.testing.testcases import TestCase
 
 
-class Item(object):
-    """An object with arbitrary attributes."""
+class Item:
+    """An item used for registry tests."""
 
-    def __init__(self, **attrs):
+    ######################
+    # Instance variables #
+    ######################
+
+    id: int
+    name: str
+    fake: bool
+
+    def __init__(
+        self,
+        **attrs,
+    ) -> None:
         """Initialize the item.
 
         Args:
@@ -23,17 +36,20 @@ class Item(object):
         for attr_name, attr_value in attrs.items():
             setattr(self, attr_name, attr_value)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         attrs = (
             '%s=%r' % (attr_name, getattr(self, attr_name))
             for attr_name in self._attrs
         )
         return '<Item(%s)>' % ', '.join(attrs)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return id(self)
 
-    def __eq__(self, other):
+    def __eq__(
+        self,
+        other: Any,
+    ) -> bool:
         return (type(self) is type(other) and
                 self._attrs == other._attrs and
                 all(getattr(self, attr_name) == getattr(other, attr_name)
@@ -82,7 +98,7 @@ class RegistryTests(SpyAgency, TestCase):
 
     def test_unregister_removes_attr_lookups(self):
         """Testing Registry.unregister removes lookup entries"""
-        class TestRegistry(Registry):
+        class TestRegistry(Registry[Item]):
             lookup_attrs = ('id',)
 
         r = TestRegistry()
@@ -106,7 +122,7 @@ class RegistryTests(SpyAgency, TestCase):
         original_item = Item(id=0)
         duplicate_item = Item(id=0, fake=True)
 
-        class TestRegistry(Registry):
+        class TestRegistry(Registry[Item]):
             lookup_attrs = ('id',)
 
             def get_defaults(self):
@@ -121,9 +137,10 @@ class RegistryTests(SpyAgency, TestCase):
 
         self.assertIs(r.get('id', original_item.id),
                       original_item)
-        self.assertTrue(registry_populating.send.called_with(
+        self.assertSpyCalledWith(
+            registry_populating.send,
             sender=TestRegistry,
-            registry=r))
+            registry=r)
 
     def test_population_on_unregister(self):
         """Testing Registry.unregister_item triggers population before
@@ -131,7 +148,7 @@ class RegistryTests(SpyAgency, TestCase):
         """
         item = Item(id=0)
 
-        class TestRegistry(Registry):
+        class TestRegistry(Registry[Item]):
             lookup_attrs = ('id',)
 
             def get_defaults(self):
@@ -143,9 +160,10 @@ class RegistryTests(SpyAgency, TestCase):
         r.unregister(item)
         self.assertEqual(len(r), 0)
 
-        self.assertTrue(registry_populating.send.called_with(
+        self.assertSpyCalledWith(
+            registry_populating.send,
             sender=TestRegistry,
-            registry=r))
+            registry=r)
 
     def test_registering_duplicate(self):
         """Testing Registry.register_item with duplicate items"""
@@ -159,7 +177,7 @@ class RegistryTests(SpyAgency, TestCase):
         """Testing Registry.register_item with items that have identical
         attributes
         """
-        class TestRegistry(Registry):
+        class TestRegistry(Registry[Item]):
             lookup_attrs = ('id',)
 
         r = TestRegistry()
@@ -172,7 +190,7 @@ class RegistryTests(SpyAgency, TestCase):
         """Testing Registry.register_item with items that have missing
         attributes
         """
-        class TestRegistry(Registry):
+        class TestRegistry(Registry[Item]):
             lookup_attrs = ('id',)
 
         r = TestRegistry()
@@ -185,12 +203,12 @@ class RegistryTests(SpyAgency, TestCase):
         r = Registry()
         r.register(1)
 
-        self.assertTrue(1 in r)
-        self.assertFalse(2 in r)
+        self.assertIn(1, r)
+        self.assertNotIn(2, r)
 
     def test_error_override(self):
         """Testing Registry error formatting strings"""
-        class TestRegistry(Registry):
+        class TestRegistry(Registry[int]):
             errors = {
                 UNREGISTER: 'The foo "%(item)s" is unregistered.'
             }
@@ -205,8 +223,8 @@ class RegistryTests(SpyAgency, TestCase):
 class OrderedRegistryTests(TestCase):
     """Tests for djblets.registries.registry.OrderedRegistry."""
 
-    class TestRegistry(OrderedRegistry):
-        def get_defaults(self):
+    class TestRegistry(OrderedRegistry[int]):
+        def get_defaults(self) -> Iterable[int]:
             return [1, 2, 3]
 
     def setUp(self):
@@ -220,20 +238,20 @@ class OrderedRegistryTests(TestCase):
 
     def test_getitem(self):
         """Testing OrderedRegistry.__getitem__"""
-        self.assertTrue(self.registry[0], 1)
-        self.assertTrue(self.registry[1], 2)
-        self.assertTrue(self.registry[2], 3)
+        self.assertEqual(self.registry[0], 1)
+        self.assertEqual(self.registry[1], 2)
+        self.assertEqual(self.registry[2], 3)
 
     def test_getitem_negative_indices(self):
         """Testing OrderedRegistry.__getitem__ with negative indices"""
-        self.assertTrue(self.registry[-1], 3)
-        self.assertTrue(self.registry[-2], 2)
-        self.assertTrue(self.registry[-3], 1)
+        self.assertEqual(self.registry[-1], 3)
+        self.assertEqual(self.registry[-2], 2)
+        self.assertEqual(self.registry[-3], 1)
 
     def test_getitem_invalid_index(self):
         """Testing OrderedRegistry.__getitem__ with an invalid index"""
         with self.assertRaises(TypeError):
-            self.registry['foo']
+            self.registry['foo']  # type: ignore
 
     def test_getitem_out_of_range(self):
         """Testing OrderedRegistry.__getitem__ with an out of range index"""

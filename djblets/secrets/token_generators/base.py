@@ -4,6 +4,8 @@ Version Added:
     3.0
 """
 
+from typing import Any, Dict, Optional
+
 
 class BaseTokenGenerator:
     """A base class for token generators.
@@ -25,9 +27,13 @@ class BaseTokenGenerator:
     #:
     #: Type:
     #:     str
-    token_generator_id = None
+    token_generator_id: Optional[str] = None
 
-    def create_token(self, token_info={}, **kwargs):
+    def create_token(
+        self,
+        token_info: Dict[str, Any] = {},
+        **kwargs,
+    ) -> str:
         """Create a new token.
 
         Subclasses must override this to actually create the token.
@@ -50,7 +56,12 @@ class BaseTokenGenerator:
         """
         raise NotImplementedError
 
-    def validate_token(self, token, token_info={}, **kwargs):
+    def validate_token(
+        self,
+        token: str,
+        token_info: Dict[str, Any] = {},
+        **kwargs,
+    ) -> bool:
         """Validate the token.
 
         This should return a bool indicating whether the given token

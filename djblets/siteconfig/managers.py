@@ -1,12 +1,21 @@
 """Model and cache management for SiteConfiguration."""
 
+from __future__ import annotations
+
 from django.contrib.sites.models import Site
 from django.db import models
+from typing import Dict, TYPE_CHECKING
 
 from djblets.siteconfig.signals import siteconfig_reloaded
 
 
-_SITECONFIG_CACHE = {}
+if TYPE_CHECKING:
+    # We don't want the implementation to know it's bound by SiteConfiguration,
+    # but we do need to convey it for type hints.
+    from djblets.siteconfig.models import SiteConfiguration
+
+
+_SITECONFIG_CACHE: Dict[int, SiteConfiguration] = {}
 
 
 class SiteConfigurationManager(models.Manager):
@@ -20,7 +29,7 @@ class SiteConfigurationManager(models.Manager):
     to manage expiration between server processes.
     """
 
-    def get_current(self):
+    def get_current(self) -> SiteConfiguration:
         """Return the site configuration for the active site.
 
         Multiple calls to this method for the same
@@ -38,7 +47,10 @@ class SiteConfigurationManager(models.Manager):
         """
         return self.get_for_site_id(Site.objects.get_current().pk)
 
-    def get_for_site_id(self, site_id):
+    def get_for_site_id(
+        self,
+        site_id: int,
+    ) -> SiteConfiguration:
         """Return the site configuration for a specific site ID.
 
         Multiple calls to this method for the same
@@ -62,7 +74,7 @@ class SiteConfigurationManager(models.Manager):
 
         return siteconfig
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         """Clear the entire SiteConfiguration cache.
 
         The next call to :py:meth:`get_current` for any
@@ -71,9 +83,9 @@ class SiteConfigurationManager(models.Manager):
         """
         global _SITECONFIG_CACHE
 
-        _SITECONFIG_CACHE = {}
+        _SITECONFIG_CACHE.clear()
 
-    def check_expired(self):
+    def check_expired(self) -> None:
         """Check whether any SiteConfigurations have expired.
 
         If a :py:class:`~djblets.siteconfig.models.SiteConfiguration` has

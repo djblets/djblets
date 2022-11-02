@@ -1,15 +1,33 @@
 """Database models for storing site configuration."""
 
+from __future__ import annotations
+
+from typing import Dict, Optional
+
 from django.contrib.sites.models import Site
 from django.db import models
+from typing_extensions import TypeAlias
 
 from djblets.cache.synchronizer import GenerationSynchronizer
-from djblets.db.fields import JSONField
+from djblets.db.fields.json_field import JSONDict, JSONField, JSONValue
 from djblets.siteconfig.managers import SiteConfigurationManager
 
 
-_GLOBAL_DEFAULTS = {}
-_DEFAULTS = {}
+#: An alias for valid value types in site configuration settings.
+#:
+#: Version Added:
+#:     3.1
+SiteConfigurationSettingsValue: TypeAlias = JSONValue
+
+#: An alias for the container of settings in a site configuration.
+#:
+#: Version Added:
+#:     3.1
+SiteConfigurationSettings: TypeAlias = JSONDict
+
+
+_GLOBAL_DEFAULTS: SiteConfigurationSettings = {}
+_DEFAULTS: Dict[int, SiteConfigurationSettings] = {}
 
 
 class SiteConfigSettingsWrapper(object):
@@ -19,7 +37,20 @@ class SiteConfigSettingsWrapper(object):
     settings data, properly returning defaults.
     """
 
-    def __init__(self, siteconfig):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The site configuration associated with this wrapper.
+    #:
+    #: Type:
+    #:     SiteConfiguration
+    siteconfig: SiteConfiguration
+
+    def __init__(
+        self,
+        siteconfig: SiteConfiguration,
+    ) -> None:
         """Initialize the wrapper.
 
         Args:
@@ -28,18 +59,21 @@ class SiteConfigSettingsWrapper(object):
         """
         self.siteconfig = siteconfig
 
-    def __getattr__(self, name):
+    def __getattr__(
+        self,
+        name: str,
+    ) -> Optional[object]:
         """Return an attribute from the site configuration.
 
         If the attribute is not present in the site configuration's settings,
         the registered default will be returned.
 
         Args:
-            name (unicode):
+            name (str):
                 The name of the attribute.
 
         Returns:
-            unicode:
+            object:
             The resulting value from the site configuration or the default.
         """
         return self.siteconfig.get(name)
@@ -71,7 +105,10 @@ class SiteConfiguration(models.Model):
     objects = SiteConfigurationManager()
 
     @classmethod
-    def add_global_defaults(cls, defaults_dict):
+    def add_global_defaults(
+        cls,
+        defaults_dict: SiteConfigurationSettings,
+    ) -> None:
         """Add a dictionary of global defaults for settings.
 
         These defaults will be used when calling :py:meth:`get` for any setting
@@ -86,7 +123,11 @@ class SiteConfiguration(models.Model):
         _GLOBAL_DEFAULTS.update(defaults_dict)
 
     @classmethod
-    def add_global_default(cls, key, default_value):
+    def add_global_default(
+        cls,
+        key: str,
+        default_value: SiteConfigurationSettingsValue,
+    ) -> None:
         """Add a global default value for a settings key.
 
         The default will be used when calling :py:meth:`get` for this key,
@@ -94,7 +135,7 @@ class SiteConfiguration(models.Model):
         configuration take precedent over global defaults.
 
         Args:
-            key (unicode):
+            key (str):
                 The settings key to set the default for.
 
             default_value (object):
@@ -103,17 +144,20 @@ class SiteConfiguration(models.Model):
         cls.add_global_defaults({key: default_value})
 
     @classmethod
-    def remove_global_default(cls, key):
+    def remove_global_default(
+        cls,
+        key: str,
+    ) -> None:
         """Remove a global default value for a settings key.
 
         Args:
-            key (unicode):
+            key (str):
                 The settings key to remove the default for.
         """
         _GLOBAL_DEFAULTS.pop(key)
 
     @classmethod
-    def clear_global_defaults(cls):
+    def clear_global_defaults(cls) -> None:
         """Clear all default values for this site configuration.
 
         This will clear only global defaults. This will not affect defaults
@@ -122,7 +166,7 @@ class SiteConfiguration(models.Model):
         _GLOBAL_DEFAULTS.clear()
 
     @classmethod
-    def get_global_defaults(cls):
+    def get_global_defaults(cls) -> SiteConfigurationSettings:
         """Return all global defaults for settings.
 
         Returns:
@@ -131,7 +175,7 @@ class SiteConfiguration(models.Model):
         """
         return _GLOBAL_DEFAULTS
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize the site configuration.
 
         Args:
@@ -141,7 +185,7 @@ class SiteConfiguration(models.Model):
             **kwargs (dict):
                 Keyword arguments to pass to the parent constructor.
         """
-        super(SiteConfiguration, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Optimistically try to set the Site to the current site instance,
         # which either is cached now or soon will be. That way, we avoid
@@ -158,7 +202,11 @@ class SiteConfiguration(models.Model):
 
         self.settings_wrapper = SiteConfigSettingsWrapper(self)
 
-    def get(self, key, default=None):
+    def get(
+        self,
+        key: str,
+        default: Optional[SiteConfigurationSettingsValue] = None,
+    ) -> Optional[SiteConfigurationSettingsValue]:
         """Return the value for a setting.
 
         If the setting is not found, the default value will be returned. This
@@ -168,7 +216,7 @@ class SiteConfiguration(models.Model):
         If no default is available, ``None`` will be returned.
 
         Args:
-            key (unicode):
+            key (str):
                 The site configuration settings key.
 
             default (object, optional):
@@ -187,14 +235,18 @@ class SiteConfiguration(models.Model):
 
         return self.settings.get(key, default)
 
-    def set(self, key, value):
+    def set(
+        self,
+        key: str,
+        value: SiteConfigurationSettingsValue,
+    ) -> None:
         """Set a value for a setting.
 
         The setting will be stored locally until the model is saved, at which
         point it will be synchronized with other processes/servers.
 
         Args:
-            key (unicode):
+            key (str):
                 The key for the setting.
 
             value (object):
@@ -202,7 +254,10 @@ class SiteConfiguration(models.Model):
         """
         self.settings[key] = value
 
-    def add_defaults(self, defaults_dict):
+    def add_defaults(
+        self,
+        defaults_dict: SiteConfigurationSettings,
+    ) -> None:
         """Add a dictionary of defaults for settings.
 
         These defaults will be used when calling :py:meth:`get` for any setting
@@ -216,7 +271,11 @@ class SiteConfiguration(models.Model):
         """
         _DEFAULTS.setdefault(self.pk, {}).update(defaults_dict)
 
-    def add_default(self, key, default_value):
+    def add_default(
+        self,
+        key: str,
+        default_value: SiteConfigurationSettingsValue,
+    ) -> None:
         """Add a default value for a settings key.
 
         The default will be used when calling :py:meth:`get` for this key,
@@ -224,7 +283,7 @@ class SiteConfiguration(models.Model):
         configuration, and will not be registered for global defaults.
 
         Args:
-            key (unicode):
+            key (str):
                 The settings key to set the default for.
 
             default_value (object):
@@ -232,14 +291,17 @@ class SiteConfiguration(models.Model):
         """
         self.add_defaults({key: default_value})
 
-    def remove_default(self, key):
+    def remove_default(
+        self,
+        key: str,
+    ) -> None:
         """Remove a default value on this site configuration.
 
         This will remove only defaults registered on this site configuration.
         This does not affect global defaults.
 
         Args:
-            key (unicode):
+            key (str):
                 The settings key to remove the default for.
         """
         try:
@@ -247,7 +309,7 @@ class SiteConfiguration(models.Model):
         except KeyError:
             pass
 
-    def clear_defaults(self):
+    def clear_defaults(self) -> None:
         """Clear all default values for this site configuration.
 
         This will clear only defaults registered on this site configuration.
@@ -255,7 +317,7 @@ class SiteConfiguration(models.Model):
         """
         _DEFAULTS[self.pk] = {}
 
-    def get_defaults(self):
+    def get_defaults(self) -> SiteConfigurationSettings:
         """Return all defaults for this site configuration.
 
         This will return only defaults registered on this site configuration.
@@ -267,7 +329,7 @@ class SiteConfiguration(models.Model):
         """
         return _DEFAULTS.get(self.pk, {})
 
-    def is_expired(self):
+    def is_expired(self) -> bool:
         """Return whether or not this SiteConfiguration is expired.
 
         If the configuration is expired, it will need to be reloaded before
@@ -279,7 +341,12 @@ class SiteConfiguration(models.Model):
         """
         return self._gen_sync.is_expired()
 
-    def save(self, clear_caches=True, **kwargs):
+    def save(
+        self,
+        *args,
+        clear_caches: bool = True,
+        **kwargs,
+    ) -> None:
         """Save the site configuration to the database.
 
         By default, saving will clear the caches across all processes/servers
@@ -302,19 +369,19 @@ class SiteConfiguration(models.Model):
             SiteConfiguration.objects.clear_cache()
             Site.objects.clear_cache()
 
-        super(SiteConfiguration, self).save(**kwargs)
+        super().save(*args, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string version of the site configuration.
 
         The returned string will list the associated site's domain and the
         stored application version.
 
         Returns:
-            unicode:
+            str:
             The string representation of the site configuration.
         """
-        return "%s (version %s)" % (str(self.site), self.version)
+        return '%s (version %s)' % (self.site, self.version)
 
     class Meta:
         # Djblets 0.9+ sets an app label of "djblets_siteconfig" on

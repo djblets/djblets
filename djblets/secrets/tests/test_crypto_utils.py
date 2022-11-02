@@ -49,7 +49,7 @@ class AESDecryptTests(BaseAESTestCase):
                             'not "<class \'str\'>"')
 
         with self.assertRaisesMessage(TypeError, expected_message):
-            aes_decrypt('abc')
+            aes_decrypt('abc')  # type: ignore
 
     def test_with_custom_key(self):
         """Testing aes_decrypt with custom key"""
@@ -74,7 +74,7 @@ class AESDecryptTests(BaseAESTestCase):
                             'not "<class \'str\'>"')
 
         with self.assertRaisesMessage(TypeError, expected_message):
-            aes_decrypt(encrypted, key='abc')
+            aes_decrypt(encrypted, key='abc')  # type: ignore
 
 
 class AESDecryptBase64(BaseAESTestCase):
