@@ -7,10 +7,11 @@ For information on writing registries, see
 """
 
 import logging
+from typing import (Dict, Generic, Iterable, Iterator, List, Optional,
+                    Sequence, Set, Type, TypeVar)
 
 from django.utils.translation import gettext_lazy as _
-from pkg_resources import iter_entry_points
-
+from pkg_resources import EntryPoint, iter_entry_points
 
 from djblets.registries.errors import (AlreadyRegisteredError,
                                        ItemLookupError,
@@ -55,62 +56,116 @@ DEFAULT_ERRORS = {
 }
 
 
-class Registry(object):
+#: A generic type for items stored in a registry.
+#:
+#: This can be used for subclasses of :py:class:`Registry`, mixins, or other
+#: utility code that need to stay generic. In normal usage, an explicit type
+#: will be provided when subclassing instead.
+#:
+#: Version Added:
+#:     3.1
+RegistryItemType = TypeVar('RegistryItemType')
+
+
+class Registry(Generic[RegistryItemType]):
     """An item registry.
 
     Item registries hold a set of objects that can be looked up by attributes.
     Each item is guaranteed to be unique and not share these attributes with
     any other item in the registry.
+
+    Registries default to holding arbitrary objects. To limit objects to a
+    specific type, specify a type when subclassing. For example:
+
+    .. code-block:: python
+
+        class MyRegistry(Registry[MyItemType]):
+            ...
+
+    Version Changed:
+        3.1:
+        Added support for specifying a registry item type when subclassing
+        this registry.
     """
 
     #: The name of the items being registered.
-    item_name = None
+    #:
+    #: Type:
+    #:     str
+    item_name: Optional[str] = None
 
     #: A list of attributes that items can be looked up by.
-    lookup_attrs = []
+    #:
+    #: Type:
+    #:     list of str
+    lookup_attrs: Sequence[str] = []
 
     #: Error formatting strings for exceptions.
     #:
     #: Entries here override the global :py:data:`DEFAULT_ERRORS` dictionary
     #: for error messages.
-    errors = {}
+    #:
+    #: Type:
+    #:     dict
+    errors: Dict[str, str] = {}
 
     #: The default error formatting strings.
     #:
     #: If subclasses need to provide additional errors that can be overridden,
     #: they should copy :py:data:`DEFAULT_ERRORS` and set their copy on the
     #: subclass as this attribute.
-    default_errors = DEFAULT_ERRORS
+    #:
+    #: Type:
+    #:     dict
+    default_errors: Dict[str, str] = DEFAULT_ERRORS
 
     #: The error class indicating an already registered item.
-    already_registered_error_class = AlreadyRegisteredError
+    #:
+    #: This must be a subclass of
+    #: :py:class:`~djblets.registries.errors.AlreadyRegisteredError`.
+    #:
+    #: Type:
+    #:     type
+    already_registered_error_class: Type[AlreadyRegisteredError] = \
+        AlreadyRegisteredError
 
     #: The lookup error exception class.
-    lookup_error_class = ItemLookupError
+    #:
+    #: This must be a subclass of
+    #: :py:class:`~djblets.registries.errors.ItemLookupError`.
+    #:
+    #: Type:
+    #:     type
+    lookup_error_class: Type[ItemLookupError] = ItemLookupError
+
+    def __init__(self) -> None:
+        """Initialize the registry."""
+        self._registry: Dict[str, Dict[object, RegistryItemType]] = {
+            _attr_name: {}
+            for _attr_name in self.lookup_attrs
+        }
+        self._populated: bool = False
+        self._items: Set[RegistryItemType] = set()
 
     @property
-    def populated(self):
+    def populated(self) -> bool:
         """Whether or not the registry is populated.
 
         Returns:
-            bool: Whether or not the registry is populated.
+            bool:
+            Whether or not the registry is populated.
         """
         return self._populated
 
-    def __init__(self):
-        """Initialize the registry."""
-        self._registry = {}
-        self._populated = False
-        self._items = set()
-
-        for attr_name in self.lookup_attrs:
-            self._registry[attr_name] = {}
-
-    def format_error(self, error_name, **error_kwargs):
+    def format_error(
+        self,
+        error_name: str,
+        **error_kwargs,
+    ) -> str:
         """Format an error message.
 
         Args:
-            error_name (unicode):
+            error_name (str):
                 A symbolic name for the error, such as
                 :py:data:`ALREADY_REGISTERED`.
 
@@ -119,8 +174,13 @@ class Registry(object):
                 formatting string.
 
         Returns:
-            unicode:
-                The formatted error message.
+            str:
+            The formatted error message.
+
+        Raises:
+            ValueError:
+                A registered error message for ``error_name`` could not be
+                found.
         """
         fmt = self.errors.get(error_name, self.default_errors.get(error_name))
 
@@ -130,18 +190,23 @@ class Registry(object):
 
         return fmt % error_kwargs
 
-    def get(self, attr_name, attr_value):
+    def get(
+        self,
+        attr_name: str,
+        attr_value: object,
+    ) -> RegistryItemType:
         """Return an item by its attribute value.
 
         Args:
-            attr_name (unicode):
+            attr_name (str):
                 The attribute name to look up an item by.
 
             attr_value (object):
                 The corresponding attribute value.
 
         Returns:
-            object: The registered item.
+            object:
+            The registered item.
 
         Raises:
             djblets.registries.errors.ItemLookupError:
@@ -162,7 +227,37 @@ class Registry(object):
             raise self.lookup_error_class(self.format_error(
                 NOT_REGISTERED, attr_name=attr_name, attr_value=attr_value))
 
-    def register(self, item):
+    def get_or_none(
+        self,
+        attr_name: str,
+        attr_value: object,
+    ) -> Optional[RegistryItemType]:
+        """Return the requested registered item, or None if not found.
+
+        Version Added:
+            3.1
+
+        Args:
+            attr_name (str):
+                The attribute name.
+
+            attr_value (object):
+                The attribute value.
+
+        Returns:
+            object:
+            The matching registered item, if found. Otherwise, ``None`` is
+            returned.
+        """
+        try:
+            return self.get(attr_name, attr_value)
+        except ItemLookupError:
+            return None
+
+    def register(
+        self,
+        item: RegistryItemType,
+    ) -> None:
         """Register an item.
 
         Args:
@@ -179,15 +274,17 @@ class Registry(object):
                 the registry.
         """
         self.populate()
-        attr_values = {}
+        attr_values: Dict[str, object] = {}
 
         if item in self._items:
             raise self.already_registered_error_class(self.format_error(
                 ALREADY_REGISTERED,
                 item=item))
 
+        registry_map = self._registry
+
         for attr_name in self.lookup_attrs:
-            attr_map = self._registry[attr_name]
+            attr_map = registry_map[attr_name]
 
             try:
                 attr_value = getattr(item, attr_name)
@@ -208,15 +305,19 @@ class Registry(object):
                     attr_name=attr_name))
 
         for attr_name, attr_value in attr_values.items():
-            self._registry[attr_name][attr_value] = item
+            registry_map[attr_name][attr_value] = item
 
         self._items.add(item)
 
-    def unregister_by_attr(self, attr_name, attr_value):
+    def unregister_by_attr(
+        self,
+        attr_name: str,
+        attr_value: object,
+    ) -> None:
         """Unregister an item from the registry by an attribute.
 
         Args:
-            attr_name (unicode):
+            attr_name (str):
                 The name of the attribute.
 
             attr_value (object):
@@ -241,7 +342,10 @@ class Registry(object):
 
         self.unregister(item)
 
-    def unregister(self, item):
+    def unregister(
+        self,
+        item: RegistryItemType,
+    ) -> None:
         """Unregister an item from the registry.
 
         Args:
@@ -260,11 +364,13 @@ class Registry(object):
             raise self.lookup_error_class(self.format_error(UNREGISTER,
                                                             item=item))
 
+        registry_map = self._registry
+
         for attr_name in self.lookup_attrs:
             attr_value = getattr(item, attr_name)
-            del self._registry[attr_name][attr_value]
+            del registry_map[attr_name][attr_value]
 
-    def populate(self):
+    def populate(self) -> None:
         """Ensure the registry is populated.
 
         Calling this method when the registry is populated will have no effect.
@@ -280,7 +386,7 @@ class Registry(object):
         registry_populating.send(sender=type(self),
                                  registry=self)
 
-    def get_defaults(self):
+    def get_defaults(self) -> Iterable[RegistryItemType]:
         """Return the default items for the registry.
 
         This method should be overridden by a subclass.
@@ -291,7 +397,7 @@ class Registry(object):
         """
         return []
 
-    def reset(self):
+    def reset(self) -> None:
         """Unregister all items and mark the registry unpopulated.
 
         This will result in the registry containing no entries. Any call to a
@@ -305,29 +411,34 @@ class Registry(object):
 
         assert len(self._items) == 0
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[RegistryItemType]:
         """Iterate through all items in the registry.
 
         This method does not provide a stable ordering.
 
         Yields:
-            object: The items registered in this registry.
+            object:
+            The items registered in this registry.
         """
         self.populate()
 
         for item in self._items:
             yield item
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Return the number of items in the registry.
 
         Returns:
-            int: The number of items in the registry.
+            int:
+            The number of items in the registry.
         """
         self.populate()
         return len(self._items)
 
-    def __contains__(self, item):
+    def __contains__(
+        self,
+        item: RegistryItemType,
+    ) -> bool:
         """Return whether or not the item is contained in the registry.
 
         Args:
@@ -335,23 +446,28 @@ class Registry(object):
                 The item to look for.
 
         Returns:
-            bool: Whether or not the item is contained in the registry.
+            bool:
+            Whether or not the item is contained in the registry.
         """
         self.populate()
         return item in self._items
 
 
-class EntryPointRegistry(Registry):
+class EntryPointRegistry(Registry[RegistryItemType]):
     """A registry that auto-populates from an entry-point."""
 
     #: The entry point name.
-    entry_point = None
+    #:
+    #: Type:
+    #:     str
+    entry_point: Optional[str] = None
 
-    def get_defaults(self):
+    def get_defaults(self) -> Iterable[RegistryItemType]:
         """Yield the values from the entry point.
 
         Yields:
-            object: The object from the entry point.
+            object:
+            The object from the entry point.
         """
         if self.entry_point is not None:
             entry_points = iter_entry_points(self.entry_point)
@@ -364,7 +480,10 @@ class EntryPointRegistry(Registry):
                                                         entry_point=ep.name,
                                                         error=e))
 
-    def process_value_from_entry_point(self, entry_point):
+    def process_value_from_entry_point(
+        self,
+        entry_point: EntryPoint,
+    ) -> RegistryItemType:
         """Return the item to register from the entry point.
 
         By default, this returns the loaded entry point.
@@ -380,16 +499,20 @@ class EntryPointRegistry(Registry):
         return entry_point.load()
 
 
-class OrderedRegistry(Registry):
+class OrderedRegistry(Registry[RegistryItemType]):
     """A registry that keeps track of registration order."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the OrderedRegistry"""
         super(OrderedRegistry, self).__init__()
-        self._by_id = {}
-        self._key_order = []
 
-    def register(self, item):
+        self._by_id: Dict[int, RegistryItemType] = {}
+        self._key_order: List[int] = []
+
+    def register(
+        self,
+        item: RegistryItemType,
+    ) -> None:
         """Register an item.
 
         Args:
@@ -410,7 +533,10 @@ class OrderedRegistry(Registry):
         self._key_order.append(item_id)
         self._by_id[item_id] = item
 
-    def unregister(self, item):
+    def unregister(
+        self,
+        item: RegistryItemType,
+    ) -> None:
         """Unregister an item from the registry.
 
         Args:
@@ -426,18 +552,24 @@ class OrderedRegistry(Registry):
         del self._by_id[item_id]
         self._key_order.remove(item_id)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[RegistryItemType]:
         """Yield the items in the order they were registered.
 
         Yields:
-            object: The registered items.
+            object:
+            The registered items.
         """
         self.populate()
 
-        for key in self._key_order:
-            yield self._by_id[key]
+        by_id = self._by_id
 
-    def __getitem__(self, index):
+        for key in self._key_order:
+            yield by_id[key]
+
+    def __getitem__(
+        self,
+        index: int,
+    ) -> RegistryItemType:
         """Return an item by its registered index.
 
         Args:
@@ -446,7 +578,8 @@ class OrderedRegistry(Registry):
                 and negative indices are supported.
 
         Returns:
-            object: The requested item.
+            object:
+            The requested item.
 
         Raises:
             IndexError:
