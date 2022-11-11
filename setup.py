@@ -196,14 +196,8 @@ class DevelopCommand(develop):
                 'install a modern version of NodeJS and ensure you can '
                 'run it by typing "node" on the command line.')
 
-        # Install the latest pip and setuptools. Note that the order here
-        # matters, as otherwise a stale setuptools can be left behind,
-        # causing installation errors.
-        self._run_pip(['install', '-U', 'setuptools'])
-        self._run_pip(['install', '-U', 'pip'])
-
         # Install the dependencies using pip instead of easy_install. This
-        # will use wheels instead of eggs, which are ideal for our users.
+        # will use wheels instead of legacy eggs.
         self._run_pip(['install', '-e', '.'])
         self._run_pip(['install', '-r', 'dev-requirements.txt'])
 
@@ -211,6 +205,7 @@ class DevelopCommand(develop):
             self._run_pip(['install', '-r', 'doc-requirements.txt'])
 
         if not self.no_npm:
+            # Install node.js dependencies, needed for packaging.
             if self.use_npm_cache:
                 self.distribution.command_options['install_node_deps'] = {
                     'use_npm_cache': ('install_node_deps', 1),
