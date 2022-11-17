@@ -46,6 +46,7 @@ babel_npm_dependencies = {
     '@babel/cli': '^7.17.10',
     '@babel/core': '^7.18.5',
     '@babel/preset-env': '^7.18.2',
+    '@babel/preset-typescript': '^7.8.6',
     'babel-plugin-dedent': '^2.1.0',
     'babel-plugin-django-gettext': '^1.1.1',
 }
