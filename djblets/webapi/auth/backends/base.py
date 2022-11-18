@@ -1,18 +1,71 @@
 """The base class for an API authentication backend."""
 
+from __future__ import annotations
+
 import logging
 import re
+from typing import Any, Dict, Optional, Tuple, Union
 
 from django.contrib import auth
+from django.http import HttpRequest
 from django.utils.translation import gettext as _
+from typing_extensions import TypeAlias
 
 from djblets.auth.ratelimit import is_ratelimited
+from djblets.webapi.responses import WebAPIResponseHeaders
+
+
+#: A type alias for authentication results.
+#:
+#: This was the only return value supported prior to Djblets 3.2.
+#:
+#: Contents are in the form of:
+#:
+#: Tuple:
+#:     0 (bool):
+#:         Whether the authentication request was successful.
+#:
+#:     1 (str):
+#:         The error message to return if authentication failed.
+#:
+#:         This can be ``None`` if it succeeded, or if it failed
+#:         and the default error from
+#:         :py:data:`~djblets.webapi.errors.LOGIN_FAILED` should be used.
+#:
+#:     2 (dict):
+#:         Any HTTP headers to return in the response.
+#:
+#:         This can be ``None`` if no headers need to be returned,
+#:         or if it failed and default headers from
+#:         :py:data:`~djblets.webapi.errors.LOGIN_FAILED` should be used.
+#:
+#: Version Added:
+#:     3.2
+WebAPIAuthenticateResult: TypeAlias = Tuple[bool,
+                                            Optional[str],
+                                            Optional[WebAPIResponseHeaders]]
+
+
+#: A type alias for credentials passed to or from auth handlers.
+#:
+#: Version Added:
+#:     3.2
+WebAPICredentials: TypeAlias = Dict[str, Any]
+
+
+#: A type alias for the result of a get_credentials response.
+#:
+#: Version Added:
+#:     3.2
+WebAPIGetCredentialsResult: TypeAlias = \
+    Optional[Union[WebAPIAuthenticateResult,
+                   WebAPICredentials]]
 
 
 logger = logging.getLogger(__name__)
 
 
-class WebAPIAuthBackend(object):
+class WebAPIAuthBackend:
     """Handles a form of authentication for the web API.
 
     This can be overridden to provide custom forms of authentication, or to
@@ -30,7 +83,10 @@ class WebAPIAuthBackend(object):
     """
 
     #: The auth scheme used in the ``WWW-Authenticate`` header.
-    www_auth_scheme = None
+    #:
+    #: Type:
+    #:     str
+    www_auth_scheme: Optional[str] = None
 
     #: A regex of sensitive entries in the credentials dictionary.
     #:
@@ -42,7 +98,10 @@ class WebAPIAuthBackend(object):
     SENSITIVE_CREDENTIALS_RE = \
         re.compile('api|token|key|secret|password|signature', re.I)
 
-    def get_auth_headers(self, request):
+    def get_auth_headers(
+        self,
+        request: HttpRequest
+    ) -> Dict[str, Any]:
         """Return extra authentication headers for the response.
 
         Args:
@@ -55,7 +114,11 @@ class WebAPIAuthBackend(object):
         """
         return {}
 
-    def authenticate(self, request):
+    def authenticate(
+        self,
+        request: HttpRequest,
+        **kwargs,
+    ) -> Optional[WebAPIAuthenticateResult]:
         """Authenticate a request against this auth backend.
 
         This will fetch the credentials and attempt an authentication against
@@ -71,17 +134,13 @@ class WebAPIAuthBackend(object):
 
         Returns:
             tuple or None:
-            The tuple is in the form of::
-
-                (is_successful, error_message, headers)
-
-            The error message and headers can be None to use the default error
-            message and headers from the :py:data:`LOGIN_FAILED` error. In most
-            cases, they should be ``None``, unless there are more specific
-            instructions needed for authenticating.
+            See :py:class:`WebAPIAuthenticateResult` for details on the format
+            for the returned type value.
 
             If the backend should be skipped, this will return ``None``.
         """
+        result: WebAPIAuthenticateResult
+
         # Check if number of failed login attempts already exceeded
         # before authenticating.
         if is_ratelimited(request, increment=False):
@@ -105,7 +164,10 @@ class WebAPIAuthBackend(object):
 
         return result
 
-    def get_credentials(self, request):
+    def get_credentials(
+        self,
+        request: HttpRequest,
+    ) -> WebAPIGetCredentialsResult:
         """Return credentials provided in the request.
 
         This returns a dictionary of all credentials necessary for this
@@ -125,7 +187,11 @@ class WebAPIAuthBackend(object):
         """
         raise NotImplementedError
 
-    def login_with_credentials(self, request, **credentials):
+    def login_with_credentials(
+        self,
+        request: HttpRequest,
+        **credentials,
+    ) -> WebAPIAuthenticateResult:
         """Log in against the main authentication backends.
 
         This takes the provided credentials from the request (as returned by
@@ -174,7 +240,11 @@ class WebAPIAuthBackend(object):
 
         return False, None, None
 
-    def validate_credentials(self, request, **credentials):
+    def validate_credentials(
+        self,
+        request: HttpRequest,
+        **credentials,
+    ) -> Optional[WebAPIAuthenticateResult]:
         """Validate that credentials are valid.
 
         This is called before we attempt to authenticate with the credentials,
@@ -208,12 +278,15 @@ class WebAPIAuthBackend(object):
         # request is excessive, so it's a tradeoff. The user already has
         # access to the server at this point anyway.
         if (request.user.is_authenticated and
-            request.user.username == credentials.get('username')):
+            request.user.get_username() == credentials.get('username')):
             return True, None, None
 
         return None
 
-    def clean_credentials_for_display(self, credentials):
+    def clean_credentials_for_display(
+        self,
+        credentials: WebAPICredentials,
+    ) -> WebAPICredentials:
         """Clean up a credentials dictionary, removing sensitive information.
 
         This will take a credentials dictionary and mask anything sensitive,
