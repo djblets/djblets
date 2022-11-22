@@ -1183,7 +1183,7 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
         try:
             orig_func(*args, **kwargs)
         except Exception as e:
-            logger.error('%s\n', e, exc_info=1)
+            logger.error('%s\n', e, exc_info=True)
             self.exceptions.append(e)
 
     def _spy_sleep_and_call(self, func):

@@ -98,14 +98,16 @@ def template_hook_point(context, name):
                         yield (hook.render_to_string(request, context),)
                     except Exception as e:
                         logger.exception('Error rendering TemplateHook %r: %s',
-                                         hook, e)
+                                         hook, e,
+                                         extra={'request': request})
 
                     context.pop()
 
             except Exception as e:
                 logger.exception('Error when calling applies_to for '
                                  'TemplateHook %r: %s',
-                                 hook, e)
+                                 hook, e,
+                                 extra={'request': request})
 
     return format_html_join('', '{0}', _render_hooks())
 

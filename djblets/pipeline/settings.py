@@ -17,6 +17,7 @@ from django.utils.encoding import force_str
 #: Default list of compilers used by Djblets.
 DEFAULT_PIPELINE_COMPILERS = [
     'djblets.pipeline.compilers.es6.ES6Compiler',
+    'djblets.pipeline.compilers.typescript.TypeScriptCompiler',
     'djblets.pipeline.compilers.less.LessCompiler',
 ]
 
@@ -140,7 +141,7 @@ def build_pipeline_settings(pipeline_enabled,
         'STYLESHEETS': stylesheet_bundles,
         'BABEL_BINARY': babel_bin_path,
         'BABEL_ARGUMENTS': [
-            '--presets', '@babel/preset-env',
+            '--presets', '@babel/preset-env,@babel/preset-typescript',
             '--plugins', ','.join(babel_plugins),
             '-s', 'true',
         ] + babel_extra_args,

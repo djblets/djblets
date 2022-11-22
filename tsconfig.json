@@ -1,0 +1,10 @@
+{
+    "include": [
+        "djblets/static/lib/js/**/*",
+        "djblets/static/djblets/js/**/*"
+    ],
+    "compilerOptions": {
+        "allowJs" true,
+        "target": "ESNext"
+    }
+}

@@ -201,7 +201,8 @@ def webapi_permission_required(perm):
                 logger.warning('%s %s: user %s is missing required '
                                'permission "%s".',
                                request.method, request.path,
-                               request.user.username, perm)
+                               request.user.username, perm,
+                               extra={'request': request})
                 response = PERMISSION_DENIED
             else:
                 response = view_func(*args, **kwargs)

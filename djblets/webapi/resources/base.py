@@ -1319,7 +1319,8 @@ class WebAPIResource(object):
             logger.warning('%s %s: user %s does not have '
                            'permission to access this resource.',
                            request.method, request.path,
-                           request.user.username)
+                           request.user.username,
+                           extra={'request': request})
             return PERMISSION_DENIED
         else:
             return NOT_LOGGED_IN

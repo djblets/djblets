@@ -111,6 +111,8 @@ from functools import update_wrapper
 
 from django.conf import settings
 
+from djblets.deprecation import RemovedInDjblets50Warning
+
 
 _logging_setup = False
 _profile_log = None
@@ -137,7 +139,7 @@ class TimedLogInfo(object):
 
         if log_beginning:
             logging.log(self.default_level, "Begin: %s" % self.message,
-                        request=self.request)
+                        extra={'request': self.request})
 
     def done(self):
         """
@@ -154,11 +156,11 @@ class TimedLogInfo(object):
             level = logging.WARNING
 
         logging.log(self.default_level, "End: %s" % self.message,
-                    request=self.request)
+                    extra={'request': self.request})
         logging.log(level, '%s took %d.%06d seconds' % (self.message,
                                                         delta.seconds,
                                                         delta.microseconds),
-                    request=self.request)
+                    extra={'request': self.request})
 
 
 class RequestLogFormatter(logging.Formatter):
@@ -294,11 +296,15 @@ def init_logging():
             if not logging_to_stdout:
                 handler = logging.StreamHandler()
                 logging_to_stderr = True
+            else:
+                handler = None
 
-        handler.setLevel(log_level)
-        handler.setFormatter(formatter)
+        if handler:
+            handler.setLevel(log_level)
+            handler.setFormatter(formatter)
 
-        root.addHandler(handler)
+            root.addHandler(handler)
+
         root.setLevel(log_level)
 
     if logging_to_stderr:
@@ -395,6 +401,10 @@ def _Logger_log(self, *args, **kwargs):
     request = kwargs.pop('request', None)
 
     if request:
+        RemovedInDjblets50Warning.warn(
+            "The request= argument to logging methods has been deprecated and "
+            "will be removed in Djblets 5.0. Please change this to pass "
+            "extra={'request': request}.")
         extra['request'] = request
 
     kwargs['extra'] = extra
@@ -424,7 +434,7 @@ def _has_keywords(func):
 
 if not _has_keywords(logging.exception):
     def _logging_exception(msg, *args, **kwargs):
-        kwargs['exc_info'] = 1
+        kwargs['exc_info'] = True
         logging.error(msg, *args, **kwargs)
 
     update_wrapper(_logging_exception, logging.exception)
@@ -432,7 +442,7 @@ if not _has_keywords(logging.exception):
 
 if not _has_keywords(logging.Logger.exception):
     def _Logger_exception(self, msg, *args, **kwargs):
-        kwargs['exc_info'] = 1
+        kwargs['exc_info'] = True
         self.error(msg, *args, **kwargs)
 
     update_wrapper(_Logger_exception, logging.Logger.exception)

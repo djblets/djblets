@@ -60,8 +60,8 @@ def controlled_subprocess(process_name, process):
     # process is blocked.  Let's kill it.
     if process.returncode is None and process.poll() is None:
         logger.warning(
-            _("The process '%(name)s' with PID '%(pid)s' did not exit "
-              "cleanly and will be killed automatically.")
+            'The process "%(name)s" with PID "%(pid)s" did not exit '
+            'cleanly and will be killed automatically.'
             % {
                 'name': process_name,
                 'pid': process.pid,

@@ -233,4 +233,4 @@ class LoggingMiddleware(MiddlewareMixin):
             logger.exception('Exception thrown for user %s at %s\n\n%s',
                              request.user, request.build_absolute_uri(),
                              exception,
-                             request=request)
+                             extra={'request': request})
