@@ -10,36 +10,103 @@ authentication backend and registered in
 list at ``settings.WEB_API_AUTH_BACKENDS``.
 """
 
+from __future__ import annotations
+
 import logging
+from typing import Any, Dict, Optional, Type
 
 from django.contrib.auth import get_backends
+from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.formats import localize
 from django.utils.translation import gettext as _
+from typing_extensions import Protocol, TypedDict, runtime_checkable
 
-from djblets.webapi.auth import WebAPIAuthBackend
+from djblets.webapi.auth.backends.base import (WebAPIAuthenticateResult,
+                                               WebAPIAuthBackend,
+                                               WebAPIGetCredentialsResult)
 from djblets.webapi.errors import LOGIN_FAILED
+from djblets.webapi.models import BaseWebAPIToken
+from djblets.webapi.responses import WebAPIResponseHeaders
 from djblets.webapi.signals import webapi_token_expired
 
 
 logger = logging.getLogger(__name__)
 
 
-class TokenAuthBackendMixin(object):
+class TokenAuthValidateResult(TypedDict):
+    """The result of token validation on a Django auth backend.
+
+    Version Added:
+        3.2
+    """
+
+    #: The error message to return if authentication failed.
+    #:
+    #: This can be ``None`` if it succeeded, or if it failed and the default
+    #: error from :py:data:`~djblets.webapi.errors.LOGIN_FAILED` should be
+    #: used.
+    error_message: Optional[str]
+
+    #: Any HTTP headers to return in the response.
+    #:
+    #: This can be ``None`` if no headers need to be returned, or if it
+    #: failed and default headers from
+    #: :py:data:`~djblets.webapi.errors.LOGIN_FAILED` should be used.
+    headers: Optional[WebAPIResponseHeaders]
+
+
+@runtime_checkable
+class ValidateTokenAuthBackend(Protocol):
+    """Protocol representing auth backends supporting token validation.
+
+    Version Added:
+        3.2
+    """
+
+    def validate_token(
+        self,
+        request: HttpRequest,
+        token: str,
+    ) -> Optional[TokenAuthValidateResult]:
+        """Validate a token for authentication.
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
+
+            token (str):
+                The token to validate. This may be ``None``.
+        """
+        ...
+
+
+class TokenAuthBackendMixin:
     """Mixin for a standard auth backend for API token authentication.
 
     This will handle authenticating users and their API tokens for API
     requests. It's only used for API requests that specify a username and a
     token.
 
-    This class is meant to be subclassed and mixed in to another auth backend.
+    This class is meant to be subclassed and mixed in to another Django
+    auth backend (note: not a
+    :py:class:`~djblets.webapi.auth.backends.base.WebAPIAuthBackend`).
+
     Subclasses must define :py:attr:`api_token_model`.
     """
 
     #: The API token model to use for any token lookups.
-    api_token_model = None
+    #:
+    #: Type:
+    #:     type
+    api_token_model: Optional[Type[BaseWebAPIToken]] = None
 
-    def authenticate(self, request, token=None, **kwargs):
+    def authenticate(
+        self,
+        request: HttpRequest,
+        token: Optional[str] = None,
+        **kwargs,
+    ) -> Optional[WebAPIAuthenticateResult]:
         """Authenticate a user, given a token ID.
 
         Args:
@@ -53,21 +120,27 @@ class TokenAuthBackendMixin(object):
                 Keyword arguments for future expansion.
 
         Returns:
-            User:
+            django.contrib.auth.models.User:
             The resulting user, if a token matched, or ``None`` otherwise.
         """
+        api_token_model = self.api_token_model
+        assert api_token_model is not None
+
         if not token:
             return None
 
         # Find the WebAPIToken matching the token parameter passed in.
         # Once we have it, we'll need to perform some additional checks on
         # the user.
-        q = self.api_token_model.objects.filter(token=token)
-        q = q.select_related('user')
+        queryset = (
+            api_token_model.objects
+            .filter(token=token)
+            .select_related('user')
+        )
 
         try:
-            webapi_token = q.get()
-        except self.api_token_model.DoesNotExist:
+            webapi_token = queryset.get()
+        except api_token_model.DoesNotExist:
             return None
 
         user = webapi_token.user
@@ -81,7 +154,11 @@ class TokenAuthBackendMixin(object):
 
         return user
 
-    def validate_token(self, request, token, **kwargs):
+    def validate_token(
+        self,
+        request: HttpRequest,
+        token: str,
+    ) -> Optional[TokenAuthValidateResult]:
         """Check that the token is valid to use for authentication.
 
         This will check if the token is invalid or expired. If so it will
@@ -100,19 +177,17 @@ class TokenAuthBackendMixin(object):
             token (str):
                 The API token ID to validate.
 
-            **kwargs (dict, unused):
-                Additional keyword arguments.
-
         Returns:
             dict or None:
             A dictionary containing the following keys:
 
-            ``error_message`` (str):
-                An error message explaining why the token cannot be used
-                for authentication.
+            Keys:
+                error_message (str):
+                    An error message explaining why the token cannot be used
+                    for authentication.
 
-            ``headers`` (dict):
-                A dictionary of HTTP headers to send to the client.
+                headers (dict):
+                    A dictionary of HTTP headers to send to the client.
 
             These are meant to be used as the ``error_message`` and ``header``
             values in the return type of :py:meth:`djblets.webapi.auth.
@@ -121,14 +196,18 @@ class TokenAuthBackendMixin(object):
             If the token is valid to use for authentication this will return
             ``None``.
         """
-        q = self.api_token_model.objects.filter(token=token)
-        log_extra = {
+        api_token_model = self.api_token_model
+        assert api_token_model is not None
+
+        queryset = api_token_model.objects.filter(token=token)
+
+        log_extra: Dict[str, Any] = {
             'request': request,
         }
 
         try:
-            webapi_token = q.get()
-        except self.api_token_model.DoesNotExist:
+            webapi_token = queryset.get()
+        except api_token_model.DoesNotExist:
             logger.debug('API Login failed. Token not found.',
                          extra=log_extra)
 
@@ -185,7 +264,10 @@ class WebAPITokenAuthBackend(WebAPIAuthBackend):
     token, and authenticate that user.
     """
 
-    def get_credentials(self, request):
+    def get_credentials(
+        self,
+        request: HttpRequest,
+    ) -> WebAPIGetCredentialsResult:
         """Return credentials for the token.
 
         If the request is attempting to authenticate with a token, this
@@ -215,7 +297,11 @@ class WebAPITokenAuthBackend(WebAPIAuthBackend):
             'token': parts[1],
         }
 
-    def login_with_credentials(self, request, **credentials):
+    def login_with_credentials(
+        self,
+        request: HttpRequest,
+        **credentials,
+    ) -> WebAPIAuthenticateResult:
         """Log the user in with the given credentials.
 
         This performs the standard authentication operations, and then
@@ -238,14 +324,16 @@ class WebAPITokenAuthBackend(WebAPIAuthBackend):
 
         if result[0]:
             user = request.user
-            webapi_token = user._webapi_token
-            del user._webapi_token
+            webapi_token = getattr(user, '_webapi_token', None)
+            assert isinstance(webapi_token, BaseWebAPIToken)
+
+            delattr(user, '_webapi_token')
 
             webapi_token.last_used = timezone.now()
             webapi_token.save_base(update_fields=('last_used',))
 
             request.session['webapi_token_id'] = webapi_token.pk
-            request._webapi_token = webapi_token
+            setattr(request, '_webapi_token', webapi_token)
 
             if webapi_token.is_deprecated():
                 deprecation_header = {
@@ -265,7 +353,11 @@ class WebAPITokenAuthBackend(WebAPIAuthBackend):
 
         return result
 
-    def validate_credentials(self, request, **credentials):
+    def validate_credentials(
+        self,
+        request: HttpRequest,
+        **credentials,
+    ) -> Optional[WebAPIAuthenticateResult]:
         """Validate that credentials are valid.
 
         This will run through authentication backends to check whether
@@ -285,23 +377,27 @@ class WebAPITokenAuthBackend(WebAPIAuthBackend):
 
         Returns:
             tuple or None:
-            See the return type in :py:meth:`WebAPIAuthBackend.authenticate`.
+            See the return type in :py:meth:`WebAPIAuthBackend.authenticate()
+            <djblets.webapi.auth.backends.base.WebAPIAuthBackend
+            .authenticate>`.
         """
         result = super().validate_credentials(request, **credentials)
 
         if result is not None:
             return result
 
-        for backend in get_backends():
-            try:
-                result = backend.validate_token(request,
-                                                credentials.get('token'))
+        token = credentials.get('token')
 
-                if result is not None:
-                    return (False,
-                            result.get('error_message'),
-                            result.get('headers'))
-            except AttributeError:
-                continue
+        if token is not None:
+            assert isinstance(token, str)
+
+            for backend in get_backends():
+                if isinstance(backend, ValidateTokenAuthBackend):
+                    validate_result = backend.validate_token(request, token)
+
+                    if validate_result is not None:
+                        return (False,
+                                validate_result.get('error_message'),
+                                validate_result.get('headers'))
 
         return None
