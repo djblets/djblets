@@ -40,11 +40,12 @@ NODE_PATH = os.path.abspath(os.path.join(DJBLETS_ROOT, '..', 'node_modules'))
 
 
 PIPELINE = build_pipeline_settings(
-    pipeline_enabled=not DEBUG or os.getenv('FORCE_BUILD_MEDIA'),
+    pipeline_enabled=not DEBUG or (os.getenv('FORCE_BUILD_MEDIA') == '1'),
     node_modules_path=NODE_PATH,
     static_root=STATIC_ROOT,
     javascript_bundles=PIPELINE_JAVASCRIPT,
     stylesheet_bundles=PIPELINE_STYLESHEETS,
+    use_rollup=True,
     validate_paths=DEBUG)
 
 

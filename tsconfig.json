@@ -1,10 +1,20 @@
 {
+    "compilerOptions": {
+        "allowJs": true,
+        "baseUrl": "djblets/static",
+        "declaration": true,
+        "moduleResolution": "node",
+        "moduleSuffixes": [
+            ".es6",
+            ""
+        ],
+        "paths": {
+            "djblets/*": ["djblets/js/*"]
+        },
+        "target": "ESNext"
+    },
     "include": [
         "djblets/static/lib/js/**/*",
         "djblets/static/djblets/js/**/*"
-    ],
-    "compilerOptions": {
-        "allowJs" true,
-        "target": "ESNext"
-    }
+    ]
 }

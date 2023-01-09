@@ -7,9 +7,16 @@ The contents in this file might change substantially between releases. If
 you're going to make use of data from this file, code defensively.
 """
 
-# NOTE: This file may not import other files! It's used for packaging and
-#       may be needed before any dependencies have been installed.
+# NOTE: This file may not import other (non-Python) modules! It's used for
+#       packaging and may be needed before any dependencies have been
+#       installed.
 
+import os
+
+
+###########################################################################
+# Python and Django compatibility
+###########################################################################
 
 #: The minimum supported version of Python 3.x.
 PYTHON_3_MIN_VERSION = (3, 7)
@@ -29,6 +36,37 @@ reviewboard_doc_major_version = 'dev'
 
 #: The version range required for Django.
 django_version = '~=3.2.16'
+
+###########################################################################
+# Python dependencies
+###########################################################################
+
+#: All dependencies required to install Djblets.
+package_dependencies = {
+    'cryptography': '>=1.8.1',
+    'Django': django_version,
+    'django-pipeline': '~=2.0.8',
+    'dnspython': '>=1.14.0',
+    'feedparser': '>=5.1.2',
+    'Pillow': '>=6.2',
+    'publicsuffix': '>=1.1',
+    'python-dateutil': '>=2.7',
+    'pytz': '',
+    'typing_extensions': '>=4.4',
+}
+
+
+###########################################################################
+# JavaScript dependencies
+###########################################################################
+
+#: Dependencies required for static media building.
+frontend_buildkit_npm_dependencies = {
+    # Customizable Beanbag-built dependencies.
+    '@beanbag/frontend-buildkit': (
+        os.environ.get('BEANBAG_FRONTEND_BUILDKIT_PATH') or
+        '^1.0.0'),
+}
 
 #: Dependencies required for LessCSS pipelining.
 lesscss_npm_dependencies = {
@@ -51,26 +89,14 @@ babel_npm_dependencies = {
     'babel-plugin-django-gettext': '^1.1.1',
 }
 
-#: All static media dependencies required to package/develop against  Djblets.
+#: Node dependencies required to package/develop/test Djblets.
 npm_dependencies = {}
-npm_dependencies.update(lesscss_npm_dependencies)
-npm_dependencies.update(uglifyjs_npm_dependencies)
-npm_dependencies.update(babel_npm_dependencies)
+npm_dependencies.update(frontend_buildkit_npm_dependencies)
 
-#: All dependencies required to install Djblets.
-package_dependencies = {
-    'cryptography': '>=1.8.1',
-    'Django': django_version,
-    'django-pipeline': '~=2.0.8',
-    'dnspython': '>=1.14.0',
-    'feedparser': '>=5.1.2',
-    'Pillow': '>=6.2',
-    'publicsuffix': '>=1.1',
-    'python-dateutil': '>=2.7',
-    'pytz': '',
-    'typing_extensions': '>=4.4',
-}
 
+###########################################################################
+# Packaging utilities
+###########################################################################
 
 def build_dependency_list(deps, version_prefix=''):
     """Build a list of dependency specifiers from a dependency map.

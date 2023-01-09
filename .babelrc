@@ -1,0 +1,15 @@
+{
+    "env": {
+        "development": {
+            "presets": [
+                ["@babel/preset-env", {
+                    "targets": {
+                        "node": "14.0"
+                    }
+                }],
+                "@babel/preset-typescript"
+            ]
+        }
+    },
+    "sourceMaps": true
+}
