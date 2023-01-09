@@ -39,10 +39,12 @@ Djblets.ExtensionHook = Backbone.Model.extend({
     initialize() {
         const extension = this.get('extension');
 
-        console.assert(this.hookPoint,
-                       'This ExtensionHook subclass must define hookPoint');
-        console.assert(extension,
-                       'An Extension instance must be passed to ExtensionHook');
+        console.assert(
+            this.hookPoint,
+            'This ExtensionHook subclass must define hookPoint');
+        console.assert(
+            extension,
+            'An Extension instance must be passed to ExtensionHook');
 
         extension.hooks.push(this);
         this.hookPoint.addHook(this);

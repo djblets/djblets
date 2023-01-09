@@ -92,8 +92,11 @@ suite('djblets/forms/views/ListEditView', function() {
             expect($numRows.val()).toEqual('1');
             expect(view.$('.djblets-c-list-edit-widget__entry').length)
                 .toEqual(1);
+
+            // This might not work? val might not even be there
             expect(view.$('.djblets-c-list-edit-widget__input').val())
-                .toEqual(''); // this might not work? val might not even be there
+                .toEqual('');
+
             expect(view.$('.djblets-c-list-edit-widget__input').attr('name'))
                 .toEqual('_value[0]');
         });
@@ -119,13 +122,17 @@ suite('djblets/forms/views/ListEditView', function() {
                 .toEqual(3);
             expect(view.$('.djblets-c-list-edit-widget__remove-item').length)
                 .toEqual(3);
+
             let $inputOne = view.$('.djblets-c-list-edit-widget__input').eq(0);
             expect($inputOne.val()).toEqual('One');
             expect($inputOne.attr('name')).toEqual('_value[0]');
+
             let $inputTwo = view.$('.djblets-c-list-edit-widget__input').eq(1);
             expect($inputTwo.val()).toEqual('Two');
             expect($inputTwo.attr('name')).toEqual('_value[1]');
-            let $inputThree = view.$('.djblets-c-list-edit-widget__input').eq(2);
+
+            const $inputThree =
+                view.$('.djblets-c-list-edit-widget__input').eq(2);
             expect($inputThree.val()).toEqual('Three');
             expect($inputThree.attr('name')).toEqual('_value[2]');
 
@@ -183,16 +190,24 @@ suite('djblets/forms/views/ListEditView', function() {
             expect($numRows.val()).toEqual('4');
             expect(view.$('.djblets-c-list-edit-widget__entry').length)
                 .toEqual(4);
-            let $inputOne = view.$('.djblets-c-list-edit-widget__input').eq(0);
+
+            const $inputOne =
+                view.$('.djblets-c-list-edit-widget__input').eq(0);
             expect($inputOne.val()).toEqual('One');
             expect($inputOne.attr('name')).toEqual('_value[0]');
-            let $inputTwo = view.$('.djblets-c-list-edit-widget__input').eq(1);
+
+            const $inputTwo =
+                view.$('.djblets-c-list-edit-widget__input').eq(1);
             expect($inputTwo.val()).toEqual('Two');
             expect($inputTwo.attr('name')).toEqual('_value[1]');
-            let $inputThree = view.$('.djblets-c-list-edit-widget__input').eq(2);
+
+            const $inputThree =
+                view.$('.djblets-c-list-edit-widget__input').eq(2);
             expect($inputThree.val()).toEqual('Three');
             expect($inputThree.attr('name')).toEqual('_value[2]');
-            let $inputFour = view.$('.djblets-c-list-edit-widget__input').eq(3);
+
+            const $inputFour =
+                view.$('.djblets-c-list-edit-widget__input').eq(3);
             expect($inputFour.val()).toEqual('');
             expect($inputFour.attr('name')).toEqual('_value[3]');
         });
@@ -204,10 +219,14 @@ suite('djblets/forms/views/ListEditView', function() {
             expect($numRows.val()).toEqual('2');
             expect(view.$('.djblets-c-list-edit-widget__entry').length)
                 .toEqual(2);
-            let $inputOne = view.$('.djblets-c-list-edit-widget__input').eq(0);
+
+            const $inputOne =
+                view.$('.djblets-c-list-edit-widget__input').eq(0);
             expect($inputOne.val()).toEqual('');
             expect($inputOne.attr('name')).toEqual('_value[0]');
-            let $inputTwo = view.$('.djblets-c-list-edit-widget__input').eq(1);
+
+            const $inputTwo =
+                view.$('.djblets-c-list-edit-widget__input').eq(1);
             expect($inputTwo.val()).toEqual('');
             expect($inputTwo.attr('name')).toEqual('_value[1]');
         });

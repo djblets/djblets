@@ -72,7 +72,8 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
 
         this._$list = this.$el.children(
             '.djblets-c-list-edit-widget__entries');
-        this._numItems = this._$list.find('.djblets-c-list-edit-widget__entry').length;
+        this._numItems =
+            this._$list.find('.djblets-c-list-edit-widget__entry').length;
         $(`input[name="${this._fieldName}_num_rows"]`).val(this._numItems);
         this._$addBtn = this.$el.children(
             '.djblets-c-list-edit-widget__add-item');

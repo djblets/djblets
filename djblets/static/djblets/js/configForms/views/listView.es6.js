@@ -94,8 +94,8 @@ Djblets.Config.ListView = Backbone.View.extend({
      *
      * Option Args:
      *     animate (boolean):
-     *         Whether or not to animate adding the item. This argument defaults
-     *         to ``true``.
+     *         Whether or not to animate adding the item. This argument
+     *         defaults to ``true``.
      */
     _addItem(item, collection, options={}) {
         const animateItem = (options.animate !== false);

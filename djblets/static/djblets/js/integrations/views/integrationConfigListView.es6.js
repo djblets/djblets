@@ -137,7 +137,8 @@ const IntegrationConfigItemView = Djblets.Config.TableItemView.extend({
  */
 Djblets.IntegrationConfigListView = Backbone.View.extend({
     events: {
-        'click .djblets-c-integration-configs__add': '_onAddIntegrationClicked',
+        'click .djblets-c-integration-configs__add':
+            '_onAddIntegrationClicked',
     },
 
     addIntegrationPopupViewType: Djblets.AddIntegrationPopupView,

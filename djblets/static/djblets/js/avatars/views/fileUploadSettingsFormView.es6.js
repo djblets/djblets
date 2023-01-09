@@ -81,8 +81,8 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
 
         /*
          * Clicking on the file input itself is not reliable. There are ways
-         * to make it work, but the browser actively avoids letting you do it if
-         * it seems to be hidden. However, it works just fine universally to
+         * to make it work, but the browser actively avoids letting you do it
+         * if it seems to be hidden. However, it works just fine universally to
          * click on the label.
          */
         this.$('#avatar-file-upload-browse-label').click();
@@ -164,9 +164,9 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
      * Handler for a drop operation.
      *
      * This will remove the hover state and attempt to set the list of files
-     * on the file input. If this fails (which will be the case on some browsers
-     * with older behavior), the user will receive an alert telling them it
-     * failed and to try browsing instead.
+     * on the file input. If this fails (which will be the case on some
+     * browsers with older behavior), the user will receive an alert telling
+     * them it failed and to try browsing instead.
      *
      * If all goes well, the avatar will be ready for upload and the preview
      * image will be updated.
@@ -214,8 +214,8 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
              * While most modern browsers allow setting the `files` property of
              * an input field to the rest of a drag-and-drop operation, not all
              * do (I'm looking at you, IE/Edge). Older browsers will also
-             * complain. So instead of outright failing, tell the user that this
-             * won't work and suggest a workaround.
+             * complain. So instead of outright failing, tell the user that
+             * this won't work and suggest a workaround.
              */
             alert(_`
                 Looks like dragging to upload a file isn't going to work with

@@ -7,7 +7,8 @@ suite('djblets/integrations/views/AddIntegrationPopupView', function() {
                         'addURL': 'int1/add/',
                         'description': 'Int1 Description',
                         'iconSrc': 'data:test,int1',
-                        'iconSrcSet': 'data:test,int1 1x, data:test,int1@2x 2x',
+                        'iconSrcSet': 'data:test,int1 1x, ' +
+                                      'data:test,int1@2x 2x',
                         'id': 'int1',
                         'name': 'Int1',
                     },
@@ -15,7 +16,8 @@ suite('djblets/integrations/views/AddIntegrationPopupView', function() {
                         'addURL': 'int2/add/',
                         'description': 'Int2 Description',
                         'iconSrc': 'data:test,int2',
-                        'iconSrcSet': 'data:test,int2 1x, data:test,int2@2x 2x',
+                        'iconSrcSet': 'data:test,int2 1x, ' +
+                                      'data:test,int2@2x 2x',
                         'id': 'int2',
                         'name': 'Int2',
                     },

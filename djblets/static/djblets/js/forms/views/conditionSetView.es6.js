@@ -212,7 +212,8 @@ const ConditionRowView = BaseConditionRowView.extend({
 
         if (newValueField !== this._valueField) {
             /* Replace the old value field with a new one for this choice. */
-            if (this._$newValue !== null && newValueField !== this._valueField) {
+            if (this._$newValue !== null &&
+                newValueField !== this._valueField) {
                 this._$newValue.remove();
                 this._$newValue = null;
             }
@@ -251,8 +252,9 @@ const ConditionRowView = BaseConditionRowView.extend({
     _onSelectOperatorChanged() {
         const choice = this.model.get('choice');
 
-        this.model.set('operator', choice.operators.get(this._$operator.val()));
-    }
+        this.model.set('operator',
+                       choice.operators.get(this._$operator.val()));
+    },
 });
 
 

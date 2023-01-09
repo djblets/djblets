@@ -1,8 +1,8 @@
 /**
  * A possible choice for a condition.
  *
- * This represents a single choice for a condition, such as a summary or list of
- * objects, that a condition processor will inspect and match against
+ * This represents a single choice for a condition, such as a summary or list
+ * of objects, that a condition processor will inspect and match against
  * configurations. A condition contains a list of possible operators (such as
  * "Is," "Is not," "Starts with," etc.) and a field for handling any values
  * for the choice and operator.
@@ -20,7 +20,8 @@
  *     valueField (object):
  *         Information about the object handling the storage and manipulation
  *         of values for the condition. This will be the default value field
- *         for all operators on the choice, but operators can provide their own.
+ *         for all operators on the choice, but operators can provide their
+ *         own.
  *
  *         This will have ``modelClass` and ``viewClass`` keys pointing to the
  *         object constructors for the model and view for the value field,

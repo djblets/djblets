@@ -154,7 +154,8 @@ $.fn.datagrid = function() {
             var $checkbox = $(this),
                 colName = $checkbox.data('checkbox-name');
 
-            $bodyTable.find('tbody input[data-checkbox-name="' + colName + '"]')
+            $bodyTable.find('tbody input[data-checkbox-name="' + colName +
+                            '"]')
                 .prop('checked', $checkbox.prop('checked'))
                 .change();
         });

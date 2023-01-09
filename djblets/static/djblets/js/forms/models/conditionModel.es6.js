@@ -59,10 +59,11 @@ Djblets.Forms.Condition = Backbone.Model.extend({
                  * Now unset the value.
                  *
                  * Note that we're not doing this during operator change,
-                 * because we don't want the user to lose all state if switching
-                 * between operators. Ideally, we want to keep what they had. If
-                 * the value won't be used, it simply won't be used, and if it
-                 * can be used for multiple operators, we want to preserve it.
+                 * because we don't want the user to lose all state if
+                 * switching between operators. Ideally, we want to keep what
+                 * they had. If the value won't be used, it simply won't be
+                 * used, and if it can be used for multiple operators, we want
+                 * to preserve it.
                  */
                 this.unset('value');
             }
@@ -73,8 +74,8 @@ Djblets.Forms.Condition = Backbone.Model.extend({
      * Destroy the condition.
      *
      * This will stop listening for events and emit a "destroy" signal, just
-     * like the standard :js:class:`Backbone.Model.destroy`. Unlike the standard
-     * method, no HTTP requests are made to a server.
+     * like the standard :js:class:`Backbone.Model.destroy`. Unlike the
+     * standard method, no HTTP requests are made to a server.
      *
      * Args:
      *     options (object):

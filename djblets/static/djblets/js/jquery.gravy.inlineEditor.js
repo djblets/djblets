@@ -374,7 +374,10 @@ $.widget("ui.inlineEditor", {
     },
 
     submit: function() {
-        // hideEditor() resets the _dirty flag, thus we need to do save() first.
+        /*
+         * hideEditor() resets the _dirty flag, thus we need to do save()
+         * first.
+         */
         this.save();
         this.hideEditor();
     },
@@ -463,11 +466,11 @@ $.widget("ui.inlineEditor", {
                 } else {
                     /*
                      * If there's significant processing that happens between
-                     * the text and what's displayed in the element, it's likely
-                     * that the rendered size will be different from the editor
-                     * size. In that case, don't try to match sizes, just ask
-                     * the field to auto-size itself to the size of the source
-                     * text.
+                     * the text and what's displayed in the element, it's
+                     * likely that the rendered size will be different from
+                     * the editor size. In that case, don't try to match sizes,
+                     * just ask the field to auto-size itself to the size of
+                     * the source text.
                      */
                     this._field.autoSizeTextArea('autoSize', true, false,
                                                  elHeight);

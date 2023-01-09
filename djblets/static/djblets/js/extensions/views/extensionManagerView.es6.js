@@ -154,7 +154,8 @@ const ExtensionItemView = Djblets.Config.TableItemView.extend({
           <%- summary %>
          </p>
          <% if (!loadable) { %>
-          <pre class="djblets-c-extension-item__load-error"><%- loadError %></pre>
+          <pre class="djblets-c-extension-item__load-error"><%-
+            loadError %></pre>
          <% } %>
         </td>
         <td class="djblets-c-config-forms-list__item-state"></td>

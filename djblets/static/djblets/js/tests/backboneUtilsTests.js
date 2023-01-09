@@ -118,8 +118,8 @@ suite('djblets/gravy/backboneUtils', function() {
                 expect(model.get('mybool')).toBe(false);
             });
 
-            it("Setting element's property from model property with radioValue",
-               function() {
+            it("Setting element's property from model property with " +
+               'radioValue', function() {
                 model.set('myvalue', 'one');
 
                 $radio1.bindProperty('checked', model, 'myvalue', {

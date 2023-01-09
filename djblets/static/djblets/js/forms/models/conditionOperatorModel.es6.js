@@ -1,8 +1,8 @@
 /**
  * A possible operator for a condition choice.
  *
- * An operator simply stores state indicating the operator name, ID, and whether
- * the user should be prompted for a value.
+ * An operator simply stores state indicating the operator name, ID, and
+ * whether the user should be prompted for a value.
  *
  * Model Attributes:
  *     name (string):

@@ -30,8 +30,8 @@ $.fn.bindClass = function(model, modelPropName, className, options) {
  * Binds properties on an element and a model together.
  *
  * This can be used to ensure that a model and an element have properties in
- * sync. For example, a checkbox's "checked" property, or a "disabled" property,
- * backed by state in a model.
+ * sync. For example, a checkbox's "checked" property, or a "disabled"
+ * property, backed by state in a model.
  *
  * By default, the element's property will be set to the model's current
  * property, and future changes to either will update the other.
