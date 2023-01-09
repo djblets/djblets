@@ -14,5 +14,5 @@ Djblets.Avatars.ServiceSettingsFormView = Backbone.View.extend({
      */
     validate() {
         return true;
-    }
+    },
 });

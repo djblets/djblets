@@ -30,7 +30,7 @@
 Djblets.Forms.ConditionChoice = Backbone.Model.extend({
     defaults: {
         name: null,
-        valueField: null
+        valueField: null,
     },
 
     /**
@@ -43,7 +43,7 @@ Djblets.Forms.ConditionChoice = Backbone.Model.extend({
     initialize(attributes) {
         this.operators = new Backbone.Collection(attributes.operators, {
             model: Djblets.Forms.ConditionOperator,
-            parse: true
+            parse: true,
         });
     },
 
@@ -66,8 +66,8 @@ Djblets.Forms.ConditionChoice = Backbone.Model.extend({
 
         return new valueField.viewClass(_.defaults({
             model: new valueField.modelClass(_.defaults({
-                fieldName: fieldName
-            }, valueField.modelData))
+                fieldName: fieldName,
+            }, valueField.modelData)),
         }, valueField.viewData));
     },
 
@@ -87,9 +87,9 @@ Djblets.Forms.ConditionChoice = Backbone.Model.extend({
             id: data.id,
             name: data.name,
             valueField: Djblets.Forms.ConditionChoice.parseValueFieldData(
-                data.valueField)
+                data.valueField),
         };
-    }
+    },
 }, {
     /**
      * Parse value field data into a standard structure.
@@ -117,10 +117,10 @@ Djblets.Forms.ConditionChoice = Backbone.Model.extend({
                 modelClass: Djblets.getObjectByName(fieldModelInfo.className),
                 modelData: fieldModelInfo.data,
                 viewClass: Djblets.getObjectByName(fieldViewInfo.className),
-                viewData: fieldViewInfo.data
+                viewData: fieldViewInfo.data,
             };
         }
 
         return valueField;
-    }
+    },
 });

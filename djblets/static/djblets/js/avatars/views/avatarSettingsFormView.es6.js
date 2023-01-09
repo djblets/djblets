@@ -13,7 +13,7 @@ const [readyPromise, resolve] = Promise.withResolver();
 Djblets.Avatars.SettingsFormView = Backbone.View.extend({
     events: {
         'change #id_avatar_service_id': '_onServiceChanged',
-        'submit': '_onSubmit'
+        'submit': '_onSubmit',
     },
 
     /**
@@ -112,7 +112,7 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
     _onServiceChanged(e) {
         const $target = $(e.target);
         this.model.set('serviceID', $target.val());
-    }
+    },
 }, {
     /**
      * The form instance.
@@ -134,7 +134,7 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
             serviceID,
             new formClass({
                 el: $(`[data-avatar-service-id="${serviceID}"]`),
-                model: Djblets.Avatars.SettingsFormView.instance.model
+                model: Djblets.Avatars.SettingsFormView.instance.model,
             }));
     },
 
@@ -142,7 +142,7 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
      * A promise that is resolved when the avatar services form has been
      * initialized.
      */
-    ready: readyPromise
+    ready: readyPromise,
 });
 
 

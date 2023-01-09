@@ -31,7 +31,7 @@ Djblets.Forms.Condition = Backbone.Model.extend({
         error: null,
         operator: null,
         valid: true,
-        value: null
+        value: null,
     },
 
     /**
@@ -85,5 +85,5 @@ Djblets.Forms.Condition = Backbone.Model.extend({
     destroy(options) {
         this.stopListening();
         this.trigger('destroy', this, this.collection, options);
-    }
+    },
 });

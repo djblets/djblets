@@ -24,7 +24,7 @@
 Djblets.Forms.ConditionSet = Backbone.Model.extend({
     defaults: {
         fieldName: null,
-        lastID: null
+        lastID: null,
     },
 
     /**
@@ -37,7 +37,7 @@ Djblets.Forms.ConditionSet = Backbone.Model.extend({
     initialize(attributes) {
         this.choices = new Backbone.Collection(attributes.choicesData, {
             model: Djblets.Forms.ConditionChoice,
-            parse: true
+            parse: true,
         });
 
         const that = this;
@@ -62,10 +62,10 @@ Djblets.Forms.ConditionSet = Backbone.Model.extend({
                         operator: operator,
                         value: attrs.value,
                         valid: attrs.valid,
-                        error: attrs.error
+                        error: attrs.error,
                     },
                     options);
-            }
+            },
         });
     },
 
@@ -80,7 +80,7 @@ Djblets.Forms.ConditionSet = Backbone.Model.extend({
 
         this.conditions.add({
             choice: choice,
-            operator: choice.operators.first()
+            operator: choice.operators.first(),
         });
     },
 
@@ -100,7 +100,7 @@ Djblets.Forms.ConditionSet = Backbone.Model.extend({
      */
     parse(data) {
         return {
-            fieldName: data.fieldName
+            fieldName: data.fieldName,
         };
-    }
+    },
 });

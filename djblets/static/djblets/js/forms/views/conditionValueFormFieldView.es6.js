@@ -50,7 +50,7 @@ Djblets.Forms.ConditionValueFormFieldView = ParentView.extend({
      */
     getValue(value) {
         return this.$input.val();
-    }
+    },
 });
 
 

@@ -2,7 +2,9 @@
 
 
 const allowedMimeTypes = [
-    'image/png', 'image/jpeg', 'image/gif'
+    'image/gif',
+    'image/jpeg',
+    'image/png',
 ];
 
 

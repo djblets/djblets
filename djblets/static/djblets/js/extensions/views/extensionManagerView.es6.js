@@ -250,7 +250,7 @@ Djblets.ExtensionManagerView = Backbone.View.extend({
                     [],
                     {
                         model: this.listItemType,
-                    })
+                    }),
             });
     },
 

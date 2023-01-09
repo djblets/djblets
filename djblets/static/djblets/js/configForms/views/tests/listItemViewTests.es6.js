@@ -445,12 +445,12 @@ suite('djblets/configForms/views/ListItemView', function() {
                                         type: 'checkbox',
                                         label: 'Checkbox',
                                         enabledPropName: 'isDisabled',
-                                        enabledPropInverse: true
-                                    }
-                                ]
+                                        enabledPropInverse: true,
+                                    },
+                                ],
                             }),
                             itemView = new Djblets.Config.ListItemView({
-                                model: item
+                                model: item,
                             }),
                             $action;
 
@@ -478,11 +478,11 @@ suite('djblets/configForms/views/ListItemView', function() {
                 ],
             });
             const itemView = new Djblets.Config.ListItemView({
-                model: item
+                model: item,
             });
 
             itemView.actionHandlers = {
-                mybutton: '_onMyButtonClick'
+                mybutton: '_onMyButtonClick',
             };
             itemView._onMyButtonClick = () => {};
             spyOn(itemView, '_onMyButtonClick');

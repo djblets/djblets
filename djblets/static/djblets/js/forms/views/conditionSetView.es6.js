@@ -12,7 +12,7 @@ const BaseConditionRowView = Backbone.View.extend({
     className: 'conditions-field-row',
 
     events: {
-        'click .conditions-field-row-delete': '_onDeleteClicked'
+        'click .conditions-field-row-delete': '_onDeleteClicked',
     },
 
     /**
@@ -43,7 +43,7 @@ const BaseConditionRowView = Backbone.View.extend({
         e.preventDefault();
 
         this.model.destroy();
-    }
+    },
 });
 
 
@@ -66,12 +66,12 @@ const ConditionRowView = BaseConditionRowView.extend({
         ' <span class="conditions-field-choice"></span>\n',
         ' <span class="conditions-field-operator"></span>\n',
         ' <span class="conditions-field-value"></span>\n',
-        '</span>'
+        '</span>',
     ].join('')),
 
     events: _.extend({
         'change .conditions-field-choice select': '_onSelectChoiceChanged',
-        'change .conditions-field-operator select': '_onSelectOperatorChanged'
+        'change .conditions-field-operator select': '_onSelectOperatorChanged',
     }, BaseConditionRowView.prototype.events),
 
     /**
@@ -273,7 +273,7 @@ const DisabledConditionRowView = BaseConditionRowView.extend({
         }
 
         return this;
-    }
+    },
 });
 
 
@@ -368,7 +368,7 @@ Djblets.Forms.ConditionSetView = Backbone.View.extend({
             conditionSet: this.model,
             el: $rowEl,
             model: condition,
-            rowAnimationSpeedMS: this._rowAnimationSpeedMS
+            rowAnimationSpeedMS: this._rowAnimationSpeedMS,
         });
         rowView.render();
 

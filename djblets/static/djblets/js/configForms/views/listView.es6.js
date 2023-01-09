@@ -100,7 +100,7 @@ Djblets.Config.ListView = Backbone.View.extend({
     _addItem(item, collection, options={}) {
         const animateItem = (options.animate !== false);
         const view = new this.ItemView({
-            model: item
+            model: item,
         });
 
         view.render();
@@ -172,7 +172,7 @@ Djblets.Config.ListView = Backbone.View.extend({
 
         this.model.collection.each(item => {
             this._addItem(item, item.collection, {
-                animate: false
+                animate: false,
             });
         });
     },

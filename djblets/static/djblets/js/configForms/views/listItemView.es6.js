@@ -310,7 +310,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                 } else if (isRadio) {
                     $action.bindProperty(
                         'checked', this.model, action.propName, {
-                            radioValue: action.radioValue
+                            radioValue: action.radioValue,
                         }
                     );
                 }
@@ -320,7 +320,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                 $action.bindProperty(
                     'disabled', this.model, action.enabledPropName,
                     {
-                        inverse: (action.enabledPropInverse !== true)
+                        inverse: (action.enabledPropInverse !== true),
                     });
             }
 

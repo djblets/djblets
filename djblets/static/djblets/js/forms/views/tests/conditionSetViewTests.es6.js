@@ -4,12 +4,12 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
             model: {
                 className: 'Djblets.Forms.ConditionValueField',
                 data: {
-                    fieldHTML: html
-                }
+                    fieldHTML: html,
+                },
             },
             view: {
-                className: 'Djblets.Forms.ConditionValueFormFieldView'
-            }
+                className: 'Djblets.Forms.ConditionValueFormFieldView',
+            },
         };
     }
 
@@ -22,7 +22,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
             '  <ul class="conditions-field-rows"></ul>\n',
             '  <a href="#" class="conditions-field-add-condition"></a>\n',
             ' </div>\n',
-            '</div>'
+            '</div>',
         ].join(''));
 
         const conditionSetView = new Djblets.Forms.ConditionSetView({
@@ -38,15 +38,16 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                             {
                                 id: 'my-op-1',
                                 name: 'My Op 1',
-                                useValue: true
+                                useValue: true,
                             },
                             {
                                 id: 'my-op-2',
                                 name: 'My Op 2',
                                 useValue: true,
-                                valueField: makeValueField('<input type="number" />')
-                            }
-                        ]
+                                valueField: makeValueField(
+                                    '<input type="number" />'),
+                            },
+                        ],
                     },
                     {
                         id: 'my-choice-2',
@@ -56,20 +57,20 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                             {
                                 id: 'my-op-3',
                                 name: 'My Op 3',
-                                useValue: true
+                                useValue: true,
                             },
                             {
                                 id: 'my-op-4',
                                 name: 'My Op 4',
-                                useValue: true
-                            }
-                        ]
-                    }
+                                useValue: true,
+                            },
+                        ],
+                    },
                 ],
-                conditionsData: conditionsData
+                conditionsData: conditionsData,
             }, {
-                parse: true
-            })
+                parse: true,
+            }),
         });
 
         conditionSetView.render();
@@ -84,14 +85,14 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                     choiceID: 'my-choice-1',
                     operatorID: 'my-op-1',
                     value: '<test>',
-                    valid: true
+                    valid: true,
                 },
                 {
                     choiceID: 'my-choice-2',
                     operatorID: 'my-op-4',
                     value: 42,
-                    valid: true
-                }
+                    valid: true,
+                },
             ]);
 
             const $rows = conditionSetView.$('.conditions-field-row');
@@ -108,7 +109,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                 '<select name="my_conditions_choice[0]">',
                 '<option value="my-choice-1">My Choice 1</option>',
                 '<option value="my-choice-2">My Choice 2</option>',
-                '</select>'
+                '</select>',
             ].join(''));
             expect($choice.children('select').val()).toBe('my-choice-1');
 
@@ -117,7 +118,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                 '<select name="my_conditions_operator[0]">',
                 '<option value="my-op-1">My Op 1</option>',
                 '<option value="my-op-2">My Op 2</option>',
-                '</select>'
+                '</select>',
             ].join(''));
             expect($operator.children('select').val()).toBe('my-op-1');
 
@@ -135,7 +136,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                 '<select name="my_conditions_choice[1]">',
                 '<option value="my-choice-1">My Choice 1</option>',
                 '<option value="my-choice-2">My Choice 2</option>',
-                '</select>'
+                '</select>',
             ].join(''));
             expect($choice.children('select').val()).toBe('my-choice-2');
 
@@ -144,7 +145,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                 '<select name="my_conditions_operator[1]">',
                 '<option value="my-op-3">My Op 3</option>',
                 '<option value="my-op-4">My Op 4</option>',
-                '</select>'
+                '</select>',
             ].join(''));
             expect($operator.children('select').val()).toBe('my-op-4');
 
@@ -163,8 +164,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                     operatorID: 'my-op-1',
                     value: '<test>',
                     error: 'This is an <error>.',
-                    valid: true
-                }
+                    valid: true,
+                },
             ]);
 
             const $rows = conditionSetView.$('.conditions-field-row');
@@ -206,7 +207,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                 '<select name="my_conditions_choice[0]">',
                 '<option value="my-choice-1">My Choice 1</option>',
                 '<option value="my-choice-2">My Choice 2</option>',
-                '</select>'
+                '</select>',
             ].join(''));
             expect($choice.children('select').val()).toBe('my-choice-1');
 
@@ -215,7 +216,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                 '<select name="my_conditions_operator[0]">',
                 '<option value="my-op-1">My Op 1</option>',
                 '<option value="my-op-2">My Op 2</option>',
-                '</select>'
+                '</select>',
             ].join(''));
             expect($operator.children('select').val()).toBe('my-op-1');
 
@@ -233,8 +234,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                     choiceID: 'my-choice-1',
                     operatorID: 'my-op-1',
                     value: '<test>',
-                    valid: true
-                }
+                    valid: true,
+                },
             ]);
 
             let $rows = conditionSetView.$('.conditions-field-row');
@@ -268,8 +269,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                     choiceID: 'my-choice-1',
                     operatorID: 'my-op-1',
                     value: '<test>',
-                    valid: true
-                }
+                    valid: true,
+                },
             ]);
 
             const $rows = conditionSetView.$('.conditions-field-row');
@@ -288,8 +289,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                     choiceID: 'my-choice-1',
                     operatorID: 'my-op-1',
                     value: '<test>',
-                    valid: true
-                }
+                    valid: true,
+                },
             ]);
 
             const $rows = conditionSetView.$('.conditions-field-row');
@@ -318,8 +319,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                     choiceID: 'my-choice-1',
                     operatorID: 'my-op-1',
                     value: '<test>',
-                    valid: true
-                }
+                    valid: true,
+                },
             ]);
 
             conditionSet = conditionSetView.model;

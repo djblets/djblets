@@ -14,8 +14,8 @@ Djblets.Config.PagesView = Backbone.View.extend({
     initialize() {
         this.router = new Backbone.Router({
             routes: {
-                ':pageID': 'page'
-            }
+                ':pageID': 'page',
+            },
         });
         this.listenTo(this.router, 'route:page', this._onPageChanged);
 

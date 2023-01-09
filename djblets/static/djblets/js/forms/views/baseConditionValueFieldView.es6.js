@@ -50,5 +50,5 @@ Djblets.Forms.BaseConditionValueFieldView = Backbone.View.extend({
     getValue() {
         console.assert(false,
                        'getValue() must be implemented by this subclass.');
-    }
+    },
 });

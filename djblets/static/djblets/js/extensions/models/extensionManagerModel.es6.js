@@ -45,7 +45,7 @@ const InstalledExtension = Backbone.Model.extend({
     enable() {
         return new Promise((resolve, reject) => {
             this.save({
-                enabled: true
+                enabled: true,
             }, {
                 wait: true,
                 success: () => resolve(),
