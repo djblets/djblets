@@ -28,16 +28,16 @@ suite('djblets/forms/views/ListEditView', function() {
     </div>
     `);
 
-    const makeView = function makeView(renderedRows=[],
-        renderedDefaultRow=dedent`<input type="text"
-            class="djblets-c-list-edit-widget__input"
-            name="_value[0]" />`) {
-        const $el =
-            $(formTemplate({
-                renderedRows: renderedRows,
-                renderedDefaultRow: renderedDefaultRow,
-            }))
-            .appendTo($testsScratch);
+    const makeView = function makeView(renderedRows, renderedDefaultRow) {
+        const $el = $(formTemplate({
+            renderedDefaultRow: renderedDefaultRow ||
+                `<input type="text" ' +
+                'class="djblets-c-list-edit-widget__input" ' +
+                'name="_value[0]" />`,
+            renderedRows: renderedRows || [],
+        }));
+
+        $el.appendTo($testsScratch);
 
         const view = new Djblets.Forms.ListEditView({
             el: $el,
@@ -73,7 +73,7 @@ suite('djblets/forms/views/ListEditView', function() {
                 .toEqual('_value[0]');
         });
 
-        it ('With one value', function() {
+        it('With one value', function() {
             const [view, $numRows] = makeView([
                 dedent`<input type="text"
                 class="djblets-c-list-edit-widget__input"

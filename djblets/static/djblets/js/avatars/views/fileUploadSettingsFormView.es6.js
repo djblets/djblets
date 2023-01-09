@@ -37,6 +37,7 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
 
         if (!file) {
             alert(_`You must choose a file.`);
+
             return false;
         }
 
@@ -45,6 +46,7 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
                 This wasn't a valid image file format. Please provide a PNG,
                 JPEG, or GIF file.
             `);
+
             return false;
         }
 
@@ -193,6 +195,7 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
                 You can only set one file as your avatar. Please drag and
                 drop a single file.
             `);
+
             return;
         }
 
@@ -204,6 +207,7 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
                 This doesn't appear to be a compatible image file for avatars.
                 Please upload a PNG, JPEG, or GIF file.
             `);
+
             return;
         }
 
@@ -221,6 +225,7 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
                 Looks like dragging to upload a file isn't going to work with
                 your browser. Try browsing for a file instead.
             `);
+
             return;
         }
 

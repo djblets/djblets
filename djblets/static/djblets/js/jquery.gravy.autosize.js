@@ -105,8 +105,8 @@ $.widget('ui.autoSizeTextArea', {
         }
 
         if (needsResize) {
-            targetHeight = Math.max(  this.options.minHeight
-                                    - $el.getExtents('p', 'tb'),
+            targetHeight = Math.max(this.options.minHeight -
+                                    $el.getExtents('p', 'tb'),
                                     newHeight);
 
             if (animate) {
@@ -134,5 +134,3 @@ $.widget('ui.autoSizeTextArea', {
 
 
 })(jQuery);
-
-// vim: set et:

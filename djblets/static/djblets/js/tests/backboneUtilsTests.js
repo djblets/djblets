@@ -16,12 +16,14 @@ suite('djblets/gravy/backboneUtils', function() {
             it('Adds class when true', function() {
                 model.set('mybool', true);
                 $el.bindClass(model, 'mybool', 'myclass');
+
                 expect($el.hasClass('myclass')).toBe(true);
             });
 
             it('No class when false', function() {
                 model.set('mybool', false);
                 $el.bindClass(model, 'mybool', 'myclass');
+
                 expect($el.hasClass('myclass')).toBe(false);
             });
 
@@ -31,6 +33,7 @@ suite('djblets/gravy/backboneUtils', function() {
                     $el.bindClass(model, 'mybool', 'myclass', {
                         inverse: true
                     });
+
                     expect($el.hasClass('myclass')).toBe(false);
                 });
 
@@ -39,6 +42,7 @@ suite('djblets/gravy/backboneUtils', function() {
                     $el.bindClass(model, 'mybool', 'myclass', {
                         inverse: true
                     });
+
                     expect($el.hasClass('myclass')).toBe(true);
                 });
             });
@@ -49,6 +53,7 @@ suite('djblets/gravy/backboneUtils', function() {
                 model.set('mybool', true);
                 $el.bindClass(model, 'mybool', 'myclass');
                 model.set('mybool', false);
+
                 expect($el.hasClass('myclass')).toBe(false);
             });
 
@@ -56,6 +61,7 @@ suite('djblets/gravy/backboneUtils', function() {
                 model.set('mybool', false);
                 $el.bindClass(model, 'mybool', 'myclass');
                 model.set('mybool', true);
+
                 expect($el.hasClass('myclass')).toBe(true);
             });
 
@@ -66,6 +72,7 @@ suite('djblets/gravy/backboneUtils', function() {
                         inverse: true
                     });
                     model.set('mybool', false);
+
                     expect($el.hasClass('myclass')).toBe(true);
                 });
 
@@ -75,6 +82,7 @@ suite('djblets/gravy/backboneUtils', function() {
                         inverse: true
                     });
                     model.set('mybool', true);
+
                     expect($el.hasClass('myclass')).toBe(false);
                 });
             });
@@ -104,16 +112,17 @@ suite('djblets/gravy/backboneUtils', function() {
             it("Setting element's property from model property's", function() {
                 model.set('mybool', true);
                 $el.bindProperty('checked', model, 'mybool');
+
                 expect($el.prop('checked')).toBe(true);
             });
 
             it("Setting element's property from model property's with " +
-               "inverse=true",
-               function() {
+               'inverse=true', function() {
                 model.set('mybool', false);
                 $el.bindProperty('checked', model, 'mybool', {
                     inverse: true
                 });
+
                 expect($el.prop('checked')).toBe(true);
                 expect(model.get('mybool')).toBe(false);
             });
@@ -148,9 +157,11 @@ suite('djblets/gravy/backboneUtils', function() {
             it("Setting element's property", function() {
                 model.set('mybool', false);
                 $el.bindProperty('checked', model, 'mybool');
+
                 expect($el.prop('checked')).toBe(false);
 
                 model.set('mybool', true);
+
                 expect($el.prop('checked')).toBe(true);
             });
 
@@ -159,9 +170,11 @@ suite('djblets/gravy/backboneUtils', function() {
                 $el.bindProperty('checked', model, 'mybool', {
                     inverse: true
                 });
+
                 expect($el.prop('checked')).toBe(true);
 
                 model.set('mybool', true);
+
                 expect($el.prop('checked')).toBe(false);
                 expect(model.get('mybool')).toBe(true);
             });
@@ -180,6 +193,7 @@ suite('djblets/gravy/backboneUtils', function() {
                 expect($radio2.prop('checked')).toBe(false);
 
                 model.set('myvalue', 'two');
+
                 expect($radio1.prop('checked')).toBe(false);
                 expect($radio2.prop('checked')).toBe(true);
                 expect(model.get('myvalue')).toBe('two');
@@ -192,6 +206,7 @@ suite('djblets/gravy/backboneUtils', function() {
                 });
 
                 model.set('mybool', true);
+
                 expect($el.prop('checked')).toBe(false);
             });
         });
@@ -202,6 +217,7 @@ suite('djblets/gravy/backboneUtils', function() {
                 $el.bindProperty('checked', model, 'mybool');
 
                 $el.click();
+
                 expect($el.prop('checked')).toBe(true);
                 expect(model.get('mybool')).toBe(true);
             });
@@ -243,6 +259,7 @@ suite('djblets/gravy/backboneUtils', function() {
                 });
 
                 $el.click();
+
                 expect($el.prop('checked')).toBe(true);
                 expect(model.get('mybool')).toBe(false);
             });
@@ -257,6 +274,7 @@ suite('djblets/gravy/backboneUtils', function() {
                 });
 
                 model.set('text', 'hello world!');
+
                 expect($el.text()).toBe('hello world!');
             });
 
@@ -268,6 +286,7 @@ suite('djblets/gravy/backboneUtils', function() {
                 });
 
                 model.set('html', '<b>hello world!</b>');
+
                 expect($el.html()).toBe('<b>hello world!</b>');
             });
         });
@@ -290,17 +309,19 @@ suite('djblets/gravy/backboneUtils', function() {
 
                 model.set('mybool', true);
                 $el.bindVisibility(model, 'mybool');
+
                 expect($el.is(':visible')).toBe(true);
             });
 
-            it('When property is initially false with inverse=true',
-               function() {
+            it('When property is initially false with ' +
+                'inverse=true', function() {
                 $el.hide();
 
                 model.set('mybool', false);
                 $el.bindVisibility(model, 'mybool', {
                     inverse: true
                 });
+
                 expect($el.is(':visible')).toBe(true);
             });
 
@@ -310,11 +331,12 @@ suite('djblets/gravy/backboneUtils', function() {
                 model.set('mybool', false);
                 $el.bindVisibility(model, 'mybool');
                 model.set('mybool', true);
+
                 expect($el.is(':visible')).toBe(true);
             });
 
-            it('When property is changed to false with inverse=true',
-               function() {
+            it('When property is changed to false with ' +
+                'inverse=true', function() {
                 $el.hide();
 
                 model.set('mybool', true);
@@ -322,6 +344,7 @@ suite('djblets/gravy/backboneUtils', function() {
                     inverse: true
                 });
                 model.set('mybool', false);
+
                 expect($el.is(':visible')).toBe(true);
             });
         });
@@ -332,17 +355,19 @@ suite('djblets/gravy/backboneUtils', function() {
 
                 model.set('mybool', false);
                 $el.bindVisibility(model, 'mybool');
+
                 expect($el.is(':visible')).toBe(false);
             });
 
-            it('When property is initially true with inverse=true',
-               function() {
+            it('When property is initially true with ' +
+                'inverse=true', function() {
                 expect($el.is(':visible')).toBe(true);
 
                 model.set('mybool', true);
                 $el.bindVisibility(model, 'mybool', {
                     inverse: true
                 });
+
                 expect($el.is(':visible')).toBe(false);
             });
 
@@ -352,11 +377,12 @@ suite('djblets/gravy/backboneUtils', function() {
                 model.set('mybool', true);
                 $el.bindVisibility(model, 'mybool');
                 model.set('mybool', false);
+
                 expect($el.is(':visible')).toBe(false);
             });
 
-            it('When property is changed to true with inverse=true',
-               function() {
+            it('When property is changed to true with ' +
+                'inverse=true', function() {
                 expect($el.is(':visible')).toBe(true);
 
                 model.set('mybool', false);
@@ -364,6 +390,7 @@ suite('djblets/gravy/backboneUtils', function() {
                     inverse: true
                 });
                 model.set('mybool', true);
+
                 expect($el.is(':visible')).toBe(false);
             });
         });

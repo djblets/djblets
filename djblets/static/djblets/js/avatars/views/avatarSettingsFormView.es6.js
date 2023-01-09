@@ -26,7 +26,6 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
 
         this._$config = this.$('.avatar-service-configuration');
 
-        const services = this.model.get('services');
         this.listenTo(this.model, 'change:serviceID',
                       () => this._showHideForms());
 
@@ -81,7 +80,6 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
      * Show or hide the configuration form.
      */
     _showHideForms() {
-        const services = this.model.get('services');
         const serviceID = this.model.get('serviceID');
         const currentForm = this._configForms.get(serviceID);
         const previousID = this.model.previous('serviceID');

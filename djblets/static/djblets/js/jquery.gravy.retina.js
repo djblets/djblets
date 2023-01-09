@@ -99,7 +99,7 @@ Djblets.enableRetinaImages = function($container, selector) {
     /*
      * It is more useful to provide a 2x image on a 1.5 pixel ratio than
      * to provide a 1x image.
-      */
+     */
     pixelRatio = Math.ceil(pixelRatio);
 
     if (!$container) {

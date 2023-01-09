@@ -417,8 +417,13 @@ $.fn.positionToSide = function($el, options) {
 $.fn.delay = function(msec) {
     return $(this).each(function() {
         var self = $(this);
+
         self.queue(function() {
-            window.setTimeout(function() { self.dequeue(); }, msec);
+            window.setTimeout(
+                function() {
+                    self.dequeue();
+                },
+                msec);
         });
     });
 };
@@ -451,43 +456,48 @@ $.fn.proxyTouchEvents = function(events) {
             touchState;
 
         if (touches.length !== 1) {
-             // Ignore this event. We don't want to get in the way of gestures.
-             return;
+            // Ignore this event. We don't want to get in the way of gestures.
+            return;
         }
 
         firstTouch = event.originalEvent.changedTouches[0];
 
         switch (event.type) {
-        case 'touchstart':
-            $this.data(stateKey, {
-                lastEl: document.elementFromPoint(firstTouch.clientX,
-                                                  firstTouch.clientY)
-            });
-            simulateMouseEvent(event, 'mousedown', firstTouch);
-            break;
+            case 'touchstart':
+                $this.data(stateKey, {
+                    lastEl: document.elementFromPoint(firstTouch.clientX,
+                                                      firstTouch.clientY)
+                });
+                simulateMouseEvent(event, 'mousedown', firstTouch);
+                break;
 
-        case 'touchmove':
-            touchState = $this.data(stateKey);
-            hoverEl = document.elementFromPoint(firstTouch.clientX,
-                                                firstTouch.clientY);
+            case 'touchmove':
+                touchState = $this.data(stateKey);
+                hoverEl = document.elementFromPoint(firstTouch.clientX,
+                                                    firstTouch.clientY);
 
-            if (touchState.lastEl !== hoverEl) {
-                simulateMouseEvent(event, 'mouseout', firstTouch,
-                                   touchState.lastEl);
+                if (touchState.lastEl !== hoverEl) {
+                    simulateMouseEvent(event, 'mouseout', firstTouch,
+                                       touchState.lastEl);
 
-                touchState.lastEl = hoverEl;
-                simulateMouseEvent(event, 'mouseover', firstTouch,
-                                   hoverEl);
-            }
+                    touchState.lastEl = hoverEl;
+                    simulateMouseEvent(event, 'mouseover', firstTouch,
+                                       hoverEl);
+                }
 
-            simulateMouseEvent(event, 'mousemove', firstTouch);
-            break;
+                simulateMouseEvent(event, 'mousemove', firstTouch);
+                break;
 
-        case 'touchend':
-        case 'touchcancel':
-            simulateMouseEvent(event, 'mouseup', firstTouch);
-            $this.data(stateKey, null);
-            break;
+            case 'touchend':
+                // Fall through
+
+            case 'touchcancel':
+                simulateMouseEvent(event, 'mouseup', firstTouch);
+                $this.data(stateKey, null);
+                break;
+
+            default:
+                break;
         }
     });
 };
@@ -507,11 +517,10 @@ $.extend(String.prototype, {
             return '';
         }
 
-        str = this.replace(/&/g, '&amp;');
-        str = str.replace(/</g, '&lt;');
-        str = str.replace(/>/g, '&gt;');
-
-        return str;
+        return this
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     },
 
     htmlDecode: function() {
@@ -519,11 +528,10 @@ $.extend(String.prototype, {
             return '';
         }
 
-        str = this.replace(/&amp;/g, '&');
-        str = str.replace(/&lt;/g, '<');
-        str = str.replace(/&gt;/g, '>');
-
-        return str;
+        return this
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>');
     },
 
     truncate: function(numChars) {
@@ -570,8 +578,12 @@ $.extend(String.prototype, {
  *     The object matching the dotted path.
  */
 Djblets.getObjectByName = function(name, obj) {
-    var cls = name.split('.').reduce(function(o, i) { return o[i]; },
-                                     obj || window);
+    var cls = name.split('.').reduce(
+        function(o, i) {
+            return o[i];
+        },
+        obj || window);
+
     console.assert(cls, 'Invalid class path "' + name + '".');
 
     return cls;
@@ -579,5 +591,3 @@ Djblets.getObjectByName = function(name, obj) {
 
 
 })(jQuery);
-
-// vim: set et:

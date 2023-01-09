@@ -94,6 +94,7 @@ $.fn.datagrid = function() {
      */
     function setupHeader() {
         var $origHeader = $bodyTable.children('thead'),
+            $headers,
             $thead;
 
         activeColumns = [];
@@ -120,31 +121,32 @@ $.fn.datagrid = function() {
 
         $origHeader.hide();
 
-        $headTable.find('th')
-            /* Make the columns unselectable. */
-            .disableSelection()
+        $headers = $headTable.find('th');
 
-            /* Make the columns draggable. */
-            .not('.edit-columns').draggable({
-                appendTo: 'body',
-                axis: 'x',
-                containment: $thead,
-                cursor: 'move',
-                drag: onColumnDrag,
-                helper: function() {
-                    var $el = $(this);
+        /* Make the columns unselectable. */
+        $headers.disableSelection();
 
-                    return $('<div/>')
-                        .addClass('datagrid-header-drag datagrid-header')
-                        .width($el.width())
-                        .height($el.height())
-                        .css('top', $el.offset().top)
-                        .css('line-height', $el.height() + 'px')
-                        .html($el.html());
-                },
-                start: startColumnDrag,
-                stop: endColumnDrag
-            });
+        /* Make the columns draggable. */
+        $headers.not('.edit-columns').draggable({
+            appendTo: 'body',
+            axis: 'x',
+            containment: $thead,
+            cursor: 'move',
+            drag: onColumnDrag,
+            helper: function() {
+                var $el = $(this);
+
+                return $('<div/>')
+                    .addClass('datagrid-header-drag datagrid-header')
+                    .width($el.width())
+                    .height($el.height())
+                    .css('top', $el.offset().top)
+                    .css('line-height', $el.height() + 'px')
+                    .html($el.html());
+            },
+            start: startColumnDrag,
+            stop: endColumnDrag
+        });
 
         $headTable.find('.datagrid-header-checkbox').change(function() {
             /*
@@ -192,6 +194,7 @@ $.fn.datagrid = function() {
             bodyWidths = [],
             headWidths = [],
             bodyContainerWidth,
+            extraWidth,
             width,
             i;
 
@@ -655,7 +658,8 @@ $.fn.datagrid = function() {
 
         $headTable.find('th').not('.edit-columns').each(function(i, column) {
             var $column = $(column),
-                offset = $column.offset();
+                offset = $column.offset(),
+                width;
 
             if (column === dragColumn) {
                 dragIndex = i;
@@ -742,7 +746,7 @@ $.fn.datagrid = function() {
         .on('click', editButtonSel, function(e) {
             e.stopPropagation();
             toggleColumnsMenu();
-        })
+        });
 
     setupHeader();
 

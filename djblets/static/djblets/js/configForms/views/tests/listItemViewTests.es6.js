@@ -483,8 +483,7 @@ suite('djblets/configForms/views/ListItemView', function() {
             itemView.actionHandlers = {
                 mybutton: '_onMyButtonClick',
             };
-            itemView._onMyButtonClick = () => {};
-            spyOn(itemView, '_onMyButtonClick');
+            itemView._onMyButtonClick = jasmine.createSpy('_onMyButtonClick');
 
             itemView.render();
 
@@ -516,8 +515,7 @@ suite('djblets/configForms/views/ListItemView', function() {
             itemView.actionHandlers = {
                 mybutton: '_onMyButtonClick',
             };
-            itemView._onMyButtonClick = () => {};
-            spyOn(itemView, '_onMyButtonClick');
+            itemView._onMyButtonClick = jasmine.createSpy('_onMyButtonClick');
 
             itemView.render();
 

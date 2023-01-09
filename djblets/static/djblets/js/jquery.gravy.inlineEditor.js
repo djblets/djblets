@@ -73,8 +73,6 @@ $.widget('ui.inlineEditor', {
     _create: function() {
         /* Constants */
         var self = this,
-            saveButton,
-            cancelButton,
             isDragging;
 
         /* State */
@@ -144,8 +142,7 @@ $.widget('ui.inlineEditor', {
         this._editIcon = null;
 
         if (this.options.showEditIcon) {
-            this._editIcon =
-                $('<a/>')
+            this._editIcon = $('<a/>')
                 .attr({
                     'aria-label': gettext('Edit this field'),
                     'href': '#',
@@ -154,6 +151,7 @@ $.widget('ui.inlineEditor', {
                 .addClass('editicon')
                 .click(function() {
                     self.startEdit();
+
                     return false;
                 });
 
@@ -201,6 +199,7 @@ $.widget('ui.inlineEditor', {
                     if (!isDragging) {
                         self.startEdit();
                     }
+
                     isDragging = true;
 
                     return false;
@@ -261,6 +260,7 @@ $.widget('ui.inlineEditor', {
                         if (!self.options.multiline) {
                             e.preventDefault();
                         }
+
                         break;
 
                     case $.ui.keyCode.ESCAPE:
@@ -268,15 +268,20 @@ $.widget('ui.inlineEditor', {
                         if (!self.options.forceOpen) {
                             self.cancel();
                         }
+
                         break;
 
                     case 83:
+                        // Fall through.
+
                     case 115:
                         /* s or S */
                         if (e.ctrlKey) {
                             self.submit();
+
                             return false;
                         }
+
                         break;
 
                     default:
@@ -288,6 +293,7 @@ $.widget('ui.inlineEditor', {
             })
             .keyup(function() {
                 self._scheduleUpdateDirtyState();
+
                 return false;
             });
     },
@@ -339,6 +345,7 @@ $.widget('ui.inlineEditor', {
             this._initialValue = this.element.text();
             value = this._normalizeText(this._initialValue).htmlDecode();
         }
+
         this._editing = true;
 
         this.options.setFieldValue(this, value);
@@ -529,10 +536,10 @@ $.widget('ui.inlineEditor', {
             }
         }
 
-        if (   this.options.multiline
-            && this.options.matchHeight
-            && this._editing
-            && this._isTextArea) {
+        if (this.options.multiline &&
+            this.options.matchHeight &&
+            this._editing &&
+            this._isTextArea) {
             this._field
                 .css('overflow', 'hidden')
                 .animate({
@@ -547,6 +554,7 @@ $.widget('ui.inlineEditor', {
         });
 
         this._editing = false;
+
         // Only update _dirty state after setting _editing to false.
         this._updateDirtyState();
     },
@@ -567,8 +575,8 @@ $.widget('ui.inlineEditor', {
     _updateDirtyState: function() {
         var curDirtyState = (this._editing &&
                              this.options.isFieldDirty(
-                                this,
-                                this._normalizeText(this._initialValue)));
+                                 this,
+                                 this._normalizeText(this._initialValue)));
 
         if (this._dirty !== curDirtyState) {
             this._dirty = curDirtyState;
@@ -679,5 +687,3 @@ $.expr[':'].inlineEditorDirty = function(a) {
 
 
 })(jQuery);
-
-// vim: set et:

@@ -130,6 +130,7 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
         }
 
         this._$input.after(this.$el);
+
         return this;
     },
 

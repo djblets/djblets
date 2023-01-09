@@ -35,9 +35,10 @@ suite('djblets/integrations/views/AddIntegrationPopupView', function() {
             expect($item.children('a').attr('href')).toBe('int1/add/');
             expect($item.find('.djblets-c-integration__name').text())
                 .toBe('Int1');
-            expect($item.find('.djblets-c-integration__description')
-                       .text().trim())
-                .toBe('Int1 Description');
+            expect(
+                $item.find('.djblets-c-integration__description')
+                    .text().trim()
+            ).toBe('Int1 Description');
 
             let $icon = $item.find('.djblets-c-integration__icon');
             expect($icon.attr('src')).toBe('data:test,int1');
@@ -49,9 +50,10 @@ suite('djblets/integrations/views/AddIntegrationPopupView', function() {
             expect($item.children('a').attr('href')).toBe('int2/add/');
             expect($item.find('.djblets-c-integration__name').text())
                 .toBe('Int2');
-            expect($item.find('.djblets-c-integration__description')
-                       .text().trim())
-                .toBe('Int2 Description');
+            expect(
+                $item.find('.djblets-c-integration__description')
+                    .text().trim()
+            ).toBe('Int2 Description');
 
             $icon = $item.find('.djblets-c-integration__icon');
             expect($icon.attr('src')).toBe('data:test,int2');
