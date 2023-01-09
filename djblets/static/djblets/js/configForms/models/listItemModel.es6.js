@@ -89,13 +89,13 @@
  */
 Djblets.Config.ListItem = Backbone.Model.extend({
     defaults: {
-        text: null,
-        editURL: null,
-        showRemove: false,
         canRemove: true,
+        editURL: null,
+        itemState: null,
         loading: false,
         removeLabel: _`Remove`,
-        itemState: null,
+        showRemove: false,
+        text: null,
     },
 
     /**
@@ -129,10 +129,10 @@ Djblets.Config.ListItem = Backbone.Model.extend({
 
         if (this.get('showRemove')) {
             this.actions.push({
+                danger: true,
+                enabled: this.get('canRemove'),
                 id: 'delete',
                 label: this.get('removeLabel'),
-                danger: true,
-                enabled: this.get('canRemove')
             });
         }
     },

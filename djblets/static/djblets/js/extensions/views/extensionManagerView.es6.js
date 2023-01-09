@@ -82,9 +82,9 @@ const ExtensionItem = Djblets.Config.ListItem.extend({
             }
 
             actions.push({
+                danger: true,
                 id: 'disable',
                 label: _`Disable`,
-                danger: true,
             });
         } else {
             /* Add an action for enabling a disabled extension. */
@@ -235,9 +235,9 @@ Djblets.ExtensionManagerView = Backbone.View.extend({
         'click .djblets-c-extensions__reload': '_reloadFull',
     },
 
-    listItemsCollectionType: Djblets.Config.ListItems,
     listItemType: ExtensionItem,
     listItemViewType: ExtensionItemView,
+    listItemsCollectionType: Djblets.Config.ListItems,
     listViewType: Djblets.Config.TableView,
 
     /**
@@ -267,9 +267,9 @@ Djblets.ExtensionManagerView = Backbone.View.extend({
         const list = this.list;
 
         this.listView = new this.listViewType({
+            ItemView: this.listItemViewType,
             el: this.$('.djblets-c-config-forms-list'),
             model: list,
-            ItemView: this.listItemViewType,
         });
         this.listView.render().$el
             .removeAttr('aria-busy')

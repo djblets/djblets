@@ -130,6 +130,7 @@ $.fn.datagrid = function() {
                 axis: 'x',
                 containment: $thead,
                 cursor: 'move',
+                drag: onColumnDrag,
                 helper: function() {
                     var $el = $(this);
 
@@ -142,8 +143,7 @@ $.fn.datagrid = function() {
                         .html($el.html());
                 },
                 start: startColumnDrag,
-                stop: endColumnDrag,
-                drag: onColumnDrag
+                stop: endColumnDrag
             });
 
         $headTable.find('.datagrid-header-checkbox').change(function() {
@@ -488,8 +488,8 @@ $.fn.datagrid = function() {
     function updateMenuPosition() {
         $menu
             .css({
-                top: $editButton.position().top + $editButton.innerHeight(),
-                right: -$menu.outerWidth()
+                right: -$menu.outerWidth(),
+                top: $editButton.position().top + $editButton.innerHeight()
             })
             .show()
             .animate({

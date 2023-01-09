@@ -8,8 +8,8 @@
  * mainly used to handle deletion of the row.
  */
 const BaseConditionRowView = Backbone.View.extend({
-    tagName: 'li',
     className: 'conditions-field-row',
+    tagName: 'li',
 
     events: {
         'click .conditions-field-row-delete': '_onDeleteClicked',
@@ -295,8 +295,8 @@ Djblets.Forms.ConditionSetView = Backbone.View.extend({
     DEFAULT_ROW_ANIMATION_SPEED_MS: 300,
 
     events: {
-        'click .conditions-field-add-condition': '_onAddRowClicked',
         'change #conditions_mode input': '_onConditionModeChanged',
+        'click .conditions-field-add-condition': '_onAddRowClicked',
     },
 
     /**

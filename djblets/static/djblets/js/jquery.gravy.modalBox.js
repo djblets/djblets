@@ -76,9 +76,9 @@ $.widget('ui.modalBox', {
             .addClass('modalbox-inner')
             .attr('tabindex', '0')
             .css({
+                height: '100%',
                 position: 'relative',
-                width: '100%',
-                height: '100%'
+                width: '100%'
             })
             .appendTo(this.box);
 

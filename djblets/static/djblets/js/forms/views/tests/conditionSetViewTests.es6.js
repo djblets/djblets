@@ -28,12 +28,10 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
         const conditionSetView = new Djblets.Forms.ConditionSetView({
             el: $(conditionsTemplate()),
             model: new Djblets.Forms.ConditionSet({
-                fieldName: 'my_conditions',
                 choicesData: [
                     {
                         id: 'my-choice-1',
                         name: 'My Choice 1',
-                        valueField: makeValueField('<input type="text" />'),
                         operators: [
                             {
                                 id: 'my-op-1',
@@ -48,11 +46,11 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                                     '<input type="number" />'),
                             },
                         ],
+                        valueField: makeValueField('<input type="text" />'),
                     },
                     {
                         id: 'my-choice-2',
                         name: 'My Choice 2',
-                        valueField: makeValueField('<input type="email" />'),
                         operators: [
                             {
                                 id: 'my-op-3',
@@ -65,9 +63,11 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                                 useValue: true,
                             },
                         ],
+                        valueField: makeValueField('<input type="email" />'),
                     },
                 ],
                 conditionsData: conditionsData,
+                fieldName: 'my_conditions',
             }, {
                 parse: true,
             }),
@@ -84,14 +84,14 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                 {
                     choiceID: 'my-choice-1',
                     operatorID: 'my-op-1',
-                    value: '<test>',
                     valid: true,
+                    value: '<test>',
                 },
                 {
                     choiceID: 'my-choice-2',
                     operatorID: 'my-op-4',
-                    value: 42,
                     valid: true,
+                    value: 42,
                 },
             ]);
 
@@ -161,10 +161,10 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
             const conditionSetView = setupConditionSetView([
                 {
                     choiceID: 'my-choice-1',
-                    operatorID: 'my-op-1',
-                    value: '<test>',
                     error: 'This is an <error>.',
+                    operatorID: 'my-op-1',
                     valid: true,
+                    value: '<test>',
                 },
             ]);
 
@@ -233,8 +233,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                 {
                     choiceID: 'my-choice-1',
                     operatorID: 'my-op-1',
-                    value: '<test>',
                     valid: true,
+                    value: '<test>',
                 },
             ]);
 
@@ -268,8 +268,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                 {
                     choiceID: 'my-choice-1',
                     operatorID: 'my-op-1',
-                    value: '<test>',
                     valid: true,
+                    value: '<test>',
                 },
             ]);
 
@@ -288,8 +288,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                 {
                     choiceID: 'my-choice-1',
                     operatorID: 'my-op-1',
-                    value: '<test>',
                     valid: true,
+                    value: '<test>',
                 },
             ]);
 
@@ -318,8 +318,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                 {
                     choiceID: 'my-choice-1',
                     operatorID: 'my-op-1',
-                    value: '<test>',
                     valid: true,
+                    value: '<test>',
                 },
             ]);
 

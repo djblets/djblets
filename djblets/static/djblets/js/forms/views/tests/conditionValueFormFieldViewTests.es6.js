@@ -2,8 +2,8 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
     function createValueField(html) {
         const view = new Djblets.Forms.ConditionValueFormFieldView({
             model: new Djblets.Forms.ConditionValueField({
-                fieldName: 'my-field',
                 fieldHTML: html,
+                fieldName: 'my-field',
             }),
         });
         view.render();

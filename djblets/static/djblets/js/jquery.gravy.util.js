@@ -309,12 +309,12 @@ $.fn.positionToSide = function($el, options) {
         scrollHeight = $window.height();
 
     options = $.extend({
+        fitOnScreen: false,
         side: 'b',
         xDistance: options.distance || 0,
-        yDistance: options.distance || 0,
         xOffset: 0,
-        yOffset: 0,
-        fitOnScreen: false
+        yDistance: options.distance || 0,
+        yOffset: 0
     }, options);
 
     return $(this).each(function() {

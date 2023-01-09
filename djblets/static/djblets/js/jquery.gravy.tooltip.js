@@ -42,8 +42,8 @@ $.tooltip = function($el, options) {
             if (self.children()) {
                 self
                     .positionToSide($el, {
-                        side: options.side,
-                        distance: 10
+                        distance: 10,
+                        side: options.side
                     })
                     .show();
             }

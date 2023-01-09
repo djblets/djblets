@@ -84,9 +84,9 @@ $.fn.bindProperty = function(elPropName, model, modelPropName, options) {
     var $this = this;
 
     options = _.defaults(options || {}, {
-        modelToElement: true,
         elementToModel: true,
         inverse: false,
+        modelToElement: true,
         radioValue: undefined
     });
 

@@ -57,12 +57,12 @@ Djblets.Forms.ConditionSet = Backbone.Model.extend({
 
                 return new Djblets.Forms.Condition(
                     {
-                        id: conditionID,
                         choice: choice,
-                        operator: operator,
-                        value: attrs.value,
-                        valid: attrs.valid,
                         error: attrs.error,
+                        id: conditionID,
+                        operator: operator,
+                        valid: attrs.valid,
+                        value: attrs.value,
                     },
                     options);
             },

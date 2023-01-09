@@ -41,9 +41,9 @@ suite('djblets/forms/views/ListEditView', function() {
 
         const view = new Djblets.Forms.ListEditView({
             el: $el,
-            renderedDefaultRow: renderedDefaultRow,
             fieldName: '',
             removeText: 'Remove this item.',
+            renderedDefaultRow: renderedDefaultRow,
         });
 
         view.render();

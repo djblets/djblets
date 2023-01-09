@@ -22,8 +22,8 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
         'click .avatar-file-upload-browse': '_onBrowseClicked',
         'click .avatar-preview': '_onBrowseClicked',
         'dragenter .avatar-file-upload-config': '_onDragEnter',
-        'dragover .avatar-file-upload-config': '_onDragOver',
         'dragleave .avatar-file-upload-config': '_onDragLeave',
+        'dragover .avatar-file-upload-config': '_onDragOver',
         'drop .avatar-file-upload-config': '_onDrop',
     },
 
@@ -259,9 +259,9 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
                 .empty()
                 .removeClass('avatar-preview-unset')
                 .append($('<img />').attr({
-                     src: reader.result,
-                     alt: _`Your new avatar`,
-                 }));
+                    alt: _`Your new avatar`,
+                    src: reader.result,
+                }));
         });
 
         reader.readAsDataURL(file);

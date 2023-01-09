@@ -6,6 +6,7 @@
  */
 Djblets.Config.TableView = Djblets.Config.ListView.extend({
     tagName: 'table',
+
     defaultItemView: Djblets.Config.TableItemView,
 
     /**

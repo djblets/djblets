@@ -4,6 +4,13 @@ suite('djblets/forms/models/ConditionChoice', function() {
             const choice = new Djblets.Forms.ConditionChoice({
                 id: 'my-choice',
                 name: 'My Choice',
+                operators: [
+                    {
+                        id: 'my-op',
+                        name: 'My Op',
+                        useValue: false,
+                    },
+                ],
                 valueField: {
                     model: {
                         className: 'Djblets.Forms.ConditionValueField',
@@ -18,13 +25,6 @@ suite('djblets/forms/models/ConditionChoice', function() {
                         },
                     },
                 },
-                operators: [
-                    {
-                        id: 'my-op',
-                        name: 'My Op',
-                        useValue: false,
-                    },
-                ],
             }, {
                 parse: true,
             });

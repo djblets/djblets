@@ -95,8 +95,8 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
     _createDefaultEntry(index) {
         const $entry = $(entryTemplate({
             index: index,
-            renderedDefaultRow: this._renderedDefaultRow,
             removeText: this._removeText,
+            renderedDefaultRow: this._renderedDefaultRow,
         }));
         this._updateEntryInputName($entry, index);
         $(`input[name="${this._fieldName}_num_rows"]`).val(index+1);

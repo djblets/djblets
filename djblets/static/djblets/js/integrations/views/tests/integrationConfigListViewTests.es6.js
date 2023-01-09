@@ -13,7 +13,6 @@ suite('djblets/integrations/views/IntegrationConfigListView', function() {
         const $el = $(template()).appendTo($testsScratch);
 
         view = new Djblets.IntegrationConfigListView({
-            el: $el,
             configs: [
                 {
                     'editURL' : 'configs/1/',
@@ -44,6 +43,7 @@ suite('djblets/integrations/views/IntegrationConfigListView', function() {
                     'name': 'Config 4',
                 },
             ],
+            el: $el,
             integrationIDs: ['int1', 'int2', 'int3'],
             integrationsMap: {
                 int1: {
@@ -85,6 +85,7 @@ suite('djblets/integrations/views/IntegrationConfigListView', function() {
 
         beforeEach(function() {
             const $rows = view.listView.$('tr');
+
             expect($rows.length).toBe(4);
 
             $row1 = $rows.eq(0);

@@ -9,8 +9,9 @@
  * by overriding `template`.
  */
 Djblets.Config.ListItemView = Backbone.View.extend({
-    tagName: 'li',
     className: 'djblets-c-config-forms-list__item',
+    tagName: 'li',
+
     iconBaseClassName: 'djblets-icon',
 
     /**
@@ -233,9 +234,9 @@ Djblets.Config.ListItemView = Backbone.View.extend({
         );
 
         this.trigger('actionMenuPopUp', {
-            action: action,
             $action: $action,
             $menu: $menu,
+            action: action,
         });
 
         $menu.appendTo($action.parent());
@@ -252,9 +253,9 @@ Djblets.Config.ListItemView = Backbone.View.extend({
         /* Any click outside this dropdown should close it. */
         $(document).one('click', () => {
             this.trigger('actionMenuPopDown', {
-                action: action,
                 $action: $action,
                 $menu: $menu,
+                action: action,
             });
 
             $menu.remove();
@@ -287,9 +288,9 @@ Djblets.Config.ListItemView = Backbone.View.extend({
             const inputID = _.uniqueId('action_' + action.type);
             $action = $('<input/>')
                 .attr({
+                    id: inputID,
                     name: action.name,
                     type: action.type,
-                    id: inputID
                 });
             const $label = $('<label>')
                 .attr('for', inputID)

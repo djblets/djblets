@@ -27,8 +27,8 @@ $.widget('ui.inlineEditor', {
     options: {
         cls: '',
         deferEventSetup: false,
-        editIconPath: null,
         editIconClass: null,
+        editIconPath: null,
         enabled: true,
         extraHeight: 100,
         fadeSpeedMS: 200,
@@ -46,15 +46,19 @@ $.widget('ui.inlineEditor', {
         startOpen: false,
         stripTags: false,
         useEditIconOnly: false,
+
         createMultilineField: function(/* editor */) {
             return $('<textarea/>').autoSizeTextArea();
         },
+
         setFieldValue: function(editor, value) {
             editor._field.val(value);
         },
+
         getFieldValue: function(editor) {
             return editor._field.val();
         },
+
         isFieldDirty: function(editor, initialValue) {
             var value = editor.options.getFieldValue(editor) || '',
                 normValue = (editor.options.hasRawValue
@@ -143,9 +147,9 @@ $.widget('ui.inlineEditor', {
             this._editIcon =
                 $('<a/>')
                 .attr({
+                    'aria-label': gettext('Edit this field'),
                     'href': '#',
-                    'role': 'button',
-                    'aria-label': gettext('Edit this field')
+                    'role': 'button'
                 })
                 .addClass('editicon')
                 .click(function() {
@@ -590,8 +594,8 @@ $.widget('ui.inlineEditor', {
         if (this.options.multiline) {
             this._field
                 .css({
-                    '-webkit-box-sizing': 'border-box',
                     '-moz-box-sizing': 'border-box',
+                    '-webkit-box-sizing': 'border-box',
                     'box-sizing': 'border-box',
                     'width': '100%'
                 });

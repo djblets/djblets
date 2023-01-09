@@ -46,12 +46,12 @@ $.widget('ui.autoSizeTextArea', {
          * may add additional spacing.
          */
         this._proxyEl.css({
-            'white-space': 'pre-wrap',
-            'word-wrap': 'break-word',
-            'font': this.element.css('font'),
             'border': 0,
+            'font': this.element.css('font'),
             'margin': 0,
-            'padding': 0
+            'padding': 0,
+            'white-space': 'pre-wrap',
+            'word-wrap': 'break-word'
         });
 
         this.element.css('overflow', 'hidden');
