@@ -68,27 +68,6 @@ frontend_buildkit_npm_dependencies = {
         '^1.0.0'),
 }
 
-#: Dependencies required for LessCSS pipelining.
-lesscss_npm_dependencies = {
-    'less': '^4.1.3',
-    '@beanbag/less-plugin-autoprefix': '^3.0.0',
-}
-
-#: Dependencies required for UglifyJS JavaScript compression.
-uglifyjs_npm_dependencies = {
-    'uglify-js': '^3.16.1',
-}
-
-#: Dependencies required for Babel for JavaScript.
-babel_npm_dependencies = {
-    '@babel/cli': '^7.17.10',
-    '@babel/core': '^7.18.5',
-    '@babel/preset-env': '^7.18.2',
-    '@babel/preset-typescript': '^7.8.6',
-    'babel-plugin-dedent': '^2.1.0',
-    'babel-plugin-django-gettext': '^1.1.1',
-}
-
 #: Node dependencies required to package/develop/test Djblets.
 npm_dependencies = {}
 npm_dependencies.update(frontend_buildkit_npm_dependencies)

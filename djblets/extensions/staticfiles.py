@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 from django.contrib.staticfiles.finders import (BaseFinder, FileSystemFinder,
                                                 get_finders)
@@ -256,8 +257,17 @@ class PackagingFinder(FileSystemFinder):
     can pass (used for finding referenced files), it will look through all
     storages.
     """
+
     storage_class = PackagingStorage
-    extension_static_dir = None
+
+    #: The path to the extension static directory.
+    #:
+    #: This is set during packaging to collect static media files from the
+    #: extension.
+    #:
+    #: Type:
+    #:     str
+    extension_static_dir: Optional[str] = None
 
     def list(self, ignore_patterns, all_storages=False):
         if all_storages:
