@@ -71,8 +71,8 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
         const self = this;
 
         this.$el.html(this.template({
-            searchPlaceholderText: this.searchPlaceholderText,
             multivalued: this.options.multivalued,
+            searchPlaceholderText: this.searchPlaceholderText,
         }));
 
         this._$selected = this.$('.related-object-selected');
@@ -85,10 +85,12 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
             copyClassesToDropdown: true,
             dropdownParent: 'body',
             preload: 'focus',
+
             render: {
                 item: renderItem,
                 option: this.renderOption,
             },
+
             load(query, callback) {
                 self.loadOptions(
                     query,
@@ -97,6 +99,7 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
                     ))
                 );
             },
+
             onChange(selected) {
                 if (selected) {
                     self._onItemSelected(this.options[selected], true);
@@ -127,6 +130,7 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
         }
 
         this._$input.after(this.$el);
+
         return this;
     },
 

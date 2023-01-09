@@ -319,8 +319,10 @@ Django Pipeline Additions
 .. autosummary::
    :toctree: python
 
-   djblets.pipeline.compilers.es6.ES6Compiler
-   djblets.pipeline.compilers.less.LessCompiler
+   djblets.pipeline.compilers.es6
+   djblets.pipeline.compilers.less
+   djblets.pipeline.compilers.mixins
+   djblets.pipeline.compilers.rollup
    djblets.pipeline.settings
 
 

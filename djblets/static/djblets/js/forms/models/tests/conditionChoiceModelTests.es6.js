@@ -4,29 +4,29 @@ suite('djblets/forms/models/ConditionChoice', function() {
             const choice = new Djblets.Forms.ConditionChoice({
                 id: 'my-choice',
                 name: 'My Choice',
-                valueField: {
-                    model: {
-                        className: 'Djblets.Forms.ConditionValueField',
-                        data: {
-                            myModelKey: 'my-value'
-                        }
-                    },
-                    view: {
-                        className: 'Djblets.Forms.ConditionValueFormFieldView',
-                        data: {
-                            myViewKey: 'my-value'
-                        }
-                    }
-                },
                 operators: [
                     {
                         id: 'my-op',
                         name: 'My Op',
-                        useValue: false
-                    }
-                ]
+                        useValue: false,
+                    },
+                ],
+                valueField: {
+                    model: {
+                        className: 'Djblets.Forms.ConditionValueField',
+                        data: {
+                            myModelKey: 'my-value',
+                        },
+                    },
+                    view: {
+                        className: 'Djblets.Forms.ConditionValueFormFieldView',
+                        data: {
+                            myViewKey: 'my-value',
+                        },
+                    },
+                },
             }, {
-                parse: true
+                parse: true,
             });
 
             expect(choice.id).toBe('my-choice');
@@ -34,12 +34,12 @@ suite('djblets/forms/models/ConditionChoice', function() {
             expect(choice.get('valueField')).toEqual({
                 modelClass: Djblets.Forms.ConditionValueField,
                 modelData: {
-                    myModelKey: 'my-value'
+                    myModelKey: 'my-value',
                 },
                 viewClass: Djblets.Forms.ConditionValueFormFieldView,
                 viewData: {
-                    myViewKey: 'my-value'
-                }
+                    myViewKey: 'my-value',
+                },
             });
             expect(choice.operators.length).toBe(1);
 
@@ -58,13 +58,13 @@ suite('djblets/forms/models/ConditionChoice', function() {
                 valueField: {
                     modelClass: Djblets.Forms.ConditionValueField,
                     modelData: {
-                        myModelKey: 'my-value'
+                        myModelKey: 'my-value',
                     },
                     viewClass: Djblets.Forms.ConditionValueFormFieldView,
                     viewData: {
-                        myViewKey: 'my-value'
-                    }
-                }
+                        myViewKey: 'my-value',
+                    },
+                },
             });
 
             const valueField = choice.createValueField('my-field');

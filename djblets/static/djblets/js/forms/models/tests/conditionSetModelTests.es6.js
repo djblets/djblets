@@ -2,11 +2,11 @@ suite('djblets/forms/models/ConditionSet', function() {
     describe('Initialization', function() {
         it('choicesData parsed', function() {
             const conditionSet = new Djblets.Forms.ConditionSet({
-                fieldName: 'my-conditions',
                 choicesData: [{
                     id: 'my-choice',
-                    name: 'My Choice'
-                }]
+                    name: 'My Choice',
+                }],
+                fieldName: 'my-conditions',
             });
 
             expect(conditionSet.choices.length).toBe(1);
@@ -22,29 +22,29 @@ suite('djblets/forms/models/ConditionSet', function() {
                     operators: [
                         {
                             id: 'my-op-1',
-                            name: 'My Op 1'
+                            name: 'My Op 1',
                         },
                         {
                             id: 'my-op-2',
-                            name: 'My Op 2'
-                        }
-                    ]
+                            name: 'My Op 2',
+                        },
+                    ],
                 }],
                 conditionsData: [
                     {
                         choiceID: 'my-choice',
+                        error: 'My error',
                         operatorID: 'my-op-1',
-                        value: 'abc123',
                         valid: false,
-                        error: 'My error'
+                        value: 'abc123',
                     },
                     {
                         choiceID: 'my-choice',
                         operatorID: 'my-op-2',
+                        valid: true,
                         value: 42,
-                        valid: true
-                    }
-                ]
+                    },
+                ],
             });
 
             const conditions = conditionSet.conditions;
@@ -77,23 +77,23 @@ suite('djblets/forms/models/ConditionSet', function() {
                     operators: [
                         {
                             id: 'my-op-1',
-                            name: 'My Op 1'
+                            name: 'My Op 1',
                         },
                         {
                             id: 'my-op-2',
-                            name: 'My Op 2'
-                        }
-                    ]
+                            name: 'My Op 2',
+                        },
+                    ],
                 }],
                 conditionsData: [
                     {
                         choiceID: 'invalid-choice',
+                        error: 'My error',
                         operatorID: 'my-op-1',
-                        value: 'abc123',
                         valid: false,
-                        error: 'My error'
-                    }
-                ]
+                        value: 'abc123',
+                    },
+                ],
             });
 
             const conditions = conditionSet.conditions;
@@ -122,10 +122,10 @@ suite('djblets/forms/models/ConditionSet', function() {
                     operators: [
                         {
                             id: 'my-op',
-                            name: 'My Op'
-                        }
-                    ]
-                }]
+                            name: 'My Op',
+                        },
+                    ],
+                }],
             });
 
             expect(conditionSet.get('lastID')).toBe(null);
@@ -134,10 +134,10 @@ suite('djblets/forms/models/ConditionSet', function() {
         it('Using choice and operator IDs', function() {
             conditionSet.conditions.add({
                 choiceID: 'my-choice',
+                error: 'My error',
                 operatorID: 'my-op',
-                value: 'abc123',
                 valid: false,
-                error: 'My error'
+                value: 'abc123',
             });
 
             const conditions = conditionSet.conditions;
@@ -157,10 +157,10 @@ suite('djblets/forms/models/ConditionSet', function() {
         it('Using choice instance', function() {
             conditionSet.conditions.add({
                 choiceID: conditionSet.choices.at(0),
+                error: 'My error',
                 operatorID: 'my-op',
-                value: 'abc123',
                 valid: false,
-                error: 'My error'
+                value: 'abc123',
             });
 
             const conditions = conditionSet.conditions;
@@ -180,10 +180,10 @@ suite('djblets/forms/models/ConditionSet', function() {
         it('Using operator instance', function() {
             conditionSet.conditions.add({
                 choiceID: 'my-choice',
+                error: 'My error',
                 operatorID: conditionSet.choices.at(0).operators.at(0),
-                value: 'abc123',
                 valid: false,
-                error: 'My error'
+                value: 'abc123',
             });
 
             const conditions = conditionSet.conditions;
@@ -204,15 +204,15 @@ suite('djblets/forms/models/ConditionSet', function() {
     describe('Methods', function() {
         it('addNewCondition', function() {
             const conditionSet = new Djblets.Forms.ConditionSet({
-                fieldName: 'my-conditions',
                 choicesData: [{
                     id: 'my-choice',
                     name: 'My Choice',
                     operators: [{
                         id: 'my-op',
-                        name: 'My Op'
-                    }]
-                }]
+                        name: 'My Op',
+                    }],
+                }],
+                fieldName: 'my-conditions',
             });
 
             const conditions = conditionSet.conditions;

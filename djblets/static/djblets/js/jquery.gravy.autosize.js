@@ -26,7 +26,7 @@
 /*
  * Auto-sizes a text area to make room for the contained content.
  */
-$.widget("ui.autoSizeTextArea", {
+$.widget('ui.autoSizeTextArea', {
     options: {
         fadeSpeedMS: 200,
         growOnKeyUp: true,
@@ -36,9 +36,9 @@ $.widget("ui.autoSizeTextArea", {
     _init: function() {
         var self = this;
 
-        this._proxyEl = $("<pre/>")
-            .appendTo("body")
-            .move(-10000, -10000, "absolute");
+        this._proxyEl = $('<pre/>')
+            .appendTo('body')
+            .move(-10000, -10000, 'absolute');
 
         /*
          * Set white-space to pre-wrap on browsers that support it,
@@ -46,15 +46,15 @@ $.widget("ui.autoSizeTextArea", {
          * may add additional spacing.
          */
         this._proxyEl.css({
-            'white-space': 'pre-wrap',
-            'word-wrap': 'break-word',
-            'font': this.element.css('font'),
             'border': 0,
+            'font': this.element.css('font'),
             'margin': 0,
-            'padding': 0
+            'padding': 0,
+            'white-space': 'pre-wrap',
+            'word-wrap': 'break-word'
         });
 
-        this.element.css("overflow", "hidden");
+        this.element.css('overflow', 'hidden');
         this.oldLength = this.element.val().length;
 
         if (this.options.growOnKeyUp) {
@@ -99,14 +99,14 @@ $.widget("ui.autoSizeTextArea", {
             this._proxyEl
                 .width($el.width())
                 .move(-10000, -10000)
-                .text(this.element.val() + "\n");
+                .text(this.element.val() + '\n');
 
             newHeight = this._proxyEl.innerHeight();
         }
 
         if (needsResize) {
-            targetHeight = Math.max(  this.options.minHeight
-                                    - $el.getExtents('p', 'tb'),
+            targetHeight = Math.max(this.options.minHeight -
+                                    $el.getExtents('p', 'tb'),
                                     newHeight);
 
             if (animate) {
@@ -115,11 +115,11 @@ $.widget("ui.autoSizeTextArea", {
                     .animate({
                         height: targetHeight
                     }, this.options.fadeSpeedMS)
-                    .triggerHandler("resize");
+                    .triggerHandler('resize');
             } else {
                 $el
                     .height(targetHeight)
-                    .triggerHandler("resize");
+                    .triggerHandler('resize');
             }
         }
 
@@ -134,5 +134,3 @@ $.widget("ui.autoSizeTextArea", {
 
 
 })(jQuery);
-
-// vim: set et:

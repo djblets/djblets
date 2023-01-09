@@ -8,11 +8,11 @@
  * mainly used to handle deletion of the row.
  */
 const BaseConditionRowView = Backbone.View.extend({
-    tagName: 'li',
     className: 'conditions-field-row',
+    tagName: 'li',
 
     events: {
-        'click .conditions-field-row-delete': '_onDeleteClicked'
+        'click .conditions-field-row-delete': '_onDeleteClicked',
     },
 
     /**
@@ -43,7 +43,7 @@ const BaseConditionRowView = Backbone.View.extend({
         e.preventDefault();
 
         this.model.destroy();
-    }
+    },
 });
 
 
@@ -66,12 +66,12 @@ const ConditionRowView = BaseConditionRowView.extend({
         ' <span class="conditions-field-choice"></span>\n',
         ' <span class="conditions-field-operator"></span>\n',
         ' <span class="conditions-field-value"></span>\n',
-        '</span>'
+        '</span>',
     ].join('')),
 
     events: _.extend({
         'change .conditions-field-choice select': '_onSelectChoiceChanged',
-        'change .conditions-field-operator select': '_onSelectOperatorChanged'
+        'change .conditions-field-operator select': '_onSelectOperatorChanged',
     }, BaseConditionRowView.prototype.events),
 
     /**
@@ -212,7 +212,8 @@ const ConditionRowView = BaseConditionRowView.extend({
 
         if (newValueField !== this._valueField) {
             /* Replace the old value field with a new one for this choice. */
-            if (this._$newValue !== null && newValueField !== this._valueField) {
+            if (this._$newValue !== null &&
+                newValueField !== this._valueField) {
                 this._$newValue.remove();
                 this._$newValue = null;
             }
@@ -251,8 +252,9 @@ const ConditionRowView = BaseConditionRowView.extend({
     _onSelectOperatorChanged() {
         const choice = this.model.get('choice');
 
-        this.model.set('operator', choice.operators.get(this._$operator.val()));
-    }
+        this.model.set('operator',
+                       choice.operators.get(this._$operator.val()));
+    },
 });
 
 
@@ -273,7 +275,7 @@ const DisabledConditionRowView = BaseConditionRowView.extend({
         }
 
         return this;
-    }
+    },
 });
 
 
@@ -293,8 +295,8 @@ Djblets.Forms.ConditionSetView = Backbone.View.extend({
     DEFAULT_ROW_ANIMATION_SPEED_MS: 300,
 
     events: {
-        'click .conditions-field-add-condition': '_onAddRowClicked',
         'change #conditions_mode input': '_onConditionModeChanged',
+        'click .conditions-field-add-condition': '_onAddRowClicked',
     },
 
     /**
@@ -368,7 +370,7 @@ Djblets.Forms.ConditionSetView = Backbone.View.extend({
             conditionSet: this.model,
             el: $rowEl,
             model: condition,
-            rowAnimationSpeedMS: this._rowAnimationSpeedMS
+            rowAnimationSpeedMS: this._rowAnimationSpeedMS,
         });
         rowView.render();
 

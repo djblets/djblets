@@ -7,7 +7,8 @@ suite('djblets/integrations/views/AddIntegrationPopupView', function() {
                         'addURL': 'int1/add/',
                         'description': 'Int1 Description',
                         'iconSrc': 'data:test,int1',
-                        'iconSrcSet': 'data:test,int1 1x, data:test,int1@2x 2x',
+                        'iconSrcSet': 'data:test,int1 1x, ' +
+                                      'data:test,int1@2x 2x',
                         'id': 'int1',
                         'name': 'Int1',
                     },
@@ -15,7 +16,8 @@ suite('djblets/integrations/views/AddIntegrationPopupView', function() {
                         'addURL': 'int2/add/',
                         'description': 'Int2 Description',
                         'iconSrc': 'data:test,int2',
-                        'iconSrcSet': 'data:test,int2 1x, data:test,int2@2x 2x',
+                        'iconSrcSet': 'data:test,int2 1x, ' +
+                                      'data:test,int2@2x 2x',
                         'id': 'int2',
                         'name': 'Int2',
                     },
@@ -33,9 +35,10 @@ suite('djblets/integrations/views/AddIntegrationPopupView', function() {
             expect($item.children('a').attr('href')).toBe('int1/add/');
             expect($item.find('.djblets-c-integration__name').text())
                 .toBe('Int1');
-            expect($item.find('.djblets-c-integration__description')
-                       .text().trim())
-                .toBe('Int1 Description');
+            expect(
+                $item.find('.djblets-c-integration__description')
+                    .text().trim()
+            ).toBe('Int1 Description');
 
             let $icon = $item.find('.djblets-c-integration__icon');
             expect($icon.attr('src')).toBe('data:test,int1');
@@ -47,9 +50,10 @@ suite('djblets/integrations/views/AddIntegrationPopupView', function() {
             expect($item.children('a').attr('href')).toBe('int2/add/');
             expect($item.find('.djblets-c-integration__name').text())
                 .toBe('Int2');
-            expect($item.find('.djblets-c-integration__description')
-                       .text().trim())
-                .toBe('Int2 Description');
+            expect(
+                $item.find('.djblets-c-integration__description')
+                    .text().trim()
+            ).toBe('Int2 Description');
 
             $icon = $item.find('.djblets-c-integration__icon');
             expect($icon.attr('src')).toBe('data:test,int2');

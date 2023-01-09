@@ -18,7 +18,7 @@ Djblets.Avatars.Settings = Backbone.Model.extend({
         return {
             configuration: {},
             serviceID: null,
-            services: {}
+            services: {},
         };
-    }
+    },
 });

@@ -13,7 +13,7 @@ const [readyPromise, resolve] = Promise.withResolver();
 Djblets.Avatars.SettingsFormView = Backbone.View.extend({
     events: {
         'change #id_avatar_service_id': '_onServiceChanged',
-        'submit': '_onSubmit'
+        'submit': '_onSubmit',
     },
 
     /**
@@ -26,7 +26,6 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
 
         this._$config = this.$('.avatar-service-configuration');
 
-        const services = this.model.get('services');
         this.listenTo(this.model, 'change:serviceID',
                       () => this._showHideForms());
 
@@ -81,7 +80,6 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
      * Show or hide the configuration form.
      */
     _showHideForms() {
-        const services = this.model.get('services');
         const serviceID = this.model.get('serviceID');
         const currentForm = this._configForms.get(serviceID);
         const previousID = this.model.previous('serviceID');
@@ -112,7 +110,7 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
     _onServiceChanged(e) {
         const $target = $(e.target);
         this.model.set('serviceID', $target.val());
-    }
+    },
 }, {
     /**
      * The form instance.
@@ -134,7 +132,7 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
             serviceID,
             new formClass({
                 el: $(`[data-avatar-service-id="${serviceID}"]`),
-                model: Djblets.Avatars.SettingsFormView.instance.model
+                model: Djblets.Avatars.SettingsFormView.instance.model,
             }));
     },
 
@@ -142,7 +140,7 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
      * A promise that is resolved when the avatar services form has been
      * initialized.
      */
-    ready: readyPromise
+    ready: readyPromise,
 });
 
 

@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from importlib import import_module
 from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec
+from typing import Iterator, List, Optional, Type
 from unittest.util import safe_repr
 
 import kgb
@@ -34,6 +35,7 @@ from django.db.models.sql.compiler import (SQLCompiler,
 from django.db.models.sql.query import Query as SQLQuery
 from django.template import Node
 from django.test import testcases
+from typing_extensions import NotRequired, TypedDict
 
 try:
     from django_evolution.models import Evolution, Version
@@ -61,6 +63,30 @@ class StubParser:
 
     def delete_first_token(self):
         pass
+
+
+class ExpectedWarning(TypedDict):
+    """An expected warning from an assertion.
+
+    This is used for :py:meth:`TestCase.assertWarnings`.
+
+    Version Added:
+        3.2
+    """
+
+    #: The expected class for the warning.
+    #:
+    #: Type:
+    #:     type
+    cls: Type[Warning]
+
+    #: The expected message for the warning.
+    #:
+    #: If not provided, messages won't be compared.
+    #:
+    #: Type:
+    #:     str
+    message: NotRequired[Optional[str]]
 
 
 class TestCase(testcases.TestCase):
@@ -217,8 +243,16 @@ class TestCase(testcases.TestCase):
                                       re.escape(expected_message),
                                       *args, **kwargs)
 
+    # NOTE: This overrides TestCase.assertWarns (introducecd in Python 3.2),
+    #       adding 'message' and removing a callable argument and custom
+    #       error message. It's not compatible with that function. We should
+    #       consider this for future deprecation.
     @contextmanager
-    def assertWarns(self, cls=DeprecationWarning, message=None):
+    def assertWarns(
+        self,
+        cls: Type[Warning] = DeprecationWarning,
+        message: Optional[str] = None,
+    ) -> Iterator[None]:
         """Assert that a warning is generated with a given message.
 
         This method only supports code which generates a single warning.
@@ -229,8 +263,45 @@ class TestCase(testcases.TestCase):
             cls (type, optional):
                 The expected warning type.
 
+                If not provided, this defaults to a
+                :py:exc:`DeprecationWarning`.
+
             message (unicode, optional):
                 The expected error message, if any.
+
+        Context:
+            The test to run.
+        """
+        warning_list: List[ExpectedWarning] = [
+            {
+                'cls': cls,
+                'message': message,
+            },
+        ]
+
+        with self.assertWarnings(warning_list):
+            yield
+
+    @contextmanager
+    def assertWarnings(
+        self,
+        warning_list: List[ExpectedWarning],
+    ) -> Iterator[None]:
+        """Assert that multiple warnings were generated.
+
+        This method accepts a sequence of warnings that must be matched in
+        order. Each item must be an instance of a warning with a message.
+        The type and messages of the warnings must match.
+
+        Version Added:
+            3.2
+
+        Args:
+            warning_list (list of dict, optional):
+                The list of expected warnings, in order.
+
+                Each item is a dictionary in the format described in
+                :py:class:`ExpectedWarning`.
 
         Context:
             The test to run.
@@ -249,13 +320,27 @@ class TestCase(testcases.TestCase):
 
             self.assertEqual(len(w), 0)
 
-            yield
+            try:
+                yield
+            finally:
+                self.assertEqual(len(w), len(warning_list))
 
-            self.assertEqual(len(w), 1)
-            self.assertTrue(issubclass(w[-1].category, cls))
+                for i, (emitted, expected) in enumerate(zip(w, warning_list),
+                                                        start=1):
+                    expected_cls = expected['cls']
+                    expected_message = expected.get('message')
 
-            if message is not None:
-                self.assertEqual(message, str(w[-1].message))
+                    self.assertTrue(
+                        issubclass(emitted.category, expected_cls),
+                        'Warning #%d: Class %r != %r'
+                        % (i, emitted.category, expected_cls))
+
+                    if expected_message is not None:
+                        self.assertEqual(
+                            str(emitted.message),
+                            expected_message,
+                            'Warning #%d: Message %r != %r'
+                            % (i, str(emitted.message), str(expected_message)))
 
     @contextmanager
     def assertNoWarnings(self):
@@ -264,23 +349,8 @@ class TestCase(testcases.TestCase):
         Context:
             The test to run.
         """
-        with warnings.catch_warnings(record=True) as w:
-            # Some warnings such as DeprecationWarning are filtered by
-            # default, stop filtering them.
-            warnings.simplefilter('always')
-
-            # We do need to ignore this one, though, or a lot of things will
-            # fail. This is specific to Python 3.10 and the versions of six
-            # in Django.
-            warnings.filterwarnings(
-                'ignore',
-                r'_SixMetaPathImporter.find_spec\(\) not found')
-
-            self.assertEqual(len(w), 0)
-
+        with self.assertWarnings([]):
             yield
-
-            self.assertEqual(len(w), 0)
 
     @contextmanager
     def assertQueries(self, queries, num_statements=None):

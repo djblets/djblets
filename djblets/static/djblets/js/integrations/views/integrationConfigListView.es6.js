@@ -111,7 +111,6 @@ const IntegrationConfigItemView = Djblets.Config.TableItemView.extend({
                 be undone.
             `)
             .modalBox({
-                title: _`Are you sure you want to delete this integration?`,
                 buttons: [
                     $('<button>')
                         .text(_`Cancel`),
@@ -125,6 +124,7 @@ const IntegrationConfigItemView = Djblets.Config.TableItemView.extend({
                             },
                         })),
                 ],
+                title: _`Are you sure you want to delete this integration?`,
             });
     },
 });
@@ -137,14 +137,15 @@ const IntegrationConfigItemView = Djblets.Config.TableItemView.extend({
  */
 Djblets.IntegrationConfigListView = Backbone.View.extend({
     events: {
-        'click .djblets-c-integration-configs__add': '_onAddIntegrationClicked',
+        'click .djblets-c-integration-configs__add':
+            '_onAddIntegrationClicked',
     },
 
     addIntegrationPopupViewType: Djblets.AddIntegrationPopupView,
-    listItemsCollectionType: Djblets.Config.ListItems,
     listItemType: IntegrationConfigItem,
-    listViewType: Djblets.Config.TableView,
     listItemViewType: IntegrationConfigItemView,
+    listItemsCollectionType: Djblets.Config.ListItems,
+    listViewType: Djblets.Config.TableView,
 
     /**
      * Initialize the view.
@@ -193,9 +194,9 @@ Djblets.IntegrationConfigListView = Backbone.View.extend({
      */
     render() {
         this.listView = new this.listViewType({
+            ItemView: this.listItemViewType,
             el: this.$('.djblets-c-config-forms-list'),
             model: this.list,
-            ItemView: this.listItemViewType,
         });
         this.listView.render().$el
             .removeAttr('aria-busy');

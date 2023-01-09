@@ -12,6 +12,6 @@
  */
 Djblets.Forms.ConditionValueField = Backbone.Model.extend({
     defaults: {
-        fieldHTML: null
-    }
+        fieldHTML: null,
+    },
 });

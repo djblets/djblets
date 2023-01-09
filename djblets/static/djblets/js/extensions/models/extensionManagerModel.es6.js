@@ -14,8 +14,8 @@ const InstalledExtension = Backbone.Model.extend({
         configURL: null,
         dbURL: null,
         enabled: false,
-        loadable: true,
         loadError: null,
+        loadable: true,
         name: null,
         summary: null,
         version: null,
@@ -45,19 +45,20 @@ const InstalledExtension = Backbone.Model.extend({
     enable() {
         return new Promise((resolve, reject) => {
             this.save({
-                enabled: true
+                enabled: true,
             }, {
                 wait: true,
-                success: () => resolve(),
+
                 error: (model, xhr) => {
                     this.set({
-                        loadable: false,
-                        loadError: xhr.errorRsp.load_error,
                         canEnable: !xhr.errorRsp.needs_reload,
+                        loadError: xhr.errorRsp.load_error,
+                        loadable: false,
                     });
 
                     reject(new Error(xhr.errorText));
                 },
+                success: () => resolve(),
             });
         });
     },
@@ -78,8 +79,9 @@ const InstalledExtension = Backbone.Model.extend({
                 enabled: false,
             }, {
                 wait: true,
-                success: () => resolve(),
+
                 error: xhr => reject(new Error(xhr.errorText)),
+                success: () => resolve(),
             });
         });
     },
@@ -124,9 +126,9 @@ const InstalledExtension = Backbone.Model.extend({
             configURL: configLink ? configLink.href : null,
             dbURL: dbLink ? dbLink.href : null,
             enabled: rsp.enabled,
-            loadable: rsp.loadable,
-            loadError: rsp.load_error,
             id: rsp.class_name,
+            loadError: rsp.load_error,
+            loadable: rsp.loadable,
             name: rsp.name,
             summary: rsp.summary,
             version: rsp.version,
@@ -151,6 +153,7 @@ const InstalledExtension = Backbone.Model.extend({
             contentType: 'application/x-www-form-urlencoded',
             data: model.toJSON(options),
             processData: true,
+
             error: xhr => {
                 let rsp;
                 let text;
@@ -161,8 +164,8 @@ const InstalledExtension = Backbone.Model.extend({
                 } catch (e) {
                     text = 'HTTP ' + xhr.status + ' ' + xhr.statusText;
                     rsp = {
-                        loadError: text,
                         canEnable: false,
+                        loadError: text,
                     };
                 }
 

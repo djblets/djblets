@@ -1,6 +1,9 @@
 PIPELINE_JAVASCRIPT = {
     'djblets-avatars-config': {
         'source_filenames': (
+            'djblets/js/avatars/index.ts',
+
+            # Legacy JavaScript
             'djblets/js/avatars/base.js',
             'djblets/js/avatars/models/avatarSettingsModel.es6.js',
             'djblets/js/avatars/views/avatarServiceSettingsFormView.es6.js',
@@ -11,6 +14,9 @@ PIPELINE_JAVASCRIPT = {
     },
     'djblets-config-forms': {
         'source_filenames': (
+            'djblets/js/configForms/index.ts',
+
+            # Legacy JavaScript
             'djblets/js/configForms/base.js',
             'djblets/js/configForms/collections/listItemsCollection.es6.js',
             'djblets/js/configForms/models/listItemModel.es6.js',
@@ -24,11 +30,17 @@ PIPELINE_JAVASCRIPT = {
         'output_filename': 'djblets/js/config-forms.min.js',
     },
     'djblets-datagrid': {
-        'source_filenames': ('djblets/js/datagrid.js',),
+        'source_filenames': (
+            'djblets/js/datagrid/index.ts',
+
+            # Legacy JavaScript
+            'djblets/js/datagrid.js',
+        ),
         'output_filename': 'djblets/js/datagrid.min.js',
     },
     'djblets-extensions-admin': {
         'source_filenames': (
+            # Legacy JavaScript
             'djblets/js/extensions/models/extensionManagerModel.es6.js',
             'djblets/js/extensions/views/extensionManagerView.es6.js',
         ),
@@ -36,6 +48,9 @@ PIPELINE_JAVASCRIPT = {
     },
     'djblets-extensions': {
         'source_filenames': (
+            'djblets/js/extensions/index.ts',
+
+            # Legacy JavaScript
             'djblets/js/extensions/base.js',
             'djblets/js/extensions/models/extensionModel.es6.js',
             'djblets/js/extensions/models/extensionHookModel.es6.js',
@@ -45,6 +60,9 @@ PIPELINE_JAVASCRIPT = {
     },
     'djblets-forms': {
         'source_filenames': (
+            'djblets/js/forms/index.ts',
+
+            # Legacy JavaScript
             'djblets/js/forms/base.js',
             'djblets/js/forms/models/conditionChoiceModel.es6.js',
             'djblets/js/forms/models/conditionModel.es6.js',
@@ -61,6 +79,9 @@ PIPELINE_JAVASCRIPT = {
     },
     'djblets-integrations': {
         'source_filenames': (
+            'djblets/js/integrations/index.ts',
+
+            # Legacy JavaScript
             'djblets/js/integrations/base.js',
             'djblets/js/integrations/views/addIntegrationPopupView.es6.js',
             'djblets/js/integrations/views/integrationConfigListView.es6.js',
@@ -69,6 +90,8 @@ PIPELINE_JAVASCRIPT = {
     },
     'djblets-gravy': {
         'source_filenames': (
+            # Legacy JavaScript
+            #
             # These are in dependency order
             'djblets/js/jquery.gravy.util.js',
             'djblets/js/jquery.gravy.retina.js',
@@ -104,6 +127,9 @@ PIPELINE_JAVASCRIPT = {
     },
     'djblets-utils': {
         'source_filenames': (
+            'djblets/js/utils/index.ts',
+
+            # Legacy JavaScript
             'djblets/js/utils/promise.es6.js',
             'djblets/js/utils/urls.es6.js',
         ),
@@ -111,6 +137,7 @@ PIPELINE_JAVASCRIPT = {
     },
     'djblets-widgets': {
         'source_filenames': (
+            # Legacy JavaScript
             'djblets/js/admin/views/relatedObjectSelectorView.es6.js',
             'lib/js/selectize-0.12.4.js',
         ),

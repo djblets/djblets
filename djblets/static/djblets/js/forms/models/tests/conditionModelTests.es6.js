@@ -12,7 +12,7 @@ suite('djblets/forms/models/Condition', function() {
                 });
                 choice1.operators.add({
                     id: 'my-op-1',
-                    name: 'My Op 1'
+                    name: 'My Op 1',
                 });
 
                 choice2 = new Djblets.Forms.ConditionChoice({
@@ -22,18 +22,18 @@ suite('djblets/forms/models/Condition', function() {
                 choice2.operators.add([
                     {
                         id: 'my-op-2',
-                        name: 'My Op 2'
+                        name: 'My Op 2',
                     },
                     {
                         id: 'my-op-3',
-                        name: 'My Op 3'
-                    }
+                        name: 'My Op 3',
+                    },
                 ]);
 
                 condition = new Djblets.Forms.Condition({
                     choice: choice1,
                     operator: choice1.operators.first(),
-                    value: 'abc123'
+                    value: 'abc123',
                 });
 
                 /* Now change the choice. */

@@ -2,9 +2,9 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
     function createValueField(html) {
         const view = new Djblets.Forms.ConditionValueFormFieldView({
             model: new Djblets.Forms.ConditionValueField({
+                fieldHTML: html,
                 fieldName: 'my-field',
-                fieldHTML: html
-            })
+            }),
         });
         view.render();
 
@@ -33,7 +33,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                     '<select>',
                     '<option value="1">One</option>',
                     '<option value="2" selected="selected">Two</option>',
-                    '</select>'
+                    '</select>',
                 ].join(''));
 
                 expect(view.getValue()).toBe('2');
@@ -62,7 +62,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                     '<select>',
                     '<option value="1">One</option>',
                     '<option value="2">Two</option>',
-                    '</select>'
+                    '</select>',
                 ].join(''));
 
                 view.setValue('2');

@@ -9,18 +9,18 @@ suite('djblets/forms/models/ConditionOperator', function() {
                     model: {
                         className: 'Djblets.Forms.ConditionValueField',
                         data: {
-                            myModelKey: 'my-value'
-                        }
+                            myModelKey: 'my-value',
+                        },
                     },
                     view: {
                         className: 'Djblets.Forms.ConditionValueFormFieldView',
                         data: {
-                            myViewKey: 'my-value'
-                        }
-                    }
-                }
+                            myViewKey: 'my-value',
+                        },
+                    },
+                },
             }, {
-                parse: true
+                parse: true,
             });
 
             expect(op.id).toBe('my-op');
@@ -29,12 +29,12 @@ suite('djblets/forms/models/ConditionOperator', function() {
             expect(op.get('valueField')).toEqual({
                 modelClass: Djblets.Forms.ConditionValueField,
                 modelData: {
-                    myModelKey: 'my-value'
+                    myModelKey: 'my-value',
                 },
                 viewClass: Djblets.Forms.ConditionValueFormFieldView,
                 viewData: {
-                    myViewKey: 'my-value'
-                }
+                    myViewKey: 'my-value',
+                },
             });
         });
 
@@ -42,9 +42,9 @@ suite('djblets/forms/models/ConditionOperator', function() {
             const op = new Djblets.Forms.ConditionOperator({
                 id: 'my-op',
                 name: 'My Operator',
-                useValue: true
+                useValue: true,
             }, {
-                parse: true
+                parse: true,
             });
 
             expect(op.id).toBe('my-op');
@@ -62,13 +62,13 @@ suite('djblets/forms/models/ConditionOperator', function() {
                 valueField: {
                     modelClass: Djblets.Forms.ConditionValueField,
                     modelData: {
-                        myModelKey: 'my-value'
+                        myModelKey: 'my-value',
                     },
                     viewClass: Djblets.Forms.ConditionValueFormFieldView,
                     viewData: {
-                        myViewKey: 'my-value'
-                    }
-                }
+                        myViewKey: 'my-value',
+                    },
+                },
             });
 
             const valueField = op.createValueField('my-field');
@@ -78,7 +78,7 @@ suite('djblets/forms/models/ConditionOperator', function() {
         it('Without custom valueField', function() {
             const op = new Djblets.Forms.ConditionOperator({
                 id: 'my-op',
-                name: 'My Operator'
+                name: 'My Operator',
             });
 
             expect(() => op.createValueField('my-field')).toThrowError(

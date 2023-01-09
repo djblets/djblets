@@ -76,9 +76,9 @@ $.widget('ui.modalBox', {
             .addClass('modalbox-inner')
             .attr('tabindex', '0')
             .css({
+                height: '100%',
                 position: 'relative',
-                width: '100%',
-                height: '100%'
+                width: '100%'
             })
             .appendTo(this.box);
 
@@ -187,7 +187,7 @@ $.widget('ui.modalBox', {
     resize: function() {
         var marginHoriz = $('body').getExtents('m', 'lr'),
             marginVert = $('body').getExtents('m', 'tb'),
-            winWidth = $(window).width()  - marginHoriz,
+            winWidth = $(window).width() - marginHoriz,
             winHeight = $(window).height() - marginVert;
 
         if (this.options.stretchX) {
@@ -210,7 +210,7 @@ $.widget('ui.modalBox', {
                             this._buttons.outerHeight(true));
         }
 
-        this.box.move(Math.ceil((winWidth  - this.box.outerWidth(true))  / 2),
+        this.box.move(Math.ceil((winWidth - this.box.outerWidth(true)) / 2),
                       Math.ceil((winHeight - this.box.outerHeight(true)) / 2),
                       'fixed');
 

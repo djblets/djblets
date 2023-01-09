@@ -1,5 +1,7 @@
 """Unit tests for the Root Resource."""
 
+import kgb
+
 from django.core.exceptions import ImproperlyConfigured
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
@@ -8,6 +10,7 @@ from djblets.extensions.manager import ExtensionManager
 from djblets.extensions.resources import ExtensionResource
 from djblets.testing.testcases import TestCase
 from djblets.webapi.resources import RootResource, WebAPIResource
+from djblets.webapi.resources.root import _URITemplatesCache
 
 
 # Will appear in the URI templates list under the names 'mock' and 'mocks'.
@@ -42,11 +45,11 @@ class IncludedListResource(WebAPIResource):
     uri_template_name_plural = 'lists'
 
 
-class RootResourceTests(TestCase):
+class RootResourceTests(kgb.SpyAgency, TestCase):
     """Unit tests for RootResource.
 
     Version Added:
-        3.1.0
+        3.1
     """
 
     def setUp(self):
@@ -145,6 +148,59 @@ class RootResourceTests(TestCase):
         with self.assertRaisesMessage(ImproperlyConfigured, expected_message):
             self.root_res.get_uri_templates(self.request)
 
+    def test_get_uri_templates_caching(self):
+        """Testing RootResource.get_uri_templates caching"""
+        resource = self.root_res
+        self.spy_on(resource.build_uri_templates)
+
+        # Check repeated calls to the same URL.
+        request1 = RequestFactory().get('/api1/')
+        uri_templates1 = resource.get_uri_templates(request1)
+        uri_templates2 = resource.get_uri_templates(request1)
+
+        self.assertEqual(uri_templates1, {
+            'lists': 'http://testserver/api1/test-lists/',
+            'mock': 'http://testserver/api1/mocks/{mock_id}/',
+            'mocks': 'http://testserver/api1/mocks/',
+            'root': 'http://testserver/api1/',
+            'test_mock': 'http://testserver/api1/mocks/{mock_id}/',
+            'test_mocks': 'http://testserver/api1/mocks/',
+        })
+        self.assertIs(uri_templates1, uri_templates2)
+        self.assertSpyCallCount(resource.build_uri_templates, 1)
+        self.assertSpyLastCalledWith(resource.build_uri_templates,
+                                     'http://testserver/api1/')
+
+        # Check against a second API URL.
+        request2 = RequestFactory().get('/api2/')
+        uri_templates3 = resource.get_uri_templates(request2)
+        uri_templates4 = resource.get_uri_templates(request2)
+
+        self.assertEqual(uri_templates3, {
+            'lists': 'http://testserver/api2/test-lists/',
+            'mock': 'http://testserver/api2/mocks/{mock_id}/',
+            'mocks': 'http://testserver/api2/mocks/',
+            'root': 'http://testserver/api2/',
+            'test_mock': 'http://testserver/api2/mocks/{mock_id}/',
+            'test_mocks': 'http://testserver/api2/mocks/',
+        })
+        self.assertIs(uri_templates3, uri_templates4)
+        self.assertSpyCallCount(resource.build_uri_templates, 2)
+        self.assertSpyLastCalledWith(resource.build_uri_templates,
+                                     'http://testserver/api2/')
+
+        # And invalidate the cache.
+        resource._cached_uri_templates.clear()
+
+        uri_templates5 = resource.get_uri_templates(request1)
+        uri_templates6 = resource.get_uri_templates(request2)
+
+        self.assertIsNot(uri_templates5, uri_templates1)
+        self.assertEqual(uri_templates5, uri_templates1)
+        self.assertIsNot(uri_templates6, uri_templates3)
+        self.assertEqual(uri_templates6, uri_templates3)
+        self.assertSpyCallCount(resource.build_uri_templates, 4)
+
 
 class RootResourceTemplateRegistrationTests(TestCase):
     """Unit tests for the (un)registration of templates in RootResource."""
@@ -186,13 +242,13 @@ class RootResourceTemplateRegistrationTests(TestCase):
 
     def test_register_uri_template_clears_uri_template_cache(self):
         """Testing register_uri_templates clears the URI template cache"""
-        self.root_res._uri_templates = {
-            'key1': 'value1',
-            'key2': 'value2',
-        }
-        self.root_res.register_uri_template(
-            'extension_name', 'some/relative/path/')
-        self.assertEqual(self.root_res._uri_templates, {})
+        resource = self.root_res
+        request = RequestFactory().get('/api/')
+        resource.get_uri_templates(request)
+        self.assertEqual(len(resource._cached_uri_templates._cache), 1)
+
+        resource.register_uri_template('extension_name', 'some/relative/path/')
+        self.assertEqual(len(resource._cached_uri_templates._cache), 0)
 
     def test_register_uri_template_overwrites_existing_uri_template(self):
         """Testing register_uri_templates overwrites existing uri templates and
@@ -223,14 +279,164 @@ class RootResourceTemplateRegistrationTests(TestCase):
     def test_unregister_uri_template_with_relative_resource(self):
         """Testing unregister_uri_template with a relative resource"""
         self.root_res.unregister_uri_template('extensions', self.ext_res)
-        self.assertFalse(self.root_res._registered_uri_templates[
-            self.ext_res])
+        self.assertEqual(
+            self.root_res._registered_uri_templates[self.ext_res],
+            {})
 
     def test_unregister_uri_template_clears_uri_template_cache(self):
         """Testing unregister_uri_templates clears the URI template cache"""
-        self.root_res._uri_templates = {
-            'key1': 'value1',
-            'key2': 'value2',
-        }
-        self.root_res.unregister_uri_template('extension-1')
-        self.assertEqual(self.root_res._uri_templates, {})
+        resource = self.root_res
+        request = RequestFactory().get('/api/')
+        resource.get_uri_templates(request)
+        self.assertEqual(len(resource._cached_uri_templates._cache), 1)
+
+        resource.unregister_uri_template('extensions')
+        self.assertEqual(len(resource._cached_uri_templates._cache), 0)
+
+
+class URITemplateCacheTests(TestCase):
+    """Unit tests for _URITemplatesCache.
+
+    Version Added:
+        3.2
+    """
+
+    def test_add(self):
+        """Testing _URITemplatesCache.add"""
+        cache = _URITemplatesCache()
+
+        cache.add('/api1/', {
+            'template1': 'http://localhost:8080/api1/resource1/',
+            'template2': 'http://localhost:8080/api1/resource2/',
+        })
+
+        cache.add('/api2/', {
+            'template3': 'http://localhost:8080/api2/resource3/',
+        })
+
+        self.assertEqual(
+            list(cache._cache.items()),
+            [
+                ('/api1/', {
+                    'template1': 'http://localhost:8080/api1/resource1/',
+                    'template2': 'http://localhost:8080/api1/resource2/',
+                }),
+                ('/api2/', {
+                    'template3': 'http://localhost:8080/api2/resource3/',
+                }),
+            ])
+
+    def test_add_when_full(self):
+        """Testing _URITemplatesCache.add when cache is full"""
+        cache = _URITemplatesCache(max_size=2)
+
+        cache.add('/api1/', {
+            'template1': 'http://localhost:8080/api1/resource1/',
+            'template2': 'http://localhost:8080/api1/resource2/',
+        })
+
+        cache.add('/api2/', {
+            'template3': 'http://localhost:8080/api2/resource3/',
+        })
+
+        cache.add('/api3/', {
+            'template4': 'http://localhost:8080/api3/resource4/',
+        })
+
+        self.assertEqual(
+            list(cache._cache.items()),
+            [
+                ('/api2/', {
+                    'template3': 'http://localhost:8080/api2/resource3/',
+                }),
+                ('/api3/', {
+                    'template4': 'http://localhost:8080/api3/resource4/',
+                }),
+            ])
+
+    def test_get(self):
+        """Testing _URITemplatesCache.get"""
+        cache = _URITemplatesCache()
+
+        cache.add('/api1/', {
+            'template1': 'http://localhost:8080/api1/resource1/',
+            'template2': 'http://localhost:8080/api1/resource2/',
+        })
+
+        cache.add('/api2/', {
+            'template3': 'http://localhost:8080/api2/resource3/',
+        })
+
+        cache.add('/api3/', {
+            'template4': 'http://localhost:8080/api3/resource4/',
+        })
+
+        # Retrieving the second item should reorder it to last.
+        self.assertEqual(
+            cache.get('/api2/'),
+            {
+                'template3': 'http://localhost:8080/api2/resource3/',
+            })
+
+        self.assertEqual(
+            list(cache._cache.items()),
+            [
+                ('/api1/', {
+                    'template1': 'http://localhost:8080/api1/resource1/',
+                    'template2': 'http://localhost:8080/api1/resource2/',
+                }),
+                ('/api3/', {
+                    'template4': 'http://localhost:8080/api3/resource4/',
+                }),
+                ('/api2/', {
+                    'template3': 'http://localhost:8080/api2/resource3/',
+                }),
+            ])
+
+    def test_get_and_not_found(self):
+        """Testing _URITemplatesCache.get with URI templates not found"""
+        cache = _URITemplatesCache()
+
+        with self.assertRaises(KeyError):
+            self.assertIsNone(cache.get('/api/'))
+
+        self.assertEqual(cache._cache, {})
+
+    def test_get_and_not_found_and_build_func(self):
+        """Testing _URITemplatesCache.get with URI templates not found and
+        build_func=
+        """
+        cache = _URITemplatesCache()
+
+        self.assertEqual(
+            cache.get(
+                '/api1/',
+                build_func=lambda base_href: {
+                    'template1': 'http://localhost:8080/api1/resource1/',
+                    'template2': 'http://localhost:8080/api1/resource2/',
+                }),
+            {
+                'template1': 'http://localhost:8080/api1/resource1/',
+                'template2': 'http://localhost:8080/api1/resource2/',
+            })
+
+        self.assertEqual(
+            list(cache._cache.items()),
+            [
+                ('/api1/', {
+                    'template1': 'http://localhost:8080/api1/resource1/',
+                    'template2': 'http://localhost:8080/api1/resource2/',
+                }),
+            ])
+
+    def test_clear(self):
+        """Testing _URITemplatesCache.clear"""
+        cache = _URITemplatesCache()
+
+        cache.add('/api1/', {
+            'template1': 'http://localhost:8080/api1/resource1/',
+            'template2': 'http://localhost:8080/api1/resource2/',
+        })
+        cache.clear()
+
+        self.assertEqual(cache._cache, {})

@@ -28,10 +28,10 @@ $.tooltip = function($el, options) {
         side: 'b'
     }, options);
 
-    var self = $("<div/>")
-        .addClass("tooltip")
+    var self = $('<div/>')
+        .addClass('tooltip')
         .hide()
-        .appendTo("body");
+        .appendTo('body');
 
     /*
      * We use mouseenter and mouseleave instead of hover() because we don't
@@ -42,8 +42,8 @@ $.tooltip = function($el, options) {
             if (self.children()) {
                 self
                     .positionToSide($el, {
-                        side: options.side,
-                        distance: 10
+                        distance: 10,
+                        side: options.side
                     })
                     .show();
             }

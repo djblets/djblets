@@ -1,8 +1,8 @@
 /**
  * A possible choice for a condition.
  *
- * This represents a single choice for a condition, such as a summary or list of
- * objects, that a condition processor will inspect and match against
+ * This represents a single choice for a condition, such as a summary or list
+ * of objects, that a condition processor will inspect and match against
  * configurations. A condition contains a list of possible operators (such as
  * "Is," "Is not," "Starts with," etc.) and a field for handling any values
  * for the choice and operator.
@@ -20,7 +20,8 @@
  *     valueField (object):
  *         Information about the object handling the storage and manipulation
  *         of values for the condition. This will be the default value field
- *         for all operators on the choice, but operators can provide their own.
+ *         for all operators on the choice, but operators can provide their
+ *         own.
  *
  *         This will have ``modelClass` and ``viewClass`` keys pointing to the
  *         object constructors for the model and view for the value field,
@@ -30,7 +31,7 @@
 Djblets.Forms.ConditionChoice = Backbone.Model.extend({
     defaults: {
         name: null,
-        valueField: null
+        valueField: null,
     },
 
     /**
@@ -43,7 +44,7 @@ Djblets.Forms.ConditionChoice = Backbone.Model.extend({
     initialize(attributes) {
         this.operators = new Backbone.Collection(attributes.operators, {
             model: Djblets.Forms.ConditionOperator,
-            parse: true
+            parse: true,
         });
     },
 
@@ -66,8 +67,8 @@ Djblets.Forms.ConditionChoice = Backbone.Model.extend({
 
         return new valueField.viewClass(_.defaults({
             model: new valueField.modelClass(_.defaults({
-                fieldName: fieldName
-            }, valueField.modelData))
+                fieldName: fieldName,
+            }, valueField.modelData)),
         }, valueField.viewData));
     },
 
@@ -87,9 +88,9 @@ Djblets.Forms.ConditionChoice = Backbone.Model.extend({
             id: data.id,
             name: data.name,
             valueField: Djblets.Forms.ConditionChoice.parseValueFieldData(
-                data.valueField)
+                data.valueField),
         };
-    }
+    },
 }, {
     /**
      * Parse value field data into a standard structure.
@@ -117,10 +118,10 @@ Djblets.Forms.ConditionChoice = Backbone.Model.extend({
                 modelClass: Djblets.getObjectByName(fieldModelInfo.className),
                 modelData: fieldModelInfo.data,
                 viewClass: Djblets.getObjectByName(fieldViewInfo.className),
-                viewData: fieldViewInfo.data
+                viewData: fieldViewInfo.data,
             };
         }
 
         return valueField;
-    }
+    },
 });

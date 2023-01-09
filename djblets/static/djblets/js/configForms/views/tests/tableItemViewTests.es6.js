@@ -42,13 +42,13 @@ suite('djblets/configForms/views/TableItemView', function() {
         describe('Action placement', function() {
             it('Default template', function() {
                 const item = new Djblets.Config.ListItem({
-                    text: 'Label',
                     actions: [
                         {
                             id: 'mybutton',
                             label: 'Button',
                         },
                     ],
+                    text: 'Label',
                 });
                 const itemView = new Djblets.Config.TableItemView({
                     model: item,
@@ -71,13 +71,13 @@ suite('djblets/configForms/views/TableItemView', function() {
                         `),
                     });
                 const item = new Djblets.Config.ListItem({
-                    text: 'Label',
                     actions: [
                         {
                             id: 'mybutton',
                             label: 'Button',
                         },
                     ],
+                    text: 'Label',
                 });
                 const itemView = new CustomTableItemView({
                     model: item,

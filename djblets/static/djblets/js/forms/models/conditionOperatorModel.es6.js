@@ -1,8 +1,8 @@
 /**
  * A possible operator for a condition choice.
  *
- * An operator simply stores state indicating the operator name, ID, and whether
- * the user should be prompted for a value.
+ * An operator simply stores state indicating the operator name, ID, and
+ * whether the user should be prompted for a value.
  *
  * Model Attributes:
  *     name (string):
@@ -26,7 +26,7 @@ Djblets.Forms.ConditionOperator = Backbone.Model.extend({
     defaults: {
         name: null,
         useValue: false,
-        valueField: null
+        valueField: null,
     },
 
     /**
@@ -51,8 +51,8 @@ Djblets.Forms.ConditionOperator = Backbone.Model.extend({
 
         return new valueField.viewClass(_.defaults({
             model: new valueField.modelClass(_.defaults({
-                fieldName: fieldName
-            }, valueField.modelData))
+                fieldName: fieldName,
+            }, valueField.modelData)),
         }, valueField.viewData));
     },
 
@@ -73,7 +73,7 @@ Djblets.Forms.ConditionOperator = Backbone.Model.extend({
             name: data.name,
             useValue: data.useValue,
             valueField: Djblets.Forms.ConditionChoice.parseValueFieldData(
-                data.valueField)
+                data.valueField),
         };
-    }
+    },
 });

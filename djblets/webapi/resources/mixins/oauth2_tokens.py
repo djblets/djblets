@@ -119,8 +119,8 @@ class ResourceOAuth2TokenMixin(object):
             from oauth2_provider.models import AccessToken
         except ImportError:
             raise ImproperlyConfigured(
-                'WebAPIOAuth2TokenAuthBackend requires django-oauth-toolkit'
-                '>=0.9,<0.9.999.'
+                'WebAPIOAuth2TokenAuthBackend requires a compatible version'
+                'of django-oauth-toolkit.'
             )
 
         token = getattr(request, '_oauth2_token', None)

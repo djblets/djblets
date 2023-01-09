@@ -14,8 +14,8 @@
  */
 $.fn.datagrid = function() {
     var $grid = this,
-        gridId = this.attr("id"),
-        $menu = $("#" + gridId + "-menu"),
+        gridId = this.attr('id'),
+        $menu = $('#' + gridId + '-menu'),
         $gridMain = $grid.children('.datagrid-main'),
         $gridContainer = $gridMain.children('.datagrid'),
         $bodyContainer = $gridContainer.children('.datagrid-body-container'),
@@ -94,6 +94,7 @@ $.fn.datagrid = function() {
      */
     function setupHeader() {
         var $origHeader = $bodyTable.children('thead'),
+            $headers,
             $thead;
 
         activeColumns = [];
@@ -120,31 +121,32 @@ $.fn.datagrid = function() {
 
         $origHeader.hide();
 
-        $headTable.find("th")
-            /* Make the columns unselectable. */
-            .disableSelection()
+        $headers = $headTable.find('th');
 
-            /* Make the columns draggable. */
-            .not(".edit-columns").draggable({
-                appendTo: "body",
-                axis: "x",
-                containment: $thead,
-                cursor: "move",
-                helper: function() {
-                    var $el = $(this);
+        /* Make the columns unselectable. */
+        $headers.disableSelection();
 
-                    return $("<div/>")
-                        .addClass("datagrid-header-drag datagrid-header")
-                        .width($el.width())
-                        .height($el.height())
-                        .css("top", $el.offset().top)
-                        .css('line-height', $el.height() + 'px')
-                        .html($el.html());
-                },
-                start: startColumnDrag,
-                stop: endColumnDrag,
-                drag: onColumnDrag
-            });
+        /* Make the columns draggable. */
+        $headers.not('.edit-columns').draggable({
+            appendTo: 'body',
+            axis: 'x',
+            containment: $thead,
+            cursor: 'move',
+            drag: onColumnDrag,
+            helper: function() {
+                var $el = $(this);
+
+                return $('<div/>')
+                    .addClass('datagrid-header-drag datagrid-header')
+                    .width($el.width())
+                    .height($el.height())
+                    .css('top', $el.offset().top)
+                    .css('line-height', $el.height() + 'px')
+                    .html($el.html());
+            },
+            start: startColumnDrag,
+            stop: endColumnDrag
+        });
 
         $headTable.find('.datagrid-header-checkbox').change(function() {
             /*
@@ -154,7 +156,8 @@ $.fn.datagrid = function() {
             var $checkbox = $(this),
                 colName = $checkbox.data('checkbox-name');
 
-            $bodyTable.find('tbody input[data-checkbox-name="' + colName + '"]')
+            $bodyTable.find('tbody input[data-checkbox-name="' + colName +
+                            '"]')
                 .prop('checked', $checkbox.prop('checked'))
                 .change();
         });
@@ -191,6 +194,7 @@ $.fn.datagrid = function() {
             bodyWidths = [],
             headWidths = [],
             bodyContainerWidth,
+            extraWidth,
             width,
             i;
 
@@ -440,7 +444,7 @@ $.fn.datagrid = function() {
         $.get(url, function(html) {
             if (reloadGrid) {
                 $grid.replaceWith(html);
-                $grid = $("#" + gridId).datagrid();
+                $grid = $('#' + gridId).datagrid();
             } else {
                 setupHeader();
             }
@@ -487,8 +491,8 @@ $.fn.datagrid = function() {
     function updateMenuPosition() {
         $menu
             .css({
-                top: $editButton.position().top + $editButton.innerHeight(),
-                right: -$menu.outerWidth()
+                right: -$menu.outerWidth(),
+                top: $editButton.position().top + $editButton.innerHeight()
             })
             .show()
             .animate({
@@ -528,7 +532,7 @@ $.fn.datagrid = function() {
      * @return The serialized column list.
      */
     function serializeColumns(addedColumn) {
-        var columnsStr = "";
+        var columnsStr = '';
 
         $(activeColumns).each(function(i) {
             var curColumn = activeColumns[i];
@@ -540,13 +544,13 @@ $.fn.datagrid = function() {
                 columnsStr += curColumn;
 
                 if (i < activeColumns.length - 1) {
-                    columnsStr += ",";
+                    columnsStr += ',';
                 }
             }
         });
 
         if (addedColumn) {
-            columnsStr += "," + addedColumn;
+            columnsStr += ',' + addedColumn;
         }
 
         return columnsStr;
@@ -575,7 +579,7 @@ $.fn.datagrid = function() {
         buildColumnInfo();
 
         /* Hide the column but keep its area reserved. */
-        $(dragColumn).css("visibility", "hidden");
+        $(dragColumn).css('visibility', 'hidden');
     }
 
     /*
@@ -588,7 +592,7 @@ $.fn.datagrid = function() {
         var $column = $(this);
 
         /* Re-show the column header. */
-        $column.css("visibility", "visible");
+        $column.css('visibility', 'visible');
 
         columnMidpoints = [];
 
@@ -652,9 +656,10 @@ $.fn.datagrid = function() {
         /* Clear and rebuild the list of mid points. */
         columnMidpoints = [];
 
-        $headTable.find("th").not(".edit-columns").each(function(i, column) {
+        $headTable.find('th').not('.edit-columns').each(function(i, column) {
             var $column = $(column),
-                offset = $column.offset();
+                offset = $column.offset(),
+                width;
 
             if (column === dragColumn) {
                 dragIndex = i;
@@ -741,15 +746,15 @@ $.fn.datagrid = function() {
         .on('click', editButtonSel, function(e) {
             e.stopPropagation();
             toggleColumnsMenu();
-        })
+        });
 
     setupHeader();
 
     /* Register callbacks for the columns. */
-    $menu.find("tr").each(function(i, row) {
+    $menu.find('tr').each(function(i, row) {
         var className = row.className;
 
-        $(row).find(".datagrid-menu-checkbox, .datagrid-menu-label a")
+        $(row).find('.datagrid-menu-checkbox, .datagrid-menu-label a')
             .click(function() {
                 toggleColumn(className);
 
@@ -789,7 +794,7 @@ $.fn.datagrid = function() {
 };
 
 $(document).ready(function() {
-    $("div.datagrid-wrapper").datagrid();
+    $('div.datagrid-wrapper').datagrid();
 });
 
 })(jQuery);

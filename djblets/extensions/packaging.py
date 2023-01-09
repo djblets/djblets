@@ -7,6 +7,7 @@ import re
 import sys
 from distutils.errors import DistutilsExecError
 from fnmatch import fnmatch
+from typing import Dict, List, Type
 
 import django
 import pkg_resources
@@ -14,9 +15,9 @@ from django.core.management import call_command
 from setuptools.command.build_py import build_py
 from setuptools import Command
 
-from djblets.dependencies import (babel_npm_dependencies,
-                                  lesscss_npm_dependencies,
-                                  uglifyjs_npm_dependencies)
+from djblets.dependencies import frontend_buildkit_npm_dependencies
+from djblets.extensions.extension import Extension
+from djblets.pipeline.settings import build_pipeline_settings
 from djblets.util.filesystem import is_exe_in_path
 
 
@@ -114,31 +115,22 @@ class BuildStaticFiles(Command):
 
         return less_include
 
-    def install_pipeline_deps(self, extension, css_bundles, js_bundles):
+    def install_pipeline_deps(
+        self,
+    ) -> str:
         """Install dependencies needed for the static media pipelining.
 
-        This will install the LessCSS and UglifyJS tools, if needed for the
-        packaging process. These will only be installed if they'd be used,
-        which is determined based on the contents of the bundles.
+        This will install the build tools needed for any static media.
 
         Subclasses can override this to support additional tools.
 
-        Args:
-            extension (djblets.extensions.extension.Extension):
-                The extension being packaged.
-
-            css_bundles (dict):
-                A dictionary of CSS bundles being built for the package.
-
-            js_bundles (dict):
-                A dictionary of JavaScript bundles being built for the package.
+        Returns:
+            str:
+            The path to the resulting :files:`node_modules` directory.
         """
-        from pipeline.conf import settings as pipeline_settings
-
-        build_dir = os.path.join(os.getcwd(), 'build')
+        cwd = os.getcwd()
+        build_dir = os.path.join(cwd, 'build')
         node_modules_dir = os.path.join(build_dir, 'node_modules')
-
-        os.environ['NODE_PATH'] = node_modules_dir
 
         if not os.path.exists(build_dir):
             os.mkdir(build_dir, 0o755)
@@ -146,46 +138,28 @@ class BuildStaticFiles(Command):
         if not os.path.exists(node_modules_dir):
             os.mkdir(node_modules_dir, 0o755)
 
-        dependencies = {}
-
-        if self.get_bundle_file_matches(css_bundles, '*.less'):
-            dependencies.update(lesscss_npm_dependencies)
-
-            pipeline_settings.LESS_BINARY = \
-                os.path.join(node_modules_dir, '.bin', 'lessc')
-
-        if self.get_bundle_file_matches(js_bundles, '*.js'):
-            dependencies.update(uglifyjs_npm_dependencies)
-
-            bin_path = os.path.join(node_modules_dir, '.bin')
-
-            pipeline_settings.UGLIFYJS_BINARY = \
-                os.path.join(bin_path, 'uglifyjs')
-
-            if self.get_bundle_file_matches(js_bundles, '*.es6.js'):
-                dependencies.update(babel_npm_dependencies)
-
-                pipeline_settings.BABEL_BINARY = \
-                    os.path.join(bin_path, 'babel')
-
-        package_file = os.path.join(build_dir, 'package.json')
-
-        with open(package_file, 'w') as fp:
-            fp.write(json.dumps(
+        # Generate a package.json to install the dependencies for building
+        # static media.
+        with open(os.path.join(build_dir, 'package.json'), 'w') as fp:
+            json.dump(
                 {
-                    'name': '%s-extension' % os.path.basename(os.getcwd()),
+                    'devDependencies': frontend_buildkit_npm_dependencies,
+                    'name': '%s-extension' % os.path.basename(cwd),
                     'private': 'true',
-                    'devDependencies': {},
-                    'dependencies': dependencies,
                 },
-                indent=2))
+                fp,
+                indent=2,
+                sort_keys=True)
 
-        old_cwd = os.getcwd()
+        # Install the dependencies.
         os.chdir(build_dir)
 
-        self.npm_install()
+        try:
+            self.npm_install()
+        finally:
+            os.chdir(cwd)
 
-        os.chdir(old_cwd)
+        return node_modules_dir
 
     def get_bundle_file_matches(self, bundles, pattern):
         """Return whether there's any files in a bundle matching a pattern.
@@ -317,67 +291,100 @@ class BuildStaticFiles(Command):
 
         sys.path = sys.path[len(self.distribution.packages):]
 
-    def _build_static_media(self, extension):
+    def _build_static_media(
+        self,
+        extension_cls: Type[Extension],
+    ) -> None:
+        """Build static media files for the extension.
+
+        This will configure Pipeline for the extension, install any
+        dependencies required, and then compile the static media.
+
+        Args:
+            extension_cls (type):
+                The extension being packaged.
+        """
         from django.conf import settings
-        from pipeline.conf import settings as pipeline_settings
 
-        pipeline_js = {}
-        pipeline_css = {}
+        build_root = self.build_lib
+        assert build_root
 
-        self._add_bundle(pipeline_js, extension.js_bundles, 'js', '.js')
-        self._add_bundle(pipeline_css, extension.css_bundles, 'css', '.css')
+        pipeline_js = self._make_bundle(
+            extension_bundles=extension_cls.js_bundles,
+            default_dir='js',
+            ext='.js')
+        pipeline_css = self._make_bundle(
+            extension_bundles=extension_cls.css_bundles,
+            default_dir='css',
+            ext='.css')
 
         # Get the location of the static/ directory within the module in the
         # source tree. We're going to use it to look up static files for
         # input, and as a relative path within the module for the output.
-        module_dir = os.path.dirname(inspect.getmodule(extension).__file__)
-        static_dir = os.path.join(module_dir, 'static')
+        static_dir = os.path.join(
+            os.path.dirname(inspect.getfile(extension_cls)),
+            'static')
 
         if not os.path.exists(static_dir):
-            # This extension doesn't define any static files.
+            # This extension doesn't define any static files. There's nothing
+            # to do.
             return
-
-        # Install any dependencies that might be needed by the bundles.
-        self.install_pipeline_deps(extension, pipeline_css, pipeline_js)
 
         from djblets.extensions.staticfiles import PackagingFinder
         PackagingFinder.extension_static_dir = static_dir
 
         settings.STATICFILES_DIRS = list(settings.STATICFILES_DIRS) + [
-            PackagingFinder.extension_static_dir
+            static_dir,
         ]
 
-        settings.STATIC_ROOT = \
-            os.path.join(self.build_lib,
-                         os.path.relpath(os.path.join(module_dir, 'static')))
+        settings.STATIC_ROOT = os.path.join(build_root,
+                                            os.path.relpath(static_dir))
 
-        # Tell djblets.pipeline.compiles.less.LessCompiler (if enabled) not
-        # to check for outdated using its special import script, and to in
-        # fact assume all files are outdated so they'll all be rebuilt. This
-        # will also prevent access denied issues (due to referenced files not
-        # being in the sandboxed tree defined for the static media).
-        pipeline_settings._DJBLETS_LESS_ALWAYS_REBUILD = True
+        # Install any dependencies that might be needed by the bundles.
+        #
+        # We'll only do this if the extension is using Pipeline. They may just
+        # have plain source files.
+        if pipeline_css or pipeline_js:
+            node_modules_dir = self.install_pipeline_deps()
 
-        # Due to how Pipeline copies and stores its settings, we actually
-        # have to copy over some of these, as they'll be from the original
-        # loaded settings.
-        from pipeline.conf import settings as pipeline_settings
+            from pipeline.conf import settings as pipeline_settings
 
-        pipeline_settings.JAVASCRIPT = pipeline_js
-        pipeline_settings.STYLESHEETS = pipeline_css
-        pipeline_settings.PIPELINE_ENABLED = True
-        pipeline_settings.LESS_ARGUMENTS = self._build_lessc_args()
+            # Update the Pipeline settings.
+            pipeline_settings.update(build_pipeline_settings(
+                pipeline_enabled=True,
+                node_modules_path=node_modules_dir,
+                static_root=settings.STATIC_ROOT,
+                javascript_bundles=pipeline_js,
+                stylesheet_bundles=pipeline_css,
+                use_rollup=True,
+                extra_config={
+                    # Tell djblets.pipeline.compiles.less.LessCompiler not to
+                    # check for outdated files using its special import script,
+                    # and to in fact assume all files are outdated so they'll
+                    # all be rebuilt. This will also prevent access denied
+                    # issues (due to referenced files not being in the
+                    # sandboxed tree defined for the static media).
+                    '_DJBLETS_LESS_ALWAYS_REBUILD': True,
+
+                    # Overwrite the arguments from build_pipeline_settings(),
+                    # and add our own instead.
+                    'LESS_ARGUMENTS': self._build_lessc_args(),
+                }))
 
         # Collect and process all static media files.
         call_command('collectstatic', interactive=False, verbosity=2)
 
         if self.remove_source_files:
+            # Remove source files from the package, if requested by the
+            # packager. This will leave only the CSS and JavaScript bundles.
             self._remove_source_files(
                 pipeline_css, os.path.join(settings.STATIC_ROOT, 'css'))
             self._remove_source_files(
                 pipeline_js, os.path.join(settings.STATIC_ROOT, 'js'))
 
-    def _build_lessc_args(self):
+    def _build_lessc_args(
+        self,
+    ) -> List[str]:
         """Build the list of arguments for the less compiler.
 
         This will return a set of arguments that define any global variables
@@ -420,14 +427,40 @@ class BuildStaticFiles(Command):
             for key, value in lessc_global_vars.items()
         ]
 
-    def _add_bundle(self, pipeline_bundles, extension_bundles, default_dir,
-                    ext):
+    def _make_bundle(
+        self,
+        *,
+        extension_bundles: Dict[str, Dict],
+        default_dir: str,
+        ext,
+    ) -> Dict[str, Dict]:
+        """Return a new Pipeline bundle based on an extension's bundle.
+
+        Args:
+            extension_bundles (dict):
+                The bundles defined on the extension.
+
+            default_dir (str):
+                The default directory for the source files, for any bundles
+                that don't specify an explicit output filename.
+
+            ext (str):
+                The default extension for the source files, for any bundles
+                that don't specify an explicit output filename.
+
+        Returns:
+            dict:
+            The new extension bundle.
+        """
+        pipeline_bundles: Dict[str, Dict] = {}
+
         for name, bundle in extension_bundles.items():
             if 'output_filename' not in bundle:
-                bundle['output_filename'] = \
-                    '%s/%s.min%s' % (default_dir, name, ext)
+                bundle['output_filename'] = f'{default_dir}/{name}.min{ext}'
 
             pipeline_bundles[name] = bundle
+
+        return pipeline_bundles
 
     def _remove_source_files(self, pipeline_bundles, media_build_dir):
         """Removes all source files, leaving only built bundles."""

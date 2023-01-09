@@ -14,8 +14,8 @@ Djblets.Config.PagesView = Backbone.View.extend({
     initialize() {
         this.router = new Backbone.Router({
             routes: {
-                ':pageID': 'page'
-            }
+                ':pageID': 'page',
+            },
         });
         this.listenTo(this.router, 'route:page', this._onPageChanged);
 
@@ -76,8 +76,8 @@ Djblets.Config.PagesView = Backbone.View.extend({
             this.router.navigate(
                 this._$pageNavs.find('a').attr('href').substr(1),
                 {
+                    replace: true,
                     trigger: true,
-                    replace: true
                 });
         } else {
             this._$activeNav =

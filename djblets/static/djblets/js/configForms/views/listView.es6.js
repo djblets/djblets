@@ -13,8 +13,9 @@
  * be faded in/out.
  */
 Djblets.Config.ListView = Backbone.View.extend({
-    tagName: 'ul',
     className: 'djblets-c-config-forms-list',
+    tagName: 'ul',
+
     defaultItemView: Djblets.Config.ListItemView,
 
     /**
@@ -94,13 +95,13 @@ Djblets.Config.ListView = Backbone.View.extend({
      *
      * Option Args:
      *     animate (boolean):
-     *         Whether or not to animate adding the item. This argument defaults
-     *         to ``true``.
+     *         Whether or not to animate adding the item. This argument
+     *         defaults to ``true``.
      */
     _addItem(item, collection, options={}) {
         const animateItem = (options.animate !== false);
         const view = new this.ItemView({
-            model: item
+            model: item,
         });
 
         view.render();
@@ -172,7 +173,7 @@ Djblets.Config.ListView = Backbone.View.extend({
 
         this.model.collection.each(item => {
             this._addItem(item, item.collection, {
-                animate: false
+                animate: false,
             });
         });
     },

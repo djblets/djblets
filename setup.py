@@ -396,6 +396,10 @@ class ListNodeDependenciesCommand(Command):
         """
         f.write(json.dumps(
             {
+                '__note__': (
+                    'DO NOT EDIT OR COMMIT THIS FILE! All dependencies must '
+                    'be recorded in djblets/dependencies.py instead.'
+                ),
                 'name': 'djblets',
                 'private': 'true',
                 'devDependencies': {},

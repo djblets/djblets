@@ -11,8 +11,8 @@ suite('djblets/utils/urls', function() {
         describe('With anchor', function() {
             it('With leading "#"', function() {
                 const url = Djblets.buildURL({
-                    baseURL: 'https://example.com/abc123/',
                     anchor: '#my-anchor',
+                    baseURL: 'https://example.com/abc123/',
                 });
 
                 expect(url).toBe('https://example.com/abc123/#my-anchor');
@@ -20,8 +20,8 @@ suite('djblets/utils/urls', function() {
 
             it('Without leading "#"', function() {
                 const url = Djblets.buildURL({
-                    baseURL: 'https://example.com/abc123/',
                     anchor: 'my-anchor',
+                    baseURL: 'https://example.com/abc123/',
                 });
 
                 expect(url).toBe('https://example.com/abc123/#my-anchor');
@@ -112,9 +112,9 @@ suite('djblets/utils/urls', function() {
 
         it('With all options', function() {
             const url = Djblets.buildURL({
+                anchor: 'my-anchor',
                 baseURL: 'https://example.com/abc123/',
                 queryData: 'a=b&c=d',
-                anchor: 'my-anchor',
             });
 
             expect(url).toBe(
