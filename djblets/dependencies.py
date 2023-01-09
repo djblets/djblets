@@ -68,9 +68,20 @@ frontend_buildkit_npm_dependencies = {
         '^1.0.0'),
 }
 
+#: Dependencies required for static media linting.
+lint_npm_dependencies = {
+    'eslint': '^8.29.0',
+
+    # Customizable Beanbag-built dependencies.
+    '@beanbag/eslint-plugin': (
+        os.environ.get('BEANBAG_ESLINT_PLUGIN_PATH') or
+        '^1.0.0'),
+}
+
 #: Node dependencies required to package/develop/test Djblets.
 npm_dependencies = {}
 npm_dependencies.update(frontend_buildkit_npm_dependencies)
+npm_dependencies.update(lint_npm_dependencies)
 
 
 ###########################################################################
