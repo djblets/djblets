@@ -28,10 +28,10 @@ $.tooltip = function($el, options) {
         side: 'b'
     }, options);
 
-    var self = $("<div/>")
-        .addClass("tooltip")
+    var self = $('<div/>')
+        .addClass('tooltip')
         .hide()
-        .appendTo("body");
+        .appendTo('body');
 
     /*
      * We use mouseenter and mouseleave instead of hover() because we don't

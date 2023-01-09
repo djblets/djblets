@@ -23,9 +23,9 @@
 (function($) {
 
 
-$.widget("ui.inlineEditor", {
+$.widget('ui.inlineEditor', {
     options: {
-        cls: "",
+        cls: '',
         deferEventSetup: false,
         editIconPath: null,
         editIconClass: null,
@@ -47,7 +47,7 @@ $.widget("ui.inlineEditor", {
         stripTags: false,
         useEditIconOnly: false,
         createMultilineField: function(/* editor */) {
-            return $("<textarea/>").autoSizeTextArea();
+            return $('<textarea/>').autoSizeTextArea();
         },
         setFieldValue: function(editor, value) {
             editor._field.val(value);
@@ -80,9 +80,9 @@ $.widget("ui.inlineEditor", {
         this._dirtyCalcScheduled = false;
 
         /* Elements */
-        this._form = $("<form/>")
-            .addClass("inline-editor-form " + this.options.cls)
-            .css("display", "inline")
+        this._form = $('<form/>')
+            .addClass('inline-editor-form ' + this.options.cls)
+            .css('display', 'inline')
             .insertBefore(this.element)
             .hide();
 
@@ -115,7 +115,7 @@ $.widget("ui.inlineEditor", {
             }
 
             this._buttons
-                .addClass("buttons")
+                .addClass('buttons')
                 .appendTo(this._form);
 
             /*
@@ -124,15 +124,15 @@ $.widget("ui.inlineEditor", {
              */
             this._buttons.hide();
 
-            saveButton = $('<input type="button"/>')
-                .val(gettext("OK"))
-                .addClass("save")
+            $('<input type="button"/>')
+                .val(gettext('OK'))
+                .addClass('save')
                 .appendTo(this._buttons)
                 .click(function() { self.submit(); });
 
-            cancelButton = $('<input type="button"/>')
-                .val(gettext("Cancel"))
-                .addClass("cancel")
+            $('<input type="button"/>')
+                .val(gettext('Cancel'))
+                .addClass('cancel')
                 .appendTo(this._buttons)
                 .click(function() { self.cancel(); });
         }
@@ -168,14 +168,14 @@ $.widget("ui.inlineEditor", {
                             'aria-label': gettext('This field is required'),
                             'title': gettext('This field is required')
                         })
-                        .addClass("required-flag")
-                        .text("*"));
+                        .addClass('required-flag')
+                        .text('*'));
             }
 
             if (this.options.multiline) {
                 if (this.element[0].id) {
                     this._editIcon.appendTo(
-                        $("label[for=" + this.element[0].id + "]"));
+                        $('label[for=' + this.element[0].id + ']'));
                 }
             } else {
                 this._editIcon.insertAfter(this.element);
@@ -203,12 +203,12 @@ $.widget("ui.inlineEditor", {
                 })
                 .mousedown(function() {
                     isDragging = false;
-                    $(this).one("mousemove", function() {
+                    $(this).one('mousemove', function() {
                         isDragging = true;
                     });
                 })
                 .mouseup(function() {
-                    $(this).off("mousemove");
+                    $(this).off('mousemove');
                 });
         }
 
@@ -339,9 +339,9 @@ $.widget("ui.inlineEditor", {
 
         this.options.setFieldValue(this, value);
 
-        this.element.triggerHandler("beginEditPreShow");
+        this.element.triggerHandler('beginEditPreShow');
         this.showEditor(preventAnimation);
-        this.element.triggerHandler("beginEdit");
+        this.element.triggerHandler('beginEdit');
     },
 
     /*
@@ -362,14 +362,14 @@ $.widget("ui.inlineEditor", {
         }
 
         if (this._dirty || this.options.notifyUnchangedCompletion) {
-            this.element.triggerHandler("complete",
+            this.element.triggerHandler('complete',
                                         [value, initialValue]);
 
             if (this.options.hasRawValue) {
                 this.options.rawValue = value;
             }
         } else {
-            this.element.triggerHandler("cancel", [this._initialValue]);
+            this.element.triggerHandler('cancel', [this._initialValue]);
         }
     },
 
@@ -384,7 +384,7 @@ $.widget("ui.inlineEditor", {
 
     cancel: function(force) {
         if (!force && this.options.promptOnCancel && this.dirty()) {
-            if (confirm(gettext("You have unsaved changes. Are you sure you want to discard them?"))) {
+            if (confirm(gettext('You have unsaved changes. Are you sure you want to discard them?'))) {
                 this.cancel(true);
             }
 
@@ -392,7 +392,7 @@ $.widget("ui.inlineEditor", {
         }
 
         this.hideEditor();
-        this.element.triggerHandler("cancel", [this._initialValue]);
+        this.element.triggerHandler('cancel', [this._initialValue]);
     },
 
     field: function() {
@@ -451,8 +451,8 @@ $.widget("ui.inlineEditor", {
                 if (this.options.matchHeight) {
                     // TODO: Set autosize min height
                     this._field
-                        .autoSizeTextArea("setMinHeight", newHeight)
-                        .css("overflow", "hidden");
+                        .autoSizeTextArea('setMinHeight', newHeight)
+                        .css('overflow', 'hidden');
 
                     if (preventAnimation) {
                         this._field.height(newHeight);
@@ -487,7 +487,7 @@ $.widget("ui.inlineEditor", {
         /* Execute this after the animation, if we performed one. */
         this._field.queue(function() {
             if (self.options.multiline && self._isTextArea) {
-                self._field.css("overflow", "auto");
+                self._field.css('overflow', 'auto');
             }
 
             self._fitWidthToParent();
@@ -530,7 +530,7 @@ $.widget("ui.inlineEditor", {
             && this._editing
             && this._isTextArea) {
             this._field
-                .css("overflow", "hidden")
+                .css('overflow', 'hidden')
                 .animate({
                     height: this.element.outerHeight()
                 }, this.options.fadeSpeedMS);
@@ -568,7 +568,7 @@ $.widget("ui.inlineEditor", {
 
         if (this._dirty !== curDirtyState) {
             this._dirty = curDirtyState;
-            this.element.triggerHandler("dirtyStateChanged", [this._dirty]);
+            this.element.triggerHandler('dirtyStateChanged', [this._dirty]);
         }
 
         this._dirtyCalcScheduled = false;
@@ -659,18 +659,18 @@ $.widget("ui.inlineEditor", {
         }
 
         if (!this.options.multiline) {
-            str = str.replace(/\s{2,}/g, " ");
+            str = str.replace(/\s{2,}/g, ' ');
         }
 
         return str;
     }
 });
 
-$.ui.inlineEditor.getter = "dirty field value";
+$.ui.inlineEditor.getter = 'dirty field value';
 
 /* Allows quickly looking for dirty inline editors. Those dirty things. */
 $.expr[':'].inlineEditorDirty = function(a) {
-    return $(a).inlineEditor("dirty");
+    return $(a).inlineEditor('dirty');
 };
 
 

@@ -14,8 +14,8 @@
  */
 $.fn.datagrid = function() {
     var $grid = this,
-        gridId = this.attr("id"),
-        $menu = $("#" + gridId + "-menu"),
+        gridId = this.attr('id'),
+        $menu = $('#' + gridId + '-menu'),
         $gridMain = $grid.children('.datagrid-main'),
         $gridContainer = $gridMain.children('.datagrid'),
         $bodyContainer = $gridContainer.children('.datagrid-body-container'),
@@ -120,24 +120,24 @@ $.fn.datagrid = function() {
 
         $origHeader.hide();
 
-        $headTable.find("th")
+        $headTable.find('th')
             /* Make the columns unselectable. */
             .disableSelection()
 
             /* Make the columns draggable. */
-            .not(".edit-columns").draggable({
-                appendTo: "body",
-                axis: "x",
+            .not('.edit-columns').draggable({
+                appendTo: 'body',
+                axis: 'x',
                 containment: $thead,
-                cursor: "move",
+                cursor: 'move',
                 helper: function() {
                     var $el = $(this);
 
-                    return $("<div/>")
-                        .addClass("datagrid-header-drag datagrid-header")
+                    return $('<div/>')
+                        .addClass('datagrid-header-drag datagrid-header')
                         .width($el.width())
                         .height($el.height())
-                        .css("top", $el.offset().top)
+                        .css('top', $el.offset().top)
                         .css('line-height', $el.height() + 'px')
                         .html($el.html());
                 },
@@ -441,7 +441,7 @@ $.fn.datagrid = function() {
         $.get(url, function(html) {
             if (reloadGrid) {
                 $grid.replaceWith(html);
-                $grid = $("#" + gridId).datagrid();
+                $grid = $('#' + gridId).datagrid();
             } else {
                 setupHeader();
             }
@@ -529,7 +529,7 @@ $.fn.datagrid = function() {
      * @return The serialized column list.
      */
     function serializeColumns(addedColumn) {
-        var columnsStr = "";
+        var columnsStr = '';
 
         $(activeColumns).each(function(i) {
             var curColumn = activeColumns[i];
@@ -541,13 +541,13 @@ $.fn.datagrid = function() {
                 columnsStr += curColumn;
 
                 if (i < activeColumns.length - 1) {
-                    columnsStr += ",";
+                    columnsStr += ',';
                 }
             }
         });
 
         if (addedColumn) {
-            columnsStr += "," + addedColumn;
+            columnsStr += ',' + addedColumn;
         }
 
         return columnsStr;
@@ -576,7 +576,7 @@ $.fn.datagrid = function() {
         buildColumnInfo();
 
         /* Hide the column but keep its area reserved. */
-        $(dragColumn).css("visibility", "hidden");
+        $(dragColumn).css('visibility', 'hidden');
     }
 
     /*
@@ -589,7 +589,7 @@ $.fn.datagrid = function() {
         var $column = $(this);
 
         /* Re-show the column header. */
-        $column.css("visibility", "visible");
+        $column.css('visibility', 'visible');
 
         columnMidpoints = [];
 
@@ -653,7 +653,7 @@ $.fn.datagrid = function() {
         /* Clear and rebuild the list of mid points. */
         columnMidpoints = [];
 
-        $headTable.find("th").not(".edit-columns").each(function(i, column) {
+        $headTable.find('th').not('.edit-columns').each(function(i, column) {
             var $column = $(column),
                 offset = $column.offset();
 
@@ -747,10 +747,10 @@ $.fn.datagrid = function() {
     setupHeader();
 
     /* Register callbacks for the columns. */
-    $menu.find("tr").each(function(i, row) {
+    $menu.find('tr').each(function(i, row) {
         var className = row.className;
 
-        $(row).find(".datagrid-menu-checkbox, .datagrid-menu-label a")
+        $(row).find('.datagrid-menu-checkbox, .datagrid-menu-label a')
             .click(function() {
                 toggleColumn(className);
 
@@ -790,7 +790,7 @@ $.fn.datagrid = function() {
 };
 
 $(document).ready(function() {
-    $("div.datagrid-wrapper").datagrid();
+    $('div.datagrid-wrapper').datagrid();
 });
 
 })(jQuery);

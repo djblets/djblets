@@ -100,7 +100,7 @@ suite('djblets/gravy/backboneUtils', function() {
             $radio2.remove();
         });
 
-        describe("Initial property values", function() {
+        describe('Initial property values', function() {
             it("Setting element's property from model property's", function() {
                 model.set('mybool', true);
                 $el.bindProperty('checked', model, 'mybool');
@@ -144,7 +144,7 @@ suite('djblets/gravy/backboneUtils', function() {
             });
         });
 
-        describe("Model property changes", function() {
+        describe('Model property changes', function() {
             it("Setting element's property", function() {
                 model.set('mybool', false);
                 $el.bindProperty('checked', model, 'mybool');
@@ -196,7 +196,7 @@ suite('djblets/gravy/backboneUtils', function() {
             });
         });
 
-        describe("Element property changes", function() {
+        describe('Element property changes', function() {
             it("Setting model's property", function() {
                 model.set('mybool', false);
                 $el.bindProperty('checked', model, 'mybool');
@@ -236,7 +236,7 @@ suite('djblets/gravy/backboneUtils', function() {
                 expect(model.get('myvalue')).toBe('two');
             });
 
-            it("No model changes with elementToModel=false", function() {
+            it('No model changes with elementToModel=false', function() {
                 model.set('mybool', false);
                 $el.bindProperty('checked', model, 'mybool', {
                     elementToModel: false
@@ -248,7 +248,7 @@ suite('djblets/gravy/backboneUtils', function() {
             });
         });
 
-        describe("Special properties", function() {
+        describe('Special properties', function() {
             it('text', function() {
                 var $el = $('<p/>');
 

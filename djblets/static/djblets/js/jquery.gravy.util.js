@@ -68,7 +68,7 @@ $.fn.extend({
             });
 
             if (posType) {
-                $(this).css("position", posType);
+                $(this).css('position', posType);
             }
         });
     },
@@ -122,28 +122,28 @@ $.fn.getExtents = function(types, sides) {
             for (s = 0; s < sides.length; s++) {
                 side = sides.charAt(s);
 
-                if (type === "b") {
-                    type = "border";
-                } else if (type === "m") {
-                    type = "margin";
-                } else if (type === "p") {
-                    type = "padding";
+                if (type === 'b') {
+                    type = 'border';
+                } else if (type === 'm') {
+                    type = 'margin';
+                } else if (type === 'p') {
+                    type = 'padding';
                 }
 
-                if (side === "l" || side === "left") {
-                    side = "Left";
-                } else if (side === "r" || side === "right") {
-                    side = "Right";
-                } else if (side === "t" || side === "top") {
-                    side = "Top";
-                } else if (side === "b" || side === "bottom") {
-                    side = "Bottom";
+                if (side === 'l' || side === 'left') {
+                    side = 'Left';
+                } else if (side === 'r' || side === 'right') {
+                    side = 'Right';
+                } else if (side === 't' || side === 'top') {
+                    side = 'Top';
+                } else if (side === 'b' || side === 'bottom') {
+                    side = 'Bottom';
                 }
 
                 prop = type + side;
 
-                if (type === "border") {
-                    prop += "Width";
+                if (type === 'border') {
+                    prop += 'Width';
                 }
 
                 value = self.css(prop);
@@ -409,7 +409,7 @@ $.fn.positionToSide = function($el, options) {
                 scrollTop);
         }
 
-        $(this).move(bestLeft, bestTop, "absolute");
+        $(this).move(bestLeft, bestTop, 'absolute');
     });
 };
 
@@ -503,25 +503,25 @@ $.extend(String.prototype, {
     },
 
     htmlEncode: function() {
-        if (this === "") {
-          return "";
+        if (this === '') {
+            return '';
         }
 
-        str = this.replace(/&/g, "&amp;");
-        str = str.replace(/</g, "&lt;");
-        str = str.replace(/>/g, "&gt;");
+        str = this.replace(/&/g, '&amp;');
+        str = str.replace(/</g, '&lt;');
+        str = str.replace(/>/g, '&gt;');
 
         return str;
     },
 
     htmlDecode: function() {
-        if (this === "") {
-          return "";
+        if (this === '') {
+            return '';
         }
 
-        str = this.replace(/&amp;/g, "&");
-        str = str.replace(/&lt;/g, "<");
-        str = str.replace(/&gt;/g, ">");
+        str = this.replace(/&amp;/g, '&');
+        str = str.replace(/&lt;/g, '<');
+        str = str.replace(/&gt;/g, '>');
 
         return str;
     },
@@ -533,13 +533,14 @@ $.extend(String.prototype, {
 
         if (this.length > numChars) {
             str = this.substring(0, numChars - 3); // minus length of "..."
-            i = str.lastIndexOf(".");
+
+            var i = str.lastIndexOf('.');
 
             if (i !== -1) {
                 str = str.substring(0, i + 1);
             }
 
-            str += "...";
+            str += '...';
         }
 
         return str;
