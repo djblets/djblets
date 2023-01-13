@@ -109,8 +109,6 @@ class AuditNodeDependenciesCommand(Command):
         print('Auditing node.js modules...')
         os.system('npm audit')
 
-        os.unlink('package.json')
-
 
 class BuildEggInfoCommand(egg_info):
     """Build the egg information for the package.
@@ -461,8 +459,6 @@ class InstallNodeDependenciesCommand(Command):
 
         print('Installing node.js modules...')
         result = os.system('%s install' % npm_command)
-
-        os.unlink('package.json')
 
         if result != 0:
             raise RuntimeError(

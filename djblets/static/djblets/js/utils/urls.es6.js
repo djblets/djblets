@@ -34,7 +34,7 @@
  *     string:
  *     The resulting URL.
  */
-Djblets.buildURL = function(options={}) {
+export function buildURL(options={}) {
     let url = options.baseURL || '';
 
     /* Build the query string, if any. */
@@ -70,7 +70,7 @@ Djblets.buildURL = function(options={}) {
     }
 
     return url;
-};
+}
 
 
 /**
@@ -106,7 +106,7 @@ Djblets.buildURL = function(options={}) {
  *     than once, then its value will be a list of all values in the query
  *     string for that key.
  */
-Djblets.parseQueryString = function(url, options={}) {
+export function parseQueryString(url, options={}) {
     const allowMultiValue = options.allowMultiValue;
 
     let j = url.indexOf('?');
@@ -154,4 +154,4 @@ Djblets.parseQueryString = function(url, options={}) {
     }
 
     return query;
-};
+}

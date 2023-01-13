@@ -131,7 +131,6 @@ PIPELINE_JAVASCRIPT = {
 
             # Legacy JavaScript
             'djblets/js/utils/promise.es6.js',
-            'djblets/js/utils/urls.es6.js',
         ),
         'output_filename': 'djblets/js/utils.min.js',
     },
