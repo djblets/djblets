@@ -2,11 +2,7 @@
     "env": {
         "development": {
             "presets": [
-                ["@babel/preset-env", {
-                    "targets": {
-                        "node": "14.0"
-                    }
-                }],
+                "@babel/preset-env",
                 "@babel/preset-typescript"
             ]
         }
