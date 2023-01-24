@@ -10,6 +10,15 @@ const extensions = [
 ];
 
 
+const globalsMap = {
+    Backbone: 'Backbone',
+    Djblets: 'Djblets',
+    django: 'django',
+    jquery: '$',
+    underscore: '_',
+};
+
+
 export default {
     output: {
         /*
@@ -29,13 +38,7 @@ export default {
          * Each of these globals will be assumed to exist when the module is
          * loaded. They won't have to be imported.
          */
-        globals: {
-            Backbone: 'Backbone',
-            Djblets: 'Djblets',
-            django: 'django',
-            jquery: '$',
-            underscore: '_',
-        },
+        globals: globalsMap,
     },
     plugins: [
         /* Configure rollup to use Babel to compile files. */
@@ -52,6 +55,8 @@ export default {
             if (id.startsWith('djblets/')) {
                 return 'Djblets';
             }
+
+            return globalsMap[id];
         }),
 
         /* Specify where modules should be looked up from. */
@@ -60,6 +65,7 @@ export default {
             modulePaths: [
                 'djblets/static/lib/js',
                 'djblets/static/djblets/js',
+                'node_modules',
             ],
         }),
     ],

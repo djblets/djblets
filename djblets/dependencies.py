@@ -65,7 +65,7 @@ frontend_buildkit_npm_dependencies = {
     # Customizable Beanbag-built dependencies.
     '@beanbag/frontend-buildkit': (
         os.environ.get('BEANBAG_FRONTEND_BUILDKIT_PATH') or
-        '^1.0.0'),
+        '^1.1.0'),
 }
 
 #: Dependencies required for static media linting.
