@@ -1,15 +1,20 @@
 {
     "compilerOptions": {
         "allowJs": true,
-        "baseUrl": "djblets/static",
-        "declaration": true,
+        "baseUrl": "./",
+        "declaration": false,
+        "esModuleInterop": true,
+        "experimentalDecorators": true,
+        "isolatedModules": true,
         "moduleResolution": "node",
         "moduleSuffixes": [
             ".es6",
             ""
         ],
+        "noEmit": true,
         "paths": {
-            "djblets/*": ["djblets/js/*"]
+            "Backbone": ["node_modules/@beanbag/spina/lib/@types/backbone"],
+            "djblets/*": ["djblets/static/djblets/js/*"]
         },
         "target": "ESNext"
     },

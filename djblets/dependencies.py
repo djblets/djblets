@@ -12,6 +12,7 @@ you're going to make use of data from this file, code defensively.
 #       installed.
 
 import os
+from typing import Dict
 
 
 ###########################################################################
@@ -58,25 +59,36 @@ package_dependencies = {
 
 ###########################################################################
 # JavaScript dependencies
+#
+# These are auto-generated when running `npm install --save ...` (if the
+# package is not already in node_modules).
+#
+# To re-generate manually, run: `./contrib/internal/build-npm-deps.py`.
 ###########################################################################
 
+# Auto-generated Node.js dependencies {
+
+
 #: Dependencies required for static media building.
-frontend_buildkit_npm_dependencies = {
-    # Customizable Beanbag-built dependencies.
-    '@beanbag/frontend-buildkit': (
-        os.environ.get('BEANBAG_FRONTEND_BUILDKIT_PATH') or
-        '^1.0.0'),
+frontend_buildkit_npm_dependencies: Dict[str, str] = {
+    '@beanbag/frontend-buildkit': '^1.1.0',
+    '@beanbag/spina': '^1.0.1',
+    '@types/jquery': '^3.5.16',
+    '@types/underscore': '^1.11.4',
+    'backbone': '^1.4.1',
+    'jquery': '^3.6.3',
+    'jquery-ui': '^1.13.2',
 }
 
 #: Dependencies required for static media linting.
-lint_npm_dependencies = {
+lint_npm_dependencies: Dict[str, str] = {
+    '@beanbag/eslint-plugin': '^1.0.0',
     'eslint': '^8.29.0',
-
-    # Customizable Beanbag-built dependencies.
-    '@beanbag/eslint-plugin': (
-        os.environ.get('BEANBAG_ESLINT_PLUGIN_PATH') or
-        '^1.0.0'),
 }
+
+
+# } Auto-generated Node.js dependencies
+
 
 #: Node dependencies required to package/develop/test Djblets.
 npm_dependencies = {}
