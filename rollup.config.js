@@ -11,6 +11,7 @@ const extensions = [
 
 
 const globalsMap = {
+    '@beanbag/spina': 'Spina',
     Backbone: 'Backbone',
     Djblets: 'Djblets',
     django: 'django',

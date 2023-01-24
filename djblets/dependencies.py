@@ -66,6 +66,12 @@ frontend_buildkit_npm_dependencies = {
     '@beanbag/frontend-buildkit': (
         os.environ.get('BEANBAG_FRONTEND_BUILDKIT_PATH') or
         '^1.1.0'),
+
+    # Consumers are required to provide their own Spina file on any pages
+    # using it, but this is still needed for types.
+    '@beanbag/spina': (
+        os.environ.get('BEANBAG_SPINA_PATH') or
+        '^1.0.2'),
 }
 
 #: Dependencies required for static media linting.
