@@ -46,7 +46,7 @@ django_version = '~=3.2.16'
 package_dependencies = {
     'cryptography': '>=1.8.1',
     'Django': django_version,
-    'django-pipeline': '~=2.0.8',
+    'django-pipeline': '~=2.0.9',
     'dnspython': '>=1.14.0',
     'feedparser': '>=5.1.2',
     'Pillow': '>=6.2',
