@@ -66,50 +66,6 @@ else:
     check_run = subprocess.check_call
 
 
-class AuditNodeDependenciesCommand(Command):
-    """Audit all node.js dependencies, checking for security issues.
-
-    This will scan the Node build-time dependencies, looking for any
-    security issues. It does this through the :command:`npm audit` command.
-    """
-
-    description = 'Audit the node build-time packages for security issues.'
-    user_options = []
-
-    def initialize_options(self):
-        """Initialize options for the command.
-
-        This is required, but does not actually do anything.
-        """
-        pass
-
-    def finalize_options(self):
-        """Finalize options for the command.
-
-        This is required, but does not actually do anything.
-        """
-        pass
-
-    def run(self):
-        """Run the commands to audit node packages.
-
-        Raises:
-            RuntimeError:
-                There was an error finding or invoking the package manager.
-        """
-        try:
-            check_run(['npm', '--version'])
-        except (subprocess.CalledProcessError, OSError):
-            raise RuntimeError(
-                'Unable to locate npm in the path, which is needed to '
-                'audit dependencies required to build this package.')
-
-        self.run_command('list_node_deps')
-
-        print('Auditing node.js modules...')
-        os.system('npm audit')
-
-
 class BuildEggInfoCommand(egg_info):
     """Build the egg information for the package.
 
@@ -354,59 +310,6 @@ class FetchPublicSuffixListCommand(Command):
         print('Public suffix list stored at %s' % filename)
 
 
-class ListNodeDependenciesCommand(Command):
-    """"Write all node.js dependencies to standard output."""
-
-    description = 'Generate a package.json that lists node.js dependencies'
-
-    user_options = [
-        (str('to-stdout'), None,
-         'Write to standard output instead of a package.json file.')
-    ]
-
-    boolean_options = [str('to-stdout')]
-
-    def initialize_options(self):
-        """Set the command's option defaults."""
-        self.to_stdout = False
-
-    def finalize_options(self):
-        """Post-process command options.
-
-        This method intentionally left blank.
-        """
-        pass
-
-    def run(self):
-        """Run the command."""
-        if self.to_stdout:
-            self._write_deps(sys.stdout)
-        else:
-            with open('package.json', 'w') as f:
-                self._write_deps(f)
-
-    def _write_deps(self, f):
-        """Write the packaage.json to the given file handle.
-
-        Args:
-            f (file):
-                The file handle to write to.
-        """
-        f.write(json.dumps(
-            {
-                '__note__': (
-                    'DO NOT EDIT OR COMMIT THIS FILE! All dependencies must '
-                    'be recorded in djblets/dependencies.py instead.'
-                ),
-                'name': 'djblets',
-                'private': 'true',
-                'devDependencies': {},
-                'dependencies': npm_dependencies,
-            },
-            indent=2))
-        f.write('\n')
-
-
 class InstallNodeDependenciesCommand(Command):
     """Installs all node.js dependencies from npm.
 
@@ -455,8 +358,6 @@ class InstallNodeDependenciesCommand(Command):
                 'install dependencies required to build this package.'
                 % npm_command)
 
-        self.run_command('list_node_deps')
-
         print('Installing node.js modules...')
         result = os.system('%s install' % npm_command)
 
@@ -496,14 +397,12 @@ setup(
     zip_safe=False,
     test_suite='dummy',
     cmdclass={
-        'audit_node_deps': AuditNodeDependenciesCommand,
         'build_media': BuildMediaCommand,
         'build_i18n': BuildI18nCommand,
         'develop': DevelopCommand,
         'egg_info': BuildEggInfoCommand,
         'fetch_public_suffix_list': FetchPublicSuffixListCommand,
         'install_node_deps': InstallNodeDependenciesCommand,
-        'list_node_deps': ListNodeDependenciesCommand,
     },
     classifiers=[
         'Development Status :: 5 - Production/Stable',
