@@ -4,7 +4,6 @@ PIPELINE_JAVASCRIPT = {
             'djblets/js/avatars/index.ts',
 
             # Legacy JavaScript
-            'djblets/js/avatars/base.js',
             'djblets/js/avatars/models/avatarSettingsModel.es6.js',
             'djblets/js/avatars/views/avatarServiceSettingsFormView.es6.js',
             'djblets/js/avatars/views/avatarSettingsFormView.es6.js',
@@ -17,7 +16,6 @@ PIPELINE_JAVASCRIPT = {
             'djblets/js/configForms/index.ts',
 
             # Legacy JavaScript
-            'djblets/js/configForms/base.js',
             'djblets/js/configForms/collections/listItemsCollection.es6.js',
             'djblets/js/configForms/models/listItemModel.es6.js',
             'djblets/js/configForms/models/listModel.js',
@@ -51,7 +49,6 @@ PIPELINE_JAVASCRIPT = {
             'djblets/js/extensions/index.ts',
 
             # Legacy JavaScript
-            'djblets/js/extensions/base.js',
             'djblets/js/extensions/models/extensionModel.es6.js',
             'djblets/js/extensions/models/extensionHookModel.es6.js',
             'djblets/js/extensions/models/extensionHookPointModel.es6.js',
@@ -63,7 +60,6 @@ PIPELINE_JAVASCRIPT = {
             'djblets/js/forms/index.ts',
 
             # Legacy JavaScript
-            'djblets/js/forms/base.js',
             'djblets/js/forms/models/conditionChoiceModel.es6.js',
             'djblets/js/forms/models/conditionModel.es6.js',
             'djblets/js/forms/models/conditionOperatorModel.es6.js',
@@ -82,7 +78,6 @@ PIPELINE_JAVASCRIPT = {
             'djblets/js/integrations/index.ts',
 
             # Legacy JavaScript
-            'djblets/js/integrations/base.js',
             'djblets/js/integrations/views/addIntegrationPopupView.es6.js',
             'djblets/js/integrations/views/integrationConfigListView.es6.js',
         ),
