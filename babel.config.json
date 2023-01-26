@@ -8,6 +8,8 @@
         }
     },
     "plugins": [
+        "babel-plugin-dedent",
+        "babel-plugin-django-gettext",
         ["@babel/plugin-proposal-decorators", {
             "version": "legacy"
         }]
