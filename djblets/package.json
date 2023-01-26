@@ -5,6 +5,9 @@
   "scripts": {
     "dependencies": "./contrib/internal/build-npm-deps.py"
   },
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "dependencies": {
     "@beanbag/eslint-plugin": "^1.0.0",
     "@beanbag/frontend-buildkit": "^1.1.0",
