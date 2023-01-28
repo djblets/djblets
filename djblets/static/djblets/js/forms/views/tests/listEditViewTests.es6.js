@@ -29,11 +29,14 @@ suite('djblets/forms/views/ListEditView', function() {
     `);
 
     const makeView = function makeView(renderedRows, renderedDefaultRow) {
+        renderedDefaultRow = renderedDefaultRow || dedent`
+            <input type="text"
+                   class="djblets-c-list-edit-widget__input"
+                   name="_value[0]" />
+            `;
+
         const $el = $(formTemplate({
-            renderedDefaultRow: renderedDefaultRow ||
-                `<input type="text" ' +
-                'class="djblets-c-list-edit-widget__input" ' +
-                'name="_value[0]" />`,
+            renderedDefaultRow: renderedDefaultRow,
             renderedRows: renderedRows || [],
         }));
 
