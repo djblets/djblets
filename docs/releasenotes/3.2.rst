@@ -8,6 +8,27 @@ Djblets 3.2 Release Notes
 **Release date**: February 6, 2023
 
 
+Installation
+============
+
+Djblets 3.2 is compatible with Django_ 3.2.
+
+To install Djblets 3.2, run:
+
+.. code-block:: console
+
+   $ pip3 install Djblets==3.2
+
+To learn more, see:
+
+* `Documentation <https://www.reviewboard.org/docs/djblets/3.x/>`_
+* `Djblets on PyPI <https://pypi.org/project/Djblets/>`_
+* `Djblets on GitHub <https://github.com/djblets/djblets/>`_
+
+
+.. _Django: https://www.djangoproject.com/
+
+
 djblets.deprecation
 ===================
 
