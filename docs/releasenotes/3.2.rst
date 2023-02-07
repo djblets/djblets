@@ -1,0 +1,83 @@
+.. default-intersphinx:: django3.2 djblets3.x
+
+
+=========================
+Djblets 3.2 Release Notes
+=========================
+
+**Release date**: February 6, 2023
+
+
+djblets.deprecation
+===================
+
+.. currentmodule:: djblets.deprecation
+
+* Added :py:class:`BaseRemovedInProductVersionWarning`.
+
+  This can subclassed by consumers to add version-specific deprecation
+  warnings to their code.
+
+* Added :py:func:`deprecate_non_keyword_only_args`.
+
+  This decorator can be used to help transition functions to keyword-only
+  arguments. While decorated, function calls can still pass positional values
+  to keyword-only arguments, but doing so will raise a warning.
+
+
+djblets.integrations
+====================
+
+* Added an ``app_name`` argument to
+  :py:func:`~djblets.integrations.urls.build_integration_urlpatterns`.
+
+  This is required by Django when specifying a namespace for use in
+  :py:func:`~django.urls.include`.
+
+
+djblets.testing
+===============
+
+* Added :py:meth:`TestCase.assertWarnings()
+  <djblets.testing.testcases.TestCase.assertWarnings>`.
+
+  This takes a list of dictionaries, each specifying a warning class and
+  optional message, and will check for warnings in that order.
+
+  It can also check that no warnings were emitted, by providing an empty list.
+
+
+djblets.webapi
+==============
+
+* Added type hints for several modules.
+
+  This includes all classes in:
+
+  * :py:mod:`djblets.webapi.auth.backends`
+  * :py:mod:`djblets.webapi.responses`
+
+* Added keyword-only arguments for constructors on
+  :py:class:`~djblets.webapi.responses.WebAPIResponse`,
+  :py:class:`~djblets.webapi.responses.WebAPIResponseError`,
+  :py:class:`~djblets.webapi.responses.WebAPIResponseFormError`, and
+  :py:class:`~djblets.webapi.responses.WebAPIResponsePaginated`.
+
+  Positional argument values can still be provided for keyword-only arguments
+  until Djblets 4. A deprecation warning will be emitted.
+
+* Improved caching of URI templates on root resources.
+
+  For consumers of many API root resources (such as one per organization
+  namespace), caches will no longer grow unbounded. There's now a limit to
+  50 cached entries in total.
+
+  Invalidation is also now thread-safe.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin
