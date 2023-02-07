@@ -1,8 +1,11 @@
-"""Internal support for handling deprecations in Djblets.
+"""Support for handling deprecations.
 
 The version-specific objects in this module are not considered stable between
-releases, and may be removed at any point. The base objects are considered
-stable.
+releases, and may be removed at any point.
+
+The base objects are considered stable.
+:py:class:`BaseRemovedInProductVersionWarning` and the utility functions can
+be used by consumers to manage their own deprecations.
 """
 
 from __future__ import annotations
@@ -19,13 +22,24 @@ from django.utils.functional import SimpleLazyObject
 _FuncT = TypeVar('_FuncT', bound=Callable[..., Any])
 
 
-class BaseRemovedInDjbletsVersionWarning(DeprecationWarning):
-    """Base class for a Djblets deprecation warning.
+class BaseRemovedInProductVersionWarning(DeprecationWarning):
+    """Base class for product deprecation warnings.
 
-    All version-specific deprecation warnings inherit from this, allowing
-    callers to check for Djblets deprecations without being tied to a specific
-    version.
+    This can be used by consumers of Djblets to provide similar deprecation
+    functionality, making use of deprecation utility functions.
+
+    Version Added:
+        3.2
     """
+
+    #: The product in which this warning pertains to.
+    #:
+    #: Version Added:
+    #:     3.2
+    #:
+    #: Type:
+    #:     str
+    product: str = ''
 
     #: The version in which this warning pertains to.
     #:
@@ -57,6 +71,17 @@ class BaseRemovedInDjbletsVersionWarning(DeprecationWarning):
         warnings.warn(message, cls, stacklevel=stacklevel + 1)
 
 
+class BaseRemovedInDjbletsVersionWarning(BaseRemovedInProductVersionWarning):
+    """Base class for a Djblets deprecation warning.
+
+    All version-specific deprecation warnings inherit from this, allowing
+    callers to check for Djblets deprecations without being tied to a specific
+    version.
+    """
+
+    product = 'Djblets'
+
+
 class RemovedInDjblets40Warning(BaseRemovedInDjbletsVersionWarning):
     """Deprecations for features scheduled for removal in Djblets 4.0.
 
@@ -85,21 +110,31 @@ class RemovedInDjblets50Warning(BaseRemovedInDjbletsVersionWarning):
 RemovedInNextDjbletsVersionWarning = RemovedInDjblets40Warning
 
 
-def deprecated_arg_value(owner_name, value, old_arg_name, new_arg_name=None,
-                         warning_cls=DeprecationWarning):
+def deprecated_arg_value(
+    owner_name: str,
+    value: Any,
+    old_arg_name: str,
+    new_arg_name: Optional[str] = None,
+    warning_cls: Type[DeprecationWarning] = DeprecationWarning,
+) -> SimpleLazyObject:
     """Wrap a value in a lazy object to warn when used.
 
+    Version Changed:
+        3.2:
+        Specifying a :py:class:`BaseRemovedInProductVersionWarning` subclass
+        will now result in product/version information in the warning message.
+
     Args:
-        owner_name (unicode):
+        owner_name (str):
             The name of the owner of this argument.
 
         value (object):
             The argument value.
 
-        old_arg_name (unicode):
+        old_arg_name (str):
             The name of the argument that was deprecated.
 
-        new_arg_name (unicode, optional):
+        new_arg_name (str, optional):
             The optional name of the argument to use in the deprecated
             argument's place, if one is available.
 
@@ -108,6 +143,10 @@ def deprecated_arg_value(owner_name, value, old_arg_name, new_arg_name=None,
             :py:exc:`DeprecationWarning`, :py:exc:`PendingDeprecationWarning`,
             or a subclass of one.
 
+            If a :py:class:`BaseRemovedInProductVersionWarning` subclass is
+            provided, the error message will include warning information.
+            This is recommended and may be required in a future version.
+
     Returns:
         django.utils.functional.SimpleLazyObject:
         The value wrapped in a lazy object. The first time it is accessed,
@@ -115,16 +154,32 @@ def deprecated_arg_value(owner_name, value, old_arg_name, new_arg_name=None,
     """
     def _warn_on_use():
         if new_arg_name:
-            warnings.warn('The "%s" argument for "%s" has been deprecated '
-                          'and will be removed in a future version. Use "%s" '
-                          'instead.'
-                          % (old_arg_name, owner_name, new_arg_name),
-                          warning_cls)
+            if issubclass(warning_cls, BaseRemovedInProductVersionWarning):
+                warning_cls.warn(
+                    'The "%s" argument for "%s" has been deprecated '
+                    'and will be removed in %s %s. Use "%s" instead.'
+                    % (old_arg_name, owner_name, warning_cls.product,
+                       warning_cls.version, new_arg_name))
+            else:
+                warnings.warn(
+                    'The "%s" argument for "%s" has been deprecated '
+                    'and will be removed in a future version. Use "%s" '
+                    'instead.'
+                    % (old_arg_name, owner_name, new_arg_name),
+                    warning_cls)
         else:
-            warnings.warn('The "%s" argument for "%s" has been deprecated '
-                          'and will be removed in a future version.'
-                          % (old_arg_name, owner_name),
-                          warning_cls)
+            if issubclass(warning_cls, BaseRemovedInProductVersionWarning):
+                warning_cls.warn(
+                    'The "%s" argument for "%s" has been deprecated '
+                    'and will be removed in %s %s.'
+                    % (old_arg_name, owner_name, warning_cls.product,
+                       warning_cls.version))
+            else:
+                warnings.warn(
+                    'The "%s" argument for "%s" has been deprecated '
+                    'and will be removed in a future version.'
+                    % (old_arg_name, owner_name),
+                    warning_cls)
 
         return value
 
@@ -132,7 +187,7 @@ def deprecated_arg_value(owner_name, value, old_arg_name, new_arg_name=None,
 
 
 def deprecate_non_keyword_only_args(
-    warning_cls: Type[BaseRemovedInDjbletsVersionWarning],
+    warning_cls: Type[BaseRemovedInProductVersionWarning],
     message: Optional[str] = None,
 ) -> Callable[[_FuncT], _FuncT]:
     """Deprecate calls passing keyword-only arguments as positional arguments.
@@ -150,8 +205,8 @@ def deprecate_non_keyword_only_args(
 
     Args:
         warning_cls (type):
-            The specific djblets deprecation warning class to use. This must
-            be a subclass of :py:class:`BaseRemovedIndjbletsVersionWarning`.
+            The specific deprecation warning class to use. This must be a
+            subclass of :py:exc:`DeprecationWarning`.
 
         message (str, optional):
             An optional message to use instead of the default.
@@ -301,13 +356,14 @@ def deprecate_non_keyword_only_args(
             message or (
                 'Positional argument(s) %s must be passed as keyword '
                 'arguments when calling %s(). This will be required in '
-                'Djblets %s.'
+                '%s %s.'
                 % (
                     ', '.join(
                         '"%s"' % _arg_name
                         for _arg_name in moved_args
                     ),
                     func.__qualname__,
+                    warning_cls.product,
                     warning_cls.version,
                 )
             ),
