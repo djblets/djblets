@@ -243,7 +243,7 @@ intersphinx_mapping = {
 }
 
 extlinks = {
-    'backbonejs': ('https://backbonejs.org/#%s', 'Backbone.'),
-    'djangodoc': ('%s%%s.html' % django_doc_base_url, None),
-    'pypi': ('https://pypi.org/project/%s/', ''),
+    'backbonejs': ('https://backbonejs.org/#%s', 'Backbone.%s'),
+    'djangodoc': ('%s%%s.html' % django_doc_base_url, '%s'),
+    'pypi': ('https://pypi.org/project/%s/', '%s'),
 }
