@@ -195,7 +195,7 @@ def build_pipeline_settings(
         config.update({
             'LESS_BINARY': lessc_bin_path,
             'LESS_ARGUMENTS': [
-                '--include-path=%s' % static_root,
+                '--include-path=%s:%s' % (static_root, node_modules_path),
                 '--no-color',
                 '--source-map',
                 '--js',
