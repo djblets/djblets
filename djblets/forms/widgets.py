@@ -15,7 +15,6 @@ from django.utils.translation import gettext as _
 from djblets.conditions import ConditionSet
 from djblets.conditions.errors import (ConditionChoiceNotFoundError,
                                        ConditionOperatorNotFoundError)
-from djblets.deprecation import RemovedInDjblets40Warning
 
 
 class ConditionsWidget(widgets.Widget):
@@ -684,25 +683,8 @@ class ListEditWidget(widgets.Widget):
             django.utils.safestring.SafeText:
             The rendered widget.
         """
-        use_legacy_behavior = 'false'
-
-        # If value is not a list we assume that it is a string and convert it
-        # to a list. This behaviour will be deprecated in the future.
-        if not isinstance(value, list):
-            RemovedInDjblets40Warning.warn(
-                ('Passing a string to this widget is deprecated and will be '
-                 'removed in Djblets 4.0. Pass a list instead.'),
-            )
-            use_legacy_behavior = 'true'
-            value = value or ''
-            value = list(
-                filter(None, (item.strip() for item in value.split(self._sep)))
-            )
-
-        context = self.get_context(name, value, attrs)
-        context['use_legacy_behavior'] = use_legacy_behavior
         return render_to_string(self.template_name,
-                                context)
+                                self.get_context(name, value, attrs))
 
     def get_context(self, name, value, attrs):
         """Return context for the widget.
@@ -781,14 +763,11 @@ class ListEditWidget(widgets.Widget):
             The list of values for the field or a string of separated
             values for legacy behavior.
         """
-        use_legacy_behavior = False
         value_widget = self._value_widget
         values = []
 
         try:
             num_rows = int(data['%s_num_rows' % name])
-            use_legacy_behavior = \
-                (data['%s_use_legacy_behavior' % name] == 'true')
 
             for i in range(num_rows):
                 values.append(
@@ -801,15 +780,6 @@ class ListEditWidget(widgets.Widget):
             # the data from the field name key in the data dict instead of
             # from the special keys that get set when the widget is rendered.
             values = data[name]
-
-        # Return a string of separated values if using legacy behavior.
-        # This will be deprecated in the future.
-        if use_legacy_behavior:
-            RemovedInDjblets40Warning.warn(
-                ('Passing a string to this widget is deprecated and will be '
-                 'removed in Djblets 4.0. Pass a list instead.'),
-            )
-            return self._sep.join(values)
 
         return values
 

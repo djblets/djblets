@@ -8,7 +8,6 @@ from django.db.models import Manager, Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from djblets.deprecation import RemovedInDjblets40Warning
 from djblets.secrets.token_generators import token_generator_registry
 from djblets.secrets.token_generators.legacy_sha1 import \
     LegacySHA1TokenGenerator
@@ -24,13 +23,14 @@ class WebAPITokenManager(Manager):
 
     def generate_token(self,
                        user,
+                       *,
                        max_attempts=20,
                        note=None,
                        policy={},
                        auto_generated=False,
                        expires=None,
-                       token_generator_id=None,
-                       token_info=None,
+                       token_generator_id,
+                       token_info,
                        **kwargs):
         """Generate a WebAPIToken for a user.
 
@@ -40,6 +40,11 @@ class WebAPITokenManager(Manager):
         of times. If it cannot create a unique token, a
         :py:class:`~djblets.webapi.errors.WebAPITokenGenerationError` will be
         raised.
+
+        Version Changed:
+            4.0:
+            Made the ``token_generator_id`` and ``token_info`` parameters
+            required.
 
         Version Changed:
             3.0:
@@ -80,18 +85,16 @@ class WebAPITokenManager(Manager):
                 Version Added:
                     3.0
 
-            token_generator_id (str, optional):
+            token_generator_id (str):
                 The ID of the token generator to use for generating the token.
                 If not set, this will default to :py:class:
                 `djblets.secrets.token_generators.legacy_sha1
                 .LegacySHA1TokenGenerator`'s ID.
 
-                This parameter will be required in Djblets 4.0.
-
                 Version Added:
                     3.0
 
-            token_info (dict, optional):
+            token_info (dict):
                 A dictionary that contains information needed for token
                 generation. If not set, this will default to a dictionary that
                 contains necessary information for the :py:class:
@@ -100,8 +103,6 @@ class WebAPITokenManager(Manager):
 
                 See :py:mod:`djblets.secrets.token_generators` for further
                 details on what is required here for each token generator.
-
-                This parameter will be required in Djblets 4.0.
 
                 Version Added:
                     3.0
@@ -122,22 +123,8 @@ class WebAPITokenManager(Manager):
             KeyError:
                 The ``token_info`` dictionary is missing a required key.
         """
-        if token_generator_id is None:
-            token_generator_id = LegacySHA1TokenGenerator.token_generator_id
-
-            RemovedInDjblets40Warning.warn(
-                'The token_generator_id parameter was not set. This '
-                'parameter will be required in Djblets 4.0.')
-
-        if token_info is None:
-            token_info = {
-                'user': user,
-                'attempt': 0,
-            }
-
-            RemovedInDjblets40Warning.warn(
-                'The token_info parameter was not set. This parameter '
-                'will be required in Djblets 4.0.')
+        assert token_generator_id is not None
+        assert token_info is not None
 
         token_generator = token_generator_registry.get_token_generator(
             token_generator_id)

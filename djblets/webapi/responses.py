@@ -9,8 +9,6 @@ from django.http import HttpResponse
 from django.utils.encoding import force_str
 from typing_extensions import NotRequired, TypeAlias, TypedDict
 
-from djblets.deprecation import (RemovedInDjblets40Warning,
-                                 deprecate_non_keyword_only_args)
 from djblets.util.http import (get_http_requested_mimetype,
                                get_url_params_except,
                                is_mimetype_a)
@@ -143,7 +141,6 @@ class WebAPIResponse(HttpResponse):
     #:     django.http.HttpRequest
     request: HttpRequest
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets40Warning)
     def __init__(
         self,
         request: HttpRequest,
@@ -418,7 +415,6 @@ class WebAPIResponsePaginated(WebAPIResponse):
     #:     str
     total_results_key: str
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets40Warning)
     def __init__(
         self,
         request: HttpRequest,
@@ -717,7 +713,6 @@ class WebAPIResponseError(WebAPIResponse):
     data can be provided through ``extra_params`` and ``headers``.
     """
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets40Warning)
     def __init__(
         self,
         request: HttpRequest,
