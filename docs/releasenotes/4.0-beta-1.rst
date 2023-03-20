@@ -1,0 +1,88 @@
+.. default-intersphinx:: django3.2 djblets4.x
+
+================================
+Djblets 4.0 Beta 1 Release Notes
+================================
+
+**Release date**: TBD
+
+This release contains all bug fixes and features found in Djblets version
+:doc:`3.2 <3.2>`.
+
+
+Installation
+============
+
+To install this release, run the following::
+
+    $ sudo pip3 install \
+        -f https://downloads.reviewboard.org/betas/reviewboard/6.0-beta-1/ \
+        --pre -U Djblets
+
+
+We **do not** recommend upgrading a production server with this version of
+Djblets. This version is still in development, and is not guaranteed to have
+API stability.
+
+
+Packaging
+=========
+
+* Djblets 4.x supports Python 3.7-3.11.
+
+* :pypi:`Django` 3.2.x is required.
+
+* :pypi:`cryptography` 1.8.1+ is required.
+
+* :pypi:`django-pipeline` 2.0.9 - 2.0.x is required.
+
+* :pypi:`markdown` 3.3.x is required.
+
+
+For building packages, Node.JS packages have now been consolidated as
+dependencies under a new utility package. All Node.JS dependencies are now
+listed in :file:`package.json` instead of :file:`djblets/dependencies.py`.
+
+* :npm:`@beanbag/frontend-buildkit` 1.1.0 - 1.1.x
+
+
+JavaScript Packaging
+====================
+
+Djblets now includes support for building JavaScript bundles using TypeScript_
+and rollup.js_.
+
+Users of Djblets' extension framework can use these technologies for their
+extension media as well.
+
+Over the next several releases, we expect to port sections of Djblets'
+JavaScript codebase to this. This should not have any effect on users unless
+you are subclassing Djblets JavaScript classes.
+
+
+.. _rollup.js: https://rollupjs.org/
+.. _TypeScript: https://www.typescriptlang.org/
+
+
+djblets.pipeline
+================
+
+* :py:func:`~djblets.pipeline.settings.build_pipeline_settings` has a new
+  argument, ``use_rollup`` (and ``rollup_extra_args``), for enabling rollup.js.
+
+* Added :py:class:`~djblets.pipeline.compilers.rollup.RollupCompiler`, a new
+  compiler for using rollup.js.
+
+* Added :py:class:`~djblets.pipeline.compilers.typescript.TypeScriptCompiler`,
+  a new compiler for using TypeScript.
+
+* Added :py:class:`~djblets.pipeline.compilers.mixins.SourceMapStaleCheckMixin`,
+  a mixin class for compilers to use sourcemaps for stale file checks.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin
