@@ -1,10 +1,11 @@
 .. default-intersphinx:: django3.2 djblets4.x
 
+
 ================================
 Djblets 4.0 Beta 1 Release Notes
 ================================
 
-**Release date**: TBD
+**Release date**: April 3, 2023
 
 This release contains all bug fixes and features found in Djblets version
 :doc:`3.2 <3.2>`.
@@ -28,7 +29,7 @@ API stability.
 Packaging
 =========
 
-* Djblets 4.x supports Python 3.7-3.11.
+* Djblets 4.x supports Python 3.7 - 3.11.
 
 * :pypi:`Django` 3.2.x is required.
 
