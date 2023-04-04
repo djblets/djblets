@@ -323,6 +323,7 @@ Django Pipeline Additions
    djblets.pipeline.compilers.less
    djblets.pipeline.compilers.mixins
    djblets.pipeline.compilers.rollup
+   djblets.pipeline.compilers.typescript
    djblets.pipeline.settings
 
 
