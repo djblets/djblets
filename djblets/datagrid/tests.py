@@ -13,7 +13,6 @@ from django.utils.safestring import SafeText
 from djblets.datagrid.grids import (CheckboxColumn, Column, DataGrid,
                                     DateTimeSinceColumn, StatefulColumn,
                                     logger)
-from djblets.deprecation import RemovedInDjblets40Warning
 from djblets.testing.testcases import TestCase
 from djblets.util.dates import get_tz_aware_utcnow
 
@@ -248,64 +247,6 @@ class DataGridTests(kgb.SpyAgency, TestCase):
 
         datagrid = TestDataGrid(request=self.request)
         datagrid.load_state()
-
-        self.assertSpyNotCalled(my_profile.save)
-
-    def test_load_state_with_load_extra_state_true(self):
-        """Testing DataGrid.load_state with load_extra_state returning True"""
-        class MyProfile(object):
-            def save(self, **kwargs):
-                pass
-
-        class TestDataGrid(GroupDataGrid):
-            def get_user_profile(self):
-                return my_profile
-
-            def load_extra_state(self, profile):
-                return True
-
-        my_profile = MyProfile()
-        self.spy_on(my_profile.save)
-
-        datagrid = TestDataGrid(request=self.request)
-
-        message = (
-            "TestDataGrid.load_extra_state() returned a <class 'bool'>, but "
-            "must return a list of field names to save (or an empty list). "
-            "This will be required in Djblets 4.0."
-        )
-
-        with self.assertWarns(RemovedInDjblets40Warning, message):
-            datagrid.load_state()
-
-        self.assertSpyCalled(my_profile.save)
-
-    def test_load_state_with_load_extra_state_false(self):
-        """Testing DataGrid.load_state with load_extra_state returning False"""
-        class MyProfile(object):
-            def save(self, **kwargs):
-                pass
-
-        class TestDataGrid(GroupDataGrid):
-            def get_user_profile(self):
-                return my_profile
-
-            def load_extra_state(self, profile):
-                return False
-
-        my_profile = MyProfile()
-        self.spy_on(my_profile.save)
-
-        datagrid = TestDataGrid(request=self.request)
-
-        message = (
-            "TestDataGrid.load_extra_state() returned a <class 'bool'>, but "
-            "must return a list of field names to save (or an empty list). "
-            "This will be required in Djblets 4.0."
-        )
-
-        with self.assertWarns(RemovedInDjblets40Warning, message):
-            datagrid.load_state()
 
         self.assertSpyNotCalled(my_profile.save)
 

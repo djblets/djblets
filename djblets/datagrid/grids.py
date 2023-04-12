@@ -39,7 +39,6 @@ from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
-from djblets.deprecation import RemovedInDjblets40Warning
 from djblets.template.context import get_default_template_context_processors
 from djblets.util.decorators import cached_property
 from djblets.util.http import get_url_params_except
@@ -1133,17 +1132,8 @@ class DataGrid(object):
         # as well.
         load_state_result = self.load_extra_state(profile)
 
-        if isinstance(load_state_result, list):
-            profile_dirty_fields += load_state_result
-        else:
-            RemovedInDjblets40Warning.warn(
-                '%s.load_extra_state() returned a %s, but must return a '
-                'list of field names to save (or an empty list). This will '
-                'be required in Djblets 4.0.'
-                % (type(self).__name__, type(load_state_result)))
-
-            if load_state_result is True:
-                profile_dirty_fields_all = True
+        assert isinstance(load_state_result, list)
+        profile_dirty_fields += load_state_result
 
         # Now that we have all that, figure out if we need to save new
         # settings back to the profile.

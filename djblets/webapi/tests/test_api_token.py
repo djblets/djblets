@@ -8,7 +8,6 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 
-from djblets.deprecation import RemovedInDjblets40Warning
 from djblets.secrets.token_generators.legacy_sha1 import \
     LegacySHA1TokenGenerator
 from djblets.secrets.token_generators.vendor_checksum import \
@@ -121,21 +120,10 @@ class WebAPITokenManagerTests(kgb.SpyAgency, TestCase):
         self.spy_on(WebAPIToken.save, call_original=False)
         self.spy_on(timezone.now, op=kgb.SpyOpReturn(timezone.now()))
 
-        webapi_token = WebAPIToken.objects.generate_token(self.user)
-
-        with warnings.catch_warnings(record=True) as w:
-            webapi_token = WebAPIToken.objects.generate_token(self.user)
-
-            # Assert that there was a warning for each of the missing args.
-            self.assertEqual(len(w), 2)
-            self.assertEqual(w[0].category, RemovedInDjblets40Warning)
-            self.assertEqual(str(w[0].message),
-                             'The token_generator_id parameter was not set. '
-                             'This parameter will be required in Djblets 4.0.')
-            self.assertEqual(w[1].category, RemovedInDjblets40Warning)
-            self.assertEqual(str(w[1].message),
-                             'The token_info parameter was not set. '
-                             'This parameter will be required in Djblets 4.0.')
+        webapi_token = WebAPIToken.objects.generate_token(
+            self.user,
+            token_generator_id=self.token_generator_id,
+            token_info=self.token_info)
 
         self.assertEqual(webapi_token.user, self.user)
 
@@ -152,7 +140,7 @@ class WebAPITokenManagerTests(kgb.SpyAgency, TestCase):
         self.assertEqual(webapi_token.note, '')
         self.assertIsNotNone(webapi_token.token)
         self.assertEqual(webapi_token.token_generator_id,
-                         LegacySHA1TokenGenerator.token_generator_id)
+                         self.token_generator_id)
         self.assertFalse(webapi_token.my_field)
 
     def test_generate_token_with_custom_field(self):

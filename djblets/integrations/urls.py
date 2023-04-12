@@ -6,8 +6,6 @@ from typing import List, Optional, TYPE_CHECKING, Tuple, Type, Union
 
 from django.urls import include, path, re_path
 
-from djblets.deprecation import (RemovedInDjblets40Warning,
-                                 deprecate_non_keyword_only_args)
 from djblets.integrations.views import (BaseIntegrationConfigFormView,
                                         BaseIntegrationListView)
 
@@ -16,7 +14,6 @@ if TYPE_CHECKING:
     from django.urls import _AnyURL
 
 
-@deprecate_non_keyword_only_args(RemovedInDjblets40Warning)
 def build_integration_urlpatterns(
     *,
     list_view_cls: Type[BaseIntegrationListView],

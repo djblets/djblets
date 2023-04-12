@@ -82,18 +82,6 @@ class BaseRemovedInDjbletsVersionWarning(BaseRemovedInProductVersionWarning):
     product = 'Djblets'
 
 
-class RemovedInDjblets40Warning(BaseRemovedInDjbletsVersionWarning):
-    """Deprecations for features scheduled for removal in Djblets 4.0.
-
-    Note that this class will itself be removed in Djblets 4.0. If you need to
-    check against Djblets deprecation warnings, please see
-    :py:class:`BaseRemovedInDjbletsVersionWarning`. Alternatively, you can use
-    the alias for this class, :py:data:`RemovedInNextDjbletsVersionWarning`.
-    """
-
-    version = '4.0'
-
-
 class RemovedInDjblets50Warning(BaseRemovedInDjbletsVersionWarning):
     """Deprecations for features scheduled for removal in Djblets 5.0.
 
@@ -107,7 +95,7 @@ class RemovedInDjblets50Warning(BaseRemovedInDjbletsVersionWarning):
 
 
 #: An alias for the next release of Djblets where features would be removed.
-RemovedInNextDjbletsVersionWarning = RemovedInDjblets40Warning
+RemovedInNextDjbletsVersionWarning = RemovedInDjblets50Warning
 
 
 def deprecated_arg_value(
