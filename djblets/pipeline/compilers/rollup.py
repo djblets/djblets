@@ -188,7 +188,7 @@ class RollupCompiler(SourceMapStaleCheckMixin, SubProcessCompiler):
             The root of the source tree, or ``None`` if it could not be found.
         """
         path = Path(start_dir)
-        root = path.root
+        root = Path(path.root)
 
         while path != root:
             rollup_config_path = Path(path / 'rollup.config.js')

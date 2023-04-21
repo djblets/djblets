@@ -140,7 +140,7 @@ $.fn.bindVisibility = function(model, modelPropName, options) {
             value = !value;
         }
 
-        this.setVisible(value);
+        this.toggle(value);
     }
 
     model.on('change:' + modelPropName, updateVisibility, this);

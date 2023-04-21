@@ -42,6 +42,10 @@ $.fn.extend({
      * @return {jQuery} This jQuery.
      */
     setVisible: function(visible) {
+        console.warn(
+            '$.setVisible is deprecated and will be removed in Djblets 5.0. ' +
+            'Use $.toggle instead.');
+
         return $(this).each(function() {
             if (visible) {
                 $(this).show();
