@@ -198,7 +198,7 @@ const ConditionRowView = BaseConditionRowView.extend({
         let newValueField;
 
         this._$operator.val(operator.id);
-        this._$valueWrapper.setVisible(operator.get('useValue'));
+        this._$valueWrapper.toggle(operator.get('useValue'));
 
         if (operator.get('valueField') !== null) {
             const fieldName = this.conditionSet.get('fieldName');
@@ -407,7 +407,7 @@ Djblets.Forms.ConditionSetView = Backbone.View.extend({
     _onConditionModeChanged() {
         const mode = this._$mode.filter(':checked').val();
 
-        this._$rowsContainer.setVisible(mode !== 'always');
+        this._$rowsContainer.toggle(mode !== 'always');
     },
 });
 
