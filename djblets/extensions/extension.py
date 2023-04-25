@@ -6,19 +6,31 @@ import locale
 import logging
 import os
 from pathlib import PosixPath
-from typing import ClassVar, Optional, TYPE_CHECKING, Type
+from types import ModuleType
+from typing import (Any, ClassVar, Dict, List, Optional, Set, TYPE_CHECKING,
+                    Type, Union)
 
 import importlib_resources
 from django.conf import settings
+from django.contrib.admin.sites import AdminSite
 from django.core.exceptions import ImproperlyConfigured
+from django.http import HttpRequest
 from django.templatetags.static import static
-from django.urls import get_mod_func
+from django.urls import URLPattern, URLResolver, get_mod_func
 from django.utils.module_loading import import_string
 from django.utils.translation import gettext as _
+from typing_extensions import TypeAlias
 
 from djblets.extensions.errors import InstallExtensionMediaError
+from djblets.extensions.models import RegisteredExtension
 from djblets.extensions.settings import ExtensionSettings
 from djblets.util.decorators import cached_property
+from djblets.util.typing import JSONDict
+from djblets.webapi.resources import WebAPIResource
+
+if TYPE_CHECKING:
+    from djblets.extensions.hooks import ExtensionHook
+    from djblets.extensions.manager import ExtensionManager
 
 if TYPE_CHECKING:
     from importlib_metadata import EntryPoint
@@ -27,7 +39,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class JSExtension(object):
+#: Type for the extension metadata dict.
+ExtensionMetadata: TypeAlias = Dict[str, Any]
+
+
+class JSExtension:
     """Base class for a JavaScript extension.
 
     This can be subclassed to provide the information needed to initialize
@@ -53,14 +69,17 @@ class JSExtension(object):
     #:
     #: This class will be instantiated on the page. It should be a subclass of
     #: :js:class:`Djblets.Extension`.
-    model_class = None
+    model_class: Optional[str] = None
 
     #: The list of URL names to load this extension on.
     #:
     #: If not provided, this will be loaded on all pages.
-    apply_to = None
+    apply_to: Optional[List[str]] = None
 
-    def __init__(self, extension):
+    def __init__(
+        self,
+        extension: Extension,
+    ) -> None:
         """Initialize the JavaScript extension.
 
         Args:
@@ -69,11 +88,14 @@ class JSExtension(object):
         """
         self.extension = extension
 
-    def applies_to(self, url_name):
+    def applies_to(
+        self,
+        url_name: str,
+    ) -> bool:
         """Return whether this extension applies to the given URL name.
 
         Args:
-            url_name (unicode):
+            url_name (str):
                 The name of the URL.
 
         Returns:
@@ -83,7 +105,11 @@ class JSExtension(object):
         """
         return self.apply_to is None or url_name in self.apply_to
 
-    def get_model_data(self, request, **kwargs):
+    def get_model_data(
+        self,
+        request: HttpRequest,
+        **kwargs,
+    ) -> JSONDict:
         """Return model data for the Extension model instance in JavaScript.
 
         Subclasses can override this to return custom data to pass to
@@ -101,7 +127,7 @@ class JSExtension(object):
         """
         return {}
 
-    def get_settings(self):
+    def get_settings(self) -> JSONDict:
         """Return the settings for the JS Extension.
 
         By default, this is the associated :py:class:`Extension` object's
@@ -118,7 +144,7 @@ class JSExtension(object):
         return self.extension.settings
 
 
-class Extension(object):
+class Extension:
     """Base class for an extension.
 
     Extensions must subclass this class. They'll automatically have support for
@@ -147,6 +173,24 @@ class Extension(object):
             The settings for the extension.
     """
 
+    #: The ID of the extension.
+    id: ClassVar[str]
+
+    #: Information and metadata about the extension.
+    info: ClassVar[ExtensionInfo]
+
+    #: The instance of this extension created by the extension manager.
+    #:
+    #: Type:
+    #:     Extension
+    instance: Optional[Extension] = None
+
+    #: The extension registration in the database.
+    #:
+    #: Type:
+    #:     djblets.extensions.models.RegisteredExtension
+    registration: RegisteredExtension
+
     #: Metadata describing the package.
     #:
     #: This is used to set the name, version, and other information for the
@@ -169,7 +213,7 @@ class Extension(object):
     #: * ``Author-home-page``: The URL of the author writing/maintaining the
     #:   extension.
     #: * ``Home-page``: The URL of the extension's home/product/company page.
-    metadata = None
+    metadata: Optional[ExtensionMetadata] = None
 
     #: Whether or not the extension is user-configurable.
     #:
@@ -178,54 +222,54 @@ class Extension(object):
     #: extension settings. The extension must provide a :file:`admin_urls.py`
     #: file defining a top-level URL (:regexp:`^$`) pointing to a view that
     #: will handle configuration.
-    is_configurable = False
+    is_configurable: bool = False
 
     #: Default settings for the extension.
     #:
     #: These values will be used when looking up keys in :py:attr:`settings`
     #: that don't have custom values saved in the database.
-    default_settings = {}
+    default_settings: JSONDict = {}
 
     #: Whether or not the extension has a database administration site.
     #:
     #: If ``True``, the extension will have a :guilabel:`Database` link in
     #: the extension list that will take the user to a page for adding/editing
     #: any database models registered by the extension.
-    has_admin_site = False
+    has_admin_site: bool = False
 
     #: A list of any extension IDs to enable when this extension is enabled.
     #:
     #: This is used to ensure that another extension is enabled before this
     #: one. It's primarily for extensions that are augmenting or depending on
     #: another extension's functionality.
-    requirements = []
+    requirements: List[str] = []
 
     #: A list of API resource instances offered by this extension.
     #:
     #: Each entry in the list is an instance of a custom
     #: :py:class:`~djblets.webapi.resources.WebAPIResource`. These resources
     #: will appear underneath the extension's own resource.
-    resources = []
+    resources: List[WebAPIResource] = []
 
     #: A list of Django application module paths to load.
     #:
     #: Each of these will be added to :django:setting:`INSTALLED_APPS` while
     #: the extension is enabled. It follows the same format as that setting.
-    apps = []
+    apps: List[str] = []
 
     #: A list of Django context processors to load.
     #:
     #: Each of these will be added to
     #: :django:setting:`TEMPLATE_CONTEXT_PROCESSORS` while the extension is
     #: enabled. It follows the same format as that setting.
-    context_processors = []
+    context_processors: List[str] = []
 
     #: A list of Django middleware to load.
     #:
     #: Each of these will be run as if they were part of
     #: :django:setting:`MIDDLEWARE` depending on your setup) while the
     #: extension is enabled. It follows the same format as that setting.
-    middleware = []
+    middleware: List[str] = []
 
     #: A dictionary of CSS bundles to include in the package.
     #:
@@ -239,7 +283,7 @@ class Extension(object):
     #:
     #: A special bundle ID of ``default`` will cause the CSS to be loaded on
     #: every page.
-    css_bundles = {}
+    css_bundles: Dict[str, Any] = {}
 
     #: A dictionary of JavaScript bundles to include in the package.
     #:
@@ -253,20 +297,45 @@ class Extension(object):
     #:
     #: A special bundle ID of ``default`` will cause the JavaScript to be
     #: loaded on every page.
-    js_bundles = {}
+    js_bundles: Dict[str, Any] = {}
 
     #: A list of JavaScript extension classes to enable on pages.
     #:
     #: Each entry in the list is a :py:class:`JSExtension` subclass to load.
-    js_extensions = []
+    js_extensions: List[JSExtension] = []
 
-    #: The ID of the extension.
-    id: ClassVar[str]
+    ######################
+    # Instance variables #
+    ######################
 
-    #: Information and metadata about the extension.
-    info: ClassVar[ExtensionInfo]
+    #: The set of hooks for this extension.
+    #:
+    #: Type:
+    #:     set of djblets.extensions.hooks.ExtensionHook
+    hooks: Set[ExtensionHook]
 
-    def __init__(self, extension_manager):
+    #: URLs for the extension's admin interface.
+    #:
+    #: Type:
+    #:     list of django.urls.URLResolver
+    admin_urlpatterns: List[URLResolver]
+
+    #: The extension's admin site.
+    #:
+    #: Type:
+    #:     django.contrib.admin.sites.AdminSite
+    admin_site: Optional[AdminSite]
+
+    #: URLs for the extension's admin site (DB forms, etc).
+    #:
+    #: Type:
+    #:     list of django.urls.URLPattern
+    admin_site_urlpatterns: List[Union[URLPattern, URLResolver]]
+
+    def __init__(
+        self,
+        extension_manager: ExtensionManager,
+    ) -> None:
         """Initialize the extension.
 
         Subclasses should not override this. Instead, they should override
@@ -288,7 +357,7 @@ class Extension(object):
 
         self.initialize()
 
-    def initialize(self):
+    def initialize(self) -> None:
         """Initialize the extension.
 
         Subclasses can override this to provide any custom initialization.
@@ -296,7 +365,7 @@ class Extension(object):
         """
         pass
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Shut down the extension.
 
         By default, this calls shutdown_hooks.
@@ -305,13 +374,16 @@ class Extension(object):
         """
         self.shutdown_hooks()
 
-    def shutdown_hooks(self):
+    def shutdown_hooks(self) -> None:
         """Shut down all hooks for the extension."""
         for hook in self.hooks.copy():
             if hook.initialized:
                 hook.disable_hook()
 
-    def get_static_url(self, path):
+    def get_static_url(
+        self,
+        path: str,
+    ) -> str:
         """Return the URL to a static media file for this extension.
 
         This takes care of resolving the static media path name to a path
@@ -319,37 +391,41 @@ class Extension(object):
         will be used, so that browser-side caching can be used.
 
         Args:
-            path (unicode):
+            path (str):
                 The path within the static directory for the extension.
 
         Returns:
-            unicode:
+            str:
             The resulting static media URL.
         """
         return static('ext/%s/%s' % (self.id, path))
 
-    def get_bundle_id(self, name):
+    def get_bundle_id(
+        self,
+        name: str,
+    ) -> str:
         """Return the ID for a CSS or JavaScript bundle.
 
         This ID should be used when manually referencing the bundle in a
         template. The ID will be unique across all extensions.
 
         Args:
-            name (unicode):
+            name (str):
                 The name of the bundle to reference.
 
         Returns:
-            unicode:
+            str:
             The ID of the bundle corresponding to the name.
         """
         return '%s-%s' % (self.id, name)
 
     @cached_property
-    def admin_urlconf(self):
+    def admin_urlconf(self) -> ModuleType:
         """The module defining URLs for the extension's admin site."""
+        name = '%s.%s' % (get_mod_func(self.__class__.__module__)[0],
+                          'admin_urls')
+
         try:
-            name = '%s.%s' % (get_mod_func(self.__class__.__module__)[0],
-                              'admin_urls')
             return __import__(name, {}, {}, [''])
         except Exception as e:
             raise ImproperlyConfigured(
@@ -357,7 +433,7 @@ class Extension(object):
                 (name, e))
 
 
-class ExtensionInfo(object):
+class ExtensionInfo:
     """Information on an extension.
 
     This class stores the information and metadata on an extension. This
@@ -372,7 +448,25 @@ class ExtensionInfo(object):
     #:     3.3:
     #:     This is no longer used by Djblets and may be removed in a future
     #:     version.
-    encodings = ['utf-8', locale.getpreferredencoding(False), 'latin1']
+    encodings: List[str] = [
+        'utf-8',
+        locale.getpreferredencoding(False),
+        'latin1',
+    ]
+
+    ######################
+    # Instance variables #
+    ######################
+
+    #: A list of any extension IDs to enable when this extension is enabled.
+    #:
+    #: This is used to ensure that another extension is enabled before this
+    #: one. It's primarily for extensions that are augmenting or depending on
+    #: another extension's functionality.
+    #:
+    #: Type:
+    #:     list of Extension
+    requirements: List[Type[Extension]]
 
     @classmethod
     def create_from_entrypoint(
@@ -415,7 +509,12 @@ class ExtensionInfo(object):
                    package_name=metadata.get('Name', ext_class.id),
                    metadata=metadata)
 
-    def __init__(self, ext_class, package_name, metadata={}):
+    def __init__(
+        self,
+        ext_class: Type[Extension],
+        package_name: str,
+        metadata: ExtensionMetadata = {},
+    ) -> None:
         """Instantiate the ExtensionInfo using metadata and an extension class.
 
         This will set information about the extension based on the metadata
@@ -425,10 +524,10 @@ class ExtensionInfo(object):
             ext_class (type):
                 The extension class (subclass of :py:class:`Extension`).
 
-            package_name (unicode):
+            package_name (str):
                 The package name owning the extension.
 
-            metadata (dict, optional):
+            metadata (ExtensionMetadata, optional):
                 Optional metadata for the extension. If the extension provides
                 its own metadata, that will take precedence.
 
@@ -482,14 +581,14 @@ class ExtensionInfo(object):
         self.author_url = metadata.get('Author-home-page', self.url)
 
     @cached_property
-    def installed_static_version_path(self):
+    def installed_static_version_path(self) -> str:
         """The path to the static media version file.
 
         This file records the version of the extension used when last
         installing the static media files.
 
         Type:
-            unicode
+            str
         """
         return os.path.join(self.installed_static_path, '.version')
 
@@ -551,7 +650,7 @@ class ExtensionInfo(object):
 
         return None
 
-    def write_installed_static_version(self):
+    def write_installed_static_version(self) -> None:
         """Write the extension's current static media version to disk.
 
         This will write the extension's current version in its static media
@@ -581,11 +680,11 @@ class ExtensionInfo(object):
                     'path': version_path,
                 })
 
-    def get_installed_static_version(self):
+    def get_installed_static_version(self) -> Optional[str]:
         """Return the extension's locally-written static media version.
 
         Returns:
-            unicode:
+            str:
             The extension version written to disk, or ``None`` if it didn't
             exist or couldn't be read.
         """
@@ -595,5 +694,5 @@ class ExtensionInfo(object):
         except IOError:
             return None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '%s %s (enabled = %s)' % (self.name, self.version, self.enabled)
