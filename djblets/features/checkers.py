@@ -1,4 +1,10 @@
+"""Classes for checking whether features are enabled for different criteria.
+"""
+
+from __future__ import annotations
+
 import logging
+from typing import Dict, Optional, cast
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -8,10 +14,10 @@ from django.utils.translation import gettext_lazy as _
 from djblets.features.level import FeatureLevel
 
 
-_feature_checker = None
+_feature_checker: Optional[BaseFeatureChecker] = None
 
 
-class BaseFeatureChecker(object):
+class BaseFeatureChecker:
     """Base class for a feature checker.
 
     Subclasses are responsible for overriding :py:meth:`is_feature_enabled`
@@ -19,7 +25,7 @@ class BaseFeatureChecker(object):
     """
 
     @cached_property
-    def min_enabled_level(self):
+    def min_enabled_level(self) -> FeatureLevel:
         """The minimum feature level to enable by default.
 
         If ``settings.MIN_ENABLED_FEATURE_LEVEL`` is set, that value will be
@@ -45,14 +51,18 @@ class BaseFeatureChecker(object):
 
         return min_level
 
-    def is_feature_enabled(self, feature_id, **kwargs):
+    def is_feature_enabled(
+        self,
+        feature_id: str,
+        **kwargs,
+    ) -> bool:
         """Return whether a feature is enabled for a given ID.
 
         Subclasses must override this to provide a suitable implementation
         for that type of feature checker.
 
         Args:
-            feature_id (unicode):
+            feature_id (str):
                 The ID corresponding to a
                 :py:class:`~djblets.features.feature.Feature` class to check.
 
@@ -77,16 +87,20 @@ class SettingsFeatureChecker(BaseFeatureChecker):
     """
 
     #: The key in settings used for the enabled features.
-    settings_key = 'ENABLED_FEATURES'
+    settings_key: str = 'ENABLED_FEATURES'
 
-    def is_feature_enabled(self, feature_id, **kwargs):
+    def is_feature_enabled(
+        self,
+        feature_id: str,
+        **kwargs,
+    ) -> bool:
         """Return whether a feature is enabled for a given ID.
 
         The feature will be enabled if its feature ID is set to ``True`` in a
         ``settings.ENABLED_FEATURES`` dictionary.
 
         Args:
-            feature_id (unicode):
+            feature_id (str):
                 The ID corresponding to a
                 :py:class:`~djblets.features.feature.Feature` class to check.
 
@@ -117,9 +131,13 @@ class SiteConfigFeatureChecker(SettingsFeatureChecker):
     """
 
     #: The key in siteconfig used for the enabled features.
-    siteconfig_key = 'enabled_features'
+    siteconfig_key: str = 'enabled_features'
 
-    def is_feature_enabled(self, feature_id, **kwargs):
+    def is_feature_enabled(
+        self,
+        feature_id: str,
+        **kwargs,
+    ) -> bool:
         """Return whether a feature is enabled for a given ID.
 
         The feature will be enabled if its feature ID is set to ``True`` in
@@ -128,7 +146,7 @@ class SiteConfigFeatureChecker(SettingsFeatureChecker):
         ``settings.ENABLED_FEATURES`` dictionary.
 
         Args:
-            feature_id (unicode):
+            feature_id (str):
                 The ID corresponding to a
                 :py:class:`~djblets.features.feature.Feature` class to check.
 
@@ -147,16 +165,18 @@ class SiteConfigFeatureChecker(SettingsFeatureChecker):
         from djblets.siteconfig.models import SiteConfiguration
 
         siteconfig = SiteConfiguration.objects.get_current()
-        enabled_features = siteconfig.get(self.siteconfig_key, {})
+        enabled_features = cast(Dict[str, bool],
+                                siteconfig.get(self.siteconfig_key, {}))
 
         try:
             return enabled_features[feature_id]
         except KeyError:
-            return super(SiteConfigFeatureChecker,
-                         self).is_feature_enabled(feature_id, **kwargs)
+            return super().is_feature_enabled(feature_id, **kwargs)
 
 
-def set_feature_checker(feature_checker):
+def set_feature_checker(
+    feature_checker: Optional[BaseFeatureChecker],
+) -> None:
     """Set the feature checker to use for all features.
 
     This can be called to manually configure a feature checker, or to unset
@@ -171,7 +191,7 @@ def set_feature_checker(feature_checker):
     _feature_checker = feature_checker
 
 
-def get_feature_checker():
+def get_feature_checker() -> BaseFeatureChecker:
     """Return the configured feature checker instance.
 
     The class to use is configured through the ``settings.FEATURE_CHECKER``
@@ -217,5 +237,7 @@ def get_feature_checker():
             raise ImproperlyConfigured(
                 _('Unable to instantiate feature checker class "%s": %s')
                 % (class_path, e))
+
+        assert _feature_checker is not None
 
     return _feature_checker
