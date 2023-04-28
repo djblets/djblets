@@ -8,28 +8,67 @@ For information on writing registries, see
 
 import logging
 from typing import (Dict, Generic, Iterable, Iterator, List, Optional,
-                    Sequence, Set, Type, TypeVar)
+                    Sequence, Set, TYPE_CHECKING, Type, TypeVar)
 
 from django.utils.translation import gettext_lazy as _
 from pkg_resources import EntryPoint, iter_entry_points
+from typing_extensions import Final, TypeAlias
 
 from djblets.registries.errors import (AlreadyRegisteredError,
                                        ItemLookupError,
                                        RegistrationError)
 from djblets.registries.signals import registry_populating
 
+if TYPE_CHECKING:
+    from django.utils.functional import _StrOrPromise
+else:
+    _StrOrPromise = str
 
-ALREADY_REGISTERED = 'already_registered'
-ATTRIBUTE_REGISTERED = 'attribute_registered'
-INVALID_ATTRIBUTE = 'invalid_attribute'
-MISSING_ATTRIBUTE = 'missing_attribute'
-UNREGISTER = 'unregister'
-NOT_REGISTERED = 'not_registered'
-LOAD_ENTRY_POINT = 'load_entry_point'
+
+#: A mapping of error types to error messages.
+#:
+#: The error messages should be localized.
+#:
+#: Version Added:
+#:     3.3
+RegistryErrorsDict: TypeAlias = Dict[str, _StrOrPromise]
+
+
+#: A generic type for items stored in a registry.
+#:
+#: This can be used for subclasses of :py:class:`Registry`, mixins, or other
+#: utility code that need to stay generic. In normal usage, an explicit type
+#: will be provided when subclassing instead.
+#:
+#: Version Added:
+#:     3.1
+RegistryItemType = TypeVar('RegistryItemType')
+
+
+#: Error code indicating an item is already registered.
+ALREADY_REGISTERED: Final[str] = 'already_registered'
+
+#: Error code indicating a lookup attribute value is already registered.
+ATTRIBUTE_REGISTERED: Final[str] = 'attribute_registered'
+
+#: Error code indicating a lookup attribute isn't supported by the registry.
+INVALID_ATTRIBUTE: Final[str] = 'invalid_attribute'
+
+#: Error code indicating an item is missing a lookup attribute.
+MISSING_ATTRIBUTE: Final[str] = 'missing_attribute'
+
+#: Error code indicating an item is not registered when trying to unregister.
+UNREGISTER: Final[str] = 'unregister'
+
+#: Error code indicating an item is not registered when looking it up.
+NOT_REGISTERED: Final[str] = 'not_registered'
+
+#: Error indicating an error looking up an item via a Python Entry Point.
+LOAD_ENTRY_POINT: Final[str] = 'load_entry_point'
 
 
 #: Default error messages for registries.
-DEFAULT_ERRORS = {
+DEFAULT_ERRORS: Final[RegistryErrorsDict] = {
     ALREADY_REGISTERED: _(
         'Could not register %(item)s: it is already registered.'
     ),
@@ -54,17 +93,6 @@ DEFAULT_ERRORS = {
         'No item registered with %(attr_name)s = %(attr_value)s.'
     ),
 }
-
-
-#: A generic type for items stored in a registry.
-#:
-#: This can be used for subclasses of :py:class:`Registry`, mixins, or other
-#: utility code that need to stay generic. In normal usage, an explicit type
-#: will be provided when subclassing instead.
-#:
-#: Version Added:
-#:     3.1
-RegistryItemType = TypeVar('RegistryItemType')
 
 
 class Registry(Generic[RegistryItemType]):
@@ -107,7 +135,7 @@ class Registry(Generic[RegistryItemType]):
     #:
     #: Type:
     #:     dict
-    errors: Dict[str, str] = {}
+    errors: RegistryErrorsDict = {}
 
     #: The default error formatting strings.
     #:
@@ -117,7 +145,7 @@ class Registry(Generic[RegistryItemType]):
     #:
     #: Type:
     #:     dict
-    default_errors: Dict[str, str] = DEFAULT_ERRORS
+    default_errors: RegistryErrorsDict = DEFAULT_ERRORS
 
     #: The error class indicating an already registered item.
     #:
