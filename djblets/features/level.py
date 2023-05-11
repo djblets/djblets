@@ -1,4 +1,9 @@
-class FeatureLevel(object):
+"""Stability levels for a feature."""
+
+from enum import IntEnum
+
+
+class FeatureLevel(IntEnum):
     """Possible stability levels for features."""
 
     #: The feature is completely unavailable.
