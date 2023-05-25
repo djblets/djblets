@@ -1735,6 +1735,7 @@ class DataGrid:
         self.use_distinct = use_distinct
         self.special_query_args = []
         self._model = model
+        self.default_sort = []
 
         datagrid_count = getattr(request, 'datagrid_count', 0)
         self.id = f'datagrid-{datagrid_count}'
@@ -1949,12 +1950,13 @@ class DataGrid:
         if isinstance(sort_str, list):
             sort_str = sort_str[0]
 
-        sort_list: List[str]
+        sort_list: List[str] = []
 
         if sort_str:
-            sort_list = []
-
             for sort_item in sort_str.split(','):
+                if not sort_item:
+                    continue
+
                 if sort_item[0] == '-':
                     base_sort_item = sort_item[1:]
                 else:
@@ -1964,7 +1966,8 @@ class DataGrid:
 
                 if column and column.sortable:
                     sort_list.append(sort_item)
-        else:
+
+        if not sort_list:
             sort_list = self.default_sort
             sort_str = ','.join(sort_list)
 
