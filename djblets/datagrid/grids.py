@@ -926,6 +926,7 @@ class DataGrid(object):
         self.optimize_sorts = optimize_sorts
         self.special_query_args = []
         self._model = model
+        self.default_sort = []
 
         if not hasattr(request, "datagrid_count"):
             request.datagrid_count = 0
@@ -1109,11 +1110,13 @@ class DataGrid(object):
 
         # Now get the sorting order for the columns.
         sort_str = self.request.GET.get('sort', profile_sort_list)
+        self.sort_list = []
 
         if sort_str:
-            self.sort_list = []
-
             for sort_item in sort_str.split(','):
+                if not sort_item:
+                    continue
+
                 if sort_item[0] == '-':
                     base_sort_item = sort_item[1:]
                 else:
@@ -1124,7 +1127,7 @@ class DataGrid(object):
                 if column and column.sortable:
                     self.sort_list.append(sort_item)
 
-        else:
+        if not self.sort_list:
             self.sort_list = self.default_sort
             sort_str = ",".join(self.sort_list)
 
