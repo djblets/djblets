@@ -1,0 +1,121 @@
+.. default-intersphinx:: django3.2 djblets4.x
+
+
+================================
+Djblets 4.0 Beta 2 Release Notes
+================================
+
+**Release date**: TBD
+
+This release contains all bug fixes and features found in Djblets version
+:doc:`3.3 <3.3>` and :doc:`4.0 beta 1 <4.0-beta-1>`.
+
+
+Installation
+============
+
+To install this release, run the following::
+
+    $ sudo pip3 install \
+        -f https://downloads.reviewboard.org/betas/reviewboard/6.0-beta-2/ \
+        --pre -U Djblets
+
+
+We **do not** recommend upgrading a production server with this version of
+Djblets. This version is still in development, and is not guaranteed to have
+API stability.
+
+To learn more, see:
+
+* `Documentation <https://www.reviewboard.org/docs/djblets/4.x/>`_
+* `Djblets on PyPI <https://pypi.org/project/Djblets/>`_
+* `Djblets on GitHub <https://github.com/djblets/djblets/>`_
+
+
+Packaging
+=========
+
+* Djblets 4.x supports Python 3.7 - 3.11.
+
+* :pypi:`Django` 3.2.x is required.
+
+* :pypi:`cryptography` 1.8.1+ is required.
+
+* :pypi:`django-pipeline` 2.0.9 - 2.0.x is required.
+
+* :pypi:`markdown` 3.3.x is required.
+
+
+For building packages, Node.JS packages have now been consolidated as
+dependencies under a new utility package. All Node.JS dependencies are now
+listed in :file:`package.json` instead of :file:`djblets/dependencies.py`.
+
+* :npm:`@beanbag/frontend-buildkit` 1.1.0 - 1.1.x
+
+
+djblets.datagrids
+=================
+
+* Fixed crashes loading datagrids with ``?sort=,`` query arguments.
+
+  Datagrids can't normally create a link with a sort field that just contains a
+  comma, but some web crawlers would manufacture that URL, causing error emails
+  to be generated.
+
+* :py:meth:`djblets.datagrid.grids.DataGrid.load_extra_state` must now return a
+  list of field names to save. The old usage had previously raised a
+  deprecation warning.
+
+
+djblets.extensions
+==================
+
+* Extensions that define static media using TypeScript (:file:`.ts`) files but
+  do not include a :file:`rollup.config.js` file will no longer cause the
+  devserver to hang.
+
+* :py:class:`djblets.testing.testrunners.TestRunner` has been updated to allow
+  usage of ``pytest``. This will become the default in Djblets 5.
+
+
+djblets.forms
+=============
+
+* The ``value`` attribute to :py:class:`djblets.forms.widgets.ListEditWidget`
+  must be passed as a list instead of a string. The old usage had previously
+  raised a deprecation warning.
+
+
+djblets.pipeline
+================
+
+* :py:func:`~djblets.pipeline.settings.build_pipeline_settings` now expects
+  parameters to be passed as keyword arguments. Calling this with positional
+  arguments will raise a deprecation warning.
+
+
+djblets.util
+============
+
+* :py:class:`djblets.util.properties.AliasProperty` and
+  :py:class:`djblets.util.properties.TypedProperty` now expect constructor
+  parameters to be passed as keyword arguments. Calling these with positional
+  arguments will raise a deprecation warning.
+
+djblets.webapi
+==============
+
+* Caching behavior for API resources has been dramatically improved, removing
+  some legacy limits on HTTP caching.
+
+* The ``token_generator_id`` and ``token_info`` parameters are now required for
+  :py:meth:`djblets.webapi.managers.WebAPITokenManager.generate_token`. The old
+  usage had previously raised a deprecation warning.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin
