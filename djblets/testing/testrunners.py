@@ -3,22 +3,15 @@ import shutil
 import stat
 import sys
 import tempfile
+from typing import List, Optional
 
-import nose
 from django.core.management import execute_from_command_line
 from django.test.runner import DiscoverRunner
 
-try:
-    # Make sure to pre-load all the image handlers. If we do this later during
-    # unit tests, we don't seem to always get our list, causing tests to fail.
-    from PIL import Image
-    Image.init()
-except ImportError:
-    try:
-        import Image
-        Image.init()
-    except ImportError:
-        pass
+# Make sure to pre-load all the image handlers. If we do this later during
+# unit tests, we don't seem to always get our list, causing tests to fail.
+from PIL import Image
+Image.init()
 
 from django.conf import settings
 from djblets.cache.serials import generate_media_serial
@@ -50,17 +43,45 @@ class TestRunner(DiscoverRunner):
         '--doctest-extension=.txt',
     ]
 
+    #: The options used for pytest.
+    #:
+    #: This is a list of command line arguments that would be passed to
+    #: :command:`pytest`.
+    #:
+    #: Version Added:
+    #:     4.0
+    pytest_options: List[str] = []
+
     #: A list of Python package/module names to test.
-    test_packages = []
+    test_packages: List[str] = []
 
     #: Whether or not ``collectstatic`` needs to be run before tests.
     needs_collect_static = True
 
-    def __init__(self, *args, **kwargs):
+    #: Whether to run tests with Pytest instead of nose.
+    #:
+    #: Version Added:
+    #:     4.0
+    use_pytest: bool
+
+    def __init__(
+        self,
+        nose_options: Optional[List[str]] = None,
+        test_packages: Optional[List[str]] = None,
+        needs_collect_static: Optional[bool] = None,
+        use_pytest: bool = False,
+        pytest_options: Optional[List[str]] = None,
+        *args,
+        **kwargs,
+    ) -> None:
         """Initialize the test runner.
 
         The caller can override any of the options otherwise defined on the
         class.
+
+        Version Changed:
+            4.0:
+            Added the ``use_pytest`` and ``pytest_options`` arguments.
 
         Args:
             nose_options (list, optional):
@@ -73,26 +94,39 @@ class TestRunner(DiscoverRunner):
             needs_collect_static (bool, optional):
                 Whether or not ``collectstatic`` needs to be run before
                 tests. See :py:attr:`needs_collect_static`.
+
+            use_pytest (bool, optional):
+                Whether to run the tests using Pytest instead of Nose. This
+                will become the default in Djblets 5.0.
+
+                Version Added:
+                    4.0
+
+            pytest_options (list, optional):
+                A list of options used for pytest. See
+                :py:attr:`pytest_options`.
+
+                Version Added:
+                    4.0
         """
-        super(TestRunner, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Override any values that the caller wants to override. This allows
         # the runner to be instantiated with the desired arguments instead
         # of subclassed.
-        try:
-            self.nose_options = kwargs['nose_options']
-        except KeyError:
-            pass
+        if nose_options is not None:
+            self.nose_options = nose_options
 
-        try:
-            self.test_packages = kwargs['test_packages']
-        except KeyError:
-            pass
+        if test_packages is not None:
+            self.test_packages = test_packages
 
-        try:
-            self.needs_collect_static = kwargs['needs_collect_static']
-        except KeyError:
-            pass
+        if needs_collect_static is not None:
+            self.needs_collect_static = needs_collect_static
+
+        self.use_pytest = use_pytest
+
+        if pytest_options is not None:
+            self.pytest_options = pytest_options
 
     def setup_test_environment(self, *args, **kwargs):
         """Set up an environment for the unit tests.
@@ -114,8 +148,13 @@ class TestRunner(DiscoverRunner):
                 Additional keyword arguments to pass to Django's version
                 of this method.
         """
-        super(TestRunner, self).setup_test_environment(*args, **kwargs)
+        super().setup_test_environment(*args, **kwargs)
 
+        if not self.use_pytest:
+            self.setup_nose_environment()
+
+    def setup_nose_environment(self):
+        """Set up the test environment when using nose."""
         # Default to testing in a non-subdir install.
         settings.SITE_ROOT = '/'
 
@@ -185,9 +224,10 @@ class TestRunner(DiscoverRunner):
                 Additional keyword arguments to pass to Django's version
                 of this method.
         """
-        shutil.rmtree(self.tempdir)
+        if not self.use_pytest:
+            shutil.rmtree(self.tempdir)
 
-        super(TestRunner, self).teardown_test_environment(*args, **kwargs)
+        super().teardown_test_environment(*args, **kwargs)
 
     def run_tests(self, test_labels=[], argv=None, *args, **kwargs):
         """Run the test suite.
@@ -214,6 +254,93 @@ class TestRunner(DiscoverRunner):
         if argv is None:
             argv = sys.argv
 
+        if self.use_pytest:
+            self._run_pytest_tests(test_labels, argv, *args, **kwargs)
+        else:
+            self._run_nose_tests(test_labels, argv, *args, **kwargs)
+
+    def _run_pytest_tests(
+        self,
+        test_labels: List[str] = [],
+        argv: Optional[List[str]] = None,
+        *args,
+        **kwargs,
+    ) -> None:
+        """Run the test suite using pytest.
+
+        Args:
+            test_labels (list of str, optional):
+                Specific tests to run.
+
+            argv (list of str, optional):
+                Additional arguments for pytest. If not specified, sys.argv is
+                used.
+
+            *args (tuple, unused):
+                Unused additional positional arguments.
+
+            **kwargs (dict, unused):
+                Unused additional keyword arguments.
+
+        Returns:
+            int:
+            The exit code. 0 means all tests passed, while 1 means there were
+            failures.
+        """
+        if argv is None:
+            argv = []
+
+        pytest_argv = self.pytest_options
+
+        # test_labels may be provided to us with some command line arguments,
+        # which we would have already added above. We need to sanitize this
+        # when adding it to the argument list.
+        pytest_argv += [
+            test_label
+            for test_label in test_labels
+            if (not test_label.startswith('-') and
+                test_label not in self.nose_argv)
+        ]
+
+        # If specific tests are not requested, test all the configured
+        # test packages.
+        specific_tests = [
+            test_name
+            for test_name in argv[1:]
+            if not test_name.startswith('-')
+        ]
+
+        if not specific_tests:
+            pytest_argv += self.test_packages
+
+        if len(argv) > 2 and '--' in argv:
+            pytest_argv += argv[argv.index('--') + 1:]
+
+        import pytest
+        self.result = pytest.main(pytest_argv)
+
+    def _run_nose_tests(self, test_labels=[], argv=None, *args, **kwargs):
+        """Run the test suite using nose.
+
+        Args:
+            test_labels (list of unicode, optional):
+                Specific tests to run.
+
+            argv (list of unicode, optional):
+                Additional arguments for nose. If not specified, sys.argv is
+                used.
+
+            *args (tuple, unused):
+                Unused additional positional arguments.
+
+            **kwargs (dict, unused):
+                Unused additional keyword arguments.
+
+        Returns:
+            int:
+            The exit code. 0 means all tests passed, while 1 means there were
+            failures.
+        """
         self.setup_test_environment()
         old_config = self.setup_databases()
 
@@ -294,4 +421,5 @@ class TestRunner(DiscoverRunner):
             nose.core.TestProgram:
             The result from the run.
         """
+        import nose
         self.result = nose.main(argv=self.nose_argv, exit=False)
