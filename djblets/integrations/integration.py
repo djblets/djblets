@@ -1,6 +1,16 @@
 """Base support for creating service integrations."""
 
+from __future__ import annotations
+
+from typing import Dict, Optional, Sequence, Set, TYPE_CHECKING, Type
+
 from djblets.integrations.forms import IntegrationConfigForm
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrOrPromise
+    from djblets.extensions.hooks import ExtensionHook
+    from djblets.integrations.manager import IntegrationManager
+    from djblets.integrations.models import BaseIntegrationConfig
 
 
 class Integration(object):
@@ -35,13 +45,13 @@ class Integration(object):
     #:
     #: If not set, this will default to the full class path for the
     #: integration subclass.
-    integration_id = None
+    integration_id: Optional[str] = None
 
     #: The display name of the integration.
-    name = None
+    name: Optional[_StrOrPromise] = None
 
     #: A short description of this integration, in plain text format.
-    description = None
+    description: Optional[_StrOrPromise] = None
 
     #: Static paths for the integration's icon.
     #:
@@ -70,21 +80,37 @@ class Integration(object):
     #:                '1x': self.extension.get_static_url('logo.png'),
     #:                '2x': self.extension.get_static_url('logo@2x.png'),
     #:            }
-    icon_static_urls = {}
+    icon_static_urls: Dict[str, str] = {}
 
     #: Default settings for any configurations on this extension.
     #:
     #: If a setting hasn't been explicitly saved in a configuration, it will
     #: use the default from here, if available.
-    default_settings = {}
+    default_settings: Dict[str, object] = {}
 
     #: The form class for handling integration configuration.
-    config_form_cls = IntegrationConfigForm
+    config_form_cls: Type[IntegrationConfigForm] = IntegrationConfigForm
 
     #: The template name used for the configuration page.
-    config_template_name = None
+    config_template_name: Optional[str] = None
 
-    def __init__(self, integration_mgr):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: Whether the extension is currently enabled.
+    enabled: bool
+
+    #: The hooks currently registered by the integration.
+    hooks: Set[ExtensionHook]
+
+    #: The integration manager that's managing this integration.
+    integration_mgr: IntegrationManager
+
+    def __init__(
+        self,
+        integration_mgr: IntegrationManager,
+    ) -> None:
         """Construct the integration.
 
         Implementations of an integration should generally not override this.
@@ -99,7 +125,7 @@ class Integration(object):
         self.enabled = False
 
     @property
-    def id(self):
+    def id(self) -> Optional[str]:
         """The ID of the integration.
 
         This is an alias around :py:attr:`integration_id`, meant to provide
@@ -107,7 +133,7 @@ class Integration(object):
         """
         return self.integration_id
 
-    def enable_integration(self):
+    def enable_integration(self) -> None:
         """Enable this integration.
 
         This will initialize the integration, if not already enabled,
@@ -117,7 +143,7 @@ class Integration(object):
             self.enabled = True
             self.initialize()
 
-    def disable_integration(self):
+    def disable_integration(self) -> None:
         """Disable this integration.
 
         This will shut down the integration, if not already disabled,
@@ -129,7 +155,7 @@ class Integration(object):
             self.shutdown_hooks()
             self.hooks = set()
 
-    def initialize(self):
+    def initialize(self) -> None:
         """Initialize the integration.
 
         Integration implementation subclasses must override this to provide
@@ -141,7 +167,7 @@ class Integration(object):
         raise NotImplementedError('%r must implement initialize()'
                                   % self.__class__)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Shut down the integration.
 
         Integration implementation subclasses can override this to perform
@@ -153,7 +179,7 @@ class Integration(object):
         """
         pass
 
-    def shutdown_hooks(self):
+    def shutdown_hooks(self) -> None:
         """Shut down all the hooks for the integration.
 
         By default, this is called when calling :py:meth:`shutdown`.
@@ -162,7 +188,10 @@ class Integration(object):
             if hook.initialized:
                 hook.disable_hook()
 
-    def get_configs(self, **filter_kwargs):
+    def get_configs(
+        self,
+        **filter_kwargs,
+    ) -> Sequence[BaseIntegrationConfig]:
         """Return configurations matching the given filters.
 
         By default, all enabled configurations will be returned for this
@@ -186,7 +215,11 @@ class Integration(object):
             enabled=True,
             **filter_kwargs)
 
-    def create_config(self, save=False, **kwargs):
+    def create_config(
+        self,
+        save: bool = False,
+        **kwargs,
+    ) -> BaseIntegrationConfig:
         """Create a configuration for this integration.
 
         This will create a brand new configuration for this integration,
