@@ -494,21 +494,23 @@
   *display: inline;
 }
 
-.icon(@name, @x, @y, @width, @height) {
-  .datagrid-icon-@{name} {
-    background-position: -@x -@y;
-    width: @width;
-    height: @height;
+& {
+  .djblets-datagrid-icon(@name, @x, @y, @width, @height) {
+    .datagrid-icon-@{name} {
+      background-position: -@x -@y;
+      width: @width;
+      height: @height;
+    }
   }
-}
 
-/*
- * NOTE: Keep these in the same order as found in the spritesheet.
- */
-.icon(edit, 1px, 1px, 18px, 14px);
-.icon(sort-asc-primary, 21px, 2px, 10px, 5px);
-.icon(sort-desc-primary, 21px, 9px, 10px, 5px);
-.icon(sort-asc-secondary, 33px, 2px, 10px, 5px);
-.icon(sort-desc-secondary, 33px, 9px, 10px, 5px);
-.icon(unsort, 45px, 2px, 8px, 8px);
-.icon(checkmark, 54px, -1px, 12px, 12px);
+  /*
+   * NOTE: Keep these in the same order as found in the spritesheet.
+   */
+  .djblets-datagrid-icon(edit, 1px, 1px, 18px, 14px);
+  .djblets-datagrid-icon(sort-asc-primary, 21px, 2px, 10px, 5px);
+  .djblets-datagrid-icon(sort-desc-primary, 21px, 9px, 10px, 5px);
+  .djblets-datagrid-icon(sort-asc-secondary, 33px, 2px, 10px, 5px);
+  .djblets-datagrid-icon(sort-desc-secondary, 33px, 9px, 10px, 5px);
+  .djblets-datagrid-icon(unsort, 45px, 2px, 8px, 8px);
+  .djblets-datagrid-icon(checkmark, 54px, -1px, 12px, 12px);
+}

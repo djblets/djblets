@@ -1,9 +1,19 @@
+"""Base support for defining a feature."""
+
+from __future__ import annotations
+
+from typing import Optional, TYPE_CHECKING
+
 from djblets.features.checkers import get_feature_checker
 from djblets.features.level import FeatureLevel
-from djblets.features.registry import get_features_registry
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrOrPromise
+else:
+    _StrOrPromise = str
 
 
-class Feature(object):
+class Feature:
     """A feature in a product that can dynamically be turned on/off.
 
     Feature subclasses are used to provide dynamic access to a given feature in
@@ -21,18 +31,21 @@ class Feature(object):
     """
 
     #: The unique ID/slug of the feature.
-    feature_id = None
+    feature_id: Optional[str] = None
 
     #: The name of the feature.
-    name = None
+    name: Optional[_StrOrPromise] = None
 
     #: A summary of the feature.
-    summary = None
+    summary: Optional[_StrOrPromise] = None
 
     #: Stability level of the feature.
-    level = FeatureLevel.EXPERIMENTAL
+    level: FeatureLevel = FeatureLevel.EXPERIMENTAL
 
-    def __init__(self, register=True):
+    def __init__(
+        self,
+        register: bool = True,
+    ) -> None:
         """Initialize the feature.
 
         Subclasses that wish to provide special initialization should instead
@@ -49,9 +62,12 @@ class Feature(object):
                 The feature ID on this class conflicts with another feature.
         """
         if register:
+            # Avoids a circular reference with registry.py.
+            from djblets.features.registry import get_features_registry
+
             get_features_registry().register(self)
 
-    def initialize(self):
+    def initialize(self) -> None:
         """Initialize the feature.
 
         Subclasses that wish to initialize feature logic within the class (such
@@ -63,7 +79,7 @@ class Feature(object):
         """
         pass
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Shut down the feature.
 
         Subclasses that wish to provide special shutdown logic within the class
@@ -75,7 +91,7 @@ class Feature(object):
         """
         pass
 
-    def is_enabled(self, **kwargs):
+    def is_enabled(self, **kwargs) -> bool:
         """Return whether the feature is enabled for the given requirements.
 
         This will return a boolean indicating if the feature is enabled.

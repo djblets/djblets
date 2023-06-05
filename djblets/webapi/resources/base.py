@@ -26,7 +26,6 @@ from djblets.util.http import (build_not_modified_from_response,
                                get_modified_since,
                                set_etag,
                                set_last_modified)
-from djblets.urls.patterns import never_cache_patterns
 from djblets.webapi.auth.backends import check_login
 from djblets.webapi.resources.registry import (get_resource_for_object,
                                                _class_to_resources,
@@ -716,9 +715,11 @@ class WebAPIResource(object):
         objects. Projects should call this for top-level resources and
         return them in the ``urls.py`` files.
         """
-        urlpatterns = never_cache_patterns(
-            path('', self, name=self._build_named_url(self.name_plural)),
-        )
+        urlpatterns = [
+            path('',
+                 self.__call__,
+                 name=self._build_named_url(self.name_plural)),
+        ]
 
         for resource in self.list_child_resources:
             resource._parent_resource = self
@@ -735,10 +736,11 @@ class WebAPIResource(object):
             elif self.singleton:
                 base_regex = r'^'
 
-            urlpatterns += never_cache_patterns(
-                re_path(base_regex + r'$', self,
+            urlpatterns += [
+                re_path(base_regex + r'$',
+                        self.__call__,
                         name=self._build_named_url(self.name))
-            )
+            ]
 
             for resource in self.item_child_resources:
                 resource._parent_resource = self

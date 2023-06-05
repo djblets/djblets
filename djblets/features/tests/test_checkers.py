@@ -13,21 +13,21 @@ from djblets.testing.testcases import TestCase
 
 
 class BadFeatureChecker(BaseFeatureChecker):
-    def __init__(self):
+    def __init__(self) -> None:
         raise Exception('oh no what even happened')
 
 
 class FeatureCheckerTests(TestCase):
     """Unit tests for djblets.features.checkers."""
 
-    def tearDown(self):
-        super(FeatureCheckerTests, self).tearDown()
+    def tearDown(self) -> None:
+        super().tearDown()
 
         set_feature_checker(None)
 
         delattr(settings, 'FEATURE_CHECKER')
 
-    def test_get_feature_checker(self):
+    def test_get_feature_checker(self) -> None:
         """Testing get_feature_checker"""
         set_feature_checker(None)
 
@@ -37,7 +37,7 @@ class FeatureCheckerTests(TestCase):
         self.assertEqual(get_feature_checker().__class__,
                          SiteConfigFeatureChecker)
 
-    def test_get_feature_checker_with_invalid_path(self):
+    def test_get_feature_checker_with_invalid_path(self) -> None:
         """Testing get_feature_checker with invalid feature checker path"""
         set_feature_checker(None)
 
@@ -47,7 +47,7 @@ class FeatureCheckerTests(TestCase):
         with self.assertRaises(ImproperlyConfigured):
             get_feature_checker()
 
-    def test_get_feature_checker_with_init_error(self):
+    def test_get_feature_checker_with_init_error(self) -> None:
         """Testing get_feature_checker with initialization error"""
         set_feature_checker(None)
 
@@ -61,14 +61,14 @@ class FeatureCheckerTests(TestCase):
 class BaseFeatureCheckerTests(TestCase):
     """Unit tests for djblets.features.checkers.BaseFeatureChecker."""
 
-    def setUp(self):
-        super(BaseFeatureCheckerTests, self).setUp()
+    def setUp(self) -> None:
+        super().setUp()
 
         self.checker = BaseFeatureChecker()
         self._old_debug = settings.DEBUG
 
-    def tearDown(self):
-        super(BaseFeatureCheckerTests, self).tearDown()
+    def tearDown(self) -> None:
+        super().tearDown()
 
         self.checker = BaseFeatureChecker()
         settings.DEBUG = self._old_debug
@@ -78,17 +78,17 @@ class BaseFeatureCheckerTests(TestCase):
         except AttributeError:
             pass
 
-    def test_min_enabled_level_with_debug_true(self):
+    def test_min_enabled_level_with_debug_true(self) -> None:
         """Testing BaseFeatureChecker.min_enabled_level with DEBUG=True"""
         settings.DEBUG = True
         self.assertEqual(self.checker.min_enabled_level, FeatureLevel.BETA)
 
-    def test_min_enabled_level_with_debug_false(self):
+    def test_min_enabled_level_with_debug_false(self) -> None:
         """Testing BaseFeatureChecker.min_enabled_level with DEBUG=False"""
         settings.DEBUG = False
         self.assertEqual(self.checker.min_enabled_level, FeatureLevel.STABLE)
 
-    def test_min_enabled_level_with_setting(self):
+    def test_min_enabled_level_with_setting(self) -> None:
         """Testing BaseFeatureChecker.min_enabled_level with
         MIN_ENABLED_FEATURE_LEVEL setting
         """
@@ -99,20 +99,20 @@ class BaseFeatureCheckerTests(TestCase):
 class SettingsFeatureCheckerTests(TestCase):
     """Unit tests for djblets.features.checkers.SettingsFeatureChecker."""
 
-    def setUp(self):
-        super(SettingsFeatureCheckerTests, self).setUp()
+    def setUp(self) -> None:
+        super().setUp()
 
         self.checker = SettingsFeatureChecker()
 
-    def tearDown(self):
-        super(SettingsFeatureCheckerTests, self).tearDown()
+    def tearDown(self) -> None:
+        super().tearDown()
 
         try:
             delattr(settings, 'ENABLED_FEATURES')
         except AttributeError:
             pass
 
-    def test_is_feature_enabled_with_enabled(self):
+    def test_is_feature_enabled_with_enabled(self) -> None:
         """Testing SettingsFeatureChecker.is_feature_enabled with feature
         enabled
         """
@@ -122,7 +122,7 @@ class SettingsFeatureCheckerTests(TestCase):
 
         self.assertTrue(self.checker.is_feature_enabled('my-feature'))
 
-    def test_is_feature_enabled_with_disabled(self):
+    def test_is_feature_enabled_with_disabled(self) -> None:
         """Testing SettingsFeatureChecker.is_feature_enabled with feature
         disabled
         """
@@ -132,7 +132,7 @@ class SettingsFeatureCheckerTests(TestCase):
 
         self.assertFalse(self.checker.is_feature_enabled('my-feature'))
 
-    def test_is_feature_enabled_with_unset(self):
+    def test_is_feature_enabled_with_unset(self) -> None:
         """Testing SettingsFeatureChecker.is_feature_enabled with feature state
         not set
         """
@@ -142,22 +142,22 @@ class SettingsFeatureCheckerTests(TestCase):
 class SiteConfigFeatureCheckerTests(TestCase):
     """Unit tests for djblets.features.checkers.SiteConfigFeatureChecker."""
 
-    def setUp(self):
-        super(SiteConfigFeatureCheckerTests, self).setUp()
+    def setUp(self) -> None:
+        super().setUp()
 
         self.checker = SiteConfigFeatureChecker()
         self.siteconfig = SiteConfiguration.objects.create(
             site=Site.objects.get_current())
 
-    def tearDown(self):
-        super(SiteConfigFeatureCheckerTests, self).tearDown()
+    def tearDown(self) -> None:
+        super().tearDown()
 
         try:
             delattr(settings, 'ENABLED_FEATURES')
         except AttributeError:
             pass
 
-    def test_is_feature_enabled_with_siteconfig_enabled(self):
+    def test_is_feature_enabled_with_siteconfig_enabled(self) -> None:
         """Testing SiteConfigFeatureChecker.is_feature_enabled with feature
         enabled in SiteConfiguration
         """
@@ -172,7 +172,7 @@ class SiteConfigFeatureCheckerTests(TestCase):
 
         self.assertTrue(self.checker.is_feature_enabled('my-feature'))
 
-    def test_is_feature_enabled_with_siteconfig_disabled(self):
+    def test_is_feature_enabled_with_siteconfig_disabled(self) -> None:
         """Testing SiteConfigFeatureChecker.is_feature_enabled with feature
         disabled in SiteConfiguration
         """
@@ -187,7 +187,7 @@ class SiteConfigFeatureCheckerTests(TestCase):
 
         self.assertFalse(self.checker.is_feature_enabled('my-feature'))
 
-    def test_is_feature_enabled_with_settings_enabled(self):
+    def test_is_feature_enabled_with_settings_enabled(self) -> None:
         """Testing SiteConfigFeatureChecker.is_feature_enabled with feature
         enabled in Settings
         """
@@ -197,7 +197,7 @@ class SiteConfigFeatureCheckerTests(TestCase):
 
         self.assertTrue(self.checker.is_feature_enabled('my-feature'))
 
-    def test_is_feature_enabled_with_settings_disabled(self):
+    def test_is_feature_enabled_with_settings_disabled(self) -> None:
         """Testing SiteConfigFeatureChecker.is_feature_enabled with feature
         disabled in Settings
         """
@@ -207,7 +207,7 @@ class SiteConfigFeatureCheckerTests(TestCase):
 
         self.assertFalse(self.checker.is_feature_enabled('my-feature'))
 
-    def test_is_feature_enabled_with_unset(self):
+    def test_is_feature_enabled_with_unset(self) -> None:
         """Testing SiteConfigFeatureChecker.is_feature_enabled with feature
         state not set
         """

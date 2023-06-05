@@ -12,7 +12,6 @@ from django.utils.translation import gettext_lazy as _
 from django.urls import path
 from typing_extensions import TypeAlias
 
-from djblets.urls.patterns import never_cache_patterns
 from djblets.webapi.errors import DOES_NOT_EXIST
 from djblets.webapi.resources.base import WebAPIResource
 from djblets.webapi.responses import WebAPIResponseError
@@ -347,7 +346,7 @@ class RootResource(WebAPIResource):
         """Yield all URI endpoints associated with a specified resource.
 
         Args:
-            resource djblets.webapi.resources.WebAPIResource:
+            resource (djblets.webapi.resources.WebAPIResource):
                 The starting point for searching the resource tree.
 
             list_href (unicode):
@@ -404,8 +403,9 @@ class RootResource(WebAPIResource):
         generic catch-all 404 handler which returns API errors instead of HTML.
         """
         urlpatterns = super(RootResource, self).get_url_patterns()
-        urlpatterns += never_cache_patterns(
-            path('<str>', self.api_404_handler))
+        urlpatterns += [
+            path('<str>', self.api_404_handler),
+        ]
 
         return urlpatterns
 

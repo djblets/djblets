@@ -1,15 +1,23 @@
 """Registry for managing feature registrations."""
 
+from __future__ import annotations
+
+from typing import Optional
+
 from django.utils.translation import gettext_lazy as _
 
 from djblets.features.errors import FeatureConflictError, FeatureNotFoundError
+from djblets.features.feature import Feature
 from djblets.registries.registry import (ALREADY_REGISTERED,
-                                         ATTRIBUTE_REGISTERED, DEFAULT_ERRORS,
-                                         RegistrationError, Registry,
+                                         ATTRIBUTE_REGISTERED,
+                                         DEFAULT_ERRORS,
+                                         RegistrationError,
+                                         Registry,
+                                         RegistryErrorsDict,
                                          UNREGISTER)
 
 
-FEATURE_DEFAULT_ERRORS = DEFAULT_ERRORS.copy()
+FEATURE_DEFAULT_ERRORS: RegistryErrorsDict = DEFAULT_ERRORS.copy()
 FEATURE_DEFAULT_ERRORS.update({
     ALREADY_REGISTERED: _(
         'Could not register feature %(item)s: This feature is already '
@@ -26,10 +34,10 @@ FEATURE_DEFAULT_ERRORS.update({
 })
 
 
-_registry = None
+_registry: Optional[FeaturesRegistry] = None
 
 
-class FeaturesRegistry(Registry):
+class FeaturesRegistry(Registry[Feature]):
     """A registry for instantiated features.
 
     This manages all instances of :py:class:`~djblets.features.feature.Feature`
@@ -42,7 +50,10 @@ class FeaturesRegistry(Registry):
     already_registered_error_class = FeatureConflictError
     lookup_error_class = FeatureNotFoundError
 
-    def register(self, feature):
+    def register(
+        self,
+        feature: Feature
+    ) -> None:
         """Register a feature instance.
 
         The feature's :py:meth:`~djblets.features.feature.Feature.initialize`
@@ -64,9 +75,12 @@ class FeaturesRegistry(Registry):
 
         feature.initialize()
 
-        super(FeaturesRegistry, self).register(feature)
+        super().register(feature)
 
-    def unregister(self, feature):
+    def unregister(
+        self,
+        feature: Feature,
+    ) -> None:
         """Unregister a feature instance.
 
         The feature's :py:meth:`~djblets.features.feature.Feature.shutdown`
@@ -80,15 +94,18 @@ class FeaturesRegistry(Registry):
             djblets.features.errors.FeatureNotFoundError:
                 Raised if the feature was not already registered.
         """
-        super(FeaturesRegistry, self).unregister(feature)
+        super().unregister(feature)
 
         feature.shutdown()
 
-    def get_feature(self, feature_id):
+    def get_feature(
+        self,
+        feature_id: str,
+    ) -> Optional[Feature]:
         """Return the feature instance with the given ID.
 
         Args:
-            feature_id (unicode):
+            feature_id (str):
                 The ID of the feature to return.
 
         Returns:
@@ -101,7 +118,7 @@ class FeaturesRegistry(Registry):
             return None
 
 
-def get_features_registry():
+def get_features_registry() -> FeaturesRegistry:
     """Return the global features registry.
 
     The first time this is called, a :py:class:`FeaturesRegistry` will be

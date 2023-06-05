@@ -1,10 +1,18 @@
 """Template tags for working with features."""
 
+from __future__ import annotations
+
+from typing import Dict, TYPE_CHECKING
+
 from django import template
 from django.template.base import (Node, NodeList, TemplateSyntaxError,
                                   token_kwargs)
 
 from djblets.features.registry import get_features_registry
+
+if TYPE_CHECKING:
+    from django.template.base import (Context, FilterExpression, Parser,
+                                      Token)
 
 
 register = template.Library()
@@ -27,8 +35,13 @@ class IfFeatureNode(Node):
 
     child_nodelists = ('nodelist_true', 'nodelist_false')
 
-    def __init__(self, nodelist_enabled, nodelist_disabled, feature_id,
-                 extra_kwargs):
+    def __init__(
+        self,
+        nodelist_enabled: NodeList,
+        nodelist_disabled: NodeList,
+        feature_id: FilterExpression,
+        extra_kwargs: Dict
+    ) -> None:
         """Initialize the template node.
 
         Args:
@@ -38,8 +51,9 @@ class IfFeatureNode(Node):
             nodelist_disabled (django.template.NodeList):
                 The nodelist to render if the feature is disabled.
 
-            feature_id (unicode):
-                The ID of the feature to check.
+            feature_id (django.template.FilterExpression):
+                The template filter expression containing the ID of the
+                feature to check.
 
             extra_kwargs (dict):
                 Extra keyword arguments to pass to
@@ -52,18 +66,21 @@ class IfFeatureNode(Node):
         self.feature_id = feature_id
         self.extra_kwargs = extra_kwargs
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a representation of the node.
 
         This is mostly used for debugging output.
 
         Returns:
-            unicode:
+            str:
             A representation of this node.
         """
         return '<IfFeatureNode for %s>' % self.feature_id
 
-    def render(self, context):
+    def render(
+        self,
+        context: Context,
+    ) -> str:
         """Render the node.
 
         This will determine if the feature is enabled or disabled, and render
@@ -97,7 +114,11 @@ class IfFeatureNode(Node):
             return self.nodelist_disabled.render(context)
 
 
-def _if_feature(parser, token, enabled_first):
+def _if_feature(
+    parser: Parser,
+    token: Token,
+    enabled_first: bool,
+) -> IfFeatureNode:
     """Common implementation for feature-based if statements.
 
     This constructs a :py:class:`IfFeatureNode` for the consuming template tag,
@@ -155,7 +176,10 @@ def _if_feature(parser, token, enabled_first):
 
 
 @register.tag
-def if_feature_enabled(parser, token):
+def if_feature_enabled(
+    parser: Parser,
+    token: Token,
+) -> IfFeatureNode:
     """Render content only if a feature is enabled.
 
     This works mostly like a standard ``{% if %}`` tag, checking if the
@@ -193,7 +217,10 @@ def if_feature_enabled(parser, token):
 
 
 @register.tag
-def if_feature_disabled(parser, token):
+def if_feature_disabled(
+    parser: Parser,
+    token: Token,
+) -> IfFeatureNode:
     """Render content only if a feature is disabled.
 
     This works mostly like a standard ``{% if %}`` tag, checking if the
