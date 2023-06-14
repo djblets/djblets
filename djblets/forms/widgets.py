@@ -4,8 +4,11 @@ This module contains widgets that correspond to fields provided in
 :py:mod:`djblets.forms.fields`.
 """
 
+from __future__ import annotations
+
 import copy
 from contextlib import contextmanager
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.forms import widgets
 from django.forms.widgets import HiddenInput
@@ -16,6 +19,139 @@ from djblets.conditions import ConditionSet
 from djblets.conditions.errors import (ConditionChoiceNotFoundError,
                                        ConditionOperatorNotFoundError)
 from djblets.deprecation import RemovedInDjblets40Warning
+
+
+class AmountSelectorWidget(widgets.MultiWidget):
+    """A widget for editing an amount and its unit of measurement.
+
+    Version Added:
+        3.3
+    """
+
+    #: The name of the template used to render the widget.
+    template_name = 'djblets_forms/amount_selector_widget.html'
+
+    def __init__(
+        self,
+        unit_choices: List[Tuple[Optional[int], str]],
+        number_attrs: Optional[Dict[str, Any]] = None,
+        select_attrs: Optional[Dict[str, Any]] = None,
+        attrs: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Initialize the widget.
+
+        Args:
+            unit_choices (list of tuple):
+                The unit choices for the field. This should be a list of
+                tuples with the following entries:
+                    Tuple:
+                        0 (int or None):
+                            The conversion factor of the unit to the base unit.
+                            The base unit must always have this value set to 1.
+                            For the rest of the units, this will be the number
+                            that you need to multiply a value in the base unit
+                            by in order to convert it to the given unit.
+
+                        1 (str):
+                            The name for the unit.
+
+                The list of unit choices should start with the base unit
+                and have the rest of the units follow in increasing order
+                of magnitude. You may set a conversion factor of ``None`` for
+                a unit choice, which will allow you to save the value for this
+                widget as ``None`` instead of as an integer amount. The
+                ``None`` unit choice should be placed at the end of the list.
+
+            number_attrs (dict, optional):
+                Additional HTML element attributes for the NumberInput widget.
+
+            select_attrs (dict, optional):
+                Additional HTML element attributes for the Select widget.
+
+            attrs (dict, optional):
+                Additional HTML element attributes for the MultiWidget parent.
+        """
+        self.widgets: Tuple[widgets.NumberInput, widgets.Select] = (
+            widgets.NumberInput(attrs=number_attrs),
+            widgets.Select(attrs=select_attrs, choices=unit_choices),
+        )
+        super().__init__(self.widgets, attrs)
+
+    def decompress(
+        self,
+        value: Optional[int],
+    ) -> Tuple[Optional[int], Optional[int]]:
+        """Break up the value into an amount and unit tuple.
+
+        This assumes that the value is stored in the base unit, and will
+        find the most appropriate unit to display and convert the amount
+        to that unit. The most appropriate unit is the largest unit where
+        the amount can be converted to a whole number.
+
+        Args:
+            value (int or None):
+                The stored value.
+
+        Returns:
+            Tuple:
+            A tuple of:
+                0 (int or None):
+                    The amount in the unit.
+
+                1 (int or None):
+                    The integer representation of the unit.
+        """
+        if value is None:
+            return None, None
+
+        widget_choices = self.widgets[1].choices
+        unit_multiplier = 1
+
+        for choice in reversed(widget_choices):
+            unit_multiplier = choice[0]
+
+            if unit_multiplier is None:
+                continue
+
+            assert isinstance(unit_multiplier, int)
+
+            if (value % unit_multiplier == 0):
+                break
+
+        return value // unit_multiplier, unit_multiplier
+
+    def value_from_datadict(
+        self,
+        data: Dict[str, Any],
+        files: Dict[str, Any],
+        name: str,
+    ) -> Optional[int]:
+        """Return a value for the field from a submitted form.
+
+        This serializes the data POSTed for the form into an integer that the
+        field can use and validate. This will convert the integer value to the
+        base unit.
+
+         Args:
+            data (dict):
+                The dictionary containing form data.
+
+            files (dict):
+                The dictionary containing uploaded files.
+
+            name (str):
+                The field name for the value to load.
+
+        Returns:
+            int or None:
+            The value to save in the field.
+        """
+        value, unit_multiplier = super().value_from_datadict(data, files, name)
+
+        if unit_multiplier == '':
+            return None
+        else:
+            return int(value) * int(unit_multiplier)
 
 
 class ConditionsWidget(widgets.Widget):
