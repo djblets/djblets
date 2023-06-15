@@ -28,7 +28,7 @@ class IntegrationTests(IntegrationsTestCase):
     """Unit tests for djblets.integrations.integration.Integration."""
 
     def setUp(self) -> None:
-        super(IntegrationTests, self).setUp()
+        super().setUp()
 
         self.manager = IntegrationManager(IntegrationConfig)
         self.integration = \

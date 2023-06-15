@@ -1,10 +1,17 @@
 """Middleware for working with integrations."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.deprecation import MiddlewareMixin
 
 from djblets.integrations.manager import get_integration_managers
+
+if TYPE_CHECKING:
+    from django.http import HttpRequest
 
 
 class IntegrationsMiddleware(MiddlewareMixin):
@@ -17,18 +24,21 @@ class IntegrationsMiddleware(MiddlewareMixin):
     other processes when a configuration is added, edited, or removed.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         if 'djblets.integrations' not in settings.INSTALLED_APPS:
             raise ImproperlyConfigured(
                 'IntegrationsMiddleware requires djblets.integrations to be '
                 'listed in settings.INSTALLED_APPS.'
             )
 
-        super(IntegrationsMiddleware, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.check_expiration = not getattr(settings, 'RUNNING_TEST', False)
 
-    def process_request(self, request):
+    def process_request(
+        self,
+        request: HttpRequest,
+    ) -> None:
         """Process an HTTP request.
 
         This will run through all the integration managers, checking if any

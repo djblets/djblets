@@ -1,10 +1,16 @@
 """Extension hooks for registering integrations."""
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING, Type
 
 from djblets.extensions.hooks import ExtensionHook
 from djblets.integrations.errors import IntegrationError
 from djblets.integrations.mixins import NeedsIntegrationManagerMixin
+
+if TYPE_CHECKING:
+    from djblets.integrations.integration import Integration
 
 
 class BaseIntegrationHook(NeedsIntegrationManagerMixin, ExtensionHook):
@@ -20,7 +26,17 @@ class BaseIntegrationHook(NeedsIntegrationManagerMixin, ExtensionHook):
     of :py:meth:`get_integration_manager`.
     """
 
-    def initialize(self, integration_cls):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The integration class being managed by the hook.
+    integration_cls: Type[Integration]
+
+    def initialize(
+        self,
+        integration_cls: Type[Integration],
+    ) -> None:
         """Initialize the hook.
 
         The provided integration will be registered with the integration
@@ -44,7 +60,7 @@ class BaseIntegrationHook(NeedsIntegrationManagerMixin, ExtensionHook):
                               self.integration_cls.__name__,
                               e)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Shut down the hook.
 
         The integration registered in this hook will be unregistered.

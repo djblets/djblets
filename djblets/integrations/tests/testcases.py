@@ -1,3 +1,9 @@
+"""Base testcases for integrations unit tests."""
+
+from __future__ import annotations
+
+from typing import List
+
 from django.conf import settings
 from django.core.cache import cache
 
@@ -10,8 +16,10 @@ class IntegrationsTestCase(TestModelsLoaderMixin, TestCase):
 
     tests_app = 'djblets.integrations.tests'
 
-    def setUp(self):
-        super(IntegrationsTestCase, self).setUp()
+    old_middleware_classes: List[str]
+
+    def setUp(self) -> None:
+        super().setUp()
 
         self.old_middleware_classes = list(settings.MIDDLEWARE)
         settings.MIDDLEWARE = self.old_middleware_classes + [
@@ -20,9 +28,9 @@ class IntegrationsTestCase(TestModelsLoaderMixin, TestCase):
 
         cache.clear()
 
-    def tearDown(self):
-        super(IntegrationsTestCase, self).tearDown()
-
+    def tearDown(self) -> None:
         settings.MIDDLEWARE = self.old_middleware_classes
 
         shutdown_integration_managers()
+
+        super().tearDown()

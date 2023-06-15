@@ -33,7 +33,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
     """Unit tests for djblets.integrations.manager.IntegrationManager."""
 
     def setUp(self) -> None:
-        super(IntegrationManagerTests, self).setUp()
+        super().setUp()
 
         # Reset integration IDs, so we can check them appropriately in tests.
         DummyIntegration1.integration_id = None
