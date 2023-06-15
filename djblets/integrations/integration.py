@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Dict, Optional, Sequence, Set, TYPE_CHECKING, Type
 
+from typing_extensions import TypeAlias
+
 from djblets.integrations.forms import IntegrationConfigForm
 
 if TYPE_CHECKING:
@@ -254,3 +256,10 @@ class Integration(object):
             config.save()
 
         return config
+
+
+#: A type alias for an integration class.
+#:
+#: Version Added:
+#:     3.3
+IntegrationClassType: TypeAlias = Type[Integration]

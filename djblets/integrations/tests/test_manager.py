@@ -15,31 +15,31 @@ from djblets.integrations.tests.testcases import IntegrationsTestCase
 
 
 class BrokenIntegration(Integration):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         assert False
 
 
 class DummyIntegration1(Integration):
-    def initialize(self):
+    def initialize(self) -> None:
         pass
 
 
 class DummyIntegration2(Integration):
-    def initialize(self):
+    def initialize(self) -> None:
         pass
 
 
 class IntegrationManagerTests(IntegrationsTestCase):
     """Unit tests for djblets.integrations.manager.IntegrationManager."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super(IntegrationManagerTests, self).setUp()
 
         # Reset integration IDs, so we can check them appropriately in tests.
         DummyIntegration1.integration_id = None
         DummyIntegration2.integration_id = None
 
-    def test_init_without_app(self):
+    def test_init_without_app(self) -> None:
         """Testing IntegrationManager initialization without INSTALLED_APPS"""
         msg = ('IntegrationManager requires djblets.integrations to be '
                'listed in settings.INSTALLED_APPS.')
@@ -51,7 +51,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
             with self.assertRaisesMessage(ImproperlyConfigured, msg):
                 IntegrationManager(IntegrationConfig)
 
-    def test_init_without_middleware(self):
+    def test_init_without_middleware(self) -> None:
         """Testing IntegrationManager initialization without
         MIDDLEWARE
         """
@@ -66,7 +66,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
             with self.assertRaisesMessage(ImproperlyConfigured, msg):
                 IntegrationManager(IntegrationConfig)
 
-    def test_shutdown(self):
+    def test_shutdown(self) -> None:
         """Testing IntegrationManager.shutdown"""
         manager = IntegrationManager(IntegrationConfig)
         instance = manager.register_integration_class(DummyIntegration1)
@@ -84,7 +84,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
         self.assertEqual(manager._integration_instances, {})
         self.assertFalse(manager.is_expired())
 
-    def test_get_integration_classes(self):
+    def test_get_integration_classes(self) -> None:
         """Testing IntegrationManager.get_integration_classes"""
         manager = IntegrationManager(IntegrationConfig)
         manager.register_integration_class(DummyIntegration1)
@@ -93,11 +93,15 @@ class IntegrationManagerTests(IntegrationsTestCase):
         classes = manager.get_integration_classes()
         self.assertEqual(set(classes), {DummyIntegration1, DummyIntegration2})
 
-    def test_get_integration(self):
+    def test_get_integration(self) -> None:
         """Testing IntegrationManager.get_integration"""
         manager = IntegrationManager(IntegrationConfig)
         manager.register_integration_class(DummyIntegration1)
         manager.register_integration_class(DummyIntegration2)
+
+        # Satisfy the type checker.
+        assert DummyIntegration1.integration_id
+        assert DummyIntegration2.integration_id
 
         integration = manager.get_integration(DummyIntegration1.integration_id)
         self.assertEqual(integration.__class__, DummyIntegration1)
@@ -105,14 +109,14 @@ class IntegrationManagerTests(IntegrationsTestCase):
         integration = manager.get_integration(DummyIntegration2.integration_id)
         self.assertEqual(integration.__class__, DummyIntegration2)
 
-    def test_get_integration_with_invalid_id(self):
+    def test_get_integration_with_invalid_id(self) -> None:
         """Testing IntegrationManager.get_integration with invalid ID"""
         manager = IntegrationManager(IntegrationConfig)
 
         with self.assertRaises(IntegrationNotRegisteredError):
             manager.get_integration('foobar')
 
-    def test_get_integration_configs(self):
+    def test_get_integration_configs(self) -> None:
         """Testing IntegrationManager.get_integration_configs with all
         configurations
         """
@@ -129,7 +133,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
 
         self.assertEqual(set(configs), {config1, config2, config3})
 
-    def test_get_integration_configs_with_class(self):
+    def test_get_integration_configs_with_class(self) -> None:
         """Testing IntegrationManager.get_integration_configs with instance
         class
         """
@@ -142,11 +146,11 @@ class IntegrationManagerTests(IntegrationsTestCase):
         integration2.create_config(enabled=True, save=True)
 
         with self.assertNumQueries(1):
-            configs = manager.get_integration_configs(integration1)
+            configs = manager.get_integration_configs(DummyIntegration1)
 
         self.assertEqual(set(configs), {config1, config2})
 
-    def test_get_integration_configs_with_filter(self):
+    def test_get_integration_configs_with_filter(self) -> None:
         """Testing IntegrationManager.get_integration_configs with filter"""
         manager = IntegrationManager(IntegrationConfig)
         integration1 = manager.register_integration_class(DummyIntegration1)
@@ -157,12 +161,12 @@ class IntegrationManagerTests(IntegrationsTestCase):
         integration2.create_config(enabled=True, save=True)
 
         with self.assertNumQueries(1):
-            configs = manager.get_integration_configs(integration1,
+            configs = manager.get_integration_configs(DummyIntegration1,
                                                       enabled=False)
 
         self.assertEqual(set(configs), {config1})
 
-    def test_get_integration_configs_caches(self):
+    def test_get_integration_configs_caches(self) -> None:
         """Testing IntegrationManager.get_integration_configs caches results"""
         manager = IntegrationManager(IntegrationConfig)
         integration1 = manager.register_integration_class(DummyIntegration1)
@@ -178,7 +182,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
 
         self.assertEqual(set(configs), {config1, config2})
 
-    def test_clear_configs_cache(self):
+    def test_clear_configs_cache(self) -> None:
         """Testing IntegrationManager.clear_configs_cache"""
         manager = IntegrationManager(IntegrationConfig)
 
@@ -193,7 +197,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
         with self.assertNumQueries(1):
             manager.get_integration_configs()
 
-    def test_clear_configs_cache_for_class(self):
+    def test_clear_configs_cache_for_class(self) -> None:
         """Testing IntegrationManager.clear_configs_cache for class"""
         manager = IntegrationManager(IntegrationConfig)
 
@@ -208,7 +212,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
         with self.assertNumQueries(1):
             manager.get_integration_configs(DummyIntegration1)
 
-    def test_clear_all_configs_cache(self):
+    def test_clear_all_configs_cache(self) -> None:
         """Testing IntegrationManager.clear_all_configs_cache"""
         manager = IntegrationManager(IntegrationConfig)
 
@@ -223,20 +227,20 @@ class IntegrationManagerTests(IntegrationsTestCase):
         with self.assertNumQueries(1):
             manager.get_integration_configs(DummyIntegration1)
 
-    def test_is_expired_new_instance(self):
+    def test_is_expired_new_instance(self) -> None:
         """Testing IntegrationManager.is_expired on a new instance"""
         manager = IntegrationManager(IntegrationConfig)
 
         self.assertFalse(manager.is_expired())
 
-    def test_is_expired_after_registration(self):
+    def test_is_expired_after_registration(self) -> None:
         """Testing IntegrationManager.is_expired after new registration"""
         manager = IntegrationManager(IntegrationConfig)
         manager.register_integration_class(DummyIntegration1)
 
         self.assertTrue(manager.is_expired())
 
-    def test_is_expired_after_config_saved(self):
+    def test_is_expired_after_config_saved(self) -> None:
         """Testing IntegrationManager.is_expired after config saved"""
         manager = IntegrationManager(IntegrationConfig)
 
@@ -244,7 +248,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
         post_save.send(sender=IntegrationConfig)
         self.assertTrue(manager.is_expired())
 
-    def test_is_expired_after_config_deleted(self):
+    def test_is_expired_after_config_deleted(self) -> None:
         """Testing IntegrationManager.is_expired after config deleted"""
         manager = IntegrationManager(IntegrationConfig)
 
@@ -252,7 +256,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
         post_delete.send(sender=IntegrationConfig)
         self.assertTrue(manager.is_expired())
 
-    def test_is_expired_after_other_process_updates(self):
+    def test_is_expired_after_other_process_updates(self) -> None:
         """Testing IntegrationManager.is_expired after another process updates
         the configuration state
         """
@@ -265,7 +269,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
 
         self.assertTrue(manager.is_expired())
 
-    def test_check_expired_when_expired(self):
+    def test_check_expired_when_expired(self) -> None:
         """Testing IntegrationManager.check_expired when expired"""
         manager = IntegrationManager(IntegrationConfig)
 
@@ -293,7 +297,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
         self.assertFalse(integration2.enabled)
         self.assertEqual(manager._integration_configs, {})
 
-    def test_check_expired_when_not_expired(self):
+    def test_check_expired_when_not_expired(self) -> None:
         """Testing IntegrationManager.check_expired when not expired"""
         manager = IntegrationManager(IntegrationConfig)
 
@@ -319,7 +323,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
         self.assertFalse(integration.enabled)
         self.assertNotEqual(manager._integration_configs, {})
 
-    def test_register_integration_class(self):
+    def test_register_integration_class(self) -> None:
         """Testing IntegrationManager.register_integration_class"""
         manager = IntegrationManager(IntegrationConfig)
 
@@ -327,18 +331,20 @@ class IntegrationManagerTests(IntegrationsTestCase):
         self.assertEqual(integration.__class__, DummyIntegration1)
 
         integration_id = DummyIntegration1.integration_id
+        assert integration_id
+
         self.assertEqual(
             integration_id,
             'djblets.integrations.tests.test_manager.DummyIntegration1')
 
         self.assertIn(integration_id, manager._integration_classes)
-        self.assertEqual(manager._integration_classes[integration_id],
-                         DummyIntegration1)
+        self.assertIs(manager._integration_classes[integration_id],
+                      DummyIntegration1)
         self.assertIn(integration_id, manager._integration_instances)
-        self.assertEqual(manager._integration_instances[integration_id],
-                         integration)
+        self.assertIs(manager._integration_instances[integration_id],
+                      integration)
 
-    def test_register_integration_class_with_already_registered(self):
+    def test_register_integration_class_with_already_registered(self) -> None:
         """Testing IntegrationManager.register_integration_class with
         already registered class
         """
@@ -348,7 +354,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
         with self.assertRaises(IntegrationAlreadyRegisteredError):
             manager.register_integration_class(DummyIntegration1)
 
-    def test_register_integration_class_with_construct_error(self):
+    def test_register_integration_class_with_construct_error(self) -> None:
         """Testing IntegrationManager.register_integration_class with
         construction error
         """
@@ -357,7 +363,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
         with self.assertRaises(IntegrationRegistrationError):
             manager.register_integration_class(BrokenIntegration)
 
-    def test_unregister_integration_class(self):
+    def test_unregister_integration_class(self) -> None:
         """Testing IntegrationManager.unregister_integration_class"""
         manager = IntegrationManager(IntegrationConfig)
         manager.register_integration_class(DummyIntegration1)
@@ -368,7 +374,9 @@ class IntegrationManagerTests(IntegrationsTestCase):
         self.assertNotIn(integration_id, manager._integration_classes)
         self.assertNotIn(integration_id, manager._integration_instances)
 
-    def test_unregister_integration_class_with_enabled_integration(self):
+    def test_unregister_integration_class_with_enabled_integration(
+        self,
+    ) -> None:
         """Testing IntegrationManager.unregister_integration_class with
         enabled integration
         """
@@ -384,7 +392,7 @@ class IntegrationManagerTests(IntegrationsTestCase):
         self.assertNotIn(integration_id, manager._integration_classes)
         self.assertNotIn(integration_id, manager._integration_instances)
 
-    def test_unregister_integration_class_with_unregistered(self):
+    def test_unregister_integration_class_with_unregistered(self) -> None:
         """Testing IntegrationManager.unregister_integration_class with
         unregistered integration
         """
@@ -393,14 +401,14 @@ class IntegrationManagerTests(IntegrationsTestCase):
         with self.assertRaises(IntegrationNotRegisteredError):
             manager.unregister_integration_class(DummyIntegration1)
 
-    def test_get_integration_managers(self):
+    def test_get_integration_managers(self) -> None:
         """Testing get_integration_managers"""
         manager1 = IntegrationManager(IntegrationConfig)
         manager2 = IntegrationManager(IntegrationConfig)
 
         self.assertEqual(set(get_integration_managers()), {manager1, manager2})
 
-    def test_shutdown_integration_managers(self):
+    def test_shutdown_integration_managers(self) -> None:
         """Testing shutdown_integration_managers"""
         manager1 = IntegrationManager(IntegrationConfig)
         self.assertTrue(manager1.enabled)
