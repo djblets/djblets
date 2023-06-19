@@ -8,9 +8,7 @@ from djblets.features.checkers import get_feature_checker
 from djblets.features.level import FeatureLevel
 
 if TYPE_CHECKING:
-    from django.utils.functional import _StrOrPromise
-else:
-    _StrOrPromise = str
+    from djblets.util.typing import StrOrPromise
 
 
 class Feature:
@@ -34,10 +32,10 @@ class Feature:
     feature_id: Optional[str] = None
 
     #: The name of the feature.
-    name: Optional[_StrOrPromise] = None
+    name: Optional[StrOrPromise] = None
 
     #: A summary of the feature.
-    summary: Optional[_StrOrPromise] = None
+    summary: Optional[StrOrPromise] = None
 
     #: Stability level of the feature.
     level: FeatureLevel = FeatureLevel.EXPERIMENTAL

@@ -18,11 +18,7 @@ from djblets.registries.errors import (AlreadyRegisteredError,
                                        ItemLookupError,
                                        RegistrationError)
 from djblets.registries.signals import registry_populating
-
-if TYPE_CHECKING:
-    from django.utils.functional import _StrOrPromise
-else:
-    _StrOrPromise = str
+from djblets.util.typing import StrOrPromise
 
 
 #: A mapping of error types to error messages.
@@ -31,7 +27,7 @@ else:
 #:
 #: Version Added:
 #:     3.3
-RegistryErrorsDict: TypeAlias = Dict[str, _StrOrPromise]
+RegistryErrorsDict: TypeAlias = Dict[str, StrOrPromise]
 
 
 #: A generic type for items stored in a registry.

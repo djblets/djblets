@@ -490,12 +490,14 @@ Generic Utilities
    djblets.util.json_utils
    djblets.util.properties
    djblets.util.serializers
+   djblets.util.symbols
    djblets.util.templatetags.djblets_deco
    djblets.util.templatetags.djblets_email
    djblets.util.templatetags.djblets_forms
    djblets.util.templatetags.djblets_images
    djblets.util.templatetags.djblets_js
    djblets.util.templatetags.djblets_utils
+   djblets.util.typing
    djblets.util.views
 
 

@@ -9,10 +9,10 @@ from typing_extensions import TypeAlias
 from djblets.integrations.forms import IntegrationConfigForm
 
 if TYPE_CHECKING:
-    from django.utils.functional import _StrOrPromise
     from djblets.extensions.hooks import ExtensionHook
     from djblets.integrations.manager import IntegrationManager
     from djblets.integrations.models import BaseIntegrationConfig
+    from djblets.util.typing import StrOrPromise
 
 
 class Integration(object):
@@ -50,10 +50,10 @@ class Integration(object):
     integration_id: Optional[str] = None
 
     #: The display name of the integration.
-    name: Optional[_StrOrPromise] = None
+    name: Optional[StrOrPromise] = None
 
     #: A short description of this integration, in plain text format.
-    description: Optional[_StrOrPromise] = None
+    description: Optional[StrOrPromise] = None
 
     #: Static paths for the integration's icon.
     #:
