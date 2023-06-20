@@ -1,0 +1,16 @@
+{% include "django/forms/widgets/multiwidget.html" %}
+<script>
+(function($) {
+    $(document).ready(function() {
+        const id = '{{widget.attrs.id}}';
+        const $num_input = $(`#${id}_0`);
+        const $select = $(`#${id}_1`);
+
+        $num_input.toggle($select.val() != '');
+
+        $select.on('change', () => {
+            $num_input.toggle($select.val() != '');
+        })
+    });
+})($ || window.jQuery || django.jQuery)
+</script>

@@ -1,0 +1,124 @@
+.. default-intersphinx:: django3.2 djblets3.x python3
+
+
+=========================
+Djblets 3.2 Release Notes
+=========================
+
+**Release date**: June 19, 2023
+
+
+Installation
+============
+
+Djblets 3.3 is compatible with Django_ 3.2 and Python 3.7-3.11.
+
+To install Djblets 3.3, run:
+
+.. code-block:: console
+
+   $ pip3 install Djblets==3.3
+
+To learn more, see:
+
+* `Documentation <https://www.reviewboard.org/docs/djblets/3.x/>`_
+* `Djblets on PyPI <https://pypi.org/project/Djblets/>`_
+* `Djblets on GitHub <https://github.com/djblets/djblets/>`_
+
+
+.. _Django: https://www.djangoproject.com/
+
+
+djblets.features
+================
+
+* Added Python type hints and improved documentation for the whole module.
+
+* :py:class:`~djblets.features.level.FeatureLevel` is now an
+  :py:class:`~enum.Enum`.
+
+  This should be backwards-compatible.
+
+
+djblets.forms
+=============
+
+* Added :py:class:`~djblets.forms.widgets.AmountSelectorWidget`, for taking
+  a numeric value and a unit of measurement.
+
+  This can be used to let users specify a number and select a unit from a
+  list that represents a multiplier for that number. This can be used to
+  accept, for example, a number of bytes, kilobytes, megabytes, etc.
+
+
+djblets.integrations
+====================
+
+* Added Python type hints and improved documentation for the whole module.
+
+  This helps authors define new integrations and fill out attributes in a
+  type-safe way.
+
+* Improved the error message used when trying to unregister an integration
+  that doesn't have an ID set.
+
+
+djblets.registries
+==================
+
+* Improved Python type hints and documentation for errors.
+
+  Types for registry error messages can now be set to strings or
+  lazily-localized strings (using
+  :py:func:`~django.utils.translation.gettext_lazy`.
+
+  All error constants are now typed as finalized (unchangeable) strings.
+
+  :py:data:`~djblets.registries.registry.RegistryErrorsDict` was added to
+  represent these error constant to string registrations.
+
+
+djblets.util
+============
+
+* Added :py:mod:`djblets.util.symbols`, which adds useful standardized
+  symbols:
+
+  * :py:data:`~djblets.util.symbols.UNSET`: Represents an unset value, which
+    is useful for functions that require differentiating between an unset
+    value and a ``None`` value.
+
+* Added :py:mod:`djblets.util.typing`, which adds some useful type aliases:
+
+  * :py:data:`~djblets.util.typing.JSONDict`: A JSON-safe dictionary.
+  * :py:data:`~djblets.util.typing.JSONList`: A JSON-safe list.
+  * :py:data:`~djblets.util.typing.JSONValue`: Any JSON-safe value.
+  * :py:data:`~djblets.util.typing.KwargsDict`: A dictionary capable of
+    storing keyword arguments.
+  * :py:data:`~djblets.util.typing.StrOrPromise`: A Unicode string or
+    lazy-localized string from Django.
+  * :py:data:`~djblets.util.typing.StrPromise`: A lazy-localized string from
+    Django.
+
+* Added optional Python type hint support for
+  :py:class:`~djblets.util.properties.BaseProperty`,
+  :py:class:`~djblets.util.properties.AliasProperty`, and
+  :py:class:`~djblets.util.properties.TypedProperty`.
+
+  These can now be used as generics, allowing types to be specified in order
+  to help provide type checking for attributes.
+
+  Due to limitations and inconsistencies in the existing type hint support in
+  Python and in popular type checkers, the syntax for specifying type hints
+  for these properties can be a bit verbose.
+
+  Please see the examples in the documentation for these classes on how to
+  best specify type hints.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin

@@ -1,11 +1,18 @@
 """Database models for integration configuration."""
 
+from __future__ import annotations
+
+from typing import Any, Optional, TYPE_CHECKING
+
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from djblets.db.fields import JSONField
 from djblets.integrations.mixins import NeedsIntegrationManagerMixin
+
+if TYPE_CHECKING:
+    from djblets.integrations.integration import Integration
 
 
 class BaseIntegrationConfig(NeedsIntegrationManagerMixin, models.Model):
@@ -28,12 +35,16 @@ class BaseIntegrationConfig(NeedsIntegrationManagerMixin, models.Model):
     extra_data = JSONField(default={})
 
     @property
-    def integration(self):
+    def integration(self) -> Integration:
         """The integration for the configuration."""
         return self.get_integration_manager().get_integration(
             self.integration_id)
 
-    def get(self, key, default=None):
+    def get(
+        self,
+        key: str,
+        default: Optional[Any] = None,
+    ) -> Optional[Any]:
         """Return the setting for a given key.
 
         This will return the setting's stored value, or its default value for
@@ -41,13 +52,14 @@ class BaseIntegrationConfig(NeedsIntegrationManagerMixin, models.Model):
         in either place, the provided default will be returned instead.
 
         Args:
-            key (unicode):
+            key (str):
                 The settings key.
 
-            default (object):
+            default (object, optional):
                 The default value, if not available elsewhere.
 
         Returns:
+            object:
             The resulting value from settings, or the default value if not
             found.
         """
@@ -56,14 +68,18 @@ class BaseIntegrationConfig(NeedsIntegrationManagerMixin, models.Model):
         except KeyError:
             return self.integration.default_settings.get(key, default)
 
-    def set(self, key, value):
+    def set(
+        self,
+        key: str,
+        value: Optional[Any],
+    ) -> None:
         """Set a value for the given settings key.
 
         This is equivalent to setting the value through the standard dictionary
         operators.
 
         Args:
-            key (unicode):
+            key (str):
                 The key to set.
 
             value (object):
@@ -71,11 +87,11 @@ class BaseIntegrationConfig(NeedsIntegrationManagerMixin, models.Model):
         """
         self.settings[key] = value
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of this configuration.
 
         Returns:
-            unicode:
+            str:
             The string representation.
         """
         try:

@@ -29,12 +29,22 @@ logger = logging.getLogger(__name__)
 #: This is currently very generic, but may be expanded or aliased in the
 #: future.
 #:
+#: Deprecated:
+#:     3.3
+#:     Consumers should use the more complete
+#:     :py:class:`djblets.util.typing.JSONValue` instead.
+#:
 #: Version Added:
 #:     3.1
 JSONValue: TypeAlias = object
 
 
 #: A type for a JSON dictionary.
+#:
+#: Deprecated:
+#:     3.3
+#:     Consumers should use the more complete
+#:     :py:class:`djblets.util.typing.JSONDict` instead.
 #:
 #: Version Added:
 #:     3.1
