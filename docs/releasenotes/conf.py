@@ -233,6 +233,7 @@ intersphinx_mapping = {
     'django1.6': ('%s/1.6.x/' % django_doc_base_url, None),
     'django1.8': ('%s/1.8.x/' % django_doc_base_url, None),
     'django1.11': ('%s/1.11.x/' % django_doc_base_url, None),
+    'django3.2': ('%s/3.2.x/' % django_doc_base_url, None),
     'python27': ('https://docs.python.org/2.7', None),
     'python3': ('https://docs.python.org/3', None),
     'djblets1.0': ('%s/docs/djblets/1.0/' % rbwebsite_url, None),
