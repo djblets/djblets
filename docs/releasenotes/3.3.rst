@@ -2,7 +2,7 @@
 
 
 =========================
-Djblets 3.2 Release Notes
+Djblets 3.3 Release Notes
 =========================
 
 **Release date**: June 19, 2023
