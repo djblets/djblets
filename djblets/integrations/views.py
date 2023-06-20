@@ -1,6 +1,12 @@
+"""Views for working with integrations."""
+
+from __future__ import annotations
+
+from typing import Dict, List, TYPE_CHECKING, Type
+
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, Http404
+from django.http import Http404, HttpResponse, HttpResponseNotFound
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
@@ -10,6 +16,13 @@ from django.views.generic.edit import FormView
 from djblets.integrations.mixins import NeedsIntegrationManagerMixin
 from djblets.util.templatetags.djblets_images import build_srcset
 
+if TYPE_CHECKING:
+    from django.db.models import QuerySet
+    from django.http import HttpRequest, HttpResponseBase
+    from djblets.integrations.forms import IntegrationConfigForm
+    from djblets.integrations.integration import Integration
+    from djblets.integrations.models import BaseIntegrationConfig
+
 
 class IntegrationListContextViewMixin(NeedsIntegrationManagerMixin):
     """A mixin for views that display lists of integrations.
@@ -18,7 +31,16 @@ class IntegrationListContextViewMixin(NeedsIntegrationManagerMixin):
     integrations and all configurations.
     """
 
-    def get_integration_js_view_data(self):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The HTTP request for the view.
+    #:
+    #: This must be set in subclasses.
+    request: HttpRequest
+
+    def get_integration_js_view_data(self) -> Dict:
         """Return data for a JavaScript view for the page.
 
         This will include the list of available integrations IDs, a mapping of
@@ -29,9 +51,9 @@ class IntegrationListContextViewMixin(NeedsIntegrationManagerMixin):
             The data for the JavaScript view.
         """
         integration_manager = self.get_integration_manager()
-        integrations_map = {}
-        integration_ids = []
-        configs = []
+        integrations_map: Dict[str, Dict] = {}
+        integration_ids: List[str] = []
+        configs: List[Dict] = []
 
         for integration in integration_manager.get_integrations():
             integration_ids.append(integration.integration_id)
@@ -75,7 +97,10 @@ class IntegrationListContextViewMixin(NeedsIntegrationManagerMixin):
             'integrationsMap': integrations_map,
         }
 
-    def get_add_config_url(self, integration):
+    def get_add_config_url(
+        self,
+        integration: Integration,
+    ) -> str:
         """Return the URL for adding a new configuration.
 
         This can be overridden by subclasses to return a URL for another
@@ -86,7 +111,7 @@ class IntegrationListContextViewMixin(NeedsIntegrationManagerMixin):
                 The integration to add configurations for.
 
         Returns:
-            unicode:
+            str:
             The Add Configuration URL for the integration.
         """
         return reverse(
@@ -95,7 +120,10 @@ class IntegrationListContextViewMixin(NeedsIntegrationManagerMixin):
                 'integration_id': integration.integration_id,
             })
 
-    def get_edit_config_url(self, config):
+    def get_edit_config_url(
+        self,
+        config: BaseIntegrationConfig,
+    ) -> str:
         """Return the URL for editing a configuration.
 
         This can be overridden by subclasses to return a URL for another
@@ -106,7 +134,7 @@ class IntegrationListContextViewMixin(NeedsIntegrationManagerMixin):
                 The configuration to return the URL for.
 
         Returns:
-            unicode:
+            str:
             The URL for editing the configuration.
         """
         return reverse(
@@ -116,7 +144,7 @@ class IntegrationListContextViewMixin(NeedsIntegrationManagerMixin):
                 'config_id': config.pk,
             })
 
-    def get_configs_queryset(self):
+    def get_configs_queryset(self) -> QuerySet[BaseIntegrationConfig]:
         """Return a queryset for integration configs.
 
         Subclasses can override this to provide a more strict query to filter
@@ -141,14 +169,9 @@ class BaseIntegrationListView(IntegrationListContextViewMixin,
     organization) or to add access control.
     """
 
-    #: The name of the template used for the page.
-    #:
-    #: This must be provided if subclassing this yourself.
-    template_name = None
-
     @method_decorator(login_required)
     @method_decorator(csrf_protect)
-    def dispatch(self, *args, **kwargs):
+    def dispatch(self, *args, **kwargs) -> HttpResponseBase:
         """Handle the request to the view.
 
         This will first check to make sure the user is logged in.
@@ -164,9 +187,9 @@ class BaseIntegrationListView(IntegrationListContextViewMixin,
             django.http.HttpResponse:
             The resulting HTTP response.
         """
-        return super(BaseIntegrationListView, self).dispatch(*args, **kwargs)
+        return super().dispatch(*args, **kwargs)
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs) -> Dict:
         """Return context data for the template.
 
         By default, this returns a dictionary with a sole ``integrations``
@@ -181,8 +204,7 @@ class BaseIntegrationListView(IntegrationListContextViewMixin,
             dict:
             A dictionary of context data for the template.
         """
-        context = super(BaseIntegrationListView, self).get_context_data(
-            **kwargs)
+        context = super().get_context_data(**kwargs)
         context['integrationViewData'] = self.get_integration_js_view_data()
 
         return context
@@ -198,7 +220,7 @@ class BaseAdminIntegrationListView(BaseIntegrationListView):
     template_name = 'integrations/admin/integration_list.html'
 
     @method_decorator(staff_member_required)
-    def dispatch(self, *args, **kwargs):
+    def dispatch(self, *args, **kwargs) -> HttpResponseBase:
         """Handle the request to the view.
 
         This will first check to make sure the user is logged in and is a
@@ -215,8 +237,7 @@ class BaseAdminIntegrationListView(BaseIntegrationListView):
             django.http.HttpResponse:
             The resulting HTTP response.
         """
-        return super(BaseAdminIntegrationListView, self).dispatch(
-            *args, **kwargs)
+        return super().dispatch(*args, **kwargs)
 
 
 class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin,
@@ -231,14 +252,14 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin,
     organization) or to add access control.
     """
 
-    #: The name of the template used for the page.
-    #:
-    #: This must be provided if subclassing this yourself.
-    template_name = None
-
     @method_decorator(login_required)
     @method_decorator(csrf_protect)
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(
+        self,
+        request: HttpRequest,
+        *args,
+        **kwargs,
+    ) -> HttpResponseBase:
         """Handle the request to the view.
 
         This will first check to make sure the user is logged in. It then
@@ -246,14 +267,26 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin,
         it on to the view.
 
         Args:
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
+
             *args (tuple):
                 Positional arguments to pass to the view.
 
             **kwargs (dict):
                 Keyword arguments to pass to the view.
 
+        Keyword Args:
+            integration_id (str):
+                The ID of the integration being configured.
+
+            config_id (str, optional):
+                The ID of an existing configuration to edit.
+
+                If ``None``, a new configuration will be made.
+
         Returns:
-            django.http.HttpResponse:
+            django.http.HttpResponseBase:
             The resulting HTTP response.
 
         Raises:
@@ -281,10 +314,14 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin,
         else:
             self.config = None
 
-        return super(BaseIntegrationConfigFormView, self).dispatch(
-            request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
-    def delete(self, request, *args, **kwargs):
+    def delete(
+        self,
+        request: HttpRequest,
+        *args,
+        **kwargs,
+    ) -> HttpResponseBase:
         """Handle HTTP DELETE requests.
 
         This will delete the integration configuration.
@@ -303,11 +340,14 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin,
             django.http.HttpResponse:
             The resulting HTTP response.
         """
+        if self.config is None:
+            return HttpResponseNotFound()
+
         self.config.delete()
 
         return HttpResponse(status=204)
 
-    def get_config_query_kwargs(self, **kwargs):
+    def get_config_query_kwargs(self, **kwargs) -> Dict:
         """Return query arguments for fetching an integration configuration.
 
         This can be subclassed to return additional arguments used when
@@ -327,7 +367,7 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin,
         """
         return {}
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs) -> Dict:
         """Return context data for the configuration page.
 
         Args:
@@ -339,13 +379,12 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin,
             dict:
             The context to provide on the page.
         """
-        data = super(BaseIntegrationConfigFormView, self).get_context_data(
-            **kwargs)
+        data = super().get_context_data(**kwargs)
         data['success_url'] = self.get_success_url()
 
         return data
 
-    def get_form_kwargs(self):
+    def get_form_kwargs(self) -> Dict:
         """Return keyword arguments to pass to the form.
 
         This will, by default, provide ``integration`` and configuration
@@ -358,8 +397,7 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin,
             dict:
             A dictionary of keyword arguments to pass to the form.
         """
-        form_kwargs = \
-            super(BaseIntegrationConfigFormView, self).get_form_kwargs()
+        form_kwargs = super().get_form_kwargs()
         form_kwargs.update({
             'integration': self.integration,
             'request': self.request,
@@ -368,7 +406,7 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin,
 
         return form_kwargs
 
-    def get_success_url(self):
+    def get_success_url(self) -> str:
         """Return the URL to redirect to when successfully saving the form.
 
         This defaults to returning back to the integrations page. Consumers
@@ -376,12 +414,12 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin,
         override this.
 
         Returns:
-            unicode:
+            str:
             The URL to redirect to.
         """
         return reverse('integration-list')
 
-    def get_form_class(self):
+    def get_form_class(self) -> Type[BaseIntegrationConfig]:
         """Return the class used for the configuration form.
 
         This will return whatever class is specified for that integration.
@@ -395,7 +433,10 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin,
         """
         return self.integration.config_form_cls
 
-    def form_valid(self, form):
+    def form_valid(
+        self,
+        form: IntegrationConfigForm,
+    ) -> HttpResponse:
         """Handle the saving of a valid configuration form
 
         This will save the configuration and then perform a redirect to the
@@ -411,7 +452,7 @@ class BaseIntegrationConfigFormView(NeedsIntegrationManagerMixin,
         """
         self.object = form.save()
 
-        return super(BaseIntegrationConfigFormView, self).form_valid(form)
+        return super().form_valid(form)
 
 
 class BaseAdminIntegrationConfigFormView(BaseIntegrationConfigFormView):
@@ -424,7 +465,7 @@ class BaseAdminIntegrationConfigFormView(BaseIntegrationConfigFormView):
     template_name = 'integrations/admin/configure_integration.html'
 
     @method_decorator(staff_member_required)
-    def dispatch(self, *args, **kwargs):
+    def dispatch(self, *args, **kwargs) -> HttpResponseBase:
         """Handle the request to the view.
 
         This will first check to make sure the user is logged in and is a
@@ -438,13 +479,12 @@ class BaseAdminIntegrationConfigFormView(BaseIntegrationConfigFormView):
                 Keyword arguments to pass to the view.
 
         Returns:
-            django.http.HttpResponse:
+            django.http.HttpResponseBase:
             The resulting HTTP response.
         """
-        return super(BaseAdminIntegrationConfigFormView, self).dispatch(
-            *args, **kwargs)
+        return super().dispatch(*args, **kwargs)
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs) -> Dict:
         """Return context data for the configuration page.
 
         Args:
@@ -456,10 +496,7 @@ class BaseAdminIntegrationConfigFormView(BaseIntegrationConfigFormView):
             dict:
             The context to provide on the page.
         """
-        data = (
-            super(BaseAdminIntegrationConfigFormView, self)
-            .get_context_data(**kwargs)
-        )
+        data = super().get_context_data(**kwargs)
         data.update({
             'opts': self.integration_mgr.config_model._meta,
             'original': self.config,

@@ -1,9 +1,13 @@
 """A manager for tracking and working with integrations."""
 
+from __future__ import annotations
+
 import atexit
 import logging
 import threading
-import weakref
+from typing import (Dict, Iterable, List, Optional, Sequence, TYPE_CHECKING,
+                    Type)
+from weakref import WeakValueDictionary
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -14,11 +18,17 @@ from djblets.integrations.errors import (IntegrationAlreadyRegisteredError,
                                          IntegrationNotRegisteredError,
                                          IntegrationRegistrationError)
 
+if TYPE_CHECKING:
+    from djblets.integrations.integration import (Integration,
+                                                  IntegrationClassType)
+    from djblets.integrations.models import BaseIntegrationConfig
 
-_integration_managers = weakref.WeakValueDictionary()
+
+_integration_managers: WeakValueDictionary[int, IntegrationManager] = \
+    WeakValueDictionary()
 
 
-class IntegrationManager(object):
+class IntegrationManager:
     """Manages integrations with third-party services.
 
     The manager keeps track of the integrations registered by extensions
@@ -29,21 +39,45 @@ class IntegrationManager(object):
     It also manages the lookups of configurations for integrations, taking
     care to cache the lookups for any integrations and invalidate them when
     a configuration has been updated.
-
-    Attributes:
-        config_model (type):
-            The model used to store configuration data. This is a subclass of
-            :py:class:`djblets.integrations.models.BaseIntegrationConfig`.
-
-        enabled (bool):
-            The integration manager is enabled and can be used for registering,
-            unregistering, and otherwise using integrations. If this is
-            ``False``, then :py:meth:`shutdown` has been called, and it should
-            be assumed that no integrations are registered or need to be
-            unregistered.
     """
 
-    def __init__(self, config_model):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The model used to store configuration data.
+    config_model: Type[BaseIntegrationConfig]
+
+    #: Whether the integration manager is enabled.
+    #:
+    #: When enabled, the integration manager can be used for registering,
+    #: unregistering, and otherwise using integrations.
+    #:
+    #: If this is ``False``, then :py:meth:`shutdown` has been called, and it
+    #: should be assumed that no integrations are registered or need to be
+    #: unregistered.
+    enabled: bool
+
+    #: A mapping of integration IDs to registered classes.
+    _integration_classes: Dict[str, IntegrationClassType]
+
+    #: A mapping of opaque config lookup IDs to configuration instances.
+    _integration_configs: Dict[str, List[BaseIntegrationConfig]]
+
+    #: A mapping of integration IDs to instances.
+    _integration_instances: Dict[str, Integration]
+
+    #: Whether the list of integrations need to be recalculated.
+    #:
+    #: This will be set whenever an new integration is registered or when
+    #: configuration changes. It's part of multi-process/server
+    #: synchronization.
+    _needs_recalc: bool
+
+    def __init__(
+        self,
+        config_model: Type[BaseIntegrationConfig],
+    ) -> None:
         """Initialize the integration manager.
 
         Args:
@@ -99,7 +133,7 @@ class IntegrationManager(object):
                           sender=config_model,
                           dispatch_uid=dispatch_uid)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Shut down the integrations on this integration manager.
 
         This should be called when the integration manager and integrations
@@ -121,7 +155,7 @@ class IntegrationManager(object):
 
         self.enabled = False
 
-    def get_integration_classes(self):
+    def get_integration_classes(self) -> Iterable[IntegrationClassType]:
         """Return all the integration classes that have been registered.
 
         This is not sorted in any particular order. It is up to the caller
@@ -133,11 +167,14 @@ class IntegrationManager(object):
         """
         return self._integration_classes.values()
 
-    def get_integration(self, integration_id):
+    def get_integration(
+        self,
+        integration_id: str,
+    ) -> Integration:
         """Return an integration instance for a given ID.
 
         Args:
-            integration_id (unicode):
+            integration_id (str):
                 The integration ID that was registered.
 
         Returns:
@@ -153,7 +190,7 @@ class IntegrationManager(object):
         except KeyError:
             raise IntegrationNotRegisteredError(integration_id)
 
-    def get_integrations(self):
+    def get_integrations(self) -> Iterable[Integration]:
         """Return all the integration instances.
 
         This is not sorted in any particular order. It is up to the caller
@@ -165,7 +202,11 @@ class IntegrationManager(object):
         """
         return self._integration_instances.values()
 
-    def get_integration_configs(self, integration_cls=None, **filter_kwargs):
+    def get_integration_configs(
+        self,
+        integration_cls: Optional[IntegrationClassType] = None,
+        **filter_kwargs,
+    ) -> Sequence[BaseIntegrationConfig]:
         """Return a list of saved integration configurations.
 
         By default, all configurations will be returned for all integrations,
@@ -191,6 +232,8 @@ class IntegrationManager(object):
             list of djblets.integrations.models.BaseIntegrationConfig:
             A list of saved integration configurations matching the query.
         """
+        configs: Sequence[BaseIntegrationConfig]
+
         key = self._make_config_filter_cache_key(integration_cls,
                                                  **filter_kwargs)
 
@@ -211,7 +254,11 @@ class IntegrationManager(object):
 
         return configs
 
-    def clear_configs_cache(self, integration_cls=None, **filter_kwargs):
+    def clear_configs_cache(
+        self,
+        integration_cls: Optional[IntegrationClassType] = None,
+        **filter_kwargs,
+    ) -> None:
         """Clear the configuration cache matching the given filters.
 
         This is used to clear a subset of the configs cache, matching the exact
@@ -235,7 +282,7 @@ class IntegrationManager(object):
         except KeyError:
             pass
 
-    def clear_all_configs_cache(self):
+    def clear_all_configs_cache(self) -> None:
         """Clear the entire configuration cache.
 
         This will force all future lookups to re-query the database. To
@@ -243,7 +290,7 @@ class IntegrationManager(object):
         """
         self._integration_configs = {}
 
-    def is_expired(self):
+    def is_expired(self) -> bool:
         """Return whether the integration manager has expired state.
 
         Returns:
@@ -253,7 +300,7 @@ class IntegrationManager(object):
         """
         return self._needs_recalc or self._gen_sync.is_expired()
 
-    def check_expired(self):
+    def check_expired(self) -> None:
         """Check for and handle expired integration state.
 
         If the configurations of one or more integrations have been updated
@@ -279,7 +326,10 @@ class IntegrationManager(object):
                     self.clear_all_configs_cache()
                     self._recalc_enabled_integrations()
 
-    def register_integration_class(self, integration_cls):
+    def register_integration_class(
+        self,
+        integration_cls: IntegrationClassType,
+    ) -> Integration:
         """Register a class for an integration.
 
         This will instantiate the integration and make it available for new
@@ -335,7 +385,10 @@ class IntegrationManager(object):
 
         return integration
 
-    def unregister_integration_class(self, integration_cls):
+    def unregister_integration_class(
+        self,
+        integration_cls: IntegrationClassType,
+    ) -> None:
         """Unregister a class for an integration.
 
         The integration instance will be shut down, and the integration will
@@ -371,7 +424,7 @@ class IntegrationManager(object):
         del self._integration_classes[integration_id]
         del self._integration_instances[integration_id]
 
-    def _recalc_enabled_integrations(self):
+    def _recalc_enabled_integrations(self) -> None:
         """Recalculate the enabled states of all integrations.
 
         The list of enabled configurations for integrations will be queried
@@ -402,7 +455,11 @@ class IntegrationManager(object):
 
         self._needs_recalc = False
 
-    def _make_config_filter_cache_key(self, integration_cls, **filter_kwargs):
+    def _make_config_filter_cache_key(
+        self,
+        integration_cls: IntegrationClassType,
+        **filter_kwargs,
+    ) -> str:
         """Return a cache key for a config query filter.
 
         Args:
@@ -413,7 +470,7 @@ class IntegrationManager(object):
                 The filter keyword arguments used for the query.
 
         Returns:
-            unicode:
+            str:
             The resulting cache key.
         """
         if integration_cls:
@@ -421,7 +478,7 @@ class IntegrationManager(object):
         else:
             return '*:%s' % (filter_kwargs,)
 
-    def _on_config_changes(self, **kwargs):
+    def _on_config_changes(self, **kwargs) -> None:
         """Handler for when configuration state changes.
 
         This will force the list of integrations to recalculate on this
@@ -435,20 +492,20 @@ class IntegrationManager(object):
         self._gen_sync.mark_updated()
 
 
-def get_integration_managers():
+def get_integration_managers() -> Sequence[IntegrationManager]:
     """Return all integration manager instances.
-
 
     This will return all the integration managers that have been constructed.
     The order is not guaranteed.
 
     Returns:
-        list: The list of :py:class:`IntegrationManager` instances.
+        list:
+        The list of :py:class:`IntegrationManager` instances.
     """
     return list(_integration_managers.values())
 
 
-def shutdown_integration_managers():
+def shutdown_integration_managers() -> None:
     """Shut down all integration managers.
 
     This is called automatically when the process exits, but can be run

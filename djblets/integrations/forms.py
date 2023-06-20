@@ -1,7 +1,18 @@
+"""Forms for configuring integrations."""
+
+from __future__ import annotations
+
+from typing import Optional, TYPE_CHECKING
+
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from djblets.forms.forms import KeyValueForm
+
+if TYPE_CHECKING:
+    from django.http import HttpRequest
+    from djblets.integrations.integration import Integration
+    from djblets.integrations.models import BaseIntegrationConfig
 
 
 class IntegrationConfigForm(KeyValueForm):
@@ -49,7 +60,28 @@ class IntegrationConfigForm(KeyValueForm):
             'size': 40,
         }))
 
-    def __init__(self, integration, request, *args, **kwargs):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The integration configuration being updated.
+    #:
+    #: This will be ``None`` if creating a new configuration.
+    instance: Optional[BaseIntegrationConfig]
+
+    #: The integration being configured.
+    integration: Integration
+
+    #: The HTTP request used for the form.
+    request: HttpRequest
+
+    def __init__(
+        self,
+        integration: Integration,
+        request: HttpRequest,
+        *args,
+        **kwargs,
+    ) -> None:
         """Initialize the form.
 
         Args:
@@ -70,10 +102,10 @@ class IntegrationConfigForm(KeyValueForm):
 
         self.build_fieldsets()
 
-        super(IntegrationConfigForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     @classmethod
-    def build_fieldsets(cls):
+    def build_fieldsets(cls) -> None:
         """Build the fieldsets used for the configuration form.
 
         By default, this will prepend :py:attr:`basic_info_fieldset` to
@@ -95,7 +127,7 @@ class IntegrationConfigForm(KeyValueForm):
                 meta.fieldsets = (cls.basic_info_fieldset,) + fieldsets
 
     @property
-    def config(self):
+    def config(self) -> Optional[BaseIntegrationConfig]:
         """The configuration that's being edited.
 
         If this is a brand new configuration, this will be ``None`` until
@@ -107,7 +139,11 @@ class IntegrationConfigForm(KeyValueForm):
         """
         return self.instance
 
-    def get_key_value(self, key, default=None):
+    def get_key_value(
+        self,
+        key: str,
+        default: Optional[object] = None,
+    ) -> object:
         """Return the value for a key.
 
         This will first look for the value from the
@@ -120,7 +156,7 @@ class IntegrationConfigForm(KeyValueForm):
         used directly.
 
         Args:
-            key (unicode):
+            key (str):
                 The key in the configuration.
 
             default (object):
@@ -129,12 +165,19 @@ class IntegrationConfigForm(KeyValueForm):
         Returns:
             The value from the configuration.
         """
-        if key in self.model_fields:
-            return getattr(self.instance, key)
+        if self.instance is not None:
+            if key in self.model_fields:
+                return getattr(self.instance, key)
+            else:
+                return self.instance.get(key, default)
         else:
-            return self.instance.get(key, default)
+            return default
 
-    def set_key_value(self, key, value):
+    def set_key_value(
+        self,
+        key: str,
+        value: Optional[object],
+    ) -> None:
         """Set the value for a key.
 
         This will first look for the key to set in the
@@ -148,18 +191,20 @@ class IntegrationConfigForm(KeyValueForm):
         used directly.
 
         Args:
-            key (unicode):
+            key (str):
                 The key in the configuration.
 
             value (object):
                 The new value.
         """
+        assert self.instance is not None
+
         if key in self.model_fields:
             setattr(self.instance, key, value)
         else:
             self.instance.set(key, value)
 
-    def create_instance(self):
+    def create_instance(self) -> BaseIntegrationConfig:
         """Create an instance of a configuration.
 
         This is used internally by the parent class, and is not meant to be
@@ -171,11 +216,14 @@ class IntegrationConfigForm(KeyValueForm):
         """
         return self.integration.create_config()
 
-    def save_instance(self):
+    def save_instance(self) -> None:
         """Save the configuration.
 
         This is used internally by the parent class, and is not meant to be
         called by consumers of the form.
         """
-        self.instance.integration_id = self.integration.integration_id
-        self.instance.save()
+        instance = self.instance
+        assert instance is not None
+
+        instance.integration_id = self.integration.integration_id
+        instance.save()

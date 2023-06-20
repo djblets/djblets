@@ -23,8 +23,8 @@ class DummyIntegration(Integration):
 class IntegrationConfigFormTests(IntegrationsTestCase):
     """Unit tests for djblets.integrations.forms.IntegrationConfigForm."""
 
-    def setUp(self):
-        super(IntegrationConfigFormTests, self).setUp()
+    def setUp(self) -> None:
+        super().setUp()
 
         self.manager = IntegrationManager(IntegrationConfig)
         self.integration = \
@@ -43,17 +43,17 @@ class IntegrationConfigFormTests(IntegrationsTestCase):
         self.form.full_clean()
         self.form.save()
 
-    def test_config(self):
+    def test_config(self) -> None:
         """Testing IntegrationConfigForm.config returns the config instance"""
         self.assertIsInstance(self.form.config, IntegrationConfig)
 
-    def test_get_key_value_model_field(self):
+    def test_get_key_value_model_field(self) -> None:
         """Testing IntegrationConfigForm.get_key_value() returns values from
         form data"""
         self.assertEqual(self.form.get_key_value('name'), 'FakeName')
         self.assertTrue(self.form.get_key_value('enabled'))
 
-    def test_set_key_value_model_field(self):
+    def test_set_key_value_model_field(self) -> None:
         """Testing IntegrationConfigForm.set_key_value() overrides form
         data"""
         name_field = 'name'
@@ -61,7 +61,7 @@ class IntegrationConfigFormTests(IntegrationsTestCase):
         self.form.set_key_value(name_field, expected_value)
         self.assertEqual(self.form.get_key_value(name_field), expected_value)
 
-    def test_set_key_value_non_model_field(self):
+    def test_set_key_value_non_model_field(self) -> None:
         """Testing IntegrationConfigForm.set_key_value() sets custom non-field
         data"""
         test_field = 'new_non_model_field'

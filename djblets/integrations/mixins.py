@@ -1,4 +1,14 @@
-class NeedsIntegrationManagerMixin(object):
+"""Mixins for classes working with integrations."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from djblets.integrations.manager import IntegrationManager
+
+
+class NeedsIntegrationManagerMixin:
     """Mixin for classes that require an integration manager to be defined.
 
     Some classes require access to an integration manager, which must be
@@ -8,7 +18,7 @@ class NeedsIntegrationManagerMixin(object):
     """
 
     @classmethod
-    def get_integration_manager(cls):
+    def get_integration_manager(cls) -> IntegrationManager:
         """Return the integration manager used for this class.
 
         Subclasses must override this to return an

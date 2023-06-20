@@ -9,8 +9,9 @@ from django.db import models
 from typing_extensions import TypeAlias
 
 from djblets.cache.synchronizer import GenerationSynchronizer
-from djblets.db.fields.json_field import JSONDict, JSONField, JSONValue
+from djblets.db.fields.json_field import JSONField
 from djblets.siteconfig.managers import SiteConfigurationManager
+from djblets.util.typing import JSONDict, JSONValue
 
 
 #: An alias for valid value types in site configuration settings.
