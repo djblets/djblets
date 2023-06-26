@@ -6,7 +6,8 @@ Version Added:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, NewType, TYPE_CHECKING, Union
+from typing import (Any, Dict, List, Mapping, NewType, Sequence,
+                    TYPE_CHECKING, Union)
 
 from typing_extensions import TypeAlias
 
@@ -28,7 +29,9 @@ else:
 #:     3.3
 JSONValue: TypeAlias = Union[
     'JSONDict',
+    'JSONDictImmutable',
     'JSONList',
+    'JSONListImmutable',
     None,
     bool,
     float,
@@ -44,11 +47,25 @@ JSONValue: TypeAlias = Union[
 JSONDict: TypeAlias = Dict[str, JSONValue]
 
 
+#: A type for an immutable JSON dictionary mapping strings to JSON vlaues.
+#:
+#: Version Added:
+#:     3.4
+JSONDictImmutable: TypeAlias = Mapping[str, JSONValue]
+
+
 #: A type for a JSON list of values.
 #:
 #: Version Added:
 #:     3.3
 JSONList: TypeAlias = List[JSONValue]
+
+
+#: A type for an immutable JSON list of values.
+#:
+#: Version Added:
+#:     3.4
+JSONListImmutable: TypeAlias = Sequence[JSONValue]
 
 
 #: A type indicating a dictionary used for keyword arguments.
