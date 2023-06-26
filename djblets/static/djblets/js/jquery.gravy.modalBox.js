@@ -37,8 +37,25 @@ $.widget('ui.modalBox', {
         title: null
     },
 
+    /**
+     * Handle a keydown event.
+     *
+     * Args:
+     *     e (KeyboardEvent):
+     *         The event.
+     */
+    _onKeyDown: function(e) {
+        e.stopPropagation();
+
+        if (e.key === 'Escape') {
+            this.element.trigger('close');
+        }
+    },
+
     _init: function() {
         var self = this;
+
+        this._onKeyDown = this._onKeyDown.bind(this);
 
         this._eventID = _.uniqueId('modalbox-');
         this._titleID = _.uniqueId('modalbox-title-');
@@ -54,7 +71,7 @@ $.widget('ui.modalBox', {
                 .move(0, 0, 'fixed')
                 .width('100%')
                 .height('100%')
-                .keydown(function(e) { e.stopPropagation(); })
+                .on('keydown', this._onKeyDown)
                 .appendTo(this.options.container);
         }
 
@@ -66,7 +83,9 @@ $.widget('ui.modalBox', {
                 role: 'dialog'
             })
             .move(0, 0, 'absolute')
-            .keydown(function(e) { e.stopPropagation(); });
+            .on('keydown', this._onKeyDown);
+
+        $('body').on('keydown', this._onKeyDown);
 
         if (this.options.boxID) {
             this.box.attr('id', this.options.boxID);
@@ -176,6 +195,8 @@ $.widget('ui.modalBox', {
         if (!this.options.discardOnClose) {
             this.element.appendTo(this.options.container);
         }
+
+        $('body').off('keydown', this._onKeyDown);
 
         this.box.remove();
     },
