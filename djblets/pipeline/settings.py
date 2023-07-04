@@ -13,9 +13,8 @@ from typing import Dict, List
 
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.encoding import force_str
-from housekeeping import deprecate_non_keyword_only_args
-
-from djblets.deprecation import RemovedInDjblets50Warning
+from djblets.deprecation import (RemovedInDjblets50Warning,
+                                 deprecate_non_keyword_only_args)
 
 
 #: Default list of compilers used by Djblets.
