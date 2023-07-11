@@ -6,10 +6,10 @@ import warnings
 from typing import (Any, Callable, Generic, Optional, Sequence, Tuple, Type,
                     Union, cast, overload)
 
+from housekeeping import deprecate_non_keyword_only_args
 from typing_extensions import Self, TypeAlias, TypeVar
 
-from djblets.deprecation import (RemovedInDjblets50Warning,
-                                 deprecate_non_keyword_only_args)
+from djblets.deprecation import RemovedInDjblets50Warning
 
 
 # NOTE: When mypy supports PEP 696, we can give many of these defaults.
