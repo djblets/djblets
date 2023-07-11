@@ -14,7 +14,9 @@ This release contains all bug fixes and features found in Djblets version
 Installation
 ============
 
-To install this release, run the following::
+To install this release, run the following:
+
+.. code-block:: console
 
     $ sudo pip3 install \
         -f https://downloads.reviewboard.org/betas/reviewboard/6.0-beta-1/ \

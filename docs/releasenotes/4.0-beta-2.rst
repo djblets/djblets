@@ -14,7 +14,9 @@ This release contains all bug fixes and features found in Djblets version
 Installation
 ============
 
-To install this release, run the following::
+To install this release, run the following:
+
+.. code-block:: console
 
     $ sudo pip3 install \
         -f https://downloads.reviewboard.org/betas/reviewboard/6.0-beta-2/ \
@@ -63,8 +65,9 @@ djblets.datagrids
   to be generated.
 
 * :py:meth:`djblets.datagrid.grids.DataGrid.load_extra_state` must now return a
-  list of field names to save. The old usage had previously raised a
-  deprecation warning.
+  list of field names to save.
+
+  The old usage had previously raised a deprecation warning.
 
 
 djblets.extensions
@@ -75,23 +78,27 @@ djblets.extensions
   devserver to hang.
 
 * :py:class:`djblets.testing.testrunners.TestRunner` has been updated to allow
-  usage of ``pytest``. This will become the default in Djblets 5.
+  usage of ``pytest``.
+
+  This will become the default in Djblets 5.
 
 
 djblets.forms
 =============
 
 * The ``value`` attribute to :py:class:`djblets.forms.widgets.ListEditWidget`
-  must be passed as a list instead of a string. The old usage had previously
-  raised a deprecation warning.
+  must be passed as a list instead of a string.
+
+  The old usage had previously raised a deprecation warning.
 
 
 djblets.pipeline
 ================
 
 * :py:func:`~djblets.pipeline.settings.build_pipeline_settings` now expects
-  parameters to be passed as keyword arguments. Calling this with positional
-  arguments will raise a deprecation warning.
+  parameters to be passed as keyword arguments.
+
+  Calling this with positional arguments will raise a deprecation warning.
 
 
 djblets.util
@@ -99,8 +106,9 @@ djblets.util
 
 * :py:class:`djblets.util.properties.AliasProperty` and
   :py:class:`djblets.util.properties.TypedProperty` now expect constructor
-  parameters to be passed as keyword arguments. Calling these with positional
-  arguments will raise a deprecation warning.
+  parameters to be passed as keyword arguments.
+
+  Calling these with positional arguments will raise a deprecation warning.
 
 djblets.webapi
 ==============
@@ -109,8 +117,9 @@ djblets.webapi
   some legacy limits on HTTP caching.
 
 * The ``token_generator_id`` and ``token_info`` parameters are now required for
-  :py:meth:`djblets.webapi.managers.WebAPITokenManager.generate_token`. The old
-  usage had previously raised a deprecation warning.
+  :py:meth:`djblets.webapi.managers.WebAPITokenManager.generate_token`.
+
+  The old usage had previously raised a deprecation warning.
 
 
 Contributors
