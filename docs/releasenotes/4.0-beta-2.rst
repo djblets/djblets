@@ -5,7 +5,7 @@
 Djblets 4.0 Beta 2 Release Notes
 ================================
 
-**Release date**: TBD
+**Release date**: July 11, 2023
 
 This release contains all bug fixes and features found in Djblets version
 :doc:`3.3 <3.3>` and :doc:`4.0 beta 1 <4.0-beta-1>`.
