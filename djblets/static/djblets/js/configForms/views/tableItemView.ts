@@ -1,13 +1,27 @@
 /**
- * Renders a ListItem as a row in a table.
+ * View to render a ListItem as a row in a table.
+ */
+
+import { spina } from '@beanbag/spina';
+
+import { ListItemView } from './listItemView';
+
+
+/**
+ * View to render a ListItem as a row in a table.
  *
  * This is meant to be used with TableView. Subclasses will generally want
  * to override the template.
  */
-Djblets.Config.TableItemView = Djblets.Config.ListItemView.extend({
-    tagName: 'tr',
+@spina({
+    prototypeAttrs: [
+        'template',
+    ],
+})
+export class TableItemView extends ListItemView {
+    static tagName = 'tr';
 
-    template: _.template(dedent`
+    static template = _.template(dedent`
         <td>
         <% if (editURL) { %>
         <a href="<%- editURL %>"><%- text %></a>
@@ -15,7 +29,7 @@ Djblets.Config.TableItemView = Djblets.Config.ListItemView.extend({
         <%- text %>
         <% } %>
         </td>
-    `),
+    `);
 
     /**
      * Return the container for the actions.
@@ -27,7 +41,7 @@ Djblets.Config.TableItemView = Djblets.Config.ListItemView.extend({
      *     jQuery:
      *     The element where actions should be rendered.
      */
-    getActionsParent() {
+    getActionsParent(): JQuery {
         return this.$('td:last');
-    },
-});
+    }
+}

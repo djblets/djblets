@@ -1,5 +1,37 @@
 /**
- * Display a list of items.
+ * View for displaying a list of items.
+ */
+
+import { BaseView, spina } from '@beanbag/spina';
+
+import { List } from '../models/listModel';
+import { ListItemView } from './listItemView';
+
+
+/**
+ * Options for the ListView.
+ *
+ * Version Added:
+ *     4.0
+ */
+export interface ListViewOptions {
+    /** The item view class. */
+    ItemView: typeof Backbone.View;
+
+    /** Whether to animate added or removed items with a fade. */
+    animateItems?: boolean;
+}
+
+
+/** Options for add and remove methods. */
+interface AddRemoveOptions {
+    /** Whether to animate the change. */
+    animate?: boolean;
+}
+
+
+/**
+ * View for displaying a list of items.
  *
  * This will render each item in a list, and update that list when the
  * items in the collection changes.
@@ -12,11 +44,32 @@
  * If 'options.animateItems' is true, then newly added or removed items will
  * be faded in/out.
  */
-Djblets.Config.ListView = Backbone.View.extend({
-    className: 'djblets-c-config-forms-list',
-    tagName: 'ul',
+@spina({
+    prototypeAttrs: [
+        'defaultItemView',
+    ],
+})
+export class ListView<
+    TModel extends List = List,
+    TElement extends Element = HTMLUListElement,
+    TExtraViewOptions extends ListViewOptions = ListViewOptions
+> extends BaseView<TModel, TElement, TExtraViewOptions> {
+    static className = 'djblets-c-config-forms-list';
+    static tagName = 'ul';
+    static defaultItemView = ListItemView;
 
-    defaultItemView: Djblets.Config.ListItemView,
+    /**********************
+     * Instance variables *
+     **********************/
+
+    /** The item view class. */
+    ItemView: typeof Backbone.View;
+
+    /** Whether to animate addition or removal of items. */
+    animateItems: boolean;
+
+    /** The set of views for all list items. */
+    views: Backbone.View[];
 
     /**
      * Initialize the view.
@@ -34,7 +87,7 @@ Djblets.Config.ListView = Backbone.View.extend({
      *         Whether or not items should be animated. This argument
      *         defaults to ``false``.
      */
-    initialize(options={}) {
+    initialize(options: Partial<ListViewOptions> = {}) {
         const collection = this.model.collection;
 
         this.ItemView = options.ItemView || this.defaultItemView;
@@ -42,11 +95,11 @@ Djblets.Config.ListView = Backbone.View.extend({
         this.animateItems = !!options.animateItems;
 
         this.once('rendered', () => {
-            this.listenTo(collection, 'add', this._addItem);
-            this.listenTo(collection, 'remove', this._removeItem);
-            this.listenTo(collection, 'reset', this._renderItems);
+            this.listenTo(collection, 'add', this.addItem);
+            this.listenTo(collection, 'remove', this.removeItem);
+            this.listenTo(collection, 'reset', this.#renderItems);
         });
-    },
+    }
 
     /**
      * Return the body element.
@@ -58,27 +111,21 @@ Djblets.Config.ListView = Backbone.View.extend({
      *     jQuery:
      *     Where the list view should be rendered.
      */
-    getBody() {
+    getBody(): JQuery {
         return this.$el;
-    },
+    }
 
     /**
      * Render the list of items.
      *
      * This will loop through all items and render each one.
-     *
-     * Returns:
-     *     Djblets.Config.ListView:
-     *     This view.
      */
-    render() {
+    onInitialRender() {
         this.$listBody = this.getBody();
 
-        this._renderItems();
+        this.#renderItems();
         this.trigger('rendered');
-
-        return this;
-    },
+    }
 
     /**
      * Create a view for an item and adds it.
@@ -90,15 +137,14 @@ Djblets.Config.ListView = Backbone.View.extend({
      *     collection (Backbone.Collection):
      *         Ignored.
      *
-     *     options (object, optional):
+     *     options (AddRemoveOptions, optional):
      *         Options for adding the item.
-     *
-     * Option Args:
-     *     animate (boolean):
-     *         Whether or not to animate adding the item. This argument
-     *         defaults to ``true``.
      */
-    _addItem(item, collection, options={}) {
+    protected addItem(
+        item: Backbone.Model,
+        collection: Backbone.Collection,
+        options: AddRemoveOptions = {},
+    ) {
         const animateItem = (options.animate !== false);
         const view = new this.ItemView({
             model: item,
@@ -117,7 +163,7 @@ Djblets.Config.ListView = Backbone.View.extend({
 
         this.$listBody.append(view.$el);
         this.views.push(view);
-    },
+    }
 
     /**
      * Handle an item being removed from the collection.
@@ -139,7 +185,11 @@ Djblets.Config.ListView = Backbone.View.extend({
      *         Whether or not the removal should be animated. This defaults
      *         to ``true``.
      */
-    _removeItem(item, collection, options={}) {
+    protected removeItem(
+        item: Backbone.Model,
+        collection: Backbone.Collection,
+        options: AddRemoveOptions = {},
+    ) {
         const animateItem = (options.animate !== false);
         const view = _.find(this.views, view => view.model === item);
 
@@ -159,22 +209,20 @@ Djblets.Config.ListView = Backbone.View.extend({
                 view.remove();
             }
         }
-    },
+    }
 
     /**
      * Render all items from the list.
      */
-    _renderItems() {
-        this.views.forEach(function(view) {
-            view.remove();
-        });
+    #renderItems() {
+        this.views.forEach(view => view.remove());
         this.views = [];
         this.$listBody.empty();
 
         this.model.collection.each(item => {
-            this._addItem(item, item.collection, {
+            this.addItem(item, item.collection, {
                 animate: false,
             });
         });
-    },
-});
+    }
+}

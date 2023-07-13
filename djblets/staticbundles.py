@@ -14,16 +14,6 @@ PIPELINE_JAVASCRIPT = {
     'djblets-config-forms': {
         'source_filenames': (
             'djblets/js/configForms/index.ts',
-
-            # Legacy JavaScript
-            'djblets/js/configForms/collections/listItemsCollection.es6.js',
-            'djblets/js/configForms/models/listItemModel.es6.js',
-            'djblets/js/configForms/models/listModel.js',
-            'djblets/js/configForms/views/listItemView.es6.js',
-            'djblets/js/configForms/views/listView.es6.js',
-            'djblets/js/configForms/views/pagesView.es6.js',
-            'djblets/js/configForms/views/tableItemView.es6.js',
-            'djblets/js/configForms/views/tableView.es6.js',
         ),
         'output_filename': 'djblets/js/config-forms.min.js',
     },
@@ -101,12 +91,12 @@ PIPELINE_JAVASCRIPT = {
     },
     'djblets-js-tests': {
         'source_filenames': (
+            'djblets/js/tests/index.ts',
+
+            # Legacy JavaScript
+            #
+            # These are in dependency order
             'djblets/js/tests/backboneUtilsTests.js',
-            'djblets/js/configForms/models/tests/listItemModelTests.es6.js',
-            'djblets/js/configForms/views/tests/listItemViewTests.es6.js',
-            'djblets/js/configForms/views/tests/listViewTests.es6.js',
-            'djblets/js/configForms/views/tests/tableItemViewTests.es6.js',
-            'djblets/js/configForms/views/tests/tableViewTests.es6.js',
             'djblets/js/forms/models/tests/conditionChoiceModelTests.es6.js',
             'djblets/js/forms/models/tests/conditionModelTests.es6.js',
             'djblets/js/forms/models/tests/conditionOperatorModelTests.es6.js',

@@ -1,18 +1,40 @@
 /**
- * Display a list item for a config page.
+ * Base view for displaying a list item in config pages.
+ */
+import { BaseView, EventsHash, spina } from '@beanbag/spina';
+
+import { ListItem, ListItemAction } from '../models/listItemModel';
+
+
+export type ListItemViewRenderContext = { [key: string]: unknown };
+
+
+/**
+ * Base view for displaying a list item in config pages.
  *
  * The list item will show information on the item and any actions that can
  * be invoked.
  *
  * By default, this will show the text from the ListItem model, linking it
  * if the model has an editURL attribute. This can be customized by subclasses
- * by overriding `template`.
+ * by overriding ``template``.
  */
-Djblets.Config.ListItemView = Backbone.View.extend({
-    className: 'djblets-c-config-forms-list__item',
-    tagName: 'li',
-
-    iconBaseClassName: 'djblets-icon',
+@spina({
+    prototypeAttrs: [
+        'actionHandlers',
+        'iconBaseClassName',
+        'itemStateClasses',
+        'template',
+    ],
+})
+export class ListItemView<
+    TModel extends ListItem = ListItem,
+    TElement extends HTMLElement = HTMLDivElement,
+    TExtraViewOptions = unknown
+> extends BaseView<TModel, TElement, TExtraViewOptions> {
+    static className = 'djblets-c-config-forms-list__item';
+    static tagName = 'li';
+    static iconBaseClassName = 'djblets-icon';
 
     /**
      * A mapping of item states to CSS classes.
@@ -20,21 +42,34 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      * Subclasses can extend this to provide custom CSS classes, or support
      * custom item states.
      */
-    itemStateClasses: {
+    static itemStateClasses: { [key: string]: string } = {
         disabled: '-is-disabled',
         enabled: '-is-enabled',
         error: '-has-error',
-    },
+    };
 
-    actionHandlers: {},
-
-    template: _.template(dedent`
+    static template = _.template(dedent`
         <% if (editURL) { %>
         <a href="<%- editURL %>"><%- text %></a>
         <% } else { %>
         <%- text %>
         <% } %>
-    `),
+    `);
+
+    static actionHandlers: EventsHash = {};
+
+    /**********************
+     * Instance variables *
+     **********************/
+
+    /** The parent element for the loading spinner. */
+    $spinnerParent: JQuery;
+
+    /** The loading spinner. */
+    $spinner: JQuery;
+
+    /** The item state indicator. */
+    #$itemState: JQuery;
 
     /**
      * Initialize the view.
@@ -47,19 +82,15 @@ Djblets.Config.ListItemView = Backbone.View.extend({
 
         this.$spinnerParent = null;
         this.$spinner = null;
-    },
+    }
 
     /**
      * Render the view.
      *
      * This will be called every time the list of actions change for
      * the item.
-     *
-     * Returns:
-     *     Djblets.Config.ListItemView:
-     *     This view.
      */
-    render() {
+    onInitialRender() {
         const model = this.model;
 
         this.$el
@@ -69,16 +100,14 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                 this.getRenderContext()
             )));
 
-        this._$itemState =
+        this.#$itemState =
             this.$('.djblets-c-config-forms-list__item-state');
 
         this.listenTo(model, 'change:itemState', this._onItemStateChanged);
         this._onItemStateChanged();
 
         this.addActions(this.getActionsParent());
-
-        return this;
-    },
+    }
 
     /**
      * Return additional render context.
@@ -87,12 +116,12 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      * provide additional values to :js:attr:`template` when it is rendered.
      *
      * Returns:
-     *     object:
+     *     ListItemViewRenderContext:
      *     Additional rendering context for the template.
      */
-    getRenderContext() {
+    getRenderContext(): ListItemViewRenderContext {
         return {};
-    },
+    }
 
     /**
      * Remove the item.
@@ -100,9 +129,8 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      * This will fade out the item, and then remove it from view.
      */
     remove() {
-        this.$el.fadeOut('normal',
-                         () => Backbone.View.prototype.remove.call(this));
-    },
+        this.$el.fadeOut('normal', () => super.remove());
+    }
 
     /**
      * Return the container for the actions.
@@ -114,9 +142,9 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      *     jQuery:
      *     The container for the actions.
      */
-    getActionsParent() {
+    getActionsParent(): JQuery {
         return this.$el;
-    },
+    }
 
     /**
      * Display a spinner on the item.
@@ -137,7 +165,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
             .hide()
             .css('visibility', 'visible')
             .fadeIn();
-    },
+    }
 
     /**
      * Hide the currently visible spinner.
@@ -164,7 +192,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
         });
 
         this.$el.removeAttr('aria-busy');
-    },
+    }
 
     /**
      * Add all registered actions to the view.
@@ -173,7 +201,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      *     $parentEl (jQuery):
      *         The parent element to add the actions to.
      */
-    addActions($parentEl) {
+    addActions($parentEl: JQuery) {
         const $actions = $('<span>')
             .addClass('djblets-c-config-forms-list__item-actions');
 
@@ -198,7 +226,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
         this.$spinnerParent = $actions;
 
         $actions.prependTo($parentEl);
-    },
+    }
 
     /**
      * Show a dropdown for a menu action.
@@ -211,7 +239,10 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      *     $action (jQuery):
      *         The element that represents the action.
      */
-    _showActionDropdown(action, $action) {
+    _showActionDropdown(
+        action: ListItemAction,
+        $action: JQuery,
+    ) {
         const actionPos = $action.position();
         const $menu = $('<div/>')
             .css({
@@ -260,7 +291,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
 
             $menu.remove();
         });
-    },
+    }
 
     /**
      * Build the element for an action.
@@ -269,11 +300,11 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      * Otherwise, the action will be shown as a button.
      *
      * Args:
-     *     action (object):
+     *     action (ListItemAction):
      *         The action to show the dropdown for. See
      *         :js:class:`Djblets.Config.ListItem` for a list of attributes.
      */
-    _buildActionEl(action) {
+    _buildActionEl(action: ListItemAction) {
         const enabled = (action.enabled !== false);
         const actionHandlerName = (enabled
                                    ? this.actionHandlers[action.id]
@@ -281,8 +312,8 @@ Djblets.Config.ListItemView = Backbone.View.extend({
         const isCheckbox = (action.type === 'checkbox');
         const isRadio = (action.type === 'radio');
 
-        let $action;
-        let $result;
+        let $action: JQuery;
+        let $result: JQuery;
 
         if (isCheckbox || isRadio) {
             const inputID = _.uniqueId('action_' + action.type);
@@ -327,7 +358,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
 
             if (actionHandlerName) {
                 const actionHandler = _.debounce(
-                    _.bind(this[actionHandlerName], this),
+                    this[actionHandlerName].bind(this),
                     50,
                     true
                 );
@@ -392,7 +423,7 @@ Djblets.Config.ListItemView = Backbone.View.extend({
         }
 
         return $result;
-    },
+    }
 
     /**
      * Handle changes to the item state.
@@ -416,9 +447,9 @@ Djblets.Config.ListItemView = Backbone.View.extend({
              * Note that if we didn't find an element in the template for
              * this before, this is basically a no-op.
              */
-            this._$itemState.text(model.itemStateTexts[itemState]);
+            this.#$itemState.text(model.itemStateTexts[itemState]);
         }
-    },
+    }
 
     /**
      * Handle clicks on a list item action button.
@@ -438,7 +469,11 @@ Djblets.Config.ListItemView = Backbone.View.extend({
      *     $action (jQuery):
      *         The action button that was clicked.
      */
-    _onActionButtonClicked(evt, actionHandlerName, $action) {
+    _onActionButtonClicked(
+        evt: JQuery.ClickEvent,
+        actionHandlerName: string,
+        $action: JQuery,
+    ) {
         const promise = this[actionHandlerName].call(this, evt);
 
         if (promise && typeof promise.then === 'function') {
@@ -460,5 +495,5 @@ Djblets.Config.ListItemView = Backbone.View.extend({
                 $action.prop('disabled', false);
             });
         }
-    },
-});
+    }
+}
