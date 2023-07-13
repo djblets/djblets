@@ -88,13 +88,14 @@ frontend_buildkit_npm_dependencies: Dict[str, str] = {
     '@types/jquery': '^3.5.16',
     '@types/underscore': '^1.11.4',
     'backbone': '^1.4.1',
+    'jasmine-core': '^5.0.1',
     'jquery': '^3.6.3',
     'jquery-ui': '^1.13.2',
 }
 
 #: Dependencies required for static media linting.
 lint_npm_dependencies: Dict[str, str] = {
-    '@beanbag/eslint-plugin': '^1.0.0',
+    '@beanbag/eslint-plugin': '^1.0.1',
     'eslint': '^8.29.0',
 }
 
