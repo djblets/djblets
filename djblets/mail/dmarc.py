@@ -1,11 +1,11 @@
 """Functions for looking up DMARC entries in DNS."""
 
-import codecs
 import logging
+from pathlib import Path
 
 import dns.rdatatype
 import dns.resolver
-import pkg_resources
+import importlib_resources
 from publicsuffix import PublicSuffixList
 
 from djblets.cache.backend import DEFAULT_EXPIRATION_TIME, cache_memoize
@@ -261,12 +261,12 @@ def get_dmarc_record(hostname, use_cache=True,
         # provided. For this, we need to look up from a Public Suffix list.
         # The third-party module 'publicsuffix' will help us find that
         # domain, in combination with a data file we must ship.
-        filename = 'mail/public_suffix_list.dat'
+        filename = Path('mail', 'public_suffix_list.dat')
+        resource_path = importlib_resources.files('djblets') / filename
 
         try:
-            stream = pkg_resources.resource_stream('djblets', filename)
-            reader = codecs.getreader('utf-8')
-            psl = PublicSuffixList(reader(stream))
+            with resource_path.open('r') as fp:
+                psl = PublicSuffixList(fp)
         except IOError as e:
             logger.error('Unable to read public domain suffix list file '
                          '"%s" from Djblets package: %s',
