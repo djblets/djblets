@@ -50,11 +50,22 @@ package_dependencies = {
     'dnspython': '>=1.14.0',
     'feedparser': '>=5.1.2',
     'housekeeping': '~=1.1',
+    'packaging': '>=23.1',
     'Pillow': '>=6.2',
     'publicsuffix': '>=1.1',
     'python-dateutil': '>=2.7',
     'pytz': '',
     'typing_extensions': '>=4.4',
+
+    # importlib.metadata compatibility import.
+    #
+    # 6.6 is equivalent to importlib.metadata in Python 3.12.
+    'importlib-metadata': '>=6.6',
+
+    # importlib.resources compatibility import.
+    #
+    # 5.9 is equivalent to importlib.resources in Python 3.12.
+    'importlib-resources': '>=5.9',
 }
 
 
