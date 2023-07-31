@@ -487,6 +487,7 @@ Generic Utilities
    djblets.util.dates
    djblets.util.decorators
    djblets.util.filesystem
+   djblets.util.functional
    djblets.util.html
    djblets.util.http
    djblets.util.humanize
