@@ -263,6 +263,10 @@ class BuildStaticFiles(Command):
 
         # Load the entry points this package is providing, so we'll know
         # which extensions to scan.
+        #
+        # Note that Command subclasses still use pkg_resources.Distribution,
+        # rather than importlib.metadata.Distribution, so that's what we're
+        # working with here.
         entrypoints = pkg_resources.EntryPoint.parse_map(
             self.distribution.entry_points,
             dist=self.distribution)

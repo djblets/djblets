@@ -15,6 +15,7 @@ const globalsMap = {
     Backbone: 'Backbone',
     Djblets: 'Djblets',
     django: 'django',
+    'jasmine-core': 'window',
     jquery: '$',
     underscore: '_',
 };

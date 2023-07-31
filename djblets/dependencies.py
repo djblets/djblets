@@ -50,11 +50,22 @@ package_dependencies = {
     'dnspython': '>=1.14.0',
     'feedparser': '>=5.1.2',
     'housekeeping': '~=1.1',
+    'packaging': '>=23.1',
     'Pillow': '>=6.2',
     'publicsuffix': '>=1.1',
     'python-dateutil': '>=2.7',
     'pytz': '',
     'typing_extensions': '>=4.4',
+
+    # importlib.metadata compatibility import.
+    #
+    # 6.6 is equivalent to importlib.metadata in Python 3.12.
+    'importlib-metadata': '>=6.6',
+
+    # importlib.resources compatibility import.
+    #
+    # 5.9 is equivalent to importlib.resources in Python 3.12.
+    'importlib-resources': '>=5.9',
 }
 
 
@@ -77,13 +88,14 @@ frontend_buildkit_npm_dependencies: Dict[str, str] = {
     '@types/jquery': '^3.5.16',
     '@types/underscore': '^1.11.4',
     'backbone': '^1.4.1',
+    'jasmine-core': '^5.0.1',
     'jquery': '^3.6.3',
     'jquery-ui': '^1.13.2',
 }
 
 #: Dependencies required for static media linting.
 lint_npm_dependencies: Dict[str, str] = {
-    '@beanbag/eslint-plugin': '^1.0.0',
+    '@beanbag/eslint-plugin': '^1.0.1',
     'eslint': '^8.29.0',
 }
 

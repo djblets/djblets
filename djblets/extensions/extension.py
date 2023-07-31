@@ -1,11 +1,14 @@
 """Base classes for implementing extensions."""
 
+from __future__ import annotations
+
 import locale
 import logging
 import os
-from email.parser import FeedParser
+from pathlib import PosixPath
+from typing import ClassVar, Optional, TYPE_CHECKING, Type
 
-import pkg_resources
+import importlib_resources
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.templatetags.static import static
@@ -16,6 +19,9 @@ from django.utils.translation import gettext as _
 from djblets.extensions.errors import InstallExtensionMediaError
 from djblets.extensions.settings import ExtensionSettings
 from djblets.util.decorators import cached_property
+
+if TYPE_CHECKING:
+    from importlib_metadata import EntryPoint
 
 
 logger = logging.getLogger(__name__)
@@ -254,6 +260,12 @@ class Extension(object):
     #: Each entry in the list is a :py:class:`JSExtension` subclass to load.
     js_extensions = []
 
+    #: The ID of the extension.
+    id: ClassVar[str]
+
+    #: Information and metadata about the extension.
+    info: ClassVar[ExtensionInfo]
+
     def __init__(self, extension_manager):
         """Initialize the extension.
 
@@ -354,10 +366,20 @@ class ExtensionInfo(object):
     in the Python package for the extension.
     """
 
+    #: Encodings to try using to decode metadata.
+    #:
+    #: Deprecated:
+    #:     3.3:
+    #:     This is no longer used by Djblets and may be removed in a future
+    #:     version.
     encodings = ['utf-8', locale.getpreferredencoding(False), 'latin1']
 
     @classmethod
-    def create_from_entrypoint(cls, entrypoint, ext_class):
+    def create_from_entrypoint(
+        cls,
+        entrypoint: EntryPoint,
+        ext_class: Type[Extension],
+    ) -> ExtensionInfo:
         """Create a new ExtensionInfo from a Python EntryPoint.
 
         This will pull out information from the EntryPoint and return a new
@@ -367,7 +389,7 @@ class ExtensionInfo(object):
         and the newer :file:`METADATA` files.
 
         Args:
-            entrypoint (pkg_resources.EntryPoint):
+            entrypoint (importlib.metadata.EntryPoint):
                 The EntryPoint pointing to the extension class.
 
             ext_class (type):
@@ -378,73 +400,20 @@ class ExtensionInfo(object):
             An ExtensionInfo instance, populated with metadata from the
             package.
         """
-        metadata = cls._get_metadata_from_entrypoint(entrypoint, ext_class.id)
+        assert entrypoint.dist
+
+        # This is a 'PackageMetadata' protocol, which gives us some basic
+        # primitives for how to safely iterate over contents. This is not a
+        # simple dictionary under the hood.
+        dist_metadata = entrypoint.dist.metadata
+        metadata = {
+            key: dist_metadata[key]
+            for key in dist_metadata
+        }
 
         return cls(ext_class=ext_class,
                    package_name=metadata.get('Name', ext_class.id),
                    metadata=metadata)
-
-    @classmethod
-    def _get_metadata_from_entrypoint(cls, entrypoint, extension_id):
-        """Return metadata information from an entrypoint.
-
-        This is used internally to parse and validate package information from
-        an entrypoint for use in ExtensionInfo.
-
-        Args:
-            entrypoint (pkg_resources.EntryPoint):
-                The EntryPoint pointing to the extension class.
-
-            extension_id (unicode):
-                The extension's ID.
-
-        Returns:
-            dict:
-            The resulting metadata dictionary.
-        """
-        dist = entrypoint.dist
-
-        try:
-            # Wheel, or other modern package.
-            lines = list(dist.get_metadata_lines('METADATA'))
-        except IOError:
-            try:
-                # Egg, or other legacy package.
-                lines = list(dist.get_metadata_lines('PKG-INFO'))
-            except IOError:
-                lines = []
-                logger.error('No METADATA or PKG-INFO found for the package '
-                             'containing the %s extension. Information on '
-                             'the extension may be missing.',
-                             extension_id)
-
-        # pkg_resources on Python 3 will always give us back Unicode strings,
-        # but Python 2 may give us back either Unicode or byte strings.
-        if lines and isinstance(lines[0], bytes):
-            data = b'\n'.join(lines)
-
-            # Try to decode the PKG-INFO content. If no decoding method is
-            # successful then the PKG-INFO content will remain unchanged and
-            # processing will continue with the parsing.
-            for enc in cls.encodings:
-                try:
-                    data = data.decode(enc)
-                    break
-                except UnicodeDecodeError:
-                    continue
-            else:
-                logger.warning('Failed decoding PKG-INFO content for '
-                               'extension %s',
-                               entrypoint.name)
-        else:
-            data = '\n'.join(lines)
-
-        p = FeedParser()
-        p.feed(data)
-        pkg_info = p.close()
-
-        # Convert from a Message to a dictionary.
-        return dict(pkg_info.items())
 
     def __init__(self, ext_class, package_name, metadata={}):
         """Instantiate the ExtensionInfo using metadata and an extension class.
@@ -524,23 +493,32 @@ class ExtensionInfo(object):
         """
         return os.path.join(self.installed_static_path, '.version')
 
-    def has_resource(self, path):
+    def has_resource(
+        self,
+        path: str,
+    ) -> bool:
         """Return whether an extension has a resource in its package.
 
         A resource is a file or directory that exists within an extension's
         package.
 
         Args:
-            path (unicode):
+            path (str):
                 The ``/``-delimited path to the resource within the package.
 
         Returns:
             bool:
             ``True`` if the resource exits. ``False`` if it does not.
         """
-        return pkg_resources.resource_exists(self.module_name, path)
+        return (
+            importlib_resources.files(self.module_name) /
+            PosixPath(path)
+        ).is_file()
 
-    def extract_resource(self, path):
+    def extract_resource(
+        self,
+        path: str,
+    ) -> Optional[str]:
         """Return the filesystem path to an extracted resource.
 
         A resource is a file or directory that exists within an extension's
@@ -551,16 +529,25 @@ class ExtensionInfo(object):
         filesystem.
 
         Args:
-            path (unicode):
+            path (str):
                 The ``/``-delimited path to the resource within the package.
 
         Returns:
-            unicode:
+            str:
             The local filesystem path to the resource, or ``None`` if it
             could not be found.
         """
         if self.has_resource(path):
-            return pkg_resources.resource_filename(self.module_name, path)
+            # Note that we're only supporting static files that exist on the
+            # filesystem, and aren't in some hypothetical zipped package or
+            # something. This is safe for Wheels.
+            #
+            # If we didn't want to make this assumption, we'd need to use
+            # importlib.resources.as_file(), which would set up a temp
+            # directory in either case. We don't want that, so we'll keep
+            # our assumption.
+            return str(importlib_resources.files(self.module_name) /
+                       PosixPath(path))
 
         return None
 

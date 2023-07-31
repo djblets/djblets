@@ -1,8 +1,12 @@
 """Template loaders for extensions."""
 
+from __future__ import annotations
+
+from pathlib import PosixPath
+
+import importlib_resources
 from django.template import Origin, TemplateDoesNotExist
 from django.template.loaders.base import Loader as BaseLoader
-from pkg_resources import _manager as manager
 
 from djblets.extensions.manager import get_extension_managers
 
@@ -48,9 +52,12 @@ class Loader(BaseLoader):
     .. versionadded:: 0.9
     """
 
-    is_usable = manager is not None
+    is_usable = True
 
-    def get_contents(self, origin):
+    def get_contents(
+        self,
+        origin: ExtensionOrigin,
+    ) -> str:
         """Return the contents of a template.
 
         Args:
@@ -58,7 +65,7 @@ class Loader(BaseLoader):
                 The origin of the template.
 
         Returns:
-            unicode:
+            str:
             The resulting template contents.
 
         Raises:
@@ -66,8 +73,10 @@ class Loader(BaseLoader):
                 The template could not be found.
         """
         try:
-            data = manager.resource_string(origin.package, origin.resource)
-            return data.decode('utf-8')
+            path = (importlib_resources.files(origin.package) /
+                    PosixPath(origin.resource))
+
+            return path.read_text()
         except Exception:
             raise TemplateDoesNotExist(origin)
 
@@ -82,16 +91,15 @@ class Loader(BaseLoader):
             ExtensionOrigin:
             Each possible location for the template.
         """
-        if manager:
-            resource = "templates/" + template_name
+        resource = f'templates/{template_name}'
 
-            for extmgr in get_extension_managers():
-                for ext in extmgr.get_enabled_extensions():
-                    package = ext.info.app_name
+        for extmgr in get_extension_managers():
+            for ext in extmgr.get_enabled_extensions():
+                package = ext.info.app_name
 
-                    yield ExtensionOrigin(
-                        package=package,
-                        resource=resource,
-                        name='extension:%s:%s' % (package, resource),
-                        template_name=template_name,
-                        loader=self)
+                yield ExtensionOrigin(
+                    package=package,
+                    resource=resource,
+                    name=f'extension:{package}:{resource}',
+                    template_name=template_name,
+                    loader=self)

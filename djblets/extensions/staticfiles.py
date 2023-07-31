@@ -1,15 +1,21 @@
+"""Support for looking up static files in extensions."""
+
+from __future__ import annotations
+
 import os
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from django.contrib.staticfiles.finders import (BaseFinder, FileSystemFinder,
                                                 get_finders)
 from django.contrib.staticfiles.utils import get_files
 from django.core.files.storage import FileSystemStorage
 from pipeline.finders import PipelineFinder
-from pkg_resources import resource_filename
 
 from djblets.extensions.manager import get_extension_managers
 from djblets.pipeline.storage import PipelineStorage
+
+if TYPE_CHECKING:
+    from djblets.extensions.extension import Extension
 
 
 class ExtensionStaticStorage(FileSystemStorage):
@@ -23,11 +29,31 @@ class ExtensionStaticStorage(FileSystemStorage):
     source_dir = 'static'
     prefix = None
 
-    def __init__(self, extension, *args, **kwargs):
-        location = resource_filename(extension.__class__.__module__,
-                                     self.source_dir)
+    def __init__(
+        self,
+        extension: Extension,
+        *args,
+        **kwargs,
+    ) -> None:
+        """Initialize the static files storage for an extension.
 
-        super(ExtensionStaticStorage, self).__init__(location, *args, **kwargs)
+        This will build a path for the extension's static directory and set
+        it, whether it exists or not.
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension the static files storage is bound to.
+
+            *args (tuple):
+                Positional arguments to pass to the parent class.
+
+            **kwargs (dict):
+                Keyword arguments to pass to the parent class.
+        """
+        location = extension.info.extract_resource(self.source_dir)
+
+        super(ExtensionStaticStorage, self).__init__(location, *args,
+                                                     **kwargs)
 
 
 class ExtensionFinder(BaseFinder):

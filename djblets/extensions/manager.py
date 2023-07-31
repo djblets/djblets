@@ -1,10 +1,11 @@
 """Extension manager class for supporting extensions to an application."""
 
+from __future__ import annotations
+
 import atexit
 import errno
 import logging
 import os
-import pkg_resources
 import shutil
 import sys
 import tempfile
@@ -15,7 +16,9 @@ import warnings
 import weakref
 from contextlib import contextmanager
 from importlib import import_module, reload
+from typing import Iterator, Optional
 
+import importlib_metadata
 from django.apps.registry import apps
 from django.conf import settings
 from django.contrib.admin.sites import AdminSite
@@ -24,8 +27,8 @@ from django.db import IntegrityError
 from django.urls import include, path, reverse
 from django.utils.module_loading import module_has_submodule
 from django.utils.translation import gettext as _
+from packaging.version import InvalidVersion, Version, parse as parse_version
 from pipeline.conf import settings as pipeline_settings
-from setuptools.command import easy_install
 
 try:
     from django_evolution.evolve import Evolver
@@ -257,8 +260,6 @@ class ExtensionManager(object):
                 must also be the same key used to look up Python entry points.
         """
         self.key = key
-
-        self.pkg_resources = None
 
         self._extension_classes = {}
         self._extension_instances = {}
@@ -593,11 +594,11 @@ class ExtensionManager(object):
         This will attempt to install or upgrade an extension package using
         :command:`easy_install`.
 
-        Notes:
-            This currently does not support Wheel packages, and is considered a
-            highly-experimental and unsupported feature. The functionality and
-            function signature of this package is expected to change.
-            Basically, expect breakages.
+        Deprecated:
+            3.3:
+            This support has been removed. It's never worked quite right,
+            didn't keep up with modern Python Wheel packages, and was
+            previously documented as not being fully-supported.
 
         Args:
             install_url (unicode):
@@ -608,23 +609,14 @@ class ExtensionManager(object):
 
         Raises:
             djblets.extensions.errors.InstallExtensionError:
-                There was an error installing the extension.
+                Always raised to indicate support is unavailable.
         """
-        try:
-            easy_install.main(['-U', install_url])
-
-            # Update the entry points.
-            dist = pkg_resources.get_distribution(package_name)
-            dist.activate()
-            pkg_resources.working_set.add(dist)
-        except pkg_resources.DistributionNotFound:
-            raise InstallExtensionError(_('Invalid package name.'))
-        except SystemError:
-            raise InstallExtensionError(
-                _('Installation failed (probably malformed URL).'))
-
-        # Refresh the extension manager.
-        self.load(True)
+        # This did not go through a deprecation cycle, but the implementation
+        # is too risky to keep around in the current form. This was never
+        # fully supported.
+        raise InstallExtensionError(
+            'install_extension() has not fully worked in a long time, and '
+            'does not work in modern environments. Support is unavailable.')
 
     def load(self, full_reload=False):
         """Load information on all extensions on the system.
@@ -698,8 +690,7 @@ class ExtensionManager(object):
             except Exception as e:
                 logger.exception('Error loading extension %s: %s',
                                  entrypoint.name, e)
-                extension_id = '%s.%s' % (entrypoint.module_name,
-                                          '.'.join(entrypoint.attrs))
+                extension_id = '%s.%s' % (entrypoint.module, entrypoint.attr)
                 self._store_load_error(extension_id, e)
                 continue
 
@@ -726,8 +717,10 @@ class ExtensionManager(object):
                 if not hasattr(ext_class, 'registration'):
                     find_registrations = True
             else:
+                assert entrypoint.dist is not None
+
                 registrations_to_fetch.append(
-                    (class_name, entrypoint.dist.project_name))
+                    (class_name, entrypoint.dist.name))
                 find_registrations = True
 
         if find_registrations:
@@ -914,9 +907,18 @@ class ExtensionManager(object):
             else:
                 old_version = None
 
-            if (not old_version or
-                pkg_resources.parse_version(old_version) <
-                pkg_resources.parse_version(cur_version)):
+            parsed_old_version = self._parse_version(old_version)
+            parsed_cur_version = self._parse_version(cur_version)
+
+            if parsed_cur_version is None:
+                logger.warning('Could not parse the version "%s" for '
+                               'extension "%s". This is not a valid Python '
+                               'package version. Database upgrades will not '
+                               'be performed.',
+                               cur_version,
+                               extension_id)
+            elif (parsed_old_version is None or
+                  parsed_old_version < parsed_cur_version):
                 # If any models are introduced by this extension, we may need
                 # to update the database.
                 self._sync_database(ext_class, new_installed_apps)
@@ -924,14 +926,14 @@ class ExtensionManager(object):
                 # Record this version so we don't update the database again.
                 extension.settings.set(self.VERSION_SETTINGS_KEY, cur_version)
                 extension.settings.save()
-            elif (old_version and
-                  pkg_resources.parse_version(old_version) >
-                  pkg_resources.parse_version(cur_version)):
-                logger.warning('The version of the "%s" extension installed '
-                               'on the server is older than the version '
-                               'recorded in the database! Upgrades will not '
-                               'be performed.',
-                               ext_class)
+            elif (parsed_old_version is not None and
+                  parsed_old_version > parsed_cur_version):
+                logger.warning(
+                    'The version of the "%s" extension installed '
+                    'on the server is older than the version '
+                    'recorded in the database! Upgrades will not '
+                    'be performed.',
+                    ext_class)
 
             # Mark the extension as installed.
             if not ext_class.registration.installed:
@@ -1516,18 +1518,20 @@ class ExtensionManager(object):
         # Now clear the apps and their modules from any caches.
         apps.unset_installed_apps()
 
-    def _entrypoint_iterator(self):
+    def _entrypoint_iterator(
+        self,
+    ) -> Iterator[importlib_metadata.EntryPoint]:
         """Iterate through registered Python entry points.
 
         This is a thin wrapper around
-        :py:func:`pkg_resources.iter_entry_points`. It's primarily here for
+        :py:func:`importlib.metadata.entry_points`. It's primarily here for
         unit test purposes.
 
         Yields:
-            pkg_resources.EntryPoint:
+            importlib.metadata.EntryPoint:
             A Python entry point for the extension manager's key.
         """
-        return pkg_resources.iter_entry_points(self.key)
+        return iter(importlib_metadata.entry_points(group=self.key))
 
     def _bump_sync_gen(self):
         """Bump the synchronization generation value.
@@ -1599,6 +1603,34 @@ class ExtensionManager(object):
 
         middleware.extend(extension.middleware_classes)
         return middleware
+
+    def _parse_version(
+        self,
+        version: Optional[str],
+    ) -> Optional[Version]:
+        """Parse and return a Version for a package.
+
+        If the version can't be parsed, ``None`` will be returned.
+
+        Version Added:
+            3.3
+
+        Args:
+            version (str):
+                The version string.
+
+        Returns:
+            packaging.version.Version:
+            The parsed version, or ``None`` if the version could not be
+            parsed.
+        """
+        if version is not None:
+            try:
+                return parse_version(version)
+            except InvalidVersion:
+                pass
+
+        return None
 
     @contextmanager
     def _open_lock_file(self, ext_class, filename,

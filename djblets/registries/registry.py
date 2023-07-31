@@ -6,12 +6,14 @@ For information on writing registries, see
 :ref:`the guide on writing registries <writing-registries>`.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import (Dict, Generic, Iterable, Iterator, List, Optional,
                     Sequence, Set, TYPE_CHECKING, Type, TypeVar)
 
 from django.utils.translation import gettext_lazy as _
-from pkg_resources import EntryPoint, iter_entry_points
+from importlib_metadata import EntryPoint, entry_points
 from typing_extensions import Final, TypeAlias
 
 from djblets.registries.errors import (AlreadyRegisteredError,
@@ -496,9 +498,9 @@ class EntryPointRegistry(Registry[RegistryItemType]):
             The object from the entry point.
         """
         if self.entry_point is not None:
-            entry_points = iter_entry_points(self.entry_point)
+            eps = entry_points(group=self.entry_point)
 
-            for ep in entry_points:
+            for ep in eps:
                 try:
                     yield self.process_value_from_entry_point(ep)
                 except Exception as e:
@@ -515,7 +517,7 @@ class EntryPointRegistry(Registry[RegistryItemType]):
         By default, this returns the loaded entry point.
 
         Args:
-            entry_point (pkg_resources.EntryPoint):
+            entry_point (importlib.metadata.EntryPoint):
                 The entry point.
 
         Returns:

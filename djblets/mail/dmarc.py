@@ -1,20 +1,26 @@
 """Functions for looking up DMARC entries in DNS."""
 
-import codecs
+from __future__ import annotations
+
 import logging
+from enum import Enum
+from pathlib import Path
+from typing import Dict, Optional
 
 import dns.rdatatype
 import dns.resolver
-import pkg_resources
+import importlib_resources
+from housekeeping import deprecate_non_keyword_only_args
 from publicsuffix import PublicSuffixList
 
 from djblets.cache.backend import DEFAULT_EXPIRATION_TIME, cache_memoize
+from djblets.deprecation import RemovedInDjblets60Warning
 
 
 logger = logging.getLogger(__name__)
 
 
-class DmarcPolicy(object):
+class DmarcPolicy(Enum):
     """Types of DMARC policies.
 
     These policies define what happens if an e-mail fails sender verification
@@ -38,29 +44,33 @@ class DmarcPolicy(object):
     #: E-mails should be rejected if verification fails.
     REJECT = 3
 
-    _POLICY_TYPE_MAP = {
-        'none': NONE,
-        'quarantine': QUARANTINE,
-        'reject': REJECT,
-    }
-
     @classmethod
-    def parse(cls, policy_str):
+    def parse(
+        cls,
+        policy_str: str,
+    ) -> DmarcPolicy:
         """Return a policy type from a value in a DMARC record.
 
         Args:
-            policy_str (unicode):
+            policy_str (str):
                 The policy type from the record.
 
         Returns:
-            int:
-            One of :py:attr:`UNSET`, :py:attr:`NONE`, :py:attr:`QUARANTINE`,
-            or :py:attr:`REJECT`.
+            DmarcPolicy:
+            The parsed DMARC policy type, or :py:attr:`UNSET` if an invalid
+            value is specified.
         """
-        return cls._POLICY_TYPE_MAP.get(policy_str.lower(), cls.UNSET)
+        if policy_str == 'none':
+            return cls.NONE
+        elif policy_str == 'quarantine':
+            return cls.QUARANTINE
+        elif policy_str == 'reject':
+            return cls.REJECT
+        else:
+            return cls.UNSET
 
 
-class DmarcRecord(object):
+class DmarcRecord:
     """Information on a DMARC record for a subdomain or organization domain.
 
     This is a parsed representation of the contents of a standard DMARC TXT
@@ -75,12 +85,56 @@ class DmarcRecord(object):
     and setting the :mailheader:`Reply-To` header).
     """
 
-    def __init__(self, hostname, policy, subdomain_policy=DmarcPolicy.UNSET,
-                 pct=100, fields={}):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: Additional fields from the record.
+    #:
+    #: Type:
+    #:     dict
+    fields: Dict[str, str]
+
+    #: The hostname containing the DMARC TXT record.
+    #:
+    #: Type:
+    #:     str
+    hostname: str
+
+    #: The percentage of e-mails that should be subject to the sender policy.
+    #:
+    #: This is a range between 0 and 100.
+    #:
+    #: Type:
+    #:     int
+    pct: int
+
+    #: The sender policy defined for the record.
+    #:
+    #: Type:
+    #:     DmarcPolicy
+    policy: DmarcPolicy
+
+    #: The sender policy defined for subdomains on this domain.
+    #:
+    #: Type:
+    #:     DmarcPolicy
+    subdomain_policy: DmarcPolicy
+
+    @deprecate_non_keyword_only_args(RemovedInDjblets60Warning)
+    def __init__(
+        self,
+        *,
+        hostname: str,
+        policy: DmarcPolicy,
+        subdomain_policy: DmarcPolicy = DmarcPolicy.UNSET,
+        pct: int = 100,
+        fields: Dict[str, str] = {},
+    ) -> None:
         """Initialize the record.
 
         Args:
-            hostname (unicode):
+            hostname (str):
                 The hostname containing the ``_dmarc.`` TXT record.
 
             policy (int):
@@ -102,7 +156,10 @@ class DmarcRecord(object):
         self.pct = pct
         self.fields = fields
 
-    def __eq__(self, other):
+    def __eq__(
+        self,
+        other: object,
+    ) -> bool:
         """Return whether two records are equal.
 
         Records are considered equal if they have the same
@@ -116,18 +173,23 @@ class DmarcRecord(object):
             bool:
             ``True`` if the two records are equal. ``False`` if they are not.
         """
-        return (self.hostname == other.hostname and
+        return (isinstance(other, DmarcRecord) and
+                self.hostname == other.hostname and
                 self.fields == other.fields)
 
     @classmethod
-    def parse(cls, hostname, txt_record):
+    def parse(
+        cls,
+        hostname: str,
+        txt_record: str,
+    ) -> Optional[DmarcRecord]:
         """Return a DmarcRecord from a DMARC TXT record.
 
         Args:
-            hostname (unicode):
+            hostname (str):
                 The hostname owning the ``_dmarc.`` TXT record.
 
-            txt_record (unicode):
+            txt_record (str):
                 The TXT record contents representing the DMARC configuration.
 
         Returns:
@@ -140,7 +202,7 @@ class DmarcRecord(object):
             # it's not a valid DMARC record.
             return None
 
-        fields = {}
+        fields: Dict[str, str] = {}
 
         for part in txt_record.strip('"').split(';'):
             try:
@@ -172,7 +234,11 @@ class DmarcRecord(object):
                    fields=fields)
 
 
-def _fetch_dmarc_record(hostname, use_cache, cache_expiration):
+def _fetch_dmarc_record(
+    hostname: str,
+    use_cache: bool,
+    cache_expiration: int,
+) -> Optional[DmarcRecord]:
     """Fetch a DMARC record from DNS, optionally caching it.
 
     This will query DNS for the DMARC record for a given hostname, returning
@@ -183,13 +249,13 @@ def _fetch_dmarc_record(hostname, use_cache, cache_expiration):
     This is used internally by :py:func:`get_dmarc_record`.
 
     Args:
-        hostname (unicode):
+        hostname (str):
             The hostname to fetch the record from.
 
-        use_cache (bool, optional):
+        use_cache (bool):
             Whether to use the cache for looking up and storing record data.
 
-        cache_expiration (int, optional):
+        cache_expiration (int):
             The expiration time for cached data.
 
     Returns:
@@ -197,14 +263,18 @@ def _fetch_dmarc_record(hostname, use_cache, cache_expiration):
         The DMARC record. If it could not be found, or DNS lookup failed,
         ``None`` will be returned instead.
     """
-    def _fetch_record():
+    def _fetch_record() -> str:
         try:
             return dns.resolver.resolve('_dmarc.%s' % hostname,
                                         dns.rdatatype.TXT,
                                         search=True)[0].to_text()
-        except (IndexError, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer,
+        except (IndexError,
+                dns.resolver.NXDOMAIN,
+                dns.resolver.NoAnswer,
                 dns.resolver.NoNameservers):
             raise ValueError
+
+    record_str: Optional[str]
 
     try:
         if use_cache:
@@ -223,8 +293,11 @@ def _fetch_dmarc_record(hostname, use_cache, cache_expiration):
     return None
 
 
-def get_dmarc_record(hostname, use_cache=True,
-                     cache_expiration=DEFAULT_EXPIRATION_TIME):
+def get_dmarc_record(
+    hostname: str,
+    use_cache: bool = True,
+    cache_expiration: int = DEFAULT_EXPIRATION_TIME,
+) -> Optional[DmarcRecord]:
     """Return a DMARC record for a given hostname.
 
     This will query the DNS records for a hostname, returning a parsed version
@@ -238,7 +311,7 @@ def get_dmarc_record(hostname, use_cache=True,
     as is the expiration time for the cached data (which defaults to 1 month).
 
     Args:
-        hostname (unicode):
+        hostname (str):
             The hostname to look up the DMARC information from.
 
         use_cache (bool, optional):
@@ -261,12 +334,12 @@ def get_dmarc_record(hostname, use_cache=True,
         # provided. For this, we need to look up from a Public Suffix list.
         # The third-party module 'publicsuffix' will help us find that
         # domain, in combination with a data file we must ship.
-        filename = 'mail/public_suffix_list.dat'
+        filename = Path('mail', 'public_suffix_list.dat')
+        resource_path = importlib_resources.files('djblets') / filename
 
         try:
-            stream = pkg_resources.resource_stream('djblets', filename)
-            reader = codecs.getreader('utf-8')
-            psl = PublicSuffixList(reader(stream))
+            with resource_path.open('r') as fp:
+                psl = PublicSuffixList(fp)
         except IOError as e:
             logger.error('Unable to read public domain suffix list file '
                          '"%s" from Djblets package: %s',
@@ -282,7 +355,9 @@ def get_dmarc_record(hostname, use_cache=True,
     return record
 
 
-def is_email_allowed_by_dmarc(email_address):
+def is_email_allowed_by_dmarc(
+    email_address: str,
+) -> bool:
     """Return whether DMARC rules safely allow sending using an e-mail address.
 
     This will take an e-mail address (which must be in the form of
@@ -294,7 +369,7 @@ def is_email_allowed_by_dmarc(email_address):
     e-mail address, or whether they need to send using the service's address.
 
     Args:
-        email_address (unicode):
+        email_address (str):
             The e-mail address for the From field.
 
     Returns:

@@ -1,9 +1,15 @@
 """Mixins for test cases that need to test enabled extensions."""
 
-import pkg_resources
+from __future__ import annotations
+
+import os
 import uuid
 import weakref
 from contextlib import contextmanager
+from pathlib import Path
+from typing import Optional, Union
+
+import importlib_metadata
 
 from djblets.extensions.extension import ExtensionInfo
 from djblets.extensions.manager import (ExtensionManager,
@@ -12,7 +18,7 @@ from djblets.extensions.manager import (ExtensionManager,
 from djblets.extensions.models import RegisteredExtension
 
 
-class _FakeProvider(pkg_resources.DefaultProvider):
+class _FakeProvider:
     """A fake provider for a distribution.
 
     Version Added:
@@ -80,37 +86,168 @@ class _FakeProvider(pkg_resources.DefaultProvider):
         ).encode('utf-8')
 
 
-class _FakeEntryPoint(object):
+class _FakeDistribution(importlib_metadata.Distribution):
+    """A fake packaging distribution.
+
+    Version Added:
+        3.3
+    """
+
+    def __init__(
+        self,
+        files,
+    ) -> None:
+        """Initialize the distribution.
+
+        Args:
+            files (dict):
+                A dictionary of resource filenames to Unicode contents.
+        """
+        self._files = files
+
+    def read_text(
+        self,
+        filename: str,
+    ) -> Optional[str]:
+        """Return text for a file.
+
+        Args:
+            filename (str):
+                The resource filename.
+
+        Returns:
+            str:
+            The text content, or ``None`` if the file could not be found.
+        """
+        try:
+            return self._files[filename]
+        except KeyError:
+            return None
+
+    def locate_file(
+        self,
+        path: Union[str, os.PathLike],
+    ) -> Path:
+        """Return the path to a resource file.
+
+        This returns the path as-is, wrapped in a :py:class:`pathlib.Path`.
+
+        Args:
+            path (str):
+                The resource path.
+
+        Returns:
+            pathlib.Path:
+            The wrapped path.
+        """
+        return Path(path)
+
+
+class _FakeEntryPoint:
     """A fake entry point.
 
-    This is modelled after :py:class:`pkg_resources.EntryPoint`.
+    This is modelled after :py:class:`importlib.metadata.EntryPoint`.
 
     Version Added:
         2.3
     """
 
-    def __init__(self, value, project_name, version='1.0', **metadata_kwargs):
+    def __init__(
+        self,
+        value,
+        project_name: str = 'ExampleProject',
+        version: str = '1.0',
+        *,
+        author: str = 'Example Author',
+        author_email: str = 'author@example.com',
+        description: str = 'Test description\u2049',
+        home_page: str = 'http://example.com',
+        license_name: str = 'Drivers',
+        summary: str = 'Test summary',
+        **metadata_kwargs,
+    ) -> None:
         """Initialize the FakeEntryPoint.
+
+        Version Changed:
+            3.3:
+            Added argument and default values for ``author``, ``author_email``,
+            ``description``, ``home_page``, ``license_name``, ``summary``,
+            and ``version``. These are preferred over older Python package
+            metadata names.
 
         Args:
             value (object):
                 The value to be returned when the entry point is loaded.
 
-            project_name (unicode):
+            project_name (str, optional):
                 The project name. This will be set in the metadata and as
-                the distribution's name.
+-               the distribution's name.
 
-            **metadata_kwargs (dict):
-                Keyword arguments to pass to the associated
-                :py:class:`FakeProvider` constructor.
+                Version Changed:
+                    3.3:
+                    This now has a default value.
+
+            version (str, optional):
+                The value for the ``Version`` metadata field.
+
+                Version Added:
+                    3.3
+
+            author (str, optional):
+                The value for the ``Author`` metadata field.
+
+                Version Added:
+                    3.3
+
+            author_email (str, optional):
+                The value for the ``Author-email`` metadata field.
+
+                Version Added:
+                    3.3
+
+            description (str, optional):
+                The value for the ``Description`` metadata field.
+
+                Version Added:
+                    3.3
+
+            home_page (str, optional):
+                The value for the ``Home-page`` metadata field.
+
+                Version Added:
+                    3.3
+
+            license_name (str, optional):
+                The value for the ``License`` metadata field.
+
+                Version Added:
+                    3.3
+
+            summary (str, optional):
+                The value for the ``Summary`` metadata field.
+
+                Version Added:
+                    3.3
         """
+        metadata = {
+            'Author': author,
+            'Author-email': author_email,
+            'Description': description,
+            'Home-page': home_page,
+            'License': license_name,
+            'Name': project_name,
+            'Summary': summary,
+            'Version': version,
+        }
+        metadata.update(metadata_kwargs)
+
         self._value = value
-        self.dist = pkg_resources.Distribution(
-            project_name=project_name,
-            version=version,
-            metadata=_FakeProvider(project_name=project_name,
-                                   version=version,
-                                   **metadata_kwargs))
+        self.dist = _FakeDistribution(files={
+            'METADATA': ''.join(
+                f'{key}: {value}\n'
+                for key, value in metadata.items()
+            )
+        })
 
     def load(self):
         """Load the entry point.
