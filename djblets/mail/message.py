@@ -1,15 +1,23 @@
 """E-mail message composition and sending."""
 
+from __future__ import annotations
+
 import logging
 from email.utils import parseaddr
+from typing import Dict, Optional, Sequence, TYPE_CHECKING, Union
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.utils.datastructures import MultiValueDict
 from django.utils.encoding import force_str
+from housekeeping import deprecate_non_keyword_only_args
 
+from djblets.deprecation import RemovedInDjblets60Warning
 from djblets.mail.dmarc import is_email_allowed_by_dmarc
 from djblets.mail.utils import build_email_address_via_service
+
+if TYPE_CHECKING:
+    from django.core.mail.message import SafeMIMEText
 
 
 logger = logging.getLogger(__name__)
@@ -67,60 +75,95 @@ class EmailMessage(EmailMultiAlternatives):
     #: Never spoof the From address for a user.
     FROM_SPOOFING_NEVER = 'never'
 
-    def __init__(self, subject='', text_body='', html_body='', from_email=None,
-                 to=None, cc=None, bcc=None, sender=None, in_reply_to=None,
-                 headers=None, auto_generated=False,
-                 prevent_auto_responses=False, from_spoofing=None,
-                 enable_smart_spoofing=None):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The stored Message-ID of the sent e-mail.
+    message_id: Optional[str]
+
+    #: Extra multi-value headers to apply to the message.
+    _headers: MultiValueDict[str, str]
+
+    @deprecate_non_keyword_only_args(RemovedInDjblets60Warning)
+    def __init__(
+        self,
+        *,
+        subject: str = '',
+        text_body: str = '',
+        html_body: str = '',
+        from_email: Optional[str] = None,
+        to: Optional[Sequence[str]] = None,
+        cc: Optional[Sequence[str]] = None,
+        bcc: Optional[Sequence[str]] = None,
+        sender: Optional[str] = None,
+        in_reply_to: Optional[str] = None,
+        headers: Optional[Union[Dict[str, str],
+                                MultiValueDict[str, str]]] = None,
+        auto_generated: bool = False,
+        prevent_auto_responses: bool = False,
+        from_spoofing: Optional[str] = None,
+        enable_smart_spoofing: Optional[bool] = None,
+    ) -> None:
         """Create a new EmailMessage.
 
         Args:
-            subject (unicode, optional):
-                The subject of the message. Defaults to being blank (which
-                MTAs might replace with "no subject".)
+            subject (str, optional):
+                The subject of the message.
 
-            text_body (unicode, optional):
-                The body of the e-mail as plain text. Defaults to an empty
-                string (allowing HTML-only e-mails to be sent).
+                Defaults to being blank (which MTAs might replace with "no
+                subject".)
 
-            html_body (unicode, optional):
-                The body of the e-mail as HTML. Defaults to an empty string
-                (allowing text-only e-mails to be sent).
+            text_body (str, optional):
+                The body of the e-mail as plain text.
 
-            from_email (unicode, optional):
-                The from address for the e-mail. Defaults to
-                :django:setting:`DEFAULT_FROM_EMAIL`.
+                Defaults to an empty string (allowing HTML-only e-mails to be
+                sent).
+
+            html_body (str, optional):
+                The body of the e-mail as HTML.
+
+                Defaults to an empty string (allowing text-only e-mails to be
+                sent).
+
+            from_email (str, optional):
+                The from address for the e-mail.
+
+                Defaults to :django:setting:`DEFAULT_FROM_EMAIL`.
 
             to (list, optional):
-                A list of e-mail addresses as :py:class:`unicode` objects that
-                are to receive the e-mail. Defaults to an empty list of
-                addresses (allowing using CC/BCC only).
+                A list of e-mail addresses that are to receive the e-mail.
+
+                Defaults to an empty list of addresses (allowing using CC/BCC
+                only).
 
             cc (list, optional):
-                A list of e-mail addresses as :py:class:`unicode` objects that
-                are to receive a carbon copy of the e-mail, or ``None`` if
-                there are no CC recipients.
+                A list of e-mail addresses that are to receive a carbon copy
+                of the e-mail, or ``None`` if there are no CC recipients.
 
             bcc (list, optional):
-                A list of e-mail addresses as :py:class:`unicode` objects that
-                are to receive a blind carbon copy of the e-mail, or ``None``
-                if there are not BCC recipients.
+                A list of e-mail addresses that are to receive a blind carbon
+                copy of the e-mail, or ``None`` if there are not BCC
+                recipients.
 
-            sender (unicode, optional):
+            sender (str, optional):
                 The actual e-mail address sending this e-mail, for use in
-                the :mailheader:`Sender` header. If this differs from
-                ``from_email``, it will be left out of the header as per
-                :rfc:`2822`.
+                the :mailheader:`Sender` header.
+
+                If this differs from ``from_email``, it will be left out of the
+                header as per :rfc:`2822`.
 
                 This will default to :django:setting:`DEFAULT_FROM_EMAIL`
                 if unspecified.
 
-            in_reply_to (unicode, optional):
+            in_reply_to (str, optional):
                 An optional message ID (which will be used as the value for the
                 :mailheader:`In-Reply-To` and :mailheader:`References`
-                headers). This will be generated if not provided and will be
-                available as the :py:attr:`message_id` attribute after the
-                e-mail has been sent.
+                headers).
+
+                This will be generated if not provided and will be available as
+                the :py:attr:`message_id` attribute after the e-mail has been
+                sent.
 
             headers (django.utils.datastructures.MultiValueDict, optional):
                 Extra headers to provide with the e-mail.
@@ -135,8 +178,10 @@ class EmailMessage(EmailMultiAlternatives):
                 replies for delivery reports, read receipts, out of office
                 e-mails, and other auto-generated e-mails from Exchange.
 
-            from_spoofing (int, optional):
-                Whether to spoof the :mailheader:`From` header for the user.
+            from_spoofing (str, optional):
+                Optional behavior for spoofing a user's e-mail address in the
+                :mailheader:`From` header.
+
                 This can be one of :py:attr:`FROM_SPOOFING_ALWAYS`,
                 :py:attr:`FROM_SPOOFING_SMART`, or
                 :py:attr:`FROM_SPOOFING_NEVER`.
@@ -150,10 +195,15 @@ class EmailMessage(EmailMultiAlternatives):
             enable_smart_spoofing (bool, optional):
                 Whether to enable smart spoofing of any e-mail addresses for
                 the :mailheader:`From` header (if ``from_spoofing`` is
-                ``None``). This defaults to
-                ``settings.EMAIL_ENABLE_SMART_SPOOFING``.
+                ``None``).
+
+                This defaults to ``settings.EMAIL_ENABLE_SMART_SPOOFING``.
 
                 This is deprecated in favor of ``from_spoofing``.
+
+                Deprecated:
+                    4.0:
+                    This will be removed in Djblets 6.
         """
         headers = headers or MultiValueDict()
 
@@ -161,16 +211,17 @@ class EmailMessage(EmailMultiAlternatives):
             not isinstance(headers, MultiValueDict)):
             # Instantiating a MultiValueDict from a dict does not ensure that
             # values are lists, so we have to ensure that ourselves.
-            headers = MultiValueDict(dict(
-                (key, [value])
+            headers = MultiValueDict({
+                key: [value]
                 for key, value in headers.items()
-            ))
+            })
 
         if in_reply_to:
             headers['In-Reply-To'] = in_reply_to
             headers['References'] = in_reply_to
 
-        headers['Reply-To'] = from_email
+        if from_email:
+            headers['Reply-To'] = from_email
 
         if from_spoofing is None:
             if enable_smart_spoofing is None:
@@ -178,6 +229,14 @@ class EmailMessage(EmailMultiAlternatives):
                     getattr(settings, 'EMAIL_ENABLE_SMART_SPOOFING', None)
 
             if enable_smart_spoofing is not None:
+                RemovedInDjblets60Warning.warn(
+                    'settings.EMAIL_ENABLE_SMART_SPOOFING and the '
+                    'enable_smart_spoofing argument to '
+                    'djblets.mail.message.MailMessage are deprecated, and '
+                    'will be removed in Djblets 6. Pleaase use '
+                    'settings.DJBLETS_EMAIL_FROM_SPOOFING and the '
+                    'from_spoofing= argument instead.')
+
                 if enable_smart_spoofing:
                     from_spoofing = self.FROM_SPOOFING_SMART
                 else:
@@ -191,6 +250,9 @@ class EmailMessage(EmailMultiAlternatives):
                                         self.FROM_SPOOFING_ALWAYS)
 
         # Figure out the From/Sender we'll be wanting to use.
+        if not from_email:
+            sender = settings.DEFAULT_FROM_EMAIL
+
         if not sender:
             sender = settings.DEFAULT_FROM_EMAIL
 
@@ -257,16 +319,19 @@ class EmailMessage(EmailMultiAlternatives):
         # difference between these, Django's SMTP e-mail sending machinery
         # treats them differently, sending the value of EmailMessage.from_email
         # when communicating with the SMTP server.
-        super(EmailMessage, self).__init__(
+        message_headers: Dict[str, str] = {}
+
+        if from_email:
+            message_headers['From'] = from_email
+
+        super().__init__(
             subject=subject,
             body=force_str(text_body),
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=to,
             cc=cc,
             bcc=bcc,
-            headers={
-                'From': from_email,
-            })
+            headers=message_headers)
 
         self.message_id = None
 
@@ -279,7 +344,7 @@ class EmailMessage(EmailMultiAlternatives):
         if html_body:
             self.attach_alternative(force_str(html_body), 'text/html')
 
-    def message(self):
+    def message(self) -> SafeMIMEText:
         """Construct an outgoing message for the e-mail.
 
         This will construct a message based on the data provided to the
@@ -296,7 +361,7 @@ class EmailMessage(EmailMultiAlternatives):
             django.core.mail.message.SafeMIMEText:
             The resulting message.
         """
-        msg = super(EmailMessage, self).message()
+        msg = super().message()
         self.message_id = msg['Message-ID']
 
         for name, value_list in self._headers.lists():
@@ -307,12 +372,3 @@ class EmailMessage(EmailMultiAlternatives):
                 msg[name] = value
 
         return msg
-
-    def recipients(self):
-        """Return a list of all recipients of the e-mail.
-
-        Returns:
-            list:
-            A list of all recipients included on the To, CC, and BCC lists.
-        """
-        return self.to + self.bcc + self.cc

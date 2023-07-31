@@ -1,22 +1,31 @@
 """General utility functions for working with e-mail."""
 
+from __future__ import annotations
+
 from email.utils import escapesre, parseaddr, specialsre
+from typing import Optional, TYPE_CHECKING
 
 from django.conf import settings
 
+if TYPE_CHECKING:
+    from django.contrib.auth.models import User
 
-def build_email_address(email, full_name=None):
+
+def build_email_address(
+    email: str,
+    full_name: Optional[str] = None,
+) -> str:
     """Build an e-mail address for a To/CC/BCC field from a user's information.
 
     Args:
-        email (unicode):
+        email (str):
             The e-mail address.
 
-        full_name (unicode, optional):
+        full_name (str, optional):
             The optional full name associated with the e-mail address.
 
     Returns:
-        unicode:
+        str:
         A formatted e-mail address intended for a To/CC/BCC field.
     """
     if full_name:
@@ -30,7 +39,9 @@ def build_email_address(email, full_name=None):
     return email
 
 
-def build_email_address_for_user(user):
+def build_email_address_for_user(
+    user: User,
+) -> str:
     """Build an e-mail address for a To/CC/BCC field from a User.
 
     Args:
@@ -38,15 +49,19 @@ def build_email_address_for_user(user):
             The user.
 
     Returns:
-        unicode:
+        str:
         A formatted e-mail address intended for a To/CC/BCC field.
     """
     return build_email_address(email=user.email,
                                full_name=user.get_full_name())
 
 
-def build_email_address_via_service(email, full_name=None, service_name=None,
-                                    sender_email=None):
+def build_email_address_via_service(
+    email: str,
+    full_name: Optional[str] = None,
+    service_name: Optional[str] = None,
+    sender_email: Optional[str] = None,
+) -> str:
     """Build an e-mail address for sending on behalf of a user via a service.
 
     This will construct a formatted e-mail address that can be safely used
@@ -57,24 +72,28 @@ def build_email_address_via_service(email, full_name=None, service_name=None,
     <sender@domain.tld>".
 
     Args:
-        email (unicode):
+        email (str):
             The unformatted e-mail address of the user.
 
-        full_name (unicode, optional):
-            The full name of the user. If not provided, the username in the
-            e-mail address will be used.
+        full_name (str, optional):
+            The full name of the user.
 
-        service_name (unicode, optional):
-            The name of the service sending the e-mail. If not provided,
-            ``settings.EMAIL_DEFAULT_SENDER_SERVICE_NAME`` will be used.
+            If not provided, the username in the e-mail address will be used.
 
-        sender_email (unicode, optional):
-            The unformatted e-mail address for the sending service. If not
-            provided, the e-mail address in
+        service_name (str, optional):
+            The name of the service sending the e-mail.
+
+            If not provided, ``settings.EMAIL_DEFAULT_SENDER_SERVICE_NAME``
+            will be used.
+
+        sender_email (str, optional):
+            The unformatted e-mail address for the sending service.
+
+            If not provided, the e-mail address in
             :django:setting:`DEFAULT_FROM_EMAIL` will be used.
 
     Returns:
-        unicode:
+        str:
         A formatted e-mail address safe to use in a :mailheader:`From` field.
     """
     if not service_name:

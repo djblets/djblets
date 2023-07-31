@@ -7,6 +7,7 @@ from django.core import mail
 from django.test.utils import override_settings
 from django.utils.datastructures import MultiValueDict
 
+from djblets.deprecation import RemovedInDjblets60Warning
 from djblets.mail.dmarc import (DmarcPolicy, get_dmarc_record,
                                 is_email_allowed_by_dmarc)
 from djblets.mail.message import EmailMessage
@@ -346,7 +347,7 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
                              text_body='This is a test.',
                              from_email='Doc <doc@example.com>',
                              to=['sleepy@example.com'],
-                             enable_smart_spoofing=False)
+                             from_spoofing=EmailMessage.FROM_SPOOFING_ALWAYS)
 
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
@@ -374,7 +375,7 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
                              text_body='This is a test.',
                              from_email='Døc <doc@example.com>',
                              to=['sleepy@example.com'],
-                             enable_smart_spoofing=False)
+                             from_spoofing=EmailMessage.FROM_SPOOFING_ALWAYS)
 
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
@@ -403,7 +404,7 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
                              from_email='doc@example.com',
                              to=['sleepy@example.com'],
                              sender='Sender <noreply@example.com>',
-                             enable_smart_spoofing=False)
+                             from_spoofing=EmailMessage.FROM_SPOOFING_ALWAYS)
 
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
@@ -431,7 +432,7 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
                              from_email='doc@example.com',
                              to=['sleepy@example.com'],
                              sender='Sénder <noreply@example.com>',
-                             enable_smart_spoofing=False)
+                             from_spoofing=EmailMessage.FROM_SPOOFING_ALWAYS)
 
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
@@ -751,12 +752,22 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.dmarc_txt_records['_dmarc.corp.example.com'] = \
             'v=DMARC1; p=none;'
 
-        email = EmailMessage(subject='Test email',
-                             text_body='This is a test.',
-                             from_email='Doc Dwarf <doc@corp.example.com>',
-                             sender='noreply@mail.example.com',
-                             to=['sleepy@example.com'],
-                             enable_smart_spoofing=True)
+        message = (
+            'settings.EMAIL_ENABLE_SMART_SPOOFING and the '
+            'enable_smart_spoofing argument to '
+            'djblets.mail.message.MailMessage are deprecated, and will be '
+            'removed in Djblets 6. Pleaase use '
+            'settings.DJBLETS_EMAIL_FROM_SPOOFING and the from_spoofing= '
+            'argument instead.'
+        )
+
+        with self.assertWarns(RemovedInDjblets60Warning, message):
+            email = EmailMessage(subject='Test email',
+                                 text_body='This is a test.',
+                                 from_email='Doc Dwarf <doc@corp.example.com>',
+                                 sender='noreply@mail.example.com',
+                                 to=['sleepy@example.com'],
+                                 enable_smart_spoofing=True)
 
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
@@ -789,12 +800,22 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.dmarc_txt_records['_dmarc.corp.example.com'] = \
             'v=DMARC1; p=quarantine;'
 
-        email = EmailMessage(subject='Test email',
-                             text_body='This is a test.',
-                             from_email='Doc Dwarf <doc@corp.example.com>',
-                             sender='noreply@mail.example.com',
-                             to=['sleepy@example.com'],
-                             enable_smart_spoofing=True)
+        message = (
+            'settings.EMAIL_ENABLE_SMART_SPOOFING and the '
+            'enable_smart_spoofing argument to '
+            'djblets.mail.message.MailMessage are deprecated, and will be '
+            'removed in Djblets 6. Pleaase use '
+            'settings.DJBLETS_EMAIL_FROM_SPOOFING and the from_spoofing= '
+            'argument instead.'
+        )
+
+        with self.assertWarns(RemovedInDjblets60Warning, message):
+            email = EmailMessage(subject='Test email',
+                                 text_body='This is a test.',
+                                 from_email='Doc Dwarf <doc@corp.example.com>',
+                                 sender='noreply@mail.example.com',
+                                 to=['sleepy@example.com'],
+                                 enable_smart_spoofing=True)
 
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
@@ -822,12 +843,22 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
     @override_settings(EMAIL_DEFAULT_SENDER_SERVICE_NAME='My Service')
     def test_message_with_enable_smart_spoofing_false(self):
         """Testing EmailMessage.message with enable_smart_spoofing=False"""
-        email = EmailMessage(subject='Test email',
-                             text_body='This is a test.',
-                             from_email='Doc Dwarf <doc@corp.example.com>',
-                             sender='noreply@mail.example.com',
-                             to=['sleepy@example.com'],
-                             enable_smart_spoofing=False)
+        message = (
+            'settings.EMAIL_ENABLE_SMART_SPOOFING and the '
+            'enable_smart_spoofing argument to '
+            'djblets.mail.message.MailMessage are deprecated, and will be '
+            'removed in Djblets 6. Pleaase use '
+            'settings.DJBLETS_EMAIL_FROM_SPOOFING and the from_spoofing= '
+            'argument instead.'
+        )
+
+        with self.assertWarns(RemovedInDjblets60Warning, message):
+            email = EmailMessage(subject='Test email',
+                                 text_body='This is a test.',
+                                 from_email='Doc Dwarf <doc@corp.example.com>',
+                                 sender='noreply@mail.example.com',
+                                 to=['sleepy@example.com'],
+                                 enable_smart_spoofing=False)
 
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
@@ -861,11 +892,21 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.dmarc_txt_records['_dmarc.corp.example.com'] = \
             'v=DMARC1; p=quarantine;'
 
-        email = EmailMessage(subject='Test email',
-                             text_body='This is a test.',
-                             from_email='Doc Dwarf <doc@corp.example.com>',
-                             sender='noreply@mail.example.com',
-                             to=['sleepy@example.com'])
+        message = (
+            'settings.EMAIL_ENABLE_SMART_SPOOFING and the '
+            'enable_smart_spoofing argument to '
+            'djblets.mail.message.MailMessage are deprecated, and will be '
+            'removed in Djblets 6. Pleaase use '
+            'settings.DJBLETS_EMAIL_FROM_SPOOFING and the from_spoofing= '
+            'argument instead.'
+        )
+
+        with self.assertWarns(RemovedInDjblets60Warning, message):
+            email = EmailMessage(subject='Test email',
+                                 text_body='This is a test.',
+                                 from_email='Doc Dwarf <doc@corp.example.com>',
+                                 sender='noreply@mail.example.com',
+                                 to=['sleepy@example.com'])
 
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)

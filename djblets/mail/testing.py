@@ -1,12 +1,25 @@
 """Testing utilities for mail-related unit tests."""
 
+from __future__ import annotations
+
+from typing import Dict, List, TYPE_CHECKING, Union
+
+import dns.message
+import dns.rdataclass
+import dns.rdatatype
 import dns.resolver
 from django.core.cache import cache
+from django.utils.encoding import force_bytes
 from dns.rdtypes.ANY.TXT import TXT
 from kgb import SpyAgency
 
+if TYPE_CHECKING:
+    from djblets.testing.testcases import TestCase as MixinParentClass
+else:
+    MixinParentClass = object
 
-class DmarcDnsTestsMixin(object):
+
+class DmarcDnsTestsMixin(MixinParentClass):
     """Mixin to help with e-mail tests that need to perform DMARC lookups.
 
     This mixin makes it easy for unit tests to fake DMARC results, in order
@@ -18,14 +31,16 @@ class DmarcDnsTestsMixin(object):
 
     Note that this mixin will also clear the memory cache before each test
     run.
-
-    Attributes:
-        dmarc_txt_records (dict):
-            A dictionary of domain names to DMARC TXT record strings.
     """
 
-    def setUp(self):
-        super(DmarcDnsTestsMixin, self).setUp()
+    #: A dictionary of domain names to DMARC TXT record data.
+    #:
+    #: Type:
+    #:     dict
+    dmarc_txt_records: Dict[str, Union[bytes, str]]
+
+    def setUp(self) -> None:
+        super().setUp()
 
         self.dmarc_txt_records = {}
 
@@ -34,13 +49,45 @@ class DmarcDnsTestsMixin(object):
                                       call_fake=self._dns_query)
         cache.clear()
 
-    def tearDown(self):
-        super(DmarcDnsTestsMixin, self).tearDown()
+    def tearDown(self) -> None:
+        super().tearDown()
 
         self._dmarc_spy_agency.unspy_all()
 
-    def _dns_query(self, qname, rdtype, *args, **kwargs):
+    def _dns_query(
+        self,
+        qname: str,
+        *args,
+        **kwargs,
+    ) -> List:
+        """Return a fake answer for a DNS query.
+
+        This will return either a TXT record or a NXDOMAIN error based on the
+        presence of a key in :py:attr:`dmarc_txt_records`.
+
+        Note that technically this should be returning a
+        :py:class:`dns.resolver.Answer`, but that's fairly complex to set up,
+        and our usage turns this into a list of results anyway.
+
+        Args:
+            qname (str):
+                The domain being queried.
+
+            *args (tuple, unused):
+                Unused positional arguments.
+
+            **kwargs (tuple, unused):
+                Unused keyword arguments.
+
+        Returns:
+            list:
+            The list of resulting records.
+
+        Raises:
+            dns.resolve.NXDOMAIN:
+                The domain did not have a pre-populated result.
+        """
         try:
-            return [TXT(1, 16, [self.dmarc_txt_records[qname]])]
+            return [TXT(1, 16, [force_bytes(self.dmarc_txt_records[qname])])]
         except KeyError:
             raise dns.resolver.NXDOMAIN
