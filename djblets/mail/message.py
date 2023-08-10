@@ -104,6 +104,7 @@ class EmailMessage(EmailMultiAlternatives):
         prevent_auto_responses: bool = False,
         from_spoofing: Optional[str] = None,
         enable_smart_spoofing: Optional[bool] = None,
+        reply_to: Optional[Sequence[str]] = None,
     ) -> None:
         """Create a new EmailMessage.
 
@@ -204,6 +205,14 @@ class EmailMessage(EmailMultiAlternatives):
                 Deprecated:
                     4.0:
                     This will be removed in Djblets 6.
+
+            reply_to (str, optional):
+                An explicit user used for the :mailheader:`Reply-To` header.
+
+                If not provided, this defaults to ``from_email`` (if provided).
+
+                Version Added:
+                    4.0
         """
         headers = headers or MultiValueDict()
 
@@ -220,8 +229,8 @@ class EmailMessage(EmailMultiAlternatives):
             headers['In-Reply-To'] = in_reply_to
             headers['References'] = in_reply_to
 
-        if from_email:
-            headers['Reply-To'] = from_email
+        if not reply_to and from_email:
+            reply_to = [from_email]
 
         if from_spoofing is None:
             if enable_smart_spoofing is None:
@@ -331,6 +340,7 @@ class EmailMessage(EmailMultiAlternatives):
             to=to,
             cc=cc,
             bcc=bcc,
+            reply_to=reply_to,
             headers=message_headers)
 
         self.message_id = None

@@ -1,19 +1,28 @@
 """Error classes for extensions."""
 
+from __future__ import annotations
+
+from typing import Optional
+
 from django.utils.translation import gettext as _
 
 
 class EnablingExtensionError(Exception):
     """An extension could not be enabled."""
 
-    def __init__(self, message, load_error=None, needs_reload=False):
+    def __init__(
+        self,
+        message: str,
+        load_error: Optional[str] = None,
+        needs_reload: bool = False,
+    ) -> None:
         """Initialize the error.
 
         Args:
-            message (unicode):
+            message (str):
                 The detailed error message.
 
-            load_error (unicode, optional):
+            load_error (str, optional):
                 An exception from the attempt to enable the extension, or
                 other useful information to display to the user to help
                 diagnose the problem.
@@ -21,7 +30,7 @@ class EnablingExtensionError(Exception):
             needs_reload (bool, optional):
                 Whether fixing this error requires reloading the extension.
         """
-        super(EnablingExtensionError, self).__init__(message)
+        super().__init__(message)
 
         self.load_error = load_error
         self.needs_reload = needs_reload
@@ -34,8 +43,24 @@ class DisablingExtensionError(Exception):
 
 class InstallExtensionError(Exception):
     """An extension could not be installed."""
-    def __init__(self, message, load_error=None):
-        self.message = message
+
+    def __init__(
+        self,
+        message: str,
+        load_error: Optional[str] = None,
+    ) -> None:
+        """Initialize the error.
+
+        Args:
+            message (str):
+                The detailed error message.
+
+            load_error (str, optional):
+                An exception from the attempt to enable the extension, or
+                other useful information to display to the user to help
+                diagnose the problem.
+        """
+        super().__init__(message)
         self.load_error = load_error
 
 
@@ -46,6 +71,15 @@ class InstallExtensionMediaError(InstallExtensionError):
 
 class InvalidExtensionError(Exception):
     """An extension does not exist."""
-    def __init__(self, extension_id):
-        super(InvalidExtensionError, self).__init__()
-        self.message = _("Cannot find extension with id %s") % extension_id
+
+    def __init__(
+        self,
+        extension_id: str,
+    ) -> None:
+        """Initialize the error.
+
+        Args:
+            extension_id (str):
+                The ID of the extension which could not be found.
+        """
+        super().__init__(_('Cannot find extension with id %s') % extension_id)

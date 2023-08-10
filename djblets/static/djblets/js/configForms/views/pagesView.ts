@@ -1,11 +1,35 @@
 /**
- * Manages a collection of configuration pages.
+ * View to manage a collection of configuration pages.
+ */
+
+import { BaseView, spina } from '@beanbag/spina';
+
+
+/**
+ * View to manage a collection of configuration pages.
  *
  * The primary job of this view is to handle sub-page navigation.
  * The actual page will contain several "pages" that are shown or hidden
  * depending on what the user has clicked on the sidebar.
  */
-Djblets.Config.PagesView = Backbone.View.extend({
+@spina
+export class PagesView extends BaseView {
+    /**********************
+     * Instance variables *
+     **********************/
+
+    /** The page router. */
+    router: Backbone.Router;
+
+    /** The active navigation item. */
+    #$activeNav: JQuery;
+
+    /** The active page. */
+    #$activePage: JQuery;
+
+    /** Whether to preserve the ``#messages`` element when switching pages. */
+    #preserveMessages: boolean;
+
     /**
      * Initialize the view.
      *
@@ -19,34 +43,28 @@ Djblets.Config.PagesView = Backbone.View.extend({
         });
         this.listenTo(this.router, 'route:page', this._onPageChanged);
 
-        this._$activeNav = null;
-        this._$activePage = null;
-        this._preserveMessages = true;
-    },
+        this.#$activeNav = null;
+        this.#$activePage = null;
+        this.#preserveMessages = true;
+    }
 
     /**
      * Render the view.
      *
      * This will set the default page to be shown, and instruct Backbone
      * to begin handling the routing.
-     *
-     * Returns:
-     *     Djblets.Config.PageView:
-     *     This view.
      */
-    render() {
+    onInitialRender() {
         this._$pageNavs = this.$('.djblets-c-config-forms-page-nav__item');
         this._$pages = this.$('.djblets-c-config-forms-subpage');
 
-        this._$activeNav = this._$pageNavs.eq(0).addClass('-is-active');
-        this._$activePage = this._$pages.eq(0).addClass('-is-active');
+        this.#$activeNav = this._$pageNavs.eq(0).addClass('-is-active');
+        this.#$activePage = this._$pages.eq(0).addClass('-is-active');
 
         Backbone.history.start({
             root: window.location.pathname,
         });
-
-        return this;
-    },
+    }
 
     /**
      * Handle when the page changes.
@@ -62,13 +80,13 @@ Djblets.Config.PagesView = Backbone.View.extend({
      *     pageID (string):
      *         The ID of the page that is becoming active.
      */
-    _onPageChanged(pageID) {
-        this._$activeNav.removeClass('-is-active');
-        this._$activePage.removeClass('-is-active');
+    _onPageChanged(pageID: string) {
+        this.#$activeNav.removeClass('-is-active');
+        this.#$activePage.removeClass('-is-active');
 
-        this._$activePage = $(`#page_${pageID}`);
+        this.#$activePage = $(`#page_${pageID}`);
 
-        if (this._$activePage.length === 0) {
+        if (this.#$activePage.length === 0) {
             /*
              * If the requested page doesn't exist (for example, it might be
              * hidden, or just typoed), load the first page instead.
@@ -80,18 +98,18 @@ Djblets.Config.PagesView = Backbone.View.extend({
                     trigger: true,
                 });
         } else {
-            this._$activeNav =
+            this.#$activeNav =
                 this._$pageNavs
                     .filter(`:has(a[href="#${pageID}"])`)
                     .addClass('-is-active');
 
-            this._$activePage.addClass('-is-active');
+            this.#$activePage.addClass('-is-active');
 
-            if (!this._preserveMessages) {
+            if (!this.#preserveMessages) {
                 $('#messages').remove();
             }
 
-            this._preserveMessages = false;
+            this.#preserveMessages = false;
         }
-    },
-});
+    }
+}

@@ -13,14 +13,14 @@ import threading
 import time
 import traceback
 import warnings
-import weakref
 from contextlib import contextmanager
 from importlib import import_module, reload
-from typing import Iterator, Optional
+from typing import Any, Dict, Iterator, List, Optional, Set, Type, Union
+from weakref import WeakValueDictionary
 
 import importlib_metadata
 from django.apps.registry import apps
-from django.conf import settings
+from django.conf import LazySettings, settings
 from django.contrib.admin.sites import AdminSite
 from django.core.files import locks
 from django.db import IntegrityError
@@ -40,7 +40,7 @@ from djblets.extensions.errors import (EnablingExtensionError,
                                        InstallExtensionError,
                                        InstallExtensionMediaError,
                                        InvalidExtensionError)
-from djblets.extensions.extension import ExtensionInfo
+from djblets.extensions.extension import Extension, ExtensionInfo
 from djblets.extensions.models import RegisteredExtension
 from djblets.extensions.signals import (extension_disabled,
                                         extension_enabled,
@@ -53,10 +53,11 @@ from djblets.urls.resolvers import DynamicURLResolver
 
 logger = logging.getLogger(__name__)
 
-_extension_managers = weakref.WeakValueDictionary()
+_extension_managers: WeakValueDictionary[int, ExtensionManager] = \
+    WeakValueDictionary()
 
 
-class SettingListWrapper(object):
+class SettingListWrapper:
     """Wraps list-based settings to provide management and ref counting.
 
     This can be used instead of direct access to a list in Django
@@ -70,15 +71,20 @@ class SettingListWrapper(object):
     removing when it hits 0.
     """
 
-    def __init__(self, setting_name, display_name, parent_dict=None):
+    def __init__(
+        self,
+        setting_name: str,
+        display_name: str,
+        parent_dict: Union[Optional[Dict[str, Any]], LazySettings] = None,
+    ) -> None:
         """Initialize the settings wrapper.
 
         Args:
-            setting_name (unicode):
+            setting_name (str):
                 The name of the setting. This is the key in either
                 ``parent_dict`` or ``settings``.
 
-            display_name (unicode):
+            display_name (str):
                 The display name of the setting, for use in error output.
 
             parent_dict (dict, optional):
@@ -107,7 +113,10 @@ class SettingListWrapper(object):
         for item in self.setting:
             self.ref_counts[item] = 1
 
-    def add(self, item):
+    def add(
+        self,
+        item: Any,
+    ) -> None:
         """Add an item to the setting.
 
         If the item is already in the list, it won't be added again.
@@ -131,7 +140,10 @@ class SettingListWrapper(object):
             self.ref_counts[item] = 1
             self.setting.append(item)
 
-    def add_list(self, items):
+    def add_list(
+        self,
+        items: List[Any],
+    ) -> None:
         """Add a list of items to the setting.
 
         Args:
@@ -141,7 +153,10 @@ class SettingListWrapper(object):
         for item in items:
             self.add(item)
 
-    def remove(self, item):
+    def remove(
+        self,
+        item: Any,
+    ) -> bool:
         """Remove an item from the setting.
 
         The item's ref count will be decremented. If it hits 0, it will
@@ -177,7 +192,10 @@ class SettingListWrapper(object):
 
             return False
 
-    def remove_list(self, items):
+    def remove_list(
+        self,
+        items: List[Any],
+    ) -> List[Any]:
         """Remove a list of items from the setting.
 
         Args:
@@ -204,7 +222,7 @@ class SettingListWrapper(object):
         return removed_items
 
 
-class ExtensionManager(object):
+class ExtensionManager:
     """A manager for all extensions.
 
     ExtensionManager manages the extensions available to a project. It can
@@ -251,11 +269,36 @@ class ExtensionManager(object):
 
     _MEDIA_LOCK_SLEEP_TIME_SECS = 1
 
-    def __init__(self, key):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: Extension middleware class names, ordered by dependencies.
+    #:
+    #: Type:
+    #:     list of str
+    middleware_classes: List[str]
+
+    #: A mapping of extension ID to extension classes.
+    _extension_classes: Dict[str, Type[Extension]]
+
+    #: A mapping of extension ID to extension class instances.
+    _extension_instances: Dict[str, Extension]
+
+    #: The URL to the extension list.
+    _extension_list_url: Optional[str]
+
+    #: A mapping of extension ID to error message.
+    _load_errors: Dict[str, str]
+
+    def __init__(
+        self,
+        key: str,
+    ) -> None:
         """Initialize the extension manager.
 
         Args:
-            key (unicode):
+            key (str):
                 A key that's unique to this extension manager instance. It
                 must also be the same key used to look up Python entry points.
         """
@@ -274,7 +317,6 @@ class ExtensionManager(object):
         self.dynamic_urls = DynamicURLResolver()
         self._extension_list_url = None
 
-        # Extension middleware instances, ordered by dependencies.
         self.middleware_classes = []
 
         # Wrap the INSTALLED_APPS and TEMPLATE_CONTEXT_PROCESSORS settings
@@ -290,7 +332,7 @@ class ExtensionManager(object):
         instance_id = id(self)
         _extension_managers[instance_id] = self
 
-    def get_url_patterns(self):
+    def get_url_patterns(self) -> List[DynamicURLResolver]:
         """Return the URL patterns for the Extension Manager.
 
         This should be included in the root urlpatterns for the site.
@@ -301,7 +343,7 @@ class ExtensionManager(object):
         """
         return [self.dynamic_urls]
 
-    def is_expired(self):
+    def is_expired(self) -> bool:
         """Returns whether or not the extension state is possibly expired.
 
         Extension state covers the lists of extensions and each extension's
@@ -316,7 +358,7 @@ class ExtensionManager(object):
         """
         return self._gen_sync.is_expired()
 
-    def clear_sync_cache(self):
+    def clear_sync_cache(self) -> None:
         """Clear the extension synchronization state.
 
         This will force every process to reload the extension list and
@@ -324,7 +366,7 @@ class ExtensionManager(object):
         """
         self._gen_sync.clear()
 
-    def get_absolute_url(self):
+    def get_absolute_url(self) -> str:
         """Return an absolute URL to the view for listing extensions.
 
         By default, this simply looks up the "extension-list" URL.
@@ -334,15 +376,20 @@ class ExtensionManager(object):
         by URL resolver cache flushes.
 
         Returns:
-            unicode:
+            str:
             The URL to the extension list view.
         """
         if not self._extension_list_url:
             self._extension_list_url = reverse('extension-list')
 
+        assert self._extension_list_url is not None
+
         return self._extension_list_url
 
-    def get_can_disable_extension(self, registered_extension):
+    def get_can_disable_extension(
+        self,
+        registered_extension: RegisteredExtension,
+    ) -> bool:
         """Return whether an extension can be disabled.
 
         Extensions can only be disabled if already enabled or there's a load
@@ -363,7 +410,10 @@ class ExtensionManager(object):
                 (self.get_enabled_extension(extension_id) is not None or
                  extension_id in self._load_errors))
 
-    def get_can_enable_extension(self, registered_extension):
+    def get_can_enable_extension(
+        self,
+        registered_extension: RegisteredExtension,
+    ) -> bool:
         """Return whether an extension can be enabled.
 
         Extensions can only be enabled if already disabled.
@@ -382,11 +432,14 @@ class ExtensionManager(object):
             self.get_enabled_extension(registered_extension.class_name) is None
         )
 
-    def get_enabled_extension(self, extension_id):
+    def get_enabled_extension(
+        self,
+        extension_id: str,
+    ) -> Optional[Extension]:
         """Return an enabled extension for the given exetnsion ID.
 
         Args:
-            extension_id (unicode):
+            extension_id (str):
                 The ID of the extension.
 
         Returns:
@@ -396,7 +449,7 @@ class ExtensionManager(object):
         """
         return self._extension_instances.get(extension_id)
 
-    def get_enabled_extensions(self):
+    def get_enabled_extensions(self) -> List[Extension]:
         """Return a list of all enabled extensions.
 
         Returns:
@@ -405,7 +458,7 @@ class ExtensionManager(object):
         """
         return list(self._extension_instances.values())
 
-    def get_installed_extensions(self):
+    def get_installed_extensions(self) -> List[Type[Extension]]:
         """Return a list of all installed extension classes.
 
         Returns:
@@ -414,14 +467,17 @@ class ExtensionManager(object):
         """
         return list(self._extension_classes.values())
 
-    def get_installed_extension(self, extension_id):
+    def get_installed_extension(
+        self,
+        extension_id: str,
+    ) -> Type[Extension]:
         """Return the installed extension class with the given extension ID.
 
         The extension class must be available on the system and must be
         importable.
 
         Args:
-            extension_id (unicode):
+            extension_id (str):
                 The ID of the extension.
 
         Returns:
@@ -437,15 +493,18 @@ class ExtensionManager(object):
         except KeyError:
             raise InvalidExtensionError(extension_id)
 
-    def get_dependent_extensions(self, dependency_extension_id):
+    def get_dependent_extensions(
+        self,
+        dependency_extension_id: str,
+    ) -> List[str]:
         """Return a list of all extension IDs required by an extension.
 
         Args:
-            dependency_extension_id (unicode):
+            dependency_extension_id (str):
                 The ID of the extension to retrieve dependencies for.
 
         Returns:
-            list of unicode:
+            list of str:
             The list of extension IDs required by this extension.
 
         Raises:
@@ -463,7 +522,10 @@ class ExtensionManager(object):
                 dependency in extension.info.requirements)
         ]
 
-    def enable_extension(self, extension_id):
+    def enable_extension(
+        self,
+        extension_id: str,
+    ) -> Optional[Extension]:
         """Enable an extension.
 
         Enabling an extension will install any data files the extension
@@ -477,8 +539,12 @@ class ExtensionManager(object):
         emitted.
 
         Args:
-            extension_id (unicode):
+            extension_id (str):
                 The ID of the extension to enable.
+
+        Returns:
+            djblets.extensions.extension.Extension:
+            The extension instance.
 
         Raises:
             djblets.extensions.errors.EnablingExtensionError:
@@ -490,7 +556,7 @@ class ExtensionManager(object):
         """
         if extension_id in self._extension_instances:
             # It's already enabled.
-            return
+            return None
 
         try:
             ext_class = self._extension_classes[extension_id]
@@ -523,7 +589,10 @@ class ExtensionManager(object):
 
         return extension
 
-    def disable_extension(self, extension_id):
+    def disable_extension(
+        self,
+        extension_id: str,
+    ) -> None:
         """Disable an extension.
 
         Disabling an extension will remove any data files the extension
@@ -536,7 +605,7 @@ class ExtensionManager(object):
         emitted.
 
         Args:
-            extension_id (unicode):
+            extension_id (str):
                 The ID of the extension to disable.
 
         Raises:
@@ -588,7 +657,11 @@ class ExtensionManager(object):
             extension_disabled.send_robust(sender=self,
                                            extension=extension)
 
-    def install_extension(self, install_url, package_name):
+    def install_extension(
+        self,
+        install_url: str,
+        package_name: str,
+    ) -> None:
         """Install an extension from a remote source.
 
         This will attempt to install or upgrade an extension package using
@@ -601,10 +674,10 @@ class ExtensionManager(object):
             previously documented as not being fully-supported.
 
         Args:
-            install_url (unicode):
+            install_url (str):
                 The URL of the package to install.
 
-            package_name (unicode):
+            package_name (str):
                 The name of the package being installed.
 
         Raises:
@@ -618,7 +691,10 @@ class ExtensionManager(object):
             'install_extension() has not fully worked in a long time, and '
             'does not work in modern environments. Support is unavailable.')
 
-    def load(self, full_reload=False):
+    def load(
+        self,
+        full_reload: bool = False,
+    ) -> None:
         """Load information on all extensions on the system.
 
         This will begin looking up all extensions on the system, adding
@@ -641,7 +717,7 @@ class ExtensionManager(object):
             self._load_extensions(full_reload)
             self._block_sync_gen = False
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Shut down the extension manager and all of its extensions.
 
         This method is designed to be thread-safe. Only one shutdown across
@@ -650,7 +726,10 @@ class ExtensionManager(object):
         with self._shutdown_lock:
             self._clear_extensions()
 
-    def _load_extensions(self, full_reload=False):
+    def _load_extensions(
+        self,
+        full_reload: bool = False,
+    ) -> None:
         """Load information on all extension on the system.
 
         This is responsible for the bulk of the work for loading extensions,
@@ -802,7 +881,7 @@ class ExtensionManager(object):
         if extensions_changed:
             self._recalculate_middleware()
 
-    def _clear_extensions(self):
+    def _clear_extensions(self) -> None:
         """Clear the entire list of known extensions.
 
         This will bring the ExtensionManager back to the state where
@@ -825,7 +904,10 @@ class ExtensionManager(object):
         self._extension_classes = {}
         self._extension_instances = {}
 
-    def _init_extension(self, ext_class):
+    def _init_extension(
+        self,
+        ext_class: Type[Extension],
+    ) -> Extension:
         """Initialize an extension.
 
         This will register the extension, install any URLs that it may need,
@@ -847,7 +929,7 @@ class ExtensionManager(object):
                              ext_class, e)
             raise EnablingExtensionError(
                 _('Error initializing extension: %s') % e,
-                self._store_load_error(extension_id, e))
+                self._store_load_error(extension_id, str(e)))
 
         # If this extension previously failed to load, and has a stored error,
         # clear it.
@@ -868,7 +950,7 @@ class ExtensionManager(object):
                         _("Error setting up extension's administration "
                           "site: %s")
                         % e,
-                        self._store_load_error(ext_class.id, e))
+                        self._store_load_error(ext_class.id, str(e)))
 
             # Installing the urls must occur after _init_admin_site(). The urls
             # for the admin site will not be generated until it is called.
@@ -877,7 +959,7 @@ class ExtensionManager(object):
             except Exception as e:
                 raise EnablingExtensionError(
                     _('Error setting up administration URLs: %s') % e,
-                    self._store_load_error(ext_class.id, e))
+                    self._store_load_error(ext_class.id, str(e)))
 
             self._register_static_bundles(extension)
 
@@ -896,11 +978,12 @@ class ExtensionManager(object):
             try:
                 self.install_extension_media(ext_class)
             except InstallExtensionMediaError as e:
-                raise EnablingExtensionError(e.message, e.load_error)
+                raise EnablingExtensionError(str(e), e.load_error)
 
             # Check if the version information stored along with the extension
             # is stale. If so, we may need to perform some updates.
             cur_version = ext_class.info.version
+            assert cur_version is not None
 
             if ext_class.registration.installed:
                 old_version = extension.settings.get(self.VERSION_SETTINGS_KEY)
@@ -955,13 +1038,17 @@ class ExtensionManager(object):
 
             raise EnablingExtensionError(
                 _('Unexpected error initializing the extension: %s') % e,
-                self._store_load_error(ext_class.id, e))
+                self._store_load_error(ext_class.id, str(e)))
 
         extension_initialized.send_robust(self, ext_class=extension)
 
         return extension
 
-    def _sync_database(self, ext_class, new_installed_app_names):
+    def _sync_database(
+        self,
+        ext_class: Type[Extension],
+        new_installed_app_names: List[str],
+    ) -> None:
         """Synchronize extension-provided models to the database.
 
         This will create any database tables that need to be created and
@@ -974,7 +1061,7 @@ class ExtensionManager(object):
             ext_class (type):
                 The extension class owning the database models.
 
-            new_installed_app_names (list of unicode):
+            new_installed_app_names (list of str):
                 The list of new Django app names that are installed by an
                 extension.
 
@@ -1009,20 +1096,23 @@ class ExtensionManager(object):
 
                 raise InstallExtensionError(
                     str(e),
-                    self._store_load_error(ext_class.id, e))
+                    self._store_load_error(ext_class.id, str(e)))
 
-    def _get_app_modules_with_models(self, app_names):
+    def _get_app_modules_with_models(
+        self,
+        app_names: List[str],
+    ) -> List[str]:
         """Return app modules containing models for each app name.
 
         This will iterate through the list of app names for an extension and
         return the app module for each app that contains models.
 
         Args:
-            app_names (list of unicode):
+            app_names (list of str):
                 The list of Django app names.
 
         Returns:
-            list of module:
+            list of str:
             The list of modules for each app that contains models.
         """
         results = []
@@ -1042,7 +1132,10 @@ class ExtensionManager(object):
 
         return results
 
-    def _uninit_extension(self, extension):
+    def _uninit_extension(
+        self,
+        extension: Extension,
+    ) -> None:
         """Uninitialize the extension.
 
         This will shut down the extension, remove any URLs, remove it from
@@ -1111,18 +1204,22 @@ class ExtensionManager(object):
         del self._extension_instances[extension.id]
         extension.__class__.instance = None
 
-    def _store_load_error(self, extension_id, err):
+    def _store_load_error(
+        self,
+        extension_id: str,
+        err: str,
+    ) -> str:
         """Store and return a load error for the extension ID.
 
         Arg:
-            extension_id (unicode):
+            extension_id (str):
                 The ID for the exetnsion.
 
-            err (unicode):
+            err (str):
                 The error string.
 
         Returns:
-            unicode:
+            str:
             A detailed error message indicating a load failure. This will
             contain the provided error message and a traceback.
         """
@@ -1131,8 +1228,12 @@ class ExtensionManager(object):
 
         return error_details
 
-    def install_extension_media(self, ext_class, force=False,
-                                max_lock_attempts=10):
+    def install_extension_media(
+        self,
+        ext_class: Type[Extension],
+        force: bool = False,
+        max_lock_attempts: int = 10,
+    ) -> None:
         """Install extension static media.
 
         This will check whether we actually need to install extension media,
@@ -1260,7 +1361,10 @@ class ExtensionManager(object):
                     'temp_path': tempfile.gettempdir(),
                 })
 
-    def _install_extension_media_internal(self, ext_class):
+    def _install_extension_media_internal(
+        self,
+        ext_class: Type[Extension],
+    ) -> None:
         """Install static media for an extension.
 
         This performs any installation necessary for an extension. If the
@@ -1323,7 +1427,10 @@ class ExtensionManager(object):
                     'path': ext_class.info.installed_static_path,
                 })
 
-    def _uninstall_extension(self, extension):
+    def _uninstall_extension(
+        self,
+        extension: Extension,
+    ) -> None:
         """Uninstall extension data.
 
         This performs any uninstallation necessary for an extension. That
@@ -1345,7 +1452,10 @@ class ExtensionManager(object):
             if os.path.exists(media_path):
                 shutil.rmtree(media_path, ignore_errors=True)
 
-    def _install_admin_urls(self, extension):
+    def _install_admin_urls(
+        self,
+        extension: Extension,
+    ) -> None:
         """Install administration URLs.
 
         This provides URLs for configuring an extension, plus any additional
@@ -1385,7 +1495,10 @@ class ExtensionManager(object):
 
             self.dynamic_urls.add_patterns(extension.admin_site_urlpatterns)
 
-    def _register_static_bundles(self, extension):
+    def _register_static_bundles(
+        self,
+        extension: Extension,
+    ) -> None:
         """Register the extension's static bundles with Pipeline.
 
         Each static bundle will appear as an entry in Pipeline. The
@@ -1420,7 +1533,10 @@ class ExtensionManager(object):
         _add_bundles(pipeline_settings.JAVASCRIPT, extension.js_bundles,
                      'js', '.js')
 
-    def _unregister_static_bundles(self, extension):
+    def _unregister_static_bundles(
+        self,
+        extension: Extension,
+    ) -> None:
         """Unregister the extension's static bundles from Pipeline.
 
         Every static bundle previously registered for this extension will be
@@ -1446,7 +1562,10 @@ class ExtensionManager(object):
             _remove_bundles(pipeline_settings.JAVASCRIPT,
                             extension.js_bundles)
 
-    def _init_admin_site(self, extension):
+    def _init_admin_site(
+        self,
+        extension: Extension,
+    ) -> None:
         """Create and initialize an administration site for an extension.
 
         The administration site is used for browsing extension-owned database
@@ -1484,7 +1603,10 @@ class ExtensionManager(object):
                     'Importing admin module for extension "%s" failed'
                     % extension.info.app_name)
 
-    def _add_to_installed_apps(self, extension):
+    def _add_to_installed_apps(
+        self,
+        extension: Extension,
+    ) -> List[str]:
         """Add an extension's apps to the list of installed apps.
 
         This will register each app with Django and clear any caches needed
@@ -1493,6 +1615,10 @@ class ExtensionManager(object):
         Args:
             extension (djblets.extensions.extension.Extension):
                 The extension whose apps are being added.
+
+        Returns:
+            list of str:
+            The list of newly-installed apps.
         """
         new_installed_apps = extension.apps or [extension.info.app_name]
         self._installed_apps_setting.add_list(new_installed_apps)
@@ -1501,7 +1627,10 @@ class ExtensionManager(object):
 
         return new_installed_apps
 
-    def _remove_from_installed_apps(self, extension):
+    def _remove_from_installed_apps(
+        self,
+        extension: Extension,
+    ) -> None:
         """Remove an extension's apps from the list of installed apps.
 
         This will unregister each app with Django and clear any caches
@@ -1533,7 +1662,7 @@ class ExtensionManager(object):
         """
         return iter(importlib_metadata.entry_points(group=self.key))
 
-    def _bump_sync_gen(self):
+    def _bump_sync_gen(self) -> None:
         """Bump the synchronization generation value.
 
         If there's an existing synchronization generation in cache,
@@ -1556,19 +1685,23 @@ class ExtensionManager(object):
         self._gen_sync.mark_updated()
         settings.AJAX_SERIAL = self._gen_sync.sync_gen
 
-    def _recalculate_middleware(self):
+    def _recalculate_middleware(self) -> None:
         """Recalculate the list of middleware.
 
         All middleware provided by extensions will be registered in the
         Django settings and will be used for future requests.
         """
         self.middleware_classes = []
-        done = set()
+        done: Set[Extension] = set()
 
         for e in self.get_enabled_extensions():
             self.middleware_classes += self._get_extension_middleware(e, done)
 
-    def _get_extension_middleware(self, extension, done):
+    def _get_extension_middleware(
+        self,
+        extension: Extension,
+        done: Set[Extension],
+    ) -> List[str]:
         """Return a list of middleware for an extension and its dependencies.
 
         This is a recursive utility function initially called by
@@ -1588,7 +1721,7 @@ class ExtensionManager(object):
             list:
             A list of classes for middleware.
         """
-        middleware = []
+        middleware: List[str] = []
 
         if extension in done:
             return middleware
@@ -1633,8 +1766,12 @@ class ExtensionManager(object):
         return None
 
     @contextmanager
-    def _open_lock_file(self, ext_class, filename,
-                        lock_flags=locks.LOCK_EX | locks.LOCK_NB):
+    def _open_lock_file(
+        self,
+        ext_class: Type[Extension],
+        filename: str,
+        lock_flags: int = locks.LOCK_EX | locks.LOCK_NB,
+    ) -> Iterator:
         """Open a lock file for a multi-threaded/process operation.
 
         This will attempt to create a lock file and acquire a lock on it,
@@ -1648,7 +1785,7 @@ class ExtensionManager(object):
             ext_class (type):
                 The extension class that this lock file pertains to.
 
-            filename (unicode):
+            filename (str):
                 The name of the lock file. This will be created within the
                 temp directory, and should just be a filename.
 
@@ -1689,7 +1826,7 @@ class ExtensionManager(object):
                             filename, ext_class.info, e)
 
 
-def get_extension_managers():
+def get_extension_managers() -> List[ExtensionManager]:
     """Return all extension manager instances.
 
     This will return all the extension managers that have been constructed.
@@ -1702,7 +1839,7 @@ def get_extension_managers():
     return list(_extension_managers.values())
 
 
-def shutdown_extension_managers():
+def shutdown_extension_managers() -> None:
     """Shut down all extension managers.
 
     This is called automatically when the process exits, but can be run

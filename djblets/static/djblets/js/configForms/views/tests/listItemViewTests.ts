@@ -1,12 +1,23 @@
+import {
+    describe,
+    expect,
+    it,
+    suite,
+} from 'jasmine-core';
+
+import { ListItem } from '../../models/listItemModel';
+import { ListItemView } from '../listItemView';
+
+
 suite('djblets/configForms/views/ListItemView', function() {
     describe('Rendering', function() {
         describe('General item display', function() {
             it('With editURL', function() {
-                const item = new Djblets.Config.ListItem({
+                const item = new ListItem({
                     editURL: 'http://example.com/',
                     text: 'Label',
                 });
-                const itemView = new Djblets.Config.ListItemView({
+                const itemView = new ListItemView({
                     model: item,
                 });
 
@@ -19,10 +30,10 @@ suite('djblets/configForms/views/ListItemView', function() {
             });
 
             it('Without editURL', function() {
-                const item = new Djblets.Config.ListItem({
+                const item = new ListItem({
                     text: 'Label',
                 });
-                const itemView = new Djblets.Config.ListItemView({
+                const itemView = new ListItemView({
                     model: item,
                 });
 
@@ -36,7 +47,7 @@ suite('djblets/configForms/views/ListItemView', function() {
         });
 
         describe('Item states', function() {
-            const CustomItemView = Djblets.Config.ListItemView.extend({
+            const CustomItemView = ListItemView.extend({
                 template: _.template(dedent`
                     <div><%- text %></div>
                     <div class="djblets-c-config-forms-list__item-state">
@@ -45,7 +56,7 @@ suite('djblets/configForms/views/ListItemView', function() {
             });
 
             it('Initial render', function() {
-                const item = new Djblets.Config.ListItem({
+                const item = new ListItem({
                     itemState: 'enabled',
                 });
                 const itemView = new CustomItemView({
@@ -62,7 +73,7 @@ suite('djblets/configForms/views/ListItemView', function() {
             });
 
             it('When changed', function() {
-                const item = new Djblets.Config.ListItem({
+                const item = new ListItem({
                     itemState: 'enabled',
                 });
                 const itemView = new CustomItemView({
@@ -84,19 +95,20 @@ suite('djblets/configForms/views/ListItemView', function() {
 
         describe('Actions', function() {
             it('Checkboxes', function() {
-                const item = new Djblets.Config.ListItem({
-                    actions: [
-                        {
-                            id: 'mycheckbox',
-                            label: 'Checkbox',
-                            propName: 'checkboxAttr',
-                            type: 'checkbox',
-                        },
-                    ],
+                const item = new ListItem({
                     checkboxAttr: false,
                     text: 'Label',
                 });
-                const itemView = new Djblets.Config.ListItemView({
+                item.setActions([
+                    {
+                        id: 'mycheckbox',
+                        label: 'Checkbox',
+                        propName: 'checkboxAttr',
+                        type: 'checkbox',
+                    },
+                ]);
+
+                const itemView = new ListItemView({
                     model: item,
                 });
 
@@ -108,16 +120,17 @@ suite('djblets/configForms/views/ListItemView', function() {
 
             describe('Buttons', function() {
                 it('Simple', function() {
-                    const item = new Djblets.Config.ListItem({
-                        actions: [
-                            {
-                                id: 'mybutton',
-                                label: 'Button',
-                            },
-                        ],
+                    const item = new ListItem({
                         text: 'Label',
                     });
-                    const itemView = new Djblets.Config.ListItemView({
+                    item.setActions([
+                        {
+                            id: 'mybutton',
+                            label: 'Button',
+                        },
+                    ]);
+
+                    const itemView = new ListItemView({
                         model: item,
                     });
 
@@ -137,17 +150,18 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 it('Danger', function() {
-                    const item = new Djblets.Config.ListItem({
-                        actions: [
-                            {
-                                danger: true,
-                                id: 'mybutton',
-                                label: 'Button',
-                            },
-                        ],
+                    const item = new ListItem({
                         text: 'Label',
                     });
-                    const itemView = new Djblets.Config.ListItemView({
+                    item.setActions([
+                        {
+                            danger: true,
+                            id: 'mybutton',
+                            label: 'Button',
+                        },
+                    ]);
+
+                    const itemView = new ListItemView({
                         model: item,
                     });
 
@@ -167,17 +181,18 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 it('Primary', function() {
-                    const item = new Djblets.Config.ListItem({
-                        actions: [
-                            {
-                                id: 'mybutton',
-                                label: 'Button',
-                                primary: true,
-                            },
-                        ],
+                    const item = new ListItem({
                         text: 'Label',
                     });
-                    const itemView = new Djblets.Config.ListItemView({
+                    item.setActions([
+                        {
+                            id: 'mybutton',
+                            label: 'Button',
+                            primary: true,
+                        },
+                    ]);
+
+                    const itemView = new ListItemView({
                         model: item,
                     });
 
@@ -197,18 +212,19 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 it('Icon names', function() {
-                    const item = new Djblets.Config.ListItem({
-                        actions: [
-                            {
-                                danger: false,
-                                iconName: 'foo',
-                                id: 'mybutton',
-                                label: 'Button',
-                            },
-                        ],
+                    const item = new ListItem({
                         text: 'Label',
                     });
-                    const itemView = new Djblets.Config.ListItemView({
+                    item.setActions([
+                        {
+                            danger: false,
+                            iconName: 'foo',
+                            id: 'mybutton',
+                            label: 'Button',
+                        },
+                    ]);
+
+                    const itemView = new ListItemView({
                         model: item,
                     });
 
@@ -237,23 +253,23 @@ suite('djblets/configForms/views/ListItemView', function() {
                 let itemView;
 
                 beforeEach(function() {
-                    item = new Djblets.Config.ListItem({
-                        actions: [
-                            {
-                                children: [
-                                    {
-                                        id: 'mymenuitem',
-                                        label: 'My menu item',
-                                    },
-                                ],
-                                id: 'mymenu',
-                                label: 'Menu',
-                            },
-                        ],
+                    item = new ListItem({
                         text: 'Label',
                     });
+                    item.setActions([
+                        {
+                            children: [
+                                {
+                                    id: 'mymenuitem',
+                                    label: 'My menu item',
+                                },
+                            ],
+                            id: 'mymenu',
+                            label: 'Menu',
+                        },
+                    ]);
 
-                    itemView = new Djblets.Config.ListItemView({
+                    itemView = new ListItemView({
                         model: item,
                     });
 
@@ -310,18 +326,19 @@ suite('djblets/configForms/views/ListItemView', function() {
         describe('Action properties', function() {
             describe('enabledPropName', function() {
                 it('value == undefined', function() {
-                    const item = new Djblets.Config.ListItem({
-                        actions: [
-                            {
-                                enabledPropName: 'isEnabled',
-                                id: 'mycheckbox',
-                                label: 'Checkbox',
-                                type: 'checkbox',
-                            },
-                        ],
+                    const item = new ListItem({
                         text: 'Label',
                     });
-                    const itemView = new Djblets.Config.ListItemView({
+                    item.setActions([
+                        {
+                            enabledPropName: 'isEnabled',
+                            id: 'mycheckbox',
+                            label: 'Checkbox',
+                            type: 'checkbox',
+                        },
+                    ]);
+
+                    const itemView = new ListItemView({
                         model: item,
                     });
 
@@ -334,19 +351,20 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 it('value == true', function() {
-                    const item = new Djblets.Config.ListItem({
-                        actions: [
-                            {
-                                enabledPropName: 'isEnabled',
-                                id: 'mycheckbox',
-                                label: 'Checkbox',
-                                type: 'checkbox',
-                            },
-                        ],
+                    const item = new ListItem({
                         isEnabled: true,
                         text: 'Label',
                     });
-                    const itemView = new Djblets.Config.ListItemView({
+                    item.setActions([
+                        {
+                            enabledPropName: 'isEnabled',
+                            id: 'mycheckbox',
+                            label: 'Checkbox',
+                            type: 'checkbox',
+                        },
+                    ]);
+
+                    const itemView = new ListItemView({
                         model: item,
                     });
 
@@ -359,19 +377,20 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 it('value == false', function() {
-                    const item = new Djblets.Config.ListItem({
-                        actions: [
-                            {
-                                enabledPropName: 'isEnabled',
-                                id: 'mycheckbox',
-                                label: 'Checkbox',
-                                type: 'checkbox',
-                            },
-                        ],
+                    const item = new ListItem({
                         isEnabled: false,
                         text: 'Label',
                     });
-                    const itemView = new Djblets.Config.ListItemView({
+                    item.setActions([
+                        {
+                            enabledPropName: 'isEnabled',
+                            id: 'mycheckbox',
+                            label: 'Checkbox',
+                            type: 'checkbox',
+                        },
+                    ]);
+
+                    const itemView = new ListItemView({
                         model: item,
                     });
 
@@ -385,19 +404,20 @@ suite('djblets/configForms/views/ListItemView', function() {
 
                 describe('with enabledPropInverse == true', function() {
                     it('value == undefined', function() {
-                        const item = new Djblets.Config.ListItem({
-                            actions: [
-                                {
-                                    enabledPropInverse: true,
-                                    enabledPropName: 'isDisabled',
-                                    id: 'mycheckbox',
-                                    label: 'Checkbox',
-                                    type: 'checkbox',
-                                },
-                            ],
+                        const item = new ListItem({
                             text: 'Label',
                         });
-                        const itemView = new Djblets.Config.ListItemView({
+                        item.setActions([
+                            {
+                                enabledPropInverse: true,
+                                enabledPropName: 'isDisabled',
+                                id: 'mycheckbox',
+                                label: 'Checkbox',
+                                type: 'checkbox',
+                            },
+                        ]);
+
+                        const itemView = new ListItemView({
                             model: item,
                         });
 
@@ -410,20 +430,21 @@ suite('djblets/configForms/views/ListItemView', function() {
                     });
 
                     it('value == true', function() {
-                        const item = new Djblets.Config.ListItem({
-                            actions: [
-                                {
-                                    enabledPropInverse: true,
-                                    enabledPropName: 'isDisabled',
-                                    id: 'mycheckbox',
-                                    label: 'Checkbox',
-                                    type: 'checkbox',
-                                },
-                            ],
+                        const item = new ListItem({
                             isDisabled: true,
                             text: 'Label',
                         });
-                        const itemView = new Djblets.Config.ListItemView({
+                        item.setActions([
+                            {
+                                enabledPropInverse: true,
+                                enabledPropName: 'isDisabled',
+                                id: 'mycheckbox',
+                                label: 'Checkbox',
+                                type: 'checkbox',
+                            },
+                        ]);
+
+                        const itemView = new ListItemView({
                             model: item,
                         });
 
@@ -436,22 +457,23 @@ suite('djblets/configForms/views/ListItemView', function() {
                     });
 
                     it('value == false', function() {
-                        const item = new Djblets.Config.ListItem({
-                                actions: [
-                                    {
-                                        enabledPropInverse: true,
-                                        enabledPropName: 'isDisabled',
-                                        id: 'mycheckbox',
-                                        label: 'Checkbox',
-                                        type: 'checkbox',
-                                    },
-                                ],
-                                isDisabled: false,
-                                text: 'Label',
-                            }),
-                            itemView = new Djblets.Config.ListItemView({
-                                model: item,
-                            });
+                        const item = new ListItem({
+                            isDisabled: false,
+                            text: 'Label',
+                        });
+                        item.setActions([
+                            {
+                                enabledPropInverse: true,
+                                enabledPropName: 'isDisabled',
+                                id: 'mycheckbox',
+                                label: 'Checkbox',
+                                type: 'checkbox',
+                            },
+                        ]);
+
+                        const itemView = new ListItemView({
+                            model: item,
+                        });
 
                         itemView.render();
 
@@ -467,16 +489,17 @@ suite('djblets/configForms/views/ListItemView', function() {
 
     describe('Action handlers', function() {
         it('Buttons', function() {
-            const item = new Djblets.Config.ListItem({
-                actions: [
-                    {
-                        id: 'mybutton',
-                        label: 'Button',
-                    },
-                ],
+            const item = new ListItem({
                 text: 'Label',
             });
-            const itemView = new Djblets.Config.ListItemView({
+            item.setActions([
+                {
+                    id: 'mybutton',
+                    label: 'Button',
+                },
+            ]);
+
+            const itemView = new ListItemView({
                 model: item,
             });
 
@@ -496,19 +519,20 @@ suite('djblets/configForms/views/ListItemView', function() {
         });
 
         it('Checkboxes', function() {
-            const item = new Djblets.Config.ListItem({
-                actions: [
-                    {
-                        id: 'mycheckbox',
-                        label: 'Checkbox',
-                        propName: 'checkboxAttr',
-                        type: 'checkbox',
-                    },
-                ],
+            const item = new ListItem({
                 checkboxAttr: false,
                 text: 'Label',
             });
-            const itemView = new Djblets.Config.ListItemView({
+            item.setActions([
+                {
+                    id: 'mycheckbox',
+                    label: 'Checkbox',
+                    propName: 'checkboxAttr',
+                    type: 'checkbox',
+                },
+            ]);
+
+            const itemView = new ListItemView({
                 model: item,
             });
 

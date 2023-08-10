@@ -352,13 +352,13 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertNotIn('Reply-To', email._headers)
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
-        self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Doc <doc@example.com>'])
         self.assertEqual(email.extra_headers['From'], 'Doc <doc@example.com>')
-        self.assertEqual(email._headers['Reply-To'], 'Doc <doc@example.com>')
         self.assertEqual(email._headers['Sender'], settings.DEFAULT_FROM_EMAIL)
         self.assertEqual(email._headers['X-Sender'],
                          settings.DEFAULT_FROM_EMAIL)
@@ -380,13 +380,13 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertNotIn('Reply-To', email._headers)
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
-        self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Døc <doc@example.com>'])
         self.assertEqual(email.extra_headers['From'], 'Døc <doc@example.com>')
-        self.assertEqual(email._headers['Reply-To'], 'Døc <doc@example.com>')
         self.assertEqual(email._headers['Sender'], settings.DEFAULT_FROM_EMAIL)
         self.assertEqual(email._headers['X-Sender'],
                          settings.DEFAULT_FROM_EMAIL)
@@ -464,6 +464,61 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
             msg['X-Sender'],
             '=?utf-8?b?U8OpbmRlciA8bm9yZXBseUBleGFtcGxlLmNvbT4=?=')
 
+    def test_message_with_reply_to(self):
+        """Testing EmailMessage.message with reply_to="""
+        email = EmailMessage(
+            subject='Test email',
+            text_body='This is a test.',
+            html_body='<p>This is a test.</p>',
+            from_email='doc@example.com',
+            to=['sleepy@example.com'],
+            reply_to=[
+                'User1 <user1@example.com>',
+                'User2 <user2@example.com>',
+            ],
+            from_spoofing=EmailMessage.FROM_SPOOFING_ALWAYS)
+
+        self.assertIn('From', email.extra_headers)
+        self.assertIn('Sender', email._headers)
+        self.assertNotIn('Reply-To', email._headers)
+        self.assertNotIn('From', email._headers)
+        self.assertNotIn('Reply-To', email.extra_headers)
+        self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, [
+            'User1 <user1@example.com>',
+            'User2 <user2@example.com>',
+        ])
+        self.assertEqual(email.extra_headers['From'], 'doc@example.com')
+
+        msg = email.message()
+        self.assertEqual(msg['From'], 'doc@example.com')
+        self.assertEqual(msg['Reply-To'],
+                         'User1 <user1@example.com>, '
+                         'User2 <user2@example.com>')
+
+    def test_message_with_reply_to_with_unicode(self):
+        """Testing EmailMessage.message with sender= with Unicode characters"""
+        email = EmailMessage(subject='Test email',
+                             text_body='This is a test.',
+                             html_body='<p>This is a test.</p>',
+                             from_email='doc@example.com',
+                             to=['sleepy@example.com'],
+                             reply_to=['Usér <user@example.com>'],
+                             from_spoofing=EmailMessage.FROM_SPOOFING_ALWAYS)
+
+        self.assertIn('From', email.extra_headers)
+        self.assertIn('Sender', email._headers)
+        self.assertNotIn('Reply-To', email._headers)
+        self.assertNotIn('From', email._headers)
+        self.assertNotIn('Reply-To', email.extra_headers)
+        self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Usér <user@example.com>'])
+        self.assertEqual(email.extra_headers['From'], 'doc@example.com')
+
+        msg = email.message()
+        self.assertEqual(msg['Reply-To'],
+                         '=?utf-8?b?VXPDqXI=?= <user@example.com>')
+
     @override_settings(EMAIL_DEFAULT_SENDER_SERVICE_NAME='My Service')
     def test_message_with_from_spoofing_always(self):
         """Testing EmailMessage.message with from_spoofing=always"""
@@ -477,14 +532,13 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertNotIn('Reply-To', email._headers)
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
-        self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Doc Dwarf <doc@corp.example.com>'])
         self.assertEqual(email.extra_headers['From'],
-                         'Doc Dwarf <doc@corp.example.com>')
-        self.assertEqual(email._headers['Reply-To'],
                          'Doc Dwarf <doc@corp.example.com>')
         self.assertEqual(email._headers['Sender'],
                          'noreply@mail.example.com')
@@ -513,14 +567,13 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertNotIn('Reply-To', email._headers)
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
-        self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Doc Dwarf <doc@corp.example.com>'])
         self.assertEqual(email.extra_headers['From'],
-                         'Doc Dwarf <doc@corp.example.com>')
-        self.assertEqual(email._headers['Reply-To'],
                          'Doc Dwarf <doc@corp.example.com>')
         self.assertEqual(email._headers['Sender'],
                          'noreply@mail.example.com')
@@ -549,15 +602,14 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertNotIn('Reply-To', email._headers)
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
-        self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Doc Dwarf <doc@corp.example.com>'])
         self.assertEqual(email.extra_headers['From'],
                          'Doc Dwarf via My Service <noreply@mail.example.com>')
-        self.assertEqual(email._headers['Reply-To'],
-                         'Doc Dwarf <doc@corp.example.com>')
         self.assertEqual(email._headers['Sender'],
                          'noreply@mail.example.com')
         self.assertEqual(email._headers['X-Sender'],
@@ -582,15 +634,14 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertNotIn('Reply-To', email._headers)
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
-        self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Doc Dwarf <doc@corp.example.com>'])
         self.assertEqual(email.extra_headers['From'],
                          'Doc Dwarf via My Service <noreply@mail.example.com>')
-        self.assertEqual(email._headers['Reply-To'],
-                         'Doc Dwarf <doc@corp.example.com>')
         self.assertEqual(email._headers['Sender'],
                          'noreply@mail.example.com')
         self.assertEqual(email._headers['X-Sender'],
@@ -617,14 +668,13 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertNotIn('Reply-To', email._headers)
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
-        self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Doc Dwarf <doc@corp.example.com>'])
         self.assertEqual(email.extra_headers['From'],
-                         'Doc Dwarf <doc@corp.example.com>')
-        self.assertEqual(email._headers['Reply-To'],
                          'Doc Dwarf <doc@corp.example.com>')
         self.assertEqual(email._headers['Sender'],
                          'noreply@mail.example.com')
@@ -653,14 +703,13 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertNotIn('Reply-To', email._headers)
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
-        self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Doc Dwarf <doc@corp.example.com>'])
         self.assertEqual(email.extra_headers['From'],
-                         'Doc Dwarf <doc@corp.example.com>')
-        self.assertEqual(email._headers['Reply-To'],
                          'Doc Dwarf <doc@corp.example.com>')
         self.assertEqual(email._headers['Sender'],
                          'noreply@mail.example.com')
@@ -689,15 +738,14 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertNotIn('Reply-To', email._headers)
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
-        self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Doc Dwarf <doc@corp.example.com>'])
         self.assertEqual(email.extra_headers['From'],
                          'Doc Dwarf via My Service <noreply@mail.example.com>')
-        self.assertEqual(email._headers['Reply-To'],
-                         'Doc Dwarf <doc@corp.example.com>')
         self.assertEqual(email._headers['Sender'],
                          'noreply@mail.example.com')
         self.assertEqual(email._headers['X-Sender'],
@@ -724,15 +772,14 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertNotIn('Reply-To', email._headers)
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
-        self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Doc Dwarf <doc@corp.example.com>'])
         self.assertEqual(email.extra_headers['From'],
                          'Doc Dwarf via My Service <noreply@mail.example.com>')
-        self.assertEqual(email._headers['Reply-To'],
-                         'Doc Dwarf <doc@corp.example.com>')
         self.assertEqual(email._headers['Sender'],
                          'noreply@mail.example.com')
         self.assertEqual(email._headers['X-Sender'],
@@ -772,14 +819,13 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertNotIn('Reply-To', email._headers)
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
-        self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Doc Dwarf <doc@corp.example.com>'])
         self.assertEqual(email.extra_headers['From'],
-                         'Doc Dwarf <doc@corp.example.com>')
-        self.assertEqual(email._headers['Reply-To'],
                          'Doc Dwarf <doc@corp.example.com>')
         self.assertEqual(email._headers['Sender'],
                          'noreply@mail.example.com')
@@ -820,15 +866,14 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertNotIn('Reply-To', email._headers)
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
-        self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Doc Dwarf <doc@corp.example.com>'])
         self.assertEqual(email.extra_headers['From'],
                          'Doc Dwarf via My Service <noreply@mail.example.com>')
-        self.assertEqual(email._headers['Reply-To'],
-                         'Doc Dwarf <doc@corp.example.com>')
         self.assertEqual(email._headers['Sender'],
                          'noreply@mail.example.com')
         self.assertEqual(email._headers['X-Sender'],
@@ -863,14 +908,13 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertNotIn('Reply-To', email._headers)
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
-        self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Doc Dwarf <doc@corp.example.com>'])
         self.assertEqual(email.extra_headers['From'],
-                         'Doc Dwarf <doc@corp.example.com>')
-        self.assertEqual(email._headers['Reply-To'],
                          'Doc Dwarf <doc@corp.example.com>')
         self.assertEqual(email._headers['Sender'],
                          'noreply@mail.example.com')
@@ -911,15 +955,14 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
         self.assertNotIn('From', email._headers)
         self.assertNotIn('Sender', email.extra_headers)
         self.assertNotIn('X-Sender', email.extra_headers)
+        self.assertNotIn('Reply-To', email._headers)
         self.assertIn('From', email.extra_headers)
         self.assertIn('Sender', email._headers)
         self.assertIn('X-Sender', email._headers)
-        self.assertIn('Reply-To', email._headers)
         self.assertEqual(email.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertEqual(email.reply_to, ['Doc Dwarf <doc@corp.example.com>'])
         self.assertEqual(email.extra_headers['From'],
                          'Doc Dwarf via My Service <noreply@mail.example.com>')
-        self.assertEqual(email._headers['Reply-To'],
-                         'Doc Dwarf <doc@corp.example.com>')
         self.assertEqual(email._headers['Sender'],
                          'noreply@mail.example.com')
         self.assertEqual(email._headers['X-Sender'],

@@ -224,7 +224,7 @@ $.widget('ui.modalBox', {
 
             this.element.height(this._buttons.position().top -
                                 this.element.position().top -
-                                this.element.getExtents('m', 'tb'));
+                                this.element.getExtents('mp', 'tb'));
         } else {
             this.box.height(this.element.position().top +
                             this.element.outerHeight(true) +

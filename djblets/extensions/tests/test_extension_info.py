@@ -4,12 +4,19 @@ import os
 
 from django.conf import settings
 
+import djblets
 from djblets.extensions.extension import Extension, ExtensionInfo
+from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.extensions.tests.base import FakeEntryPoint
 from djblets.testing.testcases import TestCase
 
 
-class ExtensionInfoTests(TestCase):
+class DjbletsTestExtension(Extension):
+    __module__ = 'djblets'
+    id = 'djblets:TestExtension',
+
+
+class ExtensionInfoTests(ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.extension.ExtensionInfo."""
 
     def test_create_from_entrypoint(self):
@@ -100,6 +107,54 @@ class ExtensionInfoTests(TestCase):
                                    package_name=extension_id,
                                    extension_id=extension_id,
                                    metadata=expected_metadata)
+
+    def test_has_resource_with_file(self) -> None:
+        """Testing ExtensionInfo.has_resource with file"""
+        self.setup_extension(DjbletsTestExtension, enable=False)
+        extension = DjbletsTestExtension(self.extension_mgr)
+
+        self.assertTrue(extension.info.has_resource('deprecation.py'))
+
+    def test_has_resource_with_dir(self) -> None:
+        """Testing ExtensionInfo.has_resource with directory"""
+        self.setup_extension(DjbletsTestExtension, enable=False)
+        extension = DjbletsTestExtension(self.extension_mgr)
+
+        self.assertTrue(extension.info.has_resource('extensions'))
+
+    def test_has_resource_with_not_found(self) -> None:
+        """Testing ExtensionInfo.has_resource with not found"""
+        self.setup_extension(DjbletsTestExtension, enable=False)
+        extension = DjbletsTestExtension(self.extension_mgr)
+
+        self.assertFalse(extension.info.has_resource('blarghy-blargh'))
+
+    def test_extract_resource_with_file(self) -> None:
+        """Testing ExtensionInfo.has_resource with file"""
+        self.setup_extension(DjbletsTestExtension, enable=False)
+        extension = DjbletsTestExtension(self.extension_mgr)
+
+        self.assertEqual(
+            extension.info.extract_resource('deprecation.py'),
+            os.path.abspath(os.path.join(djblets.__file__, '..',
+                                         'deprecation.py')))
+
+    def test_extract_resource_with_dir(self) -> None:
+        """Testing ExtensionInfo.has_resource with directory"""
+        self.setup_extension(DjbletsTestExtension, enable=False)
+        extension = DjbletsTestExtension(self.extension_mgr)
+
+        self.assertEqual(
+            extension.info.extract_resource('extensions'),
+            os.path.abspath(os.path.join(djblets.__file__, '..',
+                                         'extensions')))
+
+    def test_extract_resource_with_not_found(self) -> None:
+        """Testing ExtensionInfo.has_resource with not found"""
+        self.setup_extension(DjbletsTestExtension, enable=False)
+        extension = DjbletsTestExtension(self.extension_mgr)
+
+        self.assertIsNone(extension.info.extract_resource('blarghy-blargh'))
 
     def _check_extension_info(self, extension_info, app_name, package_name,
                               extension_id, metadata):

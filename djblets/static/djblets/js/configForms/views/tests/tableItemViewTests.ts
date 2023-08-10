@@ -1,12 +1,24 @@
+import {
+    describe,
+    expect,
+    it,
+    suite,
+} from 'jasmine-core';
+import { spina } from '@beanbag/spina';
+
+import { ListItem } from '../../models/listItemModel';
+import { TableItemView } from '../tableItemView';
+
+
 suite('djblets/configForms/views/TableItemView', function() {
     describe('Rendering', function() {
         describe('Item display', function() {
             it('With editURL', function() {
-                const item = new Djblets.Config.ListItem({
+                const item = new ListItem({
                     editURL: 'http://example.com/',
                     text: 'Label',
                 });
-                const itemView = new Djblets.Config.TableItemView({
+                const itemView = new TableItemView({
                     model: item,
                 });
 
@@ -21,10 +33,10 @@ suite('djblets/configForms/views/TableItemView', function() {
             });
 
             it('Without editURL', function() {
-                const item = new Djblets.Config.ListItem({
+                const item = new ListItem({
                     text: 'Label',
                 });
-                const itemView = new Djblets.Config.TableItemView({
+                const itemView = new TableItemView({
                     model: item,
                 });
 
@@ -41,16 +53,17 @@ suite('djblets/configForms/views/TableItemView', function() {
 
         describe('Action placement', function() {
             it('Default template', function() {
-                const item = new Djblets.Config.ListItem({
-                    actions: [
-                        {
-                            id: 'mybutton',
-                            label: 'Button',
-                        },
-                    ],
+                const item = new ListItem({
                     text: 'Label',
                 });
-                const itemView = new Djblets.Config.TableItemView({
+                item.setActions([
+                    {
+                        id: 'mybutton',
+                        label: 'Button',
+                    },
+                ]);
+
+                const itemView = new TableItemView({
                     model: item,
                 });
 
@@ -63,22 +76,28 @@ suite('djblets/configForms/views/TableItemView', function() {
             });
 
             it('Custom template', function() {
-                const CustomTableItemView =
-                    Djblets.Config.TableItemView.extend({
-                        template: _.template(dedent`
-                            <td></td>
-                            <td></td>
-                        `),
-                    });
-                const item = new Djblets.Config.ListItem({
-                    actions: [
-                        {
-                            id: 'mybutton',
-                            label: 'Button',
-                        },
+                @spina({
+                    prototypeAttrs: [
+                        'template',
                     ],
+                })
+                class CustomTableItemView extends TableItemView {
+                    static template = _.template(dedent`
+                        <td></td>
+                        <td></td>
+                    `);
+                }
+
+                const item = new ListItem({
                     text: 'Label',
                 });
+                item.setActions([
+                    {
+                        id: 'mybutton',
+                        label: 'Button',
+                    },
+                ]);
+
                 const itemView = new CustomTableItemView({
                     model: item,
                 });

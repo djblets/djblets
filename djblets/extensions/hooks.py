@@ -15,16 +15,28 @@ It also provides some built-in hooks for applications and extensions to use:
 * :py:class:`URLHook`
 """
 
+from __future__ import annotations
+
 import logging
 import uuid
+from typing import (Any, Callable, Dict, List, Optional, TYPE_CHECKING, Type,
+                    cast)
 
+from django.dispatch import Signal
+from django.http import HttpRequest
+from django.template import Context
 from django.template.loader import render_to_string
+from django.urls import URLPattern
+
+from djblets.datagrid.grids import Column, DataGrid
+from djblets.extensions.extension import Extension
+from djblets.registries.registry import Registry
 
 
 logger = logging.getLogger(__name__)
 
 
-class ExtensionHook(object):
+class ExtensionHook:
     """The base class for a hook into some part of an application.
 
     ExtensionHooks are classes that can hook into an
@@ -87,7 +99,14 @@ class ExtensionHook(object):
     #: The hook is in the process of enabling.
     HOOK_STATE_ENABLING = 3
 
-    def __init__(self, extension, *args, **kwargs):
+    remove_hook: Callable[['ExtensionHook', ExtensionHook], None]
+
+    def __init__(
+        self,
+        extension: Extension,
+        *args,
+        **kwargs,
+    ) -> None:
         """Initialize the ExtensionHook.
 
         This is called when creating an instance of the hook. This will
@@ -122,11 +141,15 @@ class ExtensionHook(object):
             self.enable_hook(*args, **kwargs)
 
     @property
-    def initialized(self):
-        """Whether the hook is initialized and enabled."""
+    def initialized(self) -> bool:
+        """Whether the hook is initialized and enabled.
+
+        Type:
+            bool
+        """
         return self.hook_state == self.HOOK_STATE_ENABLED
 
-    def initialize(self, *args, **kwargs):
+    def initialize(self, *args, **kwargs) -> None:
         """Initialize the extension hook's state.
 
         Extension subclasses can perform any custom initialization they need
@@ -161,7 +184,7 @@ class ExtensionHook(object):
         """
         pass
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Shut down the extension.
 
         Extension subclasses can perform any custom cleanup they need here.
@@ -188,7 +211,7 @@ class ExtensionHook(object):
         """
         assert self.hook_state != self.HOOK_STATE_ENABLED
 
-    def enable_hook(self, *args, **kwargs):
+    def enable_hook(self, *args, **kwargs) -> None:
         """Enable the ExtensionHook, beginning the initialization process.
 
         This will register the instance of the hook and begin its
@@ -215,12 +238,15 @@ class ExtensionHook(object):
 
         self.hook_state = self.HOOK_STATE_ENABLING
         self.extension.hooks.add(self)
-        self.__class__.add_hook(self)
+        cast(ExtensionHookPoint, self.__class__).add_hook(self)
 
         self.initialize(*args, **kwargs)
         self.hook_state = self.HOOK_STATE_ENABLED
 
-    def disable_hook(self, call_shutdown=True):
+    def disable_hook(
+        self,
+        call_shutdown: bool = True,
+    ) -> None:
         """Disable the hook, unregistering it from the extension.
 
         This will unregister the hook and uninitialize it, putting it into
@@ -244,7 +270,7 @@ class ExtensionHook(object):
         if call_shutdown:
             self.shutdown()
 
-        self.__class__.remove_hook(self)
+        cast(ExtensionHookPoint, self.__class__).remove_hook(self)
         self.hook_state = self.HOOK_STATE_DISABLED
 
 
@@ -255,10 +281,11 @@ class ExtensionHookPoint(type):
     as a metaclass. This metaclass stores the list of registered hooks that
     an :py:class:`ExtensionHook` will automatically register with.
     """
+
     def __init__(cls, name, bases, attrs):
         super(ExtensionHookPoint, cls).__init__(name, bases, attrs)
 
-        if not hasattr(cls, "hooks"):
+        if not hasattr(cls, 'hooks'):
             cls.hooks = []
 
     def add_hook(cls, hook):
@@ -276,7 +303,13 @@ class ExtensionHookPoint(type):
         cls.hooks.remove(hook)
 
 
-class AppliesToURLMixin(object):
+if TYPE_CHECKING:
+    MixinParent = Extension
+else:
+    MixinParent = object
+
+
+class AppliesToURLMixin(MixinParent):
     """A mixin for hooks to allow restricting to certain URLs.
 
     This provides an :py:meth:`applies_to` function for the hook that can be
@@ -284,7 +317,12 @@ class AppliesToURLMixin(object):
     page.
     """
 
-    def initialize(self, apply_to=[], *args, **kwargs):
+    def initialize(
+        self,
+        apply_to: List[str] = [],
+        *args,
+        **kwargs,
+    ) -> None:
         """Initialize the mixin for a hook.
 
         Args:
@@ -293,16 +331,27 @@ class AppliesToURLMixin(object):
         """
         self.apply_to = apply_to
 
-        super(AppliesToURLMixin, self).initialize(*args, **kwargs)
+        super().initialize(*args, **kwargs)
 
-    def applies_to(self, request):
-        """Returns whether or not this hook applies to the page.
+    def applies_to(
+        self,
+        request: HttpRequest,
+    ) -> bool:
+        """Return whether or not this hook applies to the page.
 
         This will determine whether any of the URL names provided in
         ``apply_to`` matches the current requested page.
+
+        Args:
+            request (django.http.HttpRequest):
+                The request object.
+
+        Returns:
+            bool:
+            Whether this hook applies to the page currently being rendered.
         """
         return (not self.apply_to or
-                (request.resolver_match and
+                (request.resolver_match is not None and
                  request.resolver_match.url_name in self.apply_to))
 
 
@@ -316,7 +365,11 @@ class DataGridColumnsHook(ExtensionHook, metaclass=ExtensionHookPoint):
     Each column must have an id already set, and it must be unique.
     """
 
-    def initialize(self, datagrid_cls, columns):
+    def initialize(
+        self,
+        datagrid_cls: Type[DataGrid],
+        columns: List[Column],
+    ) -> None:
         """Initialize the hook.
 
         Args:
@@ -334,7 +387,8 @@ class DataGridColumnsHook(ExtensionHook, metaclass=ExtensionHookPoint):
         for column in columns:
             self.datagrid_cls.add_column(column)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
+        """Shut down the hook."""
         for column in self.columns:
             self.datagrid_cls.remove_column(column)
 
@@ -346,7 +400,10 @@ class URLHook(ExtensionHook, metaclass=ExtensionHookPoint):
     parent URL.
     """
 
-    def initialize(self, patterns):
+    def initialize(
+        self,
+        patterns: List[URLPattern],
+    ) -> None:
         """Initialize the hook.
 
         Args:
@@ -358,7 +415,7 @@ class URLHook(ExtensionHook, metaclass=ExtensionHookPoint):
         self.dynamic_urls = self.extension.extension_manager.dynamic_urls
         self.dynamic_urls.add_patterns(patterns)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.dynamic_urls.remove_patterns(self.patterns)
 
 
@@ -373,7 +430,13 @@ class SignalHook(ExtensionHook, metaclass=ExtensionHookPoint):
     to the extension instance.
     """
 
-    def initialize(self, signal, callback, sender=None, sandbox_errors=True):
+    def initialize(
+        self,
+        signal: Signal,
+        callback: Callable,
+        sender: Any = None,
+        sandbox_errors: bool = True,
+    ) -> None:
         """Initialize the hook.
 
         Args:
@@ -401,17 +464,22 @@ class SignalHook(ExtensionHook, metaclass=ExtensionHookPoint):
         self.sandbox_errors = sandbox_errors
 
         signal.connect(self._wrap_callback, sender=self.sender, weak=False,
-                       dispatch_uid=self.dispatch_uid)
+                       dispatch_uid=str(self.dispatch_uid))
 
-    def shutdown(self):
-        self.signal.disconnect(dispatch_uid=self.dispatch_uid,
+    def shutdown(self) -> None:
+        """Shut down the hook."""
+        self.signal.disconnect(dispatch_uid=str(self.dispatch_uid),
                                sender=self.sender)
 
-    def _wrap_callback(self, **kwargs):
-        """Wraps a callback function, passing extra parameters and sandboxing.
+    def _wrap_callback(self, **kwargs) -> None:
+        """Wrap a callback function, passing extra parameters and sandboxing.
 
         This will call the callback with an extension= keyword argument,
         and sandbox any errors (if sandbox_errors is True).
+
+        Args:
+            **kwargs (dict):
+                Keyword arguments to pass to the callback.
         """
         try:
             self.callback(extension=self.extension, **kwargs)
@@ -430,18 +498,47 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
     A hook that renders a template at hook points defined in another template.
     """
 
-    _by_name = {}
+    _by_name: Dict[str, List[TemplateHook]] = {}
 
-    def initialize(self, name, template_name=None, apply_to=[],
-                   extra_context={}):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The name of the hook point to attach to.
+    #:
+    #: Type:
+    #:     str
+    name: str
+
+    #: The name of the template file to render.
+    #:
+    #: Type:
+    #:     str
+    template_name: Optional[str]
+
+    #: Any additional context to use when rendering.
+    #:
+    #: Type:
+    #:     dict
+    extra_context: dict
+
+    def initialize(
+        self,
+        name: str,
+        template_name: Optional[str] = None,
+        apply_to: List[str] = [],
+        extra_context: Dict[str, Any] = {},
+        *args,
+        **kwargs,
+    ) -> None:
         """Initialize the hook.
 
         Args:
-            name (unicode):
+            name (str):
                 The name of the template hook point that should render this
                 template. This is application-specific.
 
-            template_name (unicode, optional):
+            template_name (str, optional):
                 The name of the template to render.
 
             apply_to (list, optional):
@@ -451,8 +548,14 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
 
             extra_context (dict):
                 Extra context to include when rendering the template.
+
+            *args (tuple):
+                Additional positional arguments for future expansion.
+
+            **kwargs (dict):
+                Additional keyword arguments for future expansion.
         """
-        super(TemplateHook, self).initialize(apply_to=apply_to)
+        super().initialize(apply_to=apply_to)
 
         self.name = name
         self.template_name = template_name
@@ -463,14 +566,29 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
         else:
             self.__class__._by_name[name].append(self)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.__class__._by_name[self.name].remove(self)
 
-    def render_to_string(self, request, context):
-        """Renders the content for the hook.
+    def render_to_string(
+        self,
+        request: HttpRequest,
+        context: Context,
+    ) -> str:
+        """Render the content for the hook.
 
         By default, this renders the provided template name to a string
         and returns it.
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request.
+
+            context (django.template.Conetxt):
+                The template render context.
+
+        Returns:
+            str:
+            Rendered content to include in the template.
         """
         context_data = {
             'extension': self.extension,
@@ -481,6 +599,7 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
         # Note that context.update implies a push().
         context.update(context_data)
 
+        assert self.template_name is not None
         s = render_to_string(template_name=self.template_name,
                              context=context.flatten(),
                              request=request)
@@ -489,18 +608,47 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
 
         return s
 
-    def get_extra_context(self, request, context):
-        """Returns extra context for the hook.
+    def get_extra_context(
+        self,
+        request: HttpRequest,
+        context: Context,
+    ) -> Dict[str, Any]:
+        """Return extra context for the hook.
 
         Subclasses can override this to provide additional context
         dynamically beyond what's passed in to the constructor.
 
         By default, an empty dictionary is returned.
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request.
+
+            context (django.template.Context):
+                The template render context.
+
+        Returns:
+            dict:
+            Additional context to include when rendering the template.
         """
         return {}
 
     @classmethod
-    def by_name(cls, name):
+    def by_name(
+        cls,
+        name: str,
+    ) -> List[TemplateHook]:
+        """Return template hooks by name.
+
+        Args:
+            name (str):
+                The name of the hook point.
+
+        Returns:
+            list of TemplateHook:
+            A list of all template hooks that are registered for the given
+            name.
+        """
         return cls._by_name.get(name, [])
 
 
@@ -514,9 +662,12 @@ class BaseRegistryHook(ExtensionHook):
     """
 
     #: The registry to register items with.
-    registry = None
+    registry: Optional[Registry] = None
 
-    def initialize(self, item):
+    def initialize(
+        self,
+        item: Any,
+    ) -> None:
         """Initialize the registry hook with the item.
 
         Args:
@@ -524,10 +675,13 @@ class BaseRegistryHook(ExtensionHook):
                 The object to register.
         """
         self.item = item
+
+        assert self.registry is not None
         self.registry.register(item)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Shut down the registry hook and unregister the item."""
+        assert self.registry is not None
         self.registry.unregister(self.item)
 
 
@@ -541,9 +695,12 @@ class BaseRegistryMultiItemHook(ExtensionHook):
     """
 
     #: The registry to register items with.
-    registry = None
+    registry: Optional[Registry] = None
 
-    def initialize(self, items):
+    def initialize(
+        self,
+        items: List[Any],
+    ) -> None:
         """Initialize the registry hook with the list of items.
 
         Args:
@@ -552,17 +709,20 @@ class BaseRegistryMultiItemHook(ExtensionHook):
         """
         self.items = items
 
-        registered_items = []
+        registry = self.registry
+        assert registry is not None
+
+        registered_items: List[Any] = []
 
         for item in items:
             try:
-                self.registry.register(item)
+                registry.register(item)
             except Exception:
                 # If there's an error, first unregister all existing items and
                 # then re-raise the error.
                 for item in registered_items:
                     try:
-                        self.registry.unregister(item)
+                        registry.unregister(item)
                     except Exception:
                         pass
 
@@ -570,7 +730,10 @@ class BaseRegistryMultiItemHook(ExtensionHook):
 
             registered_items.append(item)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Shut down the registry hook and unregister the items."""
+        registry = self.registry
+        assert registry is not None
+
         for item in self.items:
-            self.registry.unregister(item)
+            registry.unregister(item)
