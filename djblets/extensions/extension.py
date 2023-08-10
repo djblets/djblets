@@ -612,7 +612,7 @@ class ExtensionInfo:
         return (
             importlib_resources.files(self.module_name) /
             PosixPath(path)
-        ).is_file()
+        ).exists()
 
     def extract_resource(
         self,

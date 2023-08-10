@@ -1364,7 +1364,7 @@ class ExtensionManager:
     def _install_extension_media_internal(
         self,
         ext_class: Type[Extension],
-    ):
+    ) -> None:
         """Install static media for an extension.
 
         This performs any installation necessary for an extension. If the
