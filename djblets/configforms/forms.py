@@ -1,8 +1,14 @@
 """Base support for configuration forms."""
 
+from __future__ import annotations
+
+from typing import List, Optional
+
 from django import forms
 from django.template.loader import render_to_string
 from django.utils.translation import gettext_lazy as _
+
+from djblets.util.typing import StrOrPromise
 
 
 class ConfigPageForm(forms.Form):
@@ -23,30 +29,30 @@ class ConfigPageForm(forms.Form):
     #: The unique ID of the form.
     #:
     #: This must be unique across all ConfigPages at a given URL.
-    form_id = None
+    form_id: Optional[str] = None
 
     #: The displayed title for the form.
-    form_title = None
+    form_title: Optional[StrOrPromise] = None
 
     #: The label for the save button.
     #:
     #: This can be set to ``None`` to disable the button.
-    save_label = _('Save')
+    save_label: Optional[StrOrPromise] = _('Save')
 
     #: The template used to render the form.
     template_name = 'configforms/config_page_form.html'
 
     #: The list of CSS bundle names to include on the page.
-    css_bundle_names = []
+    css_bundle_names: List[str] = []
 
     #: The list of JavaScript bundle names to include on the page.
-    js_bundle_names = []
+    js_bundle_names: List[str] = []
 
     #: The optional Backbone model used for the configuration form state.
-    js_model_class = None
+    js_model_class: Optional[str] = None
 
     #: The optional Backbone view used to render the form.
-    js_view_class = None
+    js_view_class: Optional[str] = None
 
     form_target = forms.CharField(
         required=False,
