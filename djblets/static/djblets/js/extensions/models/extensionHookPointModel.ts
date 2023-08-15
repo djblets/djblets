@@ -1,16 +1,35 @@
 /**
+ * Class for defining a hook point for extension hooks.
+ */
+
+import { BaseModel, spina } from '@beanbag/spina';
+
+import type { ExtensionHook } from './extensionHookModel';
+
+
+/**
  * Defines a point where extension hooks can plug into.
  *
  * This is meant to be instantiated and provided as a 'hookPoint' field on
  * an ExtensionHook subclass, in order to provide a place to hook into.
  */
-Djblets.ExtensionHookPoint = Backbone.Model.extend({
+@spina
+export class ExtensionHookPoint extends BaseModel {
+    /**********************
+     * Instance variables *
+     **********************/
+
+    /**
+     * A list of all hooks registered on this extension point.
+     */
+    hooks: ExtensionHook[];
+
     /**
      * Initialize the hook point.
      */
     initialize() {
         this.hooks = [];
-    },
+    }
 
     /**
      * Add a hook instance to the list of known hooks.
@@ -19,7 +38,7 @@ Djblets.ExtensionHookPoint = Backbone.Model.extend({
      *     hook (Djblets.ExtensionHook):
      *         The hook instance.
      */
-    addHook(hook) {
+    addHook(hook: ExtensionHook) {
         this.hooks.push(hook);
-    },
-});
+    }
+}

@@ -1,4 +1,32 @@
 /**
+ * Base support for defining extension hooks.
+ */
+
+import {
+    BaseModel,
+    ModelAttributes,
+    spina,
+} from '@beanbag/spina';
+
+import type { ExtensionHookPoint } from './extensionHookPointModel';
+import type { Extension } from './extensionModel';
+
+
+/**
+ * Attributes that can be passed to an extension hook's constructor.
+ *
+ * Version Added:
+ *     4.0
+ */
+export interface ExtensionHookAttrs extends ModelAttributes {
+    /**
+     * The extension that owns this hook.
+     */
+    extension: Extension;
+}
+
+
+/**
  * Base class for hooks that an extension can use to augment functionality.
  *
  * Each type of hook represents a point in the codebase that an extension
@@ -14,18 +42,46 @@
  * Callers that use ExtensionHook subclasses to provide functionality can
  * use the subclass's each() method to loop over all registered hooks.
  */
-Djblets.ExtensionHook = Backbone.Model.extend({
+@spina({
+    prototypeAttrs: [
+        'each',
+        'hookPoint',
+    ],
+})
+export class ExtensionHook<
+    TDefaults extends ExtensionHookAttrs = ExtensionHookAttrs
+> extends BaseModel<TDefaults> {
     /**
      * An ExtensionHookPoint instance.
      *
      * This must be defined and instantiated by a subclass of ExtensionHook,
      * but not by subclasses created by extensions.
      */
-    hookPoint: null,
+    static hookPoint: ExtensionHookPoint = null;
+    hookPoint: ExtensionHookPoint;
 
-    defaults: {
+    static defaults: ExtensionHookAttrs = {
         extension: null,
-    },
+    };
+
+    /**
+     * Loop through each registered hook instance and call the given callback.
+     *
+     * Args:
+     *     cb (function):
+     *         The callback to call.
+     *
+     *     context (object, optional):
+     *         Optional context to use when calling the callback.
+     */
+    static each(
+        cb: (ExtensionHook) => void,
+        context: unknown = null,
+    ) {
+        for (const hook of this.prototype.hookPoint.hooks) {
+            cb.call(context, hook);
+        }
+    }
 
     /**
      * Initialize the hook.
@@ -40,17 +96,17 @@ Djblets.ExtensionHook = Backbone.Model.extend({
         const extension = this.get('extension');
 
         console.assert(
-            this.hookPoint,
+            !!this.hookPoint,
             'This ExtensionHook subclass must define hookPoint');
         console.assert(
-            extension,
+            !!extension,
             'An Extension instance must be passed to ExtensionHook');
 
         extension.hooks.push(this);
         this.hookPoint.addHook(this);
 
         this.setUpHook();
-    },
+    }
 
     /**
      * Set up additional state for the hook.
@@ -59,19 +115,6 @@ Djblets.ExtensionHook = Backbone.Model.extend({
      * functionality.
      */
     setUpHook() {
-    },
-}, {
-    /**
-     * Loop through each registered hook instance and call the given callback.
-     *
-     * Args:
-     *     cb (function):
-     *         The callback to call.
-     *
-     *     context (object, optional):
-     *         Optional context to use when calling the callback.
-     */
-    each(cb, context) {
-        _.each(this.prototype.hookPoint.hooks, cb, context);
-    },
-});
+        /* Empty by default. */
+    }
+}

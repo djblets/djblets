@@ -1,4 +1,88 @@
-(function() {
+/**
+ * Extension management support.
+ */
+
+import {
+    BaseCollection,
+    BaseModel,
+    ModelAttributes,
+    spina,
+} from '@beanbag/spina';
+import * as Backbone from 'Backbone';
+import * as _ from 'underscore';
+
+
+/**
+ * Attributes for information on an installed extension.
+ *
+ * Version Added:
+ *     4.0
+ */
+interface InstalledExtensionAttrs extends ModelAttributes {
+    /**
+     * The name of the author writing/maintaining the extension.
+     */
+    author: string;
+
+    /**
+     * The URL to the author's website.
+     */
+    authorURL: string;
+
+    /**
+     * The URL on Review Board for configuring the extension.
+     */
+    configURL: string;
+
+    /**
+     * The URL to the extension's database management page.
+     */
+    dbURL: string;
+
+    /**
+     * Whether the extension is currently enabled.
+     */
+    enabled: boolean;
+
+    /**
+     * An error message encountered when trying to load the extension.
+     */
+    loadError: string;
+
+    /**
+     * Whether the extension can be loaded.
+     */
+    loadable: boolean;
+
+    /**
+     * The display name of the extension.
+     */
+    name: string;
+
+    /**
+     * A short summary describing the extension.
+     */
+    summary: string;
+
+    /**
+     * The version of the extension.
+     */
+    version: string;
+}
+
+
+/**
+ * Attributes for controlling the extension manager.
+ *
+ * Version Added:
+ *     4.0
+ */
+interface ExtensionManagerAttrs extends ModelAttributes {
+    /**
+     * The root of the extension API.
+     */
+    apiRoot: string;
+}
 
 
 /**
@@ -7,8 +91,9 @@
  * This stores the various information about the extension that we'll display
  * to the user, and offers actions for enabling or disabling the extension.
  */
-const InstalledExtension = Backbone.Model.extend({
-    defaults: {
+@spina
+class InstalledExtension extends BaseModel<InstalledExtensionAttrs> {
+    static defaults: InstalledExtensionAttrs = {
         author: null,
         authorURL: null,
         configURL: null,
@@ -19,18 +104,7 @@ const InstalledExtension = Backbone.Model.extend({
         name: null,
         summary: null,
         version: null,
-    },
-
-    /**
-     * Return the URL to the API endpoint representing this extension.
-     *
-     * Returns:
-     *     string:
-     *     The URL to use for making changes to this extension.
-     */
-    url() {
-        return Backbone.Model.prototype.url.call(this) + '/';
-    },
+    };
 
     /**
      * Enable the extension.
@@ -42,7 +116,7 @@ const InstalledExtension = Backbone.Model.extend({
      *     A promise that will be resolved when the request to enable the
      *     extension completes.
      */
-    enable() {
+    enable(): Promise<void> {
         return new Promise((resolve, reject) => {
             this.save({
                 enabled: true,
@@ -61,7 +135,7 @@ const InstalledExtension = Backbone.Model.extend({
                 success: () => resolve(),
             });
         });
-    },
+    }
 
     /**
      * Disable the extension.
@@ -73,7 +147,7 @@ const InstalledExtension = Backbone.Model.extend({
      *     A promise that will be resolved when the request to enable the
      *     extension completes.
      */
-    disable() {
+    disable(): Promise<void> {
         return new Promise((resolve, reject) => {
             this.save({
                 enabled: false,
@@ -84,7 +158,7 @@ const InstalledExtension = Backbone.Model.extend({
                 success: () => resolve(),
             });
         });
-    },
+    }
 
     /**
      * Return a JSON payload for requests sent to the server.
@@ -93,11 +167,11 @@ const InstalledExtension = Backbone.Model.extend({
      *     object:
      *     A payload that will be serialized for making the API request.
      */
-    toJSON() {
+    toJSON(): object {
         return {
             enabled: this.get('enabled'),
         };
-    },
+    }
 
     /**
      * Parse a JSON payload from the server.
@@ -115,8 +189,11 @@ const InstalledExtension = Backbone.Model.extend({
             rsp = rsp.extension;
         }
 
+        const id = rsp.class_name;
         const configLink = rsp.links['admin-configure'];
         const dbLink = rsp.links['admin-database'];
+
+        this.url = `${this.collection.url}${id}/`;
 
         return {
             author: rsp.author,
@@ -126,14 +203,14 @@ const InstalledExtension = Backbone.Model.extend({
             configURL: configLink ? configLink.href : null,
             dbURL: dbLink ? dbLink.href : null,
             enabled: rsp.enabled,
-            id: rsp.class_name,
+            id: id,
             loadError: rsp.load_error,
             loadable: rsp.loadable,
             name: rsp.name,
             summary: rsp.summary,
             version: rsp.version,
         };
-    },
+    }
 
     /**
      * Perform AJAX requests against the server-side API.
@@ -148,13 +225,17 @@ const InstalledExtension = Backbone.Model.extend({
      *     options (object):
      *         Options for the sync operation.
      */
-    sync(method, model, options) {
-        Backbone.sync.call(this, method, model, _.defaults({
+    sync(
+        method: string,
+        model: InstalledExtension,
+        options?: JQuery.AjaxSettings,
+    ): JQueryXHR {
+        return Backbone.sync.call(this, method, model, _.defaults({
             contentType: 'application/x-www-form-urlencoded',
-            data: model.toJSON(options),
+            data: model.toJSON(),
             processData: true,
 
-            error: xhr => {
+            error: (xhr, textStatus, errorThrown) => {
                 let rsp;
                 let text;
 
@@ -172,12 +253,12 @@ const InstalledExtension = Backbone.Model.extend({
                 if (_.isFunction(options.error)) {
                     xhr.errorText = text;
                     xhr.errorRsp = rsp;
-                    options.error(xhr, options);
+                    options.error(xhr, textStatus, errorThrown);
                 }
             },
         }, options));
-    },
-});
+    }
+}
 
 
 /**
@@ -186,8 +267,9 @@ const InstalledExtension = Backbone.Model.extend({
  * This stores the list of installed extensions, and allows fetching from
  * the API.
  */
-const InstalledExtensionCollection = Backbone.Collection.extend({
-    model: InstalledExtension,
+@spina
+class InstalledExtensionCollection extends BaseCollection {
+    static model = InstalledExtension;
 
     /**
      * Parse the response from the server.
@@ -202,8 +284,8 @@ const InstalledExtensionCollection = Backbone.Collection.extend({
      */
     parse(rsp) {
         return rsp.extensions;
-    },
-});
+    }
+}
 
 
 /**
@@ -211,15 +293,21 @@ const InstalledExtensionCollection = Backbone.Collection.extend({
  *
  * This stores a collection of installed extensions, and provides
  * functionality for loading the current list from the server.
- *
- * Model Attributes:
- *     apiRoot (string):
- *         The root of the extensions API, used for all lookups.
  */
-Djblets.ExtensionManager = Backbone.Model.extend({
-    defaults: {
+@spina
+export class ExtensionManager extends BaseModel<ExtensionManagerAttrs> {
+    static defaults: ExtensionManagerAttrs = {
         apiRoot: null,
-    },
+    };
+
+    /**********************
+     * Instance variables *
+     **********************/
+
+    /**
+     * A collection of all installed extensions.
+     */
+    installedExtensions: InstalledExtensionCollection;
 
     /**
      * Initialize the manager.
@@ -227,7 +315,7 @@ Djblets.ExtensionManager = Backbone.Model.extend({
     initialize() {
         this.installedExtensions = new InstalledExtensionCollection();
         this.installedExtensions.url = this.get('apiRoot');
-    },
+    }
 
     /**
      * Load the extensions list.
@@ -238,8 +326,5 @@ Djblets.ExtensionManager = Backbone.Model.extend({
         this.installedExtensions.fetch({
             success: () => this.trigger('loaded'),
         });
-    },
-});
-
-
-})();
+    }
+}
