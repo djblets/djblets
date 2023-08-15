@@ -1,9 +1,12 @@
 import {
+    beforeEach,
     describe,
     expect,
     it,
+    spyOn,
     suite,
 } from 'jasmine-core';
+import * as _ from 'underscore';
 
 import { ListItem } from '../../models/listItemModel';
 import { ListItemView } from '../listItemView';
@@ -22,7 +25,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 itemView.render();
-                expect(itemView.$el.html().strip()).toBe([
+                expect(itemView.$el.html().trim()).toBe([
                     '<span class="djblets-c-config-forms-list__item-actions">',
                     '</span>\n',
                     '<a href="http://example.com/">Label</a>',
@@ -38,7 +41,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 itemView.render();
-                expect(itemView.$el.html().strip()).toBe([
+                expect(itemView.$el.html().trim()).toBe([
                     '<span class="djblets-c-config-forms-list__item-actions">',
                     '</span>\n',
                     'Label',

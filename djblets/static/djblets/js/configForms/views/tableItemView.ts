@@ -3,6 +3,7 @@
  */
 
 import { spina } from '@beanbag/spina';
+import * as _ from 'underscore';
 
 import { ListItemView } from './listItemView';
 

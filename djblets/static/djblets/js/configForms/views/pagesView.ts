@@ -3,6 +3,7 @@
  */
 
 import { BaseView, spina } from '@beanbag/spina';
+import * as Backbone from 'Backbone';
 
 
 /**
@@ -20,6 +21,16 @@ export class PagesView extends BaseView {
 
     /** The page router. */
     router: Backbone.Router;
+
+    /**
+     * All subpage navigation item elements.
+     */
+    _$pageNavs: JQuery;
+
+    /**
+     * All subpage elements on the page.
+     */
+    _$pages: JQuery;
 
     /** The active navigation item. */
     #$activeNav: JQuery;

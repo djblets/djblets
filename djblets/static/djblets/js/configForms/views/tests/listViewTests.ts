@@ -5,6 +5,7 @@ import {
     it,
     suite,
 } from 'jasmine-core';
+import * as Backbone from 'Backbone';
 
 import { List } from '../../models/listModel';
 import { ListItem } from '../../models/listItemModel';
@@ -70,15 +71,20 @@ suite('djblets/configForms/views/ListView', () => {
                 expect(listView.$('button').length).toBe(0);
                 expect(listView.$('input').length).toBe(0);
             });
+        });
+    });
+
+    describe('Manages items', () => {
+        beforeEach(() => {
             listView.render();
         });
 
         it('On render', () => {
             const $items = listView.$('li');
             expect($items.length).toBe(3);
-            expect($items.eq(0).text().strip()).toBe('Item 1');
-            expect($items.eq(1).text().strip()).toBe('Item 2');
-            expect($items.eq(2).text().strip()).toBe('Item 3');
+            expect($items.eq(0).text().trim()).toBe('Item 1');
+            expect($items.eq(1).text().trim()).toBe('Item 2');
+            expect($items.eq(2).text().trim()).toBe('Item 3');
         });
 
         it('On add', () => {
@@ -88,7 +94,7 @@ suite('djblets/configForms/views/ListView', () => {
 
             const $items = listView.$('li');
             expect($items.length).toBe(4);
-            expect($items.eq(3).text().strip()).toBe('Item 4');
+            expect($items.eq(3).text().trim()).toBe('Item 4');
         });
 
         it('On remove', () => {
@@ -96,7 +102,7 @@ suite('djblets/configForms/views/ListView', () => {
 
             const $items = listView.$('li');
             expect($items.length).toBe(2);
-            expect($items.eq(0).text().strip()).toBe('Item 2');
+            expect($items.eq(0).text().trim()).toBe('Item 2');
         });
 
         it('On reset', () => {
@@ -107,8 +113,8 @@ suite('djblets/configForms/views/ListView', () => {
 
             const $items = listView.$('li');
             expect($items.length).toBe(2);
-            expect($items.eq(0).text().strip()).toBe('Foo');
-            expect($items.eq(1).text().strip()).toBe('Bar');
+            expect($items.eq(0).text().trim()).toBe('Foo');
+            expect($items.eq(1).text().trim()).toBe('Bar');
         });
     });
 });
