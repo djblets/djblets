@@ -72,6 +72,13 @@ export class ListView<
     views: Backbone.View[];
 
     /**
+     * The main list element.
+     *
+     * This is set on render based on the result of :js:meth:`getBody`.
+     */
+    $listBody: JQuery = null;
+
+    /**
      * Initialize the view.
      *
      * Args:
@@ -120,7 +127,7 @@ export class ListView<
      *
      * This will loop through all items and render each one.
      */
-    onInitialRender() {
+    onRender() {
         this.$listBody = this.getBody();
 
         this.#renderItems();

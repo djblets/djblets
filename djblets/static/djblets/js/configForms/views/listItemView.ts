@@ -90,7 +90,7 @@ export class ListItemView<
      * This will be called every time the list of actions change for
      * the item.
      */
-    onInitialRender() {
+    onRender() {
         const model = this.model;
 
         this.$el

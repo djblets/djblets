@@ -12,28 +12,63 @@ import { ListView } from '../listView';
 
 
 suite('djblets/configForms/views/ListView', () => {
-    describe('Manages items', () => {
-        let collection;
-        let list;
-        let listView;
+    let collection: Backbone.Collection;
+    let list: List;
+    let listView: ListView;
 
-        beforeEach(() => {
-            collection = new Backbone.Collection(
-                [
-                    {text: 'Item 1'},
-                    {text: 'Item 2'},
-                    {text: 'Item 3'},
-                ], {
-                    model: ListItem,
-                }
-            );
+    beforeEach(() => {
+        collection = new Backbone.Collection(
+            [
+                {text: 'Item 1'},
+                {text: 'Item 2'},
+                {text: 'Item 3'},
+            ], {
+                model: ListItem,
+            }
+        );
 
-            list = new List({}, {
-                collection: collection,
+        list = new List({}, {
+            collection: collection,
+        });
+
+        listView = new ListView({
+            model: list,
+        });
+    });
+
+    describe('Methods', () => {
+        describe('render', () => {
+            it('On first render', () => {
+                expect(listView.$listBody).toBeNull();
+                expect(listView.$('li').length).toBe(0);
+
+                listView.render();
+
+                expect(listView.$listBody).toBe(listView.$el);
+                expect(listView.$('li').length).toBe(3);
             });
 
-            listView = new ListView({
-                model: list,
+            it('On subsequent render', () => {
+                expect(listView.$listBody).toBeNull();
+                expect(listView.$('li').length).toBe(0);
+
+                /* First render. */
+                listView.render();
+
+                expect(listView.$listBody).toBe(listView.$el);
+                expect(listView.$('li').length).toBe(3);
+
+                /* Modify some state. */
+                listView.$el.append('<button>');
+                listView.$listBody = $('<input>');
+
+                /* Second render. */
+                listView.render();
+
+                expect(listView.$listBody).toBe(listView.$el);
+                expect(listView.$('li').length).toBe(3);
+                expect(listView.$('button').length).toBe(0);
+                expect(listView.$('input').length).toBe(0);
             });
             listView.render();
         });
