@@ -5,7 +5,7 @@ import {
     it,
     suite,
 } from 'jasmine-core';
-import * as Backbone from 'Backbone';
+import * as Backbone from 'backbone';
 
 import { List } from '../../models/listModel';
 import { ListItem } from '../../models/listItemModel';

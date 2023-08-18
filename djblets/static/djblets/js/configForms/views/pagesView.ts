@@ -3,7 +3,7 @@
  */
 
 import { BaseView, spina } from '@beanbag/spina';
-import * as Backbone from 'Backbone';
+import * as Backbone from 'backbone';
 
 
 /**

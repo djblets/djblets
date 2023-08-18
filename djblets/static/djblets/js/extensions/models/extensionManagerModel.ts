@@ -8,7 +8,7 @@ import {
     ModelAttributes,
     spina,
 } from '@beanbag/spina';
-import * as Backbone from 'Backbone';
+import * as Backbone from 'backbone';
 import * as _ from 'underscore';
 
 

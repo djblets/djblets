@@ -3,7 +3,7 @@
  */
 
 import { BaseView, Class, spina } from '@beanbag/spina';
-import type * as Backbone from 'Backbone';
+import type * as Backbone from 'backbone';
 import * as _ from 'underscore';
 
 import { List } from '../models/listModel';
