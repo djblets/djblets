@@ -13,10 +13,10 @@ import { BaseModel, ModelAttributes, spina } from '@beanbag/spina';
  */
 export interface ListItemAttrs extends ModelAttributes {
     /** Whether or not the model can be removed. */
-    canRemove: boolean;
+    canRemove?: boolean;
 
     /** The URL to edit the model. */
-    editURL: string;
+    editURL?: string;
 
     /**
      * A string representing the item's state.
@@ -24,13 +24,13 @@ export interface ListItemAttrs extends ModelAttributes {
      * This is used for those items that need to show an enabled, disabled,
      * error, or custom state.
      */
-    itemState: string;
+    itemState?: string;
 
     /** Whether or not the model is loading content from the server. */
-    loading: boolean;
+    loading?: boolean;
 
     /** The label for the "remove" action. */
-    removeLabel: string;
+    removeLabel?: string;
 
     /**
      * Whether or not the "remove" action should be present.
@@ -39,10 +39,10 @@ export interface ListItemAttrs extends ModelAttributes {
      * :js:attr:`actions` attribute will be pre-propulated with an action to
      * remove itself.
      */
-    showRemove: boolean;
+    showRemove?: boolean;
 
     /** The display name of the model. */
-    text: string;
+    text?: string;
 }
 
 
@@ -73,8 +73,33 @@ export interface ListItemAction {
      */
     danger?: boolean;
 
-    /** Whether the action is enabled. */
-    enabled: boolean;
+    /**
+     * Whether the action is enabled.
+     *
+     * This defaults to ``true``.
+     */
+    enabled?: boolean;
+
+    /**
+     * The name of the property on the model to bind the enabled state to.
+     */
+    enabledPropName?: string;
+
+    /**
+     * Whether to inverse the enabled state when binding enabledPropName.
+     *
+     * This defaults to ``false``.
+     */
+    enabledPropInverse?: boolean;
+
+    /**
+     * Whether to dispatch a click event when toggled on.
+     *
+     * This only applies to radio button actions.
+     *
+     * This defaults to ``false``.
+     */
+    dispatchOnClick?: boolean;
 
     /**
      * The name of the icon to display for the action, if any.

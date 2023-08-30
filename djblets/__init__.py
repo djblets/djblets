@@ -1,18 +1,12 @@
 """Basic version and package information."""
 
-# Python 3.10+ removed a bunch of aliases from the collections module.
-# Unfortunately, Django 1.11 and nose still rely on these. Do this before
-# anything else.
-import djblets.util.compat.python.collections
-
-
 # The version of Djblets
 #
 # This is in the format of:
 #
 #   (Major, Minor, Micro, alpha/beta/rc/final, Release Number, Released)
 #
-VERSION = (4, 0, 0, 'beta', 3, False)
+VERSION = (4, 0, 0, 'beta', 3, True)
 
 
 def get_version_string():

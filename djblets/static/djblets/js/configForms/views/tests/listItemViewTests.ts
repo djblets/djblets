@@ -1,9 +1,12 @@
 import {
+    beforeEach,
     describe,
     expect,
     it,
+    spyOn,
     suite,
 } from 'jasmine-core';
+import * as _ from 'underscore';
 
 import { ListItem } from '../../models/listItemModel';
 import { ListItemView } from '../listItemView';
@@ -22,7 +25,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 itemView.render();
-                expect(itemView.$el.html().strip()).toBe([
+                expect(itemView.$el.html().trim()).toBe([
                     '<span class="djblets-c-config-forms-list__item-actions">',
                     '</span>\n',
                     '<a href="http://example.com/">Label</a>',
@@ -38,7 +41,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 itemView.render();
-                expect(itemView.$el.html().strip()).toBe([
+                expect(itemView.$el.html().trim()).toBe([
                     '<span class="djblets-c-config-forms-list__item-actions">',
                     '</span>\n',
                     'Label',
@@ -320,6 +323,41 @@ suite('djblets/configForms/views/ListItemView', function() {
                     const $menu = itemView.$('.action-menu');
                     expect($menu.length).toBe(0);
                 });
+            });
+
+            it('After render', () => {
+                const item = new ListItem({
+                    text: 'Label',
+                });
+
+                const itemView = new ListItemView({
+                    model: item,
+                });
+                itemView.render();
+
+                let $button = itemView.$(
+                    'button.djblets-c-config-forms-list__item-action');
+                expect($button.length).toBe(0);
+
+                /* Now set the actions. */
+                item.setActions([
+                    {
+                        id: 'mybutton',
+                        label: 'Button',
+                    },
+                ]);
+
+                $button = itemView.$(
+                    'button.djblets-c-config-forms-list__item-action');
+                expect($button.length).toBe(1);
+                const buttonEl = $button[0];
+
+                expect($button.text()).toBe('Button');
+                expect(buttonEl)
+                    .toHaveClass('config-forms-list-action-mybutton');
+                expect(buttonEl).not.toHaveClass('rb-icon');
+                expect(buttonEl).not.toHaveClass('-is-danger');
+                expect(buttonEl).not.toHaveClass('-is-primary');
             });
         });
 

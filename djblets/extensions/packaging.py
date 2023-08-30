@@ -1,5 +1,7 @@
 """Packaging support for extensions."""
 
+from __future__ import annotations
+
 import inspect
 import json
 import os
@@ -7,7 +9,7 @@ import re
 import sys
 from distutils.errors import DistutilsExecError
 from fnmatch import fnmatch
-from typing import Dict, List, Type
+from typing import Dict, List, TYPE_CHECKING, Type
 
 import django
 import pkg_resources
@@ -16,9 +18,11 @@ from setuptools.command.build_py import build_py
 from setuptools import Command
 
 from djblets.dependencies import frontend_buildkit_npm_dependencies
-from djblets.extensions.extension import Extension
 from djblets.pipeline.settings import build_pipeline_settings
 from djblets.util.filesystem import is_exe_in_path
+
+if TYPE_CHECKING:
+    from djblets.extensions.extension import Extension
 
 
 class BuildStaticFiles(Command):

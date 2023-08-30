@@ -2,6 +2,7 @@
  * Base view for displaying a list item in config pages.
  */
 import { BaseView, EventsHash, spina } from '@beanbag/spina';
+import * as _ from 'underscore';
 
 import { ListItem, ListItemAction } from '../models/listItemModel';
 
@@ -34,7 +35,9 @@ export class ListItemView<
 > extends BaseView<TModel, TElement, TExtraViewOptions> {
     static className = 'djblets-c-config-forms-list__item';
     static tagName = 'li';
+
     static iconBaseClassName = 'djblets-icon';
+    iconBaseClassName: string;
 
     /**
      * A mapping of item states to CSS classes.
@@ -47,6 +50,7 @@ export class ListItemView<
         enabled: '-is-enabled',
         error: '-has-error',
     };
+    itemStateClasses: { [key: string]: string };
 
     static template = _.template(dedent`
         <% if (editURL) { %>
@@ -55,8 +59,10 @@ export class ListItemView<
         <%- text %>
         <% } %>
     `);
+    template: _.CompiledTemplate;
 
     static actionHandlers: EventsHash = {};
+    actionHandlers: EventsHash;
 
     /**********************
      * Instance variables *
@@ -90,7 +96,7 @@ export class ListItemView<
      * This will be called every time the list of actions change for
      * the item.
      */
-    onInitialRender() {
+    onRender() {
         const model = this.model;
 
         this.$el
@@ -128,8 +134,10 @@ export class ListItemView<
      *
      * This will fade out the item, and then remove it from view.
      */
-    remove() {
+    remove(): this {
         this.$el.fadeOut('normal', () => super.remove());
+
+        return this;
     }
 
     /**

@@ -12,9 +12,9 @@ const extensions = [
 
 const globalsMap = {
     '@beanbag/spina': 'Spina',
-    Backbone: 'Backbone',
-    Djblets: 'Djblets',
+    backbone: 'Backbone',
     django: 'django',
+    djblets: 'Djblets',
     'jasmine-core': 'window',
     jquery: '$',
     underscore: '_',

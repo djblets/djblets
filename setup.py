@@ -39,7 +39,7 @@ if pyver < PYTHON_3_MIN_VERSION:
 # 3.9: October 5, 2025
 #
 # See https://endoflife.date/python
-SUPPORTED_PYVERS = ['3.7', '3.8', '3.9', '3.10']
+SUPPORTED_PYVERS = ['3.8', '3.9', '3.10', '3.11']
 
 
 if '--all-pyvers' in sys.argv:
@@ -384,6 +384,7 @@ setup(
         'large-scale Django-based web applications.'
     ),
     long_description=long_description,
+    long_description_content_type='text/x-rst',
     author='Beanbag, Inc.',
     author_email='reviewboard@googlegroups.com',
     url='https://www.reviewboard.org/downloads/djblets/',
@@ -391,7 +392,7 @@ setup(
                   % (PACKAGE_NAME, VERSION[0], VERSION[1])),
     packages=find_packages(exclude=['tests']),
     install_requires=build_dependency_list(package_dependencies),
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     include_package_data=True,
     zip_safe=False,
     test_suite='dummy',
@@ -413,7 +414,6 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',

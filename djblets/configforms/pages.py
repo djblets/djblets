@@ -1,6 +1,13 @@
 """Base support for configuration pages."""
 
+from __future__ import annotations
+
+from typing import List, Optional, Type
+
 from django.template.loader import render_to_string
+
+from djblets.configforms.forms import ConfigPageForm
+from djblets.util.typing import StrOrPromise
 
 
 class ConfigPage(object):
@@ -15,15 +22,15 @@ class ConfigPage(object):
     #: The unique ID of the page.
     #:
     #: This must be unique across all ConfigPages at a given URL.
-    page_id = None
+    page_id: Optional[str] = None
 
     #: The displayed title for the page.
     #:
     #: This will show up in the navigation sidebar.
-    page_title = None
+    page_title: Optional[StrOrPromise] = None
 
     #: The list of form subclasses to display on the page.
-    form_classes = None
+    form_classes: Optional[List[Type[ConfigPageForm]]] = None
 
     #: The template used to render the page.
     template_name = 'configforms/config_page.html'
@@ -43,11 +50,14 @@ class ConfigPage(object):
         """
         self.config_view = config_view
         self.request = request
+
+        form_classes = self.form_classes or []
+
         self.forms = [
             form
             for form in (
                 form_cls(self, request, user)
-                for form_cls in self.form_classes
+                for form_cls in form_classes
             )
             if form.is_visible()
         ]

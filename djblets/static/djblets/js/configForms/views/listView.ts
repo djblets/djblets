@@ -2,7 +2,9 @@
  * View for displaying a list of items.
  */
 
-import { BaseView, spina } from '@beanbag/spina';
+import { BaseView, Class, spina } from '@beanbag/spina';
+import type * as Backbone from 'backbone';
+import * as _ from 'underscore';
 
 import { List } from '../models/listModel';
 import { ListItemView } from './listItemView';
@@ -16,7 +18,7 @@ import { ListItemView } from './listItemView';
  */
 export interface ListViewOptions {
     /** The item view class. */
-    ItemView: typeof Backbone.View;
+    ItemView?: typeof Backbone.View;
 
     /** Whether to animate added or removed items with a fade. */
     animateItems?: boolean;
@@ -56,7 +58,9 @@ export class ListView<
 > extends BaseView<TModel, TElement, TExtraViewOptions> {
     static className = 'djblets-c-config-forms-list';
     static tagName = 'ul';
-    static defaultItemView = ListItemView;
+
+    static defaultItemView: Class<ListItemView> = ListItemView;
+    defaultItemView: Class<ListItemView>;
 
     /**********************
      * Instance variables *
@@ -70,6 +74,13 @@ export class ListView<
 
     /** The set of views for all list items. */
     views: Backbone.View[];
+
+    /**
+     * The main list element.
+     *
+     * This is set on render based on the result of :js:meth:`getBody`.
+     */
+    $listBody: JQuery = null;
 
     /**
      * Initialize the view.
@@ -120,7 +131,7 @@ export class ListView<
      *
      * This will loop through all items and render each one.
      */
-    onInitialRender() {
+    onRender() {
         this.$listBody = this.getBody();
 
         this.#renderItems();
