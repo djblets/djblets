@@ -29,7 +29,7 @@ API stability.
 
 To learn more, see:
 
-* `Documentation <https://www.reviewboard.org/docs/djblets/4.x/>`_
+* `Documentation <https://www.reviewboard.org/docs/djblets/dev/>`_
 * `Djblets on PyPI <https://pypi.org/project/Djblets/>`_
 * `Djblets on GitHub <https://github.com/djblets/djblets/>`_
 
