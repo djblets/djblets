@@ -384,6 +384,7 @@ setup(
         'large-scale Django-based web applications.'
     ),
     long_description=long_description,
+    long_description_content_type='text/x-rst',
     author='Beanbag, Inc.',
     author_email='reviewboard@googlegroups.com',
     url='https://www.reviewboard.org/downloads/djblets/',
