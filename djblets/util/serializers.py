@@ -1,10 +1,14 @@
 """Utilities for serializing content."""
 
+from __future__ import annotations
+
 import datetime
+from typing import TYPE_CHECKING
 
 from django.core.serializers.json import DjangoJSONEncoder
-from django.utils.encoding import force_str
-from django.utils.functional import Promise
+
+if TYPE_CHECKING:
+    from djblets.util.typing import SerializableJSONValue
 
 
 class DjbletsJSONEncoder(DjangoJSONEncoder):
@@ -14,9 +18,6 @@ class DjbletsJSONEncoder(DjangoJSONEncoder):
     :py:class:`~django.core.serializers.json.DjangoJSONEncoder` the does the
     following:
 
-    * Evaluates strings translated with
-      :py:func:`~django.utils.translation.gettext_lazy` to real strings.
-
     * Removes the milliseconds and microseconds
       from :py:class:`datetimes <datetime.datetime>` (unless setting
       ``strip_datetime_ms=False`` when constructing the encoder). This is
@@ -24,25 +25,47 @@ class DjbletsJSONEncoder(DjangoJSONEncoder):
       data coming from a MySQL database (which historically, and by default,
       chops off milliseconds).
 
-    * Serializes Django :py:class:`models <django.db.models.base.Model>` with
-      a ``to_json`` method via that method.
+    * Serializes objects (including :py:class:`Django models
+      <django.db.models.base.Model>` with) containing a ``to_json`` method.
     """
 
-    def __init__(self, strip_datetime_ms=True, *args, **kwargs):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: Whether milliseconds should be stripped from a datetime.
+    #:
+    #: Type:
+    #:     bool
+    strip_datetime_ms: bool
+
+    def __init__(
+        self,
+        strip_datetime_ms: bool = True,
+        *args,
+        **kwargs,
+    ) -> None:
         """Initialize the encoder.
 
         Args:
             strip_datetime_ms (bool, optional):
                 Determines whether milliseconds should be stripped from a
-                :py:class:`~datetime.datetime`. This is ``True`` by default,
-                to preserve the old behavior of the encoder.
+                :py:class:`~datetime.datetime`.
+
+                This is ``True`` by default, to preserve the old behavior of
+                the encoder.
         """
-        super(DjbletsJSONEncoder, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.strip_datetime_ms = strip_datetime_ms
 
-    def default(self, obj):
+    def default(
+        self,
+        obj: SerializableJSONValue,
+    ) -> SerializableJSONValue:
         """Encode the object into a JSON-compatible structure.
+
+        The result from this will be re-encoded as JSON.
 
         Args:
             obj (object):
@@ -50,15 +73,16 @@ class DjbletsJSONEncoder(DjangoJSONEncoder):
 
         Returns:
             object:
-            A JSON-compatible structure (e.g., a :py:class:`dict`,
-            :py:class:`list`, py:class:`unicode`, or :py:class:`bytes` object).
+            A JSON-compatible value, or a value that can be serialized to
+            JSON through this encoder.
         """
+        # This will already have been handled. We type check to avoid
+        # warnings below.
+        assert obj is not None
+
         if isinstance(obj, set):
             return sorted(obj)
-        elif isinstance(obj, Promise):
-            # Handles initializing lazily created gettext messages.
-            return force_str(obj)
-        elif isinstance(obj, datetime.datetime) and self.strip_datetime_ms:
+        elif self.strip_datetime_ms and isinstance(obj, datetime.datetime):
             # This is like DjangoJSONEncoder's datetime encoding
             # implementation, except that it filters out the milliseconds
             # in addition to microseconds. This ensures consistency between
@@ -75,4 +99,4 @@ class DjbletsJSONEncoder(DjangoJSONEncoder):
         elif hasattr(obj, 'to_json') and callable(obj.to_json):
             return obj.to_json()
 
-        return super(DjbletsJSONEncoder, self).default(obj)
+        return super().default(obj)
