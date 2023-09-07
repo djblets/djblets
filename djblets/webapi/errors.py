@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from typing import Callable, Dict, List, Optional, TYPE_CHECKING, Union
 
+from housekeeping import deprecate_non_keyword_only_args
+
+from djblets.deprecation import RemovedInDjblets60Warning
+
 if TYPE_CHECKING:
     from django.http import HttpRequest
     from djblets.webapi.responses import WebAPIResponseHeaders
@@ -58,14 +62,22 @@ class WebAPIError:
     #:     str
     msg: str
 
+    @deprecate_non_keyword_only_args(RemovedInDjblets60Warning)
     def __init__(
         self,
         code: int,
         msg: str,
+        *,
         http_status: int = 400,
         headers: _HTTPHeadersOrCallable = {},
     ) -> None:
         """Initialize the error.
+
+        Version Changed:
+            4.0:
+            * ``http_status`` and ``headers`` must be provided as a keyword.
+              Passing as positional arguments is deprecated and will be removed
+              in Djblets 6.
 
         Args:
             code (int):
@@ -100,15 +112,23 @@ class WebAPIError:
         return '<API Error %d, HTTP %d: %s>' % (self.code, self.http_status,
                                                 self.msg)
 
+    @deprecate_non_keyword_only_args(RemovedInDjblets60Warning)
     def with_overrides(
         self,
         msg: Optional[str] = None,
+        *,
         headers: Optional[_HTTPHeadersOrCallable] = None,
     ) -> Self:
         """Return an error with overridden values.
 
         The returned error will be based on this error, but with a custom
         message or headers.
+
+        Version Changed:
+            4.0:
+            * ``headers`` must be provided as a keyword. Passing as a
+              positional argument is deprecated and will be removed in
+              Djblets 6.
 
         Args:
             msg (str, optional):
