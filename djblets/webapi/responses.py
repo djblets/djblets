@@ -757,11 +757,25 @@ class WebAPIResponseError(WebAPIResponse):
             if arg in kwargs:
                 raise ValueError(f'{arg}= cannot be passed to {type(self)}')
 
+        err_payload = {
+            'code': err.code,
+            'msg': err.msg,
+        }
+
+        if err.error_type:
+            err_payload['type'] = err.error_type
+
+            if err.error_subtype:
+                err_payload['subtype'] = err.error_subtype
+
+        if err.detail:
+            err_payload['detail'] = err.detail
+
+        if err.trace_id:
+            err_payload['trace_id'] = err.trace_id
+
         errdata: WebAPIResponsePayload = {
-            'err': {
-                'code': err.code,
-                'msg': err.msg,
-            }
+            'err': err_payload,
         }
         errdata.update(extra_params)
 

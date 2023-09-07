@@ -8,7 +8,9 @@ from django.utils.encoding import force_str
 
 from djblets.testing.testcases import ExpectedWarning, TestCase
 from djblets.webapi.encoders import BasicAPIEncoder
-from djblets.webapi.errors import INVALID_ATTRIBUTE, INVALID_FORM_DATA
+from djblets.webapi.errors import (INVALID_ATTRIBUTE,
+                                   INVALID_FORM_DATA,
+                                   WebAPIError)
 from djblets.webapi.resources.registry import unregister_resource
 from djblets.webapi.resources.user import UserResource
 from djblets.webapi.responses import (WebAPIResponse,
@@ -148,44 +150,104 @@ class WebAPIResponsePaginatedTests(TestCase):
 class WebAPIResponseErrorTests(TestCase):
     """Unit tests for djblets.webapi.responses.WebAPIResponseError."""
 
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.request = RequestFactory().get('/')
+        self.encoders = [BasicAPIEncoder()]
+
     def test_init(self):
         """Testing WebAPIResponseError.__init__"""
-        request = RequestFactory().get('/')
         headers = {
             'Header1': 'value1',
         }
-        encoders = [BasicAPIEncoder()]
         encoder_kwargs = {
             'xxx': 123,
         }
 
         response = WebAPIResponseError(
-            request=request,
+            request=self.request,
             err=INVALID_ATTRIBUTE,
             extra_params={
                 'extra1': 'value1',
             },
             headers=headers,
             api_format='json',
-            encoders=encoders,
+            encoders=self.encoders,
             encoder_kwargs=encoder_kwargs,
             mimetype='application/json+test',
             supported_mimetypes=['application/json+test'])
 
-        self.assertIs(response.request, request)
+        self.assertIs(response.request, self.request)
         self.assertEqual(response.api_data, {
             'err': {
                 'code': INVALID_ATTRIBUTE.code,
-                'msg': 'Invalid attribute',
+                'msg': INVALID_ATTRIBUTE.msg,
+                'type': INVALID_ATTRIBUTE.error_type,
             },
             'extra1': 'value1',
             'stat': 'fail',
         })
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response['Header1'], 'value1')
-        self.assertIs(response.encoders, encoders)
+        self.assertIs(response.encoders, self.encoders)
         self.assertEqual(response.encoder_kwargs, encoder_kwargs)
         self.assertEqual(response.mimetype, 'application/json+test')
+
+    def test_with_all_fields(self) -> None:
+        """Testing WebAPIResponseError with all WebAPIError fields"""
+        response = WebAPIResponseError(
+            request=self.request,
+            err=WebAPIError(
+                code=911,
+                msg='This is a thing that went wrong.',
+                error_type='oh-nosers',
+                error_subtype='super-oh-nosers',
+                detail='The thing went VERY wrong!'),
+            api_format='json',
+            encoders=self.encoders,
+            mimetype='application/json+test',
+            supported_mimetypes=['application/json+test'])
+
+        self.assertEqual(
+            response.api_data,
+            {
+                'err': {
+                    'code': 911,
+                    'detail': 'The thing went VERY wrong!',
+                    'msg': 'This is a thing that went wrong.',
+                    'subtype': 'super-oh-nosers',
+                    'type': 'oh-nosers',
+                },
+                'stat': 'fail',
+            })
+
+    def test_with_subtype_no_type(self) -> None:
+        """Testing WebAPIResponseError with WebAPIError containing subtype
+        but no type
+        """
+        response = WebAPIResponseError(
+            request=self.request,
+            err=WebAPIError(
+                code=911,
+                msg='This is a thing that went wrong.',
+                error_subtype='super-oh-nosers',
+                detail='The thing went VERY wrong!'),
+            api_format='json',
+            encoders=self.encoders,
+            mimetype='application/json+test',
+            supported_mimetypes=['application/json+test'])
+
+        self.assertEqual(
+            response.api_data,
+            {
+                'err': {
+                    'code': 911,
+                    'detail': 'The thing went VERY wrong!',
+                    'msg': 'This is a thing that went wrong.',
+                },
+                'stat': 'fail',
+            })
 
 
 class WebAPIResponseFormErrorTests(TestCase):
@@ -222,7 +284,8 @@ class WebAPIResponseFormErrorTests(TestCase):
         self.assertEqual(response.api_data, {
             'err': {
                 'code': INVALID_FORM_DATA.code,
-                'msg': 'One or more fields had errors',
+                'msg': INVALID_FORM_DATA.msg,
+                'type': INVALID_FORM_DATA.error_type,
             },
             'fields': {
                 'my_field': ['This field is required.'],
