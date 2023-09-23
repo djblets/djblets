@@ -1149,3 +1149,76 @@ class WebAPIResourceTests(kgb.SpyAgency, TestModelsLoaderMixin, TestCase):
                              response_item_mimetype)
         else:
             self.assertTrue('Item-Content-Type' not in response)
+
+    def test_put_on_list_resource(self) -> None:
+        """Testing PUT on a list resource returns HTTP 405"""
+        class TestResource(MyTestUserResource):
+            allowed_methods = ('DELETE', 'GET', 'PUT', 'POST')
+
+        test_resource = TestResource()
+
+        request = self.factory.put('/api/users/')
+
+        response = test_resource.put(request, api_format='json')
+        self.assertEqual(response.status_code, 405)
+
+    def test_put_on_singleton_resource(self) -> None:
+        """Testing PUT on a singleton resource"""
+        class TestResource(BaseTestWebAPIResource):
+            allowed_methods = ('DELETE', 'GET', 'PUT', 'POST')
+            singleton = True
+
+            def update(self, request, *, api_format=None):
+                return WebAPIResponse(request)
+
+        test_resource = TestResource()
+        self.spy_on(test_resource.update)
+
+        request = self.factory.put('/api/users/')
+
+        test_resource.put(request, api_format='json')
+        self.assertSpyCalled(test_resource.update)
+
+    def test_put_on_item_resource(self) -> None:
+        """Testing PUT on an item resource"""
+        class TestResource(MyTestUserResource):
+            allowed_methods = ('DELETE', 'GET', 'PUT', 'POST')
+
+            def update(self, request, *, api_format=None, pk=None):
+                return WebAPIResponse(request)
+
+        test_resource = TestResource()
+        self.spy_on(test_resource.update)
+
+        request = self.factory.put('/api/users/4/')
+
+        test_resource.put(request, api_format='json', pk=4)
+        self.assertSpyCalledWith(test_resource.update, pk=4)
+
+    def test_post_on_item_resource(self) -> None:
+        """Testing POST on an item resource returns HTTP 405"""
+        class TestResource(MyTestUserResource):
+            allowed_methods = ('DELETE', 'GET', 'PUT', 'POST')
+
+        test_resource = TestResource()
+
+        request = self.factory.post('/api/users/4/')
+
+        response = test_resource.post(request, api_format='json', pk=4)
+        self.assertEqual(response.status_code, 405)
+
+    def test_post_on_list_resource(self) -> None:
+        """Testing POST on a list resource"""
+        class TestResource(BaseTestWebAPIResource):
+            allowed_methods = ('DELETE', 'GET', 'PUT', 'POST')
+
+            def create(self, request, *, api_format=None):
+                return WebAPIResponse(request)
+
+        test_resource = TestResource()
+        self.spy_on(test_resource.create)
+
+        request = self.factory.post('/api/users/')
+
+        test_resource.post(request, api_format='json')
+        self.assertSpyCalled(test_resource.create)

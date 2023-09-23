@@ -1123,9 +1123,15 @@ class WebAPIResource(object):
             The HTTP response, API error, or tuple results from the API
             handler.
         """
-        return self.update(request,
-                           api_format=api_format,
-                           *args, **kwargs)
+        if (self.singleton or
+            (self.uri_object_key is not None and
+             kwargs.get(self.uri_object_key, None) is not None)):
+            return self.update(request, api_format=api_format, *args, **kwargs)
+
+        allowed_methods = list(self.allowed_methods)
+        allowed_methods.remove('PUT')
+
+        return HttpResponseNotAllowed(allowed_methods)
 
     @webapi_response_errors(DOES_NOT_EXIST, NOT_LOGGED_IN, PERMISSION_DENIED)
     def get(
