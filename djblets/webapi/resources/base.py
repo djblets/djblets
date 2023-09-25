@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import logging
-import warnings
-from typing import (Any, List, Mapping, Optional, Sequence, TYPE_CHECKING,
-                    Type, Union)
+from typing import (Any, Dict, List, Mapping, Optional, Sequence,
+                    TYPE_CHECKING, Type, Union)
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -17,7 +16,7 @@ from django.http import (HttpResponseNotAllowed, HttpResponse,
                          HttpResponseNotModified)
 from django.urls import include, path, re_path, reverse
 from django.views.decorators.vary import vary_on_headers
-from typing_extensions import Literal, NotRequired, TypedDict
+from typing_extensions import Final, NotRequired, TypedDict
 
 from djblets.auth.ratelimit import (RATE_LIMIT_API_ANONYMOUS,
                                     RATE_LIMIT_API_AUTHENTICATED,
@@ -52,6 +51,7 @@ from djblets.webapi.fields import IntFieldType
 if TYPE_CHECKING:
     from django.db.models import Model
 
+    from djblets.util.typing import KwargsDict
     from djblets.webapi.fields import (BaseAPIFieldType,
                                        ListFieldTypeItemsInfo)
 
@@ -346,10 +346,6 @@ class WebAPIResource(object):
         'DELETE': 'delete',
     }
 
-    ######################
-    # Instance variables #
-    ######################
-
     #: A flag noting this class is an API handler.
     #:
     #: This is always ``True``. It's set to help middleware or other
@@ -357,7 +353,11 @@ class WebAPIResource(object):
     #:
     #: Type:
     #:     bool
-    is_webapi_handler: Literal[True]
+    is_webapi_handler: Final[bool] = True
+
+    ######################
+    # Instance variables #
+    ######################
 
     #: The parent resource for this resource.
     #:
@@ -383,17 +383,15 @@ class WebAPIResource(object):
     #:     list of str
     _select_related_fields: List[str]
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the API resource.
+
+        This will register the resource and set up state required for
+        processing API requests.
+        """
         _name_to_resources[self.name] = self
         _name_to_resources[self.name_plural] = self
         _class_to_resources[self.__class__] = self
-
-        # Mark this class, and any subclasses, to be Web API handlers
-        self.is_webapi_handler = True
-
-        # Copy this list, because otherwise we may modify the class-level
-        # version of it.
-        self.allowed_mimetypes = list(self.allowed_mimetypes)
 
         if self.mimetype_vendor:
             # Generate list and item resource-specific mimetypes
@@ -405,16 +403,25 @@ class WebAPIResource(object):
                     'item': None,
                 }
 
-                for key, is_list in [('list', True), ('item', False)]:
-                    if (key in mimetype_pair and
-                        (mimetype_pair[key] in
-                         WebAPIResponse.supported_mimetypes)):
-                        vend_mimetype_pair[key] = \
-                            self._build_resource_mimetype(mimetype_pair[key],
-                                                          is_list)
+                item_mimetype = mimetype_pair.get('item')
+                list_mimetype = mimetype_pair.get('list')
+
+                if (item_mimetype and
+                    item_mimetype in WebAPIResponse.supported_mimetypes):
+                    vend_mimetype_pair['item'] = self._build_resource_mimetype(
+                        mimetype=item_mimetype,
+                        is_list=False)
+
+                if (list_mimetype and
+                    list_mimetype in WebAPIResponse.supported_mimetypes):
+                    vend_mimetype_pair['list'] = self._build_resource_mimetype(
+                        mimetype=list_mimetype,
+                        is_list=True)
 
                 if vend_mimetype_pair['list'] or vend_mimetype_pair['item']:
-                    self.allowed_mimetypes.append(vend_mimetype_pair)
+                    self.allowed_mimetypes = list(self.allowed_mimetypes) + [
+                        vend_mimetype_pair,
+                    ]
 
     @vary_on_headers('Accept', 'Cookie')
     def __call__(self, request, api_format=None, *args, **kwargs):
@@ -549,11 +556,11 @@ class WebAPIResource(object):
                     headers.update(result[2])
 
                 if 'Location' in headers:
-                    extra_querystr = '&'.join([
+                    extra_querystr = '&'.join(
                         '%s=%s' % (param, request_params[param])
                         for param in SPECIAL_PARAMS
                         if param in request_params
-                    ])
+                    )
 
                     if extra_querystr:
                         if '?' in headers['Location']:
@@ -822,12 +829,14 @@ class WebAPIResource(object):
 
         if is_list:
             for mimetype_pair in self.allowed_mimetypes:
-                if (mimetype_pair.get('list') == mimetype and
-                    mimetype_pair.get('item')):
-                    response_args['headers'] = {
-                        'Item-Content-Type': mimetype_pair['item'],
-                    }
-                    break
+                if mimetype_pair.get('list') == mimetype:
+                    item_mimetype = mimetype_pair.get('item')
+
+                    if item_mimetype:
+                        response_args['headers'] = {
+                            'Item-Content-Type': item_mimetype,
+                        }
+                        break
 
         return response_args
 
@@ -871,25 +880,26 @@ class WebAPIResource(object):
             object_id = kwargs[self.uri_object_key]
             cache_key = '%d:%s:%s' % (id(self), id_field, object_id)
 
-        if cache_key in request._djblets_webapi_object_cache:
-            return request._djblets_webapi_object_cache[cache_key]
+        obj_cache = getattr(request, '_djblets_webapi_object_cache', {})
 
-        if 'is_list' in kwargs:
+        try:
+            return obj_cache[cache_key]
+        except KeyError:
             # Don't pass this in to _get_queryset, since we're not fetching
             # a list, and don't want the extra optimizations for lists to
             # kick in.
-            del kwargs['is_list']
+            kwargs.pop('is_list', None)
 
-        queryset = self._get_queryset(request, *args, **kwargs)
+            queryset = self._get_queryset(request, *args, **kwargs)
 
-        if self.singleton:
-            obj = queryset.get()
-        else:
-            obj = queryset.get(**{
-                id_field: object_id,
-            })
+            if self.singleton:
+                obj = queryset.get()
+            else:
+                obj = queryset.get(**{
+                    id_field: object_id,
+                })
 
-        request._djblets_webapi_object_cache[cache_key] = obj
+            obj_cache[cache_key] = obj
 
         return obj
 
@@ -1249,7 +1259,7 @@ class WebAPIResource(object):
         for resource in self.list_child_resources:
             resource._parent_resource = self
             urlpatterns += [
-                path(resource.uri_name + '/',
+                path(f'{resource.uri_name}/',
                      include(resource.get_url_patterns())),
             ]
 
@@ -1260,18 +1270,20 @@ class WebAPIResource(object):
                                                 self.uri_object_key_regex)
             elif self.singleton:
                 base_regex = r'^'
+            else:
+                assert False, 'Not reached'
 
             urlpatterns += [
-                re_path(base_regex + r'$',
+                re_path(f'{base_regex}$',
                         self.__call__,
                         name=self._build_named_url(self.name))
             ]
 
             for resource in self.item_child_resources:
                 resource._parent_resource = self
-                child_regex = base_regex + resource.uri_name + r'/'
                 urlpatterns += [
-                    re_path(child_regex, include(resource.get_url_patterns())),
+                    re_path(f'{base_regex}{resource.uri_name}/',
+                            include(resource.get_url_patterns())),
                 ]
 
         return urlpatterns
@@ -1486,7 +1498,7 @@ class WebAPIResource(object):
         """
         return str(obj)
 
-    def serialize_object(self, obj, *args, **kwargs):
+    def serialize_object(self, obj, request, *args, **kwargs):
         """Return a serialized representation of an object.
 
         This will generate a dictionary containing information on an object,
@@ -1519,15 +1531,84 @@ class WebAPIResource(object):
             dict:
             The serialized object payload.
         """
-        request = kwargs.get('request', None)
+        requested_mimetype: Optional[str] = None
+        expanded_resources = set()
+        serialize_cache = {}
 
         if request:
-            if not hasattr(request, '_djblets_webapi_serialize_cache'):
-                request._djblets_webapi_serialize_cache = {}
+            try:
+                serialize_cache = getattr(request,
+                                          '_djblets_webapi_serialize_cache')
+            except AttributeError:
+                serialize_cache = {}
+                setattr(request, '_djblets_webapi_serialize_cache',
+                        serialize_cache)
 
-            if obj in request._djblets_webapi_serialize_cache:
-                return self._clone_serialized_object(
-                    request._djblets_webapi_serialize_cache[obj])
+            if obj in serialize_cache:
+                return self._clone_serialized_object(serialize_cache[obj])
+
+            try:
+                # We're nested at least one level down. We'll be operating off
+                # of a possible subset of any specified expanded resources.
+                # Fields that were handled by a parent resource won't be
+                # handled here.
+                expanded_resources = \
+                    getattr(request, '_djblets_webapi_expanded_resources')
+            except AttributeError:
+                expanded_resources = set(
+                    request.GET.get('expand', request.POST.get('expand', ''))
+                    .split(',')
+                )
+                setattr(request, '_djblets_webapi_expanded_resources',
+                        expanded_resources)
+
+            if expanded_resources:
+                # We'll set and work off a copy of the existing expanded
+                # resources.  We'll be temporarily removing items as we recurse
+                # down into any nested objects, to prevent infinite loops.
+                # We'll want to make sure we don't permanently remove these
+                # entries, or subsequent list items will be affected.
+                #
+                # This ensures that any given field expansion only applies
+                # once, starting at this level. This prevents infinite
+                # recursion in the case where there's a loop in the object
+                # graph.
+                #
+                # We'll be restoring these values once we're done serializing
+                # this object and its children.
+                child_expanded_resources = expanded_resources.copy()
+
+                requested_mimetype = get_http_requested_mimetype(
+                    request, WebAPIResponse.supported_mimetypes)
+
+                for field in self.fields.keys():
+                    try:
+                        child_expanded_resources.remove(field)
+                    except KeyError:
+                        # This wasn't in the list. Ignore this.
+                        pass
+                    else:
+                        if not child_expanded_resources:
+                            break
+
+                # If we have any left...
+                if child_expanded_resources:
+                    for child_resource in self.item_child_resources:
+                        for name in (child_resource.name,
+                                     child_resource.name_plural):
+                            try:
+                                child_expanded_resources.remove(name)
+                            except KeyError:
+                                # This wasn't in the list. Ignore this.
+                                pass
+
+                        if not child_expanded_resources:
+                            break
+
+                # Set our copy so we'll operate on it while recursively
+                # serializing objects. This will be restored later.
+                setattr(request, '_djblets_webapi_expanded_resources',
+                        child_expanded_resources)
 
         only_fields = self.get_only_fields(request)
         only_links = self.get_only_links(request)
@@ -1536,65 +1617,11 @@ class WebAPIResource(object):
         links = {}
         expand_info = {}
 
+        resource: Optional[WebAPIResource]
+
         if only_links != []:
             links = self.get_links(self.item_child_resources, obj,
-                                   *args, **kwargs)
-
-        if hasattr(request, '_djblets_webapi_expanded_resources'):
-            # We're nested at least one level down. We'll be operating off of
-            # a possible subset of any specified expanded resources. Fields
-            # that were handled by a parent resource won't be handled here.
-            expanded_resources = request._djblets_webapi_expanded_resources
-        else:
-            expanded_resources = set(
-                request.GET.get('expand', request.POST.get('expand', ''))
-                .split(',')
-            )
-            request._djblets_webapi_expanded_resources = expanded_resources
-
-        if expanded_resources:
-            requested_mimetype = get_http_requested_mimetype(
-                request, WebAPIResponse.supported_mimetypes)
-        else:
-            requested_mimetype = None
-
-        # Make a copy of the set of expanded resources. We'll be temporarily
-        # removing items as we recurse down into any nested objects, to
-        # prevent infinite loops. We'll want to make sure we don't
-        # permanently remove these entries, or subsequent list items will
-        # be affected.
-        orig_expanded_resources = expanded_resources.copy()
-
-        if expanded_resources:
-            # Make sure that any given field expansion only applies once,
-            # starting at this level. This prevents infinite recursion in the
-            # case where there's a loop in the object graph.
-            #
-            # We'll be restoring these values once we're done serializing
-            # this object and its children.
-            child_expanded_resources = expanded_resources.copy()
-
-            for field in self.fields.keys():
-                if field in expanded_resources:
-                    child_expanded_resources.remove(field)
-
-                    if not child_expanded_resources:
-                        break
-
-            # If we have any left...
-            if child_expanded_resources:
-                for resource in self.item_child_resources:
-                    if resource.name in child_expanded_resources:
-                        child_expanded_resources.remove(resource.name)
-
-                    if resource.name_plural in child_expanded_resources:
-                        child_expanded_resources.remove(resource.name_plural)
-
-                    if not child_expanded_resources:
-                        break
-
-            request._djblets_webapi_expanded_resources = \
-                child_expanded_resources
+                                   request=request, *args, **kwargs)
 
         for field in self.fields.keys():
             can_include_field = only_fields is None or field in only_fields
@@ -1606,7 +1633,7 @@ class WebAPIResource(object):
             if not can_include_field and expand_field:
                 continue
 
-            serialize_func = getattr(self, "serialize_%s_field" % field, None)
+            serialize_func = getattr(self, f'serialize_{field}_field', None)
 
             if serialize_func and callable(serialize_func):
                 value = serialize_func(obj, request=request)
@@ -1627,35 +1654,45 @@ class WebAPIResource(object):
             if isinstance(value, models.Model) and not expand_field:
                 serialize_link_func = self.get_link_serializer(field)
 
-                links[field] = serialize_link_func(value, *args, **kwargs)
+                links[field] = serialize_link_func(value, request,
+                                                   *args, **kwargs)
             elif can_include_field:
-                if isinstance(value, QuerySet) and not expand_field:
-                    serialize_link_func = self.get_link_serializer(field)
+                if isinstance(value, QuerySet):
+                    if expand_field:
+                        objects = list(value)
 
-                    data[field] = [
-                        serialize_link_func(o, *args, **kwargs)
-                        for o in value
-                    ]
-                elif isinstance(value, QuerySet):
-                    objects = list(value)
+                        if objects:
+                            resource = \
+                                self.get_serializer_for_object(objects[0])
+                            assert resource is not None
+                            assert requested_mimetype is not None
 
-                    if objects:
-                        resource = self.get_serializer_for_object(objects[0])
+                            expand_info[field] = {
+                                'item_mimetype':
+                                    resource._build_resource_mimetype(
+                                        mimetype=requested_mimetype,
+                                        is_list=False),
+                            }
 
-                        expand_info[field] = {
-                            'item_mimetype': resource._build_resource_mimetype(
-                                mimetype=requested_mimetype,
-                                is_list=False),
-                        }
-
-                        data[field] = [
-                            resource.serialize_object(o, *args, **kwargs)
-                            for o in objects
-                        ]
+                            value = [
+                                resource.serialize_object(o,
+                                                          request=request,
+                                                          *args, **kwargs)
+                                for o in objects
+                            ]
+                        else:
+                            value = []
                     else:
-                        data[field] = []
+                        serialize_link_func = self.get_link_serializer(field)
+
+                        value = [
+                            serialize_link_func(o, request, *args, **kwargs)
+                            for o in value
+                        ]
                 elif isinstance(value, models.Model):
                     resource = self.get_serializer_for_object(value)
+                    assert resource is not None
+                    assert requested_mimetype is not None
 
                     expand_info[field] = {
                         'item_mimetype': resource._build_resource_mimetype(
@@ -1663,71 +1700,91 @@ class WebAPIResource(object):
                             is_list=False),
                     }
 
-                    data[field] = resource.serialize_object(
-                        value, *args, **kwargs)
-                else:
-                    data[field] = value
+                    value = resource.serialize_object(value,
+                                                      request=request,
+                                                      *args, **kwargs)
 
-        for resource_name in expanded_resources:
-            if (resource_name not in links or
-                (only_fields is not None and
-                 resource_name not in only_fields)):
-                continue
+                data[field] = value
 
-            # Try to find the resource from the child list.
-            found = False
-
-            for resource in self.item_child_resources:
-                if resource_name in [resource.name, resource.name_plural]:
-                    found = True
-                    break
-
-            if not found or not resource.model:
-                continue
-
-            extra_kwargs = {
+        # Begin expanding resources.
+        if (expanded_resources and
+            self.uri_object_key and
+            self.model_object_key):
+            # Go through each resource that should be expanded  serialize the
+            # resource in the payload, and then include metadata on the
+            # expanded resources in the resulting payload.
+            main_extra_kwargs: KwargsDict = {
                 self.uri_object_key: getattr(obj, self.model_object_key),
             }
-            extra_kwargs.update(**kwargs)
-            extra_kwargs.update(self.get_href_parent_ids(obj, **kwargs))
+            main_extra_kwargs.update(kwargs)
 
-            data[resource_name] = [
-                resource.serialize_object(o, *args, **kwargs)
-                for o in resource._get_queryset(
-                    is_list=True, *args, **extra_kwargs)
-            ]
+            for resource_name in expanded_resources:
+                if (resource_name not in links or
+                    (only_fields is not None and
+                     resource_name not in only_fields)):
+                    continue
 
-            expand_info[resource_name] = {
-                'list_url': links[resource_name]['href'],
-                'list_mimetype': resource._build_resource_mimetype(
-                    mimetype=requested_mimetype,
-                    is_list=True),
-                'item_mimetype': resource._build_resource_mimetype(
-                    mimetype=requested_mimetype,
-                    is_list=False),
-            }
+                # Try to find the resource from the child list.
+                resource = None
 
-            del links[resource_name]
+                for child_resource in self.item_child_resources:
+                    if resource_name in (child_resource.name,
+                                         child_resource.name_plural):
+                        if child_resource.model is not None:
+                            resource = child_resource
+
+                        break
+
+                if resource is None:
+                    break
+
+                extra_kwargs = main_extra_kwargs.copy()
+                extra_kwargs.update(self.get_href_parent_ids(obj, **kwargs))
+
+                data[resource_name] = [
+                    resource.serialize_object(o,
+                                              request=request,
+                                              *args, **kwargs)
+                    for o in resource._get_queryset(request,
+                                                    is_list=True,
+                                                    *args, **extra_kwargs)
+                ]
+
+                assert requested_mimetype
+
+                expand_info[resource_name] = {
+                    'list_url': links[resource_name]['href'],
+                    'list_mimetype': resource._build_resource_mimetype(
+                        mimetype=requested_mimetype,
+                        is_list=True),
+                    'item_mimetype': resource._build_resource_mimetype(
+                        mimetype=requested_mimetype,
+                        is_list=False),
+                }
+
+                del links[resource_name]
 
         if only_links is None:
             data['links'] = links
         elif only_links != []:
-            data['links'] = dict([
-                (link_name, link_info)
+            data['links'] = {
+                link_name: link_info
                 for link_name, link_info in links.items()
                 if link_name in only_links
-            ])
+            }
 
         if expand_info:
             data['_expanded'] = expand_info
 
-        # Now that we're done serializing, restore the list of expanded
-        # resource for the next call.
-        request._djblets_webapi_expanded_resources = orig_expanded_resources
-
         if request:
-            request._djblets_webapi_serialize_cache[obj] = \
-                self._clone_serialized_object(data)
+            # Now that we're done serializing, restore the list of expanded
+            # resource for the next call.
+            setattr(request, '_djblets_webapi_expanded_resources',
+                    expanded_resources)
+
+            # Store the generated data in the object cache, in case we need
+            # it again during this request/response cycle.
+            serialize_cache[obj] = self._clone_serialized_object(data)
 
         return data
 
@@ -1838,35 +1895,33 @@ class WebAPIResource(object):
         }
 
         # base_href without any query arguments.
-        i = base_href.find('?')
+        clean_base_href = base_href.rsplit('?', 1)[0]
 
-        if i != -1:
-            clean_base_href = base_href[:i]
+        allowed_methods = self.allowed_methods
+
+        if obj is not None:
+            if 'PUT' in allowed_methods:
+                links['update'] = {
+                    'method': 'PUT',
+                    'href': clean_base_href,
+                }
+
+            if 'DELETE' in allowed_methods:
+                links['delete'] = {
+                    'method': 'DELETE',
+                    'href': clean_base_href,
+                }
         else:
-            clean_base_href = base_href
-
-        if 'POST' in self.allowed_methods and not obj:
-            links['create'] = {
-                'method': 'POST',
-                'href': clean_base_href,
-            }
-
-        if 'PUT' in self.allowed_methods and obj:
-            links['update'] = {
-                'method': 'PUT',
-                'href': clean_base_href,
-            }
-
-        if 'DELETE' in self.allowed_methods and obj:
-            links['delete'] = {
-                'method': 'DELETE',
-                'href': clean_base_href,
-            }
+            if 'POST' in allowed_methods:
+                links['create'] = {
+                    'method': 'POST',
+                    'href': clean_base_href,
+                }
 
         for resource in resources:
             links[resource.link_name] = {
                 'method': 'GET',
-                'href': '%s%s/' % (clean_base_href, resource.uri_name),
+                'href': f'{clean_base_href}{resource.uri_name}/',
             }
 
         related_links = self.get_related_links(obj, request, *args, **kwargs)
@@ -2043,16 +2098,19 @@ class WebAPIResource(object):
             dict:
             A mapping of object IDs to values.
         """
-        parent_ids = {}
+        parent_ids: Dict[str, str]
+        parent_resource = self._parent_resource
 
-        if self._parent_resource and self.model_parent_key:
+        if parent_resource and self.model_parent_key:
             parent_obj = self.get_parent_object(obj)
-            parent_ids = self._parent_resource.get_href_parent_ids(
-                parent_obj, **kwargs)
+            parent_ids = parent_resource.get_href_parent_ids(parent_obj,
+                                                             **kwargs)
 
-            if self._parent_resource.uri_object_key:
-                parent_ids[self._parent_resource.uri_object_key] = \
-                    getattr(parent_obj, self._parent_resource.model_object_key)
+            if parent_resource.uri_object_key:
+                parent_ids[parent_resource.uri_object_key] = \
+                    getattr(parent_obj, parent_resource.model_object_key)
+        else:
+            parent_ids = {}
 
         return parent_ids
 
@@ -2381,39 +2439,41 @@ class WebAPIResource(object):
             The resulting optimized queryset.
         """
         queryset = self.get_queryset(request, is_list=is_list, *args, **kwargs)
+        model = self.model
 
-        if not hasattr(self, '_select_related_fields'):
-            self._select_related_fields = []
+        select_related_fields: List[str]
+        prefetch_related_fields: List[str] = []
+
+        # Fetch the cached related field information. If it hasn't yet been
+        # generated for this resource, build it.
+        try:
+            select_related_fields = self._select_related_fields
+            prefetch_related_fields = self._prefetch_related_fields
+        except AttributeError:
+            # Build the cached related field information for future queries.
+            select_related_fields = []
+            prefetch_related_fields = []
 
             for field in self.fields.keys():
-                if hasattr(self, 'serialize_%s_field' % field):
+                if hasattr(self, f'serialize_{field}_field'):
                     continue
 
-                field_type = getattr(self.model, field, None)
+                field_type = getattr(model, field, None)
 
-                if field_type and isinstance(field_type, fkey_descriptors):
-                    self._select_related_fields.append(field)
+                if field_type is not None:
+                    if isinstance(field_type, ForwardManyToOneDescriptor):
+                        select_related_fields.append(field)
+                    elif isinstance(field_type, ManyToManyDescriptor):
+                        prefetch_related_fields.append(field)
 
-        if self._select_related_fields:
-            queryset = \
-                queryset.select_related(*self._select_related_fields)
+            self._select_related_fields = select_related_fields
+            self._prefetch_related_fields = prefetch_related_fields
 
-        if is_list:
-            if not hasattr(self, '_prefetch_related_fields'):
-                self._prefetch_related_fields = []
+        if select_related_fields:
+            queryset = queryset.select_related(*select_related_fields)
 
-                for field in self.fields.keys():
-                    if hasattr(self, 'serialize_%s_field' % field):
-                        continue
-
-                    field_type = getattr(self.model, field, None)
-
-                    if field_type and isinstance(field_type, m2m_descriptors):
-                        self._prefetch_related_fields.append(field)
-
-            if self._prefetch_related_fields:
-                queryset = \
-                    queryset.prefetch_related(*self._prefetch_related_fields)
+        if is_list and prefetch_related_fields:
+            queryset = queryset.prefetch_related(*prefetch_related_fields)
 
         return queryset
 
@@ -2439,14 +2499,16 @@ class WebAPIResource(object):
             object:
             The resulting cloned object.
         """
+        _clone = self._clone_serialized_object
+
         if isinstance(obj, dict):
-            return dict(
-                (key, self._clone_serialized_object(value))
+            return {
+                key: _clone(value)
                 for key, value in obj.items()
-            )
+            }
         elif isinstance(obj, list):
             return [
-                self._clone_serialized_object(value)
+                _clone(value)
                 for value in obj
             ]
         else:
