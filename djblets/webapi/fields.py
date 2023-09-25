@@ -1,17 +1,47 @@
 """Representations of field types in the API."""
 
+from __future__ import annotations
+
 import json
 from datetime import datetime
 from importlib import import_module
+from typing import Any, Mapping, Optional, Sequence, TYPE_CHECKING, Type
 
 import dateutil.parser
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _, gettext
 from pytz.exceptions import AmbiguousTimeError
+from typing_extensions import TypedDict
+
+if TYPE_CHECKING:
+    from django.core.files.uploadedfile import UploadedFile
+    from django.http import QueryDict
+    from django.utils.datastructures import MultiValueDict
+    from typing_extensions import TypeAlias
+
+    from djblets.util.typing import StrOrPromise
+    from djblets.webapi.resources import WebAPIResource
+
+    _FieldInfo: TypeAlias = Mapping[str, Any]
+    _FilesDict: TypeAlias = MultiValueDict[str, UploadedFile]
+    _FieldsDict: TypeAlias = QueryDict
 
 
-class BaseAPIFieldType(object):
+class ListFieldTypeItemsInfo(TypedDict):
+    """Information on an item in a list for ListFieldType.
+
+    Version Added:
+        4.0
+    """
+
+    #: The type of item.
+    #:
+    #: This can be any class type, including primitives or API field types.
+    type: Type
+
+
+class BaseAPIFieldType:
     """Base class for a field type for an API.
 
     This is responsible for defining the requirements of a field and to
@@ -22,9 +52,25 @@ class BaseAPIFieldType(object):
     #: The localized name of the field type.
     #:
     #: This should be in sentence casing.
-    name = None
+    #:
+    #: Type:
+    #:     str
+    name: Optional[StrOrPromise] = None
 
-    def __init__(self, field_info):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: Information defined for the field on the API resource.
+    #:
+    #: Type:
+    #:     dict
+    field_info: _FieldInfo
+
+    def __init__(
+        self,
+        field_info: _FieldInfo,
+    ) -> None:
         """Initialize the field type.
 
         Subclasses should override this if they need to look up any values
@@ -36,11 +82,16 @@ class BaseAPIFieldType(object):
         """
         self.field_info = field_info
 
-    def get_value_from_data(self, name, fields_data, files_data):
+    def get_value_from_data(
+        self,
+        name: str,
+        fields_data: _FieldsDict,
+        files_data: _FilesDict,
+    ) -> Optional[object]:
         """Return a value from the data from a request.
 
         Args:
-            name (unicode):
+            name (str):
                 The name of the entry in the API request to retrieve data for.
 
             fields_data (dict):
@@ -57,13 +108,16 @@ class BaseAPIFieldType(object):
         """
         return fields_data.get(name)
 
-    def get_field_info_key(self, key):
+    def get_field_info_key(
+        self,
+        key: str,
+    ) -> Any:
         """Return the value for a key in the field information dictionary.
 
         This will return a consistent error if the key is not found.
 
         Args:
-            key (unicode):
+            key (str):
                 The name of the key.
 
         Returns:
@@ -84,7 +138,10 @@ class BaseAPIFieldType(object):
                     'field_info': self.field_info,
                 })
 
-    def clean_value(self, value):
+    def clean_value(
+        self,
+        value: Optional[Any],
+    ) -> Any:
         """Validate and return a normalized result from the given value.
 
         By default, this just returns the provided value. Subclasses should
@@ -104,22 +161,25 @@ class BaseAPIFieldType(object):
         """
         return value
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the field type.
 
         This should return a string summary suitable for human consumption.
 
         Returns:
-            unicode:
+            str:
             A string representation of this field type.
         """
         return str(self.name)
 
 
-class NonRequestFieldTypeMixin(object):
+class NonRequestFieldTypeMixin:
     """Mixin for field types not intended to handle values from requests."""
 
-    def clean_value(self, value):
+    def clean_value(
+        self,
+        value: Any,
+    ) -> Any:
         """Validate and return a normalized string result from a value.
 
         Args:
@@ -141,7 +201,10 @@ class BooleanFieldType(BaseAPIFieldType):
 
     name = _('Boolean')
 
-    def clean_value(self, value):
+    def clean_value(
+        self,
+        value: Any,
+    ) -> bool:
         """Validate and return a boolean result from a value.
 
         This treats ``1``, ``"1"``, ``True``, or ``"true"`` (case-insensitive)
@@ -152,7 +215,7 @@ class BooleanFieldType(BaseAPIFieldType):
                 The value to normalize.
 
         Returns:
-            unicode:
+            str:
             The normalized boolean value.
         """
         if isinstance(value, str):
@@ -170,7 +233,13 @@ class ChoiceFieldType(BaseAPIFieldType):
 
     name = _('Choice')
 
-    def __init__(self, *args, **kwargs):
+    ######################
+    # Instance variables #
+    ######################
+
+    choices: Sequence[str]
+
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize the field type.
 
         Args:
@@ -184,11 +253,14 @@ class ChoiceFieldType(BaseAPIFieldType):
             KeyError:
                 The "choices" key was not found in the field information.
         """
-        super(ChoiceFieldType, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.choices = self.get_field_info_key('choices')
 
-    def clean_value(self, value):
+    def clean_value(
+        self,
+        value: Any,
+    ) -> Any:
         """Validate and return a normalized result from the given value.
 
         This will return the value if it's a valid choice.
@@ -216,22 +288,22 @@ class ChoiceFieldType(BaseAPIFieldType):
                 'choices': self._get_choices_str(),
             })
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the field type.
 
         Returns:
-            unicode:
+            str:
             A string representation of this field type.
         """
         return gettext('One of %s') % self._get_choices_str()
 
-    def _get_choices_str(self):
+    def _get_choices_str(self) -> str:
         """Return a string representation of a list of choices.
 
         This is used for the validation error and string representation.
 
         Returns:
-            unicode:
+            str:
             A string representing the list of choices.
         """
         return ', '.join(
@@ -245,7 +317,10 @@ class DateTimeFieldType(BaseAPIFieldType):
 
     name = _('ISO 8601 Date/Time')
 
-    def clean_value(self, value):
+    def clean_value(
+        self,
+        value: Any,
+    ) -> datetime:
         """Validate and return a datetime from an ISO 8601 value.
 
         Args:
@@ -288,7 +363,10 @@ class DictFieldType(BaseAPIFieldType):
 
     name = _('Dictionary')
 
-    def clean_value(self, value):
+    def clean_value(
+        self,
+        value: Any,
+    ) -> Mapping[Any, Any]:
         """Validate and return a dictionary from a dictionary or JSON value.
 
         Args:
@@ -327,11 +405,16 @@ class FileFieldType(BaseAPIFieldType):
 
     name = _('Uploaded file')
 
-    def get_value_from_data(self, name, fields_data, files_data):
+    def get_value_from_data(
+        self,
+        name: str,
+        fields_data: _FieldsDict,
+        files_data: _FilesDict,
+    ) -> Optional[UploadedFile]:
         """Return a value from the uploaded files from a request.
 
         Args:
-            name (unicode):
+            name (str):
                 The name of the entry in the API request to retrieve data for.
 
             fields_data (dict, unused):
@@ -354,7 +437,10 @@ class IntFieldType(BaseAPIFieldType):
 
     name = _('Integer')
 
-    def clean_value(self, value):
+    def clean_value(
+        self,
+        value: Any,
+    ) -> int:
         """Validate and return an integer for a given value.
 
         Args:
@@ -387,7 +473,17 @@ class ListFieldType(BaseAPIFieldType):
 
     name = _('List')
 
-    def __init__(self, *args, **kwargs):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: Information on the type of item in the list.
+    #:
+    #: Type:
+    #:     dict
+    item_info: Optional[ListFieldTypeItemsInfo]
+
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize the field type.
 
         Args:
@@ -397,11 +493,14 @@ class ListFieldType(BaseAPIFieldType):
             **kwargs (dict):
                 Keyword arguments for the parent constructor.
         """
-        super(ListFieldType, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.item_info = self.field_info.get('items')
 
-    def clean_value(self, value):
+    def clean_value(
+        self,
+        value: Any,
+    ) -> Sequence[Any]:
         """Validate and return a list from a list or JSON value.
 
         Args:
@@ -441,11 +540,11 @@ class ListFieldType(BaseAPIFieldType):
 
         return value
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the field type.
 
         Returns:
-            unicode:
+            str:
             A string representation of this field type.
         """
         if self.item_info:
@@ -472,7 +571,17 @@ class ResourceFieldType(NonRequestFieldTypeMixin, BaseAPIFieldType):
 
     name = _('Resource')
 
-    def __init__(self, *args, **kwargs):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The resource referenced by this field.
+    #:
+    #: Type:
+    #:     type
+    resource: Type[WebAPIResource]
+
+    def __init__(self, *args, **kwargs) -> None:
         """Initialize the field type.
 
         Args:
@@ -489,7 +598,7 @@ class ResourceFieldType(NonRequestFieldTypeMixin, BaseAPIFieldType):
             KeyError:
                 The "resource" key was not found in the field information.
         """
-        super(ResourceFieldType, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         resource = self.get_field_info_key('resource')
 
@@ -504,14 +613,17 @@ class ResourceFieldType(NonRequestFieldTypeMixin, BaseAPIFieldType):
 
         self.resource = resource
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the field type.
 
         Returns:
-            unicode:
+            str:
             A string representation of this field type.
         """
-        return self.resource.__name__
+        # Note that this catches the type for our __name__ property on the
+        # class, but in reality, accessing this on a class will get the
+        # actual class name. Ignore this here.
+        return self.resource.__name__  # type: ignore
 
 
 class ResourceListFieldType(ResourceFieldType):
@@ -529,11 +641,11 @@ class ResourceListFieldType(ResourceFieldType):
 
     name = _('Resource List')
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the field type.
 
         Returns:
-            unicode:
+            str:
             A string representation of this field type.
         """
         return gettext('List of %s') % self.resource.__name__
@@ -544,7 +656,10 @@ class StringFieldType(BaseAPIFieldType):
 
     name = _('String')
 
-    def clean_value(self, value):
+    def clean_value(
+        self,
+        value: Any,
+    ) -> str:
         """Validate and return a normalized string result from a value.
 
         Args:
@@ -552,7 +667,7 @@ class StringFieldType(BaseAPIFieldType):
                 The value to normalize.
 
         Returns:
-            unicode:
+            str:
             A string version of the value.
         """
         if isinstance(value, bytes):
