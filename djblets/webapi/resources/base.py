@@ -1,8 +1,11 @@
 """Base class for a resource in an API."""
 
+from __future__ import annotations
+
 import logging
 import warnings
-from typing import Optional
+from typing import (Any, List, Mapping, Optional, Sequence, TYPE_CHECKING,
+                    Type, Union)
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -14,6 +17,7 @@ from django.http import (HttpResponseNotAllowed, HttpResponse,
                          HttpResponseNotModified)
 from django.urls import include, path, re_path, reverse
 from django.views.decorators.vary import vary_on_headers
+from typing_extensions import Literal, NotRequired, TypedDict
 
 from djblets.auth.ratelimit import (RATE_LIMIT_API_ANONYMOUS,
                                     RATE_LIMIT_API_AUTHENTICATED,
@@ -45,12 +49,115 @@ from djblets.webapi.errors import (DOES_NOT_EXIST,
                                    WebAPIError)
 from djblets.webapi.fields import IntFieldType
 
+if TYPE_CHECKING:
+    from django.db.models import Model
+
+    from djblets.webapi.fields import (BaseAPIFieldType,
+                                       ListFieldTypeItemsInfo)
+
 
 m2m_descriptors = (ManyToManyDescriptor,)
 fkey_descriptors = (ForwardManyToOneDescriptor,)
 
 
 logger = logging.getLogger(__name__)
+
+
+class WebAPIResourceFieldInfo(TypedDict):
+    """Information on a field in a serialized API payload.
+
+    Version Added:
+        4.0
+    """
+
+    #: A description of the field.
+    #:
+    #: This is in ReStructuredText format, and is intended for documentation
+    #: generation.
+    #:
+    #: Type
+    #:     str
+    description: str
+
+    #: The type of field.
+    #:
+    #: This should be a :py:class:`~djblets.webapi.fields.BaseAPIFieldType`
+    #: subclass.
+    #:
+    #: For backwards-compatibiltiy, :py:class:`str`, :py:class:`bytes`,
+    #: :py:class:`bool`, :py:class:`int`, or a :py:class:`list, or
+    #: :py:class:`tuple` of string values can be specified, but these are
+    #: considered legacy.
+    type: Union[
+        Type[BaseAPIFieldType],
+        Type[bytes],
+        Type[str],
+        Type[bool],
+        Type[int],
+        Sequence[str],
+    ]
+
+    #: The version of the product the field was added in.
+    #:
+    #: Type:
+    #:     str
+    added_in: NotRequired[str]
+
+    #: A list of choices allowed for the field.
+    #:
+    #: This is available if using
+    # :py:class:`djblets.webapi.fields.ChoiceFieldType`.
+    choices: Sequence[str]
+
+    #: The version of the product the field was deprecated in.
+    #:
+    #: Type:
+    #:     str
+    deprecated_in: NotRequired[str]
+
+    #: Information on the type in a list of items.
+    #:
+    #: This is available if using
+    # :py:class:`djblets.webapi.fields.ListFieldType`.
+    #:
+    #: Type:
+    #:     dict
+    items: NotRequired[ListFieldTypeItemsInfo]
+
+    #: A referenced resource for the field.
+    #:
+    #: This is available if using
+    # :py:class:`djblets.webapi.fields.ResourceFieldType`.
+    #:
+    #: Type:
+    #:     str or type
+    resource: NotRequired[Union[str, Type[WebAPIResource]]]
+
+
+class AllowedMimetypeEntry(TypedDict):
+    """An allowed mimetype for an item and list resource.
+
+    Version Added:
+        4.0
+    """
+
+    #: An allowed mimetype for a list resource.
+    #:
+    #: This can be ``None`` or omitted in order to avoid defining a list
+    #: mimetype for this entry.
+    #:
+    #: Type:
+    #:     str
+    item: NotRequired[Optional[str]]
+
+    #: An allowed mimetype for a list resource.
+    #:
+    #: This can be ``None`` or omitted in order to avoid defining an item
+    #: mimetype for this entry.
+    #:
+    #: Type:
+    #:     str
+    list: NotRequired[Optional[str]]
 
 
 class WebAPIResource(object):
@@ -68,41 +175,213 @@ class WebAPIResource(object):
     :ref:`writing-api-resources`.
     """
 
-    # Configuration
-    model = None
-    fields = {}
-    uri_object_key_regex = r'[0-9]+'
-    uri_object_key = None
-    model_object_key = 'pk'
-    model_parent_key = None
-    last_modified_field = None
-    etag_field = None
-    autogenerate_etags = False
-    singleton = False
-    list_child_resources = []
-    item_child_resources = []
-    allowed_methods = ('GET',)
-    mimetype_vendor = None
-    mimetype_list_resource_name = None
-    mimetype_item_resource_name = None
-    allowed_mimetypes = [
-        {'list': mime, 'item': mime}
+    #: A Django model backing this API resource.
+    #:
+    #: If provided, this resource will automatically handle querying and
+    #: representation of resource instances. Subclasses will still want to
+    #: handle access control, fields, parent resources, child resources, and
+    #: custom-build support for adding, updating, and deleting resources.
+    #:
+    #: Type:
+    #:     type
+    model: Optional[Type[Model]] = None
+
+    #: A mapping of field names to definitions for any serialized objects.
+    #:
+    #: Each key should be a field name either present in :py:attr:`model` or
+    #: defined as a :samp:`serialize_<fieldname>_field` method.
+    #:
+    #: Type:
+    #:     dict
+    fields: Mapping[
+        str,
+        Union[WebAPIResourceFieldInfo, Mapping[str, Any]]
+    ] = {}
+
+    #: A regex for mapping keys for an object in an item resource.
+    #:
+    #: By default, this matches integers. Subclasses can override this to
+    #: match IDs with other values.
+    #:
+    #: Type:
+    #:     str
+    uri_object_key_regex: str = r'[0-9]+'
+
+    #: The key to populate with the ID of an object in an item resource.
+    #:
+    #: Type:
+    #:     str
+    uri_object_key: Optional[str] = None
+
+    #: The key on the provided model for matching an object key.
+    #:
+    #: This is used when :py:attr:`model` is set, allowing API resources to
+    #: automatically query for a model instance matching this model key to
+    #: the value in the URL corresponding to :py:attr:`uri_object_key`.
+    #:
+    #: Type:
+    #:     str
+    model_object_key: str = 'pk'
+
+    #: A key on the provided model for matching a parent resource's model.
+    #:
+    #: This is used when :py:attr:`model` is set, allowing API resources to
+    #: locate the parent resource for the purposes of access checks and
+    #: URL generation.
+    #:
+    #: Type:
+    #:     str
+    model_parent_key: Optional[str] = None
+
+    #: The field on an item resource object to use for a Last-Modified header.
+    #:
+    #: Type:
+    #:     str
+    last_modified_field: Optional[str] = None
+
+    #: The field on an item resource object to use for an ETag header.
+    #:
+    #: Type:
+    #:     str
+    etag_field: Optional[str] = None
+
+    #: Whether to auto-generate ETags for responses.
+    #:
+    #: If set, and an ETag is not otherwise provided, one will be generated
+    #: based on the response payload.
+    #:
+    #: Type:
+    #:     bool
+    autogenerate_etags: bool = False
+
+    #: Whether the resource is a singleton.
+    #:
+    #: Singleton resources behave like an item resource without a parent list
+    #: resource. They have a single endpoint.
+    #:
+    #: Type:
+    #:     bool
+    singleton: bool = False
+
+    #: A list of child resources to link to on the list resource.
+    #:
+    #: Type:
+    #:     list of WebAPIResource
+    list_child_resources: Sequence[WebAPIResource] = []
+
+    #: A list of child resources to link to on the item resource.
+    #:
+    #: Type:
+    #:     list of WebAPIResource
+    item_child_resources: Sequence[WebAPIResource] = []
+
+    #: A list of HTTP methods that are allowed on this resource.
+    #:
+    #: Subclasses must have resource handlers defined for each allowed HTTP
+    #: method.
+    #:
+    #: Type:
+    #:     tuple of str
+    allowed_methods: Sequence[str] = ('GET',)
+
+    #: A vendor name to use within item and list resource mimetypes.
+    #:
+    #: This will be the ``vendor`` in
+    #: :samp:`{category}/vnd.{vendor}.{name}+{format}`.
+    #:
+    #: Type:
+    #:     str
+    mimetype_vendor: Optional[str] = None
+
+    #: An explicit name to use within list resource mimetypees.
+    #:
+    #: This will be the ``name`` in
+    #: :samp:`{category}/vnd.{vendor}.{name}+{format}`.
+    #:
+    #: Type:
+    #:     str
+    mimetype_list_resource_name: Optional[str] = None
+
+    #: An explicit name to use within item resource mimetypees.
+    #:
+    #: This will be the ``name`` in
+    #: :samp:`{category}/vnd.{vendor}.{name}+{format}`.
+    #:
+    #: Type:
+    #:     str
+    mimetype_item_resource_name: Optional[str] = None
+
+    #: Mimetypes allowed for requests to the resource.
+    #:
+    #: Each entry defines optional item and/or list mimetypes that
+    #: correspond to :mailheader:`Accept` header values.
+    #:
+    #: Instances of this resource may have a modified version of the list
+    #: set on the class.
+    #:
+    #: Type:
+    #:     list
+    allowed_mimetypes: Sequence[AllowedMimetypeEntry] = [
+        {
+            'list': mime,
+            'item': mime,
+        }
         for mime in WebAPIResponse.supported_mimetypes
     ]
 
-    #: The class to use for paginated results in get_list.
-    paginated_cls = WebAPIResponsePaginated
+    #: The class to use for paginated results in list resources.
+    #:
+    #: Type:
+    #:     list
+    paginated_cls: Type[WebAPIResponsePaginated] = WebAPIResponsePaginated
 
-    # State
-    method_mapping = {
+    #: A mapping of HTTP methods to handler method names.
+    #:
+    #: Type:
+    #:     dict
+    method_mapping: Mapping[str, str] = {
         'GET': 'get',
         'POST': 'post',
         'PUT': 'put',
         'DELETE': 'delete',
     }
 
-    _parent_resource = None
-    _mimetypes_cache = None
+    ######################
+    # Instance variables #
+    ######################
+
+    #: A flag noting this class is an API handler.
+    #:
+    #: This is always ``True``. It's set to help middleware or other
+    #: processors differentiate API views from others.
+    #:
+    #: Type:
+    #:     bool
+    is_webapi_handler: Literal[True]
+
+    #: The parent resource for this resource.
+    #:
+    #: Type:
+    #:     WebAPIResource
+    _parent_resource: Optional[WebAPIResource] = None
+
+    #: A cached list of fields to pre-fetch when querying resources.
+    #:
+    #: This is automatically computed in :py:meth:`_get_queryset` once for
+    #: the lifetime of the resource instance.
+    #:
+    #: Type:
+    #:     list of str
+    _prefetch_related_fields: List[str]
+
+    #: A cached list of fields to select when querying resources.
+    #:
+    #: This is automatically computed in :py:meth:`_get_queryset` once for
+    #: the lifetime of the resource instance.
+    #:
+    #: Type:
+    #:     list of str
+    _select_related_fields: List[str]
 
     def __init__(self):
         _name_to_resources[self.name] = self
