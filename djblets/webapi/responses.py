@@ -48,9 +48,16 @@ class WebAPIResponseLink(TypedDict):
 
     #: The absolute URL that the link points to.
     #:
+    #: This may be None in the case of an error generating a link, such as
+    #: due to a circular dependency.
+    #:
+    #: Version Changed:
+    #:     4.0:
+    #:     This can now be ``None``.
+    #:
     #: Type:
     #:     str
-    href: str
+    href: Optional[str]
 
     #: The optional title for the link.
     #:

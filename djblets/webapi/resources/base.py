@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import (Any, Dict, List, Mapping, Optional, Sequence,
-                    TYPE_CHECKING, Type, Union)
+from typing import (Any, Callable, Dict, Final, List, Mapping, Optional,
+                    Sequence, Set, TYPE_CHECKING, Tuple, Type, Union)
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -12,11 +12,13 @@ from django.db.models.fields.related_descriptors import (
     ManyToManyDescriptor,
     ForwardManyToOneDescriptor)
 from django.db.models.query import QuerySet
-from django.http import (HttpResponseNotAllowed, HttpResponse,
+from django.http import (HttpResponseNotAllowed,
+                         HttpResponse,
                          HttpResponseNotModified)
 from django.urls import include, path, re_path, reverse
 from django.views.decorators.vary import vary_on_headers
-from typing_extensions import Final, NotRequired, TypedDict
+from typing_extensions import (Literal, NotRequired, Protocol, TypeAlias,
+                               TypedDict)
 
 from djblets.auth.ratelimit import (RATE_LIMIT_API_ANONYMOUS,
                                     RATE_LIMIT_API_AUTHENTICATED,
@@ -47,20 +49,103 @@ from djblets.webapi.errors import (DOES_NOT_EXIST,
                                    RATE_LIMIT_EXCEEDED,
                                    WebAPIError)
 from djblets.webapi.fields import IntFieldType
+from djblets.webapi.responses import (WebAPIResponseHeaders,
+                                      WebAPIResponsePayload)
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from django.db.models import Model
+    from django.http import HttpRequest
+    from django.urls import URLPattern, URLResolver
 
     from djblets.util.typing import KwargsDict
     from djblets.webapi.fields import (BaseAPIFieldType,
                                        ListFieldTypeItemsInfo)
+    from djblets.webapi.responses import (WebAPIResponseLink,
+                                          WebAPIResponseLinks)
 
+    class _SerializeLinkFunc(Protocol):
+        """Internal type for a link serialization function.
 
-m2m_descriptors = (ManyToManyDescriptor,)
-fkey_descriptors = (ForwardManyToOneDescriptor,)
+        Version Added:
+            4.0
+        """
+
+        def __call__(
+            self,
+            obj: Any,
+            request: Optional[HttpRequest],
+            *args,
+            **kwargs,
+        ) -> WebAPIResponseLink:
+            ...
+
+    class _SerializeFieldFunc(Protocol):
+        """Internal type for a field serialization function.
+
+        Version Added:
+            4.0
+        """
+
+        def __call__(
+            self,
+            obj: Any,
+            request: Optional[HttpRequest],
+            **kwargs,
+        ) -> WebAPIResponsePayload:
+            ...
+
+    class _ExpandInfo(TypedDict):
+        """Internal type for a dictionary covering expanded resource links.
+
+        Version Added:
+            4.0
+        """
+
+        #: The mimetype of the expanded item resource.
+        #:
+        #: This is present whether using expanding list or item resources.
+        #:
+        #: Type:
+        #:     str
+        item_mimetype: str
+
+        #: The mimetype of the expanded list resource, if any.
+        #:
+        #: Type:
+        #:     str
+        list_mimetype: NotRequired[str]
+
+        #: The URL to an expanded list resource, if any.
+        #:
+        #: Type:
+        #:     str
+        list_url: NotRequired[Optional[str]]
 
 
 logger = logging.getLogger(__name__)
+
+
+#: The result from an API method handler.
+#:
+#: API method handlers may return HTTP responses, API responses, API errors,
+#: or tuples.
+#:
+#: Tuples may contain API errors or HTTP status codes, payloads, and optional
+#: headers.
+#:
+#: Version Added:
+#:     4.0
+WebAPIResourceHandlerResult: TypeAlias = Union[
+    HttpResponse,
+    Tuple[WebAPIError, WebAPIResponsePayload, WebAPIResponseHeaders],
+    Tuple[WebAPIError, WebAPIResponsePayload],
+    Tuple[int, WebAPIResponsePayload, WebAPIResponseHeaders],
+    Tuple[int, WebAPIResponsePayload],
+    WebAPIError,
+    WebAPIResponse,
+]
 
 
 class WebAPIResourceFieldInfo(TypedDict):
@@ -398,7 +483,7 @@ class WebAPIResource(object):
             # for each supported mimetype, and add them as a pair to the
             # allowed mimetypes.
             for mimetype_pair in self.allowed_mimetypes:
-                vend_mimetype_pair = {
+                vend_mimetype_pair: AllowedMimetypeEntry = {
                     'list': None,
                     'item': None,
                 }
@@ -424,7 +509,13 @@ class WebAPIResource(object):
                     ]
 
     @vary_on_headers('Accept', 'Cookie')
-    def __call__(self, request, api_format=None, *args, **kwargs):
+    def __call__(
+        self,
+        request: HttpRequest,
+        *args,
+        api_format: Optional[str] = None,
+        **kwargs,
+    ) -> HttpResponse:
         """Invoke the correct HTTP handler based on the type of request.
 
         Args:
@@ -448,10 +539,10 @@ class WebAPIResource(object):
             The resulting HTTP response from the API handler.
         """
         if not hasattr(request, '_djblets_webapi_object_cache'):
-            request._djblets_webapi_object_cache = {}
+            setattr(request, '_djblets_webapi_object_cache', {})
 
         auth_result = check_login(request)
-        headers = {}
+        headers: WebAPIResponseHeaders = {}
 
         if isinstance(auth_result, tuple):
             auth_success, auth_message, auth_headers = auth_result
@@ -481,8 +572,7 @@ class WebAPIResource(object):
         usage = get_usage_count(request, increment=True,
                                 limit_type=rate_limit_type)
 
-        if (usage is not None and
-            usage['count'] > usage['limit']):
+        if usage is not None and usage['count'] > usage['limit']:
             headers['Retry-After'] = usage['time_left']
             headers['X-RateLimit-Limit'] = usage['limit']
 
@@ -519,22 +609,30 @@ class WebAPIResource(object):
                 request._load_post_and_files()
                 request.META['REQUEST_METHOD'] = 'PUT'
 
-        request._djblets_webapi_method = method
-        request._djblets_webapi_kwargs = kwargs
-        request.PUT = request.POST
+        assert method is not None
+
+        setattr(request, '_djblets_webapi_method', method)
+        setattr(request, '_djblets_webapi_kwargs', kwargs)
+        setattr(request, 'PUT', request.POST)
+
+        view: Optional[Callable] = None
 
         if method in self.allowed_methods:
-            if (method == "GET" and
+            if (method == 'GET' and
                 not self.singleton and
                 (self.uri_object_key is None or
                  self.uri_object_key not in kwargs)):
                 view = self.get_list
-            else:
-                view = getattr(self, self.method_mapping.get(method, None))
-        else:
-            view = None
+            elif method:
+                method_name = self.method_mapping.get(method)
+
+                if method_name:
+                    view = getattr(self, method_name, None)
+
+        response: HttpResponse
 
         if view and callable(view):
+            assert not args
             result = self.call_method_view(
                 request, method, view, api_format=api_format, *args, **kwargs)
 
@@ -553,7 +651,9 @@ class WebAPIResource(object):
                     request_params = request.POST
 
                 if len(result) == 3:
-                    headers.update(result[2])
+                    # mypy doesn't type-narrow based on length, so we'll
+                    # ignore the type error here.
+                    headers.update(result[2])  # type: ignore
 
                 if 'Location' in headers:
                     extra_querystr = '&'.join(
@@ -622,10 +722,19 @@ class WebAPIResource(object):
 
     @property
     def __name__(self):
+        """Return the name of the API resource class.
+
+        Returns:
+            str:
+            The API resource class name.
+        """
+        # Note that this catches the type for our __name__ property on the
+        # class, but in reality, accessing this on a class will get the
+        # actual class name. Ignore this here.
         return self.__class__.__name__
 
-    @property
-    def name(self):
+    @cached_property
+    def name(self) -> str:
         """The name of the resource, used for keys in the payloads.
 
         If :py:attr:`model` is set, this will be the lowercase version of
@@ -633,19 +742,19 @@ class WebAPIResource(object):
         resource class's name.
 
         Subclasses can override this to set an explicit name.
+
         Type:
             str
         """
-        if not hasattr(self, '_name'):
-            if self.model:
-                self._name = self.model.__name__.lower()
-            else:
-                self._name = self.__name__.lower()
+        if self.model:
+            return self.model.__name__.lower()
+        else:
+            return self.__class__.__name__.lower()  # type: ignore
 
         return self._name
 
-    @property
-    def name_plural(self):
+    @cached_property
+    def name_plural(self) -> str:
         """The plural name of the object, used for lists.
 
         If :py:attr:`singleton` is set, this will be the result of
@@ -657,16 +766,13 @@ class WebAPIResource(object):
         Type:
             str
         """
-        if not hasattr(self, '_name_plural'):
-            if self.singleton:
-                self._name_plural = self.name
-            else:
-                self._name_plural = self.name + 's'
-
-        return self._name_plural
+        if self.singleton:
+            return self.name
+        else:
+            return f'{self.name}s'
 
     @property
-    def item_result_key(self):
+    def item_result_key(self) -> str:
         """The key for serialized objects in an item payload.
 
         This defaults to using :py:attr:`name` as the key. Subclasses can
@@ -678,7 +784,7 @@ class WebAPIResource(object):
         return self.name
 
     @property
-    def list_result_key(self):
+    def list_result_key(self) -> str:
         """The key for serialized object lists in a list payload.
 
         This defaults to using :py:attr:`name_plural` as the key. Subclasses
@@ -689,8 +795,8 @@ class WebAPIResource(object):
         """
         return self.name_plural
 
-    @property
-    def uri_name(self):
+    @cached_property
+    def uri_name(self) -> str:
         """The name of the resource in the URI.
 
         This can be overridden when the name in the URI needs to differ
@@ -702,7 +808,7 @@ class WebAPIResource(object):
         return self.name_plural.replace('_', '-')
 
     @property
-    def link_name(self):
+    def link_name(self) -> str:
         """The name of the resource for use in a link.
 
         This can be overridden when the name in the link needs to differ
@@ -718,7 +824,7 @@ class WebAPIResource(object):
         """The name of the resource for use in URI templates.
 
         This will be used as the key for this resource in
-        :py:class`djblets.webapi.resource.root.RootResource`'s list of URI
+        :py:class:`djblets.webapi.resource.root.RootResource`'s list of URI
         templates. This can be overridden when the URI template name for
         this resource needs to differ from the name used for the resource.
 
@@ -738,7 +844,7 @@ class WebAPIResource(object):
         """The plural name of the resource for use in URI templates.
 
         This will be used as the key for the list version of this resource in
-        :py:class`djblets.webapi.resource.root.RootResource`'s list of URI
+        :py:class:`djblets.webapi.resource.root.RootResource`'s list of URI
         templates. This can be overridden when the URI template name for
         this resource needs to differ from the name used for the resource.
 
@@ -762,7 +868,14 @@ class WebAPIResource(object):
         else:
             return uri_template_name + 's'
 
-    def call_method_view(self, request, method, view, *args, **kwargs):
+    def call_method_view(
+        self,
+        request: HttpRequest,
+        method: str,
+        view: Callable,
+        *args,
+        **kwargs,
+    ) -> WebAPIResourceHandlerResult:
         """Call the given HTTP method handler view.
 
         This will just call the given view by default, passing in all
@@ -789,7 +902,10 @@ class WebAPIResource(object):
         """
         return view(request, *args, **kwargs)
 
-    def build_response_args(self, request):
+    def build_response_args(
+        self,
+        request: HttpRequest,
+    ) -> KwargsDict:
         """Build keyword arguments to pass to a response class.
 
         Args:
@@ -800,29 +916,39 @@ class WebAPIResource(object):
             dict:
             Keyword arguments to pass to the response class.
         """
-        is_list = (request._djblets_webapi_method == 'GET' and
-                   not self.singleton and
-                   (self.uri_object_key is None or
-                    self.uri_object_key not in request._djblets_webapi_kwargs))
+        is_list: bool = (
+            getattr(request, '_djblets_webapi_method', None) == 'GET' and
+            not self.singleton and
+            (self.uri_object_key is None or
+             self.uri_object_key not in getattr(request,
+                                                '_djblets_webapi_kwargs', []))
+        )
+
+        key: Literal['item', 'list']
 
         if is_list:
             key = 'list'
         else:
             key = 'item'
 
-        supported_mimetypes = [
-            mime[key]
-            for mime in self.allowed_mimetypes
-            if mime.get(key)
+        supported_mimetypes: Sequence[str] = [
+            mimetype
+            for mimetype in (
+                mime.get(key)
+                for mime in self.allowed_mimetypes
+            )
+            if mimetype
         ]
 
         mimetype = get_http_requested_mimetype(request, supported_mimetypes)
 
-        if (self.mimetype_vendor and
+        if (mimetype and
+            self.mimetype_vendor and
             mimetype in WebAPIResponse.supported_mimetypes):
-            mimetype = self._build_resource_mimetype(mimetype, is_list)
+            mimetype = self._build_resource_mimetype(mimetype=mimetype,
+                                                     is_list=is_list)
 
-        response_args = {
+        response_args: KwargsDict = {
             'supported_mimetypes': supported_mimetypes,
             'mimetype': mimetype,
         }
@@ -840,7 +966,13 @@ class WebAPIResource(object):
 
         return response_args
 
-    def get_object(self, request, id_field=None, *args, **kwargs):
+    def get_object(
+        self,
+        request: HttpRequest,
+        id_field: Optional[str] = None,
+        *args,
+        **kwargs,
+    ) -> Any:
         """Return an object, given the captured parameters from a URL.
 
         This will perform a query for the object, taking into account
@@ -870,12 +1002,17 @@ class WebAPIResource(object):
             django.core.exceptions.ObjectDoesNotExist:
                 The object does not exist in the database.
         """
+        object_id: str
+
         assert self.model
         assert self.singleton or self.uri_object_key
 
         if self.singleton:
             cache_key = '%d' % id(self)
+            object_id = ''
         else:
+            assert self.uri_object_key is not None
+
             id_field = id_field or self.model_object_key
             object_id = kwargs[self.uri_object_key]
             cache_key = '%d:%s:%s' % (id(self), id_field, object_id)
@@ -895,6 +1032,8 @@ class WebAPIResource(object):
             if self.singleton:
                 obj = queryset.get()
             else:
+                assert id_field is not None
+
                 obj = queryset.get(**{
                     id_field: object_id,
                 })
@@ -903,7 +1042,13 @@ class WebAPIResource(object):
 
         return obj
 
-    def post(self, *args, **kwargs):
+    def post(
+        self,
+        request: HttpRequest,
+        *args,
+        api_format: Optional[str],
+        **kwargs,
+    ) -> WebAPIResourceHandlerResult:
         """Handle HTTP POST requests.
 
         This is not meant to be overridden unless there are specific needs.
@@ -915,8 +1060,14 @@ class WebAPIResource(object):
         resources.
 
         Args:
+            request (django.http.HttpClient):
+                The HTTP client from the request.
+
             *args (tuple):
                 Positional arguments passed to the view.
+
+            api_format (str):
+                An explicit API format requested for the response.
 
             **kwargs (dict):
                 Keyword arguments representing values captured from the URL.
@@ -931,7 +1082,9 @@ class WebAPIResource(object):
 
         if (self.uri_object_key is None or
             kwargs.get(self.uri_object_key, None) is None):
-            return self.create(*args, **kwargs)
+            return self.create(request,
+                               api_format=api_format,
+                               *args, **kwargs)
 
         # Don't allow POSTs on children by default.
         allowed_methods = list(self.allowed_methods)
@@ -939,7 +1092,13 @@ class WebAPIResource(object):
 
         return HttpResponseNotAllowed(allowed_methods)
 
-    def put(self, request, *args, **kwargs):
+    def put(
+        self,
+        request: HttpRequest,
+        *args,
+        api_format: Optional[str],
+        **kwargs,
+    ) -> WebAPIResourceHandlerResult:
         """Handle HTTP PUT requests.
 
         This is not meant to be overridden unless there are specific needs.
@@ -953,6 +1112,9 @@ class WebAPIResource(object):
             *args (tuple):
                 Positional arguments passed to the view.
 
+            api_format (str):
+                An explicit API format requested for the response.
+
             **kwargs (dict):
                 Keyword arguments representing values captured from the URL.
 
@@ -961,10 +1123,18 @@ class WebAPIResource(object):
             The HTTP response, API error, or tuple results from the API
             handler.
         """
-        return self.update(request, *args, **kwargs)
+        return self.update(request,
+                           api_format=api_format,
+                           *args, **kwargs)
 
     @webapi_response_errors(DOES_NOT_EXIST, NOT_LOGGED_IN, PERMISSION_DENIED)
-    def get(self, request, api_format, *args, **kwargs):
+    def get(
+        self,
+        request: HttpRequest,
+        *args,
+        api_format: Optional[str],
+        **kwargs,
+    ) -> WebAPIResourceHandlerResult:
         """Handle HTTP GETs to item resources.
 
         By default, this will check for access permissions and query for
@@ -976,11 +1146,11 @@ class WebAPIResource(object):
             request (django.http.HttpRequest):
                 The HTTP request from the client.
 
-            api_format (str):
-                An explicit API format requested for the response.
-
             *args (tuple):
                 Positional arguments passed to the view.
+
+            api_format (str):
+                An explicit API format requested for the response.
 
             **kwargs (dict):
                 Keyword arguments representing values captured from the URL.
@@ -990,9 +1160,13 @@ class WebAPIResource(object):
             The HTTP response, API error, or tuple results from the API
             handler.
         """
+        response: WebAPIResourceHandlerResult
+
         if (not self.model or
             (self.uri_object_key is None and not self.singleton)):
             return HttpResponseNotAllowed(self.allowed_methods)
+
+        kwargs['api_format'] = api_format
 
         try:
             obj = self.get_object(request, *args, **kwargs)
@@ -1009,7 +1183,7 @@ class WebAPIResource(object):
                                           etag):
             response = HttpResponseNotModified()
         else:
-            data = {
+            data: WebAPIResponsePayload = {
                 self.item_result_key: self.serialize_object(obj,
                                                             request=request,
                                                             *args, **kwargs),
@@ -1051,7 +1225,13 @@ class WebAPIResource(object):
         },
         allow_unknown=True
     )
-    def get_list(self, request, *args, **kwargs):
+    def get_list(
+        self,
+        request: HttpRequest,
+        *args,
+        api_format: Optional[str],
+        **kwargs,
+    ) -> WebAPIResourceHandlerResult:
         """Handle HTTP GETs to list resources.
 
         By default, this will query for a list of objects and return the
@@ -1066,6 +1246,9 @@ class WebAPIResource(object):
             *args (tuple):
                 Positional arguments passed to the view.
 
+            api_format (str):
+                An explicit API format requested for the response.
+
             **kwargs (dict):
                 Keyword arguments representing values captured from the URL.
 
@@ -1074,10 +1257,13 @@ class WebAPIResource(object):
             The HTTP response, API error, or tuple results from the API
             handler.
         """
-        data = {
+        data: WebAPIResponsePayload = {
             'links': self.get_links(self.list_child_resources,
-                                    request=request, *args, **kwargs),
+                                    request=request,
+                                    *args, **kwargs),
         }
+
+        kwargs['api_format'] = api_format
 
         if not self.has_list_access_permissions(request, *args, **kwargs):
             return self.get_no_access_error(request, *args, **kwargs)
@@ -1089,20 +1275,34 @@ class WebAPIResource(object):
             except ObjectDoesNotExist:
                 return DOES_NOT_EXIST
 
+            def _serialize_obj(
+                obj: Any,
+            ) -> WebAPIResponsePayload:
+                serializer = self.get_serializer_for_object(obj)
+                assert serializer is not None
+
+                return serializer.serialize_object(obj,
+                                                   request=request,
+                                                   *args, **kwargs)
+
             return self.paginated_cls(
                 request,
                 queryset=queryset,
                 results_key=self.list_result_key,
-                serialize_object_func=lambda obj:
-                    self.get_serializer_for_object(obj).serialize_object(
-                        obj, request=request, *args, **kwargs),
+                serialize_object_func=_serialize_obj,
                 extra_data=data,
                 **self.build_response_args(request))
         else:
             return 200, data
 
     @webapi_login_required
-    def create(self, request, api_format, *args, **kwargs):
+    def create(
+        self,
+        request: HttpRequest,
+        *args,
+        api_format: Optional[str],
+        **kwargs,
+    ) -> WebAPIResourceHandlerResult:
         """Handle HTTP POST requests to list resources.
 
         This is used to create a new object on the list, given the data
@@ -1115,11 +1315,11 @@ class WebAPIResource(object):
             request (django.http.HttpRequest):
                 The HTTP request from the client.
 
-            api_format (str):
-                An explicit API format requested for the response.
-
             *args (tuple):
                 Positional arguments passed to the view.
+
+            api_format (str):
+                An explicit API format requested for the response.
 
             **kwargs (dict):
                 Keyword arguments representing values captured from the URL.
@@ -1132,7 +1332,13 @@ class WebAPIResource(object):
         return HttpResponseNotAllowed(self.allowed_methods)
 
     @webapi_login_required
-    def update(self, request, api_format, *args, **kwargs):
+    def update(
+        self,
+        request: HttpRequest,
+        *args,
+        api_format: Optional[str],
+        **kwargs,
+    ) -> WebAPIResourceHandlerResult:
         """Handle HTTP PUT requests to object resources.
 
         This is used to update an object, given full or partial data provided
@@ -1144,11 +1350,11 @@ class WebAPIResource(object):
             request (django.http.HttpRequest):
                 The HTTP request from the client.
 
-            api_format (str):
-                An explicit API format requested for the response.
-
             *args (tuple):
                 Positional arguments passed to the view.
+
+            api_format (str):
+                An explicit API format requested for the response.
 
             **kwargs (dict):
                 Keyword arguments representing values captured from the URL.
@@ -1162,7 +1368,13 @@ class WebAPIResource(object):
 
     @webapi_login_required
     @webapi_response_errors(DOES_NOT_EXIST, NOT_LOGGED_IN, PERMISSION_DENIED)
-    def delete(self, request, api_format, *args, **kwargs):
+    def delete(
+        self,
+        request: HttpRequest,
+        *args,
+        api_format: Optional[str],
+        **kwargs,
+    ) -> WebAPIResourceHandlerResult:
         """Handles HTTP DELETE requests to object resources.
 
         This is used to delete an object, if the user has permissions to
@@ -1174,11 +1386,11 @@ class WebAPIResource(object):
             request (django.http.HttpRequest):
                 The HTTP request from the client.
 
-            api_format (str):
-                An explicit API format requested for the response.
-
             *args (tuple):
                 Positional arguments passed to the view.
+
+            api_format (str):
+                An explicit API format requested for the response.
 
             **kwargs (dict):
                 Keyword arguments representing values captured from the URL.
@@ -1190,6 +1402,8 @@ class WebAPIResource(object):
         """
         if not self.model or self.uri_object_key is None:
             return HttpResponseNotAllowed(self.allowed_methods)
+
+        kwargs['api_format'] = api_format
 
         try:
             obj = self.get_object(request, *args, **kwargs)
@@ -1203,7 +1417,13 @@ class WebAPIResource(object):
 
         return 204, {}
 
-    def get_queryset(self, request, is_list=False, *args, **kwargs):
+    def get_queryset(
+        self,
+        request: Optional[HttpRequest],
+        is_list: bool = False,
+        *args,
+        **kwargs,
+    ) -> QuerySet:
         """Return a queryset used for querying objects or lists of objects.
 
         Subclasses can override this to filter objects, include related
@@ -1237,9 +1457,12 @@ class WebAPIResource(object):
                 This may be thrown by an overridden function if the object
                 or a parent object does not exist.
         """
-        return self.model.objects.all()
+        model = self.model
+        assert model is not None
 
-    def get_url_patterns(self):
+        return model.objects.all()
+
+    def get_url_patterns(self) -> List[Union[URLPattern, URLResolver]]:
         """Return the Django URL patterns for this object and its children.
 
         This is used to automatically build up the URL hierarchy for all
@@ -1250,7 +1473,7 @@ class WebAPIResource(object):
             list:
             The list of URL patterns.
         """
-        urlpatterns = [
+        urlpatterns: List[Union[URLPattern, URLResolver]] = [
             path('',
                  self.__call__,
                  name=self._build_named_url(self.name_plural)),
@@ -1263,10 +1486,12 @@ class WebAPIResource(object):
                      include(resource.get_url_patterns())),
             ]
 
-        if self.uri_object_key or self.singleton:
+        uri_object_key = self.uri_object_key
+
+        if uri_object_key or self.singleton:
             # If the resource has particular items in it...
-            if self.uri_object_key:
-                base_regex = r'^(?P<%s>%s)/' % (self.uri_object_key,
+            if uri_object_key:
+                base_regex = r'^(?P<%s>%s)/' % (uri_object_key,
                                                 self.uri_object_key_regex)
             elif self.singleton:
                 base_regex = r'^'
@@ -1288,7 +1513,13 @@ class WebAPIResource(object):
 
         return urlpatterns
 
-    def has_access_permissions(self, request, obj, *args, **kwargs):
+    def has_access_permissions(
+        self,
+        request: HttpRequest,
+        obj: Any,
+        *args,
+        **kwargs,
+    ) -> bool:
         """Return whether the user has read access to the item resource.
 
         This is used for HTTP GET requests on the item resource. For list
@@ -1317,7 +1548,12 @@ class WebAPIResource(object):
         """
         return True
 
-    def has_list_access_permissions(self, request, *args, **kwargs):
+    def has_list_access_permissions(
+        self,
+        request: HttpRequest,
+        *args,
+        **kwargs,
+    ) -> bool:
         """Return whether the user has read access to the list resource.
 
         This is used for HTTP GET requests on the list resource. For item
@@ -1360,7 +1596,13 @@ class WebAPIResource(object):
 
         return True
 
-    def has_modify_permissions(self, request, obj, *args, **kwargs):
+    def has_modify_permissions(
+        self,
+        request: HttpRequest,
+        obj: Any,
+        *args,
+        **kwargs,
+    ) -> bool:
         """Return whether the user can modify the object.
 
         This is used for HTTP PUT requests on the item resource.
@@ -1388,7 +1630,13 @@ class WebAPIResource(object):
         """
         return False
 
-    def has_delete_permissions(self, request, obj, *args, **kwargs):
+    def has_delete_permissions(
+        self,
+        request: HttpRequest,
+        obj: Any,
+        *args,
+        **kwargs,
+    ) -> bool:
         """Return whether the user can delete this object.
 
         This is used for HTTP DELETE requests on the list resource.
@@ -1416,7 +1664,10 @@ class WebAPIResource(object):
         """
         return False
 
-    def get_link_serializer(self, field):
+    def get_link_serializer(
+        self,
+        field: str,
+    ) -> _SerializeLinkFunc:
         """Return the function to use for serializing a link field.
 
         This will first look for a function named
@@ -1431,15 +1682,21 @@ class WebAPIResource(object):
             callable:
             The link serializer function.
         """
-        serialize_link_func = getattr(self, 'serialize_%s_link' % field,
-                                      None)
+        serialize_link_func: Optional[_SerializeLinkFunc] = \
+            getattr(self, f'serialize_{field}_link', None)
 
         if not serialize_link_func or not callable(serialize_link_func):
             serialize_link_func = self.serialize_link
 
         return serialize_link_func
 
-    def serialize_link(self, obj, *args, **kwargs):
+    def serialize_link(
+        self,
+        obj: Any,
+        request: Optional[HttpRequest],
+        *args,
+        **kwargs,
+    ) -> WebAPIResponseLink:
         """Return a serialized dictionary for a link.
 
         This will find the resource serializer for a given object and
@@ -1467,11 +1724,17 @@ class WebAPIResource(object):
 
         return {
             'method': 'GET',
-            'href': resource.get_href(obj, *args, **kwargs),
-            'title': resource.get_object_title(obj, *args, **kwargs),
+            'href': resource.get_href(obj, request, *args, **kwargs),
+            'title': resource.get_object_title(obj, request, *args, **kwargs),
         }
 
-    def get_object_title(self, obj, request=None, *args, **kwargs):
+    def get_object_title(
+        self,
+        obj: Any,
+        request: Optional[HttpRequest] = None,
+        *args,
+        **kwargs,
+    ) -> str:
         """Return an object's title.
 
         This is called when generating a link to an object's resource.
@@ -1498,7 +1761,13 @@ class WebAPIResource(object):
         """
         return str(obj)
 
-    def serialize_object(self, obj, request, *args, **kwargs):
+    def serialize_object(
+        self,
+        obj: Any,
+        request: Optional[HttpRequest] = None,
+        *args,
+        **kwargs,
+    ) -> WebAPIResponsePayload:
         """Return a serialized representation of an object.
 
         This will generate a dictionary containing information on an object,
@@ -1532,8 +1801,8 @@ class WebAPIResource(object):
             The serialized object payload.
         """
         requested_mimetype: Optional[str] = None
-        expanded_resources = set()
-        serialize_cache = {}
+        expanded_resources: Set[str] = set()
+        serialize_cache: Dict[str, WebAPIResponsePayload] = {}
 
         if request:
             try:
@@ -1613,9 +1882,9 @@ class WebAPIResource(object):
         only_fields = self.get_only_fields(request)
         only_links = self.get_only_links(request)
 
-        data = {}
-        links = {}
-        expand_info = {}
+        data: WebAPIResponsePayload = {}
+        links: WebAPIResponseLinks = {}
+        expand_info: Dict[str, _ExpandInfo] = {}
 
         resource: Optional[WebAPIResource]
 
@@ -1633,7 +1902,10 @@ class WebAPIResource(object):
             if not can_include_field and expand_field:
                 continue
 
-            serialize_func = getattr(self, f'serialize_{field}_field', None)
+            value: Any
+
+            serialize_func: Optional[_SerializeFieldFunc] = \
+                getattr(self, f'serialize_{field}_field', None)
 
             if serialize_func and callable(serialize_func):
                 value = serialize_func(obj, request=request)
@@ -1649,7 +1921,9 @@ class WebAPIResource(object):
 
                     value = value.all()
                 elif isinstance(value, models.ForeignKey):
-                    value = value.get()
+                    # Ignore the type here, since django-stubs lacks any
+                    # knowledge of get().
+                    value = value.get()  # type: ignore
 
             if isinstance(value, models.Model) and not expand_field:
                 serialize_link_func = self.get_link_serializer(field)
@@ -1788,7 +2062,10 @@ class WebAPIResource(object):
 
         return data
 
-    def get_only_fields(self, request):
+    def get_only_fields(
+        self,
+        request: Optional[HttpRequest],
+    ) -> Optional[List[str]]:
         """Return the list of the only fields that the payload should include.
 
         If the user has requested that no fields should be provided, this
@@ -1804,9 +2081,14 @@ class WebAPIResource(object):
             list of str:
             The list of fields, an empty list, or ``None``.
         """
-        return self._get_only_items(request, 'only-fields', 'only_fields')
+        return self._get_only_items(request=request,
+                                    query_param_name='only-fields',
+                                    post_field_name='only_fields')
 
-    def get_only_links(self, request):
+    def get_only_links(
+        self,
+        request: Optional[HttpRequest],
+    ) -> Optional[List[str]]:
         """Return the list of the only links that the payload should include.
 
         If the user has requested that no links should be provided, this
@@ -1822,9 +2104,14 @@ class WebAPIResource(object):
             list of str:
             The list of links, an empty list, or ``None``.
         """
-        return self._get_only_items(request, 'only-links', 'only_links')
+        return self._get_only_items(request=request,
+                                    query_param_name='only-links',
+                                    post_field_name='only_links')
 
-    def get_serializer_for_object(self, obj):
+    def get_serializer_for_object(
+        self,
+        obj: Any,
+    ) -> Optional[WebAPIResource]:
         """Return the serializer used to serialize an object.
 
         This is called when serializing objects for payloads returned
@@ -1845,8 +2132,14 @@ class WebAPIResource(object):
         """
         return get_resource_for_object(obj)
 
-    def get_links(self, resources=[], obj=None, request=None,
-                  *args, **kwargs):
+    def get_links(
+        self,
+        resources: Sequence[WebAPIResource] = [],
+        obj: Optional[Any] = None,
+        *args,
+        request: Optional[HttpRequest] = None,
+        **kwargs,
+    ) -> WebAPIResponseLinks:
         """Return a dictionary of links coming off this resource.
 
         The resulting links will point to the resources passed in
@@ -1863,11 +2156,11 @@ class WebAPIResource(object):
                 The object being serialized, for use as a base for resource
                 URLs.
 
-            request (django.http.HttpRequest):
-                The HTTP request from the client.
-
             *args (tuple):
                 Additional positional arguments passed to the view.
+
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
 
             **kwargs (dict):
                 Keyword arguments representing values captured from the URL.
@@ -1876,10 +2169,9 @@ class WebAPIResource(object):
             dict:
             A dictionary of link names to link information.
         """
-        links = {}
-        base_href = None
+        base_href: Optional[str] = None
 
-        if obj:
+        if obj is not None:
             base_href = self.get_href(obj, request, *args, **kwargs)
 
         if not base_href:
@@ -1889,9 +2181,11 @@ class WebAPIResource(object):
             else:
                 base_href = ''
 
-        links['self'] = {
-            'method': 'GET',
-            'href': base_href,
+        links: WebAPIResponseLinks = {
+            'self': {
+                'method': 'GET',
+                'href': base_href,
+            },
         }
 
         # base_href without any query arguments.
@@ -1937,7 +2231,13 @@ class WebAPIResource(object):
 
         return links
 
-    def get_related_links(self, obj=None, request=None, *args, **kwargs):
+    def get_related_links(
+        self,
+        obj: Optional[Any] = None,
+        request: Optional[HttpRequest] = None,
+        *args,
+        **kwargs
+    ) -> WebAPIResponseLinks:
         """Return links related to this resource.
 
         The result should be a dictionary of link names to a dictionary of
@@ -1964,7 +2264,13 @@ class WebAPIResource(object):
         """
         return {}
 
-    def get_href(self, obj, request, *args, **kwargs):
+    def get_href(
+        self,
+        obj: Any,
+        request: Optional[HttpRequest],
+        *args,
+        **kwargs,
+    ) -> Optional[str]:
         """Return the absolute URL for an object.
 
         This will attempt to build a URL that points to the object's item
@@ -1995,17 +2301,17 @@ class WebAPIResource(object):
             The resulting URL to the object, or ``None`` if it could not be
             generated.
         """
-        if not self.uri_object_key:
+        if not self.uri_object_key or not self.model_object_key:
             return None
 
-        href_kwargs = {
+        href_kwargs: KwargsDict = {
             self.uri_object_key: getattr(obj, self.model_object_key),
         }
         href_kwargs.update(self.get_href_parent_ids(obj, **kwargs))
 
         return self.get_item_url(request=request, **href_kwargs)
 
-    def get_list_url(self, **kwargs):
+    def get_list_url(self, **kwargs) -> str:
         """Return the absolute URL to the list version of this resource.
 
         This will generate a URL for the list resource, given the provided
@@ -2026,7 +2332,7 @@ class WebAPIResource(object):
         """
         return self.build_resource_url(self.name_plural, **kwargs)
 
-    def get_item_url(self, **kwargs):
+    def get_item_url(self, **kwargs) -> str:
         """Return the absolute URL to the item version of this resource.
 
         This will generate a URL for the item resource, given the provided
@@ -2047,7 +2353,12 @@ class WebAPIResource(object):
         """
         return self.build_resource_url(self.name, **kwargs)
 
-    def build_resource_url(self, name, request=None, **kwargs):
+    def build_resource_url(
+        self,
+        name: str,
+        request: Optional[HttpRequest] = None,
+        **kwargs,
+    ) -> str:
         """Build a resource URL for the given name and keyword arguments.
 
         This can be overridden by subclasses that have special requirements
@@ -2076,7 +2387,11 @@ class WebAPIResource(object):
 
         return url
 
-    def get_href_parent_ids(self, obj, **kwargs):
+    def get_href_parent_ids(
+        self,
+        obj: Any,
+        **kwargs,
+    ) -> Dict[str, str]:
         """Return a dictionary mapping parent object keys to object values.
 
         This will walk up the resource tree and return a mapping of parent
@@ -2114,7 +2429,10 @@ class WebAPIResource(object):
 
         return parent_ids
 
-    def get_parent_object(self, obj):
+    def get_parent_object(
+        self,
+        obj: Any,
+    ) -> Optional[Any]:
         """Return the parent of an object.
 
         By default, this uses :py:attr:`model_parent_key` to figure out the
@@ -2130,14 +2448,23 @@ class WebAPIResource(object):
             object:
             The parent object, or ``None`` if not found.
         """
-        parent_obj = getattr(obj, self.model_parent_key)
+        if not self.model_parent_key:
+            return None
+
+        parent_obj: Any = getattr(obj, self.model_parent_key)
 
         if isinstance(parent_obj, (models.Manager, models.ForeignKey)):
-            parent_obj = parent_obj.get()
+            # Ignore the type here, since django-stubs lacks any knowledge of
+            # get().
+            parent_obj = parent_obj.get()  # type: ignore
 
         return parent_obj
 
-    def get_last_modified(self, request, obj):
+    def get_last_modified(
+        self,
+        request: HttpRequest,
+        obj: Any,
+    ) -> Optional[datetime]:
         """Return the last-modified timestamp of an object.
 
         By default, this uses :py:attr:`last_modified_field` to determine what
@@ -2162,7 +2489,13 @@ class WebAPIResource(object):
 
         return None
 
-    def get_etag(self, request, obj, *args, **kwargs):
+    def get_etag(
+        self,
+        request: HttpRequest,
+        obj: Any,
+        *args,
+        **kwargs,
+    ) -> Optional[str]:
         """Return the ETag representing the state of the object.
 
         By default, this uses :py:attr:`etag_field` to determine what field in
@@ -2197,7 +2530,13 @@ class WebAPIResource(object):
 
         return None
 
-    def encode_etag(self, request, etag, *args, **kwargs):
+    def encode_etag(
+        self,
+        request: HttpRequest,
+        etag: str,
+        *args,
+        **kwargs,
+    ) -> str:
         """Return an encoded ETag for usage in a header.
 
         This will take a precomputed ETag, augment it with additional
@@ -2220,10 +2559,17 @@ class WebAPIResource(object):
             str:
             The encoded ETag.
         """
-        return encode_etag('%s:%s' % (request.user.username, etag))
+        # Handle both authenticated and anonymous users.
+        username = getattr(request.user, 'username', '<anonymous>')
 
-    def are_cache_headers_current(self, request, last_modified=None,
-                                  etag=None):
+        return encode_etag(f'{username}:{etag}')
+
+    def are_cache_headers_current(
+        self,
+        request: HttpRequest,
+        last_modified: Optional[datetime] = None,
+        etag: Optional[str] = None,
+    ) -> bool:
         """Return whether cache headers from the client are current.
 
         This will compare the optionally-provided timestamp and ETag against
@@ -2247,12 +2593,19 @@ class WebAPIResource(object):
             ``True`` if the client's cache headers represent a current version
             of the resource payload. ``False`` if they do not.
         """
-        return ((last_modified and
-                 get_modified_since(request, last_modified)) or
-                (etag and etag_if_none_match(request, etag)))
+        return (
+            (last_modified is not None and
+             get_modified_since(request, last_modified)) or
+            (etag is not None and
+             etag_if_none_match(request, etag))
+        )
 
-    def get_no_access_error(self, request, *args, **kwargs):
-
+    def get_no_access_error(
+        self,
+        request: HttpRequest,
+        *args,
+        **kwargs,
+    ) -> WebAPIError:
         """Return an appropriate error when access is denied.
 
         By default, this will return :py:data:`~djblets.webapi.errors.
@@ -2287,7 +2640,12 @@ class WebAPIResource(object):
         else:
             return NOT_LOGGED_IN
 
-    def _build_resource_mimetype(self, mimetype, is_list):
+    def _build_resource_mimetype(
+        self,
+        *,
+        mimetype: str,
+        is_list: bool,
+    ) -> str:
         """Return a mimetype with vendor, list, and resource information.
 
         The resulting mimetype will be based on the provided mimetype,
@@ -2318,9 +2676,13 @@ class WebAPIResource(object):
             resource_name = (self.mimetype_item_resource_name or
                              self.name.replace('_', '-'))
 
-        return self._build_vendor_mimetype(mimetype, resource_name)
+        return self._build_vendor_mimetype(mimetype=mimetype,
+                                           name=resource_name)
 
-    def _build_error_mimetype(self, request):
+    def _build_error_mimetype(
+        self,
+        request: HttpRequest,
+    ) -> Optional[str]:
         """Return a mimetype used for errors.
 
         The mimetype will be based off the mimetype requested for this
@@ -2339,12 +2701,18 @@ class WebAPIResource(object):
         mimetype = get_http_requested_mimetype(
             request, WebAPIResponse.supported_mimetypes)
 
-        if self.mimetype_vendor:
-            mimetype = self._build_vendor_mimetype(mimetype, 'error')
+        if mimetype and self.mimetype_vendor:
+            mimetype = self._build_vendor_mimetype(mimetype=mimetype,
+                                                   name='error')
 
         return mimetype
 
-    def _build_vendor_mimetype(self, mimetype, name):
+    def _build_vendor_mimetype(
+        self,
+        *,
+        mimetype: str,
+        name: str,
+    ) -> str:
         """Return a mimetype with vendor information.
 
         This will take a mimetype and return a version that includes vendor
@@ -2371,7 +2739,10 @@ class WebAPIResource(object):
                                     name,
                                     parts[1])
 
-    def _build_named_url(self, name):
+    def _build_named_url(
+        self,
+        name: str,
+    ) -> str:
         """Return a Django URL name for a given resource.
 
         This will normalize the provided name and convert it into a Django
@@ -2387,7 +2758,13 @@ class WebAPIResource(object):
         """
         return '%s-resource' % name.replace('_', '-')
 
-    def _get_only_items(self, request, query_param_name, post_field_name):
+    def _get_only_items(
+        self,
+        *,
+        request: Optional[HttpRequest],
+        query_param_name: str,
+        post_field_name: str,
+    ) -> Optional[List[str]]:
         """Return a list of "only" items for filtering fields or links.
 
         This will look up the provided names in the HTTP request, looking
@@ -2415,7 +2792,13 @@ class WebAPIResource(object):
 
         return None
 
-    def _get_queryset(self, request, is_list=False, *args, **kwargs):
+    def _get_queryset(
+        self,
+        request: Optional[HttpRequest],
+        *args,
+        is_list: bool = False,
+        **kwargs,
+    ) -> QuerySet:
         """Return an optimized queryset for looking up objects.
 
         This wraps :py:meth:`get_queryset` and then optimizes the returned
@@ -2425,11 +2808,11 @@ class WebAPIResource(object):
             request (django.http.HttpRequest):
                 The HTTP request from the client.
 
-            is_list (bool, optional):
-                Whether the caller is querying for use in a list resource.
-
             *args (tuple, unused):
                 Additional positional arguments passed to the view.
+
+            is_list (bool, optional, optional):
+                Whether the caller is querying for use in a list resource.
 
             **kwargs (dict, unused):
                 Keyword arguments representing values captured from the URL.
@@ -2477,7 +2860,10 @@ class WebAPIResource(object):
 
         return queryset
 
-    def _clone_serialized_object(self, obj):
+    def _clone_serialized_object(
+        self,
+        obj: Any,
+    ) -> Any:
         """Clone a serialized object, for storing in the cache.
 
         This works similarly to :py:func:`copy.deepcopy`, but is smart enough
