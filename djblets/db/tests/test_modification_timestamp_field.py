@@ -1,10 +1,12 @@
 """Unit tests for djblets.db.fields.modification_timestamp_field."""
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 
+import kgb
 from django.db import models
 from django.utils import timezone
-from kgb import SpyAgency
 
 from djblets.db.fields.modification_timestamp_field import \
     ModificationTimestampField
@@ -20,7 +22,7 @@ class MultitipleModificationTimestampFieldTestModel(models.Model):
     timestamp2 = ModificationTimestampField('timestamp2')
 
 
-class ModificationTimestampFieldTests(SpyAgency, TestModelsLoaderMixin,
+class ModificationTimestampFieldTests(kgb.SpyAgency, TestModelsLoaderMixin,
                                       TestCase):
     """Unit tests for ModificationTimestampField."""
 
@@ -113,9 +115,16 @@ class ModificationTimestampFieldTests(SpyAgency, TestModelsLoaderMixin,
             instance.field += timedelta(hours=1)
             instance.save()
 
+            # Make sure the manually set value won't be overwritten.
             self.assertNotEqual(instance.field, timestamp)
             self.assertEqual(instance.field,
                              timestamp + timedelta(hours=1))
+
+            timestamp += timedelta(days=1)
+            instance.save()
+
+            # Make sure the old manually set value can be overwritten later.
+            self.assertEqual(instance.field, timestamp)
 
     def test_save_doesnt_overwite_modified_value_without_tz(self):
         """Testing ModificationTimestampField doesn't overwite manual setting
@@ -133,6 +142,12 @@ class ModificationTimestampFieldTests(SpyAgency, TestModelsLoaderMixin,
             self.assertEqual(instance.field,
                              timestamp + timedelta(hours=1))
 
+            timestamp += timedelta(days=1)
+            instance.save()
+
+            # Make sure the old manually set value can be overwritten later.
+            self.assertEqual(instance.field, timestamp)
+
     def test_save_multiple_with_tz(self):
         """Testing multiple ModificationTimestampField save correctly when
         USE_TZ=True
@@ -142,7 +157,6 @@ class ModificationTimestampFieldTests(SpyAgency, TestModelsLoaderMixin,
             self.spy_on(timezone.now, call_fake=lambda: timestamp)
 
             manual_value = timestamp + timedelta(hours=4)
-            timestamp += timedelta(hours=1)
 
             instance = MultitipleModificationTimestampFieldTestModel()
             instance.timestamp1 = manual_value
@@ -168,7 +182,6 @@ class ModificationTimestampFieldTests(SpyAgency, TestModelsLoaderMixin,
             self.spy_on(timezone.now, call_fake=lambda: timestamp)
 
             manual_value = timestamp + timedelta(hours=4)
-            timestamp += timedelta(hours=1)
 
             instance = MultitipleModificationTimestampFieldTestModel()
             instance.timestamp1 = manual_value
@@ -184,3 +197,45 @@ class ModificationTimestampFieldTests(SpyAgency, TestModelsLoaderMixin,
 
             self.assertEqual(instance.timestamp1, timestamp)
             self.assertEqual(instance.timestamp2, manual_value)
+
+    def test_save_with_object_from_manager(self) -> None:
+        """Testing ModificationTimestampField automatically updates when
+        saving a model instance fetched from a model manager
+        """
+        timestamp = timezone.now()
+        self.spy_on(timezone.now, call_fake=lambda: timestamp)
+
+        instance = ModificationTimestampFieldTestModel.objects.create()
+
+        self.assertEqual(instance.field, timestamp)
+
+        fetched = ModificationTimestampFieldTestModel.objects.get(
+            pk=instance.pk)
+        timestamp += timedelta(hours=1)
+        fetched.save()
+
+        self.assertEqual(fetched.field, timestamp)
+
+    def test_save_with_object_from_manager_doesnt_overwrite(self) -> None:
+        """Testing ModificationTimestampField doesn't overwrite manually set
+        values when saving a model instance fetched from a model manager
+        """
+        timestamp = timezone.now()
+        self.spy_on(timezone.now, call_fake=lambda: timestamp)
+
+        instance = ModificationTimestampFieldTestModel.objects.create()
+
+        self.assertEqual(instance.field, timestamp)
+
+        fetched = ModificationTimestampFieldTestModel.objects.get(
+            pk=instance.pk)
+        fetched.field += timedelta(hours=1)
+        fetched.save()
+
+        self.assertEqual(fetched.field, timestamp + timedelta(hours=1))
+
+        timestamp += timedelta(days=1)
+        fetched.save()
+
+        # Make sure the old manually set value can be overwritten later.
+        self.assertEqual(fetched.field, timestamp)
