@@ -1,4 +1,9 @@
+"""Unit tests for djblets.webapi.resources.base."""
+
+from __future__ import annotations
+
 from collections import OrderedDict
+from typing import Optional
 
 import kgb
 from django.contrib.auth.models import User
@@ -15,7 +20,10 @@ from djblets.webapi.resources.base import WebAPIResource
 from djblets.webapi.resources.registry import (register_resource_for_model,
                                                unregister_resource_for_model,
                                                unregister_resource)
-from djblets.webapi.responses import WebAPIResponse
+from djblets.webapi.responses import (WebAPIEventStreamMessage,
+                                      WebAPIEventStreamMessages,
+                                      WebAPIResponse,
+                                      WebAPIResponseEventStream)
 
 
 class MyTestGroup(models.Model):
@@ -373,6 +381,61 @@ class WebAPIResourceTests(kgb.SpyAgency, TestModelsLoaderMixin, TestCase):
         self.assertIsInstance(response, WebAPIResponse)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['X-test-header'], 'Test')
+
+    def test_get_with_event_stream(self) -> None:
+        """Testing WebAPIResource with GET with text/event-stream response"""
+        class TestResource(WebAPIResource):
+            allowed_methods = ('GET',)
+            mimetype_vendor = 'djblets'
+            uri_object_key = 'id'
+
+            def get_list(self, *args, **kwargs):
+                def _gen_events(
+                    last_id: Optional[str],
+                ) -> WebAPIEventStreamMessages:
+                    yield WebAPIEventStreamMessage(
+                        event='progress',
+                        obj={
+                            'step': 1,
+                            'total': 2,
+                        },
+                        stat='progress')
+
+                    yield WebAPIEventStreamMessage(
+                        event='progress',
+                        obj={
+                            'step': 2,
+                            'total': 2,
+                        },
+                        stat='progress')
+
+                    yield WebAPIEventStreamMessage(
+                        event='result',
+                        obj={
+                            'result': 'tada',
+                        })
+
+                return 200, _gen_events
+
+        test_resource = TestResource()
+        response = test_resource(RequestFactory().get('/'))
+
+        self.assertIsInstance(response, WebAPIResponseEventStream)
+        self.assertEqual(
+            list(response),
+            [
+                b'event: progress\n'
+                b'data: {"stat": "progress", "step": 1, "total": 2}\n'
+                b'\n',
+
+                b'event: progress\n'
+                b'data: {"stat": "progress", "step": 2, "total": 2}\n'
+                b'\n',
+
+                b'event: result\n'
+                b'data: {"result": "tada", "stat": "ok"}\n'
+                b'\n',
+            ])
 
     def test_are_cache_headers_current_with_old_last_modified(self):
         """Testing WebAPIResource.are_cache_headers_current with old last

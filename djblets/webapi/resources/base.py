@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 from typing import (Any, Callable, Dict, Final, List, Mapping, Optional,
-                    Sequence, Set, TYPE_CHECKING, Tuple, Type, Union)
+                    Sequence, Set, TYPE_CHECKING, Tuple, Type, Union, cast)
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -12,9 +13,10 @@ from django.db.models.fields.related_descriptors import (
     ManyToManyDescriptor,
     ForwardManyToOneDescriptor)
 from django.db.models.query import QuerySet
-from django.http import (HttpResponseNotAllowed,
-                         HttpResponse,
-                         HttpResponseNotModified)
+from django.http.response import (HttpResponseNotAllowed,
+                                  HttpResponse,
+                                  HttpResponseBase,
+                                  HttpResponseNotModified)
 from django.urls import include, path, re_path, reverse
 from django.views.decorators.vary import vary_on_headers
 from typing_extensions import (Literal, NotRequired, Protocol, TypeAlias,
@@ -49,7 +51,9 @@ from djblets.webapi.errors import (DOES_NOT_EXIST,
                                    RATE_LIMIT_EXCEEDED,
                                    WebAPIError)
 from djblets.webapi.fields import IntFieldType
-from djblets.webapi.responses import (WebAPIResponseHeaders,
+from djblets.webapi.responses import (WebAPIEventStream,
+                                      WebAPIResponseEventStream,
+                                      WebAPIResponseHeaders,
                                       WebAPIResponsePayload)
 
 if TYPE_CHECKING:
@@ -127,22 +131,32 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+#: A utility type for API response payloads or event streams.
+#:
+#: Version Added:
+#:     4.0
+_PayloadOrEvents: TypeAlias = Union[
+    WebAPIResponsePayload,
+    WebAPIEventStream,
+]
+
+
 #: The result from an API method handler.
 #:
 #: API method handlers may return HTTP responses, API responses, API errors,
 #: or tuples.
 #:
-#: Tuples may contain API errors or HTTP status codes, payloads, and optional
-#: headers.
+#: Tuples may contain API errors or HTTP status codes, payloads or event
+#: streams, and optional headers.
 #:
 #: Version Added:
 #:     4.0
 WebAPIResourceHandlerResult: TypeAlias = Union[
-    HttpResponse,
+    HttpResponseBase,
     Tuple[WebAPIError, WebAPIResponsePayload, WebAPIResponseHeaders],
     Tuple[WebAPIError, WebAPIResponsePayload],
-    Tuple[int, WebAPIResponsePayload, WebAPIResponseHeaders],
-    Tuple[int, WebAPIResponsePayload],
+    Tuple[int, _PayloadOrEvents, WebAPIResponseHeaders],
+    Tuple[int, _PayloadOrEvents],
     WebAPIError,
     WebAPIResponse,
 ]
@@ -515,7 +529,7 @@ class WebAPIResource(object):
         *args,
         api_format: Optional[str] = None,
         **kwargs,
-    ) -> HttpResponse:
+    ) -> HttpResponseBase:
         """Invoke the correct HTTP handler based on the type of request.
 
         Args:
@@ -535,7 +549,7 @@ class WebAPIResource(object):
                 Keyword arguments representing values captured from the URL.
 
         Returns:
-            django.http.HttpResponse:
+            django.http.HttpResponseBase:
             The resulting HTTP response from the API handler.
         """
         if not hasattr(request, '_djblets_webapi_object_cache'):
@@ -629,7 +643,7 @@ class WebAPIResource(object):
                 if method_name:
                     view = getattr(self, method_name, None)
 
-        response: HttpResponse
+        response: HttpResponseBase
 
         if view and callable(view):
             assert not args
@@ -668,32 +682,56 @@ class WebAPIResource(object):
                         else:
                             headers['Location'] += '?' + extra_querystr
 
-                if isinstance(result[0], WebAPIError):
+                result_code = result[0]
+                result_data = result[1]
+
+                if isinstance(result_code, WebAPIError):
                     response = WebAPIResponseError(
                         request,
-                        err=result[0],
-                        extra_params=result[1],
+                        err=result_code,
+                        extra_params=cast(WebAPIResponsePayload, result_data),
                         api_format=api_format,
                         mimetype=self._build_error_mimetype(request))
                 else:
-                    response_args = self.build_response_args(request)
-                    headers.update(response_args.pop('headers', {}))
-
-                    response = WebAPIResponse(
-                        request,
-                        status=result[0],
-                        obj=result[1],
-                        api_format=api_format,
-                        encoder_kwargs=dict({
+                    response_kwargs: KwargsDict = dict({
+                        'api_format': api_format,
+                        'encoder_kwargs': dict({
                             'calling_resource': self,
                         }, **kwargs),
-                        **response_args)
-            elif isinstance(result, HttpResponse):
+                    }, **self.build_response_args(request))
+                    headers.update(response_kwargs.pop('headers', {}))
+
+                    if isinstance(result_data, (dict, list)):
+                        # This is a standard response.
+                        response = WebAPIResponse(
+                            request,
+                            status=result_code,
+                            obj=cast(WebAPIResponsePayload, result_data),
+                            **response_kwargs)
+                    elif (inspect.isgeneratorfunction(result_data) or
+                          inspect.isgenerator(result_data)):
+                        # This is an event stream.
+                        message_data_mimetype = \
+                            response_kwargs.pop('mimetype')
+
+                        response = WebAPIResponseEventStream(
+                            result_data,
+                            request=request,
+                            status=result_code,
+                            message_data_mimetype=message_data_mimetype,
+                            **response_kwargs)
+                    else:
+                        # This is an unknown result.
+                        raise AssertionError(
+                            'Unsupported result from API handler: %r'
+                            % result)
+            elif isinstance(result, HttpResponseBase):
                 response = result
             else:
                 raise AssertionError(result)
 
-            if 200 <= response.status_code < 300:
+            if (isinstance(response, HttpResponse) and
+                200 <= response.status_code < 300):
                 # Check if there's no explicit ETag in a GET/HEAD request and
                 # the resource is told to generate missing ETags automatically.
                 #
