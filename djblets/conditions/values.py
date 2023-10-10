@@ -417,15 +417,17 @@ class ConditionValueMultipleChoiceField(ConditionValueFormField):
     :py:class:`~django.forms.fields.MultipleChoiceField`. It accepts the same
     keyword arguments in the constructor that the field itself accepts.
 
-    Example:
-        value_field = ConditionValueMultipleChoiceField(
-            choices=[
-                ('value1', 'Value 1'),
-                ('value2', 'Value 2'),
-            ])
-
     Version Added:
         3.0
+
+    Example:
+        .. code-block:: python
+
+           value_field = ConditionValueMultipleChoiceField(
+               choices=[
+                   ('value1', 'Value 1'),
+                   ('value2', 'Value 2'),
+               ])
     """
 
     def __init__(self, **field_kwargs):

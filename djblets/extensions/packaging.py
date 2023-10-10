@@ -130,7 +130,7 @@ class BuildStaticFiles(Command):
 
         Returns:
             str:
-            The path to the resulting :files:`node_modules` directory.
+            The path to the resulting :file:`node_modules` directory.
         """
         cwd = os.getcwd()
         build_dir = os.path.join(cwd, 'build')

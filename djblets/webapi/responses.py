@@ -692,7 +692,7 @@ class WebAPIResponsePaginated(WebAPIResponse):
             dict:
             The dictionary mapping link names to link information.
 
-            See :ref:`WebAPIResponseLinkDict` for the format of the link
+            See :py:class:`WebAPIResponseLinkDict` for the format of the link
             information dictionaries.
         """
         links: WebAPIResponseLinks = {}

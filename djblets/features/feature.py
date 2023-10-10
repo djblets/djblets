@@ -21,8 +21,8 @@ class Feature:
     Whether a feature is enabled is controlled by the :py:attr:`stability level
     <level>` of the feature and by the :py:class:`feature checker
     <djblets.features.checkers.BaseFeatureChecker>`. It will be enabled if
-    :py:attr:`level` is :py:attr:`~FeatureLevel.STABLE` or if the feature
-    checker returns that the feature is enabled.
+    :py:attr:`level` is :py:attr:`~djblets.features.level.FeatureLevel.STABLE`
+    or if the feature checker returns that the feature is enabled.
 
     Consuming applications are expected to subclass this and define the
     information on the feature, and choose a feature checker to use.
@@ -94,10 +94,11 @@ class Feature:
 
         This will return a boolean indicating if the feature is enabled.
 
-        If :py:attr:`level` is :py:attr:`~FeatureLevel.STABLE`, it will always
+        If :py:attr:`level` is
+        :py:attr:`~djblets.features.level.FeatureLevel.STABLE`, it will always
         be enabled. Otherwise, if :py:attr:`level` is not
-        :py:attr:`~FeatureLevel.UNAVAILABLE`, the configured feature checker
-        will be used instead.
+        :py:attr:`~djblets.features.level.FeatureLevel.UNAVAILABLE`, the
+        configured feature checker will be used instead.
 
         Callers can pass additional keyword arguments to this method, which
         the feature checker can use when determining if the feature is enabled.

@@ -18,6 +18,7 @@ from django.http.response import (HttpResponseNotAllowed,
                                   HttpResponseBase,
                                   HttpResponseNotModified)
 from django.urls import include, path, re_path, reverse
+from django.utils.functional import cached_property
 from django.views.decorators.vary import vary_on_headers
 from typing_extensions import (Literal, NotRequired, Protocol, TypeAlias,
                                TypedDict)
@@ -25,7 +26,6 @@ from typing_extensions import (Literal, NotRequired, Protocol, TypeAlias,
 from djblets.auth.ratelimit import (RATE_LIMIT_API_ANONYMOUS,
                                     RATE_LIMIT_API_AUTHENTICATED,
                                     get_usage_count)
-from djblets.util.decorators import cached_property
 from djblets.util.http import (build_not_modified_from_response,
                                encode_etag,
                                etag_if_none_match,

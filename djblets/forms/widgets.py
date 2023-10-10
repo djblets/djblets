@@ -41,18 +41,20 @@ class AmountSelectorWidget(widgets.MultiWidget):
 
         Args:
             unit_choices (list of tuple):
-                The unit choices for the field. This should be a list of
-                tuples with the following entries:
-                    Tuple:
-                        0 (int or None):
-                            The conversion factor of the unit to the base unit.
-                            The base unit must always have this value set to 1.
-                            For the rest of the units, this will be the number
-                            that you need to multiply a value in the base unit
-                            by in order to convert it to the given unit.
+                The unit choices for the field.
 
-                        1 (str):
-                            The name for the unit.
+                This should be a list of 2-tuples with the following entries:
+
+                Tuple:
+                    0 (int or None):
+                        The conversion factor of the unit to the base unit.
+                        The base unit must always have this value set to 1.
+                        For the rest of the units, this will be the number
+                        that you need to multiply a value in the base unit
+                        by in order to convert it to the given unit.
+
+                    1 (str):
+                        The name for the unit.
 
                 The list of unit choices should start with the base unit
                 and have the rest of the units follow in increasing order
@@ -92,8 +94,10 @@ class AmountSelectorWidget(widgets.MultiWidget):
                 The stored value.
 
         Returns:
+            tuple:
+            A 2-tuple of:
+
             Tuple:
-            A tuple of:
                 0 (int or None):
                     The amount in the unit.
 

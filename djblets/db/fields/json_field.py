@@ -11,11 +11,11 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_init
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from typing_extensions import TypeAlias
 
 from djblets.db.validators import validate_json
-from djblets.util.decorators import cached_property
 from djblets.util.serializers import DjbletsJSONEncoder
 
 
