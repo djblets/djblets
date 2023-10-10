@@ -8,6 +8,7 @@ from typing import Dict, Sequence
 
 from django.conf import settings
 from django.core.cache import caches
+from django.core.cache.backends.locmem import LocMemCache
 from django.db import connections
 from django.db.utils import OperationalError
 from django.http import HttpRequest, HttpResponseForbidden, JsonResponse
@@ -19,6 +20,7 @@ from typing_extensions import TypedDict
 
 from djblets.cache.backend import cache_memoize, make_cache_key
 from djblets.cache.serials import generate_locale_serial
+from djblets.util.symbols import UNSET
 
 
 logger = logging.getLogger(__name__)
@@ -183,13 +185,58 @@ class HealthCheckView(View):
                 result['checks'][result_key] = HealthCheckStatus.DOWN
                 result['errors'][result_key] = str(e)
 
+        cache_key = make_cache_key('djblets-healthcheck')
+
         for key in settings.CACHES.keys():
+            if key == 'forwarded_backend':
+                # This is the backing for a Djblets cache forwarding backend
+                # (which will be covered under another cache backend key).
+                # We can skip this one.
+                continue
+
             result_key = f'cache.{key}'
 
             try:
                 cache = caches[key]
 
-                if not cache.get_or_set(make_cache_key('healthcheck'), True):
+                if isinstance(cache, LocMemCache):
+                    # This is a local memory cache. If it doesn't work, the
+                    # server is *really* in trouble. We can probably filter
+                    # it out, though.
+                    continue
+
+                # Check for a key in the cache.
+                #
+                # We have to do this as two non-atomic operations:
+                #
+                # 1. Set a key explicitly.
+                # 2. Check that something was set.
+                #
+                # The reason is that some cache backends (pymemcache notably)
+                # has mitigation against intermittent outages/bad connections.
+                # They can mask outages until a certain number of failures
+                # have occurred, and then re-introduce the failed servers
+                # after a period of time.
+                #
+                # These timeframes cause problems with standard service health
+                # check behavior, which often employ a Circuit Breaker pattern,
+                # requiring a certain number of failures within a certain
+                # amount of time before considering a service unhealthy, and
+                # then resetting when considering any successful result. This
+                # does not play well with the cache backend mitigations.
+                #
+                # Since the cache backends return a caller-provided default
+                # when in outage mitigation mode, we need to check whether the
+                # key we just stored can be returned or just disappears. We
+                # don't really care about the value itself, just whether we
+                # got back a default.
+                #
+                # Note that this can have a false-positive if the cache server
+                # happens to lose our newly-set key right away, but health
+                # checks should be able to handle a sporadic outage report.
+                cache.set(cache_key, True)
+
+                if cache.get(cache_key, UNSET) is UNSET:
                     raise Exception('Unable to communicate with cache server')
 
                 result['checks'][result_key] = HealthCheckStatus.UP
