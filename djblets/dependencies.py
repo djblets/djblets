@@ -36,7 +36,7 @@ django_doc_major_version = '3.2'
 reviewboard_doc_major_version = 'dev'
 
 #: The version range required for Django.
-django_version = '~=3.2.16'
+django_version = '~=3.2.22'
 
 ###########################################################################
 # Python dependencies
@@ -44,11 +44,11 @@ django_version = '~=3.2.16'
 
 #: All dependencies required to install Djblets.
 package_dependencies = {
-    'cryptography': '>=1.8.1',
+    'cryptography': '>=41.0.4',
     'Django': django_version,
     'django-pipeline': '~=2.0.9',
-    'dnspython': '>=1.14.0',
-    'feedparser': '>=5.1.2',
+    'dnspython': '>=2.3.0',
+    'feedparser': '>=6.0.9',
     'housekeeping': '~=1.1',
     'packaging': '>=23.1',
     'Pillow': '>=6.2',
