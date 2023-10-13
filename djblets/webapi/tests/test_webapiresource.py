@@ -1,4 +1,9 @@
+"""Unit tests for djblets.webapi.resources.base."""
+
+from __future__ import annotations
+
 from collections import OrderedDict
+from typing import Optional
 
 import kgb
 from django.contrib.auth.models import User
@@ -15,7 +20,10 @@ from djblets.webapi.resources.base import WebAPIResource
 from djblets.webapi.resources.registry import (register_resource_for_model,
                                                unregister_resource_for_model,
                                                unregister_resource)
-from djblets.webapi.responses import WebAPIResponse
+from djblets.webapi.responses import (WebAPIEventStreamMessage,
+                                      WebAPIEventStreamMessages,
+                                      WebAPIResponse,
+                                      WebAPIResponseEventStream)
 
 
 class MyTestGroup(models.Model):
@@ -373,6 +381,61 @@ class WebAPIResourceTests(kgb.SpyAgency, TestModelsLoaderMixin, TestCase):
         self.assertIsInstance(response, WebAPIResponse)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['X-test-header'], 'Test')
+
+    def test_get_with_event_stream(self) -> None:
+        """Testing WebAPIResource with GET with text/event-stream response"""
+        class TestResource(WebAPIResource):
+            allowed_methods = ('GET',)
+            mimetype_vendor = 'djblets'
+            uri_object_key = 'id'
+
+            def get_list(self, *args, **kwargs):
+                def _gen_events(
+                    last_id: Optional[str],
+                ) -> WebAPIEventStreamMessages:
+                    yield WebAPIEventStreamMessage(
+                        event='progress',
+                        obj={
+                            'step': 1,
+                            'total': 2,
+                        },
+                        stat='progress')
+
+                    yield WebAPIEventStreamMessage(
+                        event='progress',
+                        obj={
+                            'step': 2,
+                            'total': 2,
+                        },
+                        stat='progress')
+
+                    yield WebAPIEventStreamMessage(
+                        event='result',
+                        obj={
+                            'result': 'tada',
+                        })
+
+                return 200, _gen_events
+
+        test_resource = TestResource()
+        response = test_resource(RequestFactory().get('/'))
+
+        self.assertIsInstance(response, WebAPIResponseEventStream)
+        self.assertEqual(
+            list(response),
+            [
+                b'event: progress\n'
+                b'data: {"stat": "progress", "step": 1, "total": 2}\n'
+                b'\n',
+
+                b'event: progress\n'
+                b'data: {"stat": "progress", "step": 2, "total": 2}\n'
+                b'\n',
+
+                b'event: result\n'
+                b'data: {"result": "tada", "stat": "ok"}\n'
+                b'\n',
+            ])
 
     def test_are_cache_headers_current_with_old_last_modified(self):
         """Testing WebAPIResource.are_cache_headers_current with old last
@@ -1149,3 +1212,76 @@ class WebAPIResourceTests(kgb.SpyAgency, TestModelsLoaderMixin, TestCase):
                              response_item_mimetype)
         else:
             self.assertTrue('Item-Content-Type' not in response)
+
+    def test_put_on_list_resource(self) -> None:
+        """Testing PUT on a list resource returns HTTP 405"""
+        class TestResource(MyTestUserResource):
+            allowed_methods = ('DELETE', 'GET', 'PUT', 'POST')
+
+        test_resource = TestResource()
+
+        request = self.factory.put('/api/users/')
+
+        response = test_resource.put(request, api_format='json')
+        self.assertEqual(response.status_code, 405)
+
+    def test_put_on_singleton_resource(self) -> None:
+        """Testing PUT on a singleton resource"""
+        class TestResource(BaseTestWebAPIResource):
+            allowed_methods = ('DELETE', 'GET', 'PUT', 'POST')
+            singleton = True
+
+            def update(self, request, *, api_format=None):
+                return WebAPIResponse(request)
+
+        test_resource = TestResource()
+        self.spy_on(test_resource.update)
+
+        request = self.factory.put('/api/users/')
+
+        test_resource.put(request, api_format='json')
+        self.assertSpyCalled(test_resource.update)
+
+    def test_put_on_item_resource(self) -> None:
+        """Testing PUT on an item resource"""
+        class TestResource(MyTestUserResource):
+            allowed_methods = ('DELETE', 'GET', 'PUT', 'POST')
+
+            def update(self, request, *, api_format=None, pk=None):
+                return WebAPIResponse(request)
+
+        test_resource = TestResource()
+        self.spy_on(test_resource.update)
+
+        request = self.factory.put('/api/users/4/')
+
+        test_resource.put(request, api_format='json', pk=4)
+        self.assertSpyCalledWith(test_resource.update, pk=4)
+
+    def test_post_on_item_resource(self) -> None:
+        """Testing POST on an item resource returns HTTP 405"""
+        class TestResource(MyTestUserResource):
+            allowed_methods = ('DELETE', 'GET', 'PUT', 'POST')
+
+        test_resource = TestResource()
+
+        request = self.factory.post('/api/users/4/')
+
+        response = test_resource.post(request, api_format='json', pk=4)
+        self.assertEqual(response.status_code, 405)
+
+    def test_post_on_list_resource(self) -> None:
+        """Testing POST on a list resource"""
+        class TestResource(BaseTestWebAPIResource):
+            allowed_methods = ('DELETE', 'GET', 'PUT', 'POST')
+
+            def create(self, request, *, api_format=None):
+                return WebAPIResponse(request)
+
+        test_resource = TestResource()
+        self.spy_on(test_resource.create)
+
+        request = self.factory.post('/api/users/')
+
+        test_resource.post(request, api_format='json')
+        self.assertSpyCalled(test_resource.create)

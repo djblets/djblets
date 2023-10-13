@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from typing import (Any, Callable, Collection, Dict, List, Optional,
+from typing import (Any, Callable, Collection, Dict, Iterator, List, Optional,
                     Sequence, TYPE_CHECKING, Union)
 
 from django.http import HttpResponse
 from django.utils.encoding import force_str
 from typing_extensions import NotRequired, TypeAlias, TypedDict
 
+from djblets.http.responses import (EventStreamMessage,
+                                    EventStreamMessages,
+                                    EventStreamHttpResponse)
 from djblets.util.http import (get_http_requested_mimetype,
                                get_url_params_except,
                                is_mimetype_a)
@@ -48,9 +51,16 @@ class WebAPIResponseLink(TypedDict):
 
     #: The absolute URL that the link points to.
     #:
+    #: This may be None in the case of an error generating a link, such as
+    #: due to a circular dependency.
+    #:
+    #: Version Changed:
+    #:     4.0:
+    #:     This can now be ``None``.
+    #:
     #: Type:
     #:     str
-    href: str
+    href: Optional[str]
 
     #: The optional title for the link.
     #:
@@ -73,6 +83,56 @@ WebAPIResponseLinks: TypeAlias = Dict[str, WebAPIResponseLink]
 #: Version Added:
 #:     3.2
 WebAPIResponsePayload: TypeAlias = Dict[Any, Any]
+
+
+class WebAPIEventStreamMessage(EventStreamMessage):
+    """A message generated in an API event stream.
+
+    This is used by :py:class:`WebAPIResponseEventStream` to stream data to
+    a client.
+
+    A message may contain an ID, application-defined event type, serialized
+    payload data (which may be a serialized object payload or may be custom
+    text-based data), and a retry time in milliseconds. These are all optional,
+    but any empty message will be skipped.
+
+    Version Added:
+        4.0
+    """
+
+    #: An API response payload to send in the message.
+    #:
+    #: Type:
+    #:     dict
+    obj: NotRequired[WebAPIResponsePayload]
+
+    #: The value for the API response payload's ``stat`` key.
+    #:
+    #: If not provided, this will default to "ok".
+    #:
+    #: Type:
+    #:     str
+    stat: NotRequired[str]
+
+
+#: An iterator for API event stream messages.
+#:
+#: Version Added:
+#:     4.0
+WebAPIEventStreamMessages: TypeAlias = Iterator[WebAPIEventStreamMessage]
+
+
+#: An API event stream that generates messages.
+#:
+#: This may be an iterator of messages, or a callable that takes an optional
+#: :mailheader:`Last-Event-ID` header value and then yields messages.
+#:
+#: Version Added:
+#:     4.0
+WebAPIEventStream: TypeAlias = Union[
+    WebAPIEventStreamMessages,
+    Callable[[Optional[str]], WebAPIEventStreamMessages],
+]
 
 
 class WebAPIResponse(HttpResponse):
@@ -215,23 +275,12 @@ class WebAPIResponse(HttpResponse):
                 This is used when trying to guess a mimetype from the
                 :mailheader:`Accept` header.
         """
-        if not api_format:
-            if request.method == 'GET':
-                api_format = request.GET.get('api_format', None)
-            else:
-                api_format = request.POST.get('api_format', None)
-
-        if not supported_mimetypes:
-            supported_mimetypes = self.supported_mimetypes
-
-        if not mimetype:
-            if not api_format:
-                mimetype = get_http_requested_mimetype(request,
-                                                       supported_mimetypes)
-            elif api_format == "json":
-                mimetype = 'application/json'
-            elif api_format == "xml":
-                mimetype = 'application/xml'
+        mimetype = _normalize_response_mimetype(
+            request=request,
+            mimetype=mimetype,
+            api_format=api_format,
+            supported_mimetypes=(supported_mimetypes or
+                                 self.supported_mimetypes))
 
         if not mimetype:
             self.status_code = 400
@@ -643,7 +692,7 @@ class WebAPIResponsePaginated(WebAPIResponse):
             dict:
             The dictionary mapping link names to link information.
 
-            See :ref:`WebAPIResponseLinkDict` for the format of the link
+            See :py:class:`WebAPIResponseLinkDict` for the format of the link
             information dictionaries.
         """
         links: WebAPIResponseLinks = {}
@@ -757,11 +806,25 @@ class WebAPIResponseError(WebAPIResponse):
             if arg in kwargs:
                 raise ValueError(f'{arg}= cannot be passed to {type(self)}')
 
+        err_payload = {
+            'code': err.code,
+            'msg': err.msg,
+        }
+
+        if err.error_type:
+            err_payload['type'] = err.error_type
+
+            if err.error_subtype:
+                err_payload['subtype'] = err.error_subtype
+
+        if err.detail:
+            err_payload['detail'] = err.detail
+
+        if err.trace_id:
+            err_payload['trace_id'] = err.trace_id
+
         errdata: WebAPIResponsePayload = {
-            'err': {
-                'code': err.code,
-                'msg': err.msg,
-            }
+            'err': err_payload,
         }
         errdata.update(extra_params)
 
@@ -831,3 +894,192 @@ class WebAPIResponseFormError(WebAPIResponseError):
             },
             *args,
             **kwargs)
+
+
+class WebAPIResponseEventStream(EventStreamHttpResponse):
+    """A Server-Sent Events (SSE) API response.
+
+    This is a specialization of
+    :py:class:`~djblets.http.responses.EventStreamHttpResponse` built to
+    serialize API responses as part of Server-Sent Events. This enables
+    standard API responses to be serialized as results from an event stream,
+    useful for streaming progress updates or batched API call results as part
+    of an API call.
+
+    By default, each Server-Sent Event will contain API payload data
+    containing, at a minimum, a standard ``"stat": "ok"`` field. This can be
+    extended by specifying an object payload. The serialized result of the
+    payload will be in JSON format by default, but this can be controlled
+    through the standard :mailheader:`Accept` header or ``api_format``
+    argument.
+
+    The mimetype for standard data payloads (for entries without an ``event``
+    type or with ``event: message``, the spec-provided default) will be sent
+    in :mailheader:`X-Event-Data-Mimetype`.
+
+    Version Added:
+        4.0
+    """
+
+    def __init__(
+        self,
+        event_stream: WebAPIEventStream,
+        *,
+        request: HttpRequest,
+        api_format: Optional[str] = None,
+        status: int = 200,
+        headers: WebAPIResponseHeaders = {},
+        encoders: Sequence[WebAPIEncoder] = [],
+        encoder_kwargs: Dict[str, Any] = {},
+        message_data_mimetype: Optional[str] = None,
+        supported_mimetypes: Optional[List[str]] = None,
+    ) -> None:
+        """Initialize the API event stream.
+
+        The provided API event stream source will be processed when sending
+        content to the client, and not before.
+
+        Args:
+            event_stream (callable or generator):
+                The event stream as a generator or a callable yielding
+                results.
+
+            request (django.http.HttpRequest, optional):
+                The HTTP request from the client.
+
+            api_format (str, optional):
+                An explicit format for the result payload, used to determine
+                a default for :py:attr:`message_data_mimetype`.
+
+            status (int, optional):
+                The HTTP status code to send in the response.
+
+            headers (dict, optional):
+                Custom HTTP headers to include in the response.
+
+            encoders (list of djblets.webapi.encoders.WebAPIEncoder, optional):
+                The list of encoders available to encode object payloads.
+
+                If not provided, all registered encoders will be tried. See
+                :py:func:`~djblets.webapi.encoders.get_registered_encoders`.
+
+            encoder_kwargs (dict, optional):
+                Keyword arguments to pass when instantiating encoders.
+
+            message_data_mimetype (str, optional):
+                The mimetype for the standard message data payloads.
+
+                If not provided, one will be automatically determined based
+                on ``api_format`` and the request mimetype.
+
+            supported_mimetypes (list of str, optional):
+                A list of supported mimetypes for this response.
+
+                This is used when trying to guess a mimetype from the
+                :mailheader:`Accept` header.
+        """
+        if not encoders:
+            encoders = get_registered_encoders()
+
+        message_data_mimetype = _normalize_response_mimetype(
+            request=request,
+            mimetype=message_data_mimetype,
+            api_format=api_format,
+            supported_mimetypes=(supported_mimetypes or
+                                 WebAPIResponse.supported_mimetypes))
+
+        def _gen_events(
+            last_id: Optional[str],
+        ) -> EventStreamMessages:
+            nonlocal event_stream
+
+            if callable(event_stream):
+                event_stream = event_stream(last_id)
+
+            for event in event_stream:
+                if 'data' in event:
+                    data = event['data']
+                else:
+                    data = (
+                        WebAPIResponse(request,
+                                       obj=event.get('obj', {}),
+                                       stat=event.get('stat', 'ok'),
+                                       api_format=api_format,
+                                       mimetype=message_data_mimetype,
+                                       encoders=encoders,
+                                       encoder_kwargs=encoder_kwargs)
+                        .content
+                    )
+
+                yield {
+                    'data': data,
+                    'event': event.get('event'),
+                    'id': event.get('id'),
+                    'retry_ms': event.get('retry_ms')
+                }
+
+        super().__init__(_gen_events,
+                         request=request,
+                         status=status)
+
+        if message_data_mimetype:
+            self['X-Event-Data-Mimetype'] = message_data_mimetype
+
+        for header, value in headers.items():
+            self[header] = value
+
+
+def _normalize_response_mimetype(
+    *,
+    request: HttpRequest,
+    mimetype: Optional[str],
+    api_format: Optional[str],
+    supported_mimetypes: Optional[Sequence[str]],
+) -> Optional[str]:
+    """Normalize a mimetype for an API response.
+
+    If an explicit mimetype is not provided, one will be computed based on:
+
+    1. The ``api_format``, if provided as a parameter or in the request
+       (checked in that order).
+
+    2. The value in the :mailheader:`Accept` header (f allowed in
+       ``supported_mimetypes``).
+
+    Version Added:
+        4.0
+
+    Args:
+        request (django.http.HttpRequest):
+            The HTTP request from the client.
+
+        mimetype (str):
+            An explicit mimetype to use.
+
+        api_format (str):
+            An explicit API format to use, instead of checking the request.
+
+        supported_mimetypes (list of str):
+            A list of supported mimetypse for :mailheader:`Accept` headers.
+
+    Returns:
+        str:
+        The response mimetype to use.
+    """
+    if not mimetype:
+        if not api_format:
+            if request.method == 'GET':
+                api_format = request.GET.get('api_format')
+            else:
+                api_format = request.POST.get('api_format')
+
+        if not api_format:
+            mimetype = get_http_requested_mimetype(
+                request=request,
+                supported_mimetypes=supported_mimetypes)
+        elif api_format == 'json':
+            mimetype = 'application/json'
+        elif api_format == 'xml':
+            mimetype = 'application/xml'
+
+    return mimetype

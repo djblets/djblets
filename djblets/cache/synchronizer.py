@@ -1,8 +1,12 @@
+import logging
 import time
 from datetime import datetime
 
 from django.core.cache import cache
 from djblets.cache.backend import make_cache_key
+
+
+logger = logging.getLogger(__name__)
 
 
 class GenerationSynchronizer(object):
@@ -57,7 +61,14 @@ class GenerationSynchronizer(object):
         self.cache_key = cache_key
         self.sync_gen = None
 
-        self._fetch_or_create_sync_gen()
+        try:
+            self._fetch_or_create_sync_gen()
+        except Exception as e:
+            logger.exception(
+                'Unexpected error checking for initial state in cached '
+                'synchronization state key "%s". Is the cache server down? '
+                'Error = %s',
+                self.cache_key, e)
 
     def is_expired(self):
         """Return whether the current state has expired.
@@ -67,7 +78,16 @@ class GenerationSynchronizer(object):
             ``True`` if the state has expired. ``False`` if this has the
             latest cached generation.
         """
-        sync_gen = self._get_latest_sync_gen()
+        try:
+            sync_gen = self._get_latest_sync_gen()
+        except Exception as e:
+            logger.exception(
+                'Unexpected error checking for expiration in cached '
+                'synchronization state key "%s". Is the cache server down? '
+                'Error = %s',
+                self.cache_key, e)
+
+            return False
 
         return (sync_gen is None or
                 (type(sync_gen) is int and sync_gen != self.sync_gen))
@@ -77,7 +97,13 @@ class GenerationSynchronizer(object):
 
         This should be called after having updated to the latest state.
         """
-        self._fetch_or_create_sync_gen()
+        try:
+            self._fetch_or_create_sync_gen()
+        except Exception as e:
+            logger.exception(
+                'Unexpected error refreshing cached synchronization state '
+                'from key "%s". Is the cache server down? Error = %s',
+                self.cache_key, e)
 
     def clear(self):
         """Clear the cached generation ID.
@@ -85,7 +111,13 @@ class GenerationSynchronizer(object):
         This will expire all existing caches and force all processes to
         re-fetch and store the cache state.
         """
-        cache.delete(self.cache_key)
+        try:
+            cache.delete(self.cache_key)
+        except Exception as e:
+            logger.exception(
+                'Unexpected error clearing cached synchronization state '
+                'key "%s". Is the cache server down? Error = %s',
+                self.cache_key, e)
 
     def mark_updated(self):
         """Mark the synchronized state as having been updated.
@@ -94,9 +126,15 @@ class GenerationSynchronizer(object):
         re-update.
         """
         try:
-            self._increment_sync_gen()
-        except ValueError:
-            self._fetch_or_create_sync_gen()
+            try:
+                self._increment_sync_gen()
+            except ValueError:
+                self._fetch_or_create_sync_gen()
+        except Exception as e:
+            logger.exception(
+                'Unexpected error marking cached synchronization state '
+                'key "%s" as updated. Is the cache server down? Error = %s',
+                self.cache_key, e)
 
     def _increment_sync_gen(self):
         """Increment the synchronization generation ID."""

@@ -33,8 +33,7 @@ if hasattr(django, 'setup'):
     django.setup()
 
 import djblets
-from djblets.dependencies import (django_doc_major_version,
-                                  reviewboard_doc_major_version)
+from djblets.dependencies import django_doc_major_version
 
 
 # General configuration
@@ -52,7 +51,9 @@ extensions = [
     'sphinx.ext.todo',
     'beanbag_docutils.sphinx.ext.autodoc_utils',
     'beanbag_docutils.sphinx.ext.django_utils',
+    'beanbag_docutils.sphinx.ext.extlinks',
     'beanbag_docutils.sphinx.ext.http_role',
+    'beanbag_docutils.sphinx.ext.ref_utils',
     'beanbag_docutils.sphinx.ext.retina_images',
 ]
 
@@ -229,9 +230,11 @@ intersphinx_mapping = {
                None),
     'setuptools': ('https://setuptools.readthedocs.io/en/latest/', None),
     'python': ('https://docs.python.org/3', None),
-    'reviewboard': ('https://www.reviewboard.org/docs/manual/%s/'
-                    % reviewboard_doc_major_version,
-                    None),
+    'reviewboard': ('https://www.reviewboard.org/docs/manual/latest/', None),
+}
+
+extlinks = {
+    'pypi': ('https://pypi.org/project/%s/', '%s'),
 }
 
 todo_include_todos = True

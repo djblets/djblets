@@ -8,13 +8,6 @@ class ModificationState(object):
     """Modification state for a tracked value.
 
     Attributes:
-        first_set (bool):
-            Whether or not the next :py:func:`setattr` will be the first.
-
-            When this is ``True``, we do not consider the next
-            :py:func:`setattr` to be a modification since the field will be
-            set during model initialization.
-
         modified (bool):
             Whether or not the value has been manually modified.
     """
@@ -22,7 +15,6 @@ class ModificationState(object):
     def __init__(self):
         """Initialize the state."""
         self.modified = False
-        self.first_set = False
 
     @staticmethod
     def get_attr_name(field_name):
@@ -83,24 +75,26 @@ class ModificationTrackedValue(object):
     def __set__(self, instance, value):
         """Set the value.
 
-        This tracks modifications and updates the state if this is not the
-        first call to this method (which occurs during model initialization).
+        This tracks modifications and sets the modified state if this is not
+        the first call to this method (which occurs during object
+        initialization).
 
         Args:
             instance (django.db.models.Model):
                 The instance to set the the value on.
 
             value (datetime.datetime):
-                The value to set.state.first_set:
+                The value to set.
         """
         state = getattr(instance, self.state_name)
+        field_name = self.field_name
 
-        if state.first_set:
-            state.first_set = False
+        if field_name not in instance.__dict__:
+            state.modified = False
         else:
             state.modified = True
 
-        instance.__dict__[self.field_name] = value
+        instance.__dict__[field_name] = value
 
 
 class ModificationTimestampField(models.DateTimeField):

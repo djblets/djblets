@@ -129,8 +129,7 @@ more information on the format.
 
 
 Your form can perform validation and can normalize any user-provided data
-through the standard
-:ref:`Django Form validation <django:form-and-field-validation>` support.
+through the standard Django Form validation support.
 
 
 Integration Metadata

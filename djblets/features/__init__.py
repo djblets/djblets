@@ -16,3 +16,6 @@ __all__ = [
     'FeatureLevel',
     'get_features_registry',
 ]
+
+
+__autodoc_excludes__ = __all__

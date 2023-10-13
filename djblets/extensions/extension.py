@@ -7,8 +7,8 @@ import logging
 import os
 from pathlib import PosixPath
 from types import ModuleType
-from typing import (Any, ClassVar, Dict, List, Optional, Set, TYPE_CHECKING,
-                    Type, Union)
+from typing import (Any, Callable, ClassVar, Dict, List, Optional, Sequence,
+                    Set, TYPE_CHECKING, Type, Union)
 
 import importlib_resources
 from django.conf import settings
@@ -17,6 +17,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest
 from django.templatetags.static import static
 from django.urls import URLPattern, URLResolver, get_mod_func
+from django.utils.functional import cached_property
 from django.utils.module_loading import import_string
 from django.utils.translation import gettext as _
 from typing_extensions import TypeAlias
@@ -24,16 +25,14 @@ from typing_extensions import TypeAlias
 from djblets.extensions.errors import InstallExtensionMediaError
 from djblets.extensions.models import RegisteredExtension
 from djblets.extensions.settings import ExtensionSettings
-from djblets.util.decorators import cached_property
 from djblets.util.typing import JSONDict
 from djblets.webapi.resources import WebAPIResource
 
 if TYPE_CHECKING:
+    from importlib_metadata import EntryPoint
+
     from djblets.extensions.hooks import ExtensionHook
     from djblets.extensions.manager import ExtensionManager
-
-if TYPE_CHECKING:
-    from importlib_metadata import EntryPoint
 
 
 logger = logging.getLogger(__name__)
@@ -151,26 +150,6 @@ class Extension:
     settings, adding hooks, and plugging into the administration UI.
 
     For information on writing extensions, see :ref:`writing-extensions`.
-
-    Attributes:
-        admin_site (django.contrib.admin.AdminSite):
-            The database administration site set for the extension. This will
-            be set automatically if :py:attr:`has_admin_site`` is ``True``.
-
-        extension_manager (djblets.extensions.manager.ExtensionManager):
-            The extension manager that manages this extension.
-
-        hooks (set of djblets.extensions.hooks.ExtensionHook):
-            The hooks currently registered and enabled for the extension.
-
-        middleware_classes (list of callable):
-            The list of new-style (Django 1.10+) middleware classses.
-
-            Version Added:
-                2.2.4
-
-        settings (djblets.extensions.settings.ExtensionSettings):
-            The settings for the extension.
     """
 
     #: The ID of the extension.
@@ -308,7 +287,7 @@ class Extension:
     # Instance variables #
     ######################
 
-    #: The set of hooks for this extension.
+    #: The hooks currently registered and enabled for the extension.
     #:
     #: Type:
     #:     set of djblets.extensions.hooks.ExtensionHook
@@ -320,7 +299,10 @@ class Extension:
     #:     list of django.urls.URLResolver
     admin_urlpatterns: List[URLResolver]
 
-    #: The extension's admin site.
+    #: The database administration site set for the extension.
+    #:
+    #: This will be set automatically if :py:attr:`has_admin_site`` is
+    #: ``True``.
     #:
     #: Type:
     #:     django.contrib.admin.sites.AdminSite
@@ -331,6 +313,27 @@ class Extension:
     #: Type:
     #:     list of django.urls.URLPattern
     admin_site_urlpatterns: List[Union[URLPattern, URLResolver]]
+
+    #: The extension manager that manages this extension.
+    #:
+    #: Type:
+    #:     djblets.extensions.manager.ExtensionManager
+    extension_manager: ExtensionManager
+
+    #: The list of middleware classses.
+    #:
+    #: Version Added:
+    #:     2.2.4
+    #:
+    #: Type:
+    #:     list of callable
+    middleware_classes: Sequence[Callable]
+
+    #: The settings for the extension.
+    #:
+    #: Type:
+    #:     djblets.extensions.settings.ExtensionSettings
+    settings: ExtensionSettings
 
     def __init__(
         self,

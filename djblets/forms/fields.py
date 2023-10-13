@@ -1,11 +1,14 @@
 """Additional fields for Django forms."""
 
-import logging
+from __future__ import annotations
 
+import logging
+from typing import TYPE_CHECKING
+
+import pytz
 from django import forms
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _, gettext
-import pytz
 
 from djblets.conditions.conditions import ConditionSet
 from djblets.conditions.errors import (ConditionChoiceNotFoundError,
@@ -13,6 +16,10 @@ from djblets.conditions.errors import (ConditionChoiceNotFoundError,
                                        InvalidConditionModeError,
                                        InvalidConditionValueError)
 from djblets.forms.widgets import ConditionsWidget, ListEditWidget
+
+if TYPE_CHECKING:
+    from djblets.conditions.choices import ConditionChoices
+    from djblets.util.typing import KwargsDict
 
 
 TIMEZONE_CHOICES = tuple(zip(pytz.common_timezones, pytz.common_timezones))
@@ -34,18 +41,6 @@ class ConditionsField(forms.Field):
     defines all the possible condition choices, each containing possible
     operators for that choice (such as "is," "is not," "starts with," etc.) and
     possible fields for inputting values.
-
-    Attributes:
-        choices (djblets.conditions.choices.ConditionChoices):
-            The condition choies for the field.
-
-        choice_kwargs (dict):
-            Optional keyword arguments to pass to each
-            :py:class:`~djblets.conditions.choices.BaseConditionChoice`
-            constructor. This is useful for more advanced conditions that
-            need additional data from the form.
-
-            This can be updated dynamically by the form during initialization.
     """
 
     widget = ConditionsWidget
@@ -56,6 +51,16 @@ class ConditionsField(forms.Field):
         'invalid_mode': _('Must select either "All" or "Any".'),
         'value_required': _('A value is required for this condition.'),
     }
+
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The condition choies for the field.
+    #:
+    #: Type:
+    #:     djblets.conditions.choices.ConditionChoices
+    choices: ConditionChoices
 
     def __init__(self, choices, choice_kwargs=None, *args, **kwargs):
         """Initialize the field.
@@ -127,8 +132,17 @@ class ConditionsField(forms.Field):
             *args, **kwargs)
 
     @property
-    def choice_kwargs(self):
-        """The keyword arguments passed to ConditionChoice functions."""
+    def choice_kwargs(self) -> KwargsDict:
+        """The keyword arguments passed to ConditionChoice functions.
+
+        This is useful for more advanced conditions that need additional data
+        from the form.
+
+        This can be updated dynamically by the form during initialization.
+
+        Type:
+            dict
+        """
         return self.widget.choice_kwargs
 
     @choice_kwargs.setter
