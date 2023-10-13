@@ -1,9 +1,7 @@
 """Unit tests for djblets.util.decorators."""
 
-from django.utils.functional import cached_property
-
 from djblets.testing.testcases import TestCase
-from djblets.util.decorators import optional_decorator
+from djblets.util.decorators import cached_property, optional_decorator
 
 
 class DecoratorTests(TestCase):
