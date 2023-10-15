@@ -1,0 +1,369 @@
+.. default-intersphinx:: django3.2 djblets4.x python3
+
+
+=========================
+Djblets 4.0 Release Notes
+=========================
+
+**Release date**: TBD
+
+This release contains all bug fixes and features found in Djblets version
+:doc:`3.3 <3.3>`.
+
+
+Installation
+============
+
+Djblets 4.0 is compatible with Django_ 3.2 LTS and Python 3.8-3.12.
+
+To install Djblets 4.0, run:
+
+.. code-block:: console
+
+   $ pip3 install Djblets==4.0
+
+To learn more, see:
+
+* `Documentation <https://www.reviewboard.org/docs/djblets/4.0/>`_
+* `Djblets on PyPI <https://pypi.org/project/Djblets/>`_
+* `Djblets on GitHub <https://github.com/djblets/djblets/>`_
+
+
+.. _Django: https://www.djangoproject.com/
+
+
+Packaging
+=========
+
+* Djblets 4.x supports Python 3.8 - 3.12.
+
+  Support for Python 3.7 has been dropped, and 3.12 has been added.
+
+* :pypi:`Django` 3.2.x is required.
+
+* :pypi:`cryptography` 1.8.1+ is required.
+
+* :pypi:`django-pipeline` 2.0.9 - 2.0.x is required.
+
+* :pypi:`markdown` 3.3.x is required.
+
+* :pypi:`packaging` 23.1 or higher is required.
+
+* :pypi:`importlib-metadata` 6.6 or higher is required.
+
+* :pypi:`importlib-resources` 5.9 or higher is required.
+
+
+For building packages, Node.JS packages have now been consolidated as
+dependencies under a new utility package. All Node.JS dependencies are now
+listed in :file:`package.json` instead of :file:`djblets/dependencies.py`.
+
+* :npm:`@beanbag/frontend-buildkit` 1.1.0 - 1.1.x
+
+
+JavaScript Packaging
+--------------------
+
+Djblets now includes support for building JavaScript bundles using TypeScript_
+and rollup.js_.
+
+Users of Djblets' extension framework can use these technologies for their
+extension media as well.
+
+Over the next several releases, we expect to port sections of the Djblets
+JavaScript codebase to this. This should not have any effect on users unless
+you are subclassing Djblets JavaScript classes.
+
+
+.. _rollup.js: https://rollupjs.org/
+.. _TypeScript: https://www.typescriptlang.org/
+
+
+djblets.cache
+=============
+
+* Added crash-protection and logging in
+  :py:class:`~djblets.cache.synchronizer.GenerationSynchronizer` when cache
+  servers are down.
+
+
+djblets.configforms
+===================
+
+* Added Python type hints throughout some of the module.
+
+  The full port to Python type hints is still in-progress.
+
+* Updated the Config Forms JavaScript support to use Spina_ and TypeScript_.
+
+  This enables code working with Config Forms to use Spina and TypeScript
+  when interfacing with or subclassing these components.
+
+
+
+.. _Spina: https://www.npmjs.com/package/@beanbag/spina
+
+
+djblets.datagrids
+=================
+
+* :py:meth:`DataGrid.load_extra_state
+  <djblets.datagrid.grids.DataGrid.load_extra_state>` must now return a
+  list of field names to save.
+
+  The old usage had previously raised a deprecation warning.
+
+* Fixed crashes loading datagrids with ``?sort=,`` query arguments.
+
+  Datagrids can't normally create a link with a sort field that just contains a
+  comma, but some web crawlers would manufacture that URL, causing error emails
+  to be generated.
+
+
+djblets.db
+==========
+
+* Fixed a bug in :py:class:`~djblets.db.fields.modification_timestamp_field.
+  ModificationTimestampField` where the timestamp would not update its
+  value automatically.
+
+
+djblets.extensions
+==================
+
+* Added Python type hints throughout most of the module.
+
+  The full port to Python type hints is still in-progress.
+
+* Updated the JavaScript extension support to use Spina_ and TypeScript_.
+
+  This enables extension code to be written using these toolkits. This is
+  backwards-compatible with older extensions.
+
+* :py:class:`~djblets.testing.testrunners.TestRunner` has been updated to
+  allow usage of pytest_.
+
+  This will become the default in Djblets 5.
+
+* Updated to use modern Python packaging modules for extensions instead of
+  legacy modules.
+
+  Our packaging and package loading code for extensions now use the modern
+  :pypi:`importlib_metadata`, :pypi:`importlib_resources`, and
+  :pypi:`packaging` modules instead of the deprecated :py:mod:`pkg_resources`.
+
+  While this shouldn't impact any extensions, this is a large change. If your
+  extension package no longer works, please let us know.
+
+
+.. _pytest: https://pytest.org
+
+
+djblets.forms
+=============
+
+* The ``value`` attribute to :py:class:`~djblets.forms.widgets.ListEditWidget`
+  must be passed as a list instead of a string.
+
+  The old usage had previously raised a deprecation warning.
+
+
+djblets.http
+============
+
+* Added :py:class:`~djblets.http.responses.EventStreamHttpResponse`, for
+  `Server-Sent Events`_ HTTP responses.
+
+  This takes a generator or generator function that can stream event messages
+  to the client. It automatically handles parsing :mailheader:`Last-Event-ID`
+  headers from the client for helping the generator resume where it left off.
+
+
+.. _Server-Sent Events: https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
+
+
+djblets.mail
+============
+
+* Added Python type hints throughout the module.
+
+* Added a ``reply_to`` argument to
+  :py:class:`~djblets.mail.message.EmailMessage`.
+
+* Updated to use modern Python packaging modules for loading DMARC-related
+  data.
+
+* Deprecated positional arguments and the ``enable_smart_spoofing`` argument
+  in :py:class:`~djblets.mail.message.EmailMessage`.
+
+
+djblets.pipeline
+================
+
+* Added :py:class:`~djblets.pipeline.compilers.rollup.RollupCompiler`, a new
+  compiler for using rollup.js_.
+
+* Added :py:class:`~djblets.pipeline.compilers.typescript.TypeScriptCompiler`,
+  a new compiler for using TypeScript.
+
+* Added :py:class:`~djblets.pipeline.compilers.mixins.SourceMapStaleCheckMixin`,
+  a mixin class for compilers to use sourcemaps for stale file checks.
+
+* :py:func:`~djblets.pipeline.settings.build_pipeline_settings`:
+
+  * This function now expects parameters to be passed as keyword arguments.
+
+    Calling this with positional arguments will raise a deprecation warning.
+
+  * Added a new ``use_rollup`` and ``rollup_extra_args`` arguments for
+    enabling rollup.js_.
+
+
+djblets.registries
+==================
+
+* Updated to use modern Python packaging modules for loading Python
+  entrypoint-backed registries.
+
+
+djblets.util
+============
+
+djblets.util.filesystem
+-----------------------
+
+* Added :py:func:`~djblets.util.filesystem.safe_join` for joining filesystem
+  path components without risk of escaping a confined top-level directory.
+
+
+djblets.util.functional (new)
+-----------------------------
+
+This module contains:
+
+* :py:func:`~djblets.util.functional.iterable_len`: Efficiently computes
+  the length of a finite iterable.
+
+* :py:func:`~djblets.util.functional.lazy_re_compile`: Lazily compiles
+  a regex on first access, to help reduce module/class load times.
+
+
+djblets.util.properties
+-----------------------
+
+* :py:class:`~djblets.util.properties.AliasProperty` and
+  :py:class:`~djblets.util.properties.TypedProperty` now expect constructor
+  parameters to be passed as keyword arguments.
+
+  Calling these with positional arguments will raise a deprecation warning.
+
+
+djblets.util.symbols
+--------------------
+
+* Improved Python type hints for the :py:data:`~djblets.util.symbols.UNSET`
+  symbol.
+
+  This will now be correctly type-narrowed when compared against a value.
+
+
+djblets.util.typing
+-------------------
+
+* Added new types for JSON-serializable data:
+
+  * :py:data:`~djblets.util.typing.SerializableJSONDictImmutable`
+  * :py:data:`~djblets.util.typing.SerializableJSONDict`
+  * :py:data:`~djblets.util.typing.SerializableJSONListImmutable`
+  * :py:data:`~djblets.util.typing.SerializableJSONList`
+  * :py:data:`~djblets.util.typing.SerializableJSONValue`
+
+  These types are a superset of the standard JSON types in this module, built
+  to work with :py:class:`~djblets.util.serializers.DjbletsJSONEncoder`. They
+  support the following serializable value types:
+
+  * :py:class:`datetime.date`
+  * :py:class:`datetime.datetime`
+  * :py:class:`datetime.time`
+  * :py:class:`datetime.timedelta`
+  * :py:class:`decimal.Decimal`
+  * :py:data:`djblets.util.typing.StrPromise`
+  * :py:data:`djblets.util.typing.StrOrPromise`
+  * :py:class:`uuid.UUID`
+  * Objects implementing :py:class:`djblets.util.typing.ToJsonProtocol`
+
+
+djblets.util.views
+==================
+
+* Added the :py:class:`~djblets.util.views.HealthCheckStatus` view, for
+  indicating service health.
+
+  This will check all configured database and cache services, providing a
+  JSON payload showing what services are up or down. This can be used with
+  monitoring services or Docker health checks.
+
+  Only permitted IP addresses can perform a health check. This defaults to
+  ``settings.INTERNAL_IPS``, but can also be overridden by setting
+  ``setting.DJBLETS_HEALTHCHECK_IPS``.
+
+
+djblets.webapi
+==============
+
+* Added Python type hints throughout most of the module.
+
+* API resource handlers can now stream `Server-Sent Events`_ messages by
+  returning a generator containing
+  :py:class:`~djblets.webapi.responses.WebAPIEventStreamMessage` instances.
+
+* Added new fields for :py:class:`~djblets.webapi.errors.WebAPIError` output:
+
+  * :py:attr:`~djblets.webapi.errors.WebAPIError.detail`: A more verbose
+    error message, conveying additional details without altering the primary
+    error message.
+
+  * :py:attr:`~djblets.webapi.errors.WebAPIError.error_type`: A string
+    representing the error type (a readable version of numeric error codes).
+
+  * :py:attr:`~djblets.webapi.errors.WebAPIError.error_subtype`: A string
+    representing a subtype of an error, to differentiate between instances
+    of an error.
+
+  * :py:attr:`~djblets.webapi.errors.WebAPIError.trace_id`: A
+    service-specific ID that can help point to relevant log entries or other
+    recorded data, to help diagnose errors.
+
+* Improved performance and caching of API resources.
+
+* :py:meth:`WebAPIError.__init__()
+  <djblets.webapi.errors.WebAPIError.__init__>` and
+  :py:meth:`WebAPIError.with_overrides()
+  <djblets.webapi.errors.WebAPIError.with_overrides>` now require keyword-only
+  arguments.
+
+  Passing as positional arguments is deprecated and will be removed in
+  Djblets 5.
+
+* The ``token_generator_id`` and ``token_info`` parameters are now required for
+  :py:meth:`~djblets.webapi.managers.WebAPITokenManager.generate_token`.
+
+  The old usage had previously raised a deprecation warning.
+
+* Fixed a crash that could occur if a client issued an HTTP PUT against a
+  list resource.
+
+
+JavaScript
+==========
+
+* Fixed ``$.ui.modalBox`` button placement to factor in the padding around the
+  box.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin
