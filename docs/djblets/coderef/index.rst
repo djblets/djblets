@@ -242,6 +242,7 @@ HTTP Utilities
    :toctree: python
 
    djblets.http.middleware
+   djblets.http.responses
 
 
 .. _coderef-djblets-integrations:
