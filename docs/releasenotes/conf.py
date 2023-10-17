@@ -239,7 +239,7 @@ intersphinx_mapping = {
     'djblets2.0': ('%s/docs/djblets/2.0/' % rbwebsite_url, None),
     'djblets2.x': ('%s/docs/djblets/2.x/' % rbwebsite_url, None),
     'djblets3.x': ('%s/docs/djblets/3.x/' % rbwebsite_url, None),
-    'djblets4.x': ('%s/docs/djblets/dev/' % rbwebsite_url, None),
+    'djblets4.x': ('%s/docs/djblets/4.x/' % rbwebsite_url, None),
     'djblets-latest': ('%s/docs/djblets/latest/' % rbwebsite_url, None),
 }
 
