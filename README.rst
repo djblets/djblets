@@ -187,7 +187,7 @@ Djblets.
 Compatibility
 =============
 
-Djblets 4.x (release-4.x_) supports Python 3.8-3.11 and Django 3.2.
+Djblets 4.x (release-4.x_) supports Python 3.8-3.12 and Django 3.2.
 
 Djblets 3.x (release-3.x_) supports Python 3.7-3.11 and Django 3.2.
 
