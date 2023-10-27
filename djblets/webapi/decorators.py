@@ -2,6 +2,7 @@
 
 import inspect
 import logging
+from functools import update_wrapper
 
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest
@@ -107,9 +108,7 @@ def copy_webapi_decorator_data(from_func, to_func):
     to_required_fields = getattr(to_func, 'required_fields', {}).copy()
     to_optional_fields = getattr(to_func, 'optional_fields', {}).copy()
 
-    to_func.__name__ = from_func.__name__
-    to_func.__doc__ = from_func.__doc__
-    to_func.__dict__.update(from_func.__dict__)
+    update_wrapper(to_func, from_func)
 
     # Only copy if one of the two functions had this already.
     if had_errors:
@@ -152,12 +151,9 @@ def webapi_response_errors(*errors):
     """
     @webapi_decorator
     def _dec(view_func):
-        def _call(*args, **kwargs):
-            return view_func(*args, **kwargs)
+        view_func.response_errors = set(errors)
 
-        _call.response_errors = set(errors)
-
-        return _call
+        return view_func
 
     return _dec
 
