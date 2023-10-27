@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from importlib import import_module
 from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec
+from pprint import pformat
 from typing import (Any, Callable, Dict, Iterator, List, Optional, Sequence,
                     Set, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast)
 from unittest.util import safe_repr
@@ -32,6 +33,7 @@ from django.db import (DatabaseError, DEFAULT_DB_ALIAS, IntegrityError,
 from django.db.models import Model, Q
 from django.db.models.query import MAX_GET_RESULTS
 from django.db.models.sql.query import Query as SQLQuery
+from django.db.models.sql.subqueries import AggregateQuery
 from django.template import Node
 from django.test import testcases
 from django.utils.encoding import force_text
@@ -44,12 +46,17 @@ except ImportError:
     Version = None
 
 from djblets.db.query_catcher import catch_queries
+from djblets.deprecation import RemovedInDjblets50Warning
 from djblets.siteconfig.models import SiteConfiguration
 
 if TYPE_CHECKING:
     from django.db.models.expressions import BaseExpression
 
-    _ExecutedQueryFailureInfo: TypeAlias = Tuple[str, Any, Any]
+    class _ExecutedQueryFailureInfo(TypedDict):
+        key: str
+        executed_value: NotRequired[str]
+        expected_value: NotRequired[str]
+        inner_failures: NotRequired[List[_ExecutedQueryFailureInfo]]
 
     class _ExecutedQueryAllFailuresInfo(TypedDict):
         executed_query: SQLQuery
@@ -154,6 +161,9 @@ class ExpectedQuery(TypedDict):
     #:
     #: The default is ``None``.
     group_by: NotRequired[Optional[Union[bool, Tuple[str, ...]]]]
+
+    #: The inner query information to compare, for aggregate queries.
+    inner_query: NotRequired[Optional[ExpectedQuery]]
 
     #: The value for a ``LIMIT`` in the ``SELECT``.
     #:
@@ -552,6 +562,7 @@ class TestCase(testcases.TestCase):
         *,
         with_tracebacks: bool = False,
         traceback_size: int = 15,
+        check_subqueries: Optional[bool] = None,
     ) -> Iterator[None]:
         """Assert the number and complexity of queries.
 
@@ -563,7 +574,8 @@ class TestCase(testcases.TestCase):
 
         Version Changed:
             3.4:
-            * Added ``with_tracebacks`` and ``tracebacks_size`` arguments.
+            * Added ``with_tracebacks``, ``tracebacks_size``, and
+              ``check_subqueries`` arguments.
             * Added support for type hints for expected queries.
             * The ``where`` queries are now normalized for easier comparison.
             * The assertion output now shows the executed queries on the
@@ -599,6 +611,17 @@ class TestCase(testcases.TestCase):
                 The size of any tracebacks, in number of lines.
 
                 The default is 15.
+
+                Version Added:
+                    3.4
+
+            check_subqueries (bool, optional):
+                Whether to check subqueries.
+
+                If enabled, ``inner_query`` on queries with subqueries will
+                be checked. This is currently disabled by default, in order
+                to avoid breaking tests, but will be enabled by default in
+                Djblets 5.
 
                 Version Added:
                     3.4
@@ -644,40 +667,32 @@ class TestCase(testcases.TestCase):
         def _check_expectation(
             key: str,
             *,
+            failures: List[_ExecutedQueryFailureInfo],
             expected_value: _T,
             executed_value: _T,
             match_func: Callable[[_T, _T], bool] = operator.__eq__,
-            format_expected_value_func: Callable[[_T], str] = str,
-            format_executed_value_func: Callable[[_T], str] = str,
+            format_expected_value_func: Callable[[_T], str] = pformat,
+            format_executed_value_func: Callable[[_T], str] = pformat,
         ) -> None:
             if not match_func(expected_value, executed_value):
-                failures.append((
-                    key,
-                    format_executed_value_func(executed_value),
-                    format_expected_value_func(expected_value),
-                ))
+                failures.append({
+                    'key': key,
+                    'executed_value': format_executed_value_func(
+                        executed_value),
+                    'expected_value': format_expected_value_func(
+                        expected_value),
+                })
 
-        # Go through each matching Query and compare state.
-        ws_re = self.ws_re
-        all_failures: List[_ExecutedQueryAllFailuresInfo] = []
-        queries_iter = enumerate(zip(cast(Sequence[ExpectedQuery], queries),
-                                     executed_queries))
-
-        for i, (query_info, executed_query_info) in queries_iter:
-            query_sql = executed_query_info['sql']
-
-            # Check if this is set to be skipped.
-            if not query_sql:
-                continue
-
-            executed_query = executed_query_info['query']
-
+        def _check_query(
+            executed_query: SQLQuery,
+            expected_query_info: ExpectedQuery,
+        ) -> List[_ExecutedQueryFailureInfo]:
             failures: List[_ExecutedQueryFailureInfo] = []
 
             executed_model = executed_query.model
             assert executed_model is not None
 
-            expected_model = query_info.get('model')
+            expected_model = expected_query_info.get('model')
 
             executed_table_name = executed_model._meta.db_table
             executed_reffed_tables: Set[str] = {
@@ -689,6 +704,7 @@ class TestCase(testcases.TestCase):
             # Check 'model'.
             _check_expectation(
                 'model',
+                failures=failures,
                 expected_value=expected_model,
                 executed_value=executed_model,
                 match_func=operator.is_)
@@ -696,7 +712,8 @@ class TestCase(testcases.TestCase):
             # Check the query type.
             _check_expectation(
                 'type',
-                expected_value=query_info.get('type', 'SELECT'),
+                failures=failures,
+                expected_value=expected_query_info.get('type', 'SELECT'),
                 executed_value=executed_query_info['type'].value)
 
             # Check the fields that are easy to compare.
@@ -712,15 +729,18 @@ class TestCase(testcases.TestCase):
                                  ('values_select', ())):
                 _check_expectation(
                     key,
-                    expected_value=query_info.get(key, default),
+                    failures=failures,
+                    expected_value=expected_query_info.get(key, default),
                     executed_value=getattr(executed_query, key))
 
             # Check 'extra'.
             _check_expectation(
                 'extra',
+                failures=failures,
                 expected_value={
                     _key: (ws_re.sub(' ', _value[0]).strip(), _value[1])
-                    for _key, _value in query_info.get('extra', {}).items()
+                    for _key, _value in expected_query_info.get('extra',
+                                                                {}).items()
                 },
                 executed_value={
                     _key: (ws_re.sub(' ', _value[0]).strip(), _value[1])
@@ -730,13 +750,15 @@ class TestCase(testcases.TestCase):
             # Check 'offset'.
             _check_expectation(
                 'offset',
-                expected_value=query_info.get('offset', 0),
+                failures=failures,
+                expected_value=expected_query_info.get('offset', 0),
                 executed_value=executed_query.low_mark)
 
             # Check 'limit'.
             _check_expectation(
                 'limit',
-                expected_value=query_info.get('limit'),
+                failures=failures,
+                expected_value=expected_query_info.get('limit'),
                 executed_value=executed_query.high_mark,
                 match_func=lambda expected_value, executed_value: (
                     expected_value == executed_value or
@@ -754,7 +776,8 @@ class TestCase(testcases.TestCase):
 
             _check_expectation(
                 'num_joins',
-                expected_value=query_info.get('num_joins', 0),
+                failures=failures,
+                expected_value=expected_query_info.get('num_joins', 0),
                 executed_value=executed_num_joins)
 
             # Check 'tables'.
@@ -773,13 +796,17 @@ class TestCase(testcases.TestCase):
 
             _check_expectation(
                 'tables',
-                expected_value=set(query_info.get('tables', tables_default)),
+                failures=failures,
+                expected_value=set(expected_query_info.get('tables',
+                                                           tables_default)),
                 executed_value=executed_tables)
 
             # Check 'only_fields'.
             _check_expectation(
                 'only_fields',
-                expected_value=set(query_info.get('only_fields', set())),
+                failures=failures,
+                expected_value=set(expected_query_info.get('only_fields',
+                                                           set())),
                 executed_value=set(executed_query.deferred_loading[0]))
 
             # Check 'select_related'.
@@ -794,7 +821,8 @@ class TestCase(testcases.TestCase):
             else:
                 executed_select_related = set()
 
-            expected_select_related_raw = query_info.get('select_related')
+            expected_select_related_raw = \
+                expected_query_info.get('select_related')
             expected_select_related: Union[Literal[True], Set[str]]
 
             if expected_select_related_raw is True:
@@ -806,19 +834,114 @@ class TestCase(testcases.TestCase):
 
             _check_expectation(
                 'select_related',
+                failures=failures,
                 expected_value=expected_select_related,
                 executed_value=executed_select_related)
 
             # Check 'where'. Normalize the Q object used to filter.
             _check_expectation(
                 'where',
-                expected_value=_normalize_q(query_info.get('where', Q())),
+                failures=failures,
+                expected_value=_normalize_q(expected_query_info.get('where',
+                                                                    Q())),
                 executed_value=_normalize_q(queries_to_qs.get(executed_query,
                                                               Q())),
-                format_expected_value_func=lambda value: (
-                    '\n%s' % _format_q(value, indent=3)),
-                format_executed_value_func=lambda value: (
-                    '\n%s\n' % _format_q(value, indent=3)))
+                format_expected_value_func=_format_q,
+                format_executed_value_func=_format_q)
+
+            # Check if this is an aggregate query.
+            expected_inner_query_info = expected_query_info.get('inner_query')
+
+            if isinstance(executed_query, AggregateQuery):
+                if check_subqueries:
+                    # NOTE: As of October 23, 2023, django-stubs doesn't
+                    #       document this attribute.
+                    inner_query = executed_query.inner_query  # type: ignore
+
+                    inner_failures = _check_query(
+                        executed_query=inner_query,
+                        expected_query_info=expected_inner_query_info or {})
+
+                    if inner_failures:
+                        failures.append({
+                            'key': 'inner_query',
+                            'inner_failures': inner_failures,
+                        })
+                elif check_subqueries is None:
+                    RemovedInDjblets50Warning.warn(
+                        'assertQueries() does not check subqueries by '
+                        'default, but a subquery was found and ignored in '
+                        'this test! Djblets 5 will check subqueries by '
+                        'default. Please update your assertQueries() call '
+                        'to pass check_subqueries=True and then update your '
+                        'query expectations to include the subquery.')
+            else:
+                _check_expectation(
+                    'inner_query',
+                    failures=failures,
+                    expected_value=expected_inner_query_info,
+                    executed_value=None)
+
+            return failures
+
+        def _serialize_failures(
+            failures: List[_ExecutedQueryFailureInfo],
+            *,
+            indent_str: str = '  ',
+        ) -> List[str]:
+            error_lines: List[str] = []
+
+            for failure in sorted(failures,
+                                  key=lambda failure: failure['key']):
+                key = failure['key']
+                inner_failures = failure.get('inner_failures')
+
+                if inner_failures is not None:
+                    error_lines.append(f'{indent_str}{key}:')
+                    error_lines += _serialize_failures(
+                        inner_failures,
+                        indent_str=f'{indent_str}  ')
+                else:
+                    executed_value = failure.get('executed_value')
+                    expected_value = failure.get('expected_value')
+
+                    assert executed_value is not None
+                    assert expected_value is not None
+
+                    # If we're formatting multi-line output, make sure to
+                    # indent it properly.
+                    if '\n' in executed_value or '\n' in expected_value:
+                        executed_value = f'\n%s\n{indent_str}' % '\n'.join(
+                            f'{indent_str}  {line}'
+                            for line in executed_value.splitlines()
+                        )
+                        expected_value = '\n%s' % '\n'.join(
+                            f'{indent_str}  {line}'
+                            for line in expected_value.splitlines()
+                        )
+
+                    error_lines.append(
+                        f'{indent_str}{key}: '
+                        f'{executed_value} != {expected_value}')
+
+            return error_lines
+
+        # Go through each matching Query and compare state.
+        ws_re = self.ws_re
+        all_failures: List[_ExecutedQueryAllFailuresInfo] = []
+        queries_iter = enumerate(zip(cast(Sequence[ExpectedQuery], queries),
+                                     executed_queries))
+
+        for i, (query_info, executed_query_info) in queries_iter:
+            query_sql = executed_query_info['sql']
+
+            # If this query didn't generate any SQL, then we want to skip it.
+            if not query_sql:
+                continue
+
+            executed_query = executed_query_info['query']
+            failures = _check_query(executed_query=executed_query,
+                                    expected_query_info=query_info)
 
             if failures:
                 all_failures.append({
@@ -850,10 +973,7 @@ class TestCase(testcases.TestCase):
                     error_lines += [
                         '',
                         'Query %s:' % (i + 1),
-                    ] + sorted(
-                        '  %s: %s != %s' % _failure
-                        for _failure in failures
-                    ) + [
+                    ] + _serialize_failures(failures) + [
                         '  SQL: %s' % _sql
                         for _sql in failure_info['query_sql']
                     ]
