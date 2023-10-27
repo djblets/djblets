@@ -35,23 +35,26 @@ import pytz
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import InvalidPage, Paginator
+from django.db.models import QuerySet
 from django.http import Http404, HttpResponse
 from django.template.defaultfilters import date, timesince
 from django.template.loader import get_template, render_to_string
 from django.utils.cache import patch_cache_control
 from django.utils.html import escape, format_html
+from django.utils.inspect import func_accepts_kwargs
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from typing_extensions import Final, TypeAlias, TypedDict
 
-from djblets.deprecation import RemovedInDjblets40Warning
+from djblets.deprecation import (RemovedInDjblets40Warning,
+                                 RemovedInDjblets50Warning)
 from djblets.template.context import get_default_template_context_processors
 from djblets.util.decorators import cached_property
 from djblets.util.http import get_url_params_except
 
 if TYPE_CHECKING:
     from django.core.paginator import Page
-    from django.db.models import Model, QuerySet
+    from django.db.models import Model
     from django.http import HttpRequest
     from django.template.backends.base import _EngineTemplate
     from django.template.context import Context
@@ -75,6 +78,56 @@ logger = logging.getLogger(__name__)
 
 # Registration of all datagrid classes to columns.
 _column_registry: Dict[Type[DataGrid], Dict[str, Column]] = {}
+
+
+class DataGridPaginator(Paginator):
+    """The default paginator used for datagrids.
+
+    This is a specialized paginator that takes in a total count separately
+    from the page data queryset. This allows the datagrid code to more
+    efficiently calculate pagination data.
+
+    Version Added:
+        3.4
+    """
+
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The total number of items across all pages.
+    #:
+    #: Type:
+    #:     int
+    _total_count: int
+
+    def __init__(
+        self,
+        *,
+        total_count: int,
+        **kwargs,
+    ) -> None:
+        """Initialize the paginator.
+
+        Args:
+            total_count (int):
+                The total number of items across all pages.
+
+            **kwargs (dict):
+                Additional keyword argumens for the parent class.
+        """
+        super().__init__(**kwargs)
+
+        self._total_count = total_count
+
+    @cached_property
+    def count(self) -> int:
+        """The total number of items across all pages.
+
+        Type:
+            int
+        """
+        return self._total_count
 
 
 class Column:
@@ -764,6 +817,83 @@ class Column:
 
             return escape(value)
 
+    def augment_queryset_for_filter(
+        self,
+        state: StatefulColumn,
+        queryset: QuerySet,
+        *,
+        request: HttpRequest,
+        **kwargs,
+    ) -> QuerySet:
+        """Augment a queryset for filtering purposes.
+
+        Subclasses can override this to add filters to the queryset to limit
+        the results returned for display and for pagination.
+
+        This must not be used to load additional data for display, or to
+        pre-fetch/select-related any columns, unless required as part of the
+        filter. Instead, override :py:meth:`augment_queryset_for_data`.
+
+        Version Added:
+            3.4
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            queryset (django.db.models.query.QuerySet):
+                The queryset to augment.
+
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
+
+            **kwargs (dict):
+                Additional keyword arguments for future expansion.
+
+        Returns:
+            django.db.models.query.QuerySet:
+            The resulting augmented QuerySet.
+        """
+        return queryset
+
+    def augment_queryset_for_data(
+        self,
+        state: StatefulColumn,
+        queryset: QuerySet,
+        *,
+        request: HttpRequest,
+        **kwargs,
+    ) -> QuerySet:
+        """Augment a queryset for data-rendering purposes.
+
+        Subclasses can override this to query for additional data used for
+        displaying this column.
+
+        This must not be used to filter querysets. Instead, override
+        :py:meth:`augment_queryset_for_filter`.
+
+        Version Added:
+            3.4
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            queryset (django.db.models.query.QuerySet):
+                The queryset to augment.
+
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
+
+            **kwargs (dict):
+                Additional keyword arguments for future expansion.
+
+        Returns:
+            django.db.models.query.QuerySet:
+            The resulting augmented QuerySet.
+        """
+        return queryset
+
     def augment_queryset(
         self,
         state: StatefulColumn,
@@ -1339,8 +1469,8 @@ class DataGrid:
     #: The paginator managing pages of results.
     #:
     #: Type:
-    #:     django.core.paginator.Paginator
-    paginator: Optional[Paginator]
+    #:     DataGridPaginator
+    paginator: Optional[DataGridPaginator]
 
     #: The template used for the paginator.
     #:
@@ -1407,7 +1537,20 @@ class DataGrid:
     #:
     #: Type:
     #:     str
-    title: str
+    title: StrOrPromise
+
+    #: Whether to use distinct querysets.
+    #:
+    #: This is currently enabled by default. This default may be changed in
+    #: a future release. Callers should explicitly set this to the value
+    #: they want to use.
+    #:
+    #: Version Added:
+    #:     3.4
+    #:
+    #: Type:
+    #:     bool
+    use_distinct: bool
 
     #: The model for the objects in the datagrid.
     #:
@@ -1537,8 +1680,13 @@ class DataGrid:
         extra_context: _RenderContext = {},
         optimize_sorts: bool = True,
         model: Optional[Type[Model]] = None,
+        use_distinct: bool = True,
     ) -> None:
         """Initialize the datagrid.
+
+        Version Changed:
+            3.4:
+            Added the ``use_distinct`` argument.
 
         Args:
             request (django.http.HttpRequest):
@@ -1560,6 +1708,16 @@ class DataGrid:
             model (type, optional):
                 The model for the objects in the datagrid. Defaults to the
                 model associated with ``queryset``.
+
+            use_distinct (bool, optional):
+                Whether to use distinct querysets.
+
+                This is currently enabled by default. This default may be
+                changed in a future release. Callers should explicitly
+                set this to the value they want to use.
+
+                Version Added:
+                    3.4
         """
         self.request = request
         self.queryset = queryset
@@ -1574,6 +1732,7 @@ class DataGrid:
         self.page_num = 0
         self.extra_context = dict(extra_context)
         self.optimize_sorts = optimize_sorts
+        self.use_distinct = use_distinct
         self.special_query_args = []
         self._model = model
 
@@ -1915,8 +2074,16 @@ class DataGrid:
 
         request = self.request
 
-        query = self.queryset
-        assert query is not None
+        filter_queryset = self.queryset
+        assert filter_queryset is not None
+
+        # Apply filters to the filter queryset.
+        filter_queryset = self.post_process_queryset_for_filter(
+            filter_queryset.all(),
+            request=request)
+
+        # We can now base the data queryset off of this.
+        data_queryset = filter_queryset.all()
 
         use_select_related: bool = False
 
@@ -1970,24 +2137,57 @@ class DataGrid:
                     if '.' in sort_field:
                         use_select_related = True
 
+        # If we're sorting, apply the sort list to the data queryset only.
         if sort_list:
-            query = query.order_by(*sort_list)
+            data_queryset = data_queryset.order_by(*sort_list)
 
-        query = self.post_process_queryset(query)
+        # Allow columns to augment the data queryset.
+        data_queryset = self.post_process_queryset_for_data(
+            data_queryset,
+            request=request)
 
-        if hasattr(query, 'distinct'):
-            query = query.distinct()
+        # This is a legacy approach to post-processing querysets. We'll only
+        # use it for the data queryset, since filtering was never officially
+        # supported prior to Djblets 3.4/4.1.
+        data_queryset = self.post_process_queryset(data_queryset)
 
-        self.paginator = self.build_paginator(query)
+        # Filter out duplicates in the data queryset. We won't bother with
+        # the counts queryset. That's purely informational, so if it's off by
+        # a bit, it's not a major problem.
+        if self.use_distinct and hasattr(data_queryset, 'distinct'):
+            data_queryset = data_queryset.distinct()
 
+        paginator: DataGridPaginator
+
+        if func_accepts_kwargs(self.build_paginator):
+            paginator = self.build_paginator(
+                queryset=data_queryset,
+                total_count=filter_queryset.order_by().count())
+        else:
+            RemovedInDjblets50Warning.warn(
+                '%s.build_paginator must accept keyword arguments. This will '
+                'be required in Djblets 5.'
+                % type(self).__name__)
+            paginator = self.build_paginator(data_queryset)  # type: ignore
+
+        if not isinstance(paginator, DataGridPaginator):
+            RemovedInDjblets50Warning.warn(
+                '%s.build_paginator must return an instance of a '
+                'DataGridPaginator (or of a subclass). This will be '
+                'required in Djblets 5.'
+                % type(self).__name__)
+
+        self.paginator = paginator
+
+        # Figure out what page we're starting on.
         page_num = request.GET.get('page', 1)
 
         # Accept either "last" or a valid page number.
         if page_num == 'last':
-            page_num = self.paginator.num_pages
+            page_num = paginator.num_pages
 
         try:
-            page = self.paginator.page(page_num)
+            page = paginator.page(page_num)
         except InvalidPage:
             raise Http404
 
@@ -2096,6 +2296,93 @@ class DataGrid:
             })
 
         self.rows = rows
+
+    def post_process_queryset_for_filter(
+        self,
+        queryset: QuerySet,
+        **kwargs,
+    ) -> QuerySet:
+        """Add column-specific filters to the queryset.
+
+        Subclasses can override this to add filters to the queryset to limit
+        the results returned for display and for pagination.
+
+        This must not be used to load additional data for display, or to
+        pre-fetch/select-related any columns, unless required as part of the
+        filter. Instead, override :py:meth:`post_process_queryset_for_data`.
+
+        Version Added:
+            3.4
+
+        Args:
+            queryset (django.db.models.query.QuerySet):
+                The queryset to augment.
+
+            **kwargs (dict):
+                Additional keyword arguments for future expansion.
+
+        Returns:
+            django.db.models.query.QuerySet:
+            The resulting augmented QuerySet.
+        """
+        request = self.request
+
+        for column in self.columns:
+            try:
+                queryset = column.augment_queryset_for_filter(
+                    queryset=queryset,
+                    request=request)
+            except Exception as e:
+                logger.exception(
+                    'Error when calling augment_queryset_for_filter() for '
+                    'DataGrid Column %r: %s',
+                    column, e,
+                    extra={'request': request})
+
+        return queryset
+
+    def post_process_queryset_for_data(
+        self,
+        queryset: QuerySet,
+        **kwargs,
+    ) -> QuerySet:
+        """Add column-specific data lookups to the queryset.
+
+        Subclasses can override this to query for additional data used for
+        displaying this column.
+
+        This must not be used to filter querysets. Instead, override
+        :py:meth:`post_process_queryset_for_filter`.
+
+        Version Added:
+            3.4
+
+        Args:
+            queryset (django.db.models.query.QuerySet):
+                The queryset to augment.
+
+            **kwargs (dict):
+                Additional keyword arguments for future expansion.
+
+        Returns:
+            django.db.models.query.QuerySet:
+            The resulting augmented QuerySet.
+        """
+        request = self.request
+
+        for column in self.columns:
+            try:
+                queryset = column.augment_queryset_for_data(
+                    queryset=queryset,
+                    request=request)
+            except Exception as e:
+                logger.exception(
+                    'Error when calling augment_queryset_for_data() for '
+                    'DataGrid Column %r: %s',
+                    column, e,
+                    extra={'request': request})
+
+        return queryset
 
     def post_process_queryset(
         self,
@@ -2295,7 +2582,10 @@ class DataGrid:
     def build_paginator(
         self,
         queryset: QuerySet,
-    ) -> Paginator:
+        *,
+        total_count: int,
+        **kwargs,
+    ) -> DataGridPaginator:
         """Build the paginator for the datagrid.
 
         This can be overridden to use a special paginator or to perform
@@ -2303,13 +2593,23 @@ class DataGrid:
 
         Args:
             queryset (django.db.models.QuerySet):
-                A queryset-compatible object.
+                A queryset-compatible object for fetching column data.
+
+            total_count (int):
+                The total number of items across all pages.
+
+            **kwargs (dict):
+                Additional keyword arguments, for future expansion.
 
         Returns:
-            django.core.paginator.Paginator:
+            DataGridPaginator
             A populated paginator object.
         """
-        return Paginator(queryset, self.paginate_by, self.paginate_orphans)
+        return DataGridPaginator(
+            object_list=queryset,
+            total_count=total_count,
+            per_page=self.paginate_by,
+            orphans=self.paginate_orphans)
 
     def _build_render_context(self) -> _RenderContext:
         """Build a dictionary containing RequestContext contents.
