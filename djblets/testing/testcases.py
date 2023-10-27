@@ -1,18 +1,23 @@
 """Base class for test cases in Django-based applications."""
 
+from __future__ import annotations
+
 import inspect
+import operator
 import os
 import re
 import socket
 import sys
 import threading
+import traceback
 import warnings
 from collections import OrderedDict
 from contextlib import contextmanager
 from importlib import import_module
 from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec
-from typing import Iterator, List, Optional, Type
+from typing import (Any, Callable, Dict, Iterator, List, Optional, Sequence,
+                    Set, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast)
 from unittest.util import safe_repr
 
 import kgb
@@ -35,7 +40,8 @@ from django.db.models.sql.compiler import (SQLCompiler,
 from django.db.models.sql.query import Query as SQLQuery
 from django.template import Node
 from django.test import testcases
-from typing_extensions import NotRequired, TypedDict
+from django.utils.encoding import force_text
+from typing_extensions import Literal, NotRequired, TypeAlias, TypedDict
 
 try:
     from django_evolution.models import Evolution, Version
@@ -44,6 +50,25 @@ except ImportError:
     Version = None
 
 from djblets.siteconfig.models import SiteConfiguration
+
+if TYPE_CHECKING:
+    from django.db.models.expressions import BaseExpression
+
+    _ExecutedQueryFailureInfo: TypeAlias = Tuple[str, Any, Any]
+
+    class _ExecutedQueryInfo(TypedDict):
+        query: SQLQuery
+        traceback: List[str]
+        type: str
+
+    class _ExecutedQueryAllFailuresInfo(TypedDict):
+        executed_query: SQLQuery
+        failures: List[_ExecutedQueryFailureInfo]
+        index: int
+        query_sql: List[str]
+        traceback: List[str]
+
+    _T = TypeVar('_T')
 
 
 class StubNodeList(Node):
@@ -63,6 +88,182 @@ class StubParser:
 
     def delete_first_token(self):
         pass
+
+
+class ExpectedQuery(TypedDict):
+    """An expected query for a query assertion.
+
+    This is used for :py:meth:`TestCase.assertQueries`.
+
+    Version Added:
+        3.4
+    """
+
+    #: A dictionary containing applied annotations.
+    #:
+    #: Keys are destination attribute names, and values are the annotation
+    #: instances.
+    #:
+    #: The default is empty.
+    annotations: NotRequired[Dict[str, BaseExpression]]
+
+    #: Whether :py:meth:`django.db.models.query.QuerySet.distinct` was used.
+    #:
+    #: The default is ``False``.
+    distinct: NotRequired[bool]
+
+    #: A list of distinct fields.
+    #:
+    #: These are field names passed to
+    #: :py:meth:`django.db.models.query.QuerySet.distinct`.
+    #:
+    #: The default is empty.
+    distinct_fields: NotRequired[Tuple[str, ...]]
+
+    #: Extra state passed in the queryset.
+    #:
+    #: This is state passed in calls to
+    #: :py:meth:`django.db.models.query.QuerySet.extra` when using
+    #: ``select`` and ``select_params``.
+    #:
+    #: Each key maps to a key in ``select``, and each value is a
+    #: tuple containing the value in ``select`` and the corresponding
+    #: value (if any) in ``select_params``.
+    #:
+    #: Values are normalized to collapse and strip whitespace, to
+    #: help with comparison.
+    #:
+    #: The default is empty.
+    extra: NotRequired[Dict[str, Any]]
+
+    #: Extra order-by values.
+    #:
+    #: This is state passed in calls to
+    #: :py:meth:`django.db.models.query.QuerySet.extra` when using
+    #: ``order_by``.
+    #:
+    #: The default is empty.
+    extra_order_by: NotRequired[Sequence[str]]
+
+    #: Extra tables for the query.
+    #:
+    #: This is state passed in calls to
+    #: :py:meth:`django.db.models.query.QuerySet.extra` when using ``tables``.
+    #:
+    #: The default is empty.
+    extra_tables: NotRequired[Sequence[str]]
+
+    #: The grouping of results.
+    #:
+    #: This determines whether no fields will be grouped (``None``), all
+    #: fields will be grouped (``True``), or specific expressions/field
+    #: names are grouped (a tuple).
+    #:
+    #: This is influenced by using
+    #: :py:meth:`django.db.models.query.QuerySet.annotate`.
+    #:
+    #: The default is ``None``.
+    group_by: NotRequired[Optional[Union[bool, Tuple[str, ...]]]]
+
+    #: The value for a ``LIMIT`` in the ``SELECT``.
+    #:
+    #: This will generally only need to be supplied if testing a query using
+    #: :py:meth:`QuerySet.exists() <django.db.models.query.QuerySet.exists>`
+    #: or when slicing results.
+    #:
+    #: Django itself sometimes uses a default of ``None`` and sometimes a
+    #: default currently of ``21`` (this exact value, and when it's used, is
+    #: considered an implementation detail in Django). Both of these will
+    #: match a caller-provided ``limit`` value of ``None``.
+    #:
+    #: The default is ``None``.
+    limit: NotRequired[Optional[int]]
+
+    #: The model backing the queryset.
+    #:
+    #: This represents the results that would be returned or altered by the
+    #: query.
+    model: NotRequired[Type[Model]]
+
+    #: The number of tables joined.
+    #:
+    #: The default is 0.
+    num_joins: NotRequired[int]
+
+    #: The value for an ``OFFSET`` in the ``SELECT``.
+    #:
+    #: The default is 0.
+    offset: NotRequired[int]
+
+    #: The specific fields being fetched, or ``None`` if fetching all fields.
+    #:
+    #: The default is ``None``.
+    only_fields: NotRequired[Set[str]]
+
+    #: The ordering criteria.
+    #:
+    #: The default is empty.
+    order_by: NotRequired[Tuple[str, ...]]
+
+    #: Whether this is a select-for-update operation.
+    #:
+    #: The default is ``False``.
+    select_for_update: NotRequired[bool]
+
+    #: The table names involved in a select-related operation.
+    #:
+    #: These are the names passed to
+    #: :py:meth:`django.db.models.query.QuerySet.select_related`. If called
+    #: without any parameters, this would be ``True``.
+    select_related: NotRequired[Union[Literal[True], Tuple[str, ...]]]
+
+    #: Whether this is considered a subquery of another query.
+    #:
+    #: The default is ``False``.
+    subquery: NotRequired[bool]
+
+    #: The tables involved in the query.
+    #:
+    #: The default is the model's table name.
+    tables: NotRequired[Set[str]]
+
+    #: The query type.
+    #:
+    #: This would be one of ``DELETE``, ``INSERT``, ``SELECT``, or ``UPDATE``.
+    #:
+    #: The default is ``SELECT``.
+    type: NotRequired[str]
+
+    #: A list of specified fields to return as values.
+    #:
+    #: These are values passed in
+    #: :py:meth:`~django.db.models.query.QuerySet.values` or
+    #: :py:meth:`~django.db.models.query.QuerySet.values_list`.
+    values_select: NotRequired[Tuple[str, ...]]
+
+    #: The query expression objects used to represent the filter on the query.
+    #:
+    #: These are normalized to filter out empty or unnecessarily-nested
+    #: queries, to ease comparison.
+    where: NotRequired[Q]
+
+
+#: A type representing list of expected queries.
+#:
+#: Note:
+#:     this type allows either a :py:meth:`ExpectedQuery` or a plain
+#:     dictionary of string-based keys. This is because with pyright (as of
+#:     1.1.332), the type of the right-hand-side of a ``+=`` operation cannot
+#:     be inferred. That makes it difficult to dynamically build expected
+#:     queries.
+#:
+#:     Until/unless the situation improves, we aim for an
+#:     :py:meth:`ExpectedQuery` but allow a plain dictionary.
+#:
+#: Version Added:
+#:     3.4
+ExpectedQueries: TypeAlias = List[Union[ExpectedQuery,
+                                        Dict[str, Any]]]
 
 
 class ExpectedWarning(TypedDict):
@@ -353,154 +554,39 @@ class TestCase(testcases.TestCase):
             yield
 
     @contextmanager
-    def assertQueries(self, queries, num_statements=None):
+    def assertQueries(
+        self,
+        queries: Sequence[Union[ExpectedQuery,
+                                Dict[str, Any]]],
+        num_statements: Optional[int] = None,
+        *,
+        with_tracebacks: bool = False,
+        traceback_size: int = 15,
+    ) -> Iterator[None]:
         """Assert the number and complexity of queries.
 
         This provides advanced checking of queries, allowing the caller to
         match filtering, JOINs, ordering, selected fields, and more.
 
         This takes a list of dictionaries with query information. Each
-        contains the following:
+        contains the keys in :py:class:`ExpectedQuery`.
 
-        Keys:
-            model (type):
-                The model representing the results that would be returned
-                or altered by the query.
-
-            annotations (dict, optional):
-                A dictionary containing applied annotations.
-
-                Keys are destination attribute names, and values are the
-                annotation instances.
-
-                The default is empty.
-
-            distinct (bool, optional):
-                Whether :py:meth:`django.db.models.query.QuerySet.distinct`
-                was used.
-
-                The default is ``False``.
-
-            distinct_fields (tuple of str, optional):
-                A list of fields passed to
-                :py:meth:`django.db.models.query.QuerySet.distinct`.
-
-                The default is empty.
-
-            extra (dict, optional):
-                State passed in calls to
-                :py:meth:`django.db.models.query.QuerySet.extra` when using
-                ``select`` and ``select_params``.
-
-                Each key maps to a key in ``select``, and each value is a
-                tuple containing the value in ``select`` and the corresponding
-                value (if any) in ``select_params``.
-
-                Values are normalized to collapse and strip whitespace, to
-                help with comparison.
-
-                The default is empty.
-
-            extra_order_by (list of str, optional):
-                State passed in calls to
-                :py:meth:`django.db.models.query.QuerySet.extra` when using
-                ``order_by``.
-
-                The default is empty.
-
-            extra_tables (list of str, optional):
-                State passed in calls to
-                :py:meth:`django.db.models.query.QuerySet.extra` when using
-                ``tables``.
-
-                The default is empty.
-
-            group_by (bool or tuple, optional):
-                Whether no fields will be grouped (``None``), all fields will
-                be grouped (``True``), or specific expressions/field names are
-                grouped (a tuple).
-
-                This is influenced by using
-                :py:meth:`django.db.models.query.QuerySet.annotate`.
-
-                The default is ``None``.
-
-            limit (int, optional):
-                The value for a ``LIMIT`` in the ``SELECT``.
-
-                This will generally only need to be supplied if testing a
-                query using :py:meth:`QuerySet.exists()
-                <django.db.models.query.QuerySet.exists>` or when slicing
-                results.
-
-                Django itself sometimes uses a default of ``None`` and
-                sometimes a default currently of ``21`` (this exact value,
-                and when it's used, is considered an implementation detail
-                in Django). Both of these will match a caller-provided
-                ``limit`` value of ``None``.
-
-                The default is ``None``.
-
-            num_joins (int, optional):
-                The number of tables JOINed.
-
-                The default is 0.
-
-            offset (int, optional):
-                The value for an ``OFFSET`` in the ``SELECT``.
-
-                The default is 0.
-
-            only_fields (set of str, optional);
-                The specific fields being fetched, or ``None`` if fetching
-                all fields.
-
-                The default is ``None``.
-
-            order_by (tuple of str, optional):
-                The ordering criteria.
-
-                The default is empty.
-
-            select_for_update (bool, optional):
-                Whether this is a select-for-update operation.
-
-                The default is ``False``.
-
-            select_related (set of str, optional):
-                The table names involved in a
-                :py:meth:`django.db.models.query.QuerySet.select_related`.
-
-            subquery (bool, optional):
-                Whether this is considered a subquery of another query.
-
-                The default is ``False``.
-
-            tables (set of str, optional):
-                The tables involved in the query.
-
-                The default is the model's table name.
-
-            type (str, optional):
-                The query type. This would be one of ``DELETE``, ``INSERT``,
-                ``SELECT``, or ``UPDATE``.
-
-                The default is ``SELECT``.
-
-            values_select (list of str, optional):
-                A list of specified fields being returned using
-                :py:meth:`~django.db.models.query.QuerySet.values` or
-                :py:meth:`~django.db.models.query.QuerySet.values_list` or
-
-            where (django.db.models.Q, optional):
-                The query expression objects used to represent the filter on
-                the query.
+        Version Changed:
+            3.4:
+            * Added ``with_tracebacks`` and ``tracebacks_size`` arguments.
+            * Added support for type hints for expected queries.
+            * The ``where`` queries are now normalized for easier comparison.
+            * The assertion output now shows the executed queries on the
+              left-hand side and the expected queries on the right-hand side,
+              like most other assertion functions.
+            * The number of expected and executed queries no longer need to
+              be exact in order to see results.
 
         Version Added:
             3.0
 
         Args:
-            queries (list of dict):
+            queries (list of ExpectedQuery):
                 The list of query dictionaries to compare executed queries
                 against.
 
@@ -511,6 +597,21 @@ class TestCase(testcases.TestCase):
                 need to provide an explicit number, as some operations may add
                 additional database-specific statements (such as
                 transaction-related SQL) that won't be covered in ``queries``.
+
+            with_tracebacks (bool, optional):
+                If enabled, tracebacks for queries will be included in
+                results.
+
+                Version Added:
+                    3.4
+
+            tracebacks_size (int, optional):
+                The size of any tracebacks, in number of lines.
+
+                The default is 15.
+
+                Version Added:
+                    3.4
 
         Raises:
             AssertionError:
@@ -524,13 +625,17 @@ class TestCase(testcases.TestCase):
 
         spy_agency = kgb.SpyAgency()
 
-        executed_queries = []
-        queries_to_qs = {}
+        executed_queries: List[_ExecutedQueryInfo] = []
+        queries_to_qs: Dict[SQLQuery, Q] = {}
 
         # Track Query objects any time a compiler is executing SQL.
         @spy_agency.spy_for(SQLCompiler.execute_sql,
                             owner=SQLCompiler)
-        def _sql_compiler_execute_sql(_self, *args, **kwargs):
+        def _sql_compiler_execute_sql(
+            _self: SQLCompiler,
+            *args,
+            **kwargs,
+        ) -> Any:
             if isinstance(_self, SQLDeleteCompiler):
                 query_type = 'DELETE'
             elif isinstance(_self, SQLUpdateCompiler):
@@ -538,22 +643,37 @@ class TestCase(testcases.TestCase):
             else:
                 query_type = 'SELECT'
 
-            executed_queries.append((query_type, _self.query))
+            executed_queries.append({
+                'query': _self.query,
+                'traceback': traceback.format_stack(),
+                'type': query_type,
+            })
 
             return SQLCompiler.execute_sql.call_original(
                 _self, *args, **kwargs)
 
         @spy_agency.spy_for(SQLInsertCompiler.execute_sql,
                             owner=SQLInsertCompiler)
-        def _sql_insert_compiler_execute_sql(_self, *args, **kwargs):
-            executed_queries.append(('INSERT', _self.query))
+        def _sql_insert_compiler_execute_sql(
+            _self: SQLInsertCompiler,
+            *args,
+            **kwargs,
+        ) -> Any:
+            executed_queries.append({
+                'query': _self.query,
+                'traceback': traceback.format_stack(),
+                'type': 'INSERT',
+            })
 
             return SQLInsertCompiler.execute_sql.call_original(
                 _self, *args, **kwargs)
 
         # Build and track Q() objects any time they're added to a Query.
         @spy_agency.spy_for(SQLQuery.add_q, owner=SQLQuery)
-        def _query_add_q(_self, q_object):
+        def _query_add_q(
+            _self: SQLQuery,
+            q_object: Q,
+        ) -> Any:
             try:
                 queries_to_qs[_self] &= q_object
             except KeyError:
@@ -563,7 +683,11 @@ class TestCase(testcases.TestCase):
 
         # Copy Q() objects any time a Query is cloned.
         @spy_agency.spy_for(SQLQuery.clone, owner=SQLQuery)
-        def _query_clone(_self, *args, **kwargs):
+        def _query_clone(
+            _self: SQLQuery,
+            *args,
+            **kwargs,
+        ) -> Any:
             result = SQLQuery.clone.call_original(_self, *args, **kwargs)
 
             try:
@@ -590,8 +714,7 @@ class TestCase(testcases.TestCase):
 
         # Check that the number of SQL queries matches expectations.
         try:
-            with self.assertNumQueries(num_statements):
-                yield
+            yield
         finally:
             # We no longer need to track anything in the compiler of Query.
             spy_agency.unspy_all()
@@ -601,11 +724,11 @@ class TestCase(testcases.TestCase):
         #
         # First we have to convert each to SQL and see what we get. Any
         # with EmptyResultSet will be skipped.
-        query_sqls = []
-        norm_executed_queries = []
+        query_sqls: List[List[str]] = []
+        norm_executed_queries: List[_ExecutedQueryInfo] = []
 
         for executed_query_info in executed_queries:
-            executed_query = executed_query_info[1]
+            executed_query = executed_query_info['query']
 
             # First thing we want to do is grab the SQL. This may fail, and
             # if it does, it represents a query that we've caught that isn't
@@ -634,13 +757,13 @@ class TestCase(testcases.TestCase):
         executed_queries = norm_executed_queries
 
         # Now we can compare numbers.
-        error_lines = []
+        error_lines: List[str] = []
         num_queries = len(queries)
         num_executed_queries = len(executed_queries)
 
         if num_queries != num_executed_queries:
             error_lines += [
-                '%s queries were provided, but %s were executed.'
+                'Expected %s queries, but got %s\n'
                 % (num_queries, num_executed_queries),
 
                 '',
@@ -648,45 +771,69 @@ class TestCase(testcases.TestCase):
 
             if num_queries < num_executed_queries:
                 queries += [
-                    {}
+                    ExpectedQuery()
                     for _i in range(num_executed_queries - num_queries)
                 ]
             elif num_queries > num_executed_queries:
                 queries = queries[:num_executed_queries]
 
+        def _check_expectation(
+            key: str,
+            *,
+            expected_value: _T,
+            executed_value: _T,
+            match_func: Callable[[_T, _T], bool] = operator.__eq__,
+            format_expected_value_func: Callable[[_T], str] = str,
+            format_executed_value_func: Callable[[_T], str] = str,
+        ) -> None:
+            if not match_func(expected_value, executed_value):
+                failures.append((
+                    key,
+                    format_executed_value_func(executed_value),
+                    format_expected_value_func(expected_value),
+                ))
+
         # Go through each matching Query and compare state.
         ws_re = self.ws_re
-        all_failures = []
-        queries_iter = enumerate(zip(queries, executed_queries, query_sqls))
+        all_failures: List[_ExecutedQueryAllFailuresInfo] = []
+        queries_iter = enumerate(zip(
+            cast(Sequence[ExpectedQuery], queries),
+            executed_queries,
+            query_sqls))
 
-        for (i,
-             (query_info,
-              (executed_query_type, executed_query),
-              query_sql)) in queries_iter:
+        for i, (query_info, executed_query_info, query_sql) in queries_iter:
             # Check if this is set to be skipped, as per the above checks.
             if query_sql is None:
                 continue
 
-            failures = []
+            executed_query = executed_query_info['query']
 
-            executed_table_name = executed_query.model._meta.db_table
-            executed_reffed_tables = {
+            failures: List[_ExecutedQueryFailureInfo] = []
+
+            executed_model = executed_query.model
+            assert executed_model is not None
+
+            expected_model = query_info.get('model')
+
+            executed_table_name = executed_model._meta.db_table
+            executed_reffed_tables: Set[str] = {
                 _table_name
                 for _table_name in executed_query.alias_map.keys()
                 if executed_query.alias_refcount.get(_table_name, 0) > 0
             }
 
             # Check 'model'.
-            model = query_info.get('model', None)
-
-            if model is not executed_query.model:
-                failures.append(('model', model, executed_query.model))
+            _check_expectation(
+                'model',
+                expected_value=expected_model,
+                executed_value=executed_model,
+                match_func=operator.is_)
 
             # Check the query type.
-            query_type = query_info.get('type', 'SELECT')
-
-            if query_type != executed_query_type:
-                failures.append(('type', query_type, executed_query_type))
+            _check_expectation(
+                'type',
+                expected_value=query_info.get('type', 'SELECT'),
+                executed_value=executed_query_info['type'])
 
             # Check the fields that are easy to compare.
             for key, default in (('annotations', {}),
@@ -699,107 +846,124 @@ class TestCase(testcases.TestCase):
                                  ('select_for_update', False),
                                  ('subquery', False),
                                  ('values_select', ())):
-                value = query_info.get(key, default)
-                executed_value = getattr(executed_query, key)
-
-                if value != executed_value:
-                    failures.append((key, value, executed_value))
+                _check_expectation(
+                    key,
+                    expected_value=query_info.get(key, default),
+                    executed_value=getattr(executed_query, key))
 
             # Check 'extra'.
-            value = {
-                _key: (ws_re.sub(' ', _value[0]).strip(), _value[1])
-                for _key, _value in query_info.get('extra', {}).items()
-            }
-            executed_value = {
-                _key: (ws_re.sub(' ', _value[0]).strip(), _value[1])
-                for _key, _value in executed_query.extra.items()
-            }
-
-            if value != executed_value:
-                failures.append(('extra', value, executed_value))
+            _check_expectation(
+                'extra',
+                expected_value={
+                    _key: (ws_re.sub(' ', _value[0]).strip(), _value[1])
+                    for _key, _value in query_info.get('extra', {}).items()
+                },
+                executed_value={
+                    _key: (ws_re.sub(' ', _value[0]).strip(), _value[1])
+                    for _key, _value in executed_query.extra.items()
+                })
 
             # Check 'offset'.
-            value = query_info.get('offset', 0)
-            executed_value = executed_query.low_mark
-
-            if value != executed_value:
-                failures.append(('offset', value, executed_value))
+            _check_expectation(
+                'offset',
+                expected_value=query_info.get('offset', 0),
+                executed_value=executed_query.low_mark)
 
             # Check 'limit'.
-            value = query_info.get('limit', None)
-            executed_value = executed_query.high_mark
-
-            if (value != executed_value and
-                (value is not None or executed_value != MAX_GET_RESULTS)):
-                failures.append(('limit', value, executed_value))
+            _check_expectation(
+                'limit',
+                expected_value=query_info.get('limit'),
+                executed_value=executed_query.high_mark,
+                match_func=lambda expected_value, executed_value: (
+                    expected_value == executed_value or
+                    (expected_value is None and
+                     executed_value == MAX_GET_RESULTS)))
 
             # Check 'num_joins'.
-            value = query_info.get('num_joins', 0)
-
             if executed_query.alias_map:
                 # Consider all tables that have been JOINed, ignoring the
                 # main table.
-                executed_value = len(executed_reffed_tables -
-                                     {executed_table_name})
+                executed_num_joins = len(executed_reffed_tables -
+                                         {executed_table_name})
             else:
-                executed_value = 0
+                executed_num_joins = 0
 
-            if value != executed_value:
-                failures.append(('num_joins', value, executed_value))
+            _check_expectation(
+                'num_joins',
+                expected_value=query_info.get('num_joins', 0),
+                executed_value=executed_num_joins)
 
             # Check 'tables'.
-            if model is None:
-                default = {}
-            else:
-                default = {model._meta.db_table}
+            tables_default: Set[str]
 
-            value = set(query_info.get('tables', default))
+            if expected_model is None:
+                tables_default = set()
+            else:
+                tables_default = {expected_model._meta.db_table}
 
             if executed_query.alias_refcount:
-                executed_value = executed_reffed_tables | {executed_table_name}
+                executed_tables = \
+                    executed_reffed_tables | {executed_table_name}
             else:
-                executed_value = {executed_table_name}
+                executed_tables = {executed_table_name}
 
-            if value != executed_value:
-                failures.append(('tables', value, executed_value))
+            _check_expectation(
+                'tables',
+                expected_value=set(query_info.get('tables', tables_default)),
+                executed_value=executed_tables)
 
             # Check 'only_fields'.
-            value = set(query_info.get('only_fields', set()))
-            executed_value = set(executed_query.deferred_loading[0])
-
-            if value != executed_value:
-                failures.append(('only_fields', value, executed_value))
+            _check_expectation(
+                'only_fields',
+                expected_value=set(query_info.get('only_fields', set())),
+                executed_value=set(executed_query.deferred_loading[0]))
 
             # Check 'select_related'.
-            value = set(query_info.get('select_related', set()))
-            executed_value = executed_query.select_related
+            executed_select_related_raw = executed_query.select_related
+            executed_select_related: Union[Literal[True], Set[str]]
 
-            if executed_value:
-                executed_value = set(executed_value.keys())
+            if executed_select_related_raw is True:
+                executed_select_related = True
+            elif isinstance(executed_select_related_raw, dict):
+                executed_select_related = \
+                    set(executed_select_related_raw.keys())
             else:
-                executed_value = set()
+                executed_select_related = set()
 
-            if value != executed_value:
-                failures.append(('select_related', value, executed_value))
+            expected_select_related_raw = query_info.get('select_related')
+            expected_select_related: Union[Literal[True], Set[str]]
 
-            # Check 'where'. the Q object used to filter.
-            value = query_info.get('where', Q())
-            executed_value = queries_to_qs.get(executed_query, Q())
+            if expected_select_related_raw is True:
+                expected_select_related = True
+            elif expected_select_related_raw:
+                expected_select_related = set(expected_select_related_raw)
+            else:
+                expected_select_related = set()
 
-            if (executed_value and
-                len(executed_value.children) == 1 and
-                isinstance(executed_value.children[0], Q)):
-                # filter() created a Q() containing nothing but a nested Q().
-                # This is annoying to compare, and could always change in the
-                # future. Extract the inner Q() and use that for comparison
-                # purposes.
-                executed_value = executed_value.children[0]
+            _check_expectation(
+                'select_related',
+                expected_value=expected_select_related,
+                executed_value=executed_select_related)
 
-            if value != executed_value:
-                failures.append(('where', value, executed_value))
+            # Check 'where'. Normalize the Q object used to filter.
+            _check_expectation(
+                'where',
+                expected_value=_normalize_q(query_info.get('where', Q())),
+                executed_value=_normalize_q(queries_to_qs.get(executed_query,
+                                                              Q())),
+                format_expected_value_func=lambda value: (
+                    '\n%s' % _format_q(value, indent=3)),
+                format_executed_value_func=lambda value: (
+                    '\n%s\n' % _format_q(value, indent=3)))
 
             if failures:
-                all_failures.append((i, executed_query, failures, query_sql))
+                all_failures.append({
+                    'executed_query': executed_query,
+                    'failures': failures,
+                    'index': i,
+                    'query_sql': query_sql,
+                    'traceback': executed_query_info['traceback'],
+                })
 
         # Check if we found any failures, and include them in an assertion.
         if all_failures:
@@ -813,18 +977,28 @@ class TestCase(testcases.TestCase):
                     % num_failures,
                 )
 
-            for i, executed_query, failures, query_sql in all_failures:
+            for failure_info in all_failures:
+                failures = failure_info['failures']
+
                 if failures:
+                    i = failure_info['index']
+
                     error_lines += [
                         '',
                         'Query %s:' % (i + 1),
-                    ] + [
+                    ] + sorted(
                         '  %s: %s != %s' % _failure
                         for _failure in failures
-                    ] + [
+                    ) + [
                         '  SQL: %s' % _sql
-                        for _sql in query_sql
+                        for _sql in failure_info['query_sql']
                     ]
+
+                    if with_tracebacks:
+                        traceback_lines = \
+                            failure_info['traceback'][-traceback_size:]
+                        error_lines.append('Trace: %s'
+                                           % ''.join(traceback_lines))
 
             self.fail('\n'.join(error_lines))
 
@@ -1314,3 +1488,95 @@ class TestServerThread(threading.Thread):
         """Stop the thread and wait for it to finish."""
         self._stopevent.set()
         threading.Thread.join(self, timeout)
+
+
+def _normalize_q(
+    q: Q,
+) -> Q:
+    """Normalize a Q object for comparison.
+
+    This will filter out any empty Q objects, which are normally filtered
+    out during query execution. This helps to compare Q objects without
+    worrying whether a code path includes an empty Q object or omits it
+    entirely.
+
+    Version Added:
+        3.4
+
+    Args:
+        q (django.db.models.Q):
+            The Q object to normalize.
+
+    Returns:
+        django.db.models.Q:
+        The resulting Q object.
+    """
+    children: List[Any] = []
+
+    for child_q in q.children:
+        if isinstance(child_q, Q):
+            if not child_q:
+                continue
+
+            child_q = _normalize_q(child_q)
+            grandchildren = child_q.children
+
+            if len(grandchildren) == 1:
+                child_q = grandchildren[0]
+
+        children.append(child_q)
+
+    if len(children) == 1 and isinstance(children[0], Q):
+        new_q = children[0]
+    else:
+        new_q = Q(*children)
+        new_q.connector = q.connector
+        new_q.negated = q.negated
+
+    return new_q
+
+
+def _format_q(
+    q: Q,
+    *,
+    indent: int = 0,
+) -> str:
+    """Format a Q object for easier comparison.
+
+    This will display a Q object and all children in a nested tree form,
+    helping to see the structure of the query and compare differences.
+
+    Version Added:
+        3.4
+
+    Args:
+        q (django.db.models.Q):
+            The Q object to format.
+
+        indent (int, optional):
+            The indentation level for the formatted output.
+
+    Returns:
+        str:
+        The formatted Q object.
+    """
+    indent_str = ' ' * indent
+
+    if q.negated:
+        template = f'{indent_str}(NOT\n{indent_str} (%s:\n%s))'
+        indent += 1
+        indent_str += ' '
+    else:
+        template = f'{indent_str}(%s:\n%s)'
+
+    children_fmt: List[str] = []
+
+    for child in q.children:
+        if isinstance(child, Q):
+            children_fmt.append(_format_q(child, indent=indent + 1))
+        else:
+            children_fmt.append('%s %s' % (indent_str, force_text(child)))
+
+    children_str = '\n'.join(children_fmt)
+
+    return template % (q.connector, children_str)
