@@ -9,7 +9,6 @@ import re
 import socket
 import sys
 import threading
-import traceback
 import warnings
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -24,7 +23,7 @@ import kgb
 from django.apps import apps
 from django.conf import settings
 from django.core import serializers
-from django.core.exceptions import EmptyResultSet, ValidationError
+from django.core.exceptions import ValidationError
 from django.core.handlers.wsgi import WSGIHandler
 from django.core.management import call_command
 from django.core.servers import basehttp
@@ -32,11 +31,6 @@ from django.db import (DatabaseError, DEFAULT_DB_ALIAS, IntegrityError,
                        connections, router)
 from django.db.models import Model, Q
 from django.db.models.query import MAX_GET_RESULTS
-from django.db.models.signals import pre_delete
-from django.db.models.sql.compiler import (SQLCompiler,
-                                           SQLDeleteCompiler,
-                                           SQLInsertCompiler,
-                                           SQLUpdateCompiler)
 from django.db.models.sql.query import Query as SQLQuery
 from django.template import Node
 from django.test import testcases
@@ -49,17 +43,13 @@ except ImportError:
     Evolution = None
     Version = None
 
+from djblets.db.query_catcher import catch_queries
 from djblets.siteconfig.models import SiteConfiguration
 
 if TYPE_CHECKING:
     from django.db.models.expressions import BaseExpression
 
     _ExecutedQueryFailureInfo: TypeAlias = Tuple[str, Any, Any]
-
-    class _ExecutedQueryInfo(TypedDict):
-        query: SQLQuery
-        traceback: List[str]
-        type: str
 
     class _ExecutedQueryAllFailuresInfo(TypedDict):
         executed_query: SQLQuery
@@ -623,144 +613,18 @@ class TestCase(testcases.TestCase):
         if num_statements is None:
             num_statements = len(queries)
 
-        spy_agency = kgb.SpyAgency()
-
-        executed_queries: List[_ExecutedQueryInfo] = []
-        queries_to_qs: Dict[SQLQuery, Q] = {}
-
-        # Track Query objects any time a compiler is executing SQL.
-        @spy_agency.spy_for(SQLCompiler.execute_sql,
-                            owner=SQLCompiler)
-        def _sql_compiler_execute_sql(
-            _self: SQLCompiler,
-            *args,
-            **kwargs,
-        ) -> Any:
-            if isinstance(_self, SQLDeleteCompiler):
-                query_type = 'DELETE'
-            elif isinstance(_self, SQLUpdateCompiler):
-                query_type = 'UPDATE'
-            else:
-                query_type = 'SELECT'
-
-            executed_queries.append({
-                'query': _self.query,
-                'traceback': traceback.format_stack(),
-                'type': query_type,
-            })
-
-            return SQLCompiler.execute_sql.call_original(
-                _self, *args, **kwargs)
-
-        @spy_agency.spy_for(SQLInsertCompiler.execute_sql,
-                            owner=SQLInsertCompiler)
-        def _sql_insert_compiler_execute_sql(
-            _self: SQLInsertCompiler,
-            *args,
-            **kwargs,
-        ) -> Any:
-            executed_queries.append({
-                'query': _self.query,
-                'traceback': traceback.format_stack(),
-                'type': 'INSERT',
-            })
-
-            return SQLInsertCompiler.execute_sql.call_original(
-                _self, *args, **kwargs)
-
-        # Build and track Q() objects any time they're added to a Query.
-        @spy_agency.spy_for(SQLQuery.add_q, owner=SQLQuery)
-        def _query_add_q(
-            _self: SQLQuery,
-            q_object: Q,
-        ) -> Any:
-            try:
-                queries_to_qs[_self] &= q_object
-            except KeyError:
-                queries_to_qs[_self] = q_object
-
-            return SQLQuery.add_q.call_original(_self, q_object)
-
-        # Copy Q() objects any time a Query is cloned.
-        @spy_agency.spy_for(SQLQuery.clone, owner=SQLQuery)
-        def _query_clone(
-            _self: SQLQuery,
-            *args,
-            **kwargs,
-        ) -> Any:
-            result = SQLQuery.clone.call_original(_self, *args, **kwargs)
-
-            try:
-                queries_to_qs[result] = queries_to_qs[_self]
-            except KeyError:
-                pass
-
-            return result
-
-        # Set up an explicit pre_delete signal. During deletion, Django
-        # attempts to determine if it can fast-delete (which can be done if,
-        # amongst other things, signals don't need to be emitted for each
-        # object).
-        #
-        # This can lead to inconsistencies in test runs, if registration of
-        # pre_delete or post_delete signals is conditional on that run. We
-        # want to ensure a stable query count and information for DELETEs,
-        # so we deny fast-deletion by setting up a model-global signal handler
-        # during capture of queries.
-        def _on_pre_delete(**kwargs):
-            pass
-
-        pre_delete.connect(_on_pre_delete)
-
-        # Check that the number of SQL queries matches expectations.
-        try:
+        with catch_queries() as ctx:
             yield
-        finally:
-            # We no longer need to track anything in the compiler of Query.
-            spy_agency.unspy_all()
-            pre_delete.disconnect(_on_pre_delete)
 
-        # Make sure we received the expected number of Queries.
-        #
-        # First we have to convert each to SQL and see what we get. Any
-        # with EmptyResultSet will be skipped.
-        query_sqls: List[List[str]] = []
-        norm_executed_queries: List[_ExecutedQueryInfo] = []
-
-        for executed_query_info in executed_queries:
-            executed_query = executed_query_info['query']
-
-            # First thing we want to do is grab the SQL. This may fail, and
-            # if it does, it represents a query that we've caught that isn't
-            # actually going to be executed (likely a component of another).
-            try:
-                try:
-                    query_sqls.append([str(executed_query)])
-                except ValueError:
-                    # When doing an INSERT OR IGNORE (SQLite), the SQL
-                    # can be a list rather than a string. Query.__str__
-                    # doesn't know how to handle this, and will crash.
-                    # We'll deal with it ourselves.
-                    sql_statements = executed_query.sql_with_params()
-                    assert isinstance(sql_statements, list)
-
-                    query_sqls.append([
-                        _sql % _sql_params
-                        for _sql, _sql_params in sql_statements
-                    ])
-
-                norm_executed_queries.append(executed_query_info)
-            except EmptyResultSet:
-                # This will be skipped.
-                pass
-
-        executed_queries = norm_executed_queries
+        executed_queries = ctx.executed_queries
+        queries_to_qs = ctx.queries_to_qs
 
         # Now we can compare numbers.
         error_lines: List[str] = []
         num_queries = len(queries)
         num_executed_queries = len(executed_queries)
 
+        # Make sure we received the expected number of queries.
         if num_queries != num_executed_queries:
             error_lines += [
                 'Expected %s queries, but got %s\n'
@@ -796,14 +660,14 @@ class TestCase(testcases.TestCase):
         # Go through each matching Query and compare state.
         ws_re = self.ws_re
         all_failures: List[_ExecutedQueryAllFailuresInfo] = []
-        queries_iter = enumerate(zip(
-            cast(Sequence[ExpectedQuery], queries),
-            executed_queries,
-            query_sqls))
+        queries_iter = enumerate(zip(cast(Sequence[ExpectedQuery], queries),
+                                     executed_queries))
 
-        for i, (query_info, executed_query_info, query_sql) in queries_iter:
-            # Check if this is set to be skipped, as per the above checks.
-            if query_sql is None:
+        for i, (query_info, executed_query_info) in queries_iter:
+            query_sql = executed_query_info['sql']
+
+            # Check if this is set to be skipped.
+            if not query_sql:
                 continue
 
             executed_query = executed_query_info['query']
@@ -833,7 +697,7 @@ class TestCase(testcases.TestCase):
             _check_expectation(
                 'type',
                 expected_value=query_info.get('type', 'SELECT'),
-                executed_value=executed_query_info['type'])
+                executed_value=executed_query_info['type'].value)
 
             # Check the fields that are easy to compare.
             for key, default in (('annotations', {}),
