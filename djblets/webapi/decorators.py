@@ -2,7 +2,7 @@
 
 import inspect
 import logging
-from functools import update_wrapper
+from functools import update_wrapper, wraps
 
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest
@@ -151,9 +151,13 @@ def webapi_response_errors(*errors):
     """
     @webapi_decorator
     def _dec(view_func):
-        view_func.response_errors = set(errors)
+        @wraps(view_func)
+        def _call(*args, **kwargs):
+            return view_func(*args, **kwargs)
 
-        return view_func
+        _call.response_errors = set(errors)
+
+        return _call
 
     return _dec
 
