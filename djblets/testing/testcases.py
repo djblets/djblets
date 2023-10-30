@@ -62,6 +62,7 @@ if TYPE_CHECKING:
         executed_query: SQLQuery
         failures: List[_ExecutedQueryFailureInfo]
         index: int
+        note: Optional[str]
         query_sql: List[str]
         traceback: List[str]
 
@@ -92,9 +93,18 @@ class ExpectedQuery(TypedDict):
 
     This is used for :py:meth:`TestCase.assertQueries`.
 
+    While this type is new, the documented keys (unless otherwise noted) were
+    introduced in Djblets 2.3.1.
+
     Version Added:
         3.4
     """
+
+    #: A custom note for the query, to help with query inspection.
+    #:
+    #: Version Added:
+    #:     3.4
+    __note__: NotRequired[str]
 
     #: A dictionary containing applied annotations.
     #:
@@ -163,6 +173,9 @@ class ExpectedQuery(TypedDict):
     group_by: NotRequired[Optional[Union[bool, Tuple[str, ...]]]]
 
     #: The inner query information to compare, for aggregate queries.
+    #:
+    #: Version Added:
+    #:     3.4
     inner_query: NotRequired[Optional[ExpectedQuery]]
 
     #: The value for a ``LIMIT`` in the ``SELECT``.
@@ -577,6 +590,8 @@ class TestCase(testcases.TestCase):
             * Added ``with_tracebacks``, ``tracebacks_size``, and
               ``check_subqueries`` arguments.
             * Added support for type hints for expected queries.
+            * Query output can now show notes (when populating
+              :py:attr:`ExpectedQuery.__note__`) to ease debugging.
             * The ``where`` queries are now normalized for easier comparison.
             * The assertion output now shows the executed queries on the
               left-hand side and the expected queries on the right-hand side,
@@ -948,6 +963,7 @@ class TestCase(testcases.TestCase):
                     'executed_query': executed_query,
                     'failures': failures,
                     'index': i,
+                    'note': query_info.get('__note__'),
                     'query_sql': query_sql,
                     'traceback': executed_query_info['traceback'],
                 })
@@ -969,10 +985,16 @@ class TestCase(testcases.TestCase):
 
                 if failures:
                     i = failure_info['index']
+                    note = failure_info['note']
+
+                    if note:
+                        title = f'Query {i + 1} ({note}):'
+                    else:
+                        title = f'Query {i + 1}:'
 
                     error_lines += [
                         '',
-                        'Query %s:' % (i + 1),
+                        title,
                     ] + _serialize_failures(failures) + [
                         '  SQL: %s' % _sql
                         for _sql in failure_info['query_sql']
