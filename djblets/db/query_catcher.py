@@ -10,17 +10,19 @@ import traceback
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Iterator, List, Sequence
+from typing import Any, Dict, Iterator, List, Sequence, Type, Union
 
 from django.core.exceptions import EmptyResultSet
-from django.db.models import Q
+from django.db.models import Q, Subquery
 from django.db.models.signals import pre_delete
 from django.db.models.sql.compiler import (SQLCompiler,
                                            SQLDeleteCompiler,
                                            SQLInsertCompiler,
                                            SQLUpdateCompiler)
 from django.db.models.sql.query import Query as SQLQuery
-from typing_extensions import TypedDict
+from django.db.models.sql.subqueries import AggregateQuery
+from django.utils.tree import Node
+from typing_extensions import Literal, TypedDict
 
 
 class ExecutedQueryType(str, Enum):
@@ -56,14 +58,53 @@ class ExecutedQueryInfo(TypedDict):
     #: The query that was executed.
     query: SQLQuery
 
+    #: The type of result information.
+    #:
+    #: This is used to distinguish between query and subquery information.
+    result_type: Literal['query']
+
     #: The list of lines of SQL that was executed.
     sql: List[str]
+
+    #: Any subqueries within this query, in the orders found.
+    subqueries: List[ExecutedSubQueryInfo]
 
     #: The lines of traceback showing where the query was executed.
     traceback: List[str]
 
     #: The type of executed query.
     type: ExecutedQueryType
+
+
+class ExecutedSubQueryInfo(TypedDict):
+    """Information on a subquery within an executed query.
+
+    This contains information seen at execution time that can be used for
+    inspection of the queries.
+
+    Version Added:
+        3.4
+    """
+
+    #: The type of class managing the subquery.
+    cls: Type[Union[AggregateQuery, Subquery]]
+
+    #: The instance of the subquery class.
+    instance: Union[AggregateQuery, Subquery]
+
+    #: The query that was executed.
+    query: SQLQuery
+
+    #: The type of result information.
+    #:
+    #: This is used to distinguish between query and subquery information.
+    result_type: Literal['subquery']
+
+    #: Any subqueries within this query, in the orders found.
+    subqueries: List[ExecutedSubQueryInfo]
+
+    #: The type of executed query.
+    type: Literal[ExecutedQueryType.SELECT]
 
 
 @dataclass
@@ -135,12 +176,20 @@ def catch_queries() -> Iterator[CatchQueriesContext]:
         else:
             query_type = ExecutedQueryType.SELECT
 
-        sql = _serialize_caught_sql(_self.query)
+        query = _self.query
+        sql = _serialize_caught_sql(query)
 
         if sql:
+            subqueries: List[ExecutedSubQueryInfo] = []
+            _scan_subqueries(node=query,
+                             result=subqueries,
+                             queries_to_qs=queries_to_qs)
+
             executed_queries.append({
-                'query': _self.query,
+                'query': query,
+                'result_type': 'query',
                 'sql': sql,
+                'subqueries': subqueries,
                 'traceback': traceback.format_stack(),
                 'type': query_type,
             })
@@ -154,12 +203,15 @@ def catch_queries() -> Iterator[CatchQueriesContext]:
         *args,
         **kwargs,
     ) -> Any:
-        sql = _serialize_caught_sql(_self.query)
+        query = _self.query
+        sql = _serialize_caught_sql(query)
 
         if sql:
             executed_queries.append({
-                'query': _self.query,
+                'query': query,
+                'result_type': 'query',
                 'sql': sql,
+                'subqueries': [],
                 'traceback': traceback.format_stack(),
                 'type': ExecutedQueryType.INSERT,
             })
@@ -219,6 +271,93 @@ def catch_queries() -> Iterator[CatchQueriesContext]:
         # We no longer need to track anything in the compiler of Query.
         spy_agency.unspy_all()
         pre_delete.disconnect(_on_pre_delete)
+
+
+def _scan_subqueries(
+    *,
+    node: Union[Node, SQLQuery],
+    result: List[ExecutedSubQueryInfo],
+    queries_to_qs: Dict[SQLQuery, Q],
+) -> None:
+    """Scan for subqueries in a level of a query tree.
+
+    This recursively walks a query tree, looking for any subqueries and
+    recording them in the list within the nearest top-level query or subquery.
+
+    Version Added:
+        3.4
+
+    Args:
+        node (django.utils.tree.Node or django.db.models.sql.Query):
+            The level of the tree to process.
+
+        result (list of dict):
+            The list of queries to append any new subquery information to.
+
+        queries_to_qs (dict):
+            A dictionary containing recording mappings of queries to Q objects.
+    """
+    child_subqueries: List[ExecutedSubQueryInfo]
+    children: List[Any] = []
+
+    if isinstance(node, SQLQuery):
+        if isinstance(node, AggregateQuery):
+            inner_query = node.inner_query  # type: ignore
+            assert isinstance(inner_query, SQLQuery)
+
+            child_subqueries = []
+            _scan_subqueries(node=inner_query,
+                             result=child_subqueries,
+                             queries_to_qs=queries_to_qs)
+
+            result.append({
+                'cls': type(node),
+                'instance': node,
+                'query': inner_query,
+                'result_type': 'subquery',
+                'subqueries': child_subqueries,
+                'type': ExecutedQueryType.SELECT,
+            })
+
+            # We won't have any children to process, so we'll effectively
+            # bail at this point.
+        else:
+            # Process the annotations.
+            children = list(node.annotations.values())
+
+            # Continue on by processing the Q filters within it.
+            try:
+                children += queries_to_qs[node].children
+            except KeyError:
+                # There are no Q objects for this query. Nothing to scan
+                # through.
+                pass
+    else:
+        children = node.children
+
+    for child in children:
+        if child:
+            if isinstance(child, tuple):
+                child = child[1]
+
+            if isinstance(child, Node):
+                _scan_subqueries(node=child,
+                                 result=result,
+                                 queries_to_qs=queries_to_qs)
+            elif isinstance(child, Subquery):
+                child_subqueries = []
+                _scan_subqueries(node=child.query,
+                                 result=child_subqueries,
+                                 queries_to_qs=queries_to_qs)
+
+                result.append({
+                    'cls': type(child),
+                    'instance': child,
+                    'query': child.query,
+                    'result_type': 'subquery',
+                    'subqueries': child_subqueries,
+                    'type': ExecutedQueryType.SELECT,
+                })
 
 
 def _serialize_caught_sql(
