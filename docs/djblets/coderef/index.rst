@@ -134,6 +134,7 @@ Database Utilities
    djblets.db.managers
    djblets.db.query
    djblets.db.query_catcher
+   djblets.db.query_comparator
    djblets.db.validators
 
 
