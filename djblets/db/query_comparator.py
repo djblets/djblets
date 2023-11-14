@@ -375,7 +375,7 @@ def compare_queries(
         query_count_mismatch=False,
         query_mismatches=[])
 
-    with catch_queries() as catch_ctx:
+    with catch_queries(_check_subqueries=_check_subqueries) as catch_ctx:
         yield compare_ctx
 
     compare_ctx.update(_check_queries(

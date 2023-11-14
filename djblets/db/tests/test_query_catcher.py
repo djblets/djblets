@@ -10,7 +10,7 @@ import re
 from typing import Any, List, Optional, TYPE_CHECKING, Type
 
 from django.db import models
-from django.db.models import Exists, OuterRef, Q, Subquery, Sum
+from django.db.models import Exists, OuterRef, Q, QuerySet, Subquery, Sum
 from django.db.models.sql.subqueries import AggregateQuery
 
 from djblets.db.query_catcher import (ExecutedQueryType,
@@ -466,6 +466,69 @@ class CaptureQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(len(objs), 1)
         self.assertEqual(objs[0].name, 'test1')
 
+    def test_with_filter_subquery_q(self) -> None:
+        """Testing capture_queries with filtering using Q subqueries"""
+        CapturedQueriesTestModel.objects.bulk_create([
+            CapturedQueriesTestModel(name='test1'),
+            CapturedQueriesTestModel(name='test2'),
+        ])
+
+        # Re-fetch to guarantee IDs.
+        test_models = list(CapturedQueriesTestModel.objects.all())
+
+        CapturedQueriesRelTestModel.objects.bulk_create([
+            CapturedQueriesRelTestModel(test=test_models[0]),
+            CapturedQueriesRelTestModel(test=test_models[0]),
+        ])
+
+        with catch_queries() as ctx:
+            objs = list(
+                CapturedQueriesTestModel.objects
+                .filter(
+                    Q(name__startswith='test') &
+                    Q(pk__in=(
+                        CapturedQueriesRelTestModel.objects
+                        .values_list('pk', flat=True)
+                    ))
+                )
+            )
+
+        executed_queries = ctx.executed_queries
+        self.assertEqual(len(executed_queries), 1)
+
+        self._check_query(
+            executed_queries[0],
+            ctx=ctx,
+            num_subqueries=1,
+            sql=[
+                'SELECT'
+                ' "djblets_db_capturedqueriestestmodel"."id",'
+                ' "djblets_db_capturedqueriestestmodel"."name",'
+                ' "djblets_db_capturedqueriestestmodel"."flag"'
+                ' FROM "djblets_db_capturedqueriestestmodel" '
+                ' WHERE'
+                '  ("djblets_db_capturedqueriestestmodel"."name"'
+                '    LIKE test% ESCAPE \'\\\' AND'
+                '   "djblets_db_capturedqueriestestmodel"."id" IN'
+                '    (SELECT U0."id" FROM'
+                '      "djblets_db_capturedqueriesreltestmodel" U0))',
+            ],
+
+            # NOTE: QuerySet() cannot be compared consistently through
+            #       equality checks.
+            can_compare_q=False)
+
+        # Check the subqueries.
+        self._check_subquery(
+            executed_queries[0]['subqueries'][0],
+            ctx=ctx,
+            subquery_class=QuerySet)
+
+        # Check the fetched objects from the query.
+        self.assertEqual(len(objs), 2)
+        self.assertEqual(objs[0].name, 'test1')
+        self.assertEqual(objs[1].name, 'test2')
+
     def test_with_distinct_count(self) -> None:
         """Testing capture_queries with distinct() and count()"""
         CapturedQueriesTestModel.objects.bulk_create([
@@ -760,7 +823,6 @@ class CaptureQueriesTests(TestModelsLoaderMixin, TestCase):
 
         query = executed_subquery['query']
         self.assertIsNotNone(query)
-        self.assertIn(query, ctx.queries_to_qs)
 
         if q is None and can_compare_q:
             self.assertNotIn(query, ctx.queries_to_qs)

@@ -13,7 +13,7 @@ from enum import Enum
 from typing import Any, Dict, Iterator, List, Sequence, Type, Union
 
 from django.core.exceptions import EmptyResultSet
-from django.db.models import Q, Subquery
+from django.db.models import Q, QuerySet, Subquery
 from django.db.models.signals import pre_delete
 from django.db.models.sql.compiler import (SQLCompiler,
                                            SQLDeleteCompiler,
@@ -87,10 +87,10 @@ class ExecutedSubQueryInfo(TypedDict):
     """
 
     #: The type of class managing the subquery.
-    cls: Type[Union[AggregateQuery, Subquery]]
+    cls: Type[Union[AggregateQuery, QuerySet, Subquery]]
 
     #: The instance of the subquery class.
-    instance: Union[AggregateQuery, Subquery]
+    instance: Union[AggregateQuery, QuerySet, Subquery]
 
     #: The query that was executed.
     query: SQLQuery
@@ -125,7 +125,10 @@ class CatchQueriesContext:
 
 
 @contextmanager
-def catch_queries() -> Iterator[CatchQueriesContext]:
+def catch_queries(
+    *,
+    _check_subqueries: bool = True,
+) -> Iterator[CatchQueriesContext]:
     """Catch queries and provide information for further inspection.
 
     Any database queries executed during this context will be captured and
@@ -143,6 +146,15 @@ def catch_queries() -> Iterator[CatchQueriesContext]:
 
     Version Added:
         3.4
+
+    Args:
+        _check_subqueries (bool, optional):
+            Whether to check subqueries.
+
+            This is internal for compatibility with the old behavior for
+            :py:meth:`TestCase.assertQueries()
+            <djblets.testing.testcases.assertQueries>` and will be removed in a
+            future release without a deprecation period.
 
     Context:
         CatchQueriesContext:
@@ -181,9 +193,12 @@ def catch_queries() -> Iterator[CatchQueriesContext]:
 
         if sql:
             subqueries: List[ExecutedSubQueryInfo] = []
-            _scan_subqueries(node=query,
-                             result=subqueries,
-                             queries_to_qs=queries_to_qs)
+
+            if _check_subqueries:
+                _scan_subqueries(node=query,
+                                 result=subqueries,
+                                 queries_to_qs=queries_to_qs,
+                                 _check_subqueries=_check_subqueries)
 
             executed_queries.append({
                 'query': query,
@@ -278,6 +293,7 @@ def _scan_subqueries(
     node: Union[Node, SQLQuery],
     result: List[ExecutedSubQueryInfo],
     queries_to_qs: Dict[SQLQuery, Q],
+    _check_subqueries: bool,
 ) -> None:
     """Scan for subqueries in a level of a query tree.
 
@@ -308,7 +324,8 @@ def _scan_subqueries(
             child_subqueries = []
             _scan_subqueries(node=inner_query,
                              result=child_subqueries,
-                             queries_to_qs=queries_to_qs)
+                             queries_to_qs=queries_to_qs,
+                             _check_subqueries=_check_subqueries)
 
             result.append({
                 'cls': type(node),
@@ -343,12 +360,14 @@ def _scan_subqueries(
             if isinstance(child, Node):
                 _scan_subqueries(node=child,
                                  result=result,
-                                 queries_to_qs=queries_to_qs)
-            elif isinstance(child, Subquery):
+                                 queries_to_qs=queries_to_qs,
+                                 _check_subqueries=_check_subqueries)
+            elif _check_subqueries and isinstance(child, (QuerySet, Subquery)):
                 child_subqueries = []
                 _scan_subqueries(node=child.query,
                                  result=child_subqueries,
-                                 queries_to_qs=queries_to_qs)
+                                 queries_to_qs=queries_to_qs,
+                                 _check_subqueries=_check_subqueries)
 
                 result.append({
                     'cls': type(child),
