@@ -16,23 +16,27 @@ from pprint import pformat
 from typing import (Any, Callable, Dict, Iterator, List, Optional, Sequence,
                     Set, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast)
 
-from django.db.models import Q
+from django.db.models import F, Q, QuerySet
+from django.db.models.expressions import CombinedExpression, Subquery, Value
 from django.db.models.query import MAX_GET_RESULTS
 from django.db.models.sql.query import Query as SQLQuery
-from django.db.models.sql.subqueries import AggregateQuery
-from django.utils.encoding import force_str
+from django.utils.tree import Node
 from typing_extensions import Literal, NotRequired, TypeAlias, TypedDict
 
 from djblets.db.query_catcher import catch_queries
-from djblets.deprecation import RemovedInDjblets50Warning
 
 if TYPE_CHECKING:
     from django.db.models import Model
     from django.db.models.expressions import BaseExpression
 
-    from djblets.db.query_catcher import ExecutedQueryInfo
+    from djblets.db.query_catcher import (CatchQueriesContext,
+                                          ExecutedQueryInfo,
+                                          ExecutedSubQueryInfo)
 
     _T = TypeVar('_T')
+    _ExecutedQueryInfoT = TypeVar('_ExecutedQueryInfoT',
+                                  ExecutedQueryInfo,
+                                  ExecutedSubQueryInfo)
 
 
 _ws_re = re.compile(r'\s+')
@@ -60,9 +64,6 @@ class QueryMismatchedAttr(TypedDict):
     #: The raw value from the expected query.
     raw_expected_value: NotRequired[Any]
 
-    #: The list of failures in a subquery stored in this attribute.
-    inner_mismatched_attrs: NotRequired[List[QueryMismatchedAttr]]
-
 
 class QueryMismatch(TypedDict):
     """Information on a mismatched query.
@@ -84,10 +85,13 @@ class QueryMismatch(TypedDict):
     note: Optional[str]
 
     #: The generated SQL for the query.
-    query_sql: List[str]
+    query_sql: Optional[List[str]]
+
+    #: The results for any subquery matches.
+    subqueries: Optional[CompareQueriesContext]
 
     #: Lines of traceback showing where this query was executed.
-    traceback: List[str]
+    traceback: Optional[List[str]]
 
 
 class ExpectedQuery(TypedDict):
@@ -174,12 +178,6 @@ class ExpectedQuery(TypedDict):
     #: The default is ``None``.
     group_by: NotRequired[Optional[Union[bool, Tuple[str, ...]]]]
 
-    #: The inner query information to compare, for aggregate queries.
-    #:
-    #: Version Added:
-    #:     3.4
-    inner_query: NotRequired[Optional[ExpectedQuery]]
-
     #: The value for a ``LIMIT`` in the ``SELECT``.
     #:
     #: This will generally only need to be supplied if testing a query using
@@ -231,6 +229,12 @@ class ExpectedQuery(TypedDict):
     #: :py:meth:`django.db.models.query.QuerySet.select_related`. If called
     #: without any parameters, this would be ``True``.
     select_related: NotRequired[Union[Literal[True], Set[str]]]
+
+    #: Information on subqueries within this query.
+    #:
+    #: Version Added:
+    #:     3.4
+    subqueries: NotRequired[Optional[ExpectedQueries]]
 
     #: Whether this is considered a subquery of another query.
     #:
@@ -290,6 +294,9 @@ class CompareQueriesContext(TypedDict):
         3.4
     """
 
+    #: Whether there are any mismatches found.
+    has_mismatches: bool
+
     #: The number of queries that were executed.
     num_executed_queries: int
 
@@ -303,15 +310,30 @@ class CompareQueriesContext(TypedDict):
     query_mismatches: List[QueryMismatch]
 
 
+class _CheckQueryResult(TypedDict):
+    """Results for a _check_query call.
+
+    Version Added:
+        3.4
+    """
+
+    #: A list of mismatched attributes for this query.
+    #:
+    #: This will be empty if there are no mismatches.
+    mismatched_attrs: List[QueryMismatchedAttr]
+
+    #: The comparison context for any subqueries.
+    #:
+    #: This will be ``None`` if not checking for subqueries.
+    subqueries_compare_ctx: Optional[CompareQueriesContext]
+
+
 @contextmanager
 def compare_queries(
     queries: Sequence[Union[ExpectedQuery,
                             Dict[str, Any]]],
     *,
-    num_statements: Optional[int] = None,
-    with_tracebacks: bool = False,
-    traceback_size: int = 15,
-    _check_subqueries: Optional[bool] = True,
+    _check_subqueries: bool = True,
 ) -> Iterator[CompareQueriesContext]:
     """Assert the number and complexity of queries.
 
@@ -329,100 +351,140 @@ def compare_queries(
             The list of query dictionaries to compare executed queries
             against.
 
-        num_statements (int, optional):
-            The numbre of SQL statements executed.
-
-            This defaults to the length of ``queries``, but callers may
-            need to provide an explicit number, as some operations may add
-            additional database-specific statements (such as
-            transaction-related SQL) that won't be covered in ``queries``.
-
-        with_tracebacks (bool, optional):
-            If enabled, tracebacks for queries will be included in
-            results.
-
-        tracebacks_size (int, optional):
-            The size of any tracebacks, in number of lines.
-
-            The default is 15.
-
         _check_subqueries (bool, optional):
             Whether to check subqueries.
 
-            This is considered internal and should not be used outside of
-            Djblets.
+            This is internal for compatibility with the old behavior for
+            :py:meth:`TestCase.assertQueries()
+            <djblets.testing.testcases.assertQueries>` and will be removed in a
+            future release without a deprecation period.
 
-    Returns:
-        ...
+    Context:
+        dict:
+        The context for compared queries.
+
+        This will only be populated after the context manager has finished.
+        See :py:class:`CompareQueriesContext` for details.
     """
     assert isinstance(queries, list)
 
-    if num_statements is None:
-        num_statements = len(queries)
-
-    comparator_ctx = CompareQueriesContext(
+    compare_ctx = CompareQueriesContext(
+        has_mismatches=False,
         num_executed_queries=0,
         num_expected_queries=0,
         query_count_mismatch=False,
         query_mismatches=[])
 
-    with catch_queries() as ctx:
-        yield comparator_ctx
+    with catch_queries() as catch_ctx:
+        yield compare_ctx
 
-    executed_queries = ctx.executed_queries
-    queries_to_qs = ctx.queries_to_qs
+    compare_ctx.update(_check_queries(
+        expected_queries=queries,
+        executed_queries=catch_ctx.executed_queries,
+        catch_ctx=catch_ctx,
+        _check_subqueries=_check_subqueries))
 
+
+def _check_queries(
+    *,
+    expected_queries: List[Union[ExpectedQuery,
+                                 Dict[str, Any]]],
+    executed_queries: Sequence[_ExecutedQueryInfoT],
+    catch_ctx: CatchQueriesContext,
+    _check_subqueries: bool = True,
+) -> CompareQueriesContext:
+    """Check database queries for expected output.
+
+    This takes a list of executed queries captured using
+    :py:func:`~djblets.db.query_catcher.catch_queries` and compare them against
+    a list of expected queries. The results are a list of mismatches found
+    between the executed and expeceted queries.
+
+    Version Added:
+        3.4
+
+    Args:
+        expected_queries (list of dict):
+            The list of expected queries.
+
+        executed_queries (list of dict):
+            The list of executed queries.
+
+        catch_ctx (djblets.db.query_catcher.CatchQueriesContext):
+            The context for caught queries.
+
+        _check_subqueries (bool, optional):
+            Whether to check subqueries.
+
+            This is internal for compatibility with the old behavior for
+            :py:meth:`TestCase.assertQueries()
+            <djblets.testing.testcases.assertQueries>` and will be removed in a
+            future release without a deprecation period.
+
+    Returns:
+        dict:
+        The context for compared queries.
+
+        See :py:class:`CompareQueriesContext`.
+    """
     # Now we can compare numbers.
-    num_queries = len(queries)
+    num_expected_queries = len(expected_queries)
     num_executed_queries = len(executed_queries)
+    query_count_mismatch: bool = False
 
     # Make sure we received the expected number of queries.
-    if num_queries != num_executed_queries:
-        if num_queries < num_executed_queries:
-            queries += [
-                ExpectedQuery()
-                for _i in range(num_executed_queries - num_queries)
+    if num_expected_queries != num_executed_queries:
+        query_count_mismatch = True
+
+        if num_expected_queries < num_executed_queries:
+            expected_queries += [
+                {}
+                for _i in range(num_executed_queries - num_expected_queries)
             ]
-        elif num_queries > num_executed_queries:
-            queries = queries[:num_executed_queries]
+        elif num_expected_queries > num_executed_queries:
+            expected_queries = expected_queries[:num_executed_queries]
 
     # Go through each matching Query and compare state.
     query_mismatches: List[QueryMismatch] = []
-    queries_iter = enumerate(zip(cast(Sequence[ExpectedQuery], queries),
+    queries_iter = enumerate(zip(cast(Sequence[ExpectedQuery],
+                                      expected_queries),
                                  executed_queries))
 
     for i, (query_info, executed_query_info) in queries_iter:
-        query_sql = executed_query_info['sql']
-
-        # If this query didn't generate any SQL, then we want to skip it.
-        if not query_sql:
-            continue
-
         executed_query = executed_query_info['query']
-        mismatched_attrs = _check_query(
+        result = _check_query(
             executed_query=executed_query,
             executed_query_info=executed_query_info,
             expected_query_info=query_info,
             check_subqueries=_check_subqueries,
-            queries_to_qs=queries_to_qs)
+            catch_ctx=catch_ctx)
+        mismatched_attrs = result['mismatched_attrs']
+        subqueries_compare_ctx = result.get('subqueries_compare_ctx')
 
-        if mismatched_attrs:
+        if (mismatched_attrs or
+            (_check_subqueries and
+             subqueries_compare_ctx is not None and
+             subqueries_compare_ctx['has_mismatches'])):
             query_mismatches.append({
                 'executed_query': executed_query,
-                'mismatched_attrs': mismatched_attrs,
                 'index': i,
+                'mismatched_attrs': mismatched_attrs,
                 'note': query_info.get('__note__'),
-                'query_sql': query_sql,
-                'traceback': executed_query_info['traceback'],
+                'query_sql': cast(Optional[List[str]],
+                                  executed_query_info.get('sql')),
+                'subqueries': subqueries_compare_ctx,
+                'traceback': cast(Optional[List[str]],
+                                  executed_query_info.get('traceback')),
             })
 
     # Update the context for the caller to examine.
-    comparator_ctx.update({
+    return {
+        'has_mismatches': query_count_mismatch or (len(query_mismatches) > 0),
         'num_executed_queries': num_executed_queries,
-        'num_expected_queries': num_queries,
-        'query_count_mismatch': num_queries != num_executed_queries,
+        'num_expected_queries': num_expected_queries,
+        'query_count_mismatch': query_count_mismatch,
         'query_mismatches': query_mismatches,
-    })
+    }
 
 
 def _check_expectation(
@@ -478,10 +540,8 @@ def _check_expectation(
     if not match_func(expected_value, executed_value):
         mismatched_attrs.append({
             'name': name,
-            'executed_value': format_executed_value_func(
-                executed_value),
-            'expected_value': format_expected_value_func(
-                expected_value),
+            'executed_value': format_executed_value_func(executed_value),
+            'expected_value': format_expected_value_func(expected_value),
             'raw_executed_value': executed_value,
             'raw_expected_value': expected_value,
         })
@@ -490,15 +550,18 @@ def _check_expectation(
 def _check_query(
     *,
     executed_query: SQLQuery,
-    executed_query_info: ExecutedQueryInfo,
+    executed_query_info: _ExecutedQueryInfoT,
     expected_query_info: ExpectedQuery,
-    check_subqueries: Optional[bool],
-    queries_to_qs: Dict[SQLQuery, Q],
-) -> List[QueryMismatchedAttr]:
+    check_subqueries: bool,
+    catch_ctx: CatchQueriesContext,
+) -> _CheckQueryResult:
     """Check a query for expectations.
 
     This will compare attributes on an executed query to an expected query
     and determine if there are any mismatches.
+
+    Version Added:
+        3.4
 
     Args:
         executed_query (django.db.models.sql.query.Query):
@@ -513,17 +576,19 @@ def _check_query(
         check_subqueries (bool):
             Whether to check for subqueries.
 
-            This is here for backwards-compatibility and will be removed in
-            a future version.
+            This is internal for compatibility with the old behavior for
+            :py:meth:`TestCase.assertQueries()
+            <djblets.testing.testcases.assertQueries>` and will be removed in a
+            future release without a deprecation period.
 
-        queries_to_qs (dict):
-            A dictionary mapping queries to Q objects.
+        catch_ctx (djblets.db.query_catcher.CatchQueriesContext):
+            The context for caught queries.
 
     Returns:
-        list of dict:
-        A list of mismatched attributes for this query.
+        dict:
+        A dictionary of results.
 
-        This will be empty if there are no mismatches.
+        See :py:class:`_CheckQueryResult` for details.
     """
     mismatched_attrs: List[QueryMismatchedAttr] = []
 
@@ -637,7 +702,9 @@ def _check_query(
         mismatched_attrs=mismatched_attrs,
         expected_value=set(expected_query_info.get('tables',
                                                    tables_default)),
-        executed_value=executed_tables)
+        executed_value=executed_tables,
+        format_expected_value_func=_format_query_value,
+        format_executed_value_func=_format_query_value)
 
     # Check 'only_fields'.
     _check_expectation(
@@ -645,7 +712,9 @@ def _check_query(
         mismatched_attrs=mismatched_attrs,
         expected_value=set(expected_query_info.get('only_fields',
                                                    set())),
-        executed_value=set(executed_query.deferred_loading[0]))
+        executed_value=set(executed_query.deferred_loading[0]),
+        format_expected_value_func=_format_query_value,
+        format_executed_value_func=_format_query_value)
 
     # Check 'select_related'.
     executed_select_related_raw = executed_query.select_related
@@ -681,53 +750,75 @@ def _check_query(
         'where',
         mismatched_attrs=mismatched_attrs,
         expected_value=_normalize_q(
-            expected_query_info.get('where', Q())),
+            expected_query_info.get('where', Q()),
+            normalize_subqueries=False),
         executed_value=_normalize_q(
-            queries_to_qs.get(executed_query, Q())),
-        format_expected_value_func=_format_q,
-        format_executed_value_func=_format_q)
+            catch_ctx.queries_to_qs.get(executed_query, Q()),
+            normalize_subqueries=check_subqueries),
+        format_expected_value_func=(
+            lambda q: _format_node(q, catch_ctx=catch_ctx)),
+        format_executed_value_func=(
+            lambda q: _format_node(q, catch_ctx=catch_ctx)))
 
     # Check if this is an aggregate query.
-    expected_inner_query_info = expected_query_info.get('inner_query')
+    subqueries_compare_ctx: Optional[CompareQueriesContext] = None
 
-    if isinstance(executed_query, AggregateQuery):
-        if check_subqueries:
-            # NOTE: As of October 23, 2023, django-stubs doesn't
-            #       document this attribute.
-            inner_query = executed_query.inner_query  # type: ignore
+    # Check any subqueries.
+    if check_subqueries:
+        subqueries_compare_ctx = _check_queries(
+            expected_queries=expected_query_info.get('subqueries') or [],
+            executed_queries=executed_query_info['subqueries'],
+            catch_ctx=catch_ctx)
 
-            inner_mismatched_attrs = _check_query(
-                executed_query=inner_query,
-                executed_query_info=executed_query_info,
-                expected_query_info=expected_inner_query_info or {},
-                check_subqueries=check_subqueries,
-                queries_to_qs=queries_to_qs)
+    return {
+        'mismatched_attrs': mismatched_attrs,
+        'subqueries_compare_ctx': subqueries_compare_ctx,
+    }
 
-            if inner_mismatched_attrs:
-                mismatched_attrs.append({
-                    'name': 'inner_query',
-                    'inner_mismatched_attrs': inner_mismatched_attrs,
-                })
-        elif check_subqueries is None:
-            RemovedInDjblets50Warning.warn(
-                'assertQueries() does not check subqueries by '
-                'default, but a subquery was found and ignored in '
-                'this test! Djblets 5 will check subqueries by '
-                'default. Please update your assertQueries() call '
-                'to pass check_subqueries=True and then update your '
-                'query expectations to include the subquery.')
+
+def _build_subquery_placeholder(
+    *,
+    subquery: Union[Q, QuerySet, Subquery],
+    subqueries: List[Any],
+) -> Union[Q, tuple]:
+    """Normalize a subquery to a placeholder.
+
+    This will convert a subquery or an expression containing subquery value to
+    a placeholder Q object in the form of::
+
+        Q(__SubqueryType__subquery__=index)
+
+    This allows for consistent comparison between subqueries, with detailed
+    comparisons happening in expected subquery lists.
+
+    Args:
+        subquery (django.db.models.Q or
+                  django.db.models.QuerySet or
+                  django.db.models.expressions.Subquery):
+            The subquery to normalize.
+
+        subqueries (list):
+            A list for tracking normalized subqueries.
+
+    Returns:
+        django.db.models.Q:
+        The resulting normalized Q object.
+    """
+    subqueries.append(subquery)
+    subquery_type = type(subquery).__name__
+    norm_subquery = (f'__{subquery_type}__subquery__', len(subqueries))
+
+    if getattr(subquery, 'negated', False):
+        return ~Q(norm_subquery)
     else:
-        _check_expectation(
-            'inner_query',
-            mismatched_attrs=mismatched_attrs,
-            expected_value=expected_inner_query_info,
-            executed_value=None)
-
-    return mismatched_attrs
+        return norm_subquery
 
 
 def _normalize_q(
     q: Q,
+    *,
+    subqueries: Optional[List[Any]] = None,
+    normalize_subqueries: bool = True,
 ) -> Q:
     """Normalize a Q object for comparison.
 
@@ -736,6 +827,9 @@ def _normalize_q(
     worrying whether a code path includes an empty Q object or omits it
     entirely.
 
+    By default, subqueries will be normalized to
+    ``Q(__SubqueryName__subquery__=index)`` objects for comparison purposes.
+
     Version Added:
         3.4
 
@@ -743,76 +837,329 @@ def _normalize_q(
         q (django.db.models.Q):
             The Q object to normalize.
 
+        subqueries (list, optional):
+            A list of subqueries found, for tracking purposes.
+
+            This is considered internal for recursive calls, and does not
+            need to be supplied.
+
+        normalize_subqueries (bool, optional):
+            Whether to normalize subqueries.
+
     Returns:
         django.db.models.Q:
         The resulting Q object.
     """
+    if subqueries is None:
+        subqueries = []
+
     children: List[Any] = []
 
-    for child_q in q.children:
-        if isinstance(child_q, Q):
-            if not child_q:
+    # Go through all the children and see if we can collapse or transform any
+    # of them for comparison.
+    for child in q.children:
+        if isinstance(child, Q):
+            # Remove any empty children.
+            if not child:
                 continue
 
-            child_q = _normalize_q(child_q)
-            grandchildren = child_q.children
+            # Normalize the child, recursively.
+            child = _normalize_q(child,
+                                 subqueries=subqueries,
+                                 normalize_subqueries=normalize_subqueries)
+            grandchildren = child.children
 
-            if len(grandchildren) == 1:
-                child_q = grandchildren[0]
+            if (len(grandchildren) == 1 and
+                isinstance(grandchildren[0], tuple)):
+                # This is a Q() with only a single value in it. We may be
+                # able to collapse or record a subquery.
+                grandchild = grandchildren[0]
 
-        children.append(child_q)
+                if (normalize_subqueries and
+                    isinstance(grandchild[1], QuerySet)):
+                    child = _build_subquery_placeholder(
+                        subquery=child,
+                        subqueries=subqueries)
+                elif not child.negated:
+                    # Since we're not negating, we can collapse the child.
+                    child = grandchild
+        elif normalize_subqueries and isinstance(child, Subquery):
+            # Subqueries are formatted as Q(__SubqueryType__subquery__=index),
+            # since we can't actually compare true subqueries. Instead, this
+            # will reference a subquery in the subqueries dictionaries in the
+            # compare results.
+            child = _build_subquery_placeholder(
+                subquery=child,
+                subqueries=subqueries)
+
+        children.append(child)
+
+    new_q = q
 
     if len(children) == 1 and isinstance(children[0], Q):
-        new_q = children[0]
-    else:
-        new_q = Q(*children)
-        new_q.connector = q.connector
-        new_q.negated = q.negated
+        # There's only one single nested Q, meaning we don't have multiple Qs
+        # or any tuples normalized above. We can now determine if we can safely
+        # swap in the child and its state.
+        child = children[0]
+        q_negated = q.negated
+
+        if not q_negated:
+            # The current Q object doesn't have a negated property, and it only
+            # has one child, so we can optimize it out.
+            # collapse down
+            new_q = child
+
+        if not child.negated:
+            # The child doesn't negate its value, so we can safely use the
+            # original Q object's negation state. If the child had negated its
+            # value, we'd want to preserve that.
+            new_q.negated = q_negated
+
+    if new_q is q:
+        new_q.children = children
 
     return new_q
 
 
-def _format_q(
-    q: Q,
-    *,
-    indent: int = 0,
+def _format_query_value(
+    value: Any,
 ) -> str:
-    """Format a Q object for easier comparison.
+    """Format a value in a query.
 
-    This will display a Q object and all children in a nested tree form,
-    helping to see the structure of the query and compare differences.
+    This will format a combined expression (such as an F expression) or any
+    other value in a query.
 
     Version Added:
         3.4
 
     Args:
-        q (django.db.models.Q):
-            The Q object to format.
+        value (object):
+            The value to format.
+
+    Returns:
+        str:
+        The formatted value.
+    """
+    if isinstance(value, CombinedExpression):
+        return '%s %s %s' % (_format_query_value(value.lhs),
+                             value.connector,
+                             _format_query_value(value.rhs))
+    elif isinstance(value, F):
+        return "%s('%s')" % (type(value).__name__, value.name)
+    elif isinstance(value, Value):
+        return str(value.value)
+    elif isinstance(value, set):
+        if value:
+            return '{%s}' % ', '.join(
+                repr(_item)
+                for _item in sorted(value)
+            )
+        else:
+            return 'set()'
+    else:
+        return repr(value)
+
+
+def _format_query_part(
+    part: Any,
+    *,
+    indent: str,
+    prefix: str = '',
+    in_negated: bool = False,
+    catch_ctx: CatchQueriesContext,
+) -> str:
+    """Format part of a query.
+
+    This will format a Node, Query, tuple, or other expression within a query
+    tree for display.
+
+    Version Added:
+        3.4
+
+    Args:
+        query (object):
+            The query part object in the tree to format.
 
         indent (int, optional):
             The indentation level for the formatted output.
 
+        prefix (str, optional):
+            The optional prefix for any outputted lines.
+
+        catch_ctx (djblets.db.query_catcher.CatchQueriesContext):
+            The context for caught queries.
+
     Returns:
         str:
-        The formatted Q object.
+        The formatted part.
     """
-    indent_str = ' ' * indent
-
-    if q.negated:
-        template = f'{indent_str}(NOT\n{indent_str} (%s:\n%s))'
-        indent += 1
-        indent_str += ' '
+    if isinstance(part, Node):
+        # This is a node (e.g., a Q() object or similar). We can format it
+        # as usual.
+        return _format_node(part,
+                            catch_ctx=catch_ctx,
+                            indent=indent,
+                            prefix=prefix)
+    elif isinstance(part, SQLQuery):
+        # This is another query. We need to grab the associated Q() and
+        # format that.
+        return _format_node(catch_ctx.queries_to_qs[part],
+                            catch_ctx=catch_ctx,
+                            indent=indent,
+                            prefix=prefix)
+    elif isinstance(part, tuple):
+        # For tuples, just output a `Q()` normally to avoid wrapping inside
+        # of another Q().
+        key, value = part
+        formatted_value = _format_query_value(value)
+        part = f'Q({key}={formatted_value})'
     else:
-        template = f'{indent_str}(%s:\n%s)'
+        part = _format_query_value(part)
 
-    children_fmt: List[str] = []
+    # Format either the tuple or whatever else we found as a string
+    # representation.
+    return f'{indent}{prefix}{part}'
 
-    for child in q.children:
-        if isinstance(child, Q):
-            children_fmt.append(_format_q(child, indent=indent + 1))
-        else:
-            children_fmt.append('%s %s' % (indent_str, force_str(child)))
 
-    children_str = '\n'.join(children_fmt)
+def _format_query_children(
+    query: Union[BaseExpression, Node],
+    *,
+    indent: str,
+    op: str = '',
+    in_negated: bool = False,
+    catch_ctx: CatchQueriesContext,
+) -> str:
+    """Format children of a node or expression.
 
-    return template % (q.connector, children_str)
+    This will iterate through all children, formatting them with an optional
+    prefixed operator (for AND or OR queries) at the provided indentation
+    level.
+
+    Version Added:
+        3.4
+
+    Args:
+        node (django.utils.tree.Node or django.db.expressions.BaseExpression):
+            The node or expression containing children to format.
+
+        indent (int, optional):
+            The indentation level for the formatted output.
+
+        op (str, optional):
+            The optional operator to prepend to all lines after the first.
+
+        catch_ctx (djblets.db.query_catcher.CatchQueriesContext):
+            The context for caught queries.
+
+    Returns:
+        str:
+        The formatted Node object.
+    """
+    children = getattr(query, 'children', [])
+    init_parts: List[str]
+
+    if op and len(children) > 1:
+        # The first line won't contain an operator, but does need padding for
+        # that operator. We'll add this and then process the rest of the
+        # children with the operator prefixed to each line.
+        prefix = f'{op} '
+        init_parts = [
+            _format_query_part(children[0],
+                               indent=indent,
+                               prefix=' ' * len(prefix),
+                               catch_ctx=catch_ctx,
+                               in_negated=in_negated),
+        ]
+
+        children = children[1:]
+    else:
+        prefix = ''
+        init_parts = []
+
+    return '\n'.join(init_parts + [
+        _format_query_part(child,
+                           indent=indent,
+                           prefix=prefix,
+                           in_negated=in_negated,
+                           catch_ctx=catch_ctx)
+        for child in children
+    ])
+
+
+def _format_node(
+    node: Node,
+    *,
+    indent: str = '',
+    prefix: str = '',
+    catch_ctx: CatchQueriesContext,
+) -> str:
+    """Format a Node object for easier comparison.
+
+    This will format a normalized Node object and all children in a nested tree
+    form, helping to see the structure of the query and compare differences.
+
+    This expects all nodes to be normalized via :py:func:`_normalize_q`.
+
+    Version Added:
+        3.4
+
+    Args:
+        node (django.utils.tree.Node):
+            The node object to format.
+
+        indent (int, optional):
+            The indentation level for the formatted output.
+
+        prefix (str, optional):
+            The optional prefix for any outputted lines.
+
+        catch_ctx (djblets.db.query_catcher.CatchQueriesContext):
+            The context for caught queries.
+
+    Returns:
+        str:
+        The formatted Node object.
+    """
+    name = type(node).__name__
+    children_str: str = ''
+
+    if node.negated:
+        name = f'~{name}'
+
+    if len(node.children) == 1:
+        # We may need to collapse this down for display, as Q() objects nest
+        # internally (even after normalization). If it's a tuple or a
+        # single-child Q(), then we can safely do this.
+        child = node.children[0]
+
+        if isinstance(child, tuple):
+            # For a tuple, we'll just represent the key/value in the
+            # generated Q(...) below.
+            key, value = child
+            formatted_value = _format_query_value(value)
+            children_str = f'{key}={formatted_value}'
+        elif isinstance(child, Q) and len(child.children) > 1:
+            # For a Q(), we'll collapse down by formatting using the
+            # child. This is done since negated Qs have an AND Q inside,
+            # and that's the one we want to show.
+            node = child
+
+    if node.connector == Q.AND:
+        op = '&'
+    elif node.connector == Q.OR:
+        op = '|'
+    else:
+        op = ''
+
+    if not children_str:
+        prefix_indent = ' ' * len(prefix)
+        children_str = _format_query_children(
+            node,
+            indent=f'{indent}{prefix_indent} ',
+            op=op,
+            catch_ctx=catch_ctx)
+
+        if children_str:
+            children_str = f'\n{children_str}'
+
+    return f'{indent}{prefix}{name}({children_str})'
