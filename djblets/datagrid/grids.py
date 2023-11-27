@@ -2141,14 +2141,11 @@ class DataGrid:
         if sort_list:
             data_queryset = data_queryset.order_by(*sort_list)
 
-        # Allow columns to augment the data queryset.
-        data_queryset = self.post_process_queryset_for_data(
-            data_queryset,
-            request=request)
-
         # This is a legacy approach to post-processing querysets. We'll only
         # use it for the data queryset, since filtering was never officially
         # supported prior to Djblets 3.4/4.1.
+        #
+        # Note that we'll end up calling this again when filtering by IDs.
         data_queryset = self.post_process_queryset(data_queryset)
 
         # Filter out duplicates in the data queryset. We won't bother with
@@ -2221,16 +2218,23 @@ class DataGrid:
             # the database to do any special ordering (possibly slowing things
             # down). We'll set the order properly in a minute.
             assert self.model is not None
-            page.object_list = self.post_process_queryset(
+            page_queryset = self.post_process_queryset(
                 self.model.objects.filter(pk__in=id_list).order_by())
         else:
             self.id_list = id_list
+            page_queryset = page.object_list  # type: ignore
+
+        page_queryset = self.post_process_queryset_for_data(
+            page_queryset,  # type: ignore
+            request=request)
 
         if use_select_related and hasattr(page.object_list, 'select_related'):
-            page.object_list = (
-                page.object_list
+            page_queryset = (
+                page_queryset
                 .select_related(depth=1)  # type: ignore
             )
+
+        page.object_list = page_queryset
 
         object_list: List[Optional[Model]]
 
