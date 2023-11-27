@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from django.forms import widgets
 from django.forms.widgets import HiddenInput
 from django.template.loader import render_to_string
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 
 from djblets.conditions import ConditionSet
@@ -866,7 +867,7 @@ class ListEditWidget(widgets.Widget):
         """
         value_widget = self._value_widget
         attrs = self.build_attrs(attrs)
-        id_ = attrs.pop('id')
+        id_ = attrs.pop('id', None)
         rendered_rows = []
 
         if 'class' in attrs:
@@ -875,20 +876,52 @@ class ListEditWidget(widgets.Widget):
             attrs['class'] = 'djblets-c-list-edit-widget__input'
 
         for i, val in enumerate(value):
+            if id_ is not None:
+                row_attrs = dict(attrs, **{
+                    'id': f'{id_}_value_{i}',
+                })
+            else:
+                row_attrs = attrs
+
             rendered_rows.append(value_widget.render(
-                name='%s_value[%s]' % (name, i),
+                name=f'{name}_value[{i}]',
                 value=val,
-                attrs=attrs))
+                attrs=row_attrs))
+
+        # Render the default row, which will be used when adding a new row.
+        if id_ is not None:
+            row_attrs = dict(attrs, **{
+                'id': f'{id_}_value___EDIT_LIST_ROW_ID__',
+            })
+        else:
+            row_attrs = attrs
 
         rendered_empty_row = value_widget.render(
-            name='%s_value[0]' % (name),
+            name=f'{name}_value[__EDIT_LIST_ROW_INDEX__]',
             value=None,
-            attrs=attrs)
+            attrs=row_attrs)
+
+        # Render the initial row, if we don't have anything to show.
+        if rendered_rows:
+            rendered_initial_row = ''
+        else:
+            if id_ is not None:
+                row_attrs = dict(attrs, **{
+                    'id': f'{id_}_value_0',
+                })
+            else:
+                row_attrs = attrs
+
+            rendered_initial_row = value_widget.render(
+                name=f'{name}_value[0]',
+                value=None,
+                attrs=row_attrs)
 
         return {
             'name': name,
             'id': id_,
             'remove_text': _('Remove this item.'),
+            'rendered_initial_row': mark_safe(rendered_initial_row),
             'rendered_rows': rendered_rows,
             'rendered_empty_row': rendered_empty_row,
         }

@@ -31,19 +31,22 @@ class ListEditWidgetTests(TestCase):
                       ' name="my_field_value[0]"'
                       ' value="foo"'
                       ' class="my-value-class'
-                      ' djblets-c-list-edit-widget__input">',
+                      ' djblets-c-list-edit-widget__input"'
+                      ' id="id_my_field_value_0">',
                       rendered)
         self.assertIn('<input type="text"'
                       ' name="my_field_value[1]"'
                       ' value="bar"'
                       ' class="my-value-class'
-                      ' djblets-c-list-edit-widget__input">',
+                      ' djblets-c-list-edit-widget__input"'
+                      ' id="id_my_field_value_1">',
                       rendered)
         self.assertIn('<input type="text"'
                       ' name="my_field_value[2]"'
                       ' value="baz"'
                       ' class="my-value-class'
-                      ' djblets-c-list-edit-widget__input">',
+                      ' djblets-c-list-edit-widget__input"'
+                      ' id="id_my_field_value_2">',
                       rendered)
 
     def test_render_with_custom_separator(self):
@@ -66,19 +69,22 @@ class ListEditWidgetTests(TestCase):
                       ' name="my_field_value[0]"'
                       ' value="foo"'
                       ' class="my-value-class'
-                      ' djblets-c-list-edit-widget__input">',
+                      ' djblets-c-list-edit-widget__input"'
+                      ' id="id_my_field_value_0">',
                       rendered)
         self.assertIn('<input type="text"'
                       ' name="my_field_value[1]"'
                       ' value="bar"'
                       ' class="my-value-class'
-                      ' djblets-c-list-edit-widget__input">',
+                      ' djblets-c-list-edit-widget__input"'
+                      ' id="id_my_field_value_1">',
                       rendered)
         self.assertIn('<input type="text"'
                       ' name="my_field_value[2]"'
                       ' value="baz"'
                       ' class="my-value-class'
-                      ' djblets-c-list-edit-widget__input">',
+                      ' djblets-c-list-edit-widget__input"'
+                      ' id="id_my_field_value_2">',
                       rendered)
 
     def test_render_with_custom_value_widget(self):
@@ -101,13 +107,15 @@ class ListEditWidgetTests(TestCase):
                       ' name="my_field_value[0]"'
                       ' value="a@test.com"'
                       ' class="my-value-class'
-                      ' djblets-c-list-edit-widget__input">',
+                      ' djblets-c-list-edit-widget__input"'
+                      ' id="id_my_field_value_0">',
                       rendered)
         self.assertIn('<input type="email"'
                       ' name="my_field_value[1]"'
                       ' value="b@test.com"'
                       ' class="my-value-class'
-                      ' djblets-c-list-edit-widget__input">',
+                      ' djblets-c-list-edit-widget__input"'
+                      ' id="id_my_field_value_1">',
                       rendered)
 
     def test_value_from_datadict(self):
@@ -192,7 +200,7 @@ class ListEditWidgetTests(TestCase):
             set(result),
             {
                 'name', 'id', 'remove_text', 'rendered_rows',
-                'rendered_empty_row'
+                'rendered_empty_row', 'rendered_initial_row',
             })
         self.assertEqual(result['name'], 'my_field')
         self.assertEqual(result['id'], 'id_my_field')
@@ -205,17 +213,20 @@ class ListEditWidgetTests(TestCase):
             ' name="my_field_value[0]"'
             ' value="foo"'
             ' class="my-value-class'
-            ' djblets-c-list-edit-widget__input" />')
+            ' djblets-c-list-edit-widget__input"'
+            ' id="id_my_field_value_0" />')
         self.assertHTMLEqual(
             rendered_rows[1],
             '<input type="text"'
             ' name="my_field_value[1]"'
             ' value="bar"'
             ' class="my-value-class'
-            ' djblets-c-list-edit-widget__input" />')
+            ' djblets-c-list-edit-widget__input"'
+            ' id="id_my_field_value_1" />')
         self.assertHTMLEqual(
             result['rendered_empty_row'],
             '<input type="text"'
-            ' name="my_field_value[0]"'
+            ' name="my_field_value[__EDIT_LIST_ROW_INDEX__]"'
             ' class="my-value-class'
-            ' djblets-c-list-edit-widget__input" />')
+            ' djblets-c-list-edit-widget__input"'
+            ' id="id_my_field_value___EDIT_LIST_ROW_ID__" />')
