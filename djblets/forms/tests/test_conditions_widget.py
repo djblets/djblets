@@ -216,20 +216,20 @@ class ConditionsWidgetTests(TestCase):
         self.assertEqual(result['field_name'], 'my_conditions')
         self.assertHTMLEqual(
             result['rendered_mode'],
-            '<ul id="my_conditions_mode">\n'
-            '<li><label for="my_conditions_mode_0">'
+            '<div id="my_conditions_mode">\n'
+            '<div><label for="my_conditions_mode_0">'
             '<input id="my_conditions_mode_0" name="my_conditions_mode"'
             ' type="radio" value="always" />'
-            ' Always match</label></li>\n'
-            '<li><label for="my_conditions_mode_1">'
+            ' Always match</label></div>\n'
+            '<div><label for="my_conditions_mode_1">'
             '<input id="my_conditions_mode_1" name="my_conditions_mode"'
             ' type="radio" value="all" />'
-            ' Match <b>all</b> of the following:</label></li>\n'
-            '<li><label for="my_conditions_mode_2">'
+            ' Match <b>all</b> of the following:</label></div>\n'
+            '<div><label for="my_conditions_mode_2">'
             '<input checked="checked" id="my_conditions_mode_2" '
             'name="my_conditions_mode" type="radio" value="any" />'
-            ' Match <b>any</b> of the following:</label></li>\n'
-            '</ul>')
+            ' Match <b>any</b> of the following:</label></div>\n'
+            '</div>')
 
         rendered_rows = result['rendered_rows']
         self.assertEqual(len(rendered_rows), 2)

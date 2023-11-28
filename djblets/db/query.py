@@ -1,5 +1,6 @@
 import functools
 import re
+from copy import deepcopy
 
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db.models.manager import Manager
@@ -298,23 +299,4 @@ def _clone_q(q):
         django.db.models.Q:
         A clone of the query expression.
     """
-    if hasattr(q, 'clone'):
-        q = q.clone()
-    else:
-        # Newer versions of Django do not support this, so we have to
-        # re-implement the logic.
-        new_q = q.__class__._new_instance(children=[],
-                                          connector=q.connector,
-                                          negated=q.negated)
-
-        for child in q.children:
-            if isinstance(child, Q):
-                new_child = _clone_q(child)
-            elif hasattr(child, 'clone'):
-                new_child = child.clone()
-            else:
-                new_child = child
-
-            new_q.children.append(new_child)
-
-    return q
+    return deepcopy(q)

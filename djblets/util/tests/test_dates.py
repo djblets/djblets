@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-import pytz
+from django.utils.timezone import utc
 
 from djblets.testing.testcases import TestCase
 from djblets.util.dates import (get_latest_timestamp, get_tz_aware_utcnow,
@@ -47,4 +47,4 @@ class DatesTests(TestCase):
     def test_date_time_is_in_utc(self):
         """Testing get_tz_aware_utcnow returns UTC time."""
         utc_time = get_tz_aware_utcnow()
-        self.assertEqual(utc_time.tzinfo, pytz.utc)
+        self.assertEqual(utc_time.tzinfo, utc)
