@@ -14,7 +14,7 @@
 {%  endfor %}
 {% else %}
   <li class="djblets-c-list-edit-widget__entry" data-list-index="0">
-   {{rendered_empty_row}}
+   {{rendered_initial_row}}
    <a href="#" class="djblets-c-list-edit-widget__remove-item" role="button" title="{% trans 'Remove this entry' %}">
     <span class="fa fa-times"></span>
    </a>
@@ -34,7 +34,7 @@
             el: $('#{{id|escapejs}}_container'),
             removeText: '{{remove_text|escapejs}}',
             fieldName: '{{name|escapejs}}',
-            renderedDefaultRow: '{{rendered_empty_row}}'
+            renderedDefaultRow: '{{rendered_empty_row|escapejs}}'
         });
 
         view.render();

@@ -25,7 +25,7 @@ class WebAPIDecoratorTests(TestCase):
 
     def test_copy_webapi_decorator_data(self):
         """Testing copy_webapi_decorator_data"""
-        def func1():
+        def func1() -> None:
             """Function 1"""
 
         def func2():
@@ -45,23 +45,37 @@ class WebAPIDecoratorTests(TestCase):
         self.assertTrue(func2.test1)
         self.assertTrue(func2.test2)
         self.assertEqual(func2.response_errors, set(['a', 'b', 'c', 'd']))
+        self.assertEqual(func2.__annotations__, {
+            'return': None,
+        })
         self.assertEqual(func2.__doc__, 'Function 1')
         self.assertEqual(func2.__name__, 'func1')
+        self.assertEqual(
+            func2.__qualname__,
+            'WebAPIDecoratorTests.test_copy_webapi_decorator_data.'
+            '<locals>.func1')
 
         self.assertFalse(hasattr(func1, 'test2'))
         self.assertEqual(func1.response_errors, set(['a', 'b']))
 
     def test_webapi_response_errors_state(self):
         """Testing @webapi_response_errors state"""
-        def orig_func():
+        def orig_func() -> None:
             """Function 1"""
 
         func = webapi_response_errors(DOES_NOT_EXIST, NOT_LOGGED_IN)(orig_func)
 
         self.assertFalse(hasattr(orig_func, 'response_errors'))
 
-        self.assertEqual(func.__name__, 'orig_func')
+        self.assertEqual(func.__annotations__, {
+            'return': None,
+        })
         self.assertEqual(func.__doc__, 'Function 1')
+        self.assertEqual(func.__name__, 'orig_func')
+        self.assertEqual(
+            func.__qualname__,
+            'WebAPIDecoratorTests.test_webapi_response_errors_state.'
+            '<locals>.orig_func')
         self.assertTrue(hasattr(func, 'response_errors'))
         self.assertEqual(func.response_errors,
                          set([DOES_NOT_EXIST, NOT_LOGGED_IN]))
@@ -70,11 +84,18 @@ class WebAPIDecoratorTests(TestCase):
         """Testing @webapi_response_errors preserves decorator state"""
         @webapi_response_errors(DOES_NOT_EXIST)
         @webapi_response_errors(NOT_LOGGED_IN)
-        def func():
+        def func() -> None:
             """Function 1"""
 
-        self.assertEqual(func.__name__, 'func')
+        self.assertEqual(func.__annotations__, {
+            'return': None,
+        })
         self.assertEqual(func.__doc__, 'Function 1')
+        self.assertEqual(func.__name__, 'func')
+        self.assertEqual(
+            func.__qualname__,
+            'WebAPIDecoratorTests.test_webapi_response_errors_preserves_state.'
+            '<locals>.func')
         self.assertTrue(hasattr(func, 'response_errors'))
         self.assertEqual(func.response_errors,
                          set([DOES_NOT_EXIST, NOT_LOGGED_IN]))
@@ -91,7 +112,7 @@ class WebAPIDecoratorTests(TestCase):
 
     def test_webapi_login_required_state(self):
         """Testing @webapi_login_required state"""
-        def orig_func():
+        def orig_func() -> None:
             """Function 1"""
 
         func = webapi_login_required(orig_func)
@@ -99,8 +120,15 @@ class WebAPIDecoratorTests(TestCase):
         self.assertFalse(hasattr(orig_func, 'login_required'))
         self.assertFalse(hasattr(orig_func, 'response_errors'))
 
-        self.assertEqual(func.__name__, 'orig_func')
+        self.assertEqual(func.__annotations__, {
+            'return': None,
+        })
         self.assertEqual(func.__doc__, 'Function 1')
+        self.assertEqual(func.__name__, 'orig_func')
+        self.assertEqual(
+            func.__qualname__,
+            'WebAPIDecoratorTests.test_webapi_login_required_state.'
+            '<locals>.orig_func')
         self.assertTrue(hasattr(func, 'response_errors'))
         self.assertTrue(hasattr(func, 'login_required'))
         self.assertTrue(func.login_required)
@@ -109,15 +137,22 @@ class WebAPIDecoratorTests(TestCase):
     def test_webapi_login_required_preserves_state(self):
         """Testing @webapi_login_required preserves decorator state"""
         @webapi_response_errors(DOES_NOT_EXIST)
-        def orig_func():
+        def orig_func() -> None:
             """Function 1"""
 
         func = webapi_login_required(orig_func)
 
         self.assertFalse(hasattr(orig_func, 'login_required'))
 
-        self.assertEqual(func.__name__, 'orig_func')
+        self.assertEqual(func.__annotations__, {
+            'return': None,
+        })
         self.assertEqual(func.__doc__, 'Function 1')
+        self.assertEqual(func.__name__, 'orig_func')
+        self.assertEqual(
+            func.__qualname__,
+            'WebAPIDecoratorTests.test_webapi_login_required_preserves_state.'
+            '<locals>.orig_func')
         self.assertTrue(hasattr(func, 'response_errors'))
         self.assertTrue(hasattr(func, 'login_required'))
         self.assertTrue(func.login_required)
@@ -152,15 +187,22 @@ class WebAPIDecoratorTests(TestCase):
 
     def test_webapi_permission_required_state(self):
         """Testing @webapi_permission_required state"""
-        def orig_func():
+        def orig_func() -> None:
             """Function 1"""
 
         func = webapi_permission_required('myperm')(orig_func)
 
         self.assertFalse(hasattr(orig_func, 'response_errors'))
 
-        self.assertEqual(func.__name__, 'orig_func')
+        self.assertEqual(func.__annotations__, {
+            'return': None,
+        })
         self.assertEqual(func.__doc__, 'Function 1')
+        self.assertEqual(func.__name__, 'orig_func')
+        self.assertEqual(
+            func.__qualname__,
+            'WebAPIDecoratorTests.test_webapi_permission_required_state.'
+            '<locals>.orig_func')
         self.assertTrue(hasattr(func, 'response_errors'))
         self.assertEqual(func.response_errors,
                          set([NOT_LOGGED_IN, PERMISSION_DENIED]))
@@ -168,13 +210,21 @@ class WebAPIDecoratorTests(TestCase):
     def test_webapi_permission_required_preserves_state(self):
         """Testing @webapi_permission_required preserves decorator state"""
         @webapi_response_errors(DOES_NOT_EXIST)
-        def orig_func():
+        def orig_func() -> None:
             """Function 1"""
 
         func = webapi_permission_required('myperm')(orig_func)
 
-        self.assertEqual(func.__name__, 'orig_func')
+        self.assertEqual(func.__annotations__, {
+            'return': None,
+        })
         self.assertEqual(func.__doc__, 'Function 1')
+        self.assertEqual(func.__name__, 'orig_func')
+        self.assertEqual(
+            func.__qualname__,
+            'WebAPIDecoratorTests.'
+            'test_webapi_permission_required_preserves_state.<locals>.'
+            'orig_func')
         self.assertTrue(hasattr(func, 'response_errors'))
         self.assertEqual(func.response_errors,
                          set([DOES_NOT_EXIST, NOT_LOGGED_IN,
@@ -223,7 +273,7 @@ class WebAPIDecoratorTests(TestCase):
 
     def test_webapi_request_fields_state(self):
         """Testing @webapi_request_fields state"""
-        def orig_func():
+        def orig_func() -> None:
             """Function 1"""
 
         required = {
@@ -246,8 +296,15 @@ class WebAPIDecoratorTests(TestCase):
         self.assertFalse(hasattr(orig_func, 'optional_fields'))
         self.assertFalse(hasattr(orig_func, 'response_errors'))
 
-        self.assertEqual(func.__name__, 'orig_func')
+        self.assertEqual(func.__annotations__, {
+            'return': None,
+        })
         self.assertEqual(func.__doc__, 'Function 1')
+        self.assertEqual(func.__name__, 'orig_func')
+        self.assertEqual(
+            func.__qualname__,
+            'WebAPIDecoratorTests.test_webapi_request_fields_state.'
+            '<locals>.orig_func')
         self.assertTrue(hasattr(func, 'response_errors'))
         self.assertTrue(hasattr(func, 'required_fields'))
         self.assertTrue(hasattr(func, 'optional_fields'))
@@ -273,7 +330,7 @@ class WebAPIDecoratorTests(TestCase):
 
         @webapi_request_fields(required1, optional1)
         @webapi_response_errors(DOES_NOT_EXIST)
-        def orig_func():
+        def orig_func() -> None:
             """Function 1"""
 
         required2 = {
@@ -301,8 +358,15 @@ class WebAPIDecoratorTests(TestCase):
         self.assertTrue(hasattr(orig_func, 'optional_fields'))
         self.assertTrue(hasattr(orig_func, 'response_errors'))
 
+        self.assertEqual(func.__annotations__, {
+            'return': None,
+        })
         self.assertEqual(func.__name__, 'orig_func')
         self.assertEqual(func.__doc__, 'Function 1')
+        self.assertEqual(
+            func.__qualname__,
+            'WebAPIDecoratorTests.test_webapi_request_fields_preserves_state.'
+            '<locals>.orig_func')
         self.assertTrue(hasattr(func, 'response_errors'))
         self.assertTrue(hasattr(func, 'required_fields'))
         self.assertTrue(hasattr(func, 'optional_fields'))

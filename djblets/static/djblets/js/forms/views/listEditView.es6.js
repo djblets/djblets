@@ -4,7 +4,7 @@
 const entryTemplate = _.template(dedent`
     <li class="djblets-c-list-edit-widget__entry"
         data-list-index="<%- index %>">
-      <%= renderedDefaultRow %>
+     <%= renderedDefaultRow %>
      <a href="#" class="djblets-c-list-edit-widget__remove-item"
         role="button" title="<%- removeText %>">
        <span class="fa fa-times"></span>
@@ -54,7 +54,7 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
         this._fieldName = options.fieldName;
         this._renderedDefaultRow = options.renderedDefaultRow;
         this._numItems = 0;
-
+        this._$numRowsEl = null;
     },
 
     /**
@@ -74,9 +74,11 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
             '.djblets-c-list-edit-widget__entries');
         this._numItems =
             this._$list.find('.djblets-c-list-edit-widget__entry').length;
-        $(`input[name="${this._fieldName}_num_rows"]`).val(this._numItems);
         this._$addBtn = this.$el.children(
             '.djblets-c-list-edit-widget__add-item');
+
+        this._$numRowsEl = this.$(`input[name="${this._fieldName}_num_rows"]`)
+            .val(this._numItems);
 
         return this;
     },
@@ -93,23 +95,28 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
      *     The HTML for the new entry in the list.
      */
     _createDefaultEntry(index) {
+        const rowID = _.uniqueId('djblets-list-edit-row');
+        const renderedRowHTML = this._renderedDefaultRow
+            .replaceAll('__EDIT_LIST_ROW_ID__', rowID)
+            .replaceAll('__EDIT_LIST_ROW_INDEX__', index);
+
         const $entry = $(entryTemplate({
             index: index,
             removeText: this._removeText,
-            renderedDefaultRow: this._renderedDefaultRow,
+            renderedDefaultRow: renderedRowHTML,
         }));
         this._updateEntryInputName($entry, index);
-
-        $(`input[name="${this._fieldName}_num_rows"]`).val(index+1);
-        $entry.find('.djblets-c-list-edit-widget__add-item')
-            .on('click', e => this._addItem(e));
+        this._$numRowsEl.val(index + 1);
 
         return $entry;
     },
 
     /**
-     * Update the name(s) of the entry's .djblets-c-list-edit-widget__input(s)
-     * so that they contain the appropriate index for the entry.
+     * Update attributes for an entry.
+     *
+     * This will update the form element name and ID of the
+     * ``.djblets-c-list-edit-widget__input`` elements in an entry to reflect
+     * their position in the list, guaranteeing unique names.
      *
      * Args:
      *     $entry (jQuery):
@@ -120,14 +127,14 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
      */
     _updateEntryInputName($entry, index) {
         const $inputs = $entry.find('.djblets-c-list-edit-widget__input');
+        const fieldName = this._fieldName;
 
         // The entry may have more than one "input".
         if ($inputs.length > 1) {
             $inputs.each((idx, el) =>
-                $(el).attr('name',
-                           `${this._fieldName}_value[${index}]_${idx}`));
+                $(el).attr('name', `${fieldName}_value[${index}]_${idx}`));
         } else {
-            $inputs.attr('name', `${this._fieldName}_value[${index}]`);
+            $inputs.attr('name', `${fieldName}_value[${index}]`);
         }
     },
 
@@ -172,8 +179,7 @@ Djblets.Forms.ListEditView = Backbone.View.extend({
                     $el.attr('data-list-index', idx);
                     this._updateEntryInputName($el, idx);
                 });
-            $(`input[name="${this._fieldName}_num_rows"]`)
-                .val(this._numItems);
+            this._$numRowsEl.val(this._numItems);
         } else {
             const $defaultEntry = this._createDefaultEntry(0);
             $entry.replaceWith($defaultEntry);
