@@ -656,7 +656,7 @@ class TestModelsLoaderMixin(object):
         apps.set_installed_apps(settings.INSTALLED_APPS)
         app_config = apps.get_containing_app_config(cls.tests_app)
 
-        if models_mod:
+        if models_mod and app_config:
             app_label = app_config.label
 
             for key, value in models_mod.__dict__.items():
@@ -664,11 +664,12 @@ class TestModelsLoaderMixin(object):
                     # The model was likely registered under another app,
                     # so we need to remove the old one and add the new
                     # one.
-                    try:
-                        del apps.all_models[value._meta.app_label][
-                            value._meta.model_name]
-                    except KeyError:
-                        pass
+                    if value._meta.model_name:
+                        try:
+                            del apps.all_models[value._meta.app_label][
+                                value._meta.model_name]
+                        except KeyError:
+                            pass
 
                     value._meta.app_label = app_label
                     apps.register_model(app_label, value)
@@ -695,8 +696,11 @@ class TestModelsLoaderMixin(object):
             except KeyError:
                 pass
 
+        assert cls.tests_app
+
         apps.unset_installed_apps()
         apps.all_models[cls.tests_app].clear()
+        apps.populate(settings.INSTALLED_APPS)
 
         # Set this free so the garbage collector can eat it.
         cls._tests_loader_models_mod = None

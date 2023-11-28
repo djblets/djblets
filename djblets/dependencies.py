@@ -30,13 +30,13 @@ PYTHON_3_RANGE = ">='%s'" % PYTHON_3_MIN_VERSION_STR
 
 
 #: The major version of Django we're using for documentation.
-django_doc_major_version = '3.2'
+django_doc_major_version = '4.2'
 
 #: The major version of Review Board we're using for documentation.
 reviewboard_doc_major_version = 'dev'
 
 #: The version range required for Django.
-django_version = '~=3.2.22'
+django_version = '~=4.2.7'
 
 ###########################################################################
 # Python dependencies

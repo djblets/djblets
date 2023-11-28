@@ -1,7 +1,7 @@
 """HTML-related utilities."""
 
 from django.utils.functional import lazy
-from django.utils.safestring import mark_safe
+from django.utils.safestring import SafeString, mark_safe
 
 
 #: Lazily mark text as safe.
@@ -16,4 +16,4 @@ from django.utils.safestring import mark_safe
 #: Returns:
 #:     django.utils.functional.Promise:
 #:     A promise representing the safe text.
-mark_safe_lazy = lazy(mark_safe, str)
+mark_safe_lazy = lazy(mark_safe, SafeString)

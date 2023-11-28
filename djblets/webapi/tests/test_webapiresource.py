@@ -99,8 +99,6 @@ class BaseTestRefUserResource(BaseTestWebAPIResource):
 class WebAPIResourceTests(kgb.SpyAgency, TestModelsLoaderMixin, TestCase):
     """Unit tests for djblets.webapi.resources.base."""
 
-    tests_app = 'djblets.webapi.tests'
-
     def setUp(self):
         super(WebAPIResourceTests, self).setUp()
 

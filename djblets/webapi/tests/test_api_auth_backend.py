@@ -39,8 +39,6 @@ class WebAPITokenAuthBackendTests(kgb.SpyAgency,
                                   TestCase):
     """Unit tests for the WebAPITokenAuthBackend."""
 
-    tests_app = 'djblets.webapi.tests'
-
     def setUp(self):
         super(WebAPITokenAuthBackendTests, self).setUp()
         self.api_token_auth_backend = WebAPITokenAuthBackend()

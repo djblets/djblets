@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
 from django.utils.html import mark_safe
@@ -1270,7 +1270,7 @@ class FileUploadTests(SpyAgency, TestCase):
         self.settings_mgr = DummySettingsManager(
             FileUploadService.avatar_service_id, self.configuration)
 
-        self.storage_cls = get_storage_class()
+        self.storage_cls = type(storages['default'])
 
     def test_filename_generation(self):
         """Testing FileUploadServiceForm.save puts files in the correct
