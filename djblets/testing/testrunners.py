@@ -170,7 +170,7 @@ class TestRunner(DiscoverRunner):
         # Make sure we're using standard static files storage, and not
         # something like Pipeline or S3 (since we don't want to trigger any
         # special behavior). Subclasses are free to override this setting.
-        settings.STATICFILES_STORAGE = \
+        settings.STORAGES['staticfiles']['BACKEND'] = \
             'django.contrib.staticfiles.storage.StaticFilesStorage'
 
         # By default, don't look up DMARC records when generating From

@@ -254,7 +254,7 @@ class BuildStaticFiles(Command):
         settings.STATICFILES_FINDERS = (
             'djblets.extensions.staticfiles.PackagingFinder',
         )
-        settings.STATICFILES_STORAGE = \
+        settings.STORAGES['staticfiles']['BACKEND'] = \
             'djblets.extensions.staticfiles.PackagingCachedFilesStorage'
         settings.INSTALLED_APPS = [
             'django.contrib.staticfiles',
