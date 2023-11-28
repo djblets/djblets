@@ -42,6 +42,7 @@ def augment_method_from(klass):
     of ``pass``.
     """
     def _dec(func):
+        @wraps(func)
         def _call(*args, **kwargs):
             try:
                 f = augmented_func(*args, **kwargs)
@@ -52,7 +53,9 @@ def augment_method_from(klass):
 
         augmented_func = getattr(klass, func.__name__)
 
-        _call.__name__ = func.__name__
+        # Go beyond what @wraps does. Choose a suitable docstring depending
+        # on which is set, and combine dictionaries with `func` taking
+        # priority.
         _call.__doc__ = func.__doc__ or augmented_func.__doc__
         _call.__dict__.update(augmented_func.__dict__)
         _call.__dict__.update(func.__dict__)

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import kgb
 from django.conf import settings
 from django.contrib.auth.models import Group, User
+from django.db.models import Count, Q
 from django.http import HttpRequest
 from django.test.client import RequestFactory
 from django.utils.encoding import force_str
@@ -289,6 +290,101 @@ class DataGridTests(kgb.SpyAgency, TestCase):
         self.datagrid.precompute_objects()
 
         self.assertEqual(self.datagrid.sort_list, ['-name'])
+
+    def test_precompute_objects_with_filtering_and_data(self):
+        """Testing DataGrid.precompute_objects with filtering and data
+        queryset augmentation applied
+        """
+        class Column1(Column):
+            def augment_queryset_for_filter(self, state, queryset, **kwargs):
+                return queryset.filter(is_active=True)
+
+        class Column2(Column):
+            def augment_queryset_for_data(self, state, queryset, **kwargs):
+                return queryset.annotate(Count('groups'))
+
+        class TestDataGrid(DataGrid):
+            username = Column1()
+            date_joined = Column2()
+
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+                self.default_columns = ['username', 'date_joined']
+                self.default_sort = []
+
+            def post_process_queryset_for_filter(self, queryset, **kwargs):
+                return super().post_process_queryset_for_filter(
+                    queryset.filter(email__endswith='@example.com'))
+
+            def post_process_queryset_for_data(self, queryset, **kwargs):
+                return super().post_process_queryset_for_data(
+                    queryset.only('pk', 'username', 'date_joined'))
+
+        group1 = Group.objects.create(name='group1')
+        group2 = Group.objects.create(name='group2')
+        group3 = Group.objects.create(name='group3')
+
+        user1 = User.objects.create(
+            username='user1',
+            email='user1@example.com')
+        user1.groups.add(group1)
+
+        user2 = User.objects.create(
+            username='user2',
+            email='user2@example.com')
+        user2.groups.add(group1, group2)
+
+        user3 = User.objects.create(
+            username='user3',
+            email='user3@example.com')
+        user3.groups.add(group1, group2, group3)
+
+        datagrid = TestDataGrid(
+            request=self.request,
+            queryset=User.objects.order_by('pk'))
+        datagrid.load_state()
+
+        queries = [
+            {
+                'annotations': {'__count': Count('*')},
+                'model': User,
+                'where': (Q(email__endswith='@example.com') &
+                          Q(is_active=True)),
+            },
+            {
+                'annotations': {
+                    'groups__count': Count('groups'),
+                },
+                'distinct': True,
+                'group_by': True,
+                'limit': 3,
+                'model': User,
+                'num_joins': 1,
+                'only_fields': {
+                    'date_joined',
+                    'id',
+                    'username',
+                },
+                'order_by': ('pk',),
+                'tables': {
+                    'auth_user',
+                    'auth_user_groups',
+                },
+                'where': (Q(email__endswith='@example.com') &
+                          Q(is_active=True)),
+            },
+        ]
+
+        with self.assertQueries(queries):
+            datagrid.precompute_objects()
+
+        rows = datagrid.rows
+
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(rows[0]['object'], user1)
+        self.assertEqual(rows[1]['object'], user2)
+        self.assertEqual(rows[2]['object'], user3)
 
     def test_post_process_queryset_with_select_related(self):
         """Testing DataGrid.post_process_queryset with chained select_related

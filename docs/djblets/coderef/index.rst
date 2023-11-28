@@ -133,6 +133,8 @@ Database Utilities
    djblets.db.fields.relation_counter_field
    djblets.db.managers
    djblets.db.query
+   djblets.db.query_catcher
+   djblets.db.query_comparator
    djblets.db.validators
 
 

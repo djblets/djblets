@@ -1,5 +1,7 @@
 """Base class for test cases in Django-based applications."""
 
+from __future__ import annotations
+
 import inspect
 import os
 import re
@@ -12,27 +14,21 @@ from contextlib import contextmanager
 from importlib import import_module
 from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec
-from typing import Iterator, List, Optional, Type
+from typing import (Any, Dict, Iterator, List, Optional, Sequence,
+                    TYPE_CHECKING, Type, Union)
 from unittest.util import safe_repr
 
 import kgb
 from django.apps import apps
 from django.conf import settings
 from django.core import serializers
-from django.core.exceptions import EmptyResultSet, ValidationError
+from django.core.exceptions import ValidationError
 from django.core.handlers.wsgi import WSGIHandler
 from django.core.management import call_command
 from django.core.servers import basehttp
 from django.db import (DatabaseError, DEFAULT_DB_ALIAS, IntegrityError,
                        connections, router)
-from django.db.models import Model, Q
-from django.db.models.query import MAX_GET_RESULTS
-from django.db.models.signals import pre_delete
-from django.db.models.sql.compiler import (SQLCompiler,
-                                           SQLDeleteCompiler,
-                                           SQLInsertCompiler,
-                                           SQLUpdateCompiler)
-from django.db.models.sql.query import Query as SQLQuery
+from django.db.models import Model
 from django.template import Node
 from django.test import testcases
 from typing_extensions import NotRequired, TypedDict
@@ -43,7 +39,13 @@ except ImportError:
     Evolution = None
     Version = None
 
+from djblets.db.query_comparator import compare_queries
+from djblets.deprecation import RemovedInDjblets50Warning
 from djblets.siteconfig.models import SiteConfiguration
+
+if TYPE_CHECKING:
+    from djblets.db.query_comparator import (CompareQueriesContext,
+                                             QueryMismatchedAttr)
 
 
 class StubNodeList(Node):
@@ -353,154 +355,43 @@ class TestCase(testcases.TestCase):
             yield
 
     @contextmanager
-    def assertQueries(self, queries, num_statements=None):
+    def assertQueries(
+        self,
+        queries: Sequence[Union[ExpectedQuery,
+                                Dict[str, Any]]],
+        num_statements: Optional[int] = None,
+        *,
+        with_tracebacks: bool = False,
+        traceback_size: int = 15,
+        check_subqueries: Optional[bool] = None,
+    ) -> Iterator[None]:
         """Assert the number and complexity of queries.
 
         This provides advanced checking of queries, allowing the caller to
         match filtering, JOINs, ordering, selected fields, and more.
 
         This takes a list of dictionaries with query information. Each
-        contains the following:
+        contains the keys in :py:class:`ExpectedQuery`.
 
-        Keys:
-            model (type):
-                The model representing the results that would be returned
-                or altered by the query.
-
-            annotations (dict, optional):
-                A dictionary containing applied annotations.
-
-                Keys are destination attribute names, and values are the
-                annotation instances.
-
-                The default is empty.
-
-            distinct (bool, optional):
-                Whether :py:meth:`django.db.models.query.QuerySet.distinct`
-                was used.
-
-                The default is ``False``.
-
-            distinct_fields (tuple of str, optional):
-                A list of fields passed to
-                :py:meth:`django.db.models.query.QuerySet.distinct`.
-
-                The default is empty.
-
-            extra (dict, optional):
-                State passed in calls to
-                :py:meth:`django.db.models.query.QuerySet.extra` when using
-                ``select`` and ``select_params``.
-
-                Each key maps to a key in ``select``, and each value is a
-                tuple containing the value in ``select`` and the corresponding
-                value (if any) in ``select_params``.
-
-                Values are normalized to collapse and strip whitespace, to
-                help with comparison.
-
-                The default is empty.
-
-            extra_order_by (list of str, optional):
-                State passed in calls to
-                :py:meth:`django.db.models.query.QuerySet.extra` when using
-                ``order_by``.
-
-                The default is empty.
-
-            extra_tables (list of str, optional):
-                State passed in calls to
-                :py:meth:`django.db.models.query.QuerySet.extra` when using
-                ``tables``.
-
-                The default is empty.
-
-            group_by (bool or tuple, optional):
-                Whether no fields will be grouped (``None``), all fields will
-                be grouped (``True``), or specific expressions/field names are
-                grouped (a tuple).
-
-                This is influenced by using
-                :py:meth:`django.db.models.query.QuerySet.annotate`.
-
-                The default is ``None``.
-
-            limit (int, optional):
-                The value for a ``LIMIT`` in the ``SELECT``.
-
-                This will generally only need to be supplied if testing a
-                query using :py:meth:`QuerySet.exists()
-                <django.db.models.query.QuerySet.exists>` or when slicing
-                results.
-
-                Django itself sometimes uses a default of ``None`` and
-                sometimes a default currently of ``21`` (this exact value,
-                and when it's used, is considered an implementation detail
-                in Django). Both of these will match a caller-provided
-                ``limit`` value of ``None``.
-
-                The default is ``None``.
-
-            num_joins (int, optional):
-                The number of tables JOINed.
-
-                The default is 0.
-
-            offset (int, optional):
-                The value for an ``OFFSET`` in the ``SELECT``.
-
-                The default is 0.
-
-            only_fields (set of str, optional);
-                The specific fields being fetched, or ``None`` if fetching
-                all fields.
-
-                The default is ``None``.
-
-            order_by (tuple of str, optional):
-                The ordering criteria.
-
-                The default is empty.
-
-            select_for_update (bool, optional):
-                Whether this is a select-for-update operation.
-
-                The default is ``False``.
-
-            select_related (set of str, optional):
-                The table names involved in a
-                :py:meth:`django.db.models.query.QuerySet.select_related`.
-
-            subquery (bool, optional):
-                Whether this is considered a subquery of another query.
-
-                The default is ``False``.
-
-            tables (set of str, optional):
-                The tables involved in the query.
-
-                The default is the model's table name.
-
-            type (str, optional):
-                The query type. This would be one of ``DELETE``, ``INSERT``,
-                ``SELECT``, or ``UPDATE``.
-
-                The default is ``SELECT``.
-
-            values_select (list of str, optional):
-                A list of specified fields being returned using
-                :py:meth:`~django.db.models.query.QuerySet.values` or
-                :py:meth:`~django.db.models.query.QuerySet.values_list` or
-
-            where (django.db.models.Q, optional):
-                The query expression objects used to represent the filter on
-                the query.
+        Version Changed:
+            3.4:
+            * Added ``with_tracebacks``, ``tracebacks_size``, and
+              ``check_subqueries`` arguments.
+            * Added support for type hints for expected queries.
+            * Query output can now show notes (when populating
+              :py:attr:`ExpectedQuery.__note__`) to ease debugging.
+            * The ``where`` queries are now normalized for easier comparison.
+            * The assertion output now shows the executed queries on the
+              left-hand side and the expected queries on the right-hand side,
+              like most other assertion functions.
+            * The number of expected and executed queries no longer need to
+              be exact in order to see results.
 
         Version Added:
             3.0
 
         Args:
-            queries (list of dict):
+            queries (list of ExpectedQuery):
                 The list of query dictionaries to compare executed queries
                 against.
 
@@ -512,321 +403,175 @@ class TestCase(testcases.TestCase):
                 additional database-specific statements (such as
                 transaction-related SQL) that won't be covered in ``queries``.
 
+            with_tracebacks (bool, optional):
+                If enabled, tracebacks for queries will be included in
+                results.
+
+                Version Added:
+                    3.4
+
+            tracebacks_size (int, optional):
+                The size of any tracebacks, in number of lines.
+
+                The default is 15.
+
+                Version Added:
+                    3.4
+
+            check_subqueries (bool, optional):
+                Whether to check subqueries.
+
+                If enabled, ``inner_query`` on queries with subqueries will
+                be checked. This is currently disabled by default, in order
+                to avoid breaking tests, but will be enabled by default in
+                Djblets 5.
+
+                Version Added:
+                    3.4
+
         Raises:
             AssertionError:
                 The parameters passed, or the queries compared, failed
                 expectations.
         """
-        assert isinstance(queries, list)
+        def _serialize_mismatched_attrs(
+            failures: List[QueryMismatchedAttr],
+            *,
+            indent: str,
+        ) -> List[str]:
+            error_lines: List[str] = []
 
-        if num_statements is None:
-            num_statements = len(queries)
+            for mismatched_attr in sorted(failures,
+                                          key=lambda attr: attr['name']):
+                name = mismatched_attr['name']
 
-        spy_agency = kgb.SpyAgency()
+                executed_value = mismatched_attr.get('executed_value')
+                expected_value = mismatched_attr.get('expected_value')
 
-        executed_queries = []
-        queries_to_qs = {}
+                assert executed_value is not None
+                assert expected_value is not None
 
-        # Track Query objects any time a compiler is executing SQL.
-        @spy_agency.spy_for(SQLCompiler.execute_sql,
-                            owner=SQLCompiler)
-        def _sql_compiler_execute_sql(_self, *args, **kwargs):
-            if isinstance(_self, SQLDeleteCompiler):
-                query_type = 'DELETE'
-            elif isinstance(_self, SQLUpdateCompiler):
-                query_type = 'UPDATE'
-            else:
-                query_type = 'SELECT'
+                # If we're formatting multi-line output, make sure to
+                # indent it properly.
+                if '\n' in executed_value or '\n' in expected_value:
+                    executed_value = f'\n%s\n{indent}' % '\n'.join(
+                        f'{indent}  {line}'
+                        for line in executed_value.splitlines()
+                    )
+                    expected_value = '\n%s' % '\n'.join(
+                        f'{indent}  {line}'
+                        for line in expected_value.splitlines()
+                    )
 
-            executed_queries.append((query_type, _self.query))
-
-            return SQLCompiler.execute_sql.call_original(
-                _self, *args, **kwargs)
-
-        @spy_agency.spy_for(SQLInsertCompiler.execute_sql,
-                            owner=SQLInsertCompiler)
-        def _sql_insert_compiler_execute_sql(_self, *args, **kwargs):
-            executed_queries.append(('INSERT', _self.query))
-
-            return SQLInsertCompiler.execute_sql.call_original(
-                _self, *args, **kwargs)
-
-        # Build and track Q() objects any time they're added to a Query.
-        @spy_agency.spy_for(SQLQuery.add_q, owner=SQLQuery)
-        def _query_add_q(_self, q_object):
-            try:
-                queries_to_qs[_self] &= q_object
-            except KeyError:
-                queries_to_qs[_self] = q_object
-
-            return SQLQuery.add_q.call_original(_self, q_object)
-
-        # Copy Q() objects any time a Query is cloned.
-        @spy_agency.spy_for(SQLQuery.clone, owner=SQLQuery)
-        def _query_clone(_self, *args, **kwargs):
-            result = SQLQuery.clone.call_original(_self, *args, **kwargs)
-
-            try:
-                queries_to_qs[result] = queries_to_qs[_self]
-            except KeyError:
-                pass
-
-            return result
-
-        # Set up an explicit pre_delete signal. During deletion, Django
-        # attempts to determine if it can fast-delete (which can be done if,
-        # amongst other things, signals don't need to be emitted for each
-        # object).
-        #
-        # This can lead to inconsistencies in test runs, if registration of
-        # pre_delete or post_delete signals is conditional on that run. We
-        # want to ensure a stable query count and information for DELETEs,
-        # so we deny fast-deletion by setting up a model-global signal handler
-        # during capture of queries.
-        def _on_pre_delete(**kwargs):
-            pass
-
-        pre_delete.connect(_on_pre_delete)
-
-        # Check that the number of SQL queries matches expectations.
-        try:
-            with self.assertNumQueries(num_statements):
-                yield
-        finally:
-            # We no longer need to track anything in the compiler of Query.
-            spy_agency.unspy_all()
-            pre_delete.disconnect(_on_pre_delete)
-
-        # Make sure we received the expected number of Queries.
-        #
-        # First we have to convert each to SQL and see what we get. Any
-        # with EmptyResultSet will be skipped.
-        query_sqls = []
-        norm_executed_queries = []
-
-        for executed_query_info in executed_queries:
-            executed_query = executed_query_info[1]
-
-            # First thing we want to do is grab the SQL. This may fail, and
-            # if it does, it represents a query that we've caught that isn't
-            # actually going to be executed (likely a component of another).
-            try:
-                try:
-                    query_sqls.append([str(executed_query)])
-                except ValueError:
-                    # When doing an INSERT OR IGNORE (SQLite), the SQL
-                    # can be a list rather than a string. Query.__str__
-                    # doesn't know how to handle this, and will crash.
-                    # We'll deal with it ourselves.
-                    sql_statements = executed_query.sql_with_params()
-                    assert isinstance(sql_statements, list)
-
-                    query_sqls.append([
-                        _sql % _sql_params
-                        for _sql, _sql_params in sql_statements
-                    ])
-
-                norm_executed_queries.append(executed_query_info)
-            except EmptyResultSet:
-                # This will be skipped.
-                pass
-
-        executed_queries = norm_executed_queries
-
-        # Now we can compare numbers.
-        error_lines = []
-        num_queries = len(queries)
-        num_executed_queries = len(executed_queries)
-
-        if num_queries != num_executed_queries:
-            error_lines += [
-                '%s queries were provided, but %s were executed.'
-                % (num_queries, num_executed_queries),
-
-                '',
-            ]
-
-            if num_queries < num_executed_queries:
-                queries += [
-                    {}
-                    for _i in range(num_executed_queries - num_queries)
-                ]
-            elif num_queries > num_executed_queries:
-                queries = queries[:num_executed_queries]
-
-        # Go through each matching Query and compare state.
-        ws_re = self.ws_re
-        all_failures = []
-        queries_iter = enumerate(zip(queries, executed_queries, query_sqls))
-
-        for (i,
-             (query_info,
-              (executed_query_type, executed_query),
-              query_sql)) in queries_iter:
-            # Check if this is set to be skipped, as per the above checks.
-            if query_sql is None:
-                continue
-
-            failures = []
-
-            executed_table_name = executed_query.model._meta.db_table
-            executed_reffed_tables = {
-                _table_name
-                for _table_name in executed_query.alias_map.keys()
-                if executed_query.alias_refcount.get(_table_name, 0) > 0
-            }
-
-            # Check 'model'.
-            model = query_info.get('model', None)
-
-            if model is not executed_query.model:
-                failures.append(('model', model, executed_query.model))
-
-            # Check the query type.
-            query_type = query_info.get('type', 'SELECT')
-
-            if query_type != executed_query_type:
-                failures.append(('type', query_type, executed_query_type))
-
-            # Check the fields that are easy to compare.
-            for key, default in (('annotations', {}),
-                                 ('distinct', False),
-                                 ('distinct_fields', ()),
-                                 ('extra_order_by', ()),
-                                 ('extra_tables', ()),
-                                 ('group_by', None),
-                                 ('order_by', ()),
-                                 ('select_for_update', False),
-                                 ('subquery', False),
-                                 ('values_select', ())):
-                value = query_info.get(key, default)
-                executed_value = getattr(executed_query, key)
-
-                if value != executed_value:
-                    failures.append((key, value, executed_value))
-
-            # Check 'extra'.
-            value = {
-                _key: (ws_re.sub(' ', _value[0]).strip(), _value[1])
-                for _key, _value in query_info.get('extra', {}).items()
-            }
-            executed_value = {
-                _key: (ws_re.sub(' ', _value[0]).strip(), _value[1])
-                for _key, _value in executed_query.extra.items()
-            }
-
-            if value != executed_value:
-                failures.append(('extra', value, executed_value))
-
-            # Check 'offset'.
-            value = query_info.get('offset', 0)
-            executed_value = executed_query.low_mark
-
-            if value != executed_value:
-                failures.append(('offset', value, executed_value))
-
-            # Check 'limit'.
-            value = query_info.get('limit', None)
-            executed_value = executed_query.high_mark
-
-            if (value != executed_value and
-                (value is not None or executed_value != MAX_GET_RESULTS)):
-                failures.append(('limit', value, executed_value))
-
-            # Check 'num_joins'.
-            value = query_info.get('num_joins', 0)
-
-            if executed_query.alias_map:
-                # Consider all tables that have been JOINed, ignoring the
-                # main table.
-                executed_value = len(executed_reffed_tables -
-                                     {executed_table_name})
-            else:
-                executed_value = 0
-
-            if value != executed_value:
-                failures.append(('num_joins', value, executed_value))
-
-            # Check 'tables'.
-            if model is None:
-                default = {}
-            else:
-                default = {model._meta.db_table}
-
-            value = set(query_info.get('tables', default))
-
-            if executed_query.alias_refcount:
-                executed_value = executed_reffed_tables | {executed_table_name}
-            else:
-                executed_value = {executed_table_name}
-
-            if value != executed_value:
-                failures.append(('tables', value, executed_value))
-
-            # Check 'only_fields'.
-            value = set(query_info.get('only_fields', set()))
-            executed_value = set(executed_query.deferred_loading[0])
-
-            if value != executed_value:
-                failures.append(('only_fields', value, executed_value))
-
-            # Check 'select_related'.
-            value = set(query_info.get('select_related', set()))
-            executed_value = executed_query.select_related
-
-            if executed_value:
-                executed_value = set(executed_value.keys())
-            else:
-                executed_value = set()
-
-            if value != executed_value:
-                failures.append(('select_related', value, executed_value))
-
-            # Check 'where'. the Q object used to filter.
-            value = query_info.get('where', Q())
-            executed_value = queries_to_qs.get(executed_query, Q())
-
-            if (executed_value and
-                len(executed_value.children) == 1 and
-                isinstance(executed_value.children[0], Q)):
-                # filter() created a Q() containing nothing but a nested Q().
-                # This is annoying to compare, and could always change in the
-                # future. Extract the inner Q() and use that for comparison
-                # purposes.
-                executed_value = executed_value.children[0]
-
-            if value != executed_value:
-                failures.append(('where', value, executed_value))
-
-            if failures:
-                all_failures.append((i, executed_query, failures, query_sql))
-
-        # Check if we found any failures, and include them in an assertion.
-        if all_failures:
-            num_failures = len(all_failures)
-
-            if num_failures == 1:
-                error_lines.append('1 query failed to meet expectations.')
-            else:
                 error_lines.append(
-                    '%s queries failed to meet expectations.'
-                    % num_failures,
-                )
+                    f'{indent}{name}: '
+                    f'{executed_value} != {expected_value}')
 
-            for i, executed_query, failures, query_sql in all_failures:
-                if failures:
-                    error_lines += [
-                        '',
-                        'Query %s:' % (i + 1),
-                    ] + [
-                        '  %s: %s != %s' % _failure
-                        for _failure in failures
-                    ] + [
-                        '  SQL: %s' % _sql
-                        for _sql in query_sql
-                    ]
+            return error_lines
 
-            self.fail('\n'.join(error_lines))
+        def _serialize_results(
+            results: CompareQueriesContext,
+            *,
+            indent: str = '',
+        ) -> List[str]:
+            mismatches = results['query_mismatches']
+            num_queries = results['num_expected_queries']
+            num_executed_queries = results['num_executed_queries']
+            inner_indent = f'{indent}  '
+            found_subqueries: bool = False
+
+            # Check if we found any failures, and include them in an assertion.
+            error_lines: List[str] = []
+
+            if num_queries != num_executed_queries:
+                error_lines += [
+                    f'{indent}Expected {num_queries} queries, but got '
+                    f'{num_executed_queries}',
+
+                    '',
+                ]
+
+            if results['has_mismatches']:
+                num_mismatches = len(mismatches)
+
+                if num_mismatches == 1:
+                    error_lines.append(
+                        f'{indent}1 query failed to meet expectations.')
+                else:
+                    error_lines.append(
+                        f'{indent}{num_mismatches} queries failed to meet '
+                        f'expectations.'
+                    )
+
+                for mismatch_info in mismatches:
+                    mismatched_attrs = mismatch_info['mismatched_attrs']
+                    subqueries = mismatch_info['subqueries']
+                    has_mismatched_subqueries = (check_subqueries and
+                                                 subqueries is not None and
+                                                 subqueries['has_mismatches'])
+
+                    if subqueries:
+                        found_subqueries = True
+
+                    if mismatched_attrs or has_mismatched_subqueries:
+                        i = mismatch_info['index']
+                        note = mismatch_info['note']
+                        traceback = mismatch_info.get('traceback')
+                        query_sql = mismatch_info.get('query_sql') or []
+
+                        if note:
+                            title = f'{indent}Query {i + 1} ({note}):'
+                        else:
+                            title = f'{indent}Query {i + 1}:'
+
+                        error_lines += [
+                            '',
+                            title,
+                        ] + _serialize_mismatched_attrs(mismatched_attrs,
+                                                        indent=inner_indent)
+
+                        if has_mismatched_subqueries:
+                            assert subqueries is not None
+
+                            if mismatched_attrs:
+                                error_lines.append('')
+
+                            error_lines += [
+                                f'{inner_indent}Subqueries:',
+                            ] + _serialize_results(
+                                subqueries,
+                                indent=f'{inner_indent}  ')
+
+                        if query_sql:
+                            error_lines += [
+                                f'{indent}  SQL: {_sql}'
+                                for _sql in query_sql
+                            ]
+
+                        if with_tracebacks and traceback:
+                            traceback_str = \
+                                ''.join(traceback[-traceback_size:])
+                            error_lines.append(
+                                f'{indent}Trace: {traceback_str}')
+
+            if found_subqueries and check_subqueries is None:
+                RemovedInDjblets50Warning.warn(
+                    'assertQueries() does not check subqueries by default, '
+                    'but a subquery was found and ignored in this test! '
+                    'Djblets 5 will check subqueries by default. Please '
+                    'update your assertQueries() call to pass '
+                    'check_subqueries=True and then update your query '
+                    'expectations to include the subquery.')
+
+            return error_lines
+
+        # Run the query comparisons.
+        with compare_queries(_check_subqueries=bool(check_subqueries),
+                             queries=queries) as results:
+            yield
+
+        if results['has_mismatches']:
+            self.fail('\n'.join(_serialize_results(results)))
 
 
 class TestModelsLoaderMixin(object):

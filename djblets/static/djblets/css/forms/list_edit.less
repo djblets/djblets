@@ -36,6 +36,9 @@
    *     </ul>
    */
   &__entries {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
     list-style: none;
     margin: 0;
     padding: 0;
@@ -51,6 +54,8 @@
    *     </li>
    */
   &__entry {
+    display: flex;
+    gap: 0.5em;
     list-style: none;
   }
 
@@ -61,7 +66,9 @@
    *     <input class="djblets-c-list-edit-widget__input" ...>
    */
   &__input {
-    margin-right: 0.5em;
+    + & {
+      margin-right: 0.5em;
+    }
   }
 
   /**
@@ -74,6 +81,7 @@
    */
   &__remove-item {
     border: 0;
+    padding: 0.5em;
 
     &,
     &:link,
