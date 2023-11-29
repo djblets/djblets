@@ -1,6 +1,6 @@
 """Unit tests for djblets.webapi.fields."""
 
-from datetime import datetime
+import datetime
 
 import pytz
 from django.core.exceptions import ValidationError
@@ -136,14 +136,15 @@ class DateTimeFieldTypeTests(SpyAgency, TestCase):
 
     def test_clean_value_with_aware_datetime(self):
         """Testing DateTimeFieldType.clean_value with aware datetime"""
-        dt = datetime(2018, 2, 20, 13, 42, 0, tzinfo=timezone.utc)
+        dt = datetime.datetime(2018, 2, 20, 13, 42, 0,
+                               tzinfo=datetime.timezone.utc)
 
         self.assertEqual(self.field_type.clean_value(dt),
                          dt)
 
     def test_clean_value_with_naive_datetime(self):
         """Testing DateTimeFieldType.clean_value with naive datetime"""
-        dt = datetime(2018, 2, 20, 13, 42, 0)
+        dt = datetime.datetime(2018, 2, 20, 13, 42, 0)
         self.assertTrue(timezone.is_naive(dt))
 
         pst = pytz.timezone('US/Pacific')
@@ -158,7 +159,8 @@ class DateTimeFieldTypeTests(SpyAgency, TestCase):
         """
         self.assertEqual(
             self.field_type.clean_value('2018-02-20T13:42:00Z'),
-            datetime(2018, 2, 20, 13, 42, 0, tzinfo=timezone.utc))
+            datetime.datetime(2018, 2, 20, 13, 42, 0,
+                              tzinfo=datetime.timezone.utc))
 
     def test_clean_value_with_timestamp_string_no_timezone(self):
         """Testing DateTimeFieldType.clean_value with timestamp string without
@@ -169,7 +171,7 @@ class DateTimeFieldTypeTests(SpyAgency, TestCase):
         with timezone.override(pst):
             self.assertEqual(
                 self.field_type.clean_value('2018-02-20T13:42:00'),
-                pst.localize(datetime(2018, 2, 20, 13, 42, 0)))
+                pst.localize(datetime.datetime(2018, 2, 20, 13, 42, 0)))
 
     def test_clean_value_with_timestamp_string_ambiguous(self):
         """Testing DateTimeFieldType.clean_value with timestamp string with

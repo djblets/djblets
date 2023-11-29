@@ -1,10 +1,9 @@
 """Utilities for working with dates."""
 
 import calendar
-from datetime import datetime
+import datetime
 
 from django.db.models import DateField
-from django.utils.timezone import utc
 
 
 def http_date(timestamp):
@@ -14,7 +13,7 @@ def http_date(timestamp):
     """
     from django.utils.http import http_date
 
-    if isinstance(timestamp, (DateField, datetime)):
+    if isinstance(timestamp, (DateField, datetime.datetime)):
         return http_date(calendar.timegm(timestamp.timetuple()))
     elif isinstance(timestamp, str):
         return timestamp
@@ -37,4 +36,4 @@ def get_latest_timestamp(timestamps):
 
 def get_tz_aware_utcnow():
     """Returns a UTC aware datetime object"""
-    return datetime.utcnow().replace(tzinfo=utc)
+    return datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
