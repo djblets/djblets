@@ -38,9 +38,6 @@ template tags, templates, etc. that can be used by your own codebase.
 * djblets.features_ -
   Feature flags for enabling/disabling functionality based on any criteria
 
-* djblets.feedview_ -
-  Inline RSS feed reader for news posts and other data
-
 * djblets.forms_ -
   Specialized fields and widgets, enhanced form rendering, and
   dictionary-backed form data
