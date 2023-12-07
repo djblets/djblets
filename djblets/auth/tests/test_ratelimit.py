@@ -1,5 +1,7 @@
 """Tests for the utilities for rate-limiting login attempts."""
 
+import re
+
 import kgb
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.cache import cache
@@ -175,3 +177,106 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
                 'limit': 1,
                 'time_left': 0,
             })
+
+    @override_settings(LOGIN_LIMIT_RATE='1/s')
+    def test_get_usage_count_with_cache_get_error(self) -> None:
+        """Testing get_usage_count with cache.get() error"""
+        request = self.request_factory.get('/')
+        request.user = User(pk=1)
+
+        self.spy_on(cache.get, op=kgb.SpyOpRaise(Exception('Oh no')))
+
+        # First call will always have count=1, no matter what.
+        with self.assertLogs() as logs:
+            self.assertEqual(
+                get_usage_count(request=request,
+                                increment=True),
+
+                {
+                    'count': 0,
+                    'limit': 1,
+                    'time_left': 0,
+                })
+
+        self.assertEqual(len(logs.output), 1)
+        self.assertRegex(
+            logs.output[0],
+            re.compile(
+                r'^ERROR:djblets\.auth\.ratelimit:Failed to fetch rate limit '
+                r'cache key "example\.com:login-ratelimit:1/\d+"\. Rate limit '
+                r'checks are currently unreliable\. Is the cache server '
+                r'down\? Error = Oh no\n'
+                r'Traceback.*Exception: Oh no',
+                re.S))
+
+    @override_settings(LOGIN_LIMIT_RATE='1/s')
+    def test_get_usage_count_with_cache_add_error(self) -> None:
+        """Testing get_usage_count with cache.add() error"""
+        request = self.request_factory.get('/')
+        request.user = User(pk=1)
+
+        self.spy_on(cache.add, op=kgb.SpyOpRaise(Exception('Oh no')))
+
+        # First call will always have count=1, no matter what.
+        with self.assertLogs() as logs:
+            self.assertEqual(
+                get_usage_count(request=request,
+                                increment=True),
+
+                {
+                    'count': 0,
+                    'limit': 1,
+                    'time_left': 0,
+                })
+
+        self.assertEqual(len(logs.output), 1)
+        self.assertRegex(
+            logs.output[0],
+            re.compile(
+                r'^ERROR:djblets\.auth\.ratelimit:Failed to set rate limit '
+                r'cache key "example\.com:login-ratelimit:1/\d+"\. Rate limit '
+                r'checks are currently unreliable\. Is the cache server '
+                r'down\? Error = Oh no\n'
+                r'Traceback.*Exception: Oh no',
+                re.S))
+
+    @override_settings(LOGIN_LIMIT_RATE='1/s')
+    def test_get_usage_count_with_cache_set_error(self) -> None:
+        """Testing get_usage_count with cache.set() error"""
+        request = self.request_factory.get('/')
+        request.user = User(pk=1)
+
+        self.spy_on(cache.incr, op=kgb.SpyOpRaise(Exception('Oh no')))
+
+        # Put an item in cache.
+        self.assertEqual(
+            get_usage_count(request=request,
+                            increment=True),
+
+            {
+                'count': 0,
+                'limit': 1,
+                'time_left': 0,
+            })
+
+        with self.assertLogs() as logs:
+            self.assertEqual(
+                get_usage_count(request=request,
+                                increment=True),
+
+                {
+                    'count': 0,
+                    'limit': 1,
+                    'time_left': 0,
+                })
+
+        self.assertEqual(len(logs.output), 1)
+        self.assertRegex(
+            logs.output[0],
+            re.compile(
+                r'^ERROR:djblets\.auth\.ratelimit:Failed to set rate limit '
+                r'cache key "example\.com:login-ratelimit:1/\d+"\. Rate limit '
+                r'checks are currently unreliable\. Is the cache server '
+                r'down\? Error = Oh no\n'
+                r'Traceback.*Exception: Oh no',
+                re.S))
