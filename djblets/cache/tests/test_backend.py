@@ -1,5 +1,6 @@
 import inspect
 import pickle
+import re
 import zlib
 
 import kgb
@@ -143,6 +144,48 @@ class CacheMemoizeTests(BaseCacheTestCase):
         result = cache_memoize(cache_key, cache_func)
         self.assertEqual(result, data)
         self.assertSpyCallCount(cache_func, 1)
+
+    def test_with_cache_get_error(self) -> None:
+        """Testing cache_memoize with cache.get() error"""
+        cache_key = 'abc123'
+        test_str = 'Test 123'
+
+        self.spy_on(cache.get, op=kgb.SpyOpRaise(Exception('Oh no')))
+
+        with self.assertLogs() as logs:
+            result = cache_memoize(cache_key, lambda: test_str)
+
+        self.assertEqual(len(logs.output), 1)
+        self.assertRegex(
+            logs.output[0],
+            re.compile(
+                r'^ERROR:djblets\.cache\.backend:Error fetching data from '
+                r'cache for key "example.com:abc123": Oh no\n'
+                r'Traceback.*Exception: Oh no',
+                re.S))
+
+        self.assertEqual(result, test_str)
+
+    def test_with_cache_set_error(self) -> None:
+        """Testing cache_memoize with cache.set() error"""
+        cache_key = 'abc123'
+        test_str = 'Test 123'
+
+        self.spy_on(cache.set, op=kgb.SpyOpRaise(Exception('Oh no')))
+
+        with self.assertLogs() as logs:
+            result = cache_memoize(cache_key, lambda: test_str)
+
+        self.assertEqual(len(logs.output), 1)
+        self.assertRegex(
+            logs.output[0],
+            re.compile(
+                r'^ERROR:djblets\.cache\.backend:Error setting data in cache '
+                r'for key "example.com:abc123": Oh no\n'
+                r'Traceback.*Exception: Oh no',
+                re.S))
+
+        self.assertEqual(result, test_str)
 
     def test_with_large_files_uncompressed(self):
         """Testing cache_memoize with large files without compression"""
@@ -327,6 +370,44 @@ class CacheMemoizeTests(BaseCacheTestCase):
                                compress_large_data=False)
         self.assertEqual(result, data)
         self.assertSpyCallCount(cache_func, 1)
+
+    def test_with_large_files_cache_get_error(self) -> None:
+        """Testing cache_memoize with loading large files and cache.get()
+        error
+        """
+        cache_key = 'abc123'
+
+        # This takes into account the size of the pickle data, and will
+        # get us to exactly 2 chunks of data in cache.
+        data, pickled_data = self.build_test_chunk_data(num_chunks=2)
+
+        cache.set(make_cache_key(cache_key), '2')
+        cache.set(make_cache_key('%s-0' % cache_key),
+                  [pickled_data[:CACHE_CHUNK_SIZE]])
+
+        self.spy_on(cache.get, op=kgb.SpyOpRaise(Exception('Oh no')))
+
+        with self.assertLogs() as logs:
+            result = cache_memoize(cache_key,
+                                   lambda: data,
+                                   large_data=True,
+                                   compress_large_data=False)
+
+        self.assertEqual(len(logs.output), 2)
+        self.assertRegex(
+            logs.output[0],
+            re.compile(
+                r'^ERROR:djblets\.cache\.backend:Error fetching data from '
+                r'cache for key "example\.com:abc123": Oh no\n'
+                r'Traceback.*Exception: Oh no',
+                re.S))
+        self.assertEqual(
+            logs.output[1],
+            'ERROR:djblets.cache.backend:Failed to fetch large or iterable '
+            'data entry count from cache for key "example.com:abc123". '
+            'Rebuilding data. Error = Oh no')
+
+        self.assertEqual(result, data)
 
     def test_with_use_encryption(self):
         """Testing cache_memoize with use_encryption=True"""
@@ -1029,6 +1110,158 @@ class CacheMemoizeIterTests(BaseCacheTestCase):
 
         self.assertEqual(data_yielded, [])
         self.assertSpyCallCount(cache_func, 1)
+
+    def test_with_cache_get_error(self) -> None:
+        """Testing cache_memoize_iter with cache.get() error"""
+        cache_key = 'abc123'
+        data_yielded = []
+
+        data1, pickled_data_1 = self.build_test_chunk_data(num_chunks=2)
+        data2, pickled_data_2 = self.build_test_chunk_data(num_chunks=2)
+
+        def cache_func():
+            data_yielded.append('data1')
+            yield data1
+
+            data_yielded.append('data2')
+            yield data2
+
+        self.spy_on(cache_func)
+
+        # Crash on any cache.get() calls.
+        self.spy_on(cache.get, op=kgb.SpyOpRaise(Exception('Oh no')))
+
+        # A get() error will propagate up to the caller.
+        #
+        # A cache.get() error will log an error and continue on as normal.
+        with self.assertLogs() as logs:
+            result = cache_memoize_iter(cache_key, cache_func,
+                                        compress_large_data=False)
+
+            self.assertTrue(inspect.isgenerator(result))
+            self.assertEqual(data_yielded, [])
+
+            self.assertEqual(next(result), data1)
+            self.assertEqual(data_yielded, ['data1'])
+
+            self.assertEqual(next(result), data2)
+            self.assertEqual(data_yielded, ['data1', 'data2'])
+
+            with self.assertRaises(StopIteration):
+                next(result)
+
+        self.assertEqual(len(logs.output), 2)
+        self.assertRegex(
+            logs.output[0],
+            re.compile(
+                r'^ERROR:djblets\.cache\.backend:Error fetching data from '
+                r'cache for key "example\.com:abc123": Oh no\n'
+                r'Traceback.*Exception: Oh no',
+                re.S))
+        self.assertEqual(
+            logs.output[1],
+            'ERROR:djblets.cache.backend:Failed to fetch large or iterable '
+            'data entry count from cache for key "example.com:abc123". '
+            'Rebuilding data. Error = Oh no')
+
+        self.assertSpyCallCount(cache_func, 1)
+
+    def test_with_cache_set_error(self) -> None:
+        """Testing cache_memoize_iter with cache.set() error"""
+        cache_key = 'abc123'
+        data_yielded = []
+
+        data1 = self.build_test_chunk_data(num_chunks=2)[0]
+        data2 = self.build_test_chunk_data(num_chunks=2)[0]
+
+        def cache_func():
+            yield data1
+            data_yielded.append('data1')
+
+            yield data2
+            data_yielded.append('data2')
+
+        self.spy_on(cache_func)
+
+        # Crash on any cache.set() calls.
+        #
+        # A cache.set() error will log an error and continue on as normal.
+        @self.spy_for(cache.set)
+        def _cache_set(_self, key, *args, **kwargs):
+            if key == 'example.com:abc123':
+                raise Exception('Oh no')
+
+        with self.assertLogs() as logs:
+            results = list(cache_memoize_iter(cache_key, cache_func,
+                                              compress_large_data=False))
+
+        self.assertEqual(len(logs.output), 2)
+        self.assertRegex(
+            logs.output[0],
+            re.compile(
+                r'^ERROR:djblets\.cache\.backend:Error setting data in cache '
+                r'for key "example.com:abc123": Oh no\n'
+                r'Traceback.*Exception: Oh no',
+                re.S))
+        self.assertEqual(
+            logs.output[1],
+            'ERROR:djblets.cache.backend:Failed to store or retrieve large '
+            'or iterable cache data for key "example.com:abc123". '
+            'Newly-generated data will be returned but not cached. '
+            'Error = Oh no')
+
+        self.assertSpyCallCount(cache_func, 1)
+
+        self.assertEqual(data_yielded, ['data1', 'data2'])
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results, [data1, data2])
+
+    def test_with_cache_set_many_error(self) -> None:
+        """Testing cache_memoize_iter with cache.set_many() error"""
+        cache_key = 'abc123'
+        data_yielded = []
+
+        data1 = self.build_test_chunk_data(num_chunks=2)[0]
+        data2 = self.build_test_chunk_data(num_chunks=2)[0]
+
+        def cache_func():
+            yield data1
+            data_yielded.append('data1')
+
+            yield data2
+            data_yielded.append('data2')
+
+        self.spy_on(cache_func)
+
+        # Crash on any cache.set_many() calls.
+        #
+        # A cache.set_many() error will log an error and continue on as normal.
+        self.spy_on(cache.set_many, op=kgb.SpyOpRaise(Exception('Oh no')))
+
+        with self.assertLogs() as logs:
+            results = list(cache_memoize_iter(cache_key, cache_func,
+                                              compress_large_data=False))
+
+        self.assertEqual(len(logs.output), 2)
+        self.assertRegex(
+            logs.output[0],
+            re.compile(
+                r'^ERROR:djblets\.cache\.backend:Unable to store cached data '
+                r'for keys \[\'example\.com:abc123-0\']: Oh no\n'
+                r'Traceback.*Exception: Oh no',
+                re.S))
+        self.assertEqual(
+            logs.output[1],
+            'ERROR:djblets.cache.backend:Failed to store or retrieve large '
+            'or iterable cache data for key "example.com:abc123". '
+            'Newly-generated data will be returned but not cached. '
+            'Error = Oh no')
+
+        self.assertSpyCallCount(cache_func, 1)
+
+        self.assertEqual(data_yielded, ['data1', 'data2'])
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results, [data1, data2])
 
 
 class MakeCacheKeyTests(BaseCacheTestCase):

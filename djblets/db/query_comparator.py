@@ -178,6 +178,12 @@ class ExpectedQuery(TypedDict):
     #: The default is ``None``.
     group_by: NotRequired[Optional[Union[bool, Tuple[str, ...]]]]
 
+    #: A mapping of joined table names to their join types.
+    #:
+    #: Version Added:
+    #:     3.4
+    join_types: NotRequired[Dict[str, str]]
+
     #: The value for a ``LIMIT`` in the ``SELECT``.
     #:
     #: This will generally only need to be supplied if testing a query using
@@ -309,6 +315,12 @@ class CompareQueriesContext(TypedDict):
     #: The list of query expectation failures.
     query_mismatches: List[QueryMismatch]
 
+    #: An internal list of unchecked mismatched attributes.
+    #:
+    #: This is used internally and may be removed in a future version
+    #: without a deprecation period.
+    _unchecked_mismatched_attrs: Set[str]
+
 
 class _CheckQueryResult(TypedDict):
     """Results for a _check_query call.
@@ -327,12 +339,16 @@ class _CheckQueryResult(TypedDict):
     #: This will be ``None`` if not checking for subqueries.
     subqueries_compare_ctx: Optional[CompareQueriesContext]
 
+    #: An internal list of unchecked mismatched attributes.
+    unchecked_mismatched_attrs: Set[str]
+
 
 @contextmanager
 def compare_queries(
     queries: Sequence[Union[ExpectedQuery,
                             Dict[str, Any]]],
     *,
+    _check_join_types: bool = True,
     _check_subqueries: bool = True,
 ) -> Iterator[CompareQueriesContext]:
     """Assert the number and complexity of queries.
@@ -350,6 +366,14 @@ def compare_queries(
         queries (list of ExpectedQuery):
             The list of query dictionaries to compare executed queries
             against.
+
+        _check_join_types (bool, optional):
+            Whether to check join types.
+
+            This is internal for compatibility with the old behavior for
+            :py:meth:`TestCase.assertQueries()
+            <djblets.testing.testcases.assertQueries>` and will be removed in a
+            future release without a deprecation period.
 
         _check_subqueries (bool, optional):
             Whether to check subqueries.
@@ -373,7 +397,8 @@ def compare_queries(
         num_executed_queries=0,
         num_expected_queries=0,
         query_count_mismatch=False,
-        query_mismatches=[])
+        query_mismatches=[],
+        _unchecked_mismatched_attrs=set())
 
     with catch_queries(_check_subqueries=_check_subqueries) as catch_ctx:
         yield compare_ctx
@@ -382,6 +407,7 @@ def compare_queries(
         expected_queries=queries,
         executed_queries=catch_ctx.executed_queries,
         catch_ctx=catch_ctx,
+        _check_join_types=_check_join_types,
         _check_subqueries=_check_subqueries))
 
 
@@ -391,6 +417,7 @@ def _check_queries(
                                  Dict[str, Any]]],
     executed_queries: Sequence[_ExecutedQueryInfoT],
     catch_ctx: CatchQueriesContext,
+    _check_join_types: bool = True,
     _check_subqueries: bool = True,
 ) -> CompareQueriesContext:
     """Check database queries for expected output.
@@ -413,6 +440,14 @@ def _check_queries(
         catch_ctx (djblets.db.query_catcher.CatchQueriesContext):
             The context for caught queries.
 
+        _check_join_types (bool, optional):
+            Whether to check join types.
+
+            This is internal for compatibility with the old behavior for
+            :py:meth:`TestCase.assertQueries()
+            <djblets.testing.testcases.assertQueries>` and will be removed in a
+            future release without a deprecation period.
+
         _check_subqueries (bool, optional):
             Whether to check subqueries.
 
@@ -431,6 +466,7 @@ def _check_queries(
     num_expected_queries = len(expected_queries)
     num_executed_queries = len(executed_queries)
     query_count_mismatch: bool = False
+    unchecked_mismatched_attrs = set()
 
     # Make sure we received the expected number of queries.
     if num_expected_queries != num_executed_queries:
@@ -456,10 +492,12 @@ def _check_queries(
             executed_query=executed_query,
             executed_query_info=executed_query_info,
             expected_query_info=query_info,
+            check_join_types=_check_join_types,
             check_subqueries=_check_subqueries,
             catch_ctx=catch_ctx)
         mismatched_attrs = result['mismatched_attrs']
         subqueries_compare_ctx = result.get('subqueries_compare_ctx')
+        unchecked_mismatched_attrs.update(result['unchecked_mismatched_attrs'])
 
         if (mismatched_attrs or
             (_check_subqueries and
@@ -484,6 +522,7 @@ def _check_queries(
         'num_expected_queries': num_expected_queries,
         'query_count_mismatch': query_count_mismatch,
         'query_mismatches': query_mismatches,
+        '_unchecked_mismatched_attrs': unchecked_mismatched_attrs,
     }
 
 
@@ -552,6 +591,7 @@ def _check_query(
     executed_query: SQLQuery,
     executed_query_info: _ExecutedQueryInfoT,
     expected_query_info: ExpectedQuery,
+    check_join_types: bool,
     check_subqueries: bool,
     catch_ctx: CatchQueriesContext,
 ) -> _CheckQueryResult:
@@ -573,6 +613,14 @@ def _check_query(
         expected_query_info (dict):
             Information on the expectations for the query from the caller.
 
+        check_join_types (bool):
+            Whether to check for join types.
+
+            This is internal for compatibility with the old behavior for
+            :py:meth:`TestCase.assertQueries()
+            <djblets.testing.testcases.assertQueries>` and will be removed in a
+            future release without a deprecation period.
+
         check_subqueries (bool):
             Whether to check for subqueries.
 
@@ -591,6 +639,7 @@ def _check_query(
         See :py:class:`_CheckQueryResult` for details.
     """
     mismatched_attrs: List[QueryMismatchedAttr] = []
+    unchecked_mismatched_attrs: Set[str] = set()
 
     executed_model = executed_query.model
     assert executed_model is not None
@@ -703,8 +752,25 @@ def _check_query(
         expected_value=set(expected_query_info.get('tables',
                                                    tables_default)),
         executed_value=executed_tables,
-        format_expected_value_func=_format_query_value,
-        format_executed_value_func=_format_query_value)
+        format_expected_value_func=_format_set,
+        format_executed_value_func=_format_set)
+
+    # Check 'join_types'.
+    executed_join_types = {
+        _table_name: _value.join_type
+        for _table_name, _value in executed_query.alias_map.items()
+        if (_table_name != executed_table_name and
+            executed_query.alias_refcount.get(_table_name))
+    }
+
+    if check_join_types:
+        _check_expectation(
+            'join_types',
+            mismatched_attrs=mismatched_attrs,
+            expected_value=expected_query_info.get('join_types', {}),
+            executed_value=executed_join_types)
+    elif executed_join_types and 'join_types' not in expected_query_info:
+        unchecked_mismatched_attrs.add('join_types')
 
     # Check 'only_fields'.
     _check_expectation(
@@ -713,8 +779,8 @@ def _check_query(
         expected_value=set(expected_query_info.get('only_fields',
                                                    set())),
         executed_value=set(executed_query.deferred_loading[0]),
-        format_expected_value_func=_format_query_value,
-        format_executed_value_func=_format_query_value)
+        format_expected_value_func=_format_set,
+        format_executed_value_func=_format_set)
 
     # Check 'select_related'.
     executed_select_related_raw = executed_query.select_related
@@ -768,11 +834,13 @@ def _check_query(
         subqueries_compare_ctx = _check_queries(
             expected_queries=expected_query_info.get('subqueries') or [],
             executed_queries=executed_query_info['subqueries'],
+            _check_join_types=check_join_types,
             catch_ctx=catch_ctx)
 
     return {
         'mismatched_attrs': mismatched_attrs,
         'subqueries_compare_ctx': subqueries_compare_ctx,
+        'unchecked_mismatched_attrs': unchecked_mismatched_attrs,
     }
 
 
@@ -1163,3 +1231,23 @@ def _format_node(
             children_str = f'\n{children_str}'
 
     return f'{indent}{prefix}{name}({children_str})'
+
+
+def _format_set(
+    values: Set[Any],
+) -> str:
+    """Format a set with sorted values.
+
+    :py:mod:`pprint` doesn't sort sets unless they span multiple lines of
+    output. This function takes the set, turns it into a sorted list, and
+    then re-represents it as sorted set.
+
+    Args:
+        values (set):
+            The set to format.
+
+    Returns:
+        str:
+        The formatted set.
+    """
+    return '{%s}' % (pformat(sorted(values))[1:-1])

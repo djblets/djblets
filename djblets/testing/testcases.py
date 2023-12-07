@@ -45,6 +45,7 @@ from djblets.siteconfig.models import SiteConfiguration
 
 if TYPE_CHECKING:
     from djblets.db.query_comparator import (CompareQueriesContext,
+                                             ExpectedQuery,
                                              QueryMismatchedAttr)
 
 
@@ -363,6 +364,7 @@ class TestCase(testcases.TestCase):
         *,
         with_tracebacks: bool = False,
         traceback_size: int = 15,
+        check_join_types: Optional[bool] = None,
         check_subqueries: Optional[bool] = None,
     ) -> Iterator[None]:
         """Assert the number and complexity of queries.
@@ -375,8 +377,8 @@ class TestCase(testcases.TestCase):
 
         Version Changed:
             3.4:
-            * Added ``with_tracebacks``, ``tracebacks_size``, and
-              ``check_subqueries`` arguments.
+            * Added ``with_tracebacks``, ``tracebacks_size``,
+            ``check_join_types``, and ``check_subqueries`` arguments.
             * Added support for type hints for expected queries.
             * Query output can now show notes (when populating
               :py:attr:`ExpectedQuery.__note__`) to ease debugging.
@@ -414,6 +416,17 @@ class TestCase(testcases.TestCase):
                 The size of any tracebacks, in number of lines.
 
                 The default is 15.
+
+                Version Added:
+                    3.4
+
+            check_join_types (bool, optional):
+                Whether to check join types.
+
+                If enabled, table join types (``join_types`` on queries) will
+                be checked. This is currently disabled by default, in order
+                to avoid breaking tests, but will be enabled by default in
+                Djblets 5.
 
                 Version Added:
                     3.4
@@ -566,9 +579,20 @@ class TestCase(testcases.TestCase):
             return error_lines
 
         # Run the query comparisons.
-        with compare_queries(_check_subqueries=bool(check_subqueries),
+        with compare_queries(_check_join_types=bool(check_join_types),
+                             _check_subqueries=bool(check_subqueries),
                              queries=queries) as results:
             yield
+
+        if 'join_types' in results['_unchecked_mismatched_attrs']:
+            RemovedInDjblets50Warning.warn(
+                'assertQueries() does not check join_types by default, '
+                'but tables were joined in this test! Djblets 5 will '
+                'check subqueries by default. Please update your '
+                'assertQueries() call to pass check_join_types=True and '
+                'then update your query expectations to include '
+                '`join_types`.',
+                stacklevel=3)
 
         if results['has_mismatches']:
             self.fail('\n'.join(_serialize_results(results)))

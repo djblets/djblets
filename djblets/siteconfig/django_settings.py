@@ -91,8 +91,12 @@ def _set_cache_backend(
 
     from django.core.cache import cache
 
-    if isinstance(cache, ForwardingCacheBackend):
+    try:
         cache.reset_backend()
+    except Exception:
+        # Ignore this. It may not exist, and we may get an AttributeError
+        # or something else, depending on the implementation.
+        pass
 
 
 def _set_static_url(

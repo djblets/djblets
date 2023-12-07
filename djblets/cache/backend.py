@@ -158,6 +158,9 @@ class _CacheContext:
         If using encryption, this will serialize and encrypt the value.
         Otherwise this returns the value as-is.
 
+        Any errors will be logged and raised. It's up to callers to catch
+        and handle the errors gracefully.
+
         Args:
             full_cache_key (str):
                 The full cache key where this value will be stored.
@@ -206,6 +209,9 @@ class _CacheContext:
         This will take care of converting the provided key to a full cache
         key, and decrypting and deserializing the value if needed.
 
+        Any errors will be logged and raised. It's up to callers to catch
+        and handle the errors gracefully.
+
         Args:
             key (str):
                 The full cache key to load from cache.
@@ -224,7 +230,12 @@ class _CacheContext:
         if key is None:
             key = self.full_cache_key
 
-        value = self.cache.get(key, _NO_RESULTS)
+        try:
+            value = self.cache.get(key, _NO_RESULTS)
+        except Exception as e:
+            logger.exception('Error fetching data from cache for key "%s": %s',
+                             key, e)
+            raise
 
         if value is not _NO_RESULTS and self.use_encryption:
             try:
@@ -250,6 +261,9 @@ class _CacheContext:
 
         This will take care of preparing any values to be stored, if needed.
 
+        Any errors will be logged and raised. It's up to callers to catch
+        and handle the errors gracefully.
+
         Args:
             value (object):
                 The value to store in cache.
@@ -273,14 +287,22 @@ class _CacheContext:
         if not raw:
             value = self.prepare_value(key, value)
 
-        self.cache.set(key, value,
-                       timeout=self.expiration)
+        try:
+            self.cache.set(key, value,
+                           timeout=self.expiration)
+        except Exception as e:
+            logger.exception('Error setting data in cache for key "%s": %s',
+                             key, e)
+            raise
 
     def store_many(self, items):
         """Store many items directly to cache.
 
         All keys should be full cache keys, and all values should be prepared
         already.
+
+        Any errors will be logged and raised. It's up to callers to catch
+        and handle the errors gracefully.
 
         Args:
             items (dict):
@@ -291,8 +313,13 @@ class _CacheContext:
                 An error occurred preparing the value or writing to cache.
                 The exception is raised as-is.
         """
-        self.cache.set_many(items,
-                            timeout=self.expiration)
+        try:
+            self.cache.set_many(items,
+                                timeout=self.expiration)
+        except Exception as e:
+            logger.exception('Unable to store cached data for keys %r: %s',
+                             sorted(items.keys()), e)
+            raise
 
 
 def _get_default_use_encryption():
@@ -587,6 +614,9 @@ def _cache_store_chunks(cache_context, items):
     cache as efficiently as possible. Each item in the list will be
     yielded to the caller as it's fetched from the list or generator.
 
+    It's up to callers to catch any exceptions that may be raised from the
+    cache backend when attempting to store chunks.
+
     Version Changed:
         3.0:
         * Updated to take ``cache_context`` instead of additional arguments.
@@ -601,27 +631,41 @@ def _cache_store_chunks(cache_context, items):
             The generator of item tuples prepared in
             :py:func:`_cache_store_items`.
 
-            Each is in the form of:
+            Tuple:
+                0 (bytes):
+                    Byte string to store in the cache.
 
-            1. Byte string to store in cache
-            2. Boolean indicating if the raw data represents valid data to
-               ultimately yield to the caller in :py:func:`cache_memoize_iter`
-            3. Raw data to yield back to the caller
+                1 (bool):
+                    Whether the raw data represents valid data to ultimately
+                    yield to the caller in :py:func:`cache_memoize_iter`.
+
+                2 (object):
+                    Raw data to yield back to the caller.
 
     Yields:
+        tuple:
         object:
         Each chunk of original, unmodified item data being cached.
+
+    Raises:
+        Exception:
+            There was an error communicating with a cache backend.
+
+            The information should already be logged. Callers must catch this
+            to gracefully handle the failure.
     """
     chunks_data = io.BytesIO()
     chunks_data_len = 0
+    can_cache = True
     read_start = 0
     i = 0
+    error = None
 
     for data, has_item, item in items:
         if has_item:
             yield item
 
-        if not data:
+        if not data or not can_cache:
             continue
 
         chunks_data.write(data)
@@ -646,25 +690,48 @@ def _cache_store_chunks(cache_context, items):
                 i += 1
 
             # Store the keys in the cache in a single request.
-            cache_context.store_many(cached_data)
+            try:
+                cache_context.store_many(cached_data)
+            except Exception as e:
+                # Store this error and skip any further cache operations.
+                error = e
+                can_cache = False
 
             # Reposition back at the end of the stream.
             chunks_data.seek(0, io.SEEK_END)
 
-    if chunks_data_len > 0:
+    if can_cache and chunks_data_len > 0:
         # There's one last bit of data to store. Note that this should be
         # less than the size of a chunk,
         assert chunks_data_len <= CACHE_CHUNK_SIZE
 
         chunks_data.seek(read_start)
         chunk = chunks_data.read()
-        cache_context.store_value([chunk],
-                                  key=cache_context.make_subkey(i),
-                                  raw=True)
-        i += 1
 
-    # Store the final count.
-    cache_context.store_value('%d' % i)
+        # Store the final amount of data.
+        try:
+            cache_context.store_value([chunk],
+                                      key=cache_context.make_subkey(i),
+                                      raw=True)
+            i += 1
+        except Exception as e:
+            # Store this error and skip any further cache operations.
+            error = e
+            can_cache = False
+
+    if can_cache:
+        # Store the final count.
+        try:
+            cache_context.store_value('%d' % i)
+        except Exception as e:
+            # Store this error and skip any further cache operations (for
+            # good measure).
+            error = e
+            can_cache = False
+
+    if error is not None:
+        # Now we can raise the error we initially found.
+        raise error
 
 
 def _cache_store_items(cache_context, items):
@@ -675,6 +742,9 @@ def _cache_store_items(cache_context, items):
     cached over one or more keys, each representing a chunk about 1MB in size.
 
     A main cache key will be set that contains information on the other keys.
+
+    It's up to callers to catch any exceptions that may be raised from the
+    cache backend when attempting to store chunks.
 
     Version Changed:
         3.0:
@@ -693,10 +763,23 @@ def _cache_store_items(cache_context, items):
         tuple:
         Each is in the form of:
 
-        1. Byte string to store in the cache
-        2. Boolean indicating if the raw data represents valid data to
-           ultimately yield to the caller in :py:func:`cache_memoize_iter`
-        3. Raw data to yield back to the caller
+        Tuple:
+            0 (bytes):
+                Byte string to store in the cache.
+
+            1 (bool):
+                Whether the raw data represents valid data to ultimately yield
+                to the caller in :py:func:`cache_memoize_iter`.
+
+            2 (object):
+                Raw data to yield back to the caller.
+
+    Raises:
+        Exception:
+            There was an error communicating with a cache backend.
+
+            The information should already be logged. Callers must catch this
+            to gracefully handle the failure.
     """
     # Note that we want to use pickle protocol 0 in order to be compatible
     # across both Python 2 and 3. On Python 2, 0 is the default.
@@ -716,6 +799,9 @@ def _cache_store_items(cache_context, items):
             results,
             encryption_key=cache_context.encryption_key)
 
+    # Cache and yield results.
+    #
+    # Allow errors to bubble up.
     yield from _cache_store_chunks(cache_context=cache_context,
                                    items=results)
 
@@ -800,6 +886,14 @@ def cache_memoize_iter(key, items_or_callable,
         object:
         The list of items from the cache or from ``items_or_callable`` if
         uncached.
+
+    Raises:
+        Exception:
+            An error occurred while yielding results.
+
+            This could be a failure with the cache backend. Callers are
+            encouraged to catch exceptions and try to handle any mid-result
+            failures gracefully.
     """
     cache_context = _CacheContext(
         cache=cache,
@@ -811,11 +905,22 @@ def cache_memoize_iter(key, items_or_callable,
     full_cache_key = cache_context.full_cache_key
 
     results = _NO_RESULTS
+    data_from_cache = False
 
     if not force_overwrite:
-        chunk_count = cache_context.load_value()
+        try:
+            chunk_count = cache_context.load_value()
+        except Exception as e:
+            # We've logged specifics, but add some more context.
+            logger.error('Failed to fetch large or iterable data entry count '
+                         'from cache for key "%s". Rebuilding data. '
+                         'Error = %s',
+                         cache_context.full_cache_key, e)
+            chunk_count = _NO_RESULTS
 
         if chunk_count is not _NO_RESULTS:
+            data_from_cache = True
+
             try:
                 results = _cache_iter_large_data(
                     cache_context=cache_context,
@@ -823,23 +928,60 @@ def cache_memoize_iter(key, items_or_callable,
                         cache_context=cache_context,
                         chunk_count=int(chunk_count)))
             except Exception as e:
-                logger.warning('Failed to fetch large data from cache for '
-                               'key "%s": %s',
+                logger.warning('Failed to fetch large or iterable data from '
+                               'cache for key "%s": %s',
                                full_cache_key, e)
                 results = _NO_RESULTS
         else:
             logger.debug('Cache miss for key "%s"' % full_cache_key)
 
     if results is _NO_RESULTS:
+        data_from_cache = False
+
         if callable(items_or_callable):
+            # NOTE: We don't want to catch exceptions here, since a function
+            #       may need to bubble exceptions up to a caller.
             items = items_or_callable()
         else:
             items = items_or_callable
 
-        results = _cache_store_items(cache_context=cache_context,
-                                     items=items)
+        try:
+            results = _cache_store_items(cache_context=cache_context,
+                                         items=items)
+        except Exception as e:
+            # We've logged specifics. Log a general error.
+            #
+            # Note that this will only happen if an error occurs prior to
+            # yielding results. It shouldn't be cache backend-related.
+            logger.error('Failed to generate large or iterable cache data for '
+                         'key "%s". Newly-generated data will be returned but '
+                         'not cached. Error = %s',
+                         full_cache_key, e)
 
-    yield from results
+            # Return the results as-is without caching.
+            results = items
+    else:
+        items = _NO_RESULTS
+
+    # Yield the results to the caller.
+    try:
+        yield from results
+    except Exception as e:
+        if data_from_cache:
+            # This really shouldn't happen, since we've already fetched it
+            # above, but we'll log it just in case.
+            logger.error('Failed to return large or iterable cache data for '
+                         'key "%s". Something went wrong when returning '
+                         'processed results to the caller. Error = %s',
+                         full_cache_key, e)
+        else:
+            # The newly-generated results couldn't be cached. At this point,
+            # we should have yielded all data to the caller, and this should
+            # be the final error caught and raised at the end of that process.
+            logger.error('Failed to store or retrieve large or iterable '
+                         'cache data for key "%s". Newly-generated data '
+                         'will be returned but not cached. Error = %s',
+                         full_cache_key, e)
 
 
 def cache_memoize(key,
@@ -954,8 +1096,9 @@ def cache_memoize(key,
             try:
                 result = cache_context.load_value(full_cache_key)
             except Exception:
-                # We've already logged this. Proceed to generate new data.
-                pass
+                # We've already logged enough information for this. Proceed
+                # to generate new data.
+                result = _NO_RESULTS
 
             if result is not _NO_RESULTS:
                 return result
@@ -987,9 +1130,9 @@ def cache_memoize(key,
 
         try:
             cache_context.store_value(data, key=full_cache_key)
-        except Exception as e:
-            logger.error('Unable to store cached data in key "%s": %s',
-                         full_cache_key, e)
+        except Exception:
+            # We've already caught and logged this error.
+            pass
 
         return data
 
