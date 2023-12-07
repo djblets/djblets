@@ -1,10 +1,5 @@
 """A cache backend that forwards to other dynamically-configured backends."""
 
-import threading
-
-from django.core.signals import request_finished
-
-
 DEFAULT_FORWARD_CACHE_ALIAS = 'forwarded_backend'
 
 
@@ -25,20 +20,17 @@ class ForwardingCacheBackend(object):
     :py:meth:`reset_backend`, and all future cache requests will go to the
     newly computed backend.
     """
+
     def __init__(self, cache_name=DEFAULT_FORWARD_CACHE_ALIAS,
                  *args, **kwargs):
         self._cache_name = cache_name
-        self._backend = None
-        self._load_lock = threading.Lock()
-        self._load_gen = 0
 
     @property
     def backend(self):
         """Return the forwarded cache backend."""
-        if not self._backend:
-            self._load_backend()
+        from django.core.cache import caches
 
-        return self._backend
+        return caches[self._cache_name]
 
     def reset_backend(self):
         """Reset the forwarded cache backend.
@@ -47,45 +39,15 @@ class ForwardingCacheBackend(object):
         ``settings.CACHES['forwarded_backend']`` in order for the new
         backend to be picked up.
         """
-        if self._backend:
-            try:
-                self._backend.close()
-            except Exception:
-                # We don't really care if this fails. We just want the new
-                # configuration.
-                pass
+        from django.core.cache import caches
 
-            self._load_backend()
-
-    def close(self, *args, **kwargs):
-        """Close the cache backend."""
-        if self._backend:
-            self._backend.close(*args, **kwargs)
-
-    def _load_backend(self):
-        """Load the caching backend.
-
-        This will replace the current caching backend with a newly loaded
-        one, based on the stored cache name.
-
-        Only one thread at a time can load the cache backend. A counter
-        is kept that keeps the load generation number. If several threads
-        try to reload the backend at once, only one will succeed in doing
-        so for that generation.
-        """
-        cur_load_gen = self._load_gen
-
-        with self._load_lock:
-            if self._load_gen == cur_load_gen:
-                from django.core.cache import caches
-
-                self._backend = caches[self._cache_name]
-
-                # get_cache will attempt to connect to 'close', which we don't
-                # want. Instead, go and disconnect this.
-                request_finished.disconnect(self._backend.close)
-
-                self._load_gen = cur_load_gen + 1
+        try:
+            del caches[self._cache_name]
+        except Exception:
+            # We don't really care if this fails. It probably means the
+            # configuration was already deleted. The next access will recreate
+            # it.
+            pass
 
     def __contains__(self, key):
         return key in self.backend
