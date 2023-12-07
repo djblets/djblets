@@ -1,8 +1,6 @@
 """Unit tests for djblets.privacy.consent.base.ConsentData."""
 
-from datetime import datetime
-
-from django.utils import timezone
+import datetime
 
 from djblets.privacy.consent import ConsentData
 from djblets.privacy.tests.testcases import ConsentTestCase
@@ -25,7 +23,8 @@ class ConsentDataTests(ConsentTestCase):
         self.assertEqual(consent_data.requirement_id, 'test-requirement')
         self.assertTrue(consent_data.granted)
         self.assertEqual(consent_data.timestamp,
-                         datetime(2018, 1, 2, 13, 14, 15, tzinfo=timezone.utc))
+                         datetime.datetime(2018, 1, 2, 13, 14, 15,
+                                           tzinfo=datetime.timezone.utc))
         self.assertEqual(consent_data.source,
                          'http://example.com/account/profile/#consent')
         self.assertEqual(
@@ -44,7 +43,8 @@ class ConsentDataTests(ConsentTestCase):
         self.assertEqual(consent_data.requirement_id, 'test-requirement')
         self.assertFalse(consent_data.granted)
         self.assertEqual(consent_data.timestamp,
-                         datetime(2018, 1, 2, 13, 14, 15, tzinfo=timezone.utc))
+                         datetime.datetime(2018, 1, 2, 13, 14, 15,
+                                           tzinfo=datetime.timezone.utc))
         self.assertIsNone(consent_data.source)
         self.assertIsNone(consent_data.extra_data)
 
@@ -53,7 +53,8 @@ class ConsentDataTests(ConsentTestCase):
         consent_data = ConsentData(
             requirement_id='test-requirement',
             granted=True,
-            timestamp=datetime(2018, 1, 2, 13, 14, 15, tzinfo=timezone.utc),
+            timestamp=datetime.datetime(2018, 1, 2, 13, 14, 15,
+                                        tzinfo=datetime.timezone.utc),
             source='http://example.com/account/profile/#consent',
             extra_data={
                 'test': True,
@@ -77,7 +78,8 @@ class ConsentDataTests(ConsentTestCase):
         consent_data = ConsentData(
             requirement_id='test-requirement',
             granted=False,
-            timestamp=datetime(2018, 1, 2, 13, 14, 15, tzinfo=timezone.utc))
+            timestamp=datetime.datetime(2018, 1, 2, 13, 14, 15,
+                                        tzinfo=datetime.timezone.utc))
 
         self.assertEqual(
             consent_data.serialize_audit_info('123:test@example.com'),

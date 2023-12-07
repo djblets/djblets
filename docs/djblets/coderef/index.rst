@@ -196,18 +196,6 @@ Feature Checks
    :ref:`feature-checks-guides`
 
 
-.. _coderef-djblets-feedview:
-
-Feed View for RSS
-=================
-
-.. autosummary::
-   :toctree: python
-
-   djblets.feedview.views
-   djblets.feedview.templatetags.feedtags
-
-
 .. _coderef-djblets-forms:
 
 Form Utilities

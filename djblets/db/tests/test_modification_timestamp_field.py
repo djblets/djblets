@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+import datetime
 
 import kgb
 from django.db import models
@@ -42,7 +42,8 @@ class ModificationTimestampFieldTests(kgb.SpyAgency, TestModelsLoaderMixin,
         """Testing ModificationTimestampField.pre_save with new model instance
         and custom value
         """
-        timestamp = datetime(2018, 3, 6, 23, 31, 30, tzinfo=timezone.utc)
+        timestamp = datetime.datetime(2018, 3, 6, 23, 31, 30,
+                                      tzinfo=datetime.timezone.utc)
 
         obj = ModificationTimestampFieldTestModel(field=timestamp)
         self.assertIsNotNone(obj.field)
@@ -55,7 +56,8 @@ class ModificationTimestampFieldTests(kgb.SpyAgency, TestModelsLoaderMixin,
         """Testing ModificationTimestampField.pre_save with existing model
         instance
         """
-        timestamp = datetime(2018, 3, 6, 23, 31, 30, tzinfo=timezone.utc)
+        timestamp = datetime.datetime(2018, 3, 6, 23, 31, 30,
+                                      tzinfo=datetime.timezone.utc)
 
         obj = ModificationTimestampFieldTestModel.objects.create(
             field=timestamp)
@@ -82,7 +84,7 @@ class ModificationTimestampFieldTests(kgb.SpyAgency, TestModelsLoaderMixin,
             instance = ModificationTimestampFieldTestModel.objects.create()
             self.assertEqual(instance.field, timestamp)
 
-            timestamp += timedelta(hours=1)
+            timestamp += datetime.timedelta(hours=1)
             instance.save()
             self.assertEqual(instance.field, timestamp)
             self.assertNotEqual(instance.field, original_timestamp)
@@ -98,7 +100,7 @@ class ModificationTimestampFieldTests(kgb.SpyAgency, TestModelsLoaderMixin,
             instance = ModificationTimestampFieldTestModel.objects.create()
             self.assertEqual(instance.field, timestamp)
 
-            timestamp += timedelta(hours=1)
+            timestamp += datetime.timedelta(hours=1)
             instance.save()
             self.assertEqual(instance.field, timestamp)
             self.assertNotEqual(instance.field, original_timestamp)
@@ -112,15 +114,15 @@ class ModificationTimestampFieldTests(kgb.SpyAgency, TestModelsLoaderMixin,
             self.spy_on(timezone.now, call_fake=lambda: timestamp)
 
             instance = ModificationTimestampFieldTestModel.objects.create()
-            instance.field += timedelta(hours=1)
+            instance.field += datetime.timedelta(hours=1)
             instance.save()
 
             # Make sure the manually set value won't be overwritten.
             self.assertNotEqual(instance.field, timestamp)
             self.assertEqual(instance.field,
-                             timestamp + timedelta(hours=1))
+                             timestamp + datetime.timedelta(hours=1))
 
-            timestamp += timedelta(days=1)
+            timestamp += datetime.timedelta(days=1)
             instance.save()
 
             # Make sure the old manually set value can be overwritten later.
@@ -135,14 +137,14 @@ class ModificationTimestampFieldTests(kgb.SpyAgency, TestModelsLoaderMixin,
             self.spy_on(timezone.now, call_fake=lambda: timestamp)
 
             instance = ModificationTimestampFieldTestModel.objects.create()
-            instance.field += timedelta(hours=1)
+            instance.field += datetime.timedelta(hours=1)
             instance.save()
 
             self.assertNotEqual(instance.field, timestamp)
             self.assertEqual(instance.field,
-                             timestamp + timedelta(hours=1))
+                             timestamp + datetime.timedelta(hours=1))
 
-            timestamp += timedelta(days=1)
+            timestamp += datetime.timedelta(days=1)
             instance.save()
 
             # Make sure the old manually set value can be overwritten later.
@@ -156,7 +158,7 @@ class ModificationTimestampFieldTests(kgb.SpyAgency, TestModelsLoaderMixin,
             timestamp = timezone.now()
             self.spy_on(timezone.now, call_fake=lambda: timestamp)
 
-            manual_value = timestamp + timedelta(hours=4)
+            manual_value = timestamp + datetime.timedelta(hours=4)
 
             instance = MultitipleModificationTimestampFieldTestModel()
             instance.timestamp1 = manual_value
@@ -165,7 +167,7 @@ class ModificationTimestampFieldTests(kgb.SpyAgency, TestModelsLoaderMixin,
             self.assertEqual(instance.timestamp1, manual_value)
             self.assertEqual(instance.timestamp2, timestamp)
 
-            timestamp += timedelta(hours=1)
+            timestamp += datetime.timedelta(hours=1)
 
             instance.timestamp2 = manual_value
             instance.save()
@@ -181,7 +183,7 @@ class ModificationTimestampFieldTests(kgb.SpyAgency, TestModelsLoaderMixin,
             timestamp = timezone.now()
             self.spy_on(timezone.now, call_fake=lambda: timestamp)
 
-            manual_value = timestamp + timedelta(hours=4)
+            manual_value = timestamp + datetime.timedelta(hours=4)
 
             instance = MultitipleModificationTimestampFieldTestModel()
             instance.timestamp1 = manual_value
@@ -190,7 +192,7 @@ class ModificationTimestampFieldTests(kgb.SpyAgency, TestModelsLoaderMixin,
             self.assertEqual(instance.timestamp1, manual_value)
             self.assertEqual(instance.timestamp2, timestamp)
 
-            timestamp += timedelta(hours=1)
+            timestamp += datetime.timedelta(hours=1)
 
             instance.timestamp2 = manual_value
             instance.save()
@@ -211,7 +213,7 @@ class ModificationTimestampFieldTests(kgb.SpyAgency, TestModelsLoaderMixin,
 
         fetched = ModificationTimestampFieldTestModel.objects.get(
             pk=instance.pk)
-        timestamp += timedelta(hours=1)
+        timestamp += datetime.timedelta(hours=1)
         fetched.save()
 
         self.assertEqual(fetched.field, timestamp)
@@ -229,12 +231,13 @@ class ModificationTimestampFieldTests(kgb.SpyAgency, TestModelsLoaderMixin,
 
         fetched = ModificationTimestampFieldTestModel.objects.get(
             pk=instance.pk)
-        fetched.field += timedelta(hours=1)
+        fetched.field += datetime.timedelta(hours=1)
         fetched.save()
 
-        self.assertEqual(fetched.field, timestamp + timedelta(hours=1))
+        self.assertEqual(fetched.field,
+                         timestamp + datetime.timedelta(hours=1))
 
-        timestamp += timedelta(days=1)
+        timestamp += datetime.timedelta(days=1)
         fetched.save()
 
         # Make sure the old manually set value can be overwritten later.

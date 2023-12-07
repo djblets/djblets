@@ -48,7 +48,6 @@ package_dependencies = {
     'Django': django_version,
     'django-pipeline': '~=2.0.9',
     'dnspython': '>=2.3.0',
-    'feedparser': '>=6.0.9',
     'housekeeping': '~=1.1',
     'packaging': '>=23.1',
     'Pillow': '>=6.2',

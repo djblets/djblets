@@ -1,6 +1,6 @@
 """Unit tests for djblets.privacy.consent.base.BaseConsentRequirement."""
 
-from datetime import datetime
+import datetime
 
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -24,7 +24,8 @@ class BaseConsentRequirementTests(ConsentTestCase):
     def test_build_consent_data(self):
         """Testing BaseConsentRequirement.build_consent_data"""
         requirement = MyConsentRequirement()
-        timestamp = datetime(2018, 1, 2, 13, 14, 15, tzinfo=timezone.utc)
+        timestamp = datetime.datetime(2018, 1, 2, 13, 14, 15,
+                                      tzinfo=datetime.timezone.utc)
 
         consent_data = requirement.build_consent_data(
             granted=False,
@@ -48,7 +49,8 @@ class BaseConsentRequirementTests(ConsentTestCase):
     def test_get_consent(self):
         """Testing BaseConsentRequirement.get_consent"""
         requirement = MyConsentRequirement()
-        timestamp = datetime(2018, 1, 2, 13, 14, 15, tzinfo=timezone.utc)
+        timestamp = datetime.datetime(2018, 1, 2, 13, 14, 15,
+                                      tzinfo=datetime.timezone.utc)
         user = User.objects.create(username='test-user')
 
         consent_data = ConsentData(

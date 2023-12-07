@@ -1,8 +1,6 @@
 """Unit tests for djblets.util.dates."""
 
-from datetime import datetime
-
-from django.utils.timezone import utc
+import datetime
 
 from djblets.testing.testcases import TestCase
 from djblets.util.dates import (get_latest_timestamp, get_tz_aware_utcnow,
@@ -14,7 +12,7 @@ class DatesTests(TestCase):
 
     def test_http_date_with_datetime(self):
         """Testing http_date with datetime"""
-        date_time = datetime(2016, 8, 26, 3, 3, 26, 123456)
+        date_time = datetime.datetime(2016, 8, 26, 3, 3, 26, 123456)
         self.assertEqual(http_date(date_time),
                          'Fri, 26 Aug 2016 03:03:26 GMT')
 
@@ -47,4 +45,4 @@ class DatesTests(TestCase):
     def test_date_time_is_in_utc(self):
         """Testing get_tz_aware_utcnow returns UTC time."""
         utc_time = get_tz_aware_utcnow()
-        self.assertEqual(utc_time.tzinfo, utc)
+        self.assertEqual(utc_time.tzinfo, datetime.timezone.utc)

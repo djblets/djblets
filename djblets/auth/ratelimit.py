@@ -206,12 +206,25 @@ def get_usage_count(request, increment=False, limit_type=RATE_LIMIT_LOGIN):
 
     if increment:
         try:
-            count = cache.incr(cache_key)
-        except ValueError:
-            cache.add(cache_key, 1)
+            try:
+                count = cache.incr(cache_key)
+            except ValueError:
+                cache.add(cache_key, 1)
+        except Exception as e:
+            logger.exception('Failed to set rate limit cache key "%s". Rate '
+                             'limit checks are currently unreliable. Is the '
+                             'cache server down? Error = %s',
+                             cache_key, e)
 
     if count is None:
-        count = cache.get(cache_key, 0)
+        try:
+            count = cache.get(cache_key, 0)
+        except Exception as e:
+            logger.exception('Failed to fetch rate limit cache key "%s". Rate '
+                             'limit checks are currently unreliable. Is the '
+                             'cache server down? Error = %s',
+                             cache_key, e)
+            count = 0
 
     if not increment:
         # Add one to the returned value, even if we aren't incrementing the

@@ -1,6 +1,6 @@
 """Unit tests for djblets.privacy.consent.tracker."""
 
-from datetime import datetime
+import datetime
 
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -51,7 +51,8 @@ class DatabaseConsentTrackerTests(SpyAgency, ConsentTestCase):
         self.tracker = DatabaseConsentTracker()
         self.user = User.objects.create(username='test-user',
                                         email='test@example.com')
-        self.timestamp = datetime(2018, 1, 2, 13, 14, 15, tzinfo=timezone.utc)
+        self.timestamp = datetime.datetime(2018, 1, 2, 13, 14, 15,
+                                           tzinfo=datetime.timezone.utc)
 
         self.spy_on(timezone.now, call_fake=lambda: self.timestamp)
 
