@@ -29,7 +29,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         3.4
     """
 
-    maxDiff = 10_000
+    maxDiff = 20_000
 
     _extra_ws_re = re.compile(r'\s{2,}')
 
@@ -68,6 +68,9 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
                             ),
                         },
                         'extra_tables': ('auth_group',),
+                        'join_types': {
+                            'djblets_privacy_storedconsentdata': 'INNER JOIN',
+                        },
                         'model': User,
                         'num_joins': 1,
                         'only_fields': {'username'},
@@ -124,6 +127,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             ctx,
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 1,
                 'num_expected_queries': 1,
@@ -158,6 +162,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -207,6 +212,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -260,6 +266,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -305,6 +312,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -353,6 +361,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -380,6 +389,18 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
                         'djblets_privacy_storedconsentdata',
                     },
                     'raw_expected_value': {'auth_user'},
+                },
+                {
+                    'executed_value': (
+                        "{'djblets_privacy_storedconsentdata':"
+                        " 'INNER JOIN'}"
+                    ),
+                    'expected_value': '{}',
+                    'name': 'join_types',
+                    'raw_executed_value': {
+                        'djblets_privacy_storedconsentdata': 'INNER JOIN',
+                    },
+                    'raw_expected_value': {},
                 },
                 {
                     'executed_value': 'Q(storedconsentdata__pk__gt=0)',
@@ -418,6 +439,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -464,6 +486,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -510,6 +533,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -556,6 +580,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -601,6 +626,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -624,7 +650,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         queries: ExpectedQueries = [
             {
                 'model': User,
-                'select_related': ('group',),
+                'select_related': {'group'},
             },
         ]
 
@@ -647,6 +673,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -790,6 +817,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             subquery_mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -824,6 +852,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -870,6 +899,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -916,6 +946,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
@@ -961,6 +992,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             mismatch['subqueries'],
             {
+                '_unchecked_mismatched_attrs': set(),
                 'has_mismatches': False,
                 'num_executed_queries': 0,
                 'num_expected_queries': 0,
