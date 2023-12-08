@@ -11,6 +11,9 @@ from django.core.exceptions import ImproperlyConfigured
 from djblets.cache.backend import make_cache_key
 
 
+logger = logging.getLogger(__name__)
+
+
 #: Available rate limit categories.
 RATE_LIMIT_LOGIN = 0
 RATE_LIMIT_API_ANONYMOUS = 1
