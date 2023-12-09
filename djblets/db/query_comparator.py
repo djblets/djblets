@@ -17,7 +17,10 @@ from typing import (Any, Callable, Dict, Iterator, List, Optional, Sequence,
                     Set, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast)
 
 from django.db.models import F, Q, QuerySet
-from django.db.models.expressions import CombinedExpression, Subquery, Value
+from django.db.models.expressions import (CombinedExpression,
+                                          NegatedExpression,
+                                          Subquery,
+                                          Value)
 from django.db.models.query import MAX_GET_RESULTS
 from django.db.models.sql.query import Query as SQLQuery
 from django.utils.tree import Node
@@ -848,7 +851,7 @@ def _build_subquery_placeholder(
     *,
     subquery: Union[Q, QuerySet, Subquery],
     subqueries: List[Any],
-) -> Union[Q, tuple]:
+) -> Union[Node, Q, tuple]:
     """Normalize a subquery to a placeholder.
 
     This will convert a subquery or an expression containing subquery value to
@@ -923,9 +926,18 @@ def _normalize_q(
 
     children: List[Any] = []
 
+    # Negated expressions are special. We need to extract an expressin out of
+    # them.
+    is_negated_epxression = False and isinstance(q, NegatedExpression)
+
+    if is_negated_epxression:
+        q_children = [q.expression]
+    else:
+        q_children = getattr(q, 'children', [])
+
     # Go through all the children and see if we can collapse or transform any
     # of them for comparison.
-    for child in q.children:
+    for child in q_children:
         if isinstance(child, Q):
             # Remove any empty children.
             if not child:
@@ -951,6 +963,10 @@ def _normalize_q(
                 elif not child.negated:
                     # Since we're not negating, we can collapse the child.
                     child = grandchild
+        elif isinstance(child, NegatedExpression):
+            child = ~Q(_build_subquery_placeholder(
+                subquery=child.expression,
+                subqueries=subqueries))
         elif normalize_subqueries and isinstance(child, Subquery):
             # Subqueries are formatted as Q(__SubqueryType__subquery__=index),
             # since we can't actually compare true subqueries. Instead, this
@@ -963,6 +979,11 @@ def _normalize_q(
         children.append(child)
 
     new_q = q
+
+    if is_negated_epxression:
+        assert len(children) == 1
+
+        return children[0]
 
     if len(children) == 1 and isinstance(children[0], Q):
         # There's only one single nested Q, meaning we don't have multiple Qs

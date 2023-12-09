@@ -14,6 +14,7 @@ from typing import Any, Dict, Iterator, List, Sequence, Type, Union
 
 from django.core.exceptions import EmptyResultSet
 from django.db.models import Q, QuerySet, Subquery
+from django.db.models.expressions import ExpressionWrapper
 from django.db.models.signals import pre_delete
 from django.db.models.sql.compiler import (SQLCompiler,
                                            SQLDeleteCompiler,
@@ -362,21 +363,27 @@ def _scan_subqueries(
                                  result=result,
                                  queries_to_qs=queries_to_qs,
                                  _check_subqueries=_check_subqueries)
-            elif _check_subqueries and isinstance(child, (QuerySet, Subquery)):
-                child_subqueries = []
-                _scan_subqueries(node=child.query,
-                                 result=child_subqueries,
-                                 queries_to_qs=queries_to_qs,
-                                 _check_subqueries=_check_subqueries)
+            elif _check_subqueries:
+                if isinstance(child, ExpressionWrapper):
+                    # NOTE: As of November 28, 2023, django-stubs doesn't have
+                    #       type hints for `ExpressionWrapper.expression`.
+                    child = child.expression  # type: ignore
 
-                result.append({
-                    'cls': type(child),
-                    'instance': child,
-                    'query': child.query,
-                    'result_type': 'subquery',
-                    'subqueries': child_subqueries,
-                    'type': ExecutedQueryType.SELECT,
-                })
+                if isinstance(child, (QuerySet, Subquery)):
+                    child_subqueries = []
+                    _scan_subqueries(node=child.query,
+                                     result=child_subqueries,
+                                     queries_to_qs=queries_to_qs,
+                                     _check_subqueries=_check_subqueries)
+
+                    result.append({
+                        'cls': type(child),
+                        'instance': child,
+                        'query': child.query,
+                        'result_type': 'subquery',
+                        'subqueries': child_subqueries,
+                        'type': ExecutedQueryType.SELECT,
+                    })
 
 
 def _serialize_caught_sql(

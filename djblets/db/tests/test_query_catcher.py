@@ -106,7 +106,7 @@ class CaptureQueriesTests(TestModelsLoaderMixin, TestCase):
             sql=[
                 'INSERT INTO "djblets_db_capturedqueriestestmodel"'
                 ' ("name", "flag")'
-                ' SELECT test1, True UNION ALL SELECT test2, True',
+                ' VALUES (test1, True), (test2, True)',
             ])
 
     def test_with_delete(self) -> None:
@@ -173,7 +173,7 @@ class CaptureQueriesTests(TestModelsLoaderMixin, TestCase):
             sql=[
                 'INSERT INTO "djblets_db_capturedqueriestestmodel"'
                 ' ("name", "flag")'
-                ' SELECT test, True',
+                ' VALUES (test, True)',
             ])
 
         self._check_query(
@@ -250,7 +250,7 @@ class CaptureQueriesTests(TestModelsLoaderMixin, TestCase):
                 '   FROM "djblets_db_capturedqueriesreltestmodel" U0'
                 '   WHERE'
                 '    U0."test_id" ='
-                '    "djblets_db_capturedqueriestestmodel"."id") AS "sub"'
+                '    ("djblets_db_capturedqueriestestmodel"."id")) AS "sub"'
                 ' FROM "djblets_db_capturedqueriestestmodel" '
                 ' WHERE'
                 '  "djblets_db_capturedqueriestestmodel"."name"'
@@ -309,11 +309,11 @@ class CaptureQueriesTests(TestModelsLoaderMixin, TestCase):
                 ' "djblets_db_capturedqueriestestmodel"."id",'
                 ' "djblets_db_capturedqueriestestmodel"."name",'
                 ' "djblets_db_capturedqueriestestmodel"."flag", '
-                ' EXISTS(SELECT (1) AS "a"'
+                ' EXISTS(SELECT 1 AS "a"'
                 '  FROM "djblets_db_capturedqueriesreltestmodel" U0'
                 '  WHERE'
                 '   U0."test_id" ='
-                '   "djblets_db_capturedqueriestestmodel"."id"'
+                '   ("djblets_db_capturedqueriestestmodel"."id")'
                 '  LIMIT 1) AS "sub"'
                 ' FROM "djblets_db_capturedqueriestestmodel" '
                 ' WHERE'
@@ -388,7 +388,7 @@ class CaptureQueriesTests(TestModelsLoaderMixin, TestCase):
                 '    (SELECT (SUM(U0."id") + 1) AS "some_value"'
                 '      FROM "djblets_db_capturedqueriesreltestmodel" U0'
                 '      WHERE U0."test_id" ='
-                '       "djblets_db_capturedqueriestestmodel"."id"'
+                '       ("djblets_db_capturedqueriestestmodel"."id")'
                 '      GROUP BY U0."id", U0."test_id"))'
             ],
 
@@ -445,10 +445,10 @@ class CaptureQueriesTests(TestModelsLoaderMixin, TestCase):
                 ' WHERE'
                 '  ("djblets_db_capturedqueriestestmodel"."name"'
                 '    LIKE test% ESCAPE \'\\\' AND'
-                '   EXISTS(SELECT (1) AS "a"'
+                '   EXISTS(SELECT 1 AS "a"'
                 '    FROM "djblets_db_capturedqueriesreltestmodel" U0'
                 '    WHERE U0."test_id" ='
-                '     "djblets_db_capturedqueriestestmodel"."id"'
+                '     ("djblets_db_capturedqueriestestmodel"."id")'
                 '    LIMIT 1))',
             ],
 
@@ -563,9 +563,9 @@ class CaptureQueriesTests(TestModelsLoaderMixin, TestCase):
                 'SELECT COUNT(*)'
                 ' FROM'
                 ' (SELECT DISTINCT'
-                '   "djblets_db_capturedqueriestestmodel"."id" AS Col1,'
-                '   "djblets_db_capturedqueriestestmodel"."name" AS Col2,'
-                '   "djblets_db_capturedqueriestestmodel"."flag" AS Col3'
+                '   "djblets_db_capturedqueriestestmodel"."id" AS "col1",'
+                '   "djblets_db_capturedqueriestestmodel"."name" AS "col2",'
+                '   "djblets_db_capturedqueriestestmodel"."flag" AS "col3"'
                 '  FROM "djblets_db_capturedqueriestestmodel"'
                 '  WHERE "djblets_db_capturedqueriestestmodel"."name"'
                 '   LIKE test% ESCAPE \'\\\') subquery'
@@ -641,28 +641,28 @@ class CaptureQueriesTests(TestModelsLoaderMixin, TestCase):
             sql=[
                 'SELECT COUNT(*) FROM'
                 ' (SELECT DISTINCT'
-                '  "djblets_db_capturedqueriestestmodel"."id" AS Col1,'
-                '  "djblets_db_capturedqueriestestmodel"."name" AS Col2,'
-                '  "djblets_db_capturedqueriestestmodel"."flag" AS Col3,'
+                '  "djblets_db_capturedqueriestestmodel"."id" AS "col1",'
+                '  "djblets_db_capturedqueriestestmodel"."name" AS "col2",'
+                '  "djblets_db_capturedqueriestestmodel"."flag" AS "col3",'
                 '  (SELECT V0."id"'
                 '    FROM "djblets_db_capturedqueriesreltestmodel" V0'
                 '    WHERE (V0."test_id" ='
-                '     "djblets_db_capturedqueriestestmodel"."id" AND'
+                '     ("djblets_db_capturedqueriestestmodel"."id") AND'
                 '     V0."test_id" >'
                 '     (SELECT (SUM(U0."id") + 1) AS "some_value"'
                 '       FROM "djblets_db_capturedqueriesreltestmodel" U0'
-                '       WHERE U0."test_id" = V0."id"'
+                '       WHERE U0."test_id" = (V0."id")'
                 '       GROUP BY U0."id", U0."test_id"))) AS "sub1"'
                 '  FROM "djblets_db_capturedqueriestestmodel"'
                 '  WHERE'
                 '   ("djblets_db_capturedqueriestestmodel"."name"'
                 '     LIKE test% ESCAPE \'\\\' AND'
-                '    EXISTS(SELECT (1) AS "a"'
+                '    EXISTS(SELECT 1 AS "a"'
                 '     FROM "djblets_db_capturedqueriesreltestmodel" V0'
                 '     WHERE'
                 '      (V0."test_id" ='
-                '       "djblets_db_capturedqueriestestmodel"."id"'
-                '       AND NOT EXISTS(SELECT (1) AS "a"'
+                '       ("djblets_db_capturedqueriestestmodel"."id")'
+                '       AND NOT EXISTS(SELECT 1 AS "a"'
                 '        FROM "djblets_db_capturedqueriesreltestmodel" U0'
                 '        WHERE U0."test_id" = 2'
                 '        LIMIT 1))'
