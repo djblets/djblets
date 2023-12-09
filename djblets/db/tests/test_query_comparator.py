@@ -10,7 +10,7 @@ import re
 from typing import TYPE_CHECKING
 
 from django.contrib.auth.models import Group, User
-from django.db.models import Count, Exists, F, OuterRef, Q
+from django.db.models import Count, Exists, F, OuterRef, Q, Value
 
 from djblets.db.query_catcher import CatchQueriesContext
 from djblets.db.query_comparator import (compare_queries,
@@ -29,7 +29,7 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         3.4
     """
 
-    maxDiff = 20_000
+    maxDiff = None
 
     _extra_ws_re = re.compile(r'\s{2,}')
 
@@ -84,9 +84,13 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
 
                         'subqueries': [
                             {
+                                'annotations': {
+                                    'a': Value(1),
+                                },
                                 'limit': 2,
                                 'model': User,
                                 'offset': 1,
+                                'subquery': True,
                                 'values_select': ('pk',),
                                 'where': Q(Q(pk=OuterRef('pk')) &
                                            Q(username='test')),
@@ -806,6 +810,27 @@ class CompareQueriesTests(TestModelsLoaderMixin, TestCase):
         self.assertEqual(
             subquery_mismatch['mismatched_attrs'],
             [
+                {
+                    'executed_value': "{'a': Value(1)}",
+                    'expected_value': '{}',
+                    'name': 'annotations',
+                    'raw_executed_value': {'a': Value(1)},
+                    'raw_expected_value': {},
+                },
+                {
+                    'executed_value': 'True',
+                    'expected_value': 'False',
+                    'name': 'subquery',
+                    'raw_executed_value': True,
+                    'raw_expected_value': False,
+                },
+                {
+                    'executed_value': '1',
+                    'expected_value': 'None',
+                    'name': 'limit',
+                    'raw_executed_value': 1,
+                    'raw_expected_value': None,
+                },
                 {
                     'executed_value': "Q(pk=OuterRef('pk'))",
                     'expected_value': 'Q()',
