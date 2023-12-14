@@ -40,14 +40,17 @@ class DmarcDnsTestsMixin(MixinParentClass):
     dmarc_txt_records: Dict[str, Union[bytes, str]]
 
     def setUp(self) -> None:
-        super().setUp()
-
         self.dmarc_txt_records = {}
 
         self._dmarc_spy_agency = SpyAgency()
         self._dmarc_spy_agency.spy_on(dns.resolver.resolve,
                                       call_fake=self._dns_query)
         cache.clear()
+
+        # This has to happen after we clear the cache. Some other test cases
+        # (such as webapi or siteconfig tests) rely on cached data that gets
+        # set up in their setUp methods.
+        super().setUp()
 
     def tearDown(self) -> None:
         super().tearDown()
