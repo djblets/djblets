@@ -136,7 +136,7 @@ $.fn.datagrid = function() {
             helper: function() {
                 var $el = $(this);
 
-                return $('<div/>')
+                return $('<div>')
                     .addClass('datagrid-header-drag datagrid-header')
                     .width($el.width())
                     .height($el.height())
@@ -305,7 +305,7 @@ $.fn.datagrid = function() {
             standaloneColumns = {},
             hasStandaloneColumns = false,
             labels = [],
-            $newTBody = $('<tbody/>'),
+            $newTBody = $('<tbody>'),
             $newRow,
             $newCell,
             $prevRow,
@@ -359,9 +359,9 @@ $.fn.datagrid = function() {
                     deleteCell = true;
 
                     $prevRow.addClass('datagrid-row-continues');
-                    $prevRow = $('<tr class="mobile-only-row"/>')
+                    $prevRow = $('<tr class="mobile-only-row">')
                         .addClass(row.className)
-                        .append($('<th/>').text(labels[j]))
+                        .append($('<th>').text(labels[j]))
                         .append($newCell)
                         .appendTo($newTBody);
                 } else if (!$cell.html().strip()) {
@@ -381,7 +381,7 @@ $.fn.datagrid = function() {
                      * one at the end.
                      */
                     $toDelete = $toDelete.add($cell);
-                    $newRow.append('<td/>');
+                    $newRow.append('<td>');
                 }
             }
 
@@ -395,7 +395,7 @@ $.fn.datagrid = function() {
                  * Prefix a blank header before the first line, to match
                  * the labeled headers on subsequent lines.
                  */
-                $newRow.prepend('<th/>');
+                $newRow.prepend('<th>');
             }
         }
 

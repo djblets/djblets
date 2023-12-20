@@ -48,7 +48,7 @@ $.widget('ui.inlineEditor', {
         useEditIconOnly: false,
 
         createMultilineField: function(/* editor */) {
-            return $('<textarea/>').autoSizeTextArea();
+            return $('<textarea>').autoSizeTextArea();
         },
 
         setFieldValue: function(editor, value) {
@@ -82,7 +82,7 @@ $.widget('ui.inlineEditor', {
         this._dirtyCalcScheduled = false;
 
         /* Elements */
-        this._form = $('<form/>')
+        this._form = $('<form>')
             .addClass('inline-editor-form ' + this.options.cls)
             .css('display', 'inline')
             .insertBefore(this.element)
@@ -94,7 +94,7 @@ $.widget('ui.inlineEditor', {
                     this.element.triggerHandler('resize');
                 }, this));
         } else {
-            this._field = $('<input type="text"/>');
+            this._field = $('<input type="text">');
         }
 
         /*
@@ -111,9 +111,9 @@ $.widget('ui.inlineEditor', {
 
         if (this.options.showButtons) {
             if (this.options.multiline) {
-                this._buttons = $('<div/>');
+                this._buttons = $('<div>');
             } else {
-                this._buttons = $('<span/>');
+                this._buttons = $('<span>');
             }
 
             this._buttons
@@ -126,13 +126,13 @@ $.widget('ui.inlineEditor', {
              */
             this._buttons.hide();
 
-            $('<input type="button"/>')
+            $('<input type="button">')
                 .val(gettext('OK'))
                 .addClass('save')
                 .appendTo(this._buttons)
                 .click(function() { self.submit(); });
 
-            $('<input type="button"/>')
+            $('<input type="button">')
                 .val(gettext('Cancel'))
                 .addClass('cancel')
                 .appendTo(this._buttons)
@@ -142,7 +142,7 @@ $.widget('ui.inlineEditor', {
         this._editIcon = null;
 
         if (this.options.showEditIcon) {
-            this._editIcon = $('<a/>')
+            this._editIcon = $('<a>')
                 .attr({
                     'aria-label': gettext('Edit this field'),
                     'href': '#',
@@ -157,7 +157,7 @@ $.widget('ui.inlineEditor', {
 
             if (this.options.editIconPath) {
                 this._editIcon.append(
-                    '<img src="' + this.options.editIconPath + '"/>');
+                    '<img src="' + this.options.editIconPath + '">');
             } else if (this.options.editIconClass) {
                 this._editIcon.append(
                     '<div class="' + this.options.editIconClass + '"></div>');
@@ -165,7 +165,7 @@ $.widget('ui.inlineEditor', {
 
             if (this.options.showRequiredFlag) {
                 this._editIcon.append(
-                    $('<span/>')
+                    $('<span>')
                         .attr({
                             'aria-label': gettext('This field is required'),
                             'title': gettext('This field is required')

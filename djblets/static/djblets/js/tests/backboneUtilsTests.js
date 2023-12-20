@@ -9,7 +9,7 @@ suite('djblets/gravy/backboneUtils', function() {
         var $el;
 
         beforeEach(function() {
-            $el = $('<div/>').appendTo(document.body);
+            $el = $('<div>').appendTo(document.body);
         });
 
         describe('Initial class value', function() {
@@ -95,10 +95,10 @@ suite('djblets/gravy/backboneUtils', function() {
             $radio2;
 
         beforeEach(function() {
-            $el = $("<input type='checkbox'/>").appendTo(document.body);
-            $radio1 = $('<input type="radio" name="my-radio" value="one" />')
+            $el = $("<input type='checkbox'>").appendTo(document.body);
+            $radio1 = $('<input type="radio" name="my-radio" value="one">')
                 .appendTo(document.body);
-            $radio2 = $('<input type="radio" name="my-radio" value="two" />')
+            $radio2 = $('<input type="radio" name="my-radio" value="two">')
                 .appendTo(document.body);
         });
 
@@ -267,7 +267,7 @@ suite('djblets/gravy/backboneUtils', function() {
 
         describe('Special properties', function() {
             it('text', function() {
-                var $el = $('<p/>');
+                var $el = $('<p>');
 
                 $el.bindProperty('text', model, 'text', {
                     elementToModel: false
@@ -279,7 +279,7 @@ suite('djblets/gravy/backboneUtils', function() {
             });
 
             it('html', function() {
-                var $el = $('<p/>');
+                var $el = $('<p>');
 
                 $el.bindProperty('html', model, 'html', {
                     elementToModel: false
@@ -296,7 +296,7 @@ suite('djblets/gravy/backboneUtils', function() {
         var $el;
 
         beforeEach(function() {
-            $el = $('<div/>').appendTo(document.body);
+            $el = $('<div>').appendTo(document.body);
         });
 
         afterEach(function() {

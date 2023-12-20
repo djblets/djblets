@@ -263,7 +263,7 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
             this._$preview
                 .empty()
                 .removeClass('avatar-preview-unset')
-                .append($('<img />').attr({
+                .append($('<img>').attr({
                     alt: _`Your new avatar`,
                     src: reader.result,
                 }));

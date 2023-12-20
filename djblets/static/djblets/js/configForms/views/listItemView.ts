@@ -252,20 +252,20 @@ export class ListItemView<
         $action: JQuery,
     ) {
         const actionPos = $action.position();
-        const $menu = $('<div/>')
+        const $menu = $('<div>')
             .css({
                 minWidth: $action.outerWidth(),
                 position: 'absolute',
             })
             .addClass('djblets-c-config-forms-popup-menu')
             .click(e => e.stopPropagation());
-        const $items = $('<ul/>')
+        const $items = $('<ul>')
             .addClass('djblets-c-config-forms-popup-menu__items')
             .appendTo($menu);
         const actionLeft = actionPos.left + $action.getExtents('m', 'l');
 
         action.children.forEach(
-            childAction => $('<li/>')
+            childAction => $('<li>')
                 .addClass('djblets-c-config-forms-popup-menu__item ' +
                           `config-forms-list-action-row-${childAction.id}`)
                 .append(this._buildActionEl(childAction))
@@ -325,7 +325,7 @@ export class ListItemView<
 
         if (isCheckbox || isRadio) {
             const inputID = _.uniqueId('action_' + action.type);
-            $action = $('<input/>')
+            $action = $('<input>')
                 .attr({
                     id: inputID,
                     name: action.name,
@@ -339,7 +339,7 @@ export class ListItemView<
                 $label.addClass(`config-forms-list-action-label-${action.id}`);
             }
 
-            $result = $('<span/>')
+            $result = $('<span>')
                 .append($action)
                 .append($label);
 
