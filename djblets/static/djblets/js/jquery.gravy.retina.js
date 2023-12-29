@@ -29,7 +29,7 @@
  * All versions of IE and Edge do not support this attribute so we need to
  * polyfill for them.
  */
-var supportsSourceSet = ($('<img src="" />')[0].srcset === '');
+var supportsSourceSet = ($('<img src="">')[0].srcset === '');
 
 
 /**

@@ -25,7 +25,7 @@
 
 $.widget('ui.modalBox', {
     options: {
-        buttons: [$('<input type="button" />').val(gettext('Close'))],
+        buttons: [$('<input type="button">').val(gettext('Close'))],
         container: 'body',
         discardOnClose: true,
         fadeBackground: true,
@@ -61,7 +61,7 @@ $.widget('ui.modalBox', {
         this._titleID = _.uniqueId('modalbox-title-');
 
         if (this.options.fadeBackground) {
-            this.bgbox = $('<div/>')
+            this.bgbox = $('<div>')
                 .addClass('modalbox-bg')
                 .attr('aria-hidden', 'true')
                 .css({
@@ -75,7 +75,7 @@ $.widget('ui.modalBox', {
                 .appendTo(this.options.container);
         }
 
-        this.box = $('<div/>')
+        this.box = $('<div>')
             .addClass('modalbox')
             .attr({
                 'aria-labelledby': this._titleID,
@@ -91,7 +91,7 @@ $.widget('ui.modalBox', {
             this.box.attr('id', this.options.boxID);
         }
 
-        this.inner = $('<div/>')
+        this.inner = $('<div>')
             .addClass('modalbox-inner')
             .attr('tabindex', '0')
             .css({
@@ -102,7 +102,7 @@ $.widget('ui.modalBox', {
             .appendTo(this.box);
 
         if (this.options.title) {
-            this.titleBox = $('<h1/>')
+            this.titleBox = $('<h1>')
                 .attr('id', this._titleID)
                 .addClass(this.options.modalBoxTitleClass)
                 .text(this.options.title)
@@ -121,7 +121,7 @@ $.widget('ui.modalBox', {
             subtree: true
         });
 
-        this._buttons = $('<div/>')
+        this._buttons = $('<div>')
             .addClass(this.options.modalBoxButtonsClass)
             .click(function(e) {
                 /* Check here so that buttons can call stopPropagation(). */

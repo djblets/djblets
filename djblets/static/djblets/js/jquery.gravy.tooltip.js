@@ -28,7 +28,7 @@ $.tooltip = function($el, options) {
         side: 'b'
     }, options);
 
-    var self = $('<div/>')
+    var self = $('<div>')
         .addClass('tooltip')
         .hide()
         .appendTo('body');
