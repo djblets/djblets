@@ -36,7 +36,7 @@ $.widget('ui.autoSizeTextArea', {
     _init: function() {
         var self = this;
 
-        this._proxyEl = $('<pre/>')
+        this._proxyEl = $('<pre>')
             .appendTo('body')
             .move(-10000, -10000, 'absolute');
 

@@ -120,11 +120,11 @@ const ConditionRowView = BaseConditionRowView.extend({
         const rowNum = this.model.get('id');
 
         /* Build the list of choices. This will be populated up-front. */
-        this._$choice = $('<select/>')
+        this._$choice = $('<select>')
             .attr('name', `${fieldName}_choice[${rowNum}]`);
 
         this.conditionSet.choices.each(choice => {
-            this._$choice.append($('<option/>')
+            this._$choice.append($('<option>')
                 .val(choice.id)
                 .text(choice.get('name')));
         });
@@ -136,7 +136,7 @@ const ConditionRowView = BaseConditionRowView.extend({
          * Build the list for the operators. This will be populated when
          * calling _onChoiceChanged, and whenever the choice changes.
          */
-        this._$operator = $('<select/>')
+        this._$operator = $('<select>')
             .attr('name', `${fieldName}_operator[${rowNum}]`)
             .appendTo($rowOptions.children('.conditions-field-operator'));
 
@@ -179,7 +179,7 @@ const ConditionRowView = BaseConditionRowView.extend({
 
         choice.operators.each(operator => {
             this._$operator.append(
-                $('<option/>')
+                $('<option>')
                     .val(operator.id)
                     .text(operator.get('name')));
         });

@@ -12,7 +12,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
     }
 
     it('Rendering', function() {
-        const view = createValueField('<input type="text" />');
+        const view = createValueField('<input type="text">');
 
         expect(view.$input[0].tagName).toBe('INPUT');
         expect(view.$input.attr('type')).toBe('text');
@@ -23,7 +23,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
         describe('getValue', function() {
             it('<input>', function() {
                 const view = createValueField(
-                    '<input type="text" value="abc123" />');
+                    '<input type="text" value="abc123">');
 
                 expect(view.getValue()).toBe('abc123');
             });
@@ -50,7 +50,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
 
         describe('setValue', function() {
             it('<input>', function() {
-                const view = createValueField('<input type="text" />');
+                const view = createValueField('<input type="text">');
 
                 view.setValue('abc123');
 

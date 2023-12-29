@@ -16,7 +16,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
     function setupConditionSetView(conditionsData) {
         const conditionsTemplate = _.template([
             '<div class="conditions-field">\n',
-            ' <input type="hidden" name="my_conditions_last_id" />\n',
+            ' <input type="hidden" name="my_conditions_last_id">\n',
             ' <div class="conditions-field-mode"></div>\n',
             ' <div class="conditions-field-rows-container">\n',
             '  <ul class="conditions-field-rows"></ul>\n',
@@ -43,10 +43,10 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                                 name: 'My Op 2',
                                 useValue: true,
                                 valueField: makeValueField(
-                                    '<input type="number" />'),
+                                    '<input type="number">'),
                             },
                         ],
-                        valueField: makeValueField('<input type="text" />'),
+                        valueField: makeValueField('<input type="text">'),
                     },
                     {
                         id: 'my-choice-2',
@@ -63,7 +63,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
                                 useValue: true,
                             },
                         ],
-                        valueField: makeValueField('<input type="email" />'),
+                        valueField: makeValueField('<input type="email">'),
                     },
                 ],
                 conditionsData: conditionsData,

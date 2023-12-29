@@ -34,7 +34,7 @@ suite('djblets/forms/views/ListEditView', function() {
             <input type="text"
                 class="djblets-c-list-edit-widget__input"
                 id="_value___EDIT_LIST_ROW_ID__"
-                name="_value[__EDIT_LIST_ROW_INDEX__]" />
+                name="_value[__EDIT_LIST_ROW_INDEX__]">
         `,
     ) {
         const $el =
@@ -92,7 +92,7 @@ suite('djblets/forms/views/ListEditView', function() {
                            class="djblets-c-list-edit-widget__input"
                            id="_value_UUID"
                            name="_value[0]"
-                           value="One" />
+                           value="One">
                 `,
             ]);
             expect($numRows.val()).toEqual('1');
@@ -123,21 +123,21 @@ suite('djblets/forms/views/ListEditView', function() {
                            class="djblets-c-list-edit-widget__input"
                            id="_value_UUID1"
                            name="_value[0]"
-                           value="One" />
+                           value="One">
                 `,
                 dedent`
                     <input type="text"
                            class="djblets-c-list-edit-widget__input"
                            id="_value_UUID2"
                            name="_value[1]"
-                           value="Two" />
+                           value="Two">
                 `,
                 dedent`
                     <input type="text"
                            class="djblets-c-list-edit-widget__input"
                            id="_value_UUID3"
                            name="_value[2]"
-                           value="Three" />
+                           value="Three">
                 `,
             ]);
 
@@ -218,21 +218,21 @@ suite('djblets/forms/views/ListEditView', function() {
                            class="djblets-c-list-edit-widget__input"
                            id="_value_UUID1",
                            name="_value[0]"
-                           value="One" />
+                           value="One">
                 `,
                 dedent`
                     <input type="text"
                            class="djblets-c-list-edit-widget__input"
                            id="_value_UUID2",
                            name="_value[1]"
-                           value="Two" />
+                           value="Two">
                 `,
                 dedent`
                     <input type="text"
                            class="djblets-c-list-edit-widget__input"
                            id="_value_UUID3",
                            name="_value[2]"
-                           value="Three" />
+                           value="Three">
                 `,
             ]);
 
