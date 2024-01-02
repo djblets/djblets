@@ -278,39 +278,6 @@ class BuildI18nCommand(Command):
             raise RuntimeError('Failed to build i18n files')
 
 
-class FetchPublicSuffixListCommand(Command):
-    """Fetches the DNS public suffix list for use in DMARC lookups."""
-
-    description = 'Fetch the DNS public suffix list from publicsuffix.org.'
-    user_options = []
-
-    def initialize_options(self):
-        """Initialize options for the command.
-
-        This is required, but does not actually do anything.
-        """
-        pass
-
-    def finalize_options(self):
-        """Finalize options for the command.
-
-        This is required, but does not actually do anything.
-        """
-        pass
-
-    def run(self):
-        """Run the commands to fetch the DNS public suffix list."""
-        from publicsuffix import fetch as fetch_public_suffix
-
-        print('Fetching DNS public suffix list...')
-        filename = os.path.join('djblets', 'mail', 'public_suffix_list.dat')
-
-        with open(filename, 'w') as fp:
-            fp.write(fetch_public_suffix().read().encode('utf-8'))
-
-        print('Public suffix list stored at %s' % filename)
-
-
 class InstallNodeDependenciesCommand(Command):
     """Installs all node.js dependencies from npm.
 
@@ -403,7 +370,6 @@ setup(
         'build_i18n': BuildI18nCommand,
         'develop': DevelopCommand,
         'egg_info': BuildEggInfoCommand,
-        'fetch_public_suffix_list': FetchPublicSuffixListCommand,
         'install_node_deps': InstallNodeDependenciesCommand,
     },
     classifiers=[
