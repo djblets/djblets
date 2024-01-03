@@ -51,7 +51,7 @@ package_dependencies = {
     'housekeeping': '~=1.1',
     'packaging': '>=23.1',
     'Pillow': '>=6.2',
-    'publicsuffix': '>=1.1',
+    'publicsuffixlist': '~=0.10.0',
     'python-dateutil': '>=2.7',
     'pytz': '',
     'typing_extensions': '>=4.4',
