@@ -4,20 +4,21 @@ from __future__ import annotations
 
 import logging
 from enum import Enum
-from pathlib import Path
 from typing import Dict, Optional
 
 import dns.rdatatype
 import dns.resolver
-import importlib_resources
 from housekeeping import deprecate_non_keyword_only_args
-from publicsuffix import PublicSuffixList
+from publicsuffixlist import PublicSuffixList
 
 from djblets.cache.backend import DEFAULT_EXPIRATION_TIME, cache_memoize
 from djblets.deprecation import RemovedInDjblets60Warning
 
 
 logger = logging.getLogger(__name__)
+
+
+_public_suffix_list: Optional[PublicSuffixList] = None
 
 
 class DmarcPolicy(Enum):
@@ -325,6 +326,8 @@ def get_dmarc_record(
         The DMARC record. If it could not be found, ``None`` will be returned
         instead.
     """
+    global _public_suffix_list
+
     record = _fetch_dmarc_record(hostname=hostname,
                                  use_cache=use_cache,
                                  cache_expiration=cache_expiration)
@@ -332,25 +335,17 @@ def get_dmarc_record(
     if not record:
         # We need to fetch from the Organizational Domain for the hostname
         # provided. For this, we need to look up from a Public Suffix list.
-        # The third-party module 'publicsuffix' will help us find that
+        # The third-party module 'publicsuffixlist' will help us find that
         # domain, in combination with a data file we must ship.
-        filename = Path('mail', 'public_suffix_list.dat')
-        resource_path = importlib_resources.files('djblets') / filename
+        if _public_suffix_list is None:
+            _public_suffix_list = PublicSuffixList()
 
-        try:
-            with resource_path.open('r') as fp:
-                psl = PublicSuffixList(fp)
-        except IOError as e:
-            logger.error('Unable to read public domain suffix list file '
-                         '"%s" from Djblets package: %s',
-                         filename, e)
-        else:
-            new_hostname = psl.get_public_suffix(hostname)
+        new_hostname = _public_suffix_list.privatesuffix(hostname)
 
-            if new_hostname != hostname:
-                record = _fetch_dmarc_record(hostname=new_hostname,
-                                             use_cache=use_cache,
-                                             cache_expiration=cache_expiration)
+        if new_hostname and new_hostname != hostname:
+            record = _fetch_dmarc_record(hostname=new_hostname,
+                                         use_cache=use_cache,
+                                         cache_expiration=cache_expiration)
 
     return record
 

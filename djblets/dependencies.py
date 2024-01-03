@@ -51,7 +51,7 @@ package_dependencies = {
     'housekeeping': '~=1.1',
     'packaging': '>=23.1',
     'Pillow': '>=6.2',
-    'publicsuffix': '>=1.1',
+    'publicsuffixlist': '~=0.10.0',
     'python-dateutil': '>=2.7',
     'pytz': '',
     'typing_extensions': '>=4.4',
@@ -94,7 +94,7 @@ frontend_buildkit_npm_dependencies: Dict[str, str] = {
 
 #: Dependencies required for static media linting.
 lint_npm_dependencies: Dict[str, str] = {
-    '@beanbag/eslint-plugin': '^1.0.1',
+    '@beanbag/eslint-plugin': '^1.0.2',
     'eslint': '^8.29.0',
 }
 
