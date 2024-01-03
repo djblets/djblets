@@ -94,7 +94,7 @@ frontend_buildkit_npm_dependencies: Dict[str, str] = {
 
 #: Dependencies required for static media linting.
 lint_npm_dependencies: Dict[str, str] = {
-    '@beanbag/eslint-plugin': '^1.0.1',
+    '@beanbag/eslint-plugin': '^1.0.2',
     'eslint': '^8.29.0',
 }
 
