@@ -92,6 +92,11 @@ function parseSourceSet(srcset) {
 Djblets.enableRetinaImages = function($container, selector) {
     var pixelRatio = window.devicePixelRatio;
 
+    console.warn(
+        'Djblets.enableRetinaImages() is deprecated and will be removed ' +
+        'in Djblets 6.0. Images with high-DPI versions should use native ' +
+        'browser srcset.');
+
     if (pixelRatio === 1 || supportsSourceSet) {
         return;
     }
@@ -148,6 +153,11 @@ Djblets.enableRetinaImages = function($container, selector) {
  *     This element, for chaining.
  */
 $.fn.retinaGravatar = function() {
+    console.warn(
+        '$.retinaGravatar() is deprecated and will be removed in Djblets ' +
+        '6.0. Any code using gravatars should be updated to use ' +
+        'djblets.avatars.');
+
     if (window.devicePixelRatio > 1) {
         $(this).each(function() {
             var $el = $(this);
@@ -178,6 +188,11 @@ $.fn.retinaGravatar = function() {
  *     The URL to the Gravatar best matching the current display.
  */
 Djblets.getGravatarForDisplay = function(url) {
+    console.warn(
+        'Djblets.getGravatarForDisplay() is deprecated and will be removed ' +
+        'in Djblets 6.0. Any code using gravatars should be updated to use ' +
+        'djblets.avatars.');
+
     if (window.devicePixelRatio > 1) {
         var parts = url.split('?', 2),
             params,
