@@ -108,7 +108,7 @@ class RootResourceTests(kgb.SpyAgency, TestCase):
         self.assertNotIn('exclude', uri_templates)
         self.assertNotIn('excludes', uri_templates)
 
-    @override_settings(DEBUG=False)
+    @override_settings(DEBUG=True)
     def test_get_uri_templates_must_be_unique(self):
         """Testing RootResource.get_uri_templates logs an error when multiple
         URI templates are mapped to the same name in production mode
@@ -131,7 +131,7 @@ class RootResourceTests(kgb.SpyAgency, TestCase):
             self.assertEqual(uri_templates['mocks'],
                              'http://testserver/mocks/')
 
-    @override_settings(DEBUG=True)
+    @override_settings(DEBUG=False)
     def test_get_uri_templates_must_be_unique_debug(self):
         """Testing RootResource.get_uri_templates raises an error when multiple
         URI templates are mapped to the same name in debug mode
@@ -240,6 +240,7 @@ class RootResourceTemplateRegistrationTests(TestCase):
             mock_extension_resource]
         self.assertEqual(actual_result, {'key': 'value'})
 
+    @override_settings(DEBUG=True)
     def test_register_uri_template_clears_uri_template_cache(self):
         """Testing register_uri_templates clears the URI template cache"""
         resource = self.root_res
@@ -283,6 +284,7 @@ class RootResourceTemplateRegistrationTests(TestCase):
             self.root_res._registered_uri_templates[self.ext_res],
             {})
 
+    @override_settings(DEBUG=True)
     def test_unregister_uri_template_clears_uri_template_cache(self):
         """Testing unregister_uri_templates clears the URI template cache"""
         resource = self.root_res

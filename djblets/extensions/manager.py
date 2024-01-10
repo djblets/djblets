@@ -252,10 +252,10 @@ class ExtensionManager:
 
     #: Whether to explicitly install static media files from packages.
     #:
-    #: By default, we install static media files if :django:setting:`DEBUG`
-    #: is ``True``. Subclasses can override this to factor in other settings,
-    #: if needed.
-    should_install_static_media = not settings.DEBUG
+    #: By default, we install static media files if
+    #: :django:setting:`PRODUCTION` is ``True``. Subclasses can override this
+    #: to factor in other settings, if needed.
+    should_install_static_media = settings.PRODUCTION
 
     #: The key in the settings indicating the last known configured version.
     #:
@@ -846,10 +846,10 @@ class ExtensionManager:
                 try:
                     self._init_extension(ext_class)
                 except EnablingExtensionError:
-                    # When in debug mode, we want this error to be noticed.
+                    # When in developer mode, we want this error to be noticed.
                     # However, in production, it shouldn't break the whole
                     # server, so continue on.
-                    if not settings.DEBUG:
+                    if settings.PRODUCTION:
                         continue
 
                 extensions_changed = True

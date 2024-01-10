@@ -1,6 +1,7 @@
 import os
 
 DEBUG = True
+PRODUCTION = False
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
