@@ -2,12 +2,6 @@ PIPELINE_JAVASCRIPT = {
     'djblets-avatars-config': {
         'source_filenames': (
             'djblets/js/avatars/index.ts',
-
-            # Legacy JavaScript
-            'djblets/js/avatars/models/avatarSettingsModel.es6.js',
-            'djblets/js/avatars/views/avatarServiceSettingsFormView.es6.js',
-            'djblets/js/avatars/views/avatarSettingsFormView.es6.js',
-            'djblets/js/avatars/views/fileUploadSettingsFormView.es6.js',
         ),
         'output_filename': 'djblets/js/avatars-config.min.js',
     },

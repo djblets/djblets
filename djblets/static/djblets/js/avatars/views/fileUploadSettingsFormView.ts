@@ -1,4 +1,10 @@
-(function() {
+/**
+ * A settings form for the file upload avatar service.
+ */
+
+import { EventsHash, spina } from '@beanbag/spina';
+
+import { ServiceSettingsFormView } from './avatarServiceSettingsFormView';
 
 
 const allowedMimeTypes = [
@@ -8,16 +14,17 @@ const allowedMimeTypes = [
 ];
 
 
-const ParentView = Djblets.Avatars.ServiceSettingsFormView;
-
-
 /**
  * A file upload avatar settings form.
  *
  * This form provides a preview of the uploaded avatar.
  */
-Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
-    events: {
+@spina
+export class FileUploadSettingsFormView extends ServiceSettingsFormView {
+    /**
+     * Events for the view.
+     */
+    static events: EventsHash = {
         'change #id_file-upload-avatar_upload': '_onFileChanged',
         'click .avatar-file-upload-browse': '_onBrowseClicked',
         'click .avatar-preview': '_onBrowseClicked',
@@ -25,15 +32,32 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
         'dragleave .avatar-file-upload-config': '_onDragLeave',
         'dragover .avatar-file-upload-config': '_onDragOver',
         'drop .avatar-file-upload-config': '_onDrop',
-    },
+    };
+
+    /**********************
+     * Instance variables *
+     **********************/
+
+    /** The main container for the form. */
+    #$box: JQuery;
+
+    /** The preview image. */
+    #$preview: JQuery;
+
+    /** The file input element. */
+    #$fileInput: JQuery<HTMLInputElement>;
 
     /**
      * Validate the form.
      *
      * If a file is selected, ensure it is has the correct MIME type.
+     *
+     * Returns:
+     *     boolean:
+     *     Whether the form is valid.
      */
-    validate() {
-        const file = this._$fileInput[0].files[0];
+    validate(): boolean {
+        const file = this.#$fileInput[0].files[0];
 
         if (!file) {
             alert(_`You must choose a file.`);
@@ -51,22 +75,17 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
         }
 
         return true;
-    },
+    }
 
     /**
      * Render the form.
-     *
-     * Returns:
-     *     Djblets.Avatars.FileUploadSettingsFormView:
-     *     This view (for chaining).
      */
-    render() {
-        this._$box = this.$('.avatar-file-upload-config');
-        this._$preview = this.$('.avatar-preview');
-        this._$fileInput = this.$('#id_file-upload-avatar_upload');
-
-        return this;
-    },
+    onInitialRender() {
+        this.#$box = this.$('.avatar-file-upload-config');
+        this.#$preview = this.$('.avatar-preview');
+        this.#$fileInput = this.$(
+            '#id_file-upload-avatar_upload') as JQuery<HTMLInputElement>;
+    }
 
     /**
      * Handler for a click event on the "browse" instruction text.
@@ -77,7 +96,7 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
      *     e (jQuery.Event):
      *         The click event.
      */
-    _onBrowseClicked(e) {
+    _onBrowseClicked(e: Event) {
         e.preventDefault();
         e.stopPropagation();
 
@@ -88,7 +107,7 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
          * click on the label.
          */
         this.$('#avatar-file-upload-browse-label').click();
-    },
+    }
 
     /**
      * Handler for a drag enter event.
@@ -101,16 +120,16 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
      *     e (jQuery.Event):
      *         The drag over event.
      */
-    _onDragEnter(e) {
+    _onDragEnter(e: Event) {
         e.preventDefault();
         e.stopPropagation();
 
-        if (e.target === this._$box[0]) {
-            this._$box
-                .width(this._$box.width())
+        if (e.target === this.#$box[0]) {
+            this.#$box
+                .width(this.#$box.width())
                 .addClass('drag-hover');
         }
-    },
+    }
 
     /**
      * Handler for a drag over event.
@@ -122,18 +141,18 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
      *     e (jQuery.Event):
      *         The drag over event.
      */
-    _onDragOver(e) {
+    _onDragOver(e: JQuery.DragEvent) {
         e.preventDefault();
         e.stopPropagation();
 
-        if (e.target === this._$box[0]) {
+        if (e.target === this.#$box[0]) {
             const dt = e.originalEvent.dataTransfer;
 
             if (dt) {
                 dt.dropEffect = 'copy';
             }
         }
-    },
+    }
 
     /**
      * Handler for a drag leave event.
@@ -145,12 +164,12 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
      *     e (jQuery.Event):
      *         The drag leave event.
      */
-    _onDragLeave(e) {
+    _onDragLeave(e: JQuery.DragEvent) {
         e.preventDefault();
         e.stopPropagation();
 
-        if (e.target === this._$box[0]) {
-            this._$box
+        if (e.target === this.#$box[0]) {
+            this.#$box
                 .removeClass('drag-hover')
                 .width('auto');
 
@@ -160,7 +179,7 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
                 dt.dropEffect = 'none';
             }
         }
-    },
+    }
 
     /**
      * Handler for a drop operation.
@@ -177,11 +196,11 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
      *     e (jQuery.Event):
      *         The drop event.
      */
-    _onDrop(e) {
+    _onDrop(e: JQuery.DropEvent) {
         e.preventDefault();
         e.stopPropagation();
 
-        this._$box.removeClass('drag-hover');
+        this.#$box.removeClass('drag-hover');
 
         const dt = e.originalEvent.dataTransfer;
         const files = dt && dt.files;
@@ -212,7 +231,7 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
         }
 
         try {
-            this._$fileInput[0].files = files;
+            this.#$fileInput[0].files = files;
         } catch (exc) {
             /*
              * While most modern browsers allow setting the `files` property of
@@ -230,7 +249,7 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
         }
 
         this._setAvatarFromFile(files[0]);
-    },
+    }
 
     /**
      * Handler for when the file input has changed.
@@ -241,13 +260,13 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
      *     e (jQuery.Event):
      *         The change event.
      */
-    _onFileChanged(e) {
+    _onFileChanged(e: JQuery.ChangeEvent) {
         const file = e.target.files[0];
 
         if (file) {
             this._setAvatarFromFile(file);
         }
-    },
+    }
 
     /**
      * Set the avatar from the provided file upload.
@@ -256,11 +275,11 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
      *     file (File):
      *         The file that was uploaded.
      */
-    _setAvatarFromFile(file) {
+    _setAvatarFromFile(file: File) {
         const reader = new FileReader();
 
         reader.addEventListener('load', () => {
-            this._$preview
+            this.#$preview
                 .empty()
                 .removeClass('avatar-preview-unset')
                 .append($('<img>').attr({
@@ -270,8 +289,5 @@ Djblets.Avatars.FileUploadSettingsFormView = ParentView.extend({
         });
 
         reader.readAsDataURL(file);
-    },
-});
-
-
-})();
+    }
+}
