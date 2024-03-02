@@ -310,6 +310,165 @@ class DataGridTests(kgb.SpyAgency, TestCase):
 
         self.assertSpyNotCalled(my_profile.save)
 
+    def test_load_state_with_stored_settings_no_changes(self) -> None:
+        """Testing DataGrid.load_state with stored columns and sort field
+        unchanged on load
+        """
+        class MyProfile(object):
+            my_columns = 'name'
+            my_sort = 'name'
+
+            def save(self, **kwargs):
+                pass
+
+        class TestDataGrid(GroupDataGrid):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+                self.profile_columns_field = 'my_columns'
+                self.profile_sort_field = 'my_sort'
+
+            def get_user_profile(self):
+                return my_profile
+
+        my_profile = MyProfile()
+        self.spy_on(my_profile.save)
+
+        datagrid = TestDataGrid(request=self.request)
+        datagrid.load_state()
+
+        self.assertSpyNotCalled(my_profile.save)
+        self.assertEqual(my_profile.my_columns, 'name')
+        self.assertEqual(my_profile.my_sort, 'name')
+
+    def test_load_state_with_stored_settings_columns_changed(self) -> None:
+        """Testing DataGrid.load_state with stored columns changed on load"""
+        class MyProfile(object):
+            my_columns = 'name'
+            my_sort = 'name'
+
+            def save(self, **kwargs):
+                pass
+
+        class TestDataGrid(GroupDataGrid):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+                self.profile_columns_field = 'my_columns'
+                self.profile_sort_field = 'my_sort'
+
+            def get_user_profile(self):
+                return my_profile
+
+        my_profile = MyProfile()
+        self.spy_on(my_profile.save)
+
+        request = self.request
+        request.GET['columns'] = 'objid,name'
+
+        datagrid = TestDataGrid(request=request)
+        datagrid.load_state()
+
+        self.assertSpyCalledWith(my_profile.save,
+                                 update_fields=['my_columns'])
+        self.assertEqual(my_profile.my_columns, 'objid,name')
+        self.assertEqual(my_profile.my_sort, 'name')
+
+    def test_load_state_with_stored_settings_columns_bad(self) -> None:
+        """Testing DataGrid.load_state with stored columns in bad format"""
+        class MyProfile(object):
+            my_columns = '[name--'
+            my_sort = 'name'
+
+            def save(self, **kwargs):
+                pass
+
+        class TestDataGrid(GroupDataGrid):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+                self.profile_columns_field = 'my_columns'
+                self.profile_sort_field = 'my_sort'
+
+            def get_user_profile(self):
+                return my_profile
+
+        my_profile = MyProfile()
+        self.spy_on(my_profile.save)
+
+        datagrid = TestDataGrid(request=self.request)
+        datagrid.load_state()
+
+        self.assertSpyCalledWith(my_profile.save,
+                                 update_fields=['my_columns'])
+        self.assertEqual(my_profile.my_columns, 'objid,name')
+        self.assertEqual(my_profile.my_sort, 'name')
+
+    def test_load_state_with_stored_settings_sort_changed(self) -> None:
+        """Testing DataGrid.load_state with stored sort changed on load"""
+        class MyProfile(object):
+            my_columns = 'objid,name'
+            my_sort = 'name'
+
+            def save(self, **kwargs):
+                pass
+
+        class TestDataGrid(GroupDataGrid):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+                self.profile_columns_field = 'my_columns'
+                self.profile_sort_field = 'my_sort'
+
+            def get_user_profile(self):
+                return my_profile
+
+        my_profile = MyProfile()
+        self.spy_on(my_profile.save)
+
+        request = self.request
+        request.GET['sort'] = 'objid'
+
+        datagrid = TestDataGrid(request=request)
+        datagrid.load_state()
+
+        self.assertSpyCalledWith(my_profile.save,
+                                 update_fields=['my_sort'])
+        self.assertEqual(my_profile.my_columns, 'objid,name')
+        self.assertEqual(my_profile.my_sort, 'objid')
+
+    def test_load_state_with_stored_settings_sort_bad(self) -> None:
+        """Testing DataGrid.load_state with stored sort in bad format"""
+        class MyProfile(object):
+            my_columns = 'name'
+            my_sort = '[name--'
+
+            def save(self, **kwargs):
+                pass
+
+        class TestDataGrid(GroupDataGrid):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+                self.profile_columns_field = 'my_columns'
+                self.profile_sort_field = 'my_sort'
+                self.default_sort = ['name']
+
+            def get_user_profile(self):
+                return my_profile
+
+        my_profile = MyProfile()
+        self.spy_on(my_profile.save)
+
+        datagrid = TestDataGrid(request=self.request)
+        datagrid.load_state()
+
+        self.assertSpyCalledWith(my_profile.save,
+                                 update_fields=['my_sort'])
+        self.assertEqual(my_profile.my_columns, 'name')
+        self.assertEqual(my_profile.my_sort, 'name')
+
+
     def test_precompute_objects_with_unsortable_column_ascending(self):
         """Testing DataGrid.precompute_objects with improper sort key
         in ascending order

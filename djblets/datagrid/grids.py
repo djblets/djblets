@@ -1501,7 +1501,7 @@ class DataGrid:
     #:
     #: Type:
     #:     str
-    profile_column_field: Optional[str]
+    profile_columns_field: Optional[str]
 
     #: The profile field storing the sort order for the datagrid.
     #:
@@ -1883,11 +1883,15 @@ class DataGrid:
         colnames = request.GET.get('columns', profile_columns_list) or ''
 
         if isinstance(colnames, str):
-            colnames = colnames.split(',')
+            colnames_list = colnames.split(',')
+        elif isinstance(colnames, list):
+            colnames_list = colnames
+        else:
+            colnames_list = []
 
         columns: List[Optional[Column]] = list(filter(None, [
             self.get_column(colname)
-            for colname in colnames
+            for colname in colnames_list
         ]))
 
         if not columns:
