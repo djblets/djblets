@@ -315,7 +315,7 @@ class RootResource(WebAPIResource):
 
         for uri_template_name, uri_template in templates.items():
             if len(uri_template) > 1:
-                if settings.DEBUG:
+                if not settings.DEBUG:
                     raise ImproperlyConfigured(
                         _('More than one URI template was mapped to '
                           'the "%(name)s" name: %(templates)s. Each URI '

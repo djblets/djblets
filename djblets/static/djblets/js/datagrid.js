@@ -325,7 +325,7 @@ $.fn.datagrid = function() {
 
             if ($cell.hasClass('has-label')) {
                 standaloneColumns[i] = true;
-                labels.push($cell.text().strip());
+                labels.push($cell.text().trim());
                 hasStandaloneColumns = true;
             } else {
                 labels.push(null);
@@ -364,7 +364,7 @@ $.fn.datagrid = function() {
                         .append($('<th>').text(labels[j]))
                         .append($newCell)
                         .appendTo($newTBody);
-                } else if (!$cell.html().strip()) {
+                } else if (!$cell.html().trim()) {
                     deleteCell = true;
                 } else {
                     /*

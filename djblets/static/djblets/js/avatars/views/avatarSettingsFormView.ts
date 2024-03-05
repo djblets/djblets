@@ -1,7 +1,17 @@
-(function() {
+/**
+ * A form for managing the settings of avatar services.
+ */
+
+import { BaseView, spina } from '@beanbag/spina';
+
+import { Settings } from '../models/avatarSettingsModel';
+import { ServiceSettingsFormView } from './avatarServiceSettingsFormView';
 
 
-const [readyPromise, resolve] = Promise.withResolver();
+let resolveReady;
+const readyPromise: Promise<void> = new Promise((resolve, reject) => {
+    resolveReady = resolve;
+});
 
 
 /**
@@ -10,18 +20,52 @@ const [readyPromise, resolve] = Promise.withResolver();
  * This form lets you select the avatar service you wish to use, as well as
  * configure the settings for that avatar service.
  */
-Djblets.Avatars.SettingsFormView = Backbone.View.extend({
-    events: {
+@spina
+export class SettingsFormView extends BaseView<Settings> {
+    static events = {
         'change #id_avatar_service_id': '_onServiceChanged',
         'submit': '_onSubmit',
-    },
+    };
+
+    static instance: SettingsFormView = null;
+    static ready: Promise<void> = readyPromise;
+
+    /**********************
+     * Instance variables *
+     **********************/
+
+    _configForms: Map<string, ServiceSettingsFormView>;
+
+    _$config: JQuery;
+
+    /**
+     * Add a configuration form to the instance.
+     *
+     * Args:
+     *     serviceID (string):
+     *         The unique ID for the avatar service.
+     *
+     *     formClass (constructor):
+     *         The view to use for the form.
+     */
+    static addConfigForm(
+        serviceID: string,
+        formClass: typeof ServiceSettingsFormView,
+    ) {
+        SettingsFormView.instance._configForms.set(
+            serviceID,
+            new formClass({
+                el: $(`[data-avatar-service-id="${serviceID}"]`),
+                model: SettingsFormView.instance.model,
+            }));
+    }
 
     /**
      * Initialize the form.
      */
     initialize() {
-        console.assert(Djblets.Avatars.SettingsFormView.instance === null);
-        Djblets.Avatars.SettingsFormView.instance = this;
+        console.assert(SettingsFormView.instance === null);
+        SettingsFormView.instance = this;
         this._configForms = new Map();
 
         this._$config = this.$('.avatar-service-configuration');
@@ -33,8 +77,8 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
          * The promise continuations will only be executed once the stack is
          * unwound.
          */
-        resolve();
-    },
+        resolveReady();
+    }
 
     /**
      * Validate the current form upon submission.
@@ -43,23 +87,19 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
      *     e (Event):
      *         The form submission event.
      */
-    _onSubmit(e) {
+    _onSubmit(e: Event) {
         const serviceID = this.model.get('serviceID');
         const currentForm = this._configForms.get(serviceID);
 
         if (currentForm && !currentForm.validate()) {
             e.preventDefault();
         }
-    },
+    }
 
     /**
      * Render the child forms.
      *
      * This will show the for the currently selected service if it has one.
-     *
-     * Returns:
-     *     Djblets.Avatars.SettingsFormView:
-     *     This view (for chaining).
      */
     renderForms() {
         for (const form of this._configForms.values()) {
@@ -71,10 +111,8 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
          * refresh that we update the model accordingly.
          */
         this.$('#id_avatar_service_id').change();
-        this._showHideForms(true);
-
-        return this;
-    },
+        this._showHideForms();
+    }
 
     /**
      * Show or hide the configuration form.
@@ -98,7 +136,7 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
             this._$config.show();
         }
 
-    },
+    }
 
     /**
      * Handle the service being changed.
@@ -107,41 +145,10 @@ Djblets.Avatars.SettingsFormView = Backbone.View.extend({
      *     e (Event):
      *         The change event.
      */
-    _onServiceChanged(e) {
+    _onServiceChanged(e: Event) {
         const $target = $(e.target);
-        this.model.set('serviceID', $target.val());
-    },
-}, {
-    /**
-     * The form instance.
-     */
-    instance: null,
+        const serviceID = $target.val() as string;
 
-    /**
-     * Add a configuration form to the instance.
-     *
-     * Args:
-     *     serviceID (string):
-     *         The unique ID for the avatar service.
-     *
-     *     formClass (constructor):
-     *         The view to use for the form.
-     */
-    addConfigForm(serviceID, formClass) {
-        Djblets.Avatars.SettingsFormView.instance._configForms.set(
-            serviceID,
-            new formClass({
-                el: $(`[data-avatar-service-id="${serviceID}"]`),
-                model: Djblets.Avatars.SettingsFormView.instance.model,
-            }));
-    },
-
-    /**
-     * A promise that is resolved when the avatar services form has been
-     * initialized.
-     */
-    ready: readyPromise,
-});
-
-
-})();
+        this.model.set('serviceID', serviceID);
+    }
+}

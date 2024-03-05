@@ -9,6 +9,10 @@ from djblets.db.fields import JSONField, JSONFormField
 from djblets.testing.testcases import TestCase
 
 
+class MyModel(Model):
+    myfield = JSONField()
+
+
 class JSONFieldTests(TestCase):
     """Unit tests for JSONField."""
 
@@ -36,9 +40,6 @@ class JSONFieldTests(TestCase):
 
     def test_init_with_dict_value(self):
         """Testing JSONField initialization with initial dict value"""
-        class MyModel(Model):
-            myfield = JSONField()
-
         value = {
             'a': 1,
             'b': 2,
@@ -57,9 +58,6 @@ class JSONFieldTests(TestCase):
 
     def test_init_with_dict_value_empty(self):
         """Testing JSONField initialization with initial empty dict value"""
-        class MyModel(Model):
-            myfield = JSONField()
-
         model = MyModel(myfield={})
 
         self.assertEqual(model.myfield, {})
@@ -67,9 +65,6 @@ class JSONFieldTests(TestCase):
 
     def test_init_with_list_value(self):
         """Testing JSONField initialization with initial list value"""
-        class MyModel(Model):
-            myfield = JSONField()
-
         value = [1, 2]
         model = MyModel(myfield=value)
 
@@ -81,9 +76,6 @@ class JSONFieldTests(TestCase):
 
     def test_init_with_list_value_empty(self):
         """Testing JSONField initialization with initial empty list value"""
-        class MyModel(Model):
-            myfield = JSONField()
-
         model = MyModel(myfield=[])
 
         self.assertEqual(model.myfield, [])
@@ -91,9 +83,6 @@ class JSONFieldTests(TestCase):
 
     def test_init_with_json_string_value(self):
         """Testing JSONField initialization with initial JSON string value"""
-        class MyModel(Model):
-            myfield = JSONField()
-
         model = MyModel(myfield='{"a": 1, "b": 2}')
 
         self.assertEqual(model.myfield, {
@@ -107,9 +96,6 @@ class JSONFieldTests(TestCase):
         """Testing JSONField initialization with initial empty JSON string
         value
         """
-        class MyModel(Model):
-            myfield = JSONField()
-
         model = MyModel(myfield='')
 
         self.assertEqual(model.myfield, {})
@@ -119,9 +105,6 @@ class JSONFieldTests(TestCase):
         """Testing JSONField initialization with initial unsupported value
         type
         """
-        class MyModel(Model):
-            myfield = JSONField()
-
         message = "%r is not a supported value type." % MyModel
 
         with self.assertRaisesMessage(ValidationError, message):
@@ -192,9 +175,6 @@ class JSONFieldTests(TestCase):
 
     def test_get_json(self):
         """Testing JSONField with get_{fieldname}_json"""
-        class MyModel(Model):
-            myfield = JSONField()
-
         model = MyModel()
         model.myfield = {
             'a': 1,
@@ -206,9 +186,6 @@ class JSONFieldTests(TestCase):
 
     def test_set_json(self):
         """Testing JSONField with set_{fieldname}_json"""
-        class MyModel(Model):
-            myfield = JSONField()
-
         model = MyModel()
         model.set_myfield_json('{"a": 1, "b": 2}')
 

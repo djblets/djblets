@@ -41,9 +41,9 @@ suite('djblets/configForms/views/TableView', () => {
         it('On render', () => {
             const $rows = tableView.$('tr');
             expect($rows.length).toBe(3);
-            expect($rows.eq(0).text().strip()).toBe('Item 1');
-            expect($rows.eq(1).text().strip()).toBe('Item 2');
-            expect($rows.eq(2).text().strip()).toBe('Item 3');
+            expect($rows.eq(0).text().trim()).toBe('Item 1');
+            expect($rows.eq(1).text().trim()).toBe('Item 2');
+            expect($rows.eq(2).text().trim()).toBe('Item 3');
         });
 
         it('On add', () => {
@@ -53,7 +53,7 @@ suite('djblets/configForms/views/TableView', () => {
 
             const $rows = tableView.$('tr');
             expect($rows.length).toBe(4);
-            expect($rows.eq(3).text().strip()).toBe('Item 4');
+            expect($rows.eq(3).text().trim()).toBe('Item 4');
         });
 
         it('On remove', () => {
@@ -61,7 +61,7 @@ suite('djblets/configForms/views/TableView', () => {
 
             const $rows = tableView.$('tr');
             expect($rows.length).toBe(2);
-            expect($rows.eq(0).text().strip()).toBe('Item 2');
+            expect($rows.eq(0).text().trim()).toBe('Item 2');
         });
 
         it('On reset', () => {
@@ -72,8 +72,8 @@ suite('djblets/configForms/views/TableView', () => {
 
             const $rows = tableView.$('tr');
             expect($rows.length).toBe(2);
-            expect($rows.eq(0).text().strip()).toBe('Foo');
-            expect($rows.eq(1).text().strip()).toBe('Bar');
+            expect($rows.eq(0).text().trim()).toBe('Foo');
+            expect($rows.eq(1).text().trim()).toBe('Bar');
         });
     });
 });

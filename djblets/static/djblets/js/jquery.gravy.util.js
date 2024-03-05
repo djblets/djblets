@@ -43,7 +43,7 @@ $.fn.extend({
      */
     setVisible: function(visible) {
         console.warn(
-            '$.setVisible is deprecated and will be removed in Djblets 5.0. ' +
+            '$.setVisible is deprecated and will be removed in Djblets 6.0. ' +
             'Use $.toggle instead.');
 
         return $(this).each(function() {
@@ -509,36 +509,42 @@ $.fn.proxyTouchEvents = function(events) {
 
 $.extend(String.prototype, {
     strip: function() {
-        return this.replace(/^\s+/, '').replace(/\s+$/, '');
+        console.warn(
+            'String.strip() is deprecated and will be removed in Djblets ' +
+            '6.0. Use String.trim instead.');
+
+        return this.trim();
     },
 
     stripTags: function() {
+        console.warn(
+            'String.stripTags() is deprecated and will be removed in ' +
+            'Djblets 6.0. ');
+
         return this.replace(/<\/?[^>]+>/gi, '');
     },
 
     htmlEncode: function() {
-        if (this === '') {
-            return '';
-        }
+        console.warn(
+            'String.htmlEncode() is deprecated and will be removed in ' +
+            'Djblets 6.0. Use _.encode() instead.');
 
-        return this
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
+        return _.encode(this);
     },
 
     htmlDecode: function() {
-        if (this === '') {
-            return '';
-        }
+        console.warn(
+            'String.htmlDecode() is deprecated and will be removed in ' +
+            'Djblets 6.0. Use _.decode() instead.');
 
-        return this
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>');
+        return _.decode(this);
     },
 
     truncate: function(numChars) {
+        console.warn(
+            'String.truncate() is deprecated and will be removed in ' +
+            'Djblets 6.0. ');
+
         numChars = numChars || 100;
 
         var str = this.toString();
