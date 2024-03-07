@@ -6,12 +6,12 @@
     "dependencies": "./contrib/internal/build-npm-deps.py"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "@beanbag/eslint-plugin": "^1.0.1",
     "@beanbag/frontend-buildkit": "^1.1.0",
-    "@beanbag/spina": "^2.0.0",
+    "@beanbag/spina": "^3.1.0",
     "@types/jquery": "^3.5.16",
     "@types/underscore": "^1.11.4",
     "backbone": "^1.4.1",
