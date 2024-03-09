@@ -72,10 +72,15 @@ class RollupCompiler(SourceMapStaleCheckMixin, SubProcessCompiler):
     ``settings.PIPELINE['ROLLUP_ARGUMENTS']``.
 
     The arguments should *not* include ``-c`` / ``--config`` to specify the
-    ``rollup.config.js`` path. This will be computed automatically, in order
+    Rollup configuration path. This will be computed automatically, in order
     to ensure the right file is used based on whichever source tree may be
     hosting the input file (such as when a project is consuming another
     project's source files and compiling them).
+
+    Version Changed:
+        4.1:
+        Added support for :file:`rollup.config.mjs` and
+        :file:`rollup.config.ts` files.
 
     Version Added:
         4.0
@@ -148,8 +153,17 @@ class RollupCompiler(SourceMapStaleCheckMixin, SubProcessCompiler):
             if rollup_config_path:
                 # We found a rollup.config.js. Make sure we tell rollup.js to
                 # use it explicitly.
+                rollup_config_filename = os.path.basename(rollup_config_path)
+
+                if rollup_config_filename == 'rollup.config.js':
+                    args.append('--bundleConfigAsCjs')
+                elif rollup_config_filename == 'rollup.config.ts':
+                    args += [
+                        '--configPlugin',
+                        'typescript',
+                    ]
+
                 args += [
-                    '--bundleConfigAsCjs',
                     '-c',
                     rollup_config_path,
                 ]
@@ -171,13 +185,30 @@ class RollupCompiler(SourceMapStaleCheckMixin, SubProcessCompiler):
     ) -> Tuple[Optional[str], Optional[str]]:
         """Return the root of a source tree for an input file.
 
-        This will scan up the tree, looking for a :file:`rollup.config.js` or
-        :file:`.babelrc`. This is used to try to find the proper working
-        directory needed to successfully compile a file.
+        This will scan up the tree, looking for a Rollup configuration file:
+
+        * :file:`rollup.config.js`
+        * :file:`rollup.config.mjs`
+        * :file:`rollup.config.ts`
+
+        Plus another JavaScript configuration:
+
+        * :file:`.babelrc`
+        * :file:`babel.config.json`
+        * :file:`tsconfig.json`
+
+        This is used to try to find the proper working directory needed to
+        successfully compile a file.
 
         This is important when a project is consuming and building another
         project's static media, so that the consumed project's configuration
         is applied.
+
+        Version Changed:
+            4.1:
+            Added scanning for :file:`rollup.config.mjs`,
+            :file:`rollup.config.ts`, :file:`babel.config.json`, and
+            :file:`tsconfig.json` files.
 
         Args:
             start_dir (str):
@@ -191,15 +222,22 @@ class RollupCompiler(SourceMapStaleCheckMixin, SubProcessCompiler):
         root = Path(path.root)
 
         while path != root:
-            rollup_config_path = Path(path / 'rollup.config.js')
+            for config_filename in ('rollup.config.js',
+                                    'rollup.config.mjs',
+                                    'rollup.config.ts'):
+                rollup_config_path = Path(path / config_filename)
 
-            if rollup_config_path.exists():
-                # This is the ideal result. We found the top-level of the
-                # tree and the rollup.config.js file.
-                return str(path), str(rollup_config_path)
-            elif Path(path / '.babelrc').exists():
-                # We didn't find rollup.config.js, but we found .babelrc.
-                # Consider this the top of the tree.
+                if rollup_config_path.exists():
+                    # This is the ideal result. We found the top-level of the
+                    # tree and the rollup.config.js file.
+                    return str(path), str(rollup_config_path)
+
+            if (Path(path / '.babelrc').exists() or
+                Path(path / 'babel.config.json').exists() or
+                Path(path / 'tsconfig.json').exists()):
+                # We didn't find rollup.config.js, but we found another
+                # JavaScript configuration file. Consider this the top of
+                # the tree.
                 return str(path), None
 
             path = path.parent
