@@ -23,7 +23,7 @@ suite('djblets/configForms/views/TableItemView', function() {
                 });
 
                 itemView.render();
-                expect(itemView.$el.html().strip()).toBe([
+                expect(itemView.$el.html().trim()).toBe([
                     '<td>',
                     '<span class="djblets-c-config-forms-list__item-actions">',
                     '</span>\n\n',
@@ -41,7 +41,7 @@ suite('djblets/configForms/views/TableItemView', function() {
                 });
 
                 itemView.render();
-                expect(itemView.$el.html().strip()).toBe([
+                expect(itemView.$el.html().trim()).toBe([
                     '<td>',
                     '<span class="djblets-c-config-forms-list__item-actions">',
                     '</span>\n\n',
