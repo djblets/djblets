@@ -15,7 +15,8 @@ import traceback
 import warnings
 from contextlib import contextmanager
 from importlib import import_module, reload
-from typing import Any, Dict, Iterator, List, Optional, Set, Type, Union
+from typing import (Any, Dict, Iterator, List, Optional, Set, TYPE_CHECKING,
+                    Type, Union)
 from weakref import WeakValueDictionary
 
 import importlib_metadata
@@ -49,6 +50,9 @@ from djblets.extensions.signals import (extension_disabled,
 from djblets.template.caches import (clear_template_caches,
                                      clear_template_tag_caches)
 from djblets.urls.resolvers import DynamicURLResolver
+
+if TYPE_CHECKING:
+    from djblets.extensions.extension import CSSBundleConfigs, JSBundleConfigs
 
 
 logger = logging.getLogger(__name__)
@@ -1509,29 +1513,39 @@ class ExtensionManager:
             extension (djblets.extensions.extension.Extension):
                 The extension containing the static media bundles to register.
         """
-        def _add_prefix(filename):
-            return 'ext/%s/%s' % (extension.id, filename)
+        def _add_prefix(
+            filename: str,
+        ) -> str:
+            return f'ext/{extension.id}/{filename}'
 
-        def _add_bundles(pipeline_bundles, extension_bundles, default_dir,
-                         ext):
+        def _add_bundles(
+            *,
+            pipeline_bundles: dict[str, dict[str, Any]],
+            extension_bundles: Union[CSSBundleConfigs, JSBundleConfigs],
+            default_dir: str,
+            ext: str,
+        ) -> None:
             for name, bundle in extension_bundles.items():
-                new_bundle = bundle.copy()
+                pipeline_bundles[extension.get_bundle_id(name)] = {
+                    **bundle,
+                    'source_filenames': [
+                        _add_prefix(filename)
+                        for filename in bundle.get('source_filenames', [])
+                    ],
+                    'output_filename': _add_prefix(bundle.get(
+                        'output_filename',
+                        f'{default_dir}/{name}.min{ext}')),
+                }
 
-                new_bundle['source_filenames'] = [
-                    _add_prefix(filename)
-                    for filename in bundle.get('source_filenames', [])
-                ]
+        _add_bundles(pipeline_bundles=pipeline_settings.STYLESHEETS,
+                     extension_bundles=extension.css_bundles,
+                     default_dir='css',
+                     ext='.css')
 
-                new_bundle['output_filename'] = _add_prefix(bundle.get(
-                    'output_filename',
-                    '%s/%s.min%s' % (default_dir, name, ext)))
-
-                pipeline_bundles[extension.get_bundle_id(name)] = new_bundle
-
-        _add_bundles(pipeline_settings.STYLESHEETS, extension.css_bundles,
-                     'css', '.css')
-        _add_bundles(pipeline_settings.JAVASCRIPT, extension.js_bundles,
-                     'js', '.js')
+        _add_bundles(pipeline_bundles=pipeline_settings.JAVASCRIPT,
+                     extension_bundles=extension.js_bundles,
+                     default_dir='js',
+                     ext='.js')
 
     def _unregister_static_bundles(
         self,
@@ -1548,7 +1562,11 @@ class ExtensionManager:
                 The extension containing the static media bundles to
                 unregister.
         """
-        def _remove_bundles(pipeline_bundles, extension_bundles):
+        def _remove_bundles(
+            *,
+            pipeline_bundles: dict[str, dict[str, Any]],
+            extension_bundles: Union[CSSBundleConfigs, JSBundleConfigs],
+        ) -> None:
             for name, bundle in extension_bundles.items():
                 try:
                     del pipeline_bundles[extension.get_bundle_id(name)]
@@ -1556,11 +1574,11 @@ class ExtensionManager:
                     pass
 
         if hasattr(settings, 'PIPELINE'):
-            _remove_bundles(pipeline_settings.STYLESHEETS,
-                            extension.css_bundles)
+            _remove_bundles(pipeline_bundles=pipeline_settings.STYLESHEETS,
+                            extension_bundles=extension.css_bundles)
 
-            _remove_bundles(pipeline_settings.JAVASCRIPT,
-                            extension.js_bundles)
+            _remove_bundles(pipeline_bundles=pipeline_settings.JAVASCRIPT,
+                            extension_bundles=extension.js_bundles)
 
     def _init_admin_site(
         self,

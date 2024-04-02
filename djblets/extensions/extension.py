@@ -20,7 +20,7 @@ from django.urls import URLPattern, URLResolver, get_mod_func
 from django.utils.functional import cached_property
 from django.utils.module_loading import import_string
 from django.utils.translation import gettext as _
-from typing_extensions import TypeAlias
+from typing_extensions import NotRequired, TypeAlias, TypedDict
 
 from djblets.extensions.errors import InstallExtensionMediaError
 from djblets.extensions.models import RegisteredExtension
@@ -40,6 +40,131 @@ logger = logging.getLogger(__name__)
 
 #: Type for the extension metadata dict.
 ExtensionMetadata: TypeAlias = Dict[str, Any]
+
+
+class BaseStaticBundleConfig(TypedDict):
+    """Base class for a bundle configuration.
+
+    This provides the configuration settings allowed by both CSS and
+    JavaScript bundles for extensions.
+
+    Version Added:
+        5.0
+    """
+
+    #: A list of filenames that are included in this bundle.
+    #:
+    #: It's recommended that this contain a single "index" file that is
+    #: responsible for importing other files that comprise the bundle.
+    #:
+    #: If specifying ``index.ts`` or ``index.js`` the bundle will be treated
+    #: as a TypeScript/JavaScript-based bundle, and all imported modules
+    #: within the bundle will be resolved and compiled together.
+    #:
+    #: Type:
+    #:     list
+    source_filenames: Sequence[str]
+
+    #: A list of URL names that the bundle should be automatically loaded on.
+    #:
+    #: If provided, the bundle will be selectively loaded only on these pages.
+    #:
+    #: Type:
+    #:     list
+    apply_to: NotRequired[Sequence[str]]
+
+    #: Extra options to pass to the compiler.
+    #:
+    #: This is currently unused by the compilers supported by Djblets.
+    #:
+    #: Type:
+    #:     dict
+    compiler_options: NotRequired[dict[str, Any]]
+
+    #: Extra context to include in the generated template.
+    #:
+    #: For CSS, this will control the attributes of the ``<link>`` tag.
+    #: It can be used to offer stylesheets for print or other forms of
+    #: media via the ``media`` attribute.
+    #:
+    #: For JavaScript, this will control the attributes of the ``<script>``
+    #: tag. You can, for example, set ``"async"`` or ``"defer"`` to ``True``
+    #: to add these attributes.
+    #:
+    #: Type:
+    #:     dict
+    extra_context: NotRequired[dict[str, str]]
+
+    #: A list of bundles to include whenever this bundle is included.
+    #:
+    #: These bundles will be included prior to including this bundle.
+    #: They must all be provided by the same extension.
+    #:
+    #: Type:
+    #:     list of str
+    include_bundles: NotRequired[Sequence[str]]
+
+    #: The name of the bundle file to generate and load into pages.
+    #:
+    #: This is expected to be a relative path. The extension support will
+    #: take care of placing this file in an appropriate path.
+    #:
+    #: If not provided, a default filename will be created for the bundle.
+    #:
+    #: Type:
+    #:     str
+    output_filename: NotRequired[str]
+
+    #: The name of the Django template used to load this bundle.
+    #:
+    #: This can be used to provide special logic for loading the bundle.
+    #: It's generally not needed.
+    template_name: NotRequired[Optional[str]]
+
+
+class CSSBundleConfig(BaseStaticBundleConfig):
+    """CSS static media configuration.
+
+    These provide the options for customizing CSS/LessCSS build behavior.
+
+    See :py:class:`BaseStaticBundleConfig` for more options.
+
+    Version Added:
+        5.0
+    """
+
+    #: The variant mode used for the CSS.
+    #:
+    #: This can be set to ``"datauri"`` to encode any referenced images or
+    #: fonts inline using ``url("data:...")``.
+    variant: NotRequired[Optional[str]]
+
+
+class JSBundleConfig(BaseStaticBundleConfig):
+    """JavaScript static media configuration.
+
+    These provide the options for customizing JavaScript/TypeScript build
+    behavior.
+
+    See :py:class:`BaseStaticBundleConfig` for more options.
+
+    Version Added:
+        5.0
+    """
+
+
+#: A mapping of CSS bundle names to configurations.
+#:
+#: Version Added:
+#:     5.0
+CSSBundleConfigs: TypeAlias = Dict[str, CSSBundleConfig]
+
+
+#: A mapping of JavaScript bundle names to configurations.
+#:
+#: Version Added:
+#:     5.0
+JSBundleConfigs: TypeAlias = Dict[str, JSBundleConfig]
 
 
 class JSExtension:
@@ -262,7 +387,12 @@ class Extension:
     #:
     #: A special bundle ID of ``default`` will cause the CSS to be loaded on
     #: every page.
-    css_bundles: Dict[str, Any] = {}
+    #:
+    #: Version Changed:
+    #:     5.0:
+    #:     Added specific typing for bundle configuration. Previous versions
+    #:     allowed arbitrary dictionaries to be used.
+    css_bundles: CSSBundleConfigs = {}
 
     #: A dictionary of JavaScript bundles to include in the package.
     #:
@@ -276,7 +406,12 @@ class Extension:
     #:
     #: A special bundle ID of ``default`` will cause the JavaScript to be
     #: loaded on every page.
-    js_bundles: Dict[str, Any] = {}
+    #:
+    #: Version Changed:
+    #:     5.0:
+    #:     Added specific typing for bundle configuration. Previous versions
+    #:     allowed arbitrary dictionaries to be used.
+    js_bundles: JSBundleConfigs = {}
 
     #: A list of JavaScript extension classes to enable on pages.
     #:
