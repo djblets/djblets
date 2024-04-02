@@ -315,7 +315,16 @@ class RootResource(WebAPIResource):
 
         for uri_template_name, uri_template in templates.items():
             if len(uri_template) > 1:
-                if not settings.DEBUG:
+                if settings.PRODUCTION or settings.DEBUG:
+                    logger.error(
+                        'More than one URI template was mapped to '
+                        'the "%s" name: %s. Only the first one will be '
+                        'included in the URI templates list. To '
+                        'include the other URI templates, they must '
+                        'be mapped to a unique name by setting each '
+                        'resource\'s uri_template_name property.'
+                        % (uri_template_name, ', '.join(uri_template)))
+                else:
                     raise ImproperlyConfigured(
                         _('More than one URI template was mapped to '
                           'the "%(name)s" name: %(templates)s. Each URI '
@@ -327,15 +336,6 @@ class RootResource(WebAPIResource):
                             'name': uri_template_name,
                             'templates': ', '.join(uri_template)
                         })
-                else:
-                    logger.error(
-                        'More than one URI template was mapped to '
-                        'the "%s" name: %s. Only the first one will be '
-                        'included in the URI templates list. To '
-                        'include the other URI templates, they must '
-                        'be mapped to a unique name by setting each '
-                        'resource\'s uri_template_name property.'
-                        % (uri_template_name, ', '.join(uri_template)))
 
             final_templates[uri_template_name] = uri_template[0]
 
