@@ -168,7 +168,7 @@ export interface ListItemAction {
  * This handles the special case of passing in the actions as part of the
  * ``attributes`` parameter, which is a deprecated use.
  */
-interface ListItemConstructorAttributes extends ListItemAttrs {
+export interface ListItemConstructorAttrs extends ListItemAttrs {
     actions?: ListItemAction[];
 }
 
@@ -223,14 +223,14 @@ export class ListItem<
      * for removing the item.
      *
      * Args:
-     *     attributes (ListItemConstructorAttributes, optional):
+     *     attributes (ListItemConstructorAttrs, optional):
      *         Attributes for the model.
      *
      *         This may optionally also include in an ``actions`` property,
      *         which will pre-populate the ``actions`` member. This usage is
      *         deprecated and will be removed in Djblets 5.
      */
-    initialize(attributes: Partial<ListItemConstructorAttributes> = {}) {
+    initialize(attributes: ListItemConstructorAttrs = {}) {
         if (attributes.actions) {
             console.error(dedent`
                 Djblets.Config.ListItem.initialize was called with actions
