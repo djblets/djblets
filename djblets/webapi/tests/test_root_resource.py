@@ -108,10 +108,13 @@ class RootResourceTests(kgb.SpyAgency, TestCase):
         self.assertNotIn('exclude', uri_templates)
         self.assertNotIn('excludes', uri_templates)
 
-    @override_settings(DEBUG=True)
-    def test_get_uri_templates_must_be_unique(self):
+    @override_settings(DEBUG=True,
+                       PRODUCTION=True)
+    def test_get_uri_templates_must_be_unique_with_debug_prod(
+        self,
+    ) -> None:
         """Testing RootResource.get_uri_templates logs an error when multiple
-        URI templates are mapped to the same name in production mode
+        URI templates are mapped to the same name in DEBUG, PRODUCTION modes
         """
         self.root_res = RootResource([MockResource(), DuplicateMockResource()])
         expected_message = (
@@ -131,10 +134,41 @@ class RootResourceTests(kgb.SpyAgency, TestCase):
             self.assertEqual(uri_templates['mocks'],
                              'http://testserver/mocks/')
 
-    @override_settings(DEBUG=False)
-    def test_get_uri_templates_must_be_unique_debug(self):
+    @override_settings(DEBUG=False,
+                       PRODUCTION=True)
+    def test_get_uri_templates_must_be_unique_with_non_debug_prod(
+        self,
+    ) -> None:
+        """Testing RootResource.get_uri_templates logs an error when multiple
+        URI templates are mapped to the same name in non-DEBUG, PRODUCTION
+        modes
+        """
+        self.root_res = RootResource([MockResource(), DuplicateMockResource()])
+        expected_message = (
+            'More than one URI template was mapped to the "mocks" name: '
+            'http://testserver/mocks/, http://testserver/duplicatemocks/. '
+            'Only the first one will be included in the URI templates list. '
+            'To include the other URI templates, they must be mapped to a '
+            'unique name by setting each resource\'s uri_template_name '
+            'property.'
+        )
+
+        with self.assertLogs() as logs:
+            uri_templates = self.root_res.get_uri_templates(self.request)
+
+            self.assertEqual(logs.records[0].getMessage(), expected_message)
+            self.assertIn('mocks', uri_templates)
+            self.assertEqual(uri_templates['mocks'],
+                             'http://testserver/mocks/')
+
+    @override_settings(DEBUG=False,
+                       PRODUCTION=False)
+    def test_get_uri_templates_must_be_unique_non_debug_non_prod(
+        self,
+    ) -> None:
         """Testing RootResource.get_uri_templates raises an error when multiple
-        URI templates are mapped to the same name in debug mode
+        URI templates are mapped to the same name in non-DEBUG, non-PRODUCTION
+        modes
         """
         self.root_res = RootResource([MockResource(), DuplicateMockResource()])
         expected_message = (
@@ -147,6 +181,33 @@ class RootResourceTests(kgb.SpyAgency, TestCase):
 
         with self.assertRaisesMessage(ImproperlyConfigured, expected_message):
             self.root_res.get_uri_templates(self.request)
+
+    @override_settings(DEBUG=True,
+                       PRODUCTION=False)
+    def test_get_uri_templates_must_be_unique_with_debug_non_prod(
+        self,
+    ) -> None:
+        """Testing RootResource.get_uri_templates raises an error when multiple
+        URI templates are mapped to the same name in DEBUG, non-PRODUCTION
+        modes
+        """
+        self.root_res = RootResource([MockResource(), DuplicateMockResource()])
+        expected_message = (
+            'More than one URI template was mapped to the "mocks" name: '
+            'http://testserver/mocks/, http://testserver/duplicatemocks/. '
+            'Only the first one will be included in the URI templates list. '
+            'To include the other URI templates, they must be mapped to a '
+            'unique name by setting each resource\'s uri_template_name '
+            'property.'
+        )
+
+        with self.assertLogs() as logs:
+            uri_templates = self.root_res.get_uri_templates(self.request)
+
+            self.assertEqual(logs.records[0].getMessage(), expected_message)
+            self.assertIn('mocks', uri_templates)
+            self.assertEqual(uri_templates['mocks'],
+                             'http://testserver/mocks/')
 
     def test_get_uri_templates_caching(self):
         """Testing RootResource.get_uri_templates caching"""
@@ -240,7 +301,8 @@ class RootResourceTemplateRegistrationTests(TestCase):
             mock_extension_resource]
         self.assertEqual(actual_result, {'key': 'value'})
 
-    @override_settings(DEBUG=True)
+    @override_settings(DEBUG=True,
+                       PRODUCTION=False)
     def test_register_uri_template_clears_uri_template_cache(self):
         """Testing register_uri_templates clears the URI template cache"""
         resource = self.root_res
@@ -284,7 +346,8 @@ class RootResourceTemplateRegistrationTests(TestCase):
             self.root_res._registered_uri_templates[self.ext_res],
             {})
 
-    @override_settings(DEBUG=True)
+    @override_settings(DEBUG=True,
+                       PRODUCTION=False)
     def test_unregister_uri_template_clears_uri_template_cache(self):
         """Testing unregister_uri_templates clears the URI template cache"""
         resource = self.root_res

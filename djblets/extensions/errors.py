@@ -83,3 +83,11 @@ class InvalidExtensionError(Exception):
                 The ID of the extension which could not be found.
         """
         super().__init__(_('Cannot find extension with id %s') % extension_id)
+
+
+class ExtensionPackagingError(Exception):
+    """An error packaging an extension.
+
+    Version Added:
+        5.0
+    """
