@@ -416,7 +416,7 @@ class Extension:
     #: A list of JavaScript extension classes to enable on pages.
     #:
     #: Each entry in the list is a :py:class:`JSExtension` subclass to load.
-    js_extensions: List[JSExtension] = []
+    js_extensions: Sequence[type[JSExtension]] = []
 
     ######################
     # Instance variables #
