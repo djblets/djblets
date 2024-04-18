@@ -39,7 +39,7 @@ from django.db.models import QuerySet
 from django.http import Http404, HttpResponse
 from django.template.defaultfilters import date, timesince
 from django.template.loader import get_template, render_to_string
-from django.utils.cache import patch_cache_control
+from django.utils.cache import add_never_cache_headers
 from django.utils.functional import cached_property
 from django.utils.html import escape, format_html
 from django.utils.inspect import func_accepts_kwargs
@@ -2473,8 +2473,7 @@ class DataGrid:
             The HTTP response to send to the client.
         """
         response = HttpResponse(str(self.render_listview(render_context)))
-        patch_cache_control(response, no_cache=True, no_store=True, max_age=0,
-                            must_revalidate=True)
+        add_never_cache_headers(response)
         return response
 
     def render_to_response(
@@ -2516,8 +2515,10 @@ class DataGrid:
         context.update(extra_context)
         context.update(render_context)
 
-        return HttpResponse(render_to_string(template_name=template_name,
-                                             context=context))
+        response = HttpResponse(
+            render_to_string(template_name=template_name, context=context))
+        add_never_cache_headers(response)
+        return response
 
     def render_paginator(
         self,
