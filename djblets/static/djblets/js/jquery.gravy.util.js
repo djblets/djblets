@@ -512,17 +512,17 @@ $.extend(String.prototype, {
     htmlEncode: function() {
         console.warn(
             'String.htmlEncode() is deprecated and will be removed in ' +
-            'Djblets 6.0. Use _.encode() instead.');
+            'Djblets 6.0. Use _.escape() instead.');
 
-        return _.encode(this);
+        return _.escape(this);
     },
 
     htmlDecode: function() {
         console.warn(
             'String.htmlDecode() is deprecated and will be removed in ' +
-            'Djblets 6.0. Use _.decode() instead.');
+            'Djblets 6.0. Use _.unescape() instead.');
 
-        return _.decode(this);
+        return _.unescape(this);
     },
 
     truncate: function(numChars) {
