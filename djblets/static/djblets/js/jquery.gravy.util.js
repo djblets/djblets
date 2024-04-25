@@ -418,21 +418,6 @@ $.fn.positionToSide = function($el, options) {
 };
 
 
-$.fn.delay = function(msec) {
-    return $(this).each(function() {
-        var self = $(this);
-
-        self.queue(function() {
-            window.setTimeout(
-                function() {
-                    self.dequeue();
-                },
-                msec);
-        });
-    });
-};
-
-
 $.fn.proxyTouchEvents = function(events) {
     var stateKey = 'gravy-proxy-touch-state';
 
