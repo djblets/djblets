@@ -179,10 +179,11 @@
   }
 
   code {
-    background-color: @inline-code-bg;
-    border: @inline-code-border-size solid @inline-code-border-color;
+    background: var(--ink-p-code-literal-bg);
+    border: @inline-code-border-size var(--ink-p-code-literal-border-color)
+            solid;
     border-radius: @inline-code-border-radius;
-    color: @inline-code-text-color;
+    color: var(--ink-p-code-literal-fg);
     display: inline-block;
     margin: -@inline-code-border-size;
 
@@ -219,8 +220,9 @@
   }
 
   .codehilite {
-    background-color: @code-block-bg;
-    border: @inline-code-border-size solid @code-block-border-color;
+    background: var(--ink-p-input-bg);
+    color: var(--ink-p-input-fg);
+    border: var(--ink-g-input-border);
     border-radius: @code-block-border-radius;
     margin: -(@code-block-padding-vert + @code-block-border-size)
             -(@code-block-padding-horiz + @code-block-border-size);

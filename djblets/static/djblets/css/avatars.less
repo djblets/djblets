@@ -9,8 +9,8 @@
   width: @avatar-size;
 
   &.avatar-preview-unset {
-    background: #FFF;
-    border: 1px #CCC dashed;
+    background: var(--ink-p-grey-100);
+    border: 1px var(--ink-p-grey-400) dashed;
   }
 
   img {
@@ -25,14 +25,15 @@
 }
 
 .avatar-file-upload-config {
-  border: 2px #CCC dashed;
+  background: var(--ink-p-input-bg-color);
+  border: 2px var(--ink-p-input-border-color) dashed;
+  color: var(--ink-p-input-text-color);
   display: inline-block;
   margin: 1em 0;
   padding: 1em;
 
   &.drag-hover {
-    background: white;
-    border-color: #000099;
+    border-color: var(--ink-p-accent-primary-bg);
     content: 'Drop to set your avatar';
 
     * {

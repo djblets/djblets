@@ -379,10 +379,10 @@ export class ListItemView<
             }
         } else {
             if (action.url) {
-                $action = $('<a class="btn" role="button">')
+                $action = $('<a class="ink-c-button" role="button">')
                     .attr('href', action.url);
             } else {
-                $action = $('<button type="button">');
+                $action = $('<button class="ink-c-button" type="button">');
             }
 
             $result = $action;
@@ -490,7 +490,7 @@ export class ListItemView<
             const childrenHTML = $action.html();
             $action.empty();
 
-            const $spinner = $('<span class="djblets-o-spinner">')
+            const $spinner = $('<span class="ink-c-spinner">')
                 .appendTo($action);
 
             /*

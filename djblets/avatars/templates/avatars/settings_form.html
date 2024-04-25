@@ -35,5 +35,9 @@ $().ready(function() {
 {% block post_fields %}{% endblock %}
 
 {% if form.save_label %}
-<input type="submit" class="btn" value="{{form.save_label}}" />
+<div class="djblets-c-config-forms-actions">
+ <button class="ink-c-button" type="submit">
+  {{form.save_label}}
+ </button>
+</div>
 {% endif %}

@@ -69,5 +69,7 @@ class ConfigPageFormTests(TestCase):
             '  <input id="id_field2" name="field2" type="text">'
             ' </div>'
             '</div>'
-            '<input type="submit" class="btn" value="Save">',
+            '<div class="djblets-c-config-forms-actions">'
+            ' <button class="ink-c-button" type="submit">Save</button>'
+            '</div>',
             rendered)
