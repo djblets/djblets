@@ -91,7 +91,9 @@ class StaticMediaBuilderTests(TestCase):
     def test_build_lessc_args(self) -> None:
         """Testing StaticMediaBuilder._build_lessc_args"""
         builder = self.builder
+        build_context = self.build_context
         assert builder is not None
+        assert build_context is not None
 
         djblets_path = Path(djblets.__file__).parent
 
@@ -100,7 +102,9 @@ class StaticMediaBuilderTests(TestCase):
             '--source-map',
             '--js',
             '--autoprefix',
-            '--include-path=%s:%s' % (djblets_path, djblets_path / 'static'),
+            '--include-path=%s:%s:%s' % (djblets_path,
+                                         djblets_path / 'static',
+                                         build_context.node_modules_dir),
             '--global-var=DEBUG=false',
             '--global-var=STATIC_ROOT="/static/"',
         ])
