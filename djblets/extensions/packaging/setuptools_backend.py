@@ -162,7 +162,11 @@ class BuildStaticFiles(Command):
                 'This package does not define any extension entry points.'
             )
 
-        if not isinstance(group_entry_points, str):
+        if isinstance(group_entry_points, str):
+            group_entry_points_lines = group_entry_points
+        elif isinstance(group_entry_points, list):
+            group_entry_points_lines = '\n'.join(group_entry_points)
+        else:
             raise ValueError(
                 f'Received an unexpected value for the Entry Point groups: '
                 f'{group_entry_points!r}'
@@ -174,7 +178,7 @@ class BuildStaticFiles(Command):
                        group=extension_entrypoint_group)
             for item in Sectioned.section_pairs(
                 f'[{extension_entrypoint_group}]\n'
-                f'{group_entry_points}\n'
+                f'{group_entry_points_lines}\n'
             )
         ]
 
@@ -226,6 +230,9 @@ class BuildStaticFiles(Command):
         build_root = self.build_lib
         assert build_root and isinstance(build_root, str)
 
+        if not os.path.exists(build_root):
+            os.makedirs(build_root)
+
         static_media_build_context_cls = (
             self.static_media_build_context_cls or
             StaticMediaBuildContext
@@ -259,6 +266,10 @@ class BuildStaticFiles(Command):
             extension_cls=extension_cls,
             source_root_dir=Path.cwd(),
             build_dir=Path(build_root))
+
+        if not build_context.static_dir.exists():
+            # There's no static media to build. We can bail now.
+            return
 
         builder = static_media_builder_cls(build_context=build_context)
         self._builder = builder
