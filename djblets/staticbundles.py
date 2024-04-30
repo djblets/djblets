@@ -22,20 +22,13 @@ PIPELINE_JAVASCRIPT = {
     },
     'djblets-extensions-admin': {
         'source_filenames': (
-            # Legacy JavaScript
-            'djblets/js/extensions/models/extensionManagerModel.es6.js',
-            'djblets/js/extensions/views/extensionManagerView.es6.js',
+            'djblets/js/extensionsAdmin/index.ts',
         ),
         'output_filename': 'djblets/js/extensions-admin.min.js',
     },
     'djblets-extensions': {
         'source_filenames': (
             'djblets/js/extensions/index.ts',
-
-            # Legacy JavaScript
-            'djblets/js/extensions/models/extensionModel.es6.js',
-            'djblets/js/extensions/models/extensionHookModel.es6.js',
-            'djblets/js/extensions/models/extensionHookPointModel.es6.js',
         ),
         'output_filename': 'djblets/js/extensions.min.js',
     },

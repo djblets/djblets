@@ -5,6 +5,7 @@
 import { spina } from '@beanbag/spina';
 import * as _ from 'underscore';
 
+import { type ListItem } from '../models/listItemModel';
 import { ListItemView } from './listItemView';
 
 
@@ -19,7 +20,11 @@ import { ListItemView } from './listItemView';
         'template',
     ],
 })
-export class TableItemView extends ListItemView {
+export class TableItemView<
+    TModel extends ListItem = ListItem,
+    TElement extends HTMLElement = HTMLTableRowElement,
+    TExtraViewOptions = unknown,
+> extends ListItemView<TModel, TElement, TExtraViewOptions> {
     static tagName = 'tr';
 
     static template = _.template(dedent`

@@ -1,4 +1,33 @@
-(function() {
+/**
+ * Displays the interface showing all installed extensions.
+ */
+
+import {
+    type EventsHash,
+    BaseView,
+    spina,
+} from '@beanbag/spina';
+import _ from 'underscore';
+
+import { Config } from 'djblets/configForms';
+import {
+    type ListItemAttrs,
+    type ListItemConstructorAttrs,
+} from 'djblets/configForms/models/listItemModel';
+import { type Extension } from 'djblets/extensions';
+
+import { type ExtensionManager } from '../models/extensionManagerModel';
+
+
+/**
+ * Attributes for the ExtensionItem model.
+ *
+ * Version Added:
+ *     5.0
+ */
+interface ExtensionItemAttrs extends ListItemAttrs {
+    extension: Extension | null;
+}
 
 
 /**
@@ -7,10 +36,11 @@
  * This will contain information on the extension and actions for toggling
  * the enabled state, reloading the extension, or configuring the extension.
  */
-const ExtensionItem = Djblets.Config.ListItem.extend({
-    defaults: _.defaults({
+@spina
+class ExtensionItem extends Config.ListItem<ExtensionItemAttrs> {
+    static defaults: ExtensionItemAttrs = {
         extension: null,
-    }, Djblets.Config.ListItem.prototype.defaults),
+    };
 
     /**
      * Initialize the item.
@@ -18,21 +48,25 @@ const ExtensionItem = Djblets.Config.ListItem.extend({
      * This will set up the initial state and then listen for any changes
      * to the extension's state (caused by enabling/disabling/reloading the
      * extension).
+     *
+     * Args:
+     *     attributes (ListItemConstructorAttrs, optional):
+     *         Attributes for the model.
      */
-    initialize() {
-        Djblets.Config.ListItem.prototype.initialize.apply(this, arguments);
+    initialize(attributes: ListItemConstructorAttrs = {}) {
+        super.initialize(attributes);
 
-        this._updateActions();
-        this._updateItemState();
+        this.#updateActions();
+        this.#updateItemState();
 
         this.listenTo(
             this.get('extension'),
             'change:loadable change:loadError change:enabled',
             () => {
-                this._updateItemState();
-                this._updateActions();
+                this.#updateItemState();
+                this.#updateActions();
             });
-    },
+    }
 
     /**
      * Update the actions for the extension.
@@ -44,7 +78,7 @@ const ExtensionItem = Djblets.Config.ListItem.extend({
      * If it's enabled, it will provide actions for Configure and Database,
      * if enabled by the extension, along with a Disable action.
      */
-    _updateActions() {
+    #updateActions() {
         const extension = this.get('extension');
         const actions = [];
 
@@ -96,7 +130,7 @@ const ExtensionItem = Djblets.Config.ListItem.extend({
         }
 
         this.setActions(actions);
-    },
+    }
 
     /**
      * Update the state of this item.
@@ -104,9 +138,9 @@ const ExtensionItem = Djblets.Config.ListItem.extend({
      * This will set the "error", "enabled", or "disabled" state of the
      * item, depending on the corresponding state in the extension.
      */
-    _updateItemState() {
+    #updateItemState() {
         const extension = this.get('extension');
-        let itemState;
+        let itemState: string;
 
         if (!extension.get('loadable')) {
             itemState = 'error';
@@ -117,8 +151,8 @@ const ExtensionItem = Djblets.Config.ListItem.extend({
         }
 
         this.set('itemState', itemState);
-    },
-});
+    }
+}
 
 
 /**
@@ -128,16 +162,18 @@ const ExtensionItem = Djblets.Config.ListItem.extend({
  * enabling/disabling the extension, and (depending on the extension's
  * capabilities) configuring it or viewing its database.
  */
-const ExtensionItemView = Djblets.Config.TableItemView.extend({
-    className: 'djblets-c-extension-item djblets-c-config-forms-list__item',
+@spina
+class ExtensionItemView extends Config.TableItemView {
+    static className =
+        'djblets-c-extension-item djblets-c-config-forms-list__item';
 
-    actionHandlers: {
+    static actionHandlers: EventsHash = {
         'disable': '_onDisableClicked',
         'enable': '_onEnableClicked',
         'reload': '_onReloadClicked',
-    },
+    };
 
-    template: _.template(dedent`
+    static template = _.template(dedent`
         <td class="djblets-c-config-forms-list__item-main">
          <div class="djblets-c-extension-item__header">
           <h3 class="djblets-c-extension-item__name"><%- name %></h3>
@@ -160,7 +196,7 @@ const ExtensionItemView = Djblets.Config.TableItemView.extend({
         </td>
         <td class="djblets-c-config-forms-list__item-state"></td>
         <td></td>
-    `),
+    `);
 
     /**
      * Return context data for rendering the item's template.
@@ -171,7 +207,7 @@ const ExtensionItemView = Djblets.Config.TableItemView.extend({
      */
     getRenderContext() {
         return this.model.get('extension').attributes;
-    },
+    }
 
     /**
      * Handle a click on the Disable action.
@@ -188,7 +224,7 @@ const ExtensionItemView = Djblets.Config.TableItemView.extend({
             .catch(error => {
                 alert(_`Failed to disable the extension: ${error.message}.`);
             });
-    },
+    }
 
     /**
      * Handle a click on the Enable action.
@@ -205,7 +241,7 @@ const ExtensionItemView = Djblets.Config.TableItemView.extend({
             .catch(error => {
                 alert(_`Failed to enable the extension: ${error.message}.`);
             });
-    },
+    }
 
     /**
      * Handle a click on the Reload action.
@@ -221,8 +257,8 @@ const ExtensionItemView = Djblets.Config.TableItemView.extend({
      */
     _onReloadClicked() {
         return new Promise(() => this.model.trigger('needsReload'));
-    },
-});
+    }
+}
 
 
 /**
@@ -230,44 +266,49 @@ const ExtensionItemView = Djblets.Config.TableItemView.extend({
  *
  * This loads the list of installed extensions and displays each in a list.
  */
-Djblets.ExtensionManagerView = Backbone.View.extend({
-    events: {
+@spina
+export class ExtensionManagerView extends BaseView<
+    ExtensionManager,
+    HTMLFormElement
+> {
+    static events: EventsHash = {
         'click .djblets-c-extensions__reload': '_reloadFull',
-    },
+    };
 
-    listItemType: ExtensionItem,
-    listItemViewType: ExtensionItemView,
-    listItemsCollectionType: Djblets.Config.ListItems,
-    listViewType: Djblets.Config.TableView,
+    /**********************
+     * Instance variables *
+     **********************/
+
+    /** The extension list model. */
+    list: Config.List;
+
+    /** The extension list view. */
+    listView: Config.TableView;
 
     /**
      * Initialize the view.
      */
     initialize() {
-        this.list = new Djblets.Config.List(
+        this.list = new Config.List(
             {},
             {
-                collection: new this.listItemsCollectionType(
+                collection: new Config.ListItems(
                     [],
                     {
-                        model: this.listItemType,
+                        model: ExtensionItem,
                     }),
             });
-    },
+    }
 
     /**
      * Render the view.
-     *
-     * Returns:
-     *     Djblets.ExtensionManagerView:
-     *     This object, for chaining.
      */
-    render() {
+    protected onInitialRender() {
         const model = this.model;
         const list = this.list;
 
-        this.listView = new this.listViewType({
-            ItemView: this.listItemViewType,
+        this.listView = new Config.TableView({
+            ItemView: ExtensionItemView,
             el: this.$('.djblets-c-config-forms-list'),
             model: list,
         });
@@ -275,14 +316,10 @@ Djblets.ExtensionManagerView = Backbone.View.extend({
             .removeAttr('aria-busy')
             .addClass('-all-items-are-multiline');
 
-        this._$listContainer = this.listView.$el.parent();
-
         this.listenTo(model, 'loading', () => list.collection.reset());
         this.listenTo(model, 'loaded', this._onLoaded);
         model.load();
-
-        return this;
-    },
+    }
 
     /**
      * Handler for when the list of extensions is loaded.
@@ -300,7 +337,7 @@ Djblets.ExtensionManagerView = Backbone.View.extend({
 
             this.listenTo(item, 'needsReload', this._reloadFull);
         });
-    },
+    }
 
     /**
      * Perform a full reload of the list of extensions on the server.
@@ -310,8 +347,5 @@ Djblets.ExtensionManagerView = Backbone.View.extend({
      */
     _reloadFull() {
         this.el.submit();
-    },
-});
-
-
-})();
+    }
+}
