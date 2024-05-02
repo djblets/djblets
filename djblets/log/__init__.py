@@ -101,7 +101,6 @@ Whether to log output to stdout. This would be in addition to any other
 configured logging, and is intended for environments like Docker.
 """
 
-import inspect
 import logging
 import logging.handlers
 import os
@@ -111,7 +110,7 @@ from functools import update_wrapper
 
 from django.conf import settings
 
-from djblets.deprecation import RemovedInDjblets50Warning
+from djblets.deprecation import RemovedInDjblets70Warning
 
 
 _logging_setup = False
@@ -401,9 +400,9 @@ def _Logger_log(self, *args, **kwargs):
     request = kwargs.pop('request', None)
 
     if request:
-        RemovedInDjblets50Warning.warn(
+        RemovedInDjblets70Warning.warn(
             "The request= argument to logging methods has been deprecated and "
-            "will be removed in Djblets 5.0. Please change this to pass "
+            "will be removed in Djblets 7.0. Please change this to pass "
             "extra={'request': request}.")
         extra['request'] = request
 
@@ -417,33 +416,3 @@ _old_log = logging.Logger._log
 if _old_log is not _Logger_log:
     update_wrapper(_Logger_log, logging.Logger._log)
     logging.Logger._log = _Logger_log
-
-
-# On some versions of Python (2.6.x, 2.7.0-2.7.5, 3.0.x, and 3.1.x),
-# Logger.exception/logging.exception doesn't support keyword arguments,
-# which impacts not only request= but also extra=. We need to patch these.
-def _has_keywords(func):
-    if hasattr(inspect, 'getfullargspec'):
-        argspec = inspect.getfullargspec(func)
-
-        return (argspec.varkw is not None or
-                argspec.kwonlyargs is not None)
-    else:
-        return inspect.getargspec(func).keywords is not None
-
-
-if not _has_keywords(logging.exception):
-    def _logging_exception(msg, *args, **kwargs):
-        kwargs['exc_info'] = True
-        logging.error(msg, *args, **kwargs)
-
-    update_wrapper(_logging_exception, logging.exception)
-    logging.exception = _logging_exception
-
-if not _has_keywords(logging.Logger.exception):
-    def _Logger_exception(self, msg, *args, **kwargs):
-        kwargs['exc_info'] = True
-        self.error(msg, *args, **kwargs)
-
-    update_wrapper(_Logger_exception, logging.Logger.exception)
-    logging.Logger.exception = _Logger_exception

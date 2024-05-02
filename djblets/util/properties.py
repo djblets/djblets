@@ -6,10 +6,7 @@ import warnings
 from typing import (Any, Callable, Generic, Optional, Sequence, Tuple, Type,
                     Union, cast, overload)
 
-from housekeeping import deprecate_non_keyword_only_args
 from typing_extensions import Self, TypeAlias, TypeVar
-
-from djblets.deprecation import RemovedInDjblets50Warning
 
 
 # NOTE: When mypy supports PEP 696, we can give many of these defaults.
@@ -50,31 +47,6 @@ class BaseProperty(Generic[_StoredT]):
     #: Version Added:
     #:     3.3
     attr_name: str
-
-    def get_attr_name(
-        self,
-        instance: object,
-    ) -> str:
-        """Return the name of this property's attribute.
-
-        Deprecated:
-            3.3:
-            This has been replaced with :py:attr:`attr_name`, and will be
-            removed in Djblets 5.0.
-
-        Args:
-            instance (object):
-                The instance owning this property.
-
-        Returns:
-            str:
-            The name of this property on the instance.
-        """
-        RemovedInDjblets50Warning.warn(
-            '%s.get_attr_name() is deprecated. Please access the `attr_name` '
-            'attribute instead. This will be removed in Djblets 5.0.')
-
-        return self.attr_name
 
     def __set_name__(
         self,
@@ -141,7 +113,6 @@ class AliasProperty(Generic[_GetT, _AliasPropertySetT],
     #: The name of the property or attribute to read from and write to
     prop_name: str
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets50Warning)
     def __init__(
         self,
         prop_name: str,
@@ -329,7 +300,6 @@ class TypedProperty(Generic[_TypedPropertyGetT, _SetT],
     #: New values are checked against this at runtime.
     valid_types: Tuple[Type[_SetT], ...]
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets50Warning)
     def __init__(
         self,
         valid_types: _TypedPropertyValidTypesParamT,
@@ -434,45 +404,3 @@ class TypedProperty(Generic[_TypedPropertyGetT, _SetT],
         return cast(
             _TypedPropertyGetT,
             instance.__dict__.get('_%s_typed' % self.attr_name, self.default))
-
-
-def get_descriptor_attr_name(descriptor, cls):
-    """Return the name of a property/descriptor instance on a class.
-
-    This will go through the class and all parent classes, looking for the
-    property, and returning its attribute name. This is primarily intended
-    to help with providing better error messages.
-
-    Deprecated:
-        3.3:
-        This will be removed in Djblets 5.0. Callers should define
-        a ``__set_name__()`` method on the descriptor instead.
-
-    Args:
-        descriptor (object):
-            The instance of the property/descriptor. For a proper value to
-            be returned, this must exist on ``cls``.
-
-        cls (type):
-            The class owning the property.
-
-    Returns:
-        str:
-        The name of the property/descriptor.
-    """
-    RemovedInDjblets50Warning.warn(
-        'djblets.util.properties.get_descriptor_attr_name() is deprecated. '
-        'Please define a __set_name__() on your descriptor instead. This '
-        'will be removed in Djblets 5.0.')
-
-    for attr_name, attr_value in cls.__dict__.items():
-        if attr_value is descriptor:
-            return attr_name
-
-    for parent_cls in cls.__mro__:
-        attr_name = get_descriptor_attr_name(descriptor, parent_cls)
-
-        if attr_name is not None:
-            return attr_name
-
-    return None

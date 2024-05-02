@@ -165,12 +165,14 @@ export interface ListItemAction {
 /**
  * Attributes for the ListItem constructor.
  *
- * This handles the special case of passing in the actions as part of the
- * ``attributes`` parameter, which is a deprecated use.
+ * This is a legacy type definition from when we had additional constructor
+ * options.
+ *
+ * Version Changed:
+ *     5.0:
+ *     Removed the ``actions`` member.
  */
-export interface ListItemConstructorAttrs extends ListItemAttrs {
-    actions?: ListItemAction[];
-}
+export type ListItemConstructorAttrs = ListItemAttrs;
 
 
 /**
@@ -202,7 +204,7 @@ export class ListItem<
      **********************/
 
     /** The actions available for this item. */
-    actions: ListItemAction[];
+    actions: ListItemAction[] = [];
 
     /**
      * A mapping of item states to text.
@@ -223,24 +225,17 @@ export class ListItem<
      * for removing the item.
      *
      * Args:
-     *     attributes (ListItemConstructorAttrs, optional):
+     *     attributes (ListItemAttrs, optional):
      *         Attributes for the model.
-     *
-     *         This may optionally also include in an ``actions`` property,
-     *         which will pre-populate the ``actions`` member. This usage is
-     *         deprecated and will be removed in Djblets 5.
      */
-    initialize(attributes: ListItemConstructorAttrs = {}) {
-        if (attributes.actions) {
-            console.error(dedent`
-                Djblets.Config.ListItem.initialize was called with actions
-                passed in the attributes argument. This behavior is deprecated
-                and will be removed in Djblets 5.
-                `);
-            this.actions = attributes.actions;
-        } else {
-            this.actions = [];
-        }
+    initialize(attributes: ListItemAttrs = {}) {
+        console.assert(
+            attributes.actions === undefined,
+            dedent`
+                Passing in actions to the Djblets.Config.ListItem constructor
+                has been removed as of Djblets 5.0. Actions should be passed
+                to the setActions() method instead.
+            `);
 
         if (this.get('showRemove')) {
             this.actions.push({
