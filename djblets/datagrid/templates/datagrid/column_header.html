@@ -1,8 +1,22 @@
 {% load djblets_utils i18n static %}
 
 {% if column.sortable %}
-<th onclick="javascript:window.location = '{{sort_url|escapejs}}';" class="datagrid-header{% if column.label and not column.show_checkbox_header %} has-label{% endif %}">
- <a rel="nofollow" href="{{sort_url}}">{% if column.label %}{{column.label}}{% endif %}{% spaceless %}
+{%  definevar "sort_text" strip %}
+{%   if sort_ascending %}
+{%    blocktrans with label=column.label|default:"column" %}
+       Sort {{label}} descending
+{%    endblocktrans %}
+{%   else %}
+{%    blocktrans with label=column.label|default:"column" %}
+       Sort {{label}} ascending
+{%    endblocktrans %}
+{%   endif %}
+{%  enddefinevar %}
+<th onclick="javascript:window.location = '{{sort_url|escapejs}}';"
+    {% if column.label %}aria-label="{{column.label}}"{% endif %}
+    {% if in_sort %}aria-sort="{{sort_ascending|yesno:"ascending,descending"}}"{% endif %}
+    class="datagrid-header{% if column.label and not column.show_checkbox_header %} has-label{% endif %}">
+ <a rel="nofollow" href="{{sort_url}}" title="{{sort_text}}" aria-label="{{sort_text}}">{% if column.label %}{{column.label}}{% endif %}{% spaceless %}
 {%  if column.image_url %}
   <img src="{{column.image_url}}" width="{{column.image_width}}"
        height="{{column.image_height}}" alt="{{column.image_alt}}"
@@ -13,10 +27,15 @@
  {% endspaceless %}</a>
 {%  if in_sort %}
 {% definevar "sort_image" %}sort-{{sort_ascending|yesno:"asc,desc"}}-{{sort_primary|yesno:"primary,secondary"}}{% enddefinevar %}
-  <div class="datagrid-icon datagrid-icon-{{sort_image}}" title="{% if sort_ascending %}{% trans "Ascending" %}{% else %}{% trans "Descending" %}{% endif %}"></div>
- <a rel="nofollow" class="datagrid-unsort" href="{{unsort_url}}">
-  <div class="datagrid-icon datagrid-icon-unsort" title="{% trans "Unsort" %}"></div>
- </a>
+{%   if sort_ascending %}
+  <span class="ink-i-sort-ascending" title="{% trans "Sorted ascending" %}"></span>
+{%   else %}
+  <span class="ink-i-sort-descending" title="{% trans "Sorted descending" %}"></span>
+{%   endif %}
+ <a rel="nofollow" class="datagrid-unsort ink-i-unsort"
+    href="{{unsort_url}}"
+    title="{% trans "Unsort" %}"
+    aria-label="{% trans "Unsort" %}"></a>
 {%  endif %}
 </th>
 {% else %}

@@ -32,7 +32,7 @@
     }
 
     .paginator() {
-      @padding: 8px 4px 4px 4px;
+      @padding: 0 0 0 var(--ink-u-spacing-l);
       @page-padding: 2px 6px;
 
       @active-bg-color: #D4E0F3;
@@ -61,10 +61,36 @@
     }
 
     .datagrid-body {
-      tbody th:first-child {
-        padding-left: 0.5em;
-        text-align: right;
-        white-space: nowrap;
+      tbody {
+        tr {
+          background: var(--ink-p-grey-200);
+
+          &.even {
+            th {
+              background: var(--ink-c-data-table-row-alt-bg);
+            }
+          }
+
+          td {
+            background: var(--ink-c-data-table-body-bg);
+          }
+
+          th {
+            &:first-child {
+              border-right: 1px var(--ink-c-data-table-row-border-color) solid;
+              font-weight: normal;
+              padding: var(--ink-u-spacing-m);
+              text-align: right;
+              white-space: nowrap;
+            }
+          }
+
+          td, th {
+            border-bottom: var(--ink-u-border-thin)
+                           var(--ink-c-data-table-row-border-color)
+                           solid;
+          }
+        }
       }
     }
 
@@ -80,23 +106,16 @@
 .datagrid {
   @_cell-vars: #djblets-ns-ui.datagrids.cells();
 
+  background: var(--ink-c-data-table-body-bg);
   border-collapse: collapse;
   width: 100%;
 
   tr {
-    background-color: @_cell-vars[@bg];
+    background-color: var(--ink-c-data-table-row-bg);
     cursor: pointer;
 
-    &:hover {
-      background-color: @_cell-vars[@hover-bg];
-    }
-
-    &.even {
-      background-color: @_cell-vars[@even-bg];
-
-      &:hover {
-        background-color: @_cell-vars[@even-hover-bg];
-      }
+    &:nth-child(2n) {
+      background-color: var(--ink-c-data-table-row-alt-bg);
     }
 
     &:hover.headers {
@@ -122,9 +141,14 @@
     }
 
     a {
-      color: black;
+      color: inherit;
       text-decoration: none;
     }
+  }
+
+  td,
+  .datagrid-header {
+    padding: var(--ink-c-data-table-cell-padding);
   }
 
   th.day {
@@ -137,48 +161,45 @@
   @_datagrid-vars: #djblets-ns-ui.datagrids();
   @_header-vars: #djblets-ns-ui.datagrids.header();
 
-  background: url("../images/datagrid/header_bg.png") repeat-x bottom left;
-  border-top: 1px @_header-vars[@border-color] solid;
-  border-bottom: 1px @_header-vars[@border-color] solid;
-  border-right: 1px @_header-vars[@sep-border-color] solid;
-  color: @_header-vars[@text-color];
+  --ink-u-icon-std: 14px;
+
+  background: var(--ink-c-data-table-header-bg);
+  border-bottom: var(--ink-g-border-header);
+  color: var(--ink-c-data-table-header-text-color);
   cursor: pointer;
   font-weight: bold;
   padding: @_header-vars[@padding];
   text-align: left;
   white-space: nowrap;
 
-  &:hover {
-    background: url("../images/datagrid/header_bg_primary.png") repeat-x bottom left;
-
-    a {
-      text-decoration: underline;
-    }
+  > * {
+    vertical-align: middle;
   }
 
-  a {
-    color: @_header-vars[@text-color];
+  a:link,
+  a:visited {
+    color: inherit;
     text-decoration: none;
 
-    &.unsort {
-      color: @_header-vars[@unsort-icon-color];
-    }
-
     &:hover {
+      color: var(--ink-c-data-table-header-hover-text-color);
       text-decoration: underline;
     }
   }
 
-  img, div {
-    vertical-align: middle;
+  .ink-i-sort-ascending,
+  .ink-i-sort-descending {
+    margin-left: var(--ink-u-spacing-sm);
   }
 }
 
 .datagrid-header-drag {
   @_header-vars: #djblets-ns-ui.datagrids.header();
 
-  border: 1px @_header-vars[@drag-border-color] solid;
+  border-left: var(--ink-g-border-header);
+  border-right: var(--ink-g-border-header);
   border-top: 0;
+  border-bottom: 0;
 }
 
 .edit-columns {
@@ -191,17 +212,15 @@
  ****************************************************************************/
 .datagrid-title,
 .datagrid-titlebox {
-  background-color: #a2bedc;
-  border-bottom: 1px #728eac solid;
   margin: 0;
-  padding: 5px 10px 5px 5px;
+  padding: var(--ink-u-spacing-std);
 }
 
 .datagrid-titlebox {
   h1 {
     display: inline;
-    font-size: 120%;
-    padding-right: 10px;
+    font-size: var(--ink-u-font-l);
+    padding-right: var(--ink-u-spacing-l);
   }
 
   ul {
@@ -214,7 +233,7 @@
       display: inline;
 
       a {
-        color: #0000CC;
+        color: var(--ink-p-link-color);
       }
     }
   }
@@ -233,57 +252,46 @@
   @_text-color: @_paginator-vars[@text-color];
   @_page-padding: @_paginator-vars[@page-padding];
 
+  background: var(--ink-p-footer-bg);
+  border-top: var(--ink-g-border-container);
   padding: @_paginator-vars[@padding];
 
   .current-page {
-    font-weight: bold;
+    border-bottom: 3px var(--ink-p-text-color-weak) solid;
+    min-width: var(--ink-u-spacing-l);
     padding: @_page-padding;
-  }
-
-  .current-letter {
-    border: 1px @_active-border-color solid;
-    background-color: @_active-bg-color;
-    padding: @_page-padding;
-    margin-right: 4px;
-
-    a {
-      border: none;
-      color: @_text-color;
-      padding: @_page-padding;
-      text-decoration: none;
-
-      &:hover {
-        border: 1px @_hover-border-color solid;
-        background-color: @_hover-bg-color;
-        color: @_text-color;
-      }
-
-      &:visited {
-        color: @_text-color;
-      }
-    }
   }
 
   .page-count {
-    color: @_paginator-vars[@count-text-color];
-    margin-left: 10px;
+    color: var(--ink-p-text-color-weak);
+    padding-left: 0;
+    padding-right: 0;
   }
 
-  a {
-    border: 1px @_active-border-color solid;
-    color: @_text-color;
-    padding: @_page-padding;
+  a:link,
+  a:visited {
+    border-bottom: 3px transparent solid;
+    color: var(--ink-p-text-color-weak);
+    display: inline-block;
     text-decoration: none;
 
     &:hover {
-      background-color: @_hover-bg-color;
-      border-color: @_hover-border-color;
-      color: @_text-color;
+      color: var(--ink-p-text-color);
     }
+  }
 
-    &:visited {
-      color: @_text-color;
-    }
+  a:link,
+  a:visited,
+  .current-page {
+    font-weight: bold;
+  }
+
+  a:link,
+  a:visited,
+  .current-page,
+  .page-count {
+    padding: var(--ink-u-spacing-m);
+    text-align: center;
   }
 }
 
@@ -395,18 +403,34 @@
 
 .datagrid-main {
   position: relative;
+  border: var(--ink-g-border-container);
+  border-radius: var(--ink-u-border-radius-container);
+  box-shadow: var(--ink-g-shadow-std);
+  overflow: hidden;
 }
 
 .datagrid-menu {
   @_menu-vars: #djblets-ns-ui.datagrids.menu();
 
-  background-color: @_menu-vars[@bg];
-  border-left: 1px @_menu-vars[@border-color] solid;
-  border-bottom: 1px @_menu-vars[@border-color] solid;
+  /*
+   * Note that as of the time of this writing (30-April-2024), there's no
+   * standard drawer component in Ink, and so no defined color palette. We're
+   * using the footer visuals to keep visual consistency.
+   */
+  background:
+    var(--if-dark, var(--ink-p-container-bg))
+    var(--if-light, var(--ink-p-footer-bg));
+  border-left: var(--ink-u-border-thin)
+               var(--ink-p-footer-border-color)
+               solid;
+  color: var(--ink-p-text-color);
   box-sizing: border-box;
-  margin: 0;
+  margin: 1px 0 0 0;
+  overflow-x: hidden;
   overflow-y: auto;
   right: 0;
+  top: 0;
+  bottom: 0;
 
   padding: @_menu-vars[@padding];
 
@@ -432,8 +456,10 @@
     padding: 0.4em;
   }
 
-  a:link {
-    color: black;
+  a:hover,
+  a:link,
+  a:visited {
+    color: inherit;
     display: block;
     text-decoration: none;
 
@@ -447,7 +473,6 @@
 
   tr:hover {
     .datagrid-menu-checkbox {
-      background-color: #E0E0E0;
       cursor: pointer;
     }
 
@@ -469,7 +494,6 @@
 .datagrid-menu-checkbox {
   @_cell-vars: #djblets-ns-ui.datagrids.cells();
 
-  border: 1px #C0C0C0 solid;
   height: @_cell-vars[@height];
   width: @_cell-vars[@height];
 

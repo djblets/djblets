@@ -63,7 +63,7 @@
 {% for column in datagrid.all_columns %}
 {%  with column.toggle_url as toggle_url %}
     <tr class="{{column.id}}" title="{% if column.active %}{% trans 'Remove the column' %}{% else %}{% trans 'Add the column' %}{% endif %}">
-     <td class="datagrid-menu-checkbox">{% if column.active %}<div class="datagrid-icon datagrid-icon-checkmark"></div>{% endif %}</td>
+     <td class="datagrid-menu-checkbox">{% if column.active %}<div class="ink-i-check"></div>{% endif %}</td>
      <td class="datagrid-menu-label"><a href="#">{% spaceless %}
 {%   if column.image_url %}
       <img src="{{column.image_url}}" width="{{column.image_width}}" height="{{column.image_height}}" alt="{{column.image_alt}}" />
