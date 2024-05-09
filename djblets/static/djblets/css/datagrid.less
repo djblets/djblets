@@ -165,7 +165,7 @@
 
   background: var(--ink-c-data-table-header-bg);
   border-bottom: var(--ink-g-border-header);
-  color: var(--ink-c-data-table-header-text-color);
+  color: var(--ink-c-data-table-header-fg);
   cursor: pointer;
   font-weight: bold;
   padding: @_header-vars[@padding];
@@ -233,7 +233,7 @@
       display: inline;
 
       a {
-        color: var(--ink-p-link-color);
+        color: var(--ink-p-link-fg);
       }
     }
   }
@@ -257,13 +257,13 @@
   padding: @_paginator-vars[@padding];
 
   .current-page {
-    border-bottom: 3px var(--ink-p-text-color-weak) solid;
+    border-bottom: 3px var(--ink-p-fg-weak) solid;
     min-width: var(--ink-u-spacing-l);
     padding: @_page-padding;
   }
 
   .page-count {
-    color: var(--ink-p-text-color-weak);
+    color: var(--ink-p-fg-weak);
     padding-left: 0;
     padding-right: 0;
   }
@@ -271,12 +271,12 @@
   a:link,
   a:visited {
     border-bottom: 3px transparent solid;
-    color: var(--ink-p-text-color-weak);
+    color: var(--ink-p-fg-weak);
     display: inline-block;
     text-decoration: none;
 
     &:hover {
-      color: var(--ink-p-text-color);
+      color: var(--ink-p-fg);
     }
   }
 
@@ -335,7 +335,7 @@
   border-left: var(--ink-u-border-thin)
                var(--ink-p-footer-border-color)
                solid;
-  color: var(--ink-p-text-color);
+  color: var(--ink-p-fg);
   box-sizing: border-box;
   margin: 1px 0 0 0;
   overflow-x: hidden;
