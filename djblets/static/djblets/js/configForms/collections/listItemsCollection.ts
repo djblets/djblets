@@ -24,6 +24,13 @@ export class ListItems<
     TCollectionOptions extends Backbone.CollectionOptions<TModel> =
         Backbone.CollectionOptions<TModel>
 > extends BaseCollection<TModel, TExtraCollectionOptions, TCollectionOptions> {
+    /**********************
+     * Instance variables *
+     **********************/
+
+    /** The saved options. */
+    options: TExtraCollectionOptions;
+
     /**
      * Initialize the collection.
      *
@@ -54,9 +61,11 @@ export class ListItems<
      *     options (object):
      *         Options to pass to the base class's ``fetch`` method.
      */
-    fetch(options: Backbone.CollectionFetchOptions) {
+    fetch(
+        options: Backbone.CollectionFetchOptions,
+    ): JQueryXHR {
         this.trigger('fetching');
 
-        super.fetch(options);
+        return super.fetch(options);
     }
 }

@@ -8,19 +8,21 @@ import {
 } from 'jasmine-core';
 import * as _ from 'underscore';
 
-import { ListItem } from '../../models/listItemModel';
-import { ListItemView } from '../listItemView';
+import {
+    ConfigFormsListItem,
+    ConfigFormsListItemView,
+} from 'djblets/configForms';
 
 
 suite('djblets/configForms/views/ListItemView', function() {
     describe('Rendering', function() {
         describe('General item display', function() {
             it('With editURL', function() {
-                const item = new ListItem({
+                const item = new ConfigFormsListItem({
                     editURL: 'http://example.com/',
                     text: 'Label',
                 });
-                const itemView = new ListItemView({
+                const itemView = new ConfigFormsListItemView({
                     model: item,
                 });
 
@@ -33,10 +35,10 @@ suite('djblets/configForms/views/ListItemView', function() {
             });
 
             it('Without editURL', function() {
-                const item = new ListItem({
+                const item = new ConfigFormsListItem({
                     text: 'Label',
                 });
-                const itemView = new ListItemView({
+                const itemView = new ConfigFormsListItemView({
                     model: item,
                 });
 
@@ -50,7 +52,7 @@ suite('djblets/configForms/views/ListItemView', function() {
         });
 
         describe('Item states', function() {
-            const CustomItemView = ListItemView.extend({
+            const CustomItemView = ConfigFormsListItemView.extend({
                 template: _.template(dedent`
                     <div><%- text %></div>
                     <div class="djblets-c-config-forms-list__item-state">
@@ -59,7 +61,7 @@ suite('djblets/configForms/views/ListItemView', function() {
             });
 
             it('Initial render', function() {
-                const item = new ListItem({
+                const item = new ConfigFormsListItem({
                     itemState: 'enabled',
                 });
                 const itemView = new CustomItemView({
@@ -76,7 +78,7 @@ suite('djblets/configForms/views/ListItemView', function() {
             });
 
             it('When changed', function() {
-                const item = new ListItem({
+                const item = new ConfigFormsListItem({
                     itemState: 'enabled',
                 });
                 const itemView = new CustomItemView({
@@ -98,7 +100,7 @@ suite('djblets/configForms/views/ListItemView', function() {
 
         describe('Actions', function() {
             it('Checkboxes', function() {
-                const item = new ListItem({
+                const item = new ConfigFormsListItem({
                     checkboxAttr: false,
                     text: 'Label',
                 });
@@ -111,7 +113,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                     },
                 ]);
 
-                const itemView = new ListItemView({
+                const itemView = new ConfigFormsListItemView({
                     model: item,
                 });
 
@@ -123,7 +125,7 @@ suite('djblets/configForms/views/ListItemView', function() {
 
             describe('Buttons', function() {
                 it('Simple', function() {
-                    const item = new ListItem({
+                    const item = new ConfigFormsListItem({
                         text: 'Label',
                     });
                     item.setActions([
@@ -133,7 +135,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                         },
                     ]);
 
-                    const itemView = new ListItemView({
+                    const itemView = new ConfigFormsListItemView({
                         model: item,
                     });
 
@@ -153,7 +155,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 it('Danger', function() {
-                    const item = new ListItem({
+                    const item = new ConfigFormsListItem({
                         text: 'Label',
                     });
                     item.setActions([
@@ -164,7 +166,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                         },
                     ]);
 
-                    const itemView = new ListItemView({
+                    const itemView = new ConfigFormsListItemView({
                         model: item,
                     });
 
@@ -184,7 +186,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 it('Primary', function() {
-                    const item = new ListItem({
+                    const item = new ConfigFormsListItem({
                         text: 'Label',
                     });
                     item.setActions([
@@ -195,7 +197,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                         },
                     ]);
 
-                    const itemView = new ListItemView({
+                    const itemView = new ConfigFormsListItemView({
                         model: item,
                     });
 
@@ -215,7 +217,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 it('Icon names', function() {
-                    const item = new ListItem({
+                    const item = new ConfigFormsListItem({
                         text: 'Label',
                     });
                     item.setActions([
@@ -227,7 +229,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                         },
                     ]);
 
-                    const itemView = new ListItemView({
+                    const itemView = new ConfigFormsListItemView({
                         model: item,
                     });
 
@@ -252,11 +254,11 @@ suite('djblets/configForms/views/ListItemView', function() {
             });
 
             describe('Menus', function() {
-                let item;
-                let itemView;
+                let item: ConfigFormsListItem;
+                let itemView: ConfigFormsListItemView;
 
                 beforeEach(function() {
-                    item = new ListItem({
+                    item = new ConfigFormsListItem({
                         text: 'Label',
                     });
                     item.setActions([
@@ -272,7 +274,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                         },
                     ]);
 
-                    itemView = new ListItemView({
+                    itemView = new ConfigFormsListItemView({
                         model: item,
                     });
 
@@ -326,11 +328,11 @@ suite('djblets/configForms/views/ListItemView', function() {
             });
 
             it('After render', () => {
-                const item = new ListItem({
+                const item = new ConfigFormsListItem({
                     text: 'Label',
                 });
 
-                const itemView = new ListItemView({
+                const itemView = new ConfigFormsListItemView({
                     model: item,
                 });
                 itemView.render();
@@ -364,7 +366,7 @@ suite('djblets/configForms/views/ListItemView', function() {
         describe('Action properties', function() {
             describe('enabledPropName', function() {
                 it('value == undefined', function() {
-                    const item = new ListItem({
+                    const item = new ConfigFormsListItem({
                         text: 'Label',
                     });
                     item.setActions([
@@ -376,7 +378,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                         },
                     ]);
 
-                    const itemView = new ListItemView({
+                    const itemView = new ConfigFormsListItemView({
                         model: item,
                     });
 
@@ -389,7 +391,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 it('value == true', function() {
-                    const item = new ListItem({
+                    const item = new ConfigFormsListItem({
                         isEnabled: true,
                         text: 'Label',
                     });
@@ -402,7 +404,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                         },
                     ]);
 
-                    const itemView = new ListItemView({
+                    const itemView = new ConfigFormsListItemView({
                         model: item,
                     });
 
@@ -415,7 +417,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 it('value == false', function() {
-                    const item = new ListItem({
+                    const item = new ConfigFormsFormsListItem({
                         isEnabled: false,
                         text: 'Label',
                     });
@@ -428,7 +430,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                         },
                     ]);
 
-                    const itemView = new ListItemView({
+                    const itemView = new ConfigFormsListItemView({
                         model: item,
                     });
 
@@ -442,7 +444,7 @@ suite('djblets/configForms/views/ListItemView', function() {
 
                 describe('with enabledPropInverse == true', function() {
                     it('value == undefined', function() {
-                        const item = new ListItem({
+                        const item = new ConfigFormsListItem({
                             text: 'Label',
                         });
                         item.setActions([
@@ -455,7 +457,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                             },
                         ]);
 
-                        const itemView = new ListItemView({
+                        const itemView = new ConfigFormsListItemView({
                             model: item,
                         });
 
@@ -468,7 +470,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                     });
 
                     it('value == true', function() {
-                        const item = new ListItem({
+                        const item = new ConfigFormsListItem({
                             isDisabled: true,
                             text: 'Label',
                         });
@@ -482,7 +484,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                             },
                         ]);
 
-                        const itemView = new ListItemView({
+                        const itemView = new ConfigFormsListItemView({
                             model: item,
                         });
 
@@ -495,7 +497,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                     });
 
                     it('value == false', function() {
-                        const item = new ListItem({
+                        const item = new ConfigFormsListItem({
                             isDisabled: false,
                             text: 'Label',
                         });
@@ -509,7 +511,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                             },
                         ]);
 
-                        const itemView = new ListItemView({
+                        const itemView = new ConfigFormsListItemView({
                             model: item,
                         });
 
@@ -527,7 +529,7 @@ suite('djblets/configForms/views/ListItemView', function() {
 
     describe('Action handlers', function() {
         it('Buttons', function() {
-            const item = new ListItem({
+            const item = new ConfigFormsListItem({
                 text: 'Label',
             });
             item.setActions([
@@ -537,7 +539,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                 },
             ]);
 
-            const itemView = new ListItemView({
+            const itemView = new ConfigFormsListItemView({
                 model: item,
             });
 
@@ -557,7 +559,7 @@ suite('djblets/configForms/views/ListItemView', function() {
         });
 
         it('Checkboxes', function() {
-            const item = new ListItem({
+            const item = new ConfigFormsListItem({
                 checkboxAttr: false,
                 text: 'Label',
             });
@@ -570,7 +572,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                 },
             ]);
 
-            const itemView = new ListItemView({
+            const itemView = new ConfigFormsListItemView({
                 model: item,
             });
 

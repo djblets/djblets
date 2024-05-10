@@ -6,19 +6,21 @@ import {
 } from 'jasmine-core';
 import { spina } from '@beanbag/spina';
 
-import { ListItem } from '../../models/listItemModel';
-import { TableItemView } from '../tableItemView';
+import {
+    ConfigFormsListItem,
+    ConfigFormsTableItemView,
+} from 'djblets/configForms';
 
 
 suite('djblets/configForms/views/TableItemView', function() {
     describe('Rendering', function() {
         describe('Item display', function() {
             it('With editURL', function() {
-                const item = new ListItem({
+                const item = new ConfigFormsListItem({
                     editURL: 'http://example.com/',
                     text: 'Label',
                 });
-                const itemView = new TableItemView({
+                const itemView = new ConfigFormsTableItemView({
                     model: item,
                 });
 
@@ -33,10 +35,10 @@ suite('djblets/configForms/views/TableItemView', function() {
             });
 
             it('Without editURL', function() {
-                const item = new ListItem({
+                const item = new ConfigFormsListItem({
                     text: 'Label',
                 });
-                const itemView = new TableItemView({
+                const itemView = new ConfigFormsTableItemView({
                     model: item,
                 });
 
@@ -53,7 +55,7 @@ suite('djblets/configForms/views/TableItemView', function() {
 
         describe('Action placement', function() {
             it('Default template', function() {
-                const item = new ListItem({
+                const item = new ConfigFormsListItem({
                     text: 'Label',
                 });
                 item.setActions([
@@ -63,7 +65,7 @@ suite('djblets/configForms/views/TableItemView', function() {
                     },
                 ]);
 
-                const itemView = new TableItemView({
+                const itemView = new ConfigFormsTableItemView({
                     model: item,
                 });
 
@@ -81,14 +83,14 @@ suite('djblets/configForms/views/TableItemView', function() {
                         'template',
                     ],
                 })
-                class CustomTableItemView extends TableItemView {
+                class CustomTableItemView extends ConfigFormsTableItemView {
                     static template = _.template(dedent`
                         <td></td>
                         <td></td>
                     `);
                 }
 
-                const item = new ListItem({
+                const item = new ConfigFormsListItem({
                     text: 'Label',
                 });
                 item.setActions([

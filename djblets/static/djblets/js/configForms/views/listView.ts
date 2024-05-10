@@ -18,7 +18,7 @@ import { ListItemView } from './listItemView';
  */
 export interface ListViewOptions {
     /** The item view class. */
-    ItemView?: typeof Backbone.View;
+    ItemView?: Class<ListItemView>;
 
     /** Whether to animate added or removed items with a fade. */
     animateItems?: boolean;

@@ -4,14 +4,14 @@ import {
     it,
 } from 'jasmine-core';
 
-import { ListItem } from '../listItemModel';
+import { ConfigFormsListItem } from 'djblets/configForms';
 
 
 suite('djblets/configForms/models/ListItem', () => {
     describe('Default actions', () => {
         describe('showRemove', () => {
             it('true', () => {
-                const listItem = new ListItem({
+                const listItem = new ConfigFormsListItem({
                     showRemove: true,
                 });
 
@@ -20,7 +20,7 @@ suite('djblets/configForms/models/ListItem', () => {
             });
 
             it('false', () => {
-                const listItem = new ListItem({
+                const listItem = new ConfigFormsListItem({
                     showRemove: false,
                 });
 

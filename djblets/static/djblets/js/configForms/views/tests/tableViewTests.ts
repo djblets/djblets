@@ -5,34 +5,37 @@ import {
     it,
     suite,
 } from 'jasmine-core';
+import * as Backbone from 'backbone';
 
-import { List } from '../../models/listModel';
-import { ListItem } from '../../models/listItemModel';
-import { TableView } from '../tableView';
+import {
+    ConfigFormsList,
+    ConfigFormsListItem,
+    ConfigFormsTableView,
+} from 'djblets/configForms';
 
 
 suite('djblets/configForms/views/TableView', () => {
     describe('Manages rows', () => {
-        let collection;
-        let list;
-        let tableView;
+        let collection: Backbone.Collection<ConfigFormsListItem>;
+        let list: ConfigFormsList;
+        let tableView: ConfigFormsTableView;
 
         beforeEach(() => {
-            collection = new Backbone.Collection(
+            collection = new Backbone.Collection<ConfigFormsListItem>(
                 [
                     {text: 'Item 1'},
                     {text: 'Item 2'},
                     {text: 'Item 3'},
                 ], {
-                    model: ListItem,
+                    model: ConfigFormsListItem,
                 }
             );
 
-            list = new List({}, {
+            list = new ConfigFormsList({}, {
                 collection: collection,
             });
 
-            tableView = new TableView({
+            tableView = new ConfigFormsTableView({
                 model: list,
             });
             tableView.render();

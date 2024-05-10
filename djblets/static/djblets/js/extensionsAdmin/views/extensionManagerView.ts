@@ -9,7 +9,13 @@ import {
 } from '@beanbag/spina';
 import _ from 'underscore';
 
-import { Config } from 'djblets/configForms';
+import {
+    ConfigFormsList,
+    ConfigFormsListItem,
+    ConfigFormsListItems,
+    ConfigFormsTableItemView,
+    ConfigFormsTableView,
+} from 'djblets/configForms';
 import {
     type ListItemAttrs,
     type ListItemConstructorAttrs,
@@ -37,7 +43,7 @@ interface ExtensionItemAttrs extends ListItemAttrs {
  * the enabled state, reloading the extension, or configuring the extension.
  */
 @spina
-class ExtensionItem extends Config.ListItem<ExtensionItemAttrs> {
+class ExtensionItem extends ConfigFormsListItem<ExtensionItemAttrs> {
     static defaults: ExtensionItemAttrs = {
         extension: null,
     };
@@ -163,7 +169,7 @@ class ExtensionItem extends Config.ListItem<ExtensionItemAttrs> {
  * capabilities) configuring it or viewing its database.
  */
 @spina
-class ExtensionItemView extends Config.TableItemView {
+class ExtensionItemView extends ConfigFormsTableItemView {
     static className =
         'djblets-c-extension-item djblets-c-config-forms-list__item';
 
@@ -280,19 +286,19 @@ export class ExtensionManagerView extends BaseView<
      **********************/
 
     /** The extension list model. */
-    list: Config.List;
+    list: ConfigFormsList;
 
     /** The extension list view. */
-    listView: Config.TableView;
+    listView: ConfigFormsTableView;
 
     /**
      * Initialize the view.
      */
     initialize() {
-        this.list = new Config.List(
+        this.list = new ConfigFormsList(
             {},
             {
-                collection: new Config.ListItems(
+                collection: new ConfigFormsListItems(
                     [],
                     {
                         model: ExtensionItem,
@@ -307,7 +313,7 @@ export class ExtensionManagerView extends BaseView<
         const model = this.model;
         const list = this.list;
 
-        this.listView = new Config.TableView({
+        this.listView = new ConfigFormsTableView({
             ItemView: ExtensionItemView,
             el: this.$('.djblets-c-config-forms-list'),
             model: list,
