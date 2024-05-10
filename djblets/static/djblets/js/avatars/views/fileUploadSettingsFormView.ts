@@ -2,7 +2,10 @@
  * A settings form for the file upload avatar service.
  */
 
-import { EventsHash, spina } from '@beanbag/spina';
+import {
+    type EventsHash,
+    spina,
+} from '@beanbag/spina';
 
 import { ServiceSettingsFormView } from './avatarServiceSettingsFormView';
 

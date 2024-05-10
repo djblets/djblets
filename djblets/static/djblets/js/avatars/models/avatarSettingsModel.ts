@@ -2,7 +2,11 @@
  * Settings for the avatar configuration form.
  */
 
-import { BaseModel, ModelAttributes, spina } from '@beanbag/spina';
+import {
+    type ModelAttributes,
+    BaseModel,
+    spina,
+} from '@beanbag/spina';
 
 
 /**
@@ -41,7 +45,7 @@ export class Settings extends BaseModel<SettingsAttributes> {
      *     SettingsAttributes:
      *     Default values for the model attributes.
      */
-    static defaults(): Partial<SettingsAttributes> {
+    static defaults(): SettingsAttributes {
         return {
             configuration: {},
             serviceID: null,

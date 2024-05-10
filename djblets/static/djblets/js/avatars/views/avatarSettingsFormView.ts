@@ -4,8 +4,8 @@
 
 import { BaseView, spina } from '@beanbag/spina';
 
-import { Settings } from '../models/avatarSettingsModel';
-import { ServiceSettingsFormView } from './avatarServiceSettingsFormView';
+import { type Settings } from '../models/avatarSettingsModel';
+import { type ServiceSettingsFormView } from './avatarServiceSettingsFormView';
 
 
 let resolveReady;

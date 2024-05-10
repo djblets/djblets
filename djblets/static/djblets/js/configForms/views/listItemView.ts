@@ -1,10 +1,17 @@
 /**
  * Base view for displaying a list item in config pages.
  */
-import { BaseView, EventsHash, spina } from '@beanbag/spina';
+import {
+    type EventsHash,
+    BaseView,
+    spina,
+} from '@beanbag/spina';
 import * as _ from 'underscore';
 
-import { ListItem, ListItemAction } from '../models/listItemModel';
+import {
+    type ListItem,
+    type ListItemAction,
+} from '../models/listItemModel';
 
 
 export type ListItemViewRenderContext = { [key: string]: unknown };
