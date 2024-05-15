@@ -84,12 +84,12 @@ package_dependencies = {
 frontend_buildkit_npm_dependencies: Dict[str, str] = {
     '@beanbag/frontend-buildkit': '^1.2.0',
     '@beanbag/spina': '^3.1.0',
-    '@types/jquery': '^3.5.16',
+    '@types/jquery': '^3.5.30',
     '@types/underscore': '^1.11.4',
     'backbone': '^1.4.1',
     'jasmine-core': '^5.0.1',
-    'jquery': '^3.6.3',
-    'jquery-ui': '^1.13.2',
+    'jquery': '^3.7.1',
+    'jquery-ui': '^1.13.3',
 }
 
 #: Dependencies required for static media linting.
