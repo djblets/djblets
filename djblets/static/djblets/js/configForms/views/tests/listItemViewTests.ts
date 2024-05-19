@@ -417,7 +417,7 @@ suite('djblets/configForms/views/ListItemView', function() {
                 });
 
                 it('value == false', function() {
-                    const item = new ConfigFormsFormsListItem({
+                    const item = new ConfigFormsListItem({
                         isEnabled: false,
                         text: 'Label',
                     });
