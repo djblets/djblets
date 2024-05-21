@@ -74,9 +74,9 @@ class AmountSelectorWidgetTests(TestCase):
             widget.value_from_datadict(data=data, files={}, name='my_field'),
             0)
 
-    def test_value_from_datadict_none(self) -> None:
-        """Testing AmountSelectorWidget.value_from_datadict with a null
-        value
+    def test_value_from_datadict_with_empty_string(self) -> None:
+        """Testing AmountSelectorWidget.value_from_datadict with an empty
+        string value
         """
         widget = AmountSelectorWidget(unit_choices=[
             (1, 'bytes'),
@@ -89,6 +89,26 @@ class AmountSelectorWidgetTests(TestCase):
         data = {
             'my_field_0': '5',
             'my_field_1': '',
+        }
+
+        self.assertEqual(
+            widget.value_from_datadict(data=data, files={}, name='my_field'),
+            None)
+
+    def test_value_from_datadict_with_none(self) -> None:
+        """Testing AmountSelectorWidget.value_from_datadict with a None value
+        """
+        widget = AmountSelectorWidget(unit_choices=[
+            (1, 'bytes'),
+            (1024, 'kilobytes'),
+            (1048576, 'megabytes'),
+            (1073741824, 'gigabytes'),
+        ])
+
+        # No unit selected. The amount should be disregarded.
+        data = {
+            'my_field_0': '5',
+            'my_field_1': None,
         }
 
         self.assertEqual(
