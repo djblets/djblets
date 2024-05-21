@@ -32,7 +32,7 @@
     }
 
     .paginator() {
-      @padding: 0 0 0 var(--ink-u-spacing-l);
+      @padding: 0 0 0 var(--ink-u-spacing-m);
       @page-padding: 2px 6px;
 
       @active-bg-color: #D4E0F3;
@@ -79,7 +79,7 @@
             &:first-child {
               border-right: 1px var(--ink-c-data-table-row-border-color) solid;
               font-weight: normal;
-              padding: var(--ink-u-spacing-m);
+              padding: var(--ink-c-data-table-cell-padding-horiz);
               text-align: right;
               white-space: nowrap;
             }
@@ -290,7 +290,7 @@
   a:visited,
   .current-page,
   .page-count {
-    padding: var(--ink-u-spacing-m);
+    padding: var(--ink-u-spacing-sm);
     text-align: center;
   }
 }
