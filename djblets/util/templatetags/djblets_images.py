@@ -1,11 +1,15 @@
 """Image-related template tags."""
 
+from __future__ import annotations
+
 import io
 import logging
 import os
 import re
+from typing import Optional, TYPE_CHECKING, Union
 
 from django import template
+from django.core.files.base import File
 from django.template import TemplateSyntaxError
 from django.utils.html import format_html, format_html_join
 from django.utils.translation import gettext as _
@@ -13,6 +17,9 @@ from PIL import Image
 from PIL.Image import registered_extensions
 
 from djblets.util.decorators import blocktag
+
+if TYPE_CHECKING:
+    from django.core.files.storage import Storage
 
 
 logger = logging.getLogger(__name__)
@@ -60,58 +67,162 @@ def crop_image(f, x, y, width, height):
 
 
 @register.filter
-def thumbnail(f, size='400x100'):
+def thumbnail(
+    f: Union[File, str],
+    size: Union[str, tuple[Optional[int], Optional[int]]] = '400x100',
+    *,
+    create_if_missing: bool = True,
+    storage: Optional[Storage] = None,
+) -> Optional[str]:
     """Create a thumbnail of the given image.
 
-    This will create a thumbnail of the given ``file`` (a Django FileField or
-    ImageField) with the given size. Size can either be a string of WxH (in
-    pixels), or a 2-tuple. If the size is a tuple and the second part is None,
-    it will be calculated to preserve the aspect ratio.
+    This will create a thumbnail of the given file, which may be a file
+    path within storage, a :py:class:`~django.core.files.base.File` instance
+    representing a file in storage, or a file instance retrieved from a
+    :py:class:~django.db.models.FileField`.
 
-    If the image format is not registered in PIL the thumbnail is not generated
-    and returned as-is.
+    The thumbnail will be of the given size. This size can either be specified
+    as a string of WIDTHxHEIGHT (in pixels), or a 2-tuple. If the size is a
+    tuple and one of the values is None, that value will be set automatically
+    to preserve the aspect ratio.
 
-    This will return the URL to the stored thumbnail.
+    If the file format is not supported, then the file path will be returned
+    as-is.
+
+    Version Changed:
+        5.0:
+        * Added ``create_if_missing`` and ``storage`` options.
+        * Added support for working with general
+          :py:class:`~django.core.files.base.File` objects or file paths
+          within storage, when providing the ``storage`` parameter.
+
+    Args:
+        f (django.db.models.fields.files.FieldFile):
+            The file path within storage,
+            :py:class:`~django.core.files.base.File` instance, or a
+            :py:class:`~django.db.models.FileField`-backed file.
+
+            if not providing a field-backed file, then ``storage`` must be
+            provided.
+
+            Version Changed:
+                5.0:
+                This may now be a file path within storage or a
+                :py:class:`~django.core.files.base.File` instance.
+
+        size (str or tuple of int):
+            The thumbnail constraint size.
+
+            This can either be a string in ``WIDTHxHEIGHT`` form, or a
+            tuple in ``(width, height)`` form. In the latter, the height
+            is optional.
+
+        create_if_missing (bool, optional):
+            Whether to create the thumbnail if one does not already exist.
+
+            If ``False``, the existing thumbnail URL will be returned if it
+            exists, but a new one will not otherwise be created.
+
+            Version Added:
+                5.0
+
+        storage (django.core.files.storage.Storage, optional):
+            The storage backend for the file.
+
+            This is required if the file does not provide its own ``storage``
+            attribute, and is ignored if it does.
+
+            Version Added:
+                5.0
+
+    Returns:
+        str:
+        The URL to the thumbnail.
+
+        This will be ``None`` if the thumbnail does not exist and passing
+        ``create_if_missing=False``.
+
+    Raises:
+        ValueError:
+            The thumbnail size was not in a valid format.
     """
-    storage = f.storage
-    ext = os.path.splitext(f.name)[1].lower()
-    if ext not in registered_extensions():
-        return storage.url(f.name)
+    filename: Optional[str]
+    x: Optional[int]
+    y: Optional[int]
 
-    if isinstance(size, str):
-        x, y = (int(x) for x in size.split('x'))
-        size_str = size
-    elif isinstance(size, tuple):
-        x, y = size
+    if isinstance(f, str):
+        filename = f
+    elif isinstance(f, File):
+        filename = f.name
 
-        if y is None:
-            size_str = '%d' % x
+        if not filename:
+            raise ValueError(_(
+                'The provided file does not have a filename set.'
+            ))
+    else:
+        raise ValueError(_(
+            'The provided file to thumbnail is not a supported value.'
+        ))
+
+    storage = getattr(f, 'storage', storage)
+
+    if storage is None:
+        raise ValueError(_(
+            'A file storage backend could not be found for the provided '
+            'file.'
+        ))
+
+    basename, ext = os.path.splitext(filename)
+
+    # Make sure that this is a supported image file type.
+    if ext.lower() not in registered_extensions():
+        return storage.url(filename)
+
+    # Convert the size requirement to dimensions.
+    try:
+        if isinstance(size, str):
+            # This will raise a ValueError if the string contains either
+            # too many values or non-integer values.
+            x, y = (int(x) for x in size.split('x'))
+            size_str = size
+        elif isinstance(size, tuple):
+            x, y = size
+
+            if x is None and y is None:
+                raise ValueError
+            elif y is None:
+                size_str = f'{x}'
+            elif x is None:
+                size_str = f'x{y}'
+            else:
+                size_str = f'{x}x{y}'
         else:
-            size_str = '%dx%d' % (x, y)
-    else:
-        raise ValueError('Thumbnail size "%r" could not be be parsed', size)
+            raise ValueError
+    except ValueError:
+        raise ValueError(f'Thumbnail size {size!r} is not valid.')
 
-    filename = f.name
-    if filename.find(".") != -1:
-        basename, format = filename.rsplit('.', 1)
-        miniature = '%s_%s.%s' % (basename, size_str, format)
-    else:
-        basename = filename
-        miniature = '%s_%s' % (basename, size_str)
+    miniature = f'{basename}_{size_str}{ext}'
 
     if not storage.exists(miniature):
-        try:
-            f = storage.open(filename, 'rb')
-            data = io.BytesIO(f.read())
-            f.close()
+        if not create_if_missing:
+            return None
 
-            image = Image.open(data)
+        try:
+            with storage.open(filename, 'rb') as fp:
+                image = Image.open(io.BytesIO(fp.read()))
 
             if y is None:
+                assert x is not None
                 x = min(image.size[0], x)
 
-                # Calculate height based on width
+                # Calculate height based on width.
                 y = int(x * (image.size[1] / image.size[0]))
+            elif x is None:
+                assert y is not None
+                y = min(image.size[1], y)
+
+                # Calculate height based on height.
+                x = int(y * (image.size[0] / image.size[1]))
 
             # Pillow is aggressively deprecating Image.ANTIALIAS. Conditionally
             # attempt to use the new name.
@@ -129,7 +240,7 @@ def thumbnail(f, size='400x100'):
             logger.exception('Error thumbnailing image file %s and saving '
                              'as %s: %s',
                              filename, miniature, e)
-            return ""
+            return ''
 
     return storage.url(miniature)
 
