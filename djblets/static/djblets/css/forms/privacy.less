@@ -1,7 +1,7 @@
 @privacy-consent-field-icon-size: 24px;
 @privacy-consent-field-spacing: 1.5em;
-@privacy-consent-field-allow-color: #008800;
-@privacy-consent-field-block-color: #CC0000;
+@privacy-consent-field-allow-color: var(--ink-p-accent-success-fg-on-container);
+@privacy-consent-field-block-color: var(--ink-p-accent-error-fg-on-container);
 
 
 /**
@@ -19,7 +19,9 @@
   @state-color-var: "privacy-consent-field-@{state}-color";
 
   &.privacy-consent-field-@{state} {
-    background: white;
+    background:
+      var(--if-dark, transparent)
+      var(--if-light, white);
     border-color: @@state-color-var;
     box-shadow: none;
 
@@ -39,8 +41,12 @@
 }
 
 .privacy-consent-field {
-  background: #FFFCEA;
-  border: 1px #AB952E Solid;
+  background:
+    var(--if-dark, var(--ink-p-cool-grey-200))
+    var(--if-light, var(--ink-p-yellow-100));
+  border: var(--ink-u-border-thin)
+          rgba(0, 0, 0, 0.4)
+          solid;
   border-radius: 6px;
   box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);
 

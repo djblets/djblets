@@ -1091,8 +1091,9 @@ table.djblets-c-config-forms-list {
 .djblets-c-config-forms-popup-menu {
   @_popup-menu-vars: #djblets-ns-config-forms.popup-menu();
 
-  background: @_popup-menu-vars[@bg-color];
-  border: 1px @_popup-menu-vars[@border-color] solid;
+  background: var(--ink-c-menu-bg);
+  border: var(--ink-c-menu-border);
+  color: var(--ink-c-menu-fg);
 }
 
 
