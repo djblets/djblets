@@ -17,9 +17,10 @@
 </div>
 
 {% for service_id, form in form.avatar_service_forms.items %}
-<div class="avatar-service-fields" data-avatar-service-id="{{service_id}}">
+<fieldset class="avatar-service-fields" data-avatar-service-id="{{service_id}}"
+          disabled hidden>
  {{form.render|safe}}
-</div>
+</fieldset>
 {% endfor %}
 <script>
 $().ready(function() {

@@ -2,7 +2,11 @@
  * A base class for avatar service settings forms.
  */
 
-import { BaseView, spina } from '@beanbag/spina';
+import {
+    type BaseModel,
+    BaseView,
+    spina,
+} from '@beanbag/spina';
 
 
 /**
@@ -12,7 +16,10 @@ import { BaseView, spina } from '@beanbag/spina';
  * previews, etc.
  */
 @spina
-export class ServiceSettingsFormView extends BaseView {
+export class ServiceSettingsFormView extends BaseView<
+    BaseModel,
+    HTMLFieldSetElement
+> {
     /**
      * Validate the form.
      *
@@ -22,5 +29,47 @@ export class ServiceSettingsFormView extends BaseView {
      */
     validate(): boolean {
         return true;
+    }
+
+    /**
+     * Hide the form.
+     *
+     * This will set the disabled and hidden states.
+     *
+     * Version Changed:
+     *     5.0:
+     *     This no longer alters the ``display`` state of the element.
+     *
+     * Returns:
+     *     ServiceSettingsFormView:
+     *     This object, for chaining.
+     */
+    hide(): this {
+        const el = this.el;
+        el.disabled = true;
+        el.hidden = true;
+
+        return this;
+    }
+
+    /**
+     * Show the form.
+     *
+     * This will remove the disabled and hidden states.
+     *
+     * Version Changed:
+     *     5.0:
+     *     This no longer alters the ``display`` state of the element.
+     *
+     * Returns:
+     *     ServiceSettingsFormView:
+     *     This object, for chaining.
+     */
+    show(): this {
+        const el = this.el;
+        el.disabled = false;
+        el.hidden = false;
+
+        return this;
     }
 }
