@@ -208,7 +208,7 @@ $.widget('ui.modalBox', {
         const modalBoxIndex = modalBoxes.indexOf(this);
 
         if (modalBoxIndex !== -1) {
-            modalBoxes = modalBoxes.splice(modalBoxIndex);
+            modalBoxes.splice(modalBoxIndex, 1);
         }
 
         this.element
