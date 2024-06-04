@@ -127,10 +127,14 @@
     }
   }
 
-  td {
+  td,
+  th {
     line-height: @_cell-vars[@height];
-    padding: @_cell-vars[@padding];
+    padding: var(--ink-c-data-table-cell-padding);
+    vertical-align: inherit;
+  }
 
+  td {
     &.has-link > a {
       /*
        * Ensure the link takes the full width of the cell. Ideally it would
@@ -144,11 +148,6 @@
       color: inherit;
       text-decoration: none;
     }
-  }
-
-  td,
-  .datagrid-header {
-    padding: var(--ink-c-data-table-cell-padding);
   }
 
   th.day {
@@ -168,7 +167,7 @@
   color: var(--ink-c-data-table-header-fg);
   cursor: pointer;
   font-weight: bold;
-  padding: @_header-vars[@padding];
+  padding: var(--ink-c-data-table-cell-padding);
   text-align: left;
   white-space: nowrap;
 
