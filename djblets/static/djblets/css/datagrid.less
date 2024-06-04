@@ -300,16 +300,20 @@
   border-collapse: collapse;
 }
 
-/*
- * Add a single pixel between the thead and the tbody. This will prevent
- * a border from being collapsed between the two, resulting in the same
- * styling that we'll get when separating out the thead into its own
- * table. This prevents a 1px jump.
- */
-.datagrid-body thead:after {
-  content: "";
-  display: block;
-  line-height: 1px;
+.datagrid-body {
+  color: var(--ink-c-data-table-body-fg);
+
+  /*
+   * Add a single pixel between the thead and the tbody. This will prevent
+   * a border from being collapsed between the two, resulting in the same
+   * styling that we'll get when separating out the thead into its own
+   * table. This prevents a 1px jump.
+   */
+  thead:after {
+    content: "";
+    display: block;
+    line-height: 1px;
+  }
 }
 
 .datagrid-main {
