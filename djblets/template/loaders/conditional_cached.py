@@ -11,7 +11,7 @@ class Loader(cached.Loader):
     during development.
     """
     def load_template(self, *args, **kwargs):
-        if not settings.PRODUCTION:
+        if not getattr(settings, 'PRODUCTION', not settings.DEBUG):
             self.reset()
 
         return super(Loader, self).load_template(*args, **kwargs)
