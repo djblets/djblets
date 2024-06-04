@@ -267,7 +267,7 @@ $.fn.getExtents = function(types, sides) {
  *         The distance to use for the ``l`` side. Defaults to the value of
  *         ``xDistance``.
  *
- *     lDistance (number):
+ *     LDistance (number):
  *         The distance to use for the ``L`` side. Defaults to the value of
  *         ``xDistance``.
  *
