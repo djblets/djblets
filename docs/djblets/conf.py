@@ -277,6 +277,21 @@ autodoc_excludes = {
     ],
 }
 
+autodoc_type_aliases = {
+    'JSONDict': 'djblets.util.typing.JSONDict',
+    'JSONDictImmutable': 'djblets.util.typing.JSONDictImmutable',
+    'JSONList': 'djblets.util.typing.JSONList',
+    'JSONListImmutable': 'djblets.util.typing.JSONListImmutable',
+    'JSONValue': 'djblets.util.typing.JSONValue',
+    'SerializableJSONDict': 'djblets.util.typing.SerializableJSONDict',
+    'SerializableJSONDictImmutable':
+        'djblets.util.typing.SerializableJSONDictImmutable',
+    'SerializableJSONList': 'djblets.util.typing.SerializableJSONList',
+    'SerializableJSONListImmutable':
+        'djblets.util.typing.SerializableJSONListImmutable',
+    'SerializableJSONValue': 'djblets.util.typing.SerializableJSONValue',
+}
+
 autosummary_generate = True
 
 napoleon_beanbag_docstring = True
