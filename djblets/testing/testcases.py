@@ -381,7 +381,7 @@ class TestCase(testcases.TestCase):
         Version Changed:
             3.4:
             * Added ``with_tracebacks``, ``tracebacks_size``,
-            ``check_join_types``, and ``check_subqueries`` arguments.
+              ``check_join_types``, and ``check_subqueries`` arguments.
             * Added support for type hints for expected queries.
             * Query output can now show notes (when populating
               :py:attr:`ExpectedQuery.__note__`) to ease debugging.
