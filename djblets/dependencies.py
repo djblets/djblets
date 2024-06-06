@@ -11,7 +11,6 @@ you're going to make use of data from this file, code defensively.
 #       packaging and may be needed before any dependencies have been
 #       installed.
 
-import os
 from typing import Dict
 
 
@@ -20,7 +19,7 @@ from typing import Dict
 ###########################################################################
 
 #: The minimum supported version of Python 3.x.
-PYTHON_3_MIN_VERSION = (3, 8)
+PYTHON_3_MIN_VERSION = (3, 9)
 
 #: A string representation of the minimum supported version of Python 3.x.
 PYTHON_3_MIN_VERSION_STR = '%s.%s' % PYTHON_3_MIN_VERSION
