@@ -3,13 +3,13 @@
  */
 
 import {
+    type ModelAttributes,
     BaseModel,
-    ModelAttributes,
     spina,
 } from '@beanbag/spina';
 
-import type { ExtensionHookPoint } from './extensionHookPointModel';
-import type { Extension } from './extensionModel';
+import { type ExtensionHookPoint } from './extensionHookPointModel';
+import { type Extension } from './extensionModel';
 
 
 /**

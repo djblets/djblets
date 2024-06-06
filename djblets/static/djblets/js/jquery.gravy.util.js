@@ -267,7 +267,7 @@ $.fn.getExtents = function(types, sides) {
  *         The distance to use for the ``l`` side. Defaults to the value of
  *         ``xDistance``.
  *
- *     lDistance (number):
+ *     LDistance (number):
  *         The distance to use for the ``L`` side. Defaults to the value of
  *         ``xDistance``.
  *
@@ -418,21 +418,6 @@ $.fn.positionToSide = function($el, options) {
 };
 
 
-$.fn.delay = function(msec) {
-    return $(this).each(function() {
-        var self = $(this);
-
-        self.queue(function() {
-            window.setTimeout(
-                function() {
-                    self.dequeue();
-                },
-                msec);
-        });
-    });
-};
-
-
 $.fn.proxyTouchEvents = function(events) {
     var stateKey = 'gravy-proxy-touch-state';
 
@@ -527,17 +512,17 @@ $.extend(String.prototype, {
     htmlEncode: function() {
         console.warn(
             'String.htmlEncode() is deprecated and will be removed in ' +
-            'Djblets 6.0. Use _.encode() instead.');
+            'Djblets 6.0. Use _.escape() instead.');
 
-        return _.encode(this);
+        return _.escape(this);
     },
 
     htmlDecode: function() {
         console.warn(
             'String.htmlDecode() is deprecated and will be removed in ' +
-            'Djblets 6.0. Use _.decode() instead.');
+            'Djblets 6.0. Use _.unescape() instead.');
 
-        return _.decode(this);
+        return _.unescape(this);
     },
 
     truncate: function(numChars) {

@@ -65,18 +65,6 @@ class BaseRemovedInDjbletsVersionWarning(BaseRemovedInProductVersionWarning):
     product = 'Djblets'
 
 
-class RemovedInDjblets50Warning(BaseRemovedInDjbletsVersionWarning):
-    """Deprecations for features scheduled for removal in Djblets 5.0.
-
-    Note that this class will itself be removed in Djblets 5.0. If you need to
-    check against Djblets deprecation warnings, please see
-    :py:class:`BaseRemovedInDjbletsVersionWarning`. Alternatively, you can use
-    the alias for this class, :py:data:`RemovedInNextDjbletsVersionWarning`.
-    """
-
-    version = '5.0'
-
-
 class RemovedInDjblets60Warning(BaseRemovedInDjbletsVersionWarning):
     """Deprecations for features scheduled for removal in Djblets 6.0.
 
@@ -100,7 +88,7 @@ class RemovedInDjblets70Warning(BaseRemovedInDjbletsVersionWarning):
 
 
 #: An alias for the next release of Djblets where features would be removed.
-RemovedInNextDjbletsVersionWarning = RemovedInDjblets50Warning
+RemovedInNextDjbletsVersionWarning = RemovedInDjblets60Warning
 
 
 @func_moved(RemovedInDjblets60Warning,

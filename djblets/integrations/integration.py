@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Optional, Sequence, Set, TYPE_CHECKING, Type
+from typing import ClassVar, Optional, Sequence, TYPE_CHECKING, Type
 
 from typing_extensions import TypeAlias
 
@@ -47,13 +47,13 @@ class Integration(object):
     #:
     #: If not set, this will default to the full class path for the
     #: integration subclass.
-    integration_id: Optional[str] = None
+    integration_id: ClassVar[Optional[str]] = None
 
     #: The display name of the integration.
-    name: Optional[StrOrPromise] = None
+    name: ClassVar[Optional[StrOrPromise]] = None
 
     #: A short description of this integration, in plain text format.
-    description: Optional[StrOrPromise] = None
+    description: ClassVar[Optional[StrOrPromise]] = None
 
     #: Static paths for the integration's icon.
     #:
@@ -82,19 +82,20 @@ class Integration(object):
     #:                '1x': self.extension.get_static_url('logo.png'),
     #:                '2x': self.extension.get_static_url('logo@2x.png'),
     #:            }
-    icon_static_urls: Dict[str, str] = {}
+    icon_static_urls: ClassVar[dict[str, str]] = {}
 
     #: Default settings for any configurations on this extension.
     #:
     #: If a setting hasn't been explicitly saved in a configuration, it will
     #: use the default from here, if available.
-    default_settings: Dict[str, object] = {}
+    default_settings: ClassVar[dict[str, object]] = {}
 
     #: The form class for handling integration configuration.
-    config_form_cls: Type[IntegrationConfigForm] = IntegrationConfigForm
+    config_form_cls: ClassVar[type[IntegrationConfigForm]] = \
+        IntegrationConfigForm
 
     #: The template name used for the configuration page.
-    config_template_name: Optional[str] = None
+    config_template_name: ClassVar[Optional[str]] = None
 
     ######################
     # Instance variables #
@@ -104,7 +105,7 @@ class Integration(object):
     enabled: bool
 
     #: The hooks currently registered by the integration.
-    hooks: Set[ExtensionHook]
+    hooks: set[ExtensionHook]
 
     #: The integration manager that's managing this integration.
     integration_mgr: IntegrationManager

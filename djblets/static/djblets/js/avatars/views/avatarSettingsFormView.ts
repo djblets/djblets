@@ -4,8 +4,8 @@
 
 import { BaseView, spina } from '@beanbag/spina';
 
-import { Settings } from '../models/avatarSettingsModel';
-import { ServiceSettingsFormView } from './avatarServiceSettingsFormView';
+import { type Settings } from '../models/avatarSettingsModel';
+import { type ServiceSettingsFormView } from './avatarServiceSettingsFormView';
 
 
 let resolveReady;
@@ -126,16 +126,15 @@ export class SettingsFormView extends BaseView<Settings> {
             : undefined;
 
         if (previousForm && currentForm) {
-            previousForm.$el.hide();
-            currentForm.$el.show();
+            previousForm.hide();
+            currentForm.show();
         } else if (previousForm) {
-            previousForm.$el.hide();
+            previousForm.hide();
             this._$config.hide();
         } else if (currentForm) {
-            currentForm.$el.show();
+            currentForm.show();
             this._$config.show();
         }
-
     }
 
     /**

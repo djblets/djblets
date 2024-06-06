@@ -6,7 +6,7 @@ import { BaseView, Class, spina } from '@beanbag/spina';
 import type * as Backbone from 'backbone';
 import * as _ from 'underscore';
 
-import { List } from '../models/listModel';
+import { type List } from '../models/listModel';
 import { ListItemView } from './listItemView';
 
 
@@ -18,7 +18,7 @@ import { ListItemView } from './listItemView';
  */
 export interface ListViewOptions {
     /** The item view class. */
-    ItemView?: typeof Backbone.View;
+    ItemView?: Class<ListItemView>;
 
     /** Whether to animate added or removed items with a fade. */
     animateItems?: boolean;

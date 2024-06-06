@@ -3,9 +3,9 @@
  */
 
 import {
+    type ModelAttributes,
     BaseCollection,
     BaseModel,
-    ModelAttributes,
     spina,
 } from '@beanbag/spina';
 import * as Backbone from 'backbone';

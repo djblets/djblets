@@ -16,6 +16,12 @@
  *    component pattern of defining sub-element styles using ``&__subelement``.
  *    It doesn't work with the ``&:extend()`` pattern we're using for
  *    backwards-compatibility.
+ *
+ * Version Changed:
+ *     5.0:
+ *     Everything in this module is being converted to Ink. At this time,
+ *     Ink is required, and styles are in flux. Over time, much of this
+ *     module's styling will be deprecated in favor of Ink components.
  */
 
 @import (reference) "defs.less";
@@ -93,7 +99,9 @@
     @item-action-color: black;
     @item-action-font-size: 110%;
     @item-action-spacing: 5px;
-    @item-action-padding: 0.5em 1em;
+    @item-action-padding-vert: 0.5em;
+    @item-action-padding-horiz: 1em;
+    @item-action-padding: @item-action-padding-vert @item-action-padding-horiz;
 
     /*
      * NOTE: We don't bundle Font Awesome in Djblets, so reference by the
@@ -246,7 +254,7 @@
   }
 
   a {
-    color: blue;
+    color: var(--ink-p-link-fg);
     text-decoration: none;
 
     &.btn {
@@ -255,7 +263,7 @@
   }
 
   .box {
-    background: @_page-vars[@box-bg-color];
+    background: var(--ink-p-container-bg);
     margin: 0 0 @_page-vars[@box-sep-width] 0;
   }
 
@@ -270,6 +278,21 @@
 
   .box-main {
     padding: 0;
+  }
+
+  /**
+   * Actions shown on the form.
+   *
+   * Version Added:
+   *     5.0
+   *
+   * Structure:
+   *     <div class="djblets-c-config-forms-page__actions">
+   *      ...
+   *     </div>
+   */
+  .djblets-c-config-forms-actions {
+    margin-top: var(--ink-u-spacing-xl);
   }
 }
 
@@ -312,10 +335,11 @@
   input[type=search],
   input[type=text],
   input[type=url] {
-    border: @config-forms-text-field-border-size
-            @config-forms-text-field-border-color solid;
-    border-radius: @config-forms-text-field-border-radius;
+    background: var(--ink-p-input-bg);
+    border: var(--ink-g-border-input);
+    border-radius: var(--ink-u-border-radius-input);
     box-sizing: border-box;
+    color: var(--ink-p-input-fg);
     width: 30em;
     max-width: 30em;
     font-size: inherit;
@@ -537,7 +561,11 @@
   @_page-vars: #djblets-ns-config-forms.page();
   @_border-radius: @_page-vars[@box-border-radius];
 
-  border-bottom: 1px @_page-vars[@nav-item-sep-color] solid;
+  border-bottom:
+    1px
+    var(--if-dark, transparent)
+    var(--if-light, @_page-vars[@nav-item-sep-color])
+    solid;
 
   &:last-child {
     border-bottom: 0;
@@ -548,13 +576,15 @@
   }
 
   &:hover {
-    background-color: @_page-vars[@nav-item-hover-bg-color];
+    background: var(--ink-p-container-hover-bg);
+    color: var(--ink-p-container-hover-fg);
   }
 
   &.-is-active {
     &,
     &:hover {
-      background: @_page-vars[@nav-item-active-bg-color];
+      background: var(--ink-p-accent-primary-bg);
+      color: var(--ink-p-accent-primary-fg);
     }
 
     a {
@@ -651,11 +681,10 @@
  */
 .djblets-c-config-forms-list {
   @_list-vars: #djblets-ns-config-forms.list();
-  @_border-color: @_list-vars[@border-color];
 
-  background: @_list-vars[@bg-color];
-  border-bottom: 1px @_border-color solid;
-  border-top: 1px @_border-color solid;
+  background: var(--ink-c-data-table-body-bg);
+  border-bottom: var(--ink-c-data-table-border);
+  border-top: var(--ink-c-data-table-border);
   margin-bottom: 0;
   padding: 0;
 
@@ -788,7 +817,11 @@ table.djblets-c-config-forms-list {
   li&,
   > td,
   > th {
-    border-bottom: 1px @_list-vars[@item-border-color] solid;
+    border-bottom:
+      1px
+      var(--if-dark, rgba(255, 255, 255, 0.1))
+      var(--if-light, @_list-vars[@item-border-color])
+      solid;
     padding: @_list-vars[@item-padding-default];
     list-style: none;
     line-height: @_list-vars[@item-line-height];
@@ -802,10 +835,6 @@ table.djblets-c-config-forms-list {
     > th {
       border-bottom: 0;
     }
-  }
-
-  &:hover {
-    background: @_list-vars[@item-hover-bg-color];
   }
 
   .djblets-c-config-forms-list.-all-items-have-actions &,
@@ -859,7 +888,7 @@ table.djblets-c-config-forms-list {
   }
 
   a {
-    color: blue;
+    color: var(--ink-p-link-fg);
     font-weight: normal;
     text-decoration: none;
   }
@@ -935,12 +964,9 @@ table.djblets-c-config-forms-list {
     text-align: center;
   }
 
-  &,
-  a&,
-  button&,
-  a&:link,
-  a&:visited {
-    color: @_list-vars[@item-action-color];
+  &.ink-c-button {
+    --ink-c-button-padding-vert: @_list-vars[@item-action-padding-vert];
+    --ink-c-button-padding-horiz: @_list-vars[@item-action-padding-horiz];
   }
 
   + .djblets-c-config-forms-list__item-action {
@@ -1065,8 +1091,9 @@ table.djblets-c-config-forms-list {
 .djblets-c-config-forms-popup-menu {
   @_popup-menu-vars: #djblets-ns-config-forms.popup-menu();
 
-  background: @_popup-menu-vars[@bg-color];
-  border: 1px @_popup-menu-vars[@border-color] solid;
+  background: var(--ink-c-menu-bg);
+  border: var(--ink-c-menu-border);
+  color: var(--ink-c-menu-fg);
 }
 
 

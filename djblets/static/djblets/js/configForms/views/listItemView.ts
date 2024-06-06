@@ -1,10 +1,17 @@
 /**
  * Base view for displaying a list item in config pages.
  */
-import { BaseView, EventsHash, spina } from '@beanbag/spina';
+import {
+    type EventsHash,
+    BaseView,
+    spina,
+} from '@beanbag/spina';
 import * as _ from 'underscore';
 
-import { ListItem, ListItemAction } from '../models/listItemModel';
+import {
+    type ListItem,
+    type ListItemAction,
+} from '../models/listItemModel';
 
 
 export type ListItemViewRenderContext = { [key: string]: unknown };
@@ -379,10 +386,10 @@ export class ListItemView<
             }
         } else {
             if (action.url) {
-                $action = $('<a class="btn" role="button">')
+                $action = $('<a class="ink-c-button" role="button">')
                     .attr('href', action.url);
             } else {
-                $action = $('<button type="button">');
+                $action = $('<button class="ink-c-button" type="button">');
             }
 
             $result = $action;
@@ -490,7 +497,7 @@ export class ListItemView<
             const childrenHTML = $action.html();
             $action.empty();
 
-            const $spinner = $('<span class="djblets-o-spinner">')
+            const $spinner = $('<span class="ink-c-spinner">')
                 .appendTo($action);
 
             /*

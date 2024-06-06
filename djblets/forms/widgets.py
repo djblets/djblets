@@ -152,7 +152,7 @@ class AmountSelectorWidget(widgets.MultiWidget):
         """
         value, unit_multiplier = super().value_from_datadict(data, files, name)
 
-        if unit_multiplier == '':
+        if unit_multiplier in ('', None):
             return None
         else:
             return int(value) * int(unit_multiplier)

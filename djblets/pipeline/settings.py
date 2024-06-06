@@ -13,9 +13,6 @@ from typing import Dict, List
 
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.encoding import force_str
-from housekeeping import deprecate_non_keyword_only_args
-
-from djblets.deprecation import RemovedInDjblets50Warning
 
 
 #: Default list of compilers used by Djblets.
@@ -26,7 +23,6 @@ DEFAULT_PIPELINE_COMPILERS: List[str] = [
 ]
 
 
-@deprecate_non_keyword_only_args(RemovedInDjblets50Warning)
 def build_pipeline_settings(
     *,
     pipeline_enabled: bool,

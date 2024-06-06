@@ -1,0 +1,439 @@
+.. default-intersphinx:: django4.2 djblets5.x python3
+
+
+=========================
+Djblets 5.0 Release Notes
+=========================
+
+**Release date**: June 6, 2024
+
+
+Installation
+============
+
+To install Djblets 5.0, run:
+
+.. code-block:: console
+
+   $ pip3 install Djblets==5.0
+
+
+To learn more, see:
+
+* `Documentation <https://www.reviewboard.org/docs/djblets/5.x/>`_
+* `Djblets on PyPI <https://pypi.org/project/Djblets/>`_
+* `Djblets on GitHub <https://github.com/djblets/djblets/>`_
+
+
+.. _Django: https://www.djangoproject.com/
+
+
+Compatibility
+=============
+
+Djblets 5.0 is compatible with Django_ 4.2 LTS and Python 3.8 - 3.12.
+
+.. note:: Django 4.2 has `removed support`_ for some old database versions.
+
+
+.. _removed support: https://docs.djangoproject.com/en/5.0/releases/4.2/#dropped-support-for-mariadb-10-3
+
+
+Packaging
+=========
+
+* Djblets 5.x supports Python 3.8 - 3.12.
+
+* :pypi:`Django` 4.2.x is required.
+
+  Support for Django 3.2 has been dropped.
+
+* :pypi:`cryptography` 41.0.4+ is required.
+
+* :pypi:`django-pipeline` 3.1.0 is required.
+
+* :pypi:`packaging` 23.1 or higher is required.
+
+* :pypi:`importlib-metadata` 6.6 or higher is required.
+
+* :pypi:`importlib-resources` 5.9 or higher is required.
+
+* :npm:`@beanbag/frontend-buildkit` 1.1.0 - 1.1.x is required.
+
+* :npm:`@beanbag/spina` 3.1.1 is required.
+
+* :npm:`@beanbag/ink` 0.5.1 is a new requirement.
+
+  If you are consuming parts of Djblets that use JavaScript or provide HTML,
+  you'll need to include this in your front-end JS and CSS.
+
+
+DEBUG and PRODUCTION settings
+=============================
+
+Since the beginning, Djblets has used the ``DEBUG`` setting to indicate that it
+was running in a development environment. This is often confusing, and
+sometimes users would set ``DEBUG = True`` in their settings on a production
+server, causing various things to break.
+
+This setting has been split into two, ``DEBUG`` and ``PRODUCTION``. Anything
+that needs to condition based on whether its running in a development
+environment vs. production uses the latter, and anything which is truly about
+log verbosity or other debugging tools uses the former.
+
+If you do not define a ``PRODUCTION`` key in your settings, this will default to
+``not DEBUG``.
+
+
+Dark Mode
+=========
+
+Djblets UI elements now support rendering with dark mode (via the :npm:`Ink
+<@beanbag/ink>` library). Assuming you have added the Ink CSS to your page,
+this is as simple as adding a new attribute to your ``<html>`` element:
+
+.. code-block:: html
+
+   <html data-ink-color-scheme="dark">
+
+Ink supports ``light``, ``dark``, and ``system`` themes.
+
+
+djblets.avatars
+===============
+
+* Fixed a bug where Gravatar settings were failing to save because of a problem
+  with the form.
+
+
+djblets.cache
+=============
+
+* Added sandboxing for cache errors.
+
+  Errors attempting to communicate with cache backends are now logged and
+  sandboxed, rather than causing the application to crash.
+
+* Improved performance in the
+  :py:class:`~djblets.cache.forwarding_backend.ForwardingCacheBackend`
+  implementation.
+
+
+djblets.configforms
+===================
+
+* Added a new flattened namespace for TypeScript classes.
+
+  If you are using or inheriting from the configforms TypeScript classes, we
+  have created new name aliases. The new names are prefixed with
+  ``ConfigForms`` rather than existing in the ``Djblets.Config`` namespace.
+
+  For example, code that previously did:
+
+  .. code-block:: typescript
+
+     import { spina } from '@beanbag/spina';
+     import { Config } from 'djblets/configForms';
+
+     @spina
+     export class MyListItem extends Config.ListItem {
+     }
+
+  Would now do:
+
+  .. code-block:: typescript
+
+     import { spina } from '@beanbag/spina';
+     import { ConfigFormsListItem } from 'djblets/configForms';
+
+     @spina
+     export class MyListItem extends ConfigFormsListItem {
+     }
+
+  This was done to prevent TypeScript errors that occur when mixing modules and
+  namespaces.
+
+
+djblets.datagrid
+================
+
+* Added Python type hints throughout the module.
+
+* Added a new infrastructure for querysets for datagrids.
+
+  Prior to this, each datagrid used a single queryset for both pagination and
+  display, and the datagrid and columns could augment that queryset to add
+  additional data or perform filtering. This ended up creating needlessly
+  complex queries for pagination.
+
+  Datagrids now internally use two querysets, one for pagination and one for
+  display. The grid and columns can augment these in two ways: filtering
+  augmentations are applied to both, and data collection augmentations are
+  applied only to the display one.
+
+  For :py:class:`~djblets.datagrid.grids.DataGrid` subclasses, you can now
+  implement
+  :py:meth:`~djblets.datagrid.grids.DataGrid.post_process_queryset_for_data`
+  and
+  :py:meth:`~djblets.datagrid.grids.DataGrid.post_process_queryset_for_filter`
+  methods instead of the legacy
+  :py:meth:`~djblets.datagrid.grids.DataGrid.post_process_queryset` method.
+
+  Similarly, :py:class:`~djblets.datagrid.grids.Column` subclasses may
+  implement :py:meth:`~djblets.datagrid.grids.Column.augment_queryset_for_data`
+  and :py:meth:`~djblets.datagrid.grids.Column.augment_queryset_for_filter`
+  instead of :py:meth:`~djblets.datagrid.grids.Column.augment_queryset`.
+
+* Made SQL ``DISTINCT`` optional.
+
+  Using SQL's ``DISTINCT`` in queries can sometimes cause significant
+  performance issues. In most cases, Django querysets can be written such that
+  the results will not include duplicates, and so datagrids can now opt out of
+  this by setting :py:attr:`~djblets.datagrids.grids.DataGrid.use_distinct` to
+  ``False``.
+
+  A future version of Djblets may change the default.
+
+* Fixed errors when URLs contained invalid sort query data.
+
+  For public-facing sites, some web crawlers would assemble URLs with invalid
+  sort querystrings, causing error e-mails to be sent.
+
+* Set :mailheader:`Cache-Control` headers for datagrid pages.
+
+  Datagrid contents were rendered with the correct header to turn off browser
+  caching, but the pages themselves were not. This was most visible when a
+  datagrid contained checkbox columns that could trigger an action that affects
+  which items are shown in the grid. Some browsers (notably Firefox) will
+  attempt to re-check any selected checkboxes when the page reloads, and would
+  sometimes incorrectly select unrelated checkboxes when the page was reloaded.
+
+* Fixed display in locales that use commas for decimal places.
+
+  Datagrid columns which specify widths (specifically columns which expand to
+  fill the available space) would display incorrectly in locales such as German
+  which use commas for decimals instead of periods. This has been fixed.
+
+* The column-specific styles for ``age1`` through ``age5``, ``month`` and
+  ``summary`` classes have been removed.
+
+  These were always somewhat incomplete, and would require overrides in the
+  consumer stylesheets.
+
+
+djblets.db
+==========
+
+* Added a new :py:class:`~djblets.db.fields.CommaSeparatedValuesField`.
+
+  This is a database field which can be used as a mostly drop-in replacement
+  for the unmaintained :pypi:`django-multiselectfield` library.
+
+
+djblets.extensions
+==================
+
+* Fixed using ``include_bundles`` in extension static media bundles.
+
+  Static media bundles were supposed to allow specifying a list of dependencies
+  with the ``include_bundles`` key inside :py:attr:`Extension.css_bundles
+  <djblets.extensions.extension.Extension.css_bundles>` and
+  :py:attr:`Extension.js_bundles
+  <djblets.extensions.extension.Extension.js_bundles>` settings. Unfortunately,
+  the actual rendering of the ``<script>`` and ``<link>`` tags to reference
+  these included bundles was broken. This can now be used as intended.
+
+
+djblets.feedview
+================
+
+This module has been removed.
+
+
+djblets.forms
+=============
+
+* Fixed the :py:class:`~djblets.forms.widgets.AmountSelectorWidget` to consider
+  ``None`` to be an empty value.
+
+
+djblets.mail
+============
+
+* Switched DMARC checking to use the :pypi:`publicsuffixlist` module.
+
+  The old :pypi:`publicsuffix` module is deprecated, and was increasingly
+  incompatible with modern Python versions. DMARC support has switched to a
+  new, modern dependency.
+
+
+djblets.registries
+==================
+
+* Registries are now thread-safe.
+
+  Previously, it was possible for two threads to perform modifications to the
+  registry at the same time. This could include populating the registry,
+  resetting it, registering items, or unregistering items. Depending on the
+  order of operations, this could lead to bad registry data, missing or
+  duplicate items, or crashes.
+
+  Now only one thread may make changes to a registry at a time. Other
+  registries are blocked on the operation until the work is completed, and will
+  consider the operation a success if another thread has made the same change.
+
+* Added new thread-safe methods that subclasses can override to customize
+  registry operations.
+
+  Subclasses are no longer encouraged to override
+  :py:meth:`~djblets.registries.registry.Registry.populate`,
+  :py:meth:`~djblets.registries.registry.Registry.register`,
+  :py:meth:`~djblets.registries.registry.Registry.unregister`, or
+  :py:meth:`~djblets.registries.registry.Registry.reset`. Doing so is now
+  deprecated.
+
+  Instead, they are expected to override any or all of the following
+  thread-safe methods:
+
+  * :py:meth:`~djblets.registries.registry.Registry.on_item_registering`
+  * :py:meth:`~djblets.registries.registry.Registry.on_item_registered`
+  * :py:meth:`~djblets.registries.registry.Registry.on_item_unregistering`
+  * :py:meth:`~djblets.registries.registry.Registry.on_item_unregistered`
+  * :py:meth:`~djblets.registries.registry.Registry.on_populating`
+  * :py:meth:`~djblets.registries.registry.Registry.on_populated`
+  * :py:meth:`~djblets.registries.registry.Registry.on_resetting`
+  * :py:meth:`~djblets.registries.registry.Registry.on_reset`
+
+* The state of the registry is now accessible via :py:attr:`Registry.state
+  <djblets.registries.registry.Registry.state>`.
+
+  This replaces the now-deprecated :py:attr:`Registry.populated
+  <djblets.registries.registry.Registry.populated>`. The new state information
+  can inform the caller as to whether the registry is pending population,
+  currently populating, or ready for use (populated). See
+  :py:class:`~djblets.registries.registry.RegistryState` for the state
+  documentation.
+
+
+djblets.testing
+===============
+
+* Significantly improved the usability and output of the
+  :py:meth:`~djblets.testing.testcases.TestCase.assertQueries` API.
+
+  :py:meth:`~djblets.testing.testcases.TestCase.assertQueries` now provides
+  much better output on failure, making it easier to determine where
+  non-matching queries come from. It also makes it easy to compare
+  deeply-nested ``WHERE`` clauses.
+
+  This method now also allows comparing subqueries.
+
+  Finally, the query expectation dictionary now supports a ``__note__`` field,
+  which can be used to describe the query or provide identifying information.
+  This will be shown in the output when the assertion failed.
+
+* Added a pytest mode to :py:class:`~djblets.testing.testrunners.TestRunner`.
+
+  This allows extension packages to opt-in to using Pytest_ to run their unit
+  tests rather than :pypi:`nose`.
+
+
+.. _Pytest: https://pytest.org/
+
+
+djblets.util
+============
+
+* Added new options to the :py:func:`{% thumbnail %}
+  <djblets.util.templatetags.djblets_images.thumbnail>` template filter.
+
+  The thumbnail filter has been significantly improved. It can now operate on
+  either a :py:class:`~django.db.models.fields.files.FileField`-backed file
+  instance, an arbitrary :py:class:`~django.core.files.File`, or a filename.
+
+  It can also now cap to either a width or height, maintaining the existing
+  aspect ratio. This can be done by omitting either value inside the size
+  string.
+
+  Finally, it contains a new ``create_if_missing`` argument which can be used
+  to disable thumbnail creation if one is not found.
+
+
+djblets.webapi
+==============
+
+* Updated API decorators to correctly set function metadata.
+
+  The previous implementation of API decorators and
+  :py:func:`@augment_method_from <djblets.util.decorators.augment_method_from>`
+  were manually setting metadata, which missed a few new items such as
+  ``__annotations__`` and ``__qualname__``. These now use the standard Python
+  wrapper methods to ensure that all metadata is set correctly.
+
+
+Removed Deprecated APIs
+========================
+
+APIs which were previously marked for deprecation have been removed:
+
+* :py:meth:`djblets.datagrid.grids.DataGrid.build_paginator` must now accept
+  keyword arguments and return an instance of
+  :py:class:`~djblets.datagrid.grids.DataGridPaginator`.
+
+* :py:func:`~djblets.pipeline.settings.build_pipeline_settings` now requires
+  keyword arguments.
+
+* :js:class:`Djblets.Config.ListItem` no longer accepts actions in the
+  constructor. Instead, they must be passed to the
+  :js:func:`Djblets.Config.ListItem.setActions` method.
+
+* Compatibility shims for the old :py:mod:`collections` aliases have been
+  removed.
+
+* :py:meth:`djblets.util.properties.BaseProperty.get_attr_name` has been
+  removed in favor of the
+  :py:attr:`~djblets.util.properties.BaseProperty.attr_name` attribute.
+
+* :py:meth:`djblets.util.properties.get_descriptor_attr_name` has been removed.
+
+* The Djblets copy of :js:func:`$.delay` has been removed. This was created
+  in ancient times before JQuery had an implementation of this, but that hasn't
+  been the case for a very long time. JQuery ships an equivalent API.
+
+
+New Deprecations
+================
+
+* The :js:func:`Djblets.enableRetinaImages`, :js:func:`$.fn.retinaGravatar`, and
+  :js:func:`Djblets.getGravatarForDisplay` JavaScript APIs have been deprecated.
+
+  These should be replaced with the browser-native ``<img srcset>``.
+
+* The :js:func:`$.fn.inlineEditor` jQuery-UI widget has been deprecated in its
+  entirety.
+
+* All monkey-patched :js:class:`String` methods in JavaScript have been
+  deprecated.
+
+  These should be replaced with either standard library or underscore methods:
+
+  * :js:func:`String.trim`
+  * :js:func:`String.htmlEncode`
+  * :js:func:`String.htmlDecode`
+  * :js:func:`String.stripTags`
+  * :js:func:`String.truncate`
+
+
+Other Changes and Fixes
+=======================
+
+* Fixed a focus recursion crash when multiple modal boxes are on the screen using
+  :js:func:`$.modalBox`.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin

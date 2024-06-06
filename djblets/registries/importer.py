@@ -1,8 +1,18 @@
 """Import utilities for registries."""
 
+from __future__ import annotations
+
 from importlib import import_module
+from threading import Lock
 
 from django.utils.functional import SimpleLazyObject
+
+
+#: A lock used to control the importing and creation of registries.
+#:
+#: Version Added:
+#:     5.0
+_import_lock = Lock()
 
 
 def lazy_import_registry(module_path, registry_name, **kwargs):
@@ -15,6 +25,14 @@ def lazy_import_registry(module_path, registry_name, **kwargs):
 
     This can also speed up the startup process, depending on the complexity
     of registries.
+
+    Importing and creation of registries is thread-safe. If two threads try
+    to access a registry for the first time at the same time, they'll both
+    receive the same instance.
+
+    Version Changed:
+        5.0:
+        This is now thread-safe.
 
     Args:
         module_path (str):
@@ -31,8 +49,9 @@ def lazy_import_registry(module_path, registry_name, **kwargs):
         A wrapper that will dynamically load and forward on to the registry.
     """
     def _create_registry():
-        mod = import_module(module_path)
+        with _import_lock:
+            mod = import_module(module_path)
 
-        return getattr(mod, registry_name)(**kwargs)
+            return getattr(mod, registry_name)(**kwargs)
 
     return SimpleLazyObject(_create_registry)

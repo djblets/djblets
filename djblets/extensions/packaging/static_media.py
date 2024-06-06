@@ -296,6 +296,8 @@ class StaticMediaBuildContext:
 
             less_include.add(dirname)
 
+        less_include.add(str(self.node_modules_dir))
+
         return less_include
 
     def _make_pipeline_bundle(

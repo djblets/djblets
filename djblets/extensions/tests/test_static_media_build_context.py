@@ -286,4 +286,5 @@ class StaticMediaBuildContextTests(TestCase):
             '/path/to/extension3',
             '/path/to/extension3/static',
             '/path/to/extension4',
+            '/path/to/src/node_modules',
         })

@@ -17,9 +17,10 @@
 </div>
 
 {% for service_id, form in form.avatar_service_forms.items %}
-<div class="avatar-service-fields" data-avatar-service-id="{{service_id}}">
+<fieldset class="avatar-service-fields" data-avatar-service-id="{{service_id}}"
+          disabled hidden>
  {{form.render|safe}}
-</div>
+</fieldset>
 {% endfor %}
 <script>
 $().ready(function() {
@@ -35,5 +36,9 @@ $().ready(function() {
 {% block post_fields %}{% endblock %}
 
 {% if form.save_label %}
-<input type="submit" class="btn" value="{{form.save_label}}" />
+<div class="djblets-c-config-forms-actions">
+ <button class="ink-c-button" type="submit">
+  {{form.save_label}}
+ </button>
+</div>
 {% endif %}

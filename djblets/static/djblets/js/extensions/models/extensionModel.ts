@@ -8,7 +8,7 @@ import {
     spina,
 } from '@beanbag/spina';
 
-import type { ExtensionHook } from './extensionHookModel';
+import { type ExtensionHook } from './extensionHookModel';
 
 
 /**

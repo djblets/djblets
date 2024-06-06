@@ -516,6 +516,9 @@ class DataGridTests(kgb.SpyAgency, TestCase):
                 },
                 'distinct': True,
                 'group_by': True,
+                'join_types': {
+                    'auth_user_groups': 'LEFT OUTER JOIN',
+                },
                 'limit': 3,
                 'model': User,
                 'num_joins': 1,

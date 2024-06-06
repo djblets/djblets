@@ -7,15 +7,17 @@ import {
 } from 'jasmine-core';
 import * as Backbone from 'backbone';
 
-import { List } from '../../models/listModel';
-import { ListItem } from '../../models/listItemModel';
-import { ListView } from '../listView';
+import {
+    ConfigFormsList,
+    ConfigFormsListItem,
+    ConfigFormsListView,
+} from 'djblets/configForms';
 
 
 suite('djblets/configForms/views/ListView', () => {
     let collection: Backbone.Collection;
-    let list: List;
-    let listView: ListView;
+    let list: ConfigFormsList;
+    let listView: ConfigFormsListView;
 
     beforeEach(() => {
         collection = new Backbone.Collection(
@@ -24,15 +26,15 @@ suite('djblets/configForms/views/ListView', () => {
                 {text: 'Item 2'},
                 {text: 'Item 3'},
             ], {
-                model: ListItem,
+                model: ConfigFormsListItem,
             }
         );
 
-        list = new List({}, {
+        list = new ConfigFormsList({}, {
             collection: collection,
         });
 
-        listView = new ListView({
+        listView = new ConfigFormsListView({
             model: list,
         });
     });

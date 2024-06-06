@@ -23,6 +23,33 @@
 (function($) {
 
 
+let modalBoxes = [];
+
+
+/**
+ * Handle focus changes throughout the document.
+ *
+ * If the focus has moved outside of the latest modalbox, focus will be reset
+ * back to the inner portion of the box.
+ *
+ * Args:
+ *     evt (Event):
+ *         The focus event.
+ */
+function onDocumentFocusChanged(evt) {
+    if (modalBoxes.length === 0) {
+        return;
+    }
+
+    const modalBox = modalBoxes[modalBoxes.length - 1];
+
+    if (!modalBox.box[0].contains(evt.target)) {
+        evt.stopPropagation();
+        modalBox.inner.focus();
+    }
+}
+
+
 $.widget('ui.modalBox', {
     options: {
         buttons: [$('<input type="button">').val(gettext('Close'))],
@@ -54,6 +81,8 @@ $.widget('ui.modalBox', {
 
     _init: function() {
         var self = this;
+
+        modalBoxes.push(this);
 
         this._onKeyDown = this._onKeyDown.bind(this);
 
@@ -164,8 +193,9 @@ $.widget('ui.modalBox', {
          * Listen for focus changes (at the capture phase) to make sure we
          * stay in the dialog.
          */
-        this._onDocumentFocusChanged = this._onDocumentFocusChanged.bind(this);
-        document.addEventListener('focus', this._onDocumentFocusChanged, true);
+        if (modalBoxes.length === 1) {
+            document.addEventListener('focus', onDocumentFocusChanged, true);
+        }
     },
 
     destroy: function() {
@@ -175,14 +205,23 @@ $.widget('ui.modalBox', {
             return;
         }
 
+        const modalBoxIndex = modalBoxes.indexOf(this);
+
+        if (modalBoxIndex !== -1) {
+            modalBoxes.splice(modalBoxIndex, 1);
+        }
+
         this.element
             .removeData('uiModalBox')
             .off('resize.modalbox')
             .css('position', 'static');
 
         $(window).off('resize.' + this._eventID);
-        document.removeEventListener('focus', this._onDocumentFocusChanged,
-                                     true);
+
+        if (modalBoxes.length === 0) {
+            document.removeEventListener('focus', this._onDocumentFocusChanged,
+                                         true);
+        }
 
         this.observer.disconnect();
 
@@ -237,23 +276,6 @@ $.widget('ui.modalBox', {
 
         this.element.triggerHandler('resize');
     },
-
-    /**
-     * Handle focus changes throughout the document.
-     *
-     * If the focus has moved outside of the modalbox, focus will be reset
-     * back to the inner portion of the box.
-     *
-     * Args:
-     *     evt (Event):
-     *         The focus event.
-     */
-    _onDocumentFocusChanged: function(evt) {
-        if (!this.box[0].contains(evt.target)) {
-            evt.stopPropagation();
-            this.inner.focus();
-        }
-    }
 });
 
 $.ui.modalBox.getter = 'buttons';

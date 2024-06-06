@@ -14,13 +14,14 @@
  * @author Brian Reavis <brian@thirdroute.com>
  */
 
+// Updated by Beanbag to use globalThis (April 16, 2024):
 (function(root, factory) {
 	if (typeof define === 'function' && define.amd) {
 		define('sifter', factory);
 	} else if (typeof exports === 'object') {
 		module.exports = factory();
 	} else {
-		root.Sifter = factory();
+		(typeof globalThis !== 'undefined' ? globalThis : global || self).Sifter = factory();
 	}
 }(this, function() {
 
@@ -514,13 +515,14 @@
  * @author Brian Reavis <brian@thirdroute.com>
  */
 
+// Updated by Beanbag to use globalThis (April 16, 2024):
 (function(root, factory) {
 	if (typeof define === 'function' && define.amd) {
 		define('microplugin', factory);
 	} else if (typeof exports === 'object') {
 		module.exports = factory();
 	} else {
-		root.MicroPlugin = factory();
+		(typeof globalThis !== 'undefined' ? globalThis : global || self).MicroPlugin = factory();
 	}
 }(this, function() {
 	var MicroPlugin = {};
@@ -659,7 +661,7 @@
 	} else if (typeof exports === 'object') {
 		module.exports = factory(require('jquery'), require('sifter'), require('microplugin'));
 	} else {
-		root.Selectize = factory(root.jQuery, root.Sifter, root.MicroPlugin);
+		(root = typeof globalThis !== 'undefined' ? globalThis : global || self).Selectize = root.Selectize = factory(root.jQuery, root.Sifter, root.MicroPlugin);
 	}
 }(this, function($, Sifter, MicroPlugin) {
 	'use strict';

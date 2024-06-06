@@ -37,17 +37,16 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import InvalidPage, Paginator
 from django.db.models import QuerySet
 from django.http import Http404, HttpResponse
-from django.template.defaultfilters import date, timesince
+from django.template.defaultfilters import date
 from django.template.loader import get_template, render_to_string
-from django.utils.cache import patch_cache_control
+from django.utils.cache import add_never_cache_headers
 from django.utils.functional import cached_property
 from django.utils.html import escape, format_html
-from django.utils.inspect import func_accepts_kwargs
 from django.utils.safestring import mark_safe
+from django.utils.timesince import timesince
 from django.utils.translation import gettext_lazy as _
 from typing_extensions import Final, TypeAlias, TypedDict
 
-from djblets.deprecation import RemovedInDjblets50Warning
 from djblets.template.context import get_default_template_context_processors
 from djblets.util.http import get_url_params_except
 
@@ -2151,25 +2150,9 @@ class DataGrid:
         if self.use_distinct and hasattr(data_queryset, 'distinct'):
             data_queryset = data_queryset.distinct()
 
-        paginator: DataGridPaginator
-
-        if func_accepts_kwargs(self.build_paginator):
-            paginator = self.build_paginator(
-                queryset=data_queryset,
-                total_count=filter_queryset.order_by().count())
-        else:
-            RemovedInDjblets50Warning.warn(
-                '%s.build_paginator must accept keyword arguments. This will '
-                'be required in Djblets 5.'
-                % type(self).__name__)
-            paginator = self.build_paginator(data_queryset)  # type: ignore
-
-        if not isinstance(paginator, DataGridPaginator):
-            RemovedInDjblets50Warning.warn(
-                '%s.build_paginator must return an instance of a '
-                'DataGridPaginator (or of a subclass). This will be '
-                'required in Djblets 5.'
-                % type(self).__name__)
+        paginator = self.build_paginator(
+            queryset=data_queryset,
+            total_count=filter_queryset.order_by().count())
 
         self.paginator = paginator
 
@@ -2473,8 +2456,7 @@ class DataGrid:
             The HTTP response to send to the client.
         """
         response = HttpResponse(str(self.render_listview(render_context)))
-        patch_cache_control(response, no_cache=True, no_store=True, max_age=0,
-                            must_revalidate=True)
+        add_never_cache_headers(response)
         return response
 
     def render_to_response(
@@ -2516,8 +2498,10 @@ class DataGrid:
         context.update(extra_context)
         context.update(render_context)
 
-        return HttpResponse(render_to_string(template_name=template_name,
-                                             context=context))
+        response = HttpResponse(
+            render_to_string(template_name=template_name, context=context))
+        add_never_cache_headers(response)
+        return response
 
     def render_paginator(
         self,

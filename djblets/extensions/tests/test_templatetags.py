@@ -45,11 +45,17 @@ class MyTestExtension(Extension):
             'css/default-test.css',
         ),
     }
+    css_bundles['included'] = {
+        'source_filenames': (
+            'css/included-test.css',
+        ),
+    }
     css_bundles['optional'] = {
         'source_filenames': (
             'css/optional-test.css',
         ),
         'apply_to': ['foo'],
+        'include_bundles': ['included'],
     }
 
     js_bundles = OrderedDict()
@@ -58,11 +64,17 @@ class MyTestExtension(Extension):
             'js/default-test.js',
         ),
     }
+    js_bundles['included'] = {
+        'source_filenames': (
+            'js/included-test.js',
+        ),
+    }
     js_bundles['optional'] = {
         'source_filenames': (
             'js/optional-test.js',
         ),
         'apply_to': ['foo'],
+        'include_bundles': ['included'],
     }
 
     js_extensions = [MyTestJSExtension1, MyTestJSExtension2]
@@ -72,6 +84,8 @@ class TemplateTagTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
     """Tests for djblets.extensions.templatetags."""
 
     default_extension_manager_cls = MyTestExtensionManager
+
+    maxDiff = None
 
     def setUp(self):
         def _has_resource(self, path):
@@ -230,6 +244,9 @@ class TemplateTagTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
             '.MyTestExtension/css/default.min.dad0c9b31e59.css" '
             'rel="stylesheet" media="all" type="text/css">'
             '<link href="/ext/djblets.extensions.tests.test_templatetags'
+            '.MyTestExtension/css/included.min.dad0c9b31e59.css" '
+            'rel="stylesheet" media="all" type="text/css">'
+            '<link href="/ext/djblets.extensions.tests.test_templatetags'
             '.MyTestExtension/css/optional.min.dad0c9b31e59.css" '
             'rel="stylesheet" media="all" type="text/css">')
 
@@ -251,6 +268,9 @@ class TemplateTagTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
             })),
             '<link href="/ext/djblets.extensions.tests.test_templatetags'
             '.MyTestExtension/css/default-test.dad0c9b31e59.css" '
+            'rel="stylesheet" media="all" type="text/css">'
+            '<link href="/ext/djblets.extensions.tests.test_templatetags'
+            '.MyTestExtension/css/included-test.dad0c9b31e59.css" '
             'rel="stylesheet" media="all" type="text/css">'
             '<link href="/ext/djblets.extensions.tests.test_templatetags'
             '.MyTestExtension/css/optional-test.dad0c9b31e59.css" '
@@ -278,6 +298,10 @@ class TemplateTagTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
             'charset="utf-8"></script>'
             '<script type="text/javascript" '
             'src="/ext/djblets.extensions.tests.test_templatetags'
+            '.MyTestExtension/js/included.min.dad0c9b31e59.js" '
+            'charset="utf-8"></script>'
+            '<script type="text/javascript" '
+            'src="/ext/djblets.extensions.tests.test_templatetags'
             '.MyTestExtension/js/optional.min.dad0c9b31e59.js" '
             'charset="utf-8"></script>')
 
@@ -300,6 +324,10 @@ class TemplateTagTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
             '<script type="text/javascript" '
             'src="/ext/djblets.extensions.tests.test_templatetags'
             '.MyTestExtension/js/default-test.dad0c9b31e59.js" '
+            'charset="utf-8"></script>'
+            '<script type="text/javascript" '
+            'src="/ext/djblets.extensions.tests.test_templatetags'
+            '.MyTestExtension/js/included-test.dad0c9b31e59.js" '
             'charset="utf-8"></script>'
             '<script type="text/javascript" '
             'src="/ext/djblets.extensions.tests.test_templatetags'

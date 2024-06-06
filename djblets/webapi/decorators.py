@@ -89,13 +89,32 @@ def _convert_legacy_field_type(legacy_type, field_info):
 
 
 def copy_webapi_decorator_data(from_func, to_func):
-    """Copies and merges data from one decorated function to another.
+    """Copy and merge data from one decorated function to another.
 
     This will copy over the standard function information (name, docs,
     and dictionary data), but will also handle intelligently merging
     together data set by webapi decorators, such as the list of
     possible errors.
+
+    Version Changed:
+        5.0:
+        If the same function is passed as both ``from_func`` and ``to_func``,
+        this will be a no-op.
+
+    Args:
+        from_func (callable):
+            The function to copy state from.
+
+        to_func (callable):
+            The function to copy state to.
+
+    Returns:
+        callable:
+        The ``to_func`` instance.
     """
+    if from_func is to_func:
+        return to_func
+
     had_errors = (hasattr(to_func, 'response_errors') or
                   hasattr(from_func, 'response_errors'))
     had_fields = (hasattr(to_func, 'required_fields') or

@@ -18,7 +18,6 @@ from typing import (Any, Dict, Iterator, List, Optional, Sequence,
                     TYPE_CHECKING, Type, Union)
 from unittest.util import safe_repr
 
-import kgb
 from django.apps import apps
 from django.conf import settings
 from django.core import serializers
@@ -40,7 +39,6 @@ except ImportError:
     Version = None
 
 from djblets.db.query_comparator import compare_queries
-from djblets.deprecation import RemovedInDjblets50Warning
 from djblets.siteconfig.models import SiteConfiguration
 
 if TYPE_CHECKING:
@@ -364,8 +362,8 @@ class TestCase(testcases.TestCase):
         *,
         with_tracebacks: bool = False,
         traceback_size: int = 15,
-        check_join_types: Optional[bool] = None,
-        check_subqueries: Optional[bool] = None,
+        check_join_types: bool = True,
+        check_subqueries: bool = True,
     ) -> Iterator[None]:
         """Assert the number and complexity of queries.
 
@@ -376,9 +374,14 @@ class TestCase(testcases.TestCase):
         contains the keys in :py:class:`ExpectedQuery`.
 
         Version Changed:
+            5.0:
+            * Turned on ``check_subqueries`` and ``check_join_types`` by
+              default.
+
+        Version Changed:
             3.4:
             * Added ``with_tracebacks``, ``tracebacks_size``,
-            ``check_join_types``, and ``check_subqueries`` arguments.
+              ``check_join_types``, and ``check_subqueries`` arguments.
             * Added support for type hints for expected queries.
             * Query output can now show notes (when populating
               :py:attr:`ExpectedQuery.__note__`) to ease debugging.
@@ -567,15 +570,6 @@ class TestCase(testcases.TestCase):
                             error_lines.append(
                                 f'{indent}Trace: {traceback_str}')
 
-            if found_subqueries and check_subqueries is None:
-                RemovedInDjblets50Warning.warn(
-                    'assertQueries() does not check subqueries by default, '
-                    'but a subquery was found and ignored in this test! '
-                    'Djblets 5 will check subqueries by default. Please '
-                    'update your assertQueries() call to pass '
-                    'check_subqueries=True and then update your query '
-                    'expectations to include the subquery.')
-
             return error_lines
 
         # Run the query comparisons.
@@ -583,16 +577,6 @@ class TestCase(testcases.TestCase):
                              _check_subqueries=bool(check_subqueries),
                              queries=queries) as results:
             yield
-
-        if 'join_types' in results['_unchecked_mismatched_attrs']:
-            RemovedInDjblets50Warning.warn(
-                'assertQueries() does not check join_types by default, '
-                'but tables were joined in this test! Djblets 5 will '
-                'check subqueries by default. Please update your '
-                'assertQueries() call to pass check_join_types=True and '
-                'then update your query expectations to include '
-                '`join_types`.',
-                stacklevel=3)
 
         if results['has_mismatches']:
             self.fail('\n'.join(_serialize_results(results)))

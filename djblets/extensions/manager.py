@@ -259,7 +259,8 @@ class ExtensionManager:
     #: By default, we install static media files if
     #: :django:setting:`PRODUCTION` is ``True``. Subclasses can override this
     #: to factor in other settings, if needed.
-    should_install_static_media = settings.PRODUCTION
+    should_install_static_media = getattr(settings, 'PRODUCTION',
+                                          not settings.DEBUG)
 
     #: The key in the settings indicating the last known configured version.
     #:

@@ -9,13 +9,16 @@ For information on writing registries, see
 from __future__ import annotations
 
 import logging
+from enum import Enum
+from threading import RLock
 from typing import (Dict, Generic, Iterable, Iterator, List, Optional,
-                    Sequence, Set, TYPE_CHECKING, Type, TypeVar)
+                    Sequence, Set, Type, TypeVar)
 
 from django.utils.translation import gettext_lazy as _
 from importlib_metadata import EntryPoint, entry_points
 from typing_extensions import Final, TypeAlias
 
+from djblets.deprecation import RemovedInDjblets70Warning
 from djblets.registries.errors import (AlreadyRegisteredError,
                                        ItemLookupError,
                                        RegistrationError)
@@ -95,6 +98,23 @@ DEFAULT_ERRORS: Final[RegistryErrorsDict] = {
 }
 
 
+class RegistryState(Enum):
+    """The operations state of a registry.
+
+    Version Added:
+        5.0
+    """
+
+    #: The registry is pending setup.
+    PENDING = 0
+
+    #: The registry is in the process of populating default items.
+    POPULATING = 1
+
+    #: The registry is populated and ready to be used.
+    READY = 2
+
+
 class Registry(Generic[RegistryItemType]):
     """An item registry.
 
@@ -109,6 +129,23 @@ class Registry(Generic[RegistryItemType]):
 
         class MyRegistry(Registry[MyItemType]):
             ...
+
+    Version Changed:
+        5.0:
+        * Registries now use a reentrant lock when populating, resetting,
+          registering items, or unregistering items.
+        * Added :py:attr:`state` for determining the current registry state.
+        * Deprecated :py:attr:`populated`.
+        * Added new hooks for customizing registry behavior with thread-safe
+          guarantees:
+          * :py:meth:`on_item_registering`,
+          * :py:meth:`on_item_registered`,
+          * :py:meth:`on_item_unregistering`
+          * :py:meth:`on_item_unregistered`,
+          * :py:meth:`on_populating`
+          * :py:meth:`on_populated`,
+          * :py:meth:`on_resetting`
+          * :py:meth:`on_reset`.
 
     Version Changed:
         3.1:
@@ -166,24 +203,65 @@ class Registry(Generic[RegistryItemType]):
     #:     type
     lookup_error_class: Type[ItemLookupError] = ItemLookupError
 
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The current state of the registry.
+    #:
+    #: Version Added:
+    #:     5.0
+    state: RegistryState
+
+    #: A set of the items stored in the registry.
+    _items: set[RegistryItemType]
+
+    #: A lock used to ensure population only happens once.
+    #:
+    #: Version Added:
+    #:     5.0
+    _lock: RLock
+
+    #: The registry of stored items.
+    #:
+    #: This is a mapping of lookup attribute names to value-to-item mappings.
+    _registry: dict[str, dict[object, RegistryItemType]]
+
     def __init__(self) -> None:
         """Initialize the registry."""
-        self._registry: Dict[str, Dict[object, RegistryItemType]] = {
+        self.state = RegistryState.PENDING
+
+        self._registry = {
             _attr_name: {}
             for _attr_name in self.lookup_attrs
         }
-        self._populated: bool = False
-        self._items: Set[RegistryItemType] = set()
+        self._lock = RLock()
+        self._items = set()
 
     @property
     def populated(self) -> bool:
         """Whether or not the registry is populated.
 
+        This can be used to determine if the registry is populated (or in
+        the process of being populated).
+
+        Consumers should check :py:attr:`state` instead, for more precise
+        tracking. This method is deprecated.
+
+        Deprecated:
+            5.0:
+            This has been replaced by :py:attr:`state` and will be removed in
+            Djblets 7.
+
         Returns:
             bool:
             Whether or not the registry is populated.
         """
-        return self._populated
+        RemovedInDjblets70Warning.warn(
+            'Registry.populated is deprecated and will be removed in '
+            'Djblets 7. Please check Registry.state instead.')
+
+        return self.state != RegistryState.PENDING
 
     def format_error(
         self,
@@ -304,38 +382,42 @@ class Registry(Generic[RegistryItemType]):
         self.populate()
         attr_values: Dict[str, object] = {}
 
-        if item in self._items:
-            raise self.already_registered_error_class(self.format_error(
-                ALREADY_REGISTERED,
-                item=item))
+        with self._lock:
+            if item in self._items:
+                raise self.already_registered_error_class(self.format_error(
+                    ALREADY_REGISTERED,
+                    item=item))
 
-        registry_map = self._registry
+            self.on_item_registering(item)
 
-        for attr_name in self.lookup_attrs:
-            attr_map = registry_map[attr_name]
+            registry_map = self._registry
 
-            try:
-                attr_value = getattr(item, attr_name)
+            for attr_name in self.lookup_attrs:
+                attr_map = registry_map[attr_name]
 
-                if attr_value in attr_map:
-                    raise self.already_registered_error_class(
-                        self.format_error(ATTRIBUTE_REGISTERED,
-                                          item=item,
-                                          duplicate=attr_map[attr_value],
-                                          attr_name=attr_name,
-                                          attr_value=attr_value))
+                try:
+                    attr_value = getattr(item, attr_name)
 
-                attr_values[attr_name] = attr_value
-            except AttributeError:
-                raise RegistrationError(self.format_error(
-                    MISSING_ATTRIBUTE,
-                    item=item,
-                    attr_name=attr_name))
+                    if attr_value in attr_map:
+                        raise self.already_registered_error_class(
+                            self.format_error(ATTRIBUTE_REGISTERED,
+                                              item=item,
+                                              duplicate=attr_map[attr_value],
+                                              attr_name=attr_name,
+                                              attr_value=attr_value))
 
-        for attr_name, attr_value in attr_values.items():
-            registry_map[attr_name][attr_value] = item
+                    attr_values[attr_name] = attr_value
+                except AttributeError:
+                    raise RegistrationError(self.format_error(
+                        MISSING_ATTRIBUTE,
+                        item=item,
+                        attr_name=attr_name))
 
-        self._items.add(item)
+            for attr_name, attr_value in attr_values.items():
+                registry_map[attr_name][attr_value] = item
+
+            self._items.add(item)
+            self.on_item_registered(item)
 
     def unregister_by_attr(
         self,
@@ -357,18 +439,23 @@ class Registry(Generic[RegistryItemType]):
         """
         self.populate()
 
-        try:
-            attr_map = self._registry[attr_name]
-        except KeyError:
-            raise self.lookup_error_class(self.format_error(
-                INVALID_ATTRIBUTE, attr_name=attr_name))
-        try:
-            item = attr_map[attr_value]
-        except KeyError:
-            raise self.lookup_error_class(self.format_error(
-                NOT_REGISTERED, attr_name=attr_name, attr_value=attr_value))
+        with self._lock:
+            try:
+                attr_map = self._registry[attr_name]
+            except KeyError:
+                raise self.lookup_error_class(self.format_error(
+                    INVALID_ATTRIBUTE,
+                    attr_name=attr_name))
 
-        self.unregister(item)
+            try:
+                item = attr_map[attr_value]
+            except KeyError:
+                raise self.lookup_error_class(self.format_error(
+                    NOT_REGISTERED,
+                    attr_name=attr_name,
+                    attr_value=attr_value))
+
+            self.unregister(item)
 
     def unregister(
         self,
@@ -386,33 +473,49 @@ class Registry(Generic[RegistryItemType]):
         """
         self.populate()
 
-        try:
-            self._items.remove(item)
-        except KeyError:
-            raise self.lookup_error_class(self.format_error(UNREGISTER,
-                                                            item=item))
+        with self._lock:
+            self.on_item_unregistering(item)
 
-        registry_map = self._registry
+            try:
+                self._items.remove(item)
+            except KeyError:
+                raise self.lookup_error_class(self.format_error(UNREGISTER,
+                                                                item=item))
 
-        for attr_name in self.lookup_attrs:
-            attr_value = getattr(item, attr_name)
-            del registry_map[attr_name][attr_value]
+            registry_map = self._registry
+
+            for attr_name in self.lookup_attrs:
+                attr_value = getattr(item, attr_name)
+                del registry_map[attr_name][attr_value]
+
+            self.on_item_unregistered(item)
 
     def populate(self) -> None:
         """Ensure the registry is populated.
 
         Calling this method when the registry is populated will have no effect.
         """
-        if self._populated:
+        if self.state == RegistryState.READY:
             return
 
-        self._populated = True
+        with self._lock:
+            if self.state != RegistryState.PENDING:
+                # This thread is actively populating the registry, or has been
+                # populated while waiting for the lock to be released. We can
+                # bail here.
+                return
 
-        for item in self.get_defaults():
-            self.register(item)
+            self.state = RegistryState.POPULATING
+            self.on_populating()
 
-        registry_populating.send(sender=type(self),
-                                 registry=self)
+            for item in self.get_defaults():
+                self.register(item)
+
+            self.on_populated()
+            self.state = RegistryState.READY
+
+            registry_populating.send(sender=type(self),
+                                     registry=self)
 
     def get_defaults(self) -> Iterable[RegistryItemType]:
         """Return the default items for the registry.
@@ -431,13 +534,160 @@ class Registry(Generic[RegistryItemType]):
         This will result in the registry containing no entries. Any call to a
         method that would populate the registry will repopulate it.
         """
-        if self._populated:
-            for item in self._items.copy():
-                self.unregister(item)
+        with self._lock:
+            if self.state == RegistryState.READY:
+                self.on_resetting()
 
-            self._populated = False
+                for item in self._items.copy():
+                    self.unregister(item)
 
-        assert len(self._items) == 0
+                assert len(self._items) == 0
+
+                self.on_reset()
+                self.state = RegistryState.PENDING
+
+    def on_item_registering(
+        self,
+        item: RegistryItemType,
+        /,
+    ) -> None:
+        """Handle extra steps before registering an item.
+
+        This can be used by subclasses to perform preparation steps before
+        registering an item. It's run before the item is validated and then
+        registered.
+
+        Validation can be performed in this method.
+
+        The method is thread-safe.
+
+        Version Added:
+            5.0
+
+        Args:
+            item (object):
+                The item to register.
+
+        Raises:
+            djblets.registries.errors.RegistrationError:
+                There's an error registering this item.
+        """
+        pass
+
+    def on_item_registered(
+        self,
+        item: RegistryItemType,
+        /,
+    ) -> None:
+        """Handle extra steps after registering an item.
+
+        This can be used by subclasses to perform additional steps when an
+        item is registered. It's run after the main registration occurs.
+
+        The method is thread-safe.
+
+        Version Added:
+            5.0
+
+        Args:
+            item (object):
+                The item that was registered.
+        """
+        pass
+
+    def on_item_unregistering(
+        self,
+        item: RegistryItemType,
+        /,
+    ) -> None:
+        """Handle extra steps before unregistering an item.
+
+        This can be used by subclasses to perform additional steps before
+        validating and unregistering an item.
+
+        The method is thread-safe.
+
+        Version Added:
+            5.0
+
+        Args:
+            item (object):
+                The item to unregister.
+        """
+        pass
+
+    def on_item_unregistered(
+        self,
+        item: RegistryItemType,
+        /,
+    ) -> None:
+        """Handle extra steps after unregistering an item.
+
+        This can be used by subclasses to perform additional steps when an
+        item is unregistered. It's run after the main unregistration occurs.
+
+        The method is thread-safe.
+
+        Version Added:
+            5.0
+
+        Args:
+            item (object):
+                The item that was unregistered.
+        """
+        pass
+
+    def on_populating(self) -> None:
+        """Handle extra steps before a registry is populated.
+
+        This can be used by subclasses to perform additional steps before the
+        registry is populated.
+
+        The method is thread-safe.
+
+        Version Added:
+            5.0
+        """
+        pass
+
+    def on_populated(self) -> None:
+        """Handle extra steps after a registry is populated.
+
+        This can be used by subclasses to perform additional steps after the
+        registry is populated. It's run after the main population occurs.
+
+        The method is thread-safe.
+
+        Version Added:
+            5.0
+        """
+        pass
+
+    def on_resetting(self) -> None:
+        """Handle extra steps before resetting the registry.
+
+        This can be used by subclasses to perform additional steps before the
+        registry is reset. It's run before the main reset operations occur.
+
+        The method is thread-safe.
+
+        Version Added:
+            5.0
+        """
+        pass
+
+    def on_reset(self) -> None:
+        """Handle extra steps after a registry is reset.
+
+        This can be used by subclasses to perform additional steps after the
+        registry is reset. It's run after the main reset operations occur.
+
+        The method is thread-safe.
+
+        Version Added:
+            5.0
+        """
+        pass
 
     def __iter__(self) -> Iterator[RegistryItemType]:
         """Iterate through all items in the registry.
@@ -537,45 +787,46 @@ class OrderedRegistry(Registry[RegistryItemType]):
         self._by_id: Dict[int, RegistryItemType] = {}
         self._key_order: List[int] = []
 
-    def register(
+    def on_item_registered(
         self,
         item: RegistryItemType,
+        /,
     ) -> None:
-        """Register an item.
+        """Handle extra steps before registering an item.
+
+        This will place the item in sequential order.
+
+        Subclasses that override this to perform additional post-registration
+        operations must first call this method.
+
+        Version Added:
+            5.0
 
         Args:
             item (object):
-                The item to register with the class.
-
-        Raises:
-            djblets.registries.errors.RegistrationError:
-                Raised if the item is missing one of the required attributes.
-
-            djblets.registries.errors.AlreadyRegisteredError:
-                Raised if the item is already registered or if the item shares
-                an attribute name, attribute value pair with another item in
-                the registry.
+                The item that was registered.
         """
-        super(OrderedRegistry, self).register(item)
         item_id = id(item)
         self._key_order.append(item_id)
         self._by_id[item_id] = item
 
-    def unregister(
+    def on_item_unregistered(
         self,
         item: RegistryItemType,
+        /,
     ) -> None:
-        """Unregister an item from the registry.
+        """Handle extra steps after unregistering an item.
+
+        Subclasses that override this to perform additional
+        post-unregistration operations must first call this method.
+
+        Version Added:
+            5.0
 
         Args:
             item (object):
-                The item to unregister. This must be present in the registry.
-
-        Raises:
-            djblets.registries.errors.ItemLookupError:
-                Raised if the item is not found in the registry.
+                The item that was unregistered.
         """
-        super(OrderedRegistry, self).unregister(item)
         item_id = id(item)
         del self._by_id[item_id]
         self._key_order.remove(item_id)

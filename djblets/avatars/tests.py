@@ -696,11 +696,7 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         class TestRegistry(AvatarServiceRegistry):
             settings_manager_class = DummySettingsManager
 
-            def populate(self):
-                if self.populated:
-                    return
-
-                super(TestRegistry, self).populate()
+            def on_populated(self) -> None:
                 self.set_enabled_services([DummyAvatarService])
 
             def get_defaults(self):
