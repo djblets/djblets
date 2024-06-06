@@ -1,36 +1,53 @@
 """Basic version and package information."""
 
+from __future__ import annotations
+
+
 # The version of Djblets
 #
 # This is in the format of:
 #
 #   (Major, Minor, Micro, alpha/beta/rc/final, Release Number, Released)
 #
-VERSION = (5, 0, 2, 'alpha', 0, False)
+VERSION: tuple[int, int, int, str, int, bool] = \
+    (6, 0, 0, 'alpha', 0, False)
 
 
-def get_version_string():
-    version = '%s.%s' % (VERSION[0], VERSION[1])
+def get_version_string() -> str:
+    """Return the djblets version as a human-readable string.
 
-    if VERSION[2]:
-        version += ".%s" % VERSION[2]
+    Returns:
+        str:
+        The djblets version string.
+    """
+    major, minor, micro, tag, release_num, released = VERSION
+    version = f'{major}.{minor}'
 
-    if VERSION[3] != 'final':
-        if VERSION[3] == 'rc':
-            version += ' RC%s' % VERSION[4]
+    if micro:
+        version += f'.{micro}'
+
+    if tag != 'final':
+        if tag == 'rc':
+            version += f' RC{release_num}'
         else:
-            version += ' %s %s' % (VERSION[3], VERSION[4])
+            version += f' {tag} {release_num}'
 
-    if not is_release():
-        version += " (dev)"
+    if not released:
+        version += ' (dev)'
 
     return version
 
 
-def get_package_version():
-    major, minor, micro, tag, release_num, released = VERSION
+def get_package_version() -> str:
+    """Return the djblets package version.
 
-    version = '%d.%d' % (major, minor)
+    Returns:
+        str:
+        The djblets package version.
+    """
+    major, minor, micro, tag, release_num = VERSION[:-1]
+
+    version = f'{major}.{minor}'
 
     if micro:
         version = '%s.%d' % (version, micro)
@@ -41,13 +58,19 @@ def get_package_version():
         elif tag == 'beta':
             tag = 'b'
 
-        version = '%s%s%s' % (version, tag, release_num)
+        version += f'{tag}{release_num}'
 
     return version
 
 
-def is_release():
-    return VERSION[5]
+def is_release() -> bool:
+    """Return whether the current version is released.
+
+    Returns:
+        bool:
+        True if the current version is a release.
+    """
+    return VERSION[-1]
 
 
 __version_info__ = VERSION[:-1]
