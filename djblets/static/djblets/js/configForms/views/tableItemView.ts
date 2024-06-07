@@ -15,11 +15,7 @@ import { ListItemView } from './listItemView';
  * This is meant to be used with TableView. Subclasses will generally want
  * to override the template.
  */
-@spina({
-    prototypeAttrs: [
-        'template',
-    ],
-})
+@spina
 export class TableItemView<
     TModel extends ListItem = ListItem,
     TElement extends HTMLElement = HTMLTableRowElement,
