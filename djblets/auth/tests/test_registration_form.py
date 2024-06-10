@@ -1,5 +1,7 @@
 """Unit tests for djblets.auth.forms.RegistrationForm."""
 
+from __future__ import annotations
+
 from django.contrib.auth.models import User
 
 from djblets.auth.forms import RegistrationForm
@@ -9,7 +11,7 @@ from djblets.testing.testcases import TestCase
 class RegistrationFormTests(TestCase):
     """Unit tests for djblets.auth.forms.RegistrationForm."""
 
-    def test_clean_password2_with_match(self):
+    def test_clean_password2_with_match(self) -> None:
         """Testing RegistrationForm.clean_password2 with password2 field
         matching password1 field
         """
@@ -23,7 +25,7 @@ class RegistrationFormTests(TestCase):
         self.assertEqual(form.cleaned_data['password1'], 'password')
         self.assertEqual(form.cleaned_data['password2'], 'password')
 
-    def test_clean_password2_without_match(self):
+    def test_clean_password2_without_match(self) -> None:
         """Testing RegistrationForm.clean_password2 with password2 field
         not matching password1 field
         """
@@ -38,7 +40,7 @@ class RegistrationFormTests(TestCase):
             'password2': ['Passwords must match'],
         })
 
-    def test_save(self):
+    def test_save(self) -> None:
         """Testing RegistrationForm.save"""
         form = RegistrationForm(data={
             'username': 'test',
@@ -53,6 +55,10 @@ class RegistrationFormTests(TestCase):
         user = form.save()
 
         self.assertIsNotNone(user)
+
+        # Do this too to satisfy type checkers.
+        assert user is not None
+
         self.assertIsNotNone(user.pk)
         self.assertEqual(user.username, 'test')
         self.assertEqual(user.email, 'test@example.com')
@@ -60,7 +66,7 @@ class RegistrationFormTests(TestCase):
         self.assertEqual(user.last_name, 'User')
         self.assertTrue(user.check_password('password'))
 
-    def test_save_with_username_taken(self):
+    def test_save_with_username_taken(self) -> None:
         """Testing RegistrationForm.save with username already taken"""
         User.objects.create(username='test')
 

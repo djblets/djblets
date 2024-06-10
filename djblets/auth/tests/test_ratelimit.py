@@ -1,5 +1,7 @@
 """Tests for the utilities for rate-limiting login attempts."""
 
+from __future__ import annotations
+
 import re
 
 import kgb
@@ -9,27 +11,31 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import RequestFactory
 from django.test.utils import override_settings
 
-from djblets.auth.ratelimit import (Rate,
-                                    _get_time_int,
-                                    get_usage_count,
-                                    is_ratelimited)
+from djblets.auth.ratelimit import (
+    Rate,
+    _get_time_int,
+    get_usage_count,
+    is_ratelimited,
+)
 from djblets.testing.testcases import TestCase
 
 
 class RateLimitTests(kgb.SpyAgency, TestCase):
     """Unit tests for djblets.auth.ratelimit."""
 
-    def setUp(self):
-        super(RateLimitTests, self).setUp()
+    def setUp(self) -> None:
+        """Set up the test case."""
+        super().setUp()
         self.request_factory = RequestFactory()
 
         self.spy_on(_get_time_int, op=kgb.SpyOpReturn(1659732041))
 
-    def tearDown(self):
-        super(RateLimitTests, self).tearDown()
+    def tearDown(self) -> None:
+        """Tear down the test case."""
+        super().tearDown()
         cache.clear()
 
-    def test_rate_parsing(self):
+    def test_rate_parsing(self) -> None:
         """Testing Rate.parse"""
         test_rates = (
             ('100/s', Rate(100, 1)),
@@ -45,7 +51,7 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
             self.assertEqual(rate, Rate.parse(rate_str))
 
     @override_settings(LOGIN_LIMIT_RATE='7/m')
-    def test_unauthenticated_user(self):
+    def test_unauthenticated_user(self) -> None:
         """Testing is_ratelimited with unauthenticated user"""
         request = self.request_factory.get('/')
         request.user = AnonymousUser()
@@ -53,7 +59,7 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
         self.assertFalse(is_ratelimited(request, increment=False))
 
     @override_settings(LOGIN_LIMIT_RATE='blah')
-    def test_invalid_rate_limit(self):
+    def test_invalid_rate_limit(self) -> None:
         """Testing is_ratelimited with invalid rate limit parameter"""
         request = self.request_factory.get('/')
         request.user = User(pk=1)
@@ -65,7 +71,7 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
                          'LOGIN_LIMIT_RATE setting could not be parsed.')
 
     @override_settings(LOGIN_LIMIT_RATE='1/h')
-    def test_rate_limit_exceeded(self):
+    def test_rate_limit_exceeded(self) -> None:
         """Testing is_ratelimited when limit exceeded"""
         request = self.request_factory.get('/')
         request.user = User(pk=1)
@@ -74,7 +80,7 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
         self.assertTrue(is_ratelimited(request, increment=True))
 
     @override_settings(LOGIN_LIMIT_RATE='1/s')
-    def test_get_usage_count_at_1s(self):
+    def test_get_usage_count_at_1s(self) -> None:
         """Testing get_usage_count at 1/s"""
         request = self.request_factory.get('/')
         request.user = User(pk=1)
@@ -100,7 +106,7 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
             })
 
     @override_settings(LOGIN_LIMIT_RATE='1/m')
-    def test_get_usage_count_at_1m(self):
+    def test_get_usage_count_at_1m(self) -> None:
         """Testing get_usage_count at 1/m"""
         request = self.request_factory.get('/')
         request.user = User(pk=1)
@@ -126,7 +132,7 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
             })
 
     @override_settings(LOGIN_LIMIT_RATE='1/h')
-    def test_get_usage_count_at_1h(self):
+    def test_get_usage_count_at_1h(self) -> None:
         """Testing get_usage_count at 1/h"""
         request = self.request_factory.get('/')
         request.user = User(pk=1)
@@ -152,7 +158,7 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
             })
 
     @override_settings(LOGIN_LIMIT_RATE='1/s')
-    def test_get_usage_count_with_increment_false(self):
+    def test_get_usage_count_with_increment_false(self) -> None:
         """Testing get_usage_count with increment=False"""
         request = self.request_factory.get('/')
         request.user = User(pk=1)
