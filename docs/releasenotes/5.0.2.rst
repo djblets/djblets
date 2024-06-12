@@ -5,7 +5,7 @@
 Djblets 5.0.2 Release Notes
 ===========================
 
-**Release date**: TBD
+**Release date**: June 12, 2024
 
 
 Installation
