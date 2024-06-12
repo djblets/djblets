@@ -137,6 +137,11 @@ class BuildStaticFiles(Command):
         old_settings_module = os.environ.get('DJANGO_SETTINGS_MODULE')
         os.environ['DJANGO_SETTINGS_MODULE'] = django_settings_module
 
+        # Skip any initial pipeline settings validation in the consuming
+        # project's settings.py. The paths may not exist at this stage. We'll
+        # be creating them.
+        os.environ['DJBLETS_SKIP_PIPELINE_VALIDATION'] = '1'
+
         django.setup()
 
         cwd = os.getcwd()

@@ -393,11 +393,6 @@ class StaticMediaBuilder:
         This will set up the initial directories and Django environment for
         the build process.
         """
-        # Skip any initial pipeline settings validation in the consuming
-        # project's settings.py. The paths may not exist at this stage. We'll
-        # be creating them.
-        os.environ['DJBLETS_SKIP_PIPELINE_VALIDATION'] = '1'
-
         self.ensure_build_files()
         self.prepare_django_env()
 
