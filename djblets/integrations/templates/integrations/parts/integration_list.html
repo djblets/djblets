@@ -2,8 +2,10 @@
 
 <div class="djblets-c-integration-configs">
  <div class="djblets-c-config-forms-list-actions djblets-l-config-forms-container">
-  <button class="djblets-c-config-forms-list-actions__action djblets-c-integration-configs__add btn">
-   <span class="djblets-o-config-forms-icon-add"></span>
+  <button class="djblets-c-config-forms-list-actions__action
+                 djblets-c-integration-configs__add
+                 ink-c-button">
+   <span class="ink-c-button__icon ink-i-add"></span>
    {% trans "Add Integration" %}
   </button>
  </div>
@@ -13,7 +15,7 @@
          aria-live="polite" aria-busy="true">
    <tr class="djblets-c-config-forms-list__item">
     <td>
-     <span class="djblets-o-spinner" aria-hidden="true"></span>
+     <span class="ink-c-spinner" aria-hidden="true"></span>
      {% trans "Loading integrations..." %}
     </td>
    </tr>

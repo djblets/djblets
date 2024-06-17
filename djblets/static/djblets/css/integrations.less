@@ -5,18 +5,19 @@
 
 #djblets-ns-integrations() {
   .integrations-popup() {
-    @blank-bg: #E3E3E3;
-    @border-color: #AAA;
+    @blank-bg: var(--ink-p-container-bg);
+    @border-color: var(--ink-p-container-border-color);
     @border-radius: 4px;
     @border-size: 1px;
     @box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    @color: var(--ink-p-container-fg);
     @padding: 1em;
-    @tile-bg: white;
+    @tile-bg: var(--ink-p-container-active-bg);
     @tile-height: 13em;
     @tile-width: 23em;
     @tile-border-color: @border-color;
     @tile-border-size: @border-size;
-    @tile-hover-bg: #E7F1FB;
+    @tile-hover-bg: var(--ink-p-container-hover-bg);
     @window-offset: 1em;
   }
 }
@@ -194,6 +195,7 @@
   border: @border-size @border-color solid;
   box-shadow: @box-shadow;
   box-sizing: border-box;
+  color: @color;
   margin: 0 @window-offset @window-offset 0;
   overflow-x: hidden;
   overflow-y: auto;
