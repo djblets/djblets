@@ -559,7 +559,6 @@
  */
 .djblets-c-config-forms-page-nav__item {
   @_page-vars: #djblets-ns-config-forms.page();
-  @_border-radius: @_page-vars[@box-border-radius];
 
   border-bottom:
     1px
@@ -571,7 +570,10 @@
     border-bottom: 0;
 
     &.-is-active, &:hover {
-      border-radius: 0 0 @_border-radius @_border-radius;
+      border-radius:
+        0 0
+        var(--ink-u-border-radius-s-inner)
+        var(--ink-u-border-radius-s-inner);
     }
   }
 
