@@ -55,19 +55,18 @@ const BaseConditionRowView = Backbone.View.extend({
  * an operator will show or hide a value field (depending on the operator).
  */
 const ConditionRowView = BaseConditionRowView.extend({
-    template: _.template([
-        '<span class="conditions-field-action conditions-field-row-delete">\n',
-        ' <span class="fa fa-minus-circle"></span>\n',
-        '</span>\n',
-        '<span class="conditions-field-row-options">\n',
-        ' <% if (error) { %>',
-        '  <ul class="error-list"><li><%- error %></li></ul>\n',
-        ' <% } %>',
-        ' <span class="conditions-field-choice"></span>\n',
-        ' <span class="conditions-field-operator"></span>\n',
-        ' <span class="conditions-field-value"></span>\n',
-        '</span>',
-    ].join('')),
+    template: _.template(dedent`
+        <a href="#"
+           class="conditions-field-action conditions-field-row-delete">
+         <span class="ink-i-delete-item"></span>
+        </a>
+        <span class="conditions-field-choice"></span>
+        <span class="conditions-field-operator"></span>
+        <span class="conditions-field-value"></span>
+        <% if (error) { %>
+         <span class="conditions-field-error"><%- error %></span>
+        <% } %>
+    `),
 
     events: _.extend({
         'change .conditions-field-choice select': '_onSelectChoiceChanged',
@@ -115,7 +114,6 @@ const ConditionRowView = BaseConditionRowView.extend({
     render() {
         this.$el.html(this.template(this.model.attributes));
 
-        const $rowOptions = this.$el.children('.conditions-field-row-options');
         const fieldName = this.conditionSet.get('fieldName');
         const rowNum = this.model.get('id');
 
@@ -129,8 +127,7 @@ const ConditionRowView = BaseConditionRowView.extend({
                 .text(choice.get('name')));
         });
 
-        this._$choice
-            .appendTo($rowOptions.children('.conditions-field-choice'));
+        this._$choice.appendTo(this.$el.children('.conditions-field-choice'));
 
         /*
          * Build the list for the operators. This will be populated when
@@ -138,9 +135,9 @@ const ConditionRowView = BaseConditionRowView.extend({
          */
         this._$operator = $('<select>')
             .attr('name', `${fieldName}_operator[${rowNum}]`)
-            .appendTo($rowOptions.children('.conditions-field-operator'));
+            .appendTo(this.$el.children('.conditions-field-operator'));
 
-        this._$valueWrapper = $rowOptions.children('.conditions-field-value');
+        this._$valueWrapper = this.$el.children('.conditions-field-value');
 
         /*
          * Bind all the events so the attributes and inputs reflect each other.
@@ -296,7 +293,7 @@ Djblets.Forms.ConditionSetView = Backbone.View.extend({
 
     events: {
         'change #conditions_mode input': '_onConditionModeChanged',
-        'click .conditions-field-add-condition': '_onAddRowClicked',
+        'click .conditions-field-add-condition a': '_onAddRowClicked',
     },
 
     /**

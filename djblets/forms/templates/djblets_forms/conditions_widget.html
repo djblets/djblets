@@ -7,26 +7,25 @@
   <ul class="conditions-field-rows">
 {% for row in rendered_rows %}
    <li class="conditions-field-row">
-    <span class="conditions-field-action conditions-field-row-delete">
-     <span class="fa fa-minus-circle"></span>
-    </span>
-    <span class="conditions-field-row-options">
-{%  if row.error %}
-     <ul class="error-list"><li>{{row.error}}</li></ul>
-{%  endif %}
+    <a href="#" class="conditions-field-action conditions-field-row-delete"
+       role="button" aria-label="{% trans "Remove condition" %}">
+     <span class="ink-i-delete-item"></span>
+    </a>
      <span class="conditions-field-choice">{{row.choice}}</span>
      <span class="conditions-field-operator">{{row.operator}}</span>
      <span class="conditions-field-value"></span>
-    </span>
+{%  if row.error %}
+     <span class="conditions-field-error">{{row.error}}</span>
+{%  endif %}
    </li>
 {% endfor %}
   </ul>
-  <a href="#" class="conditions-field-add-condition">
-   <span class="conditions-field-action">
-    <span class="fa fa-plus-circle"></span>
-   </span>
-   <span>{% trans "Add a new condition" %}</span>
-  </a>
+  <div class="conditions-field-add-condition">
+   <a href="#" class="conditions-field-action" role="button">
+    <span class="ink-i-add"></span>
+    {% trans "Add a new condition" %}
+	  </a>
+  </div>
  </div>
  <script>
 (function($) {

@@ -14,19 +14,21 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
     }
 
     function setupConditionSetView(conditionsData) {
-        const conditionsTemplate = _.template([
-            '<div class="conditions-field">\n',
-            ' <input type="hidden" name="my_conditions_last_id">\n',
-            ' <div class="conditions-field-mode"></div>\n',
-            ' <div class="conditions-field-rows-container">\n',
-            '  <ul class="conditions-field-rows"></ul>\n',
-            '  <a href="#" class="conditions-field-add-condition"></a>\n',
-            ' </div>\n',
-            '</div>',
-        ].join(''));
+        const conditionsTemplate = dedent`
+            <div class="conditions-field">
+             <input type="hidden" name="my_conditions_last_id">
+             <div class="conditions-field-mode"></div>
+             <div class="conditions-field-rows-container">
+              <ul class="conditions-field-rows"></ul>
+              <div class="conditions-field-add-condition">
+               <a href="#" class="conditions-field-action"></a>
+              </div>
+            </div>
+           </div>
+        `;
 
         const conditionSetView = new Djblets.Forms.ConditionSetView({
-            el: $(conditionsTemplate()),
+            el: $(conditionsTemplate),
             model: new Djblets.Forms.ConditionSet({
                 choicesData: [
                     {
@@ -176,7 +178,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
             expect($lastID.val()).toBe('0');
 
             const $row = $rows.eq(0);
-            const $error = $row.find('.error-list li');
+            const $error = $row.find('.conditions-field-error');
             expect($error.length).toBe(1);
             expect($error.html()).toBe('This is an &lt;error&gt;.');
         });
@@ -194,7 +196,7 @@ suite('djblets/forms/views/ConditionValueFormFieldView', function() {
             expect($lastID.val()).toBe('');
 
             spyOn(conditionSetView.model, 'addNewCondition').and.callThrough();
-            conditionSetView.$('.conditions-field-add-condition').click();
+            conditionSetView.$('.conditions-field-add-condition a').click();
             expect(conditionSetView.model.addNewCondition).toHaveBeenCalled();
 
             $rows = conditionSetView.$('.conditions-field-row');
