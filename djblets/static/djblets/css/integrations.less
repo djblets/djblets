@@ -2,6 +2,8 @@
  * Styles for the integration list and configuration pages.
  */
 
+@import (reference) "config-forms.less";
+
 
 #djblets-ns-integrations() {
   .integrations-popup() {
@@ -152,7 +154,7 @@
     }
 
     .djblets-c-integration-config__integration-name {
-      color: #999;
+      color: #djblets-ns-config-forms.list[@state-disabled-color];
     }
   }
 

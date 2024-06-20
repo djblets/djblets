@@ -24,6 +24,7 @@
  *     module's styling will be deprecated in favor of Ink components.
  */
 
+@import (reference) "@beanbag/ink/lib/ink.less";
 @import (reference) "defs.less";
 
 @img-base: '../images/config-forms';
@@ -31,9 +32,9 @@
 @config-forms-forms-width: 60em;
 @config-forms-gap: 2em;
 
-@config-forms-text-field-border-color: #AAA;
-@config-forms-text-field-border-radius: 4px;
-@config-forms-text-field-border-size: 1px;
+@config-forms-text-field-border-color: var(--ink-p-input-border-color);
+@config-forms-text-field-border-radius: var(--ink-u-border-radius-input);
+@config-forms-text-field-border-size: var(--ink-u-border-thin);
 @config-forms-text-field-padding-horiz: 8px;
 @config-forms-text-field-padding-vert: 4px;
 
@@ -48,7 +49,7 @@
 
 #djblets-ns-config-forms() {
   @container-padding: 1em;
-  @border-color: #AAAAAA;
+  @border-color: var(--ink-c-data-table-border-color);
   @border-radius: 6px;
 
   /**
@@ -103,21 +104,17 @@
     @item-action-padding-horiz: 1em;
     @item-action-padding: @item-action-padding-vert @item-action-padding-horiz;
 
-    /*
-     * NOTE: We don't bundle Font Awesome in Djblets, so reference by the
-     *       character code. This corresponds to Font Awesome 4.7.
-     */
-    @state-disabled-color: #DDDDDD;
-    @state-disabled-fa-icon: "\f00d";
-    @state-disabled-text-color: darkred;
+    @state-disabled-color: var(--ink-p-grey-700);
+    @state-disabled-icon: var(--ink-i-close);
+    @state-disabled-text-color: var(--ink-p-grey-700);
 
-    @state-enabled-color: #53CC53;
-    @state-enabled-fa-icon: "\f00c";
-    @state-enabled-text-color: darkgreen;
+    @state-enabled-color: var(--ink-p-green-500);
+    @state-enabled-icon: var(--ink-i-check);
+    @state-enabled-text-color: var(--ink-p-green-700);
 
-    @state-error-color: #E45757;
-    @state-error-fa-icon: "\f057";
-    @state-error-text-color: darkred;
+    @state-error-color: var(--ink-p-red-500);
+    @state-error-icon: var(--ink-i-warning);
+    @state-error-text-color: var(--ink-p-red-700);
 
     /**
      * Define a color state for an item.
@@ -140,7 +137,12 @@
      *     text-color (string, optional):
      *         The text color for any status text.
      */
-    .add-item-state(@modifier, @color, @text-color: black, @fa-icon: none) {
+    .add-item-state(
+      @modifier,
+      @color,
+      @text-color: black,
+      @icon: none,
+    ) {
       .djblets-c-config-forms-list__item.-@{modifier},
       tr.djblets-c-config-forms-list__item.-@{modifier} {
         > td:first-child {
@@ -150,14 +152,11 @@
         .djblets-c-config-forms-list__item-state {
           color: @text-color;
 
-          & when not (@fa-icon = none) {
+          & when not (@icon = none) {
             &:before {
-              content: @fa-icon;
-              display: inline-block;
-              font-family: FontAwesome;
-              text-align: center;
-              width: 1em;
-              margin-right: 4px;
+              #ink-ns-ui.icons.svg-icon(@icon);
+              margin-right: var(--ink-u-spacing-xs);
+              vertical-align: middle;
             }
           }
         }
@@ -697,6 +696,10 @@
   &:empty {
     border: none;
   }
+
+  .-is-bottom-flush &:is(:last-child) {
+    border-bottom: none;
+  }
 }
 
 
@@ -1014,17 +1017,17 @@ table.djblets-c-config-forms-list {
   @modifier: is-disabled,
   @color: @_list-vars[@state-disabled-color],
   @text-color: @_list-vars[@state-disabled-text-color],
-  @fa-icon: @_list-vars[@state-disabled-fa-icon]);
+  @icon: @_list-vars[@state-disabled-icon]);
 #djblets-ns-config-forms.list.add-item-state(
   @modifier: is-enabled,
   @color: @_list-vars[@state-enabled-color],
   @text-color: @_list-vars[@state-enabled-text-color],
-  @fa-icon: @_list-vars[@state-enabled-fa-icon]);
+  @icon: @_list-vars[@state-enabled-icon]);
 #djblets-ns-config-forms.list.add-item-state(
   @modifier: has-error,
   @color: @_list-vars[@state-error-color],
   @text-color: @_list-vars[@state-error-text-color],
-  @fa-icon: @_list-vars[@state-error-fa-icon]);
+  @icon: @_list-vars[@state-error-icon]);
 
 
 /**
@@ -1435,36 +1438,4 @@ table.config-forms-list thead th {
   h3 {
     &:extend(.djblets-c-config-forms-page__content legend);
   }
-}
-
-/*
- * These were part of Review Board/RBCommons and were never supposed to be
- * left in. They're scheduled for removal in Djblets 2.0.
- */
-.config-group-display-name {
-  color: #A0A0A0;
-  font-size: 90%;
-}
-
-.config-group-name {
-  display: inline-block;
-  min-width: 15em;
-  padding-right: 2em;
-}
-
-.config-forms-list-action-join,
-.config-forms-list-action-leave {
-  min-width: 3em;
-}
-
-.config-forms-list-item {
-  .rb-icon {
-    margin-right: 0.5em;
-    vertical-align: top;
-  }
-}
-
-.config-forms-list-item-actions .btn .rb-icon {
-  margin-right: 0;
-  vertical-align: middle;
 }
