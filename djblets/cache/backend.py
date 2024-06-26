@@ -6,6 +6,8 @@ install and caching more complex data efficiently (such as the results of
 iterators and large data normally too big for the cache).
 """
 
+from __future__ import annotations
+
 import hashlib
 import hmac
 import io
@@ -13,6 +15,8 @@ import logging
 import pickle
 import re
 import zlib
+from typing import (Any, Callable, Iterable, Iterator, Optional,
+                    TYPE_CHECKING, Tuple, TypeVar, Union)
 
 from django.conf import settings
 from django.core.cache import cache
@@ -20,11 +24,35 @@ from django.contrib.sites.models import Site
 from django.utils.encoding import force_bytes
 
 from djblets.cache.errors import MissingChunkError
+from djblets.deprecation import RemovedInDjblets70Warning
 from djblets.secrets.crypto import (aes_decrypt,
                                     aes_decrypt_iter,
                                     aes_encrypt,
                                     aes_encrypt_iter,
                                     get_default_aes_encryption_key)
+from djblets.util.symbols import UNSET
+from housekeeping import deprecate_non_keyword_only_args
+
+if TYPE_CHECKING:
+    from django.core.cache.backends.base import BaseCache
+    from typing_extensions import Annotated, TypeAlias
+
+    from djblets.util.symbols import Unsettable
+
+    _T = TypeVar('_T')
+
+    # NOTE: We use Annotated here in order to allow the type alias to support
+    #       a TypeVar parameter. This is a known workaround for making this
+    #       work.
+    _PreparingCacheItem: TypeAlias = Annotated[
+        Tuple[bytes, bool, Optional[_T]],
+        None,
+    ]
+
+    _PreparedCacheItem: TypeAlias = Annotated[
+        Tuple[Optional[bytes], bool, Optional[_T]],
+        None,
+    ]
 
 
 logger = logging.getLogger(__name__)
@@ -38,8 +66,6 @@ CACHE_CHUNK_SIZE = 2 ** 20 - 1024  # almost 1M (memcached's slab limit)
 MAX_KEY_SIZE = 240
 
 _INVALID_KEY_CHARS_RE = re.compile(r'[\x00-\x20\x7f]')
-
-_NO_RESULTS = object()
 
 _default_expiration = getattr(settings, 'CACHE_EXPIRATION_TIME',
                               DEFAULT_EXPIRATION_TIME)
@@ -57,21 +83,54 @@ class _CacheContext:
         3.0
     """
 
-    def __init__(self, cache, base_cache_key, expiration, compress_large_data,
-                 use_encryption, encryption_key):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The base cache key for caching operations.
+    base_cache_key: str
+
+    #: The The Django cache connection that all operations will work on.
+    cache: BaseCache
+
+    #: Whether large data will be compressed.
+    compress_large_data: bool
+
+    #: Whether to use encryption when storing or reading data.
+    encryption_key: Optional[bytes]
+
+    #: The expiration time in seconds for all data cached using this context.
+    expiration: int
+
+    #: The full cache key used for caching operations.
+    full_cache_key: str
+
+    #: Whether to use encryption when storing or reading data.
+    use_encryption: bool
+
+    def __init__(
+        self,
+        *,
+        cache: BaseCache,
+        base_cache_key: str,
+        expiration: int,
+        compress_large_data: bool,
+        use_encryption: Optional[bool],
+        encryption_key: Optional[bytes],
+    ) -> None:
         """Initialize the context.
 
         Args:
-            cache (object):
+            cache (django.core.cache.backends.base.BaseCache):
                 The Django cache connection that all operations will work
-                on. This is considered opaque.
+                on.
 
             base_cache_key (str):
                 The base cache key for caching operations.
 
                 This is the value passed in to ::py:func:`cache_memoize` or
-                 :py:func:`cache_memoize_iter`, and will be used when
-                 constructing related cache keys.
+                :py:func:`cache_memoize_iter`, and will be used when
+                constructing related cache keys.
 
             expiration (int):
                 The expiration time in seconds for all data cached using
@@ -110,7 +169,7 @@ class _CacheContext:
 
         self.cache = cache
         self.expiration = expiration
-        self.full_cache_key = None
+        self.full_cache_key = ''  # Temporarily set before calling make_key().
         self.base_cache_key = base_cache_key
         self.use_encryption = use_encryption
         self.encryption_key = encryption_key
@@ -118,7 +177,10 @@ class _CacheContext:
 
         self.full_cache_key = self.make_key(base_cache_key)
 
-    def make_key(self, key):
+    def make_key(
+        self,
+        key: str,
+    ) -> str:
         """Return a full cache key from the provided base key.
 
         Args:
@@ -136,7 +198,10 @@ class _CacheContext:
                               use_encryption=self.use_encryption,
                               encryption_key=self.encryption_key)
 
-    def make_subkey(self, suffix):
+    def make_subkey(
+        self,
+        suffix: Union[int, str],
+    ) -> str:
         """Return a full cache key combining the main key and a suffix.
 
         The key will be built in the form of :samp:`{mainkey}-{suffix}`, and
@@ -150,9 +215,13 @@ class _CacheContext:
             str:
             The full cache key in the form of ``<mainkey>-<suffix>``.
         """
-        return self.make_key('%s-%s' % (self.base_cache_key, suffix))
+        return self.make_key(f'{self.base_cache_key}-{suffix}')
 
-    def prepare_value(self, full_cache_key, value):
+    def prepare_value(
+        self,
+        full_cache_key: str,
+        value: bytes,
+    ) -> bytes:
         """Prepare a value for storage in cache.
 
         If using encryption, this will serialize and encrypt the value.
@@ -178,6 +247,9 @@ class _CacheContext:
                 The exception is logged and then raised as-is.
         """
         if self.use_encryption:
+            encryption_key = self.encryption_key
+            assert encryption_key
+
             # Normally Django's cache backends will handle pickling of data,
             # so what we set is what we get. That doesn't work when we encrypt
             # data, though, since the type information will be lost. Plus,
@@ -194,7 +266,7 @@ class _CacheContext:
                 raise
 
             try:
-                value = aes_encrypt(value, key=self.encryption_key)
+                value = aes_encrypt(value, key=encryption_key)
             except Exception as e:
                 logger.error('Failed to encrypt data for cache for key '
                              '%s: %s.',
@@ -203,7 +275,10 @@ class _CacheContext:
 
         return value
 
-    def load_value(self, key=None):
+    def load_value(
+        self,
+        key: Optional[str] = None,
+    ) -> Any:
         """Load a value from cache.
 
         This will take care of converting the provided key to a full cache
@@ -231,13 +306,13 @@ class _CacheContext:
             key = self.full_cache_key
 
         try:
-            value = self.cache.get(key, _NO_RESULTS)
+            value = self.cache.get(key, UNSET)
         except Exception as e:
             logger.exception('Error fetching data from cache for key "%s": %s',
                              key, e)
             raise
 
-        if value is not _NO_RESULTS and self.use_encryption:
+        if value is not UNSET and self.use_encryption:
             try:
                 value = aes_decrypt(value, key=self.encryption_key)
             except Exception as e:
@@ -256,7 +331,13 @@ class _CacheContext:
 
         return value
 
-    def store_value(self, value, *, key=None, raw=False):
+    def store_value(
+        self,
+        value: Any,
+        *,
+        key: Optional[str] = None,
+        raw: bool = False,
+    ) -> None:
         """Store a value in cache.
 
         This will take care of preparing any values to be stored, if needed.
@@ -295,7 +376,10 @@ class _CacheContext:
                              key, e)
             raise
 
-    def store_many(self, items):
+    def store_many(
+        self,
+        items: dict[str, Any],
+    ) -> None:
         """Store many items directly to cache.
 
         All keys should be full cache keys, and all values should be prepared
@@ -322,7 +406,7 @@ class _CacheContext:
             raise
 
 
-def _get_default_use_encryption():
+def _get_default_use_encryption() -> bool:
     """Return whether encryption should be enabled by default.
 
     This will dynamically check whether encryption should be allowed, based
@@ -336,7 +420,7 @@ def _get_default_use_encryption():
     return getattr(settings, 'DJBLETS_CACHE_FORCE_ENCRYPTION', False)
 
 
-def _get_default_encryption_key():
+def _get_default_encryption_key() -> bytes:
     """Return the default AES encryption key for caching.
 
     This will return the default encryption key used for caching, using
@@ -360,7 +444,11 @@ def _get_default_encryption_key():
     return key
 
 
-def _cache_fetch_large_data(cache_context, chunk_count):
+def _cache_fetch_large_data(
+    *,
+    cache_context: _CacheContext,
+    chunk_count: int,
+) -> bytes:
     """Fetch large data from the cache.
 
     The main cache key indicating the number of chunks will be read, followed
@@ -399,7 +487,7 @@ def _cache_fetch_large_data(cache_context, chunk_count):
             exception is raised as-is.
     """
     # Fetch all the chunks at once.
-    chunk_keys = [
+    chunk_keys: list[str] = [
         cache_context.make_subkey(i)
         for i in range(chunk_count)
     ]
@@ -418,7 +506,7 @@ def _cache_fetch_large_data(cache_context, chunk_count):
         raise MissingChunkError
 
     # Process all the chunks.
-    data = (
+    chunked_data: Iterator[bytes] = (
         chunks[chunk_key][0]
         for chunk_key in chunk_keys
     )
@@ -426,9 +514,10 @@ def _cache_fetch_large_data(cache_context, chunk_count):
     if cache_context.use_encryption:
         # We can iteratively decrypt these and build the results into a
         # single string below for optional decompression.
-        data = aes_decrypt_iter(data, key=cache_context.encryption_key)
+        chunked_data = aes_decrypt_iter(chunked_data,
+                                        key=cache_context.encryption_key)
 
-    data = b''.join(data)
+    data = b''.join(chunked_data)
 
     # Decompress them all at once, instead of streaming the results. It's
     # faster for any reasonably-sized data in cache. We'll stream depickles
@@ -439,7 +528,11 @@ def _cache_fetch_large_data(cache_context, chunk_count):
     return data
 
 
-def _cache_iter_large_data(cache_context, data):
+def _cache_iter_large_data(
+    *,
+    cache_context: _CacheContext,
+    data: bytes,
+) -> Iterator[Any]:
     """Iterate through large data that was fetched from the cache.
 
     This will unpickle the large data previously fetched through
@@ -483,7 +576,9 @@ def _cache_iter_large_data(cache_context, data):
         raise
 
 
-def _cache_compress_pickled_data(items):
+def _cache_compress_pickled_data(
+    items: Iterable[_PreparingCacheItem[_T]],
+) -> Iterator[_PreparingCacheItem[_T]]:
     """Compress lists of items for storage in the cache.
 
     This works with generators, and will take each item in the list or
@@ -524,7 +619,11 @@ def _cache_compress_pickled_data(items):
         yield remaining, False, None
 
 
-def _cache_encrypt_data(items, encryption_key):
+def _cache_encrypt_data(
+    items: Iterable[_PreparingCacheItem[_T]],
+    *,
+    encryption_key: bytes,
+) -> Iterator[_PreparedCacheItem[_T]]:
     """Iteratively encrypt data from items tuples.
 
     Version Added:
@@ -542,7 +641,7 @@ def _cache_encrypt_data(items, encryption_key):
                ultimately yield to the caller in :py:func:`cache_memoize_iter`
             3. Raw data to yield back to the caller
 
-        encryption_key (bytes, optional):
+        encryption_key (bytes):
             The AES encryption key to use.
 
     Yields:
@@ -582,9 +681,9 @@ def _cache_encrypt_data(items, encryption_key):
     # 3. If there was nothing in the queue when we get data, then yield the
     #    data but with has_item=False, so it'll be stored but not yielded as
     #    results.
-    item_queue = []
+    item_queue: list[tuple[bool, Optional[_T]]] = []
 
-    def _gen_data():
+    def _gen_data() -> Iterator[bytes]:
         for data, has_item, item in items:
             item_queue.append((has_item, item))
             yield data
@@ -607,7 +706,11 @@ def _cache_encrypt_data(items, encryption_key):
         item_queue.clear()
 
 
-def _cache_store_chunks(cache_context, items):
+def _cache_store_chunks(
+    *,
+    cache_context: _CacheContext,
+    items: Iterable[_PreparedCacheItem[_T]],
+) -> Iterator[_T]:
     """Store a list of items as chunks in the cache.
 
     The list of items will be combined into chunks and stored in the
@@ -643,7 +746,6 @@ def _cache_store_chunks(cache_context, items):
                     Raw data to yield back to the caller.
 
     Yields:
-        tuple:
         object:
         Each chunk of original, unmodified item data being cached.
 
@@ -655,15 +757,20 @@ def _cache_store_chunks(cache_context, items):
             to gracefully handle the failure.
     """
     chunks_data = io.BytesIO()
-    chunks_data_len = 0
-    can_cache = True
-    read_start = 0
-    i = 0
-    error = None
+    chunks_data_len: int = 0
+    can_cache: bool = True
+    read_start: int = 0
+    i: int = 0
+    error: Optional[Exception] = None
 
     for data, has_item, item in items:
         if has_item:
-            yield item
+            # If has_item is True, then we have a non-None item. We don't
+            # want to assert on this since that'll just slow down this
+            # operation. Ideally, we'd express this through the typing system,
+            # but as of the type of this writing (June 7, 2024), the type
+            # checkers don't infer and narrow well enough to do what we need.
+            yield item  # type: ignore
 
         if not data or not can_cache:
             continue
@@ -676,7 +783,7 @@ def _cache_store_chunks(cache_context, items):
             # what we've stored and create cache keys for each chunk.
             # Anything remaining will be stored for the next round.
             chunks_data.seek(read_start)
-            cached_data = {}
+            cached_data: dict[str, Any] = {}
 
             while chunks_data_len > CACHE_CHUNK_SIZE:
                 chunk = chunks_data.read(CACHE_CHUNK_SIZE)
@@ -734,7 +841,11 @@ def _cache_store_chunks(cache_context, items):
         raise error
 
 
-def _cache_store_items(cache_context, items):
+def _cache_store_items(
+    *,
+    cache_context: _CacheContext,
+    items: Iterable[_T],
+) -> Iterator[_T]:
     """Store items in the cache.
 
     The items will be individually pickled and combined into a binary blob,
@@ -760,19 +871,8 @@ def _cache_store_items(cache_context, items):
             The generator of data to store.
 
     Yields:
-        tuple:
-        Each is in the form of:
-
-        Tuple:
-            0 (bytes):
-                Byte string to store in the cache.
-
-            1 (bool):
-                Whether the raw data represents valid data to ultimately yield
-                to the caller in :py:func:`cache_memoize_iter`.
-
-            2 (object):
-                Raw data to yield back to the caller.
+        object:
+        Each chunk of original, unmodified item data being cached.
 
     Raises:
         Exception:
@@ -783,35 +883,47 @@ def _cache_store_items(cache_context, items):
     """
     # Note that we want to use pickle protocol 0 in order to be compatible
     # across both Python 2 and 3. On Python 2, 0 is the default.
-    results = (
+    preparing_items: Iterable[_PreparingCacheItem] = (
         (pickle.dumps(item, protocol=0), True, item)
         for item in items
     )
 
     if cache_context.compress_large_data:
-        results = _cache_compress_pickled_data(results)
+        preparing_items = _cache_compress_pickled_data(preparing_items)
+
+    prepared_items: Iterable[_PreparedCacheItem]
 
     if cache_context.use_encryption:
+        encryption_key = cache_context.encryption_key
+        assert encryption_key
+
         # Note that the order of operations here is important. We must
         # compress and *then* encrypt. Encrypted AES data cannot be
         # compressed.
-        results = _cache_encrypt_data(
-            results,
-            encryption_key=cache_context.encryption_key)
+        prepared_items = _cache_encrypt_data(preparing_items,
+                                             encryption_key=encryption_key)
+    else:
+        prepared_items = preparing_items
 
     # Cache and yield results.
     #
     # Allow errors to bubble up.
     yield from _cache_store_chunks(cache_context=cache_context,
-                                   items=results)
+                                   items=prepared_items)
 
 
-def cache_memoize_iter(key, items_or_callable,
-                       expiration=_default_expiration,
-                       force_overwrite=False,
-                       compress_large_data=True,
-                       use_encryption=None,
-                       encryption_key=None):
+@deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+def cache_memoize_iter(
+    key: str,
+    items_or_callable: Union[Callable[[], Iterable[_T]],
+                             Iterable[_T]],
+    *,
+    expiration: int = _default_expiration,
+    force_overwrite: bool = False,
+    compress_large_data: bool = True,
+    use_encryption: Optional[bool] = None,
+    encryption_key: Optional[bytes] = None,
+) -> Iterator[_T]:
     """Memoize an iterable list of items inside the configured cache.
 
     If the provided list of items is a function, the function must return a
@@ -835,26 +947,33 @@ def cache_memoize_iter(key, items_or_callable,
     the data won't be retrievable from the cache.
 
     Version Changed:
+        5.1:
+        * All arguments (except ``key`` and ``items_or_callable``) are now
+          keyword-only arguments. Passing these as positional arguments is
+          deprecated and will be removed in Djblets 7.
+        * Added support for type hints.
+
+    Version Changed:
         3.0:
         Added support for encrypting keys and data through the
         ``use_encryption`` and ``encryption_key`` arguments.
 
     Args:
-        key (unicode):
+        key (str):
             The key to use in the cache.
 
         items_or_callable (list or callable):
             A list of items or callable returning a list of items to cache,
             if the key is not already found in cache.
 
-        expiration (int):
+        expiration (int, optional):
             The expiration time for the key, in seconds.
 
-        force_overwrite (bool):
+        force_overwrite (bool, optional):
             If ``True``, the value will always be computed and stored
             regardless of whether it exists in the cache already.
 
-        compress_large_data (bool):
+        compress_large_data (bool, optional):
             If ``True``, the data will be zlib-compressed.
 
         use_encryption (bool, optional):
@@ -870,7 +989,7 @@ def cache_memoize_iter(key, items_or_callable,
             Version Added:
                 3.0
 
-        encryption_key (bytes or str, optional):
+        encryption_key (bytes, optional):
             An explicit AES encryption key to use when passing
             ``use_encryption=True``.
 
@@ -904,8 +1023,8 @@ def cache_memoize_iter(key, items_or_callable,
         encryption_key=encryption_key)
     full_cache_key = cache_context.full_cache_key
 
-    results = _NO_RESULTS
-    data_from_cache = False
+    results: Unsettable[Iterable[_T]] = UNSET
+    data_from_cache: bool = False
 
     if not force_overwrite:
         try:
@@ -916,9 +1035,9 @@ def cache_memoize_iter(key, items_or_callable,
                          'from cache for key "%s". Rebuilding data. '
                          'Error = %s',
                          cache_context.full_cache_key, e)
-            chunk_count = _NO_RESULTS
+            chunk_count = UNSET
 
-        if chunk_count is not _NO_RESULTS:
+        if chunk_count is not UNSET:
             data_from_cache = True
 
             try:
@@ -931,11 +1050,11 @@ def cache_memoize_iter(key, items_or_callable,
                 logger.warning('Failed to fetch large or iterable data from '
                                'cache for key "%s": %s',
                                full_cache_key, e)
-                results = _NO_RESULTS
+                results = UNSET
         else:
             logger.debug('Cache miss for key "%s"' % full_cache_key)
 
-    if results is _NO_RESULTS:
+    if results is UNSET:
         data_from_cache = False
 
         if callable(items_or_callable):
@@ -960,8 +1079,6 @@ def cache_memoize_iter(key, items_or_callable,
 
             # Return the results as-is without caching.
             results = items
-    else:
-        items = _NO_RESULTS
 
     # Yield the results to the caller.
     try:
@@ -984,15 +1101,19 @@ def cache_memoize_iter(key, items_or_callable,
                          full_cache_key, e)
 
 
-def cache_memoize(key,
-                  lookup_callable,
-                  expiration=_default_expiration,
-                  force_overwrite=False,
-                  large_data=False,
-                  compress_large_data=True,
-                  use_generator=False,
-                  use_encryption=None,
-                  encryption_key=None):
+@deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+def cache_memoize(
+    key: str,
+    lookup_callable: Callable[[], _T],
+    *,
+    expiration: int = _default_expiration,
+    force_overwrite: bool = False,
+    large_data: bool = False,
+    compress_large_data: bool = True,
+    use_generator: bool = False,
+    use_encryption: Optional[bool] = None,
+    encryption_key: Optional[bytes] = None,
+) -> _T:
     """Memoize the results of a callable inside the configured cache.
 
     Data can be encrypted using AES encryption, for safe storage of potentially
@@ -1000,6 +1121,14 @@ def cache_memoize(key,
     but can be important for cache keys containing sensitive information or
     that impact access control, particularly in the event that the cache is
     compromised or shared between services.
+
+    Version Changed:
+        5.1:
+        * All arguments (except ``key`` and ``lookup_callable``) are now
+          keyword-only arguments. Passing these as positional arguments is
+          deprecated and will be removed in Djblets 7, along with the
+          deprecated ``use_generator`` argument.
+        * Added support for type hints.
 
     Version Changed:
         3.0:
@@ -1011,34 +1140,34 @@ def cache_memoize(key,
         Added support for non-iterable value types.
 
     Args:
-        key (unicode):
+        key (str):
             The key to use in the cache.
 
         lookup_callable (callable):
             A callable to execute in the case where the data did not exist in
             the cache.
 
-        expiration (int):
+        expiration (int, optional):
             The expiration time for the key, in seconds.
 
-        force_overwrite (bool):
+        force_overwrite (bool, optional):
             If ``True``, the value will always be computed and stored
             regardless of whether it exists in the cache already.
 
-        large_data (bool):
+        large_data (bool, optional):
             If ``True``, the resulting data will be pickled, gzipped, and
             (potentially) split up into megabyte-sized chunks. This is useful
             for very large, computationally intensive hunks of data which we
             don't want to store in a database due to the way things are
             accessed.
 
-        compress_large_data (bool):
+        compress_large_data (bool, optional):
             Compresses the data with zlib compression when ``large_data``
             is ``True``.
 
         use_generator (bool, deprecated):
-            This parameter is no longer used and will be removed in Djblets
-            3.0.
+            This parameter is deprecated and was scheduled for removal in
+            Djblets 3. It will be removed in Djblets 7.
 
         use_encryption (bool, optional):
             Whether to use encryption when storing or reading data.
@@ -1069,6 +1198,10 @@ def cache_memoize(key,
         object:
         The cached data, or the result of ``lookup_callable`` if uncached.
     """
+    if use_generator:
+        RemovedInDjblets70Warning.warn(
+            'use_generator is deprecated and will be removed in Djblets 7.')
+
     if large_data:
         results = list(cache_memoize_iter(
             key,
@@ -1098,9 +1231,9 @@ def cache_memoize(key,
             except Exception:
                 # We've already logged enough information for this. Proceed
                 # to generate new data.
-                result = _NO_RESULTS
+                result = UNSET
 
-            if result is not _NO_RESULTS:
+            if result is not UNSET:
                 return result
             else:
                 logger.debug('Cache miss for key "%s"' % full_cache_key)
@@ -1137,12 +1270,25 @@ def cache_memoize(key,
         return data
 
 
-def make_cache_key(key, use_encryption=None, encryption_key=None):
+@deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+def make_cache_key(
+    key: str,
+    *,
+    use_encryption: Optional[bool] = None,
+    encryption_key: Optional[bytes] = None,
+) -> str:
     """Create a cache key guaranteed to avoid conflicts and size limits.
 
     The cache key will be prefixed by the site's domain, and will be
     changed to an SHA256 hash if it's larger than the maximum key size or
     contains characters not compatible with the cache backend.
+
+    Version Changed:
+        5.1:
+        * All arguments (except ``key``) are now keyword-only arguments.
+          Passing these as positional arguments is deprecated and will be
+          removed in Djblets 7.
+        * Added support for type hints.
 
     Version Changed:
         3.0:
@@ -1200,9 +1346,9 @@ def make_cache_key(key, use_encryption=None, encryption_key=None):
         site_root = getattr(settings, 'SITE_ROOT', None)
 
         if site_root:
-            key = '%s:%s:%s' % (site.domain, site_root, key)
+            key = f'{site.domain}:{site_root}:{key}'
         else:
-            key = '%s:%s' % (site.domain, key)
+            key = f'{site.domain}:{key}'
     except Exception:
         # The install doesn't have a Site app, so use the key as-is.
         pass
