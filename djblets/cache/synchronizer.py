@@ -87,7 +87,7 @@ class GenerationSynchronizer(object):
                 'Error = %s',
                 self.cache_key, e)
 
-            return False
+            return True
 
         return (sync_gen is None or
                 (type(sync_gen) is int and sync_gen != self.sync_gen))
@@ -148,7 +148,15 @@ class GenerationSynchronizer(object):
         """
         sync_gen = int(time.mktime(datetime.now().timetuple()))
 
-        if cache.add(self.cache_key, sync_gen):
+        try:
+            stored = cache.add(self.cache_key, sync_gen)
+        except Exception:
+            # Set this as the latest generation. We'll then let a caller
+            # handle this exception.
+            self.sync_gen = sync_gen
+            raise
+
+        if stored:
             self.sync_gen = sync_gen
         else:
             self.sync_gen = self._get_latest_sync_gen()
