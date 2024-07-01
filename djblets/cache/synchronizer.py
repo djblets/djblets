@@ -1,15 +1,23 @@
+"""State synchronization via caches."""
+
+from __future__ import annotations
+
 import logging
 import time
 from datetime import datetime
+from typing import Optional
 
 from django.core.cache import cache
+from housekeeping import deprecate_non_keyword_only_args
+
 from djblets.cache.backend import make_cache_key
+from djblets.deprecation import RemovedInDjblets70Warning
 
 
 logger = logging.getLogger(__name__)
 
 
-class GenerationSynchronizer(object):
+class GenerationSynchronizer:
     """Manages the synchronization of generation state across processes.
 
     This is a utility class that makes it easy for consumers to synchronize
@@ -30,21 +38,34 @@ class GenerationSynchronizer(object):
     :py:meth:`is_expired`) can re-fetch or re-compute the data needed and
     then call :py:meth:`refresh` to refresh the instance's counter from the
     cache.
-
-    Attributes:
-        sync_gen (int):
-            The synchronization generation number last fetched or set by
-            this instance.
-
-        cache_key (unicode):
-            The synchronization cache key.
     """
 
-    def __init__(self, cache_key, normalize_cache_key=True):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The synchronization cache key.
+    cache_key: str
+
+    #: The synchronization generation number last fetched/set by this instance.
+    sync_gen: Optional[int]
+
+    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    def __init__(
+        self,
+        cache_key: str,
+        *,
+        normalize_cache_key: bool = True,
+    ) -> None:
         """Initialize the synchronizer.
 
+        Version Changed:
+            5.1:
+            ``normalize_cache_key`` is now a keyword-only argument. This will
+            be enforced in Djblets 7.
+
         Args:
-            cache_key (unicode):
+            cache_key (str):
                 The base cache key used for all synchronization. This will be
                 normalized by
                 :py:func:`~djblets.cache.backends.make_cache_key`.
@@ -70,7 +91,7 @@ class GenerationSynchronizer(object):
                 'Error = %s',
                 self.cache_key, e)
 
-    def is_expired(self):
+    def is_expired(self) -> bool:
         """Return whether the current state has expired.
 
         Returns:
@@ -92,7 +113,7 @@ class GenerationSynchronizer(object):
         return (sync_gen is None or
                 (type(sync_gen) is int and sync_gen != self.sync_gen))
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Refresh the generation ID from cache.
 
         This should be called after having updated to the latest state.
@@ -105,7 +126,7 @@ class GenerationSynchronizer(object):
                 'from key "%s". Is the cache server down? Error = %s',
                 self.cache_key, e)
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear the cached generation ID.
 
         This will expire all existing caches and force all processes to
@@ -119,7 +140,7 @@ class GenerationSynchronizer(object):
                 'key "%s". Is the cache server down? Error = %s',
                 self.cache_key, e)
 
-    def mark_updated(self):
+    def mark_updated(self) -> None:
         """Mark the synchronized state as having been updated.
 
         All other processes will find their state expired, and will need to
@@ -136,11 +157,11 @@ class GenerationSynchronizer(object):
                 'key "%s" as updated. Is the cache server down? Error = %s',
                 self.cache_key, e)
 
-    def _increment_sync_gen(self):
+    def _increment_sync_gen(self) -> None:
         """Increment the synchronization generation ID."""
         self.sync_gen = cache.incr(self.cache_key)
 
-    def _fetch_or_create_sync_gen(self):
+    def _fetch_or_create_sync_gen(self) -> None:
         """Return or create a new synchronization generation ID.
 
         If one already exists in the cache, it will be returned. Otherwise,
@@ -161,7 +182,7 @@ class GenerationSynchronizer(object):
         else:
             self.sync_gen = self._get_latest_sync_gen()
 
-    def _get_latest_sync_gen(self):
+    def _get_latest_sync_gen(self) -> int:
         """Return the latest synchronization generation ID.
 
         Returns:
