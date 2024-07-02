@@ -19,8 +19,8 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import (Any, Callable, Dict, List, Optional, TYPE_CHECKING, Type,
-                    cast)
+from typing import (Any, Callable, Dict, Generic, List, Optional,
+                    Sequence, TYPE_CHECKING, Type, cast)
 
 from django.dispatch import Signal
 from django.http import HttpRequest
@@ -30,7 +30,7 @@ from django.urls import URLPattern
 
 from djblets.datagrid.grids import Column, DataGrid
 from djblets.extensions.extension import Extension
-from djblets.registries.registry import Registry
+from djblets.registries.registry import Registry, RegistryItemType
 
 
 logger = logging.getLogger(__name__)
@@ -652,21 +652,33 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
         return cls._by_name.get(name, [])
 
 
-class BaseRegistryHook(ExtensionHook):
+class BaseRegistryHook(Generic[RegistryItemType],
+                       ExtensionHook):
     """A hook for registering an item with a registry.
 
     This hook should not be used directly. Instead, it should be subclassed
     with the :py:attr:`registry` attribute set.
 
     Subclasses must use the :py:class:`ExtensionHookPoint` metaclass.
+
+    Version Changed:
+        5.1:
+        This hook now supports typed registries.
     """
 
     #: The registry to register items with.
-    registry: Optional[Registry] = None
+    registry: Optional[Registry[RegistryItemType]] = None
+
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The item registered in the registry.
+    item: RegistryItemType
 
     def initialize(
         self,
-        item: Any,
+        item: RegistryItemType,
     ) -> None:
         """Initialize the registry hook with the item.
 
@@ -685,21 +697,33 @@ class BaseRegistryHook(ExtensionHook):
         self.registry.unregister(self.item)
 
 
-class BaseRegistryMultiItemHook(ExtensionHook):
+class BaseRegistryMultiItemHook(Generic[RegistryItemType],
+                                ExtensionHook):
     """A hook for registering multiple items with a registry.
 
     This hook should not be used directly. Instead, it should be subclassed
     with the :py:attr:`registry` attribute set.
 
     Subclasses must use the :py:class:`ExtensionHookPoint` metaclass.
+
+    Version Changed:
+        5.1:
+        This hook now supports typed registries.
     """
 
     #: The registry to register items with.
-    registry: Optional[Registry] = None
+    registry: Optional[Registry[RegistryItemType]] = None
+
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The items registered in the registry.
+    items: Sequence[RegistryItemType]
 
     def initialize(
         self,
-        items: List[Any],
+        items: Sequence[RegistryItemType],
     ) -> None:
         """Initialize the registry hook with the list of items.
 
@@ -712,7 +736,7 @@ class BaseRegistryMultiItemHook(ExtensionHook):
         registry = self.registry
         assert registry is not None
 
-        registered_items: List[Any] = []
+        registered_items: List[RegistryItemType] = []
 
         for item in items:
             try:

@@ -1,10 +1,17 @@
+"""Unit tests for djblets.cache.synchronizer.GenerationSynchronizer."""
+
+from __future__ import annotations
+
+import re
+
+import kgb
 from django.core.cache import cache
 
 from djblets.cache.synchronizer import GenerationSynchronizer
 from djblets.testing.testcases import TestCase
 
 
-class GenerationSynchronizerTests(TestCase):
+class GenerationSynchronizerTests(kgb.SpyAgency, TestCase):
     """Unit tests for djblets.cache.synchronizer.GenerationSynchronizer."""
 
     def setUp(self):
@@ -24,6 +31,27 @@ class GenerationSynchronizerTests(TestCase):
     def test_is_expired_when_not_expired(self):
         """Testing GenerationSynchronizer.is_expired when not expired"""
         self.assertFalse(self.gen_sync.is_expired())
+
+    def test_is_expired_with_exception(self) -> None:
+        """Testing GenerationSynchronizer.is_expired when encountering an
+        exception
+        """
+        self.spy_on(self.gen_sync._get_latest_sync_gen,
+                    op=kgb.SpyOpRaise(Exception('Oh no')))
+
+        with self.assertLogs() as logs:
+            self.assertTrue(self.gen_sync.is_expired())
+
+        self.assertEqual(len(logs.output), 1)
+        self.assertRegex(
+            logs.output[0],
+            re.compile(
+                r'ERROR:djblets\.cache\.synchronizer:Unexpected error '
+                r'checking for expiration in cached synchronization '
+                r'state key "example\.com:test-synchronizer"\. Is the cache '
+                r'server down\? Error = Oh no\n'
+                r'Traceback.*Exception: Oh no',
+                re.S))
 
     def test_refresh(self):
         """Testing GenerationSynchronizer.refresh"""

@@ -14,7 +14,9 @@ import * as Backbone from 'backbone';
  * depending on what the user has clicked on the sidebar.
  */
 @spina
-export class PagesView extends BaseView {
+export class PagesView<
+    TModel extends Backbone.Model = undefined
+> extends BaseView<TModel> {
     /**********************
      * Instance variables *
      **********************/

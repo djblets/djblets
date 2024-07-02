@@ -1,0 +1,153 @@
+.. default-intersphinx:: django4.2 djblets5.x python3
+
+
+=========================
+Djblets 5.1 Release Notes
+=========================
+
+**Release date**: July 1, 2024
+
+
+Installation
+============
+
+To install Djblets 5.1, run:
+
+.. code-block:: console
+
+   $ pip3 install Djblets==5.1
+
+
+To learn more, see:
+
+* `Documentation <https://www.reviewboard.org/docs/djblets/5.x/>`_
+* `Djblets on PyPI <https://pypi.org/project/Djblets/>`_
+* `Djblets on GitHub <https://github.com/djblets/djblets/>`_
+
+
+.. _Django: https://www.djangoproject.com/
+
+
+Packaging
+=========
+
+* :pypi:`Django` 4.2.13 (or a higher 4.2.x) is now required.
+
+
+djblets.cache
+=============
+
+* Improved stability when the cache backend is down or misconfigured.
+
+  :py:class:`~djblets.cache.synchronizer.GenerationSynchronizer` will no
+  longer crash when trying to synchronize state (such as settings or lists
+  of extensions).
+
+  It will assume anything it has is out-of-date, and will continue to try
+  again until the cache server is working again.
+
+* Added Python type hints for several cache-related functions and classes.
+
+  The following now support Python type hints:
+
+  * :py:func:`djblets.cache.backend.cache_memoize`
+  * :py:func:`djblets.cache.backend.cache_memoize_iter`
+  * :py:class:`djblets.cache.synchronizer.GenerationSynchronizer`
+
+  In particular, the return type for a
+  :py:func:`~djblets.cache.backend.cache_memoize` call will now automatically
+  inherit the return type for the function passed in to populate the cache.
+
+* Switched to keyword-only arguments for several caching functions.
+
+  The following now require keyword-only arguments for some or all function
+  arguments:
+
+  * :py:func:`djblets.cache.backend.cache_memoize`
+  * :py:func:`djblets.cache.backend.cache_memoize_iter`
+  * :py:func:`djblets.cache.backend.make_cache_key`
+  * :py:class:`djblets.cache.synchronizer.GenerationSynchronizer`
+
+  Positional arguments will still be supported through Djblets 7, but will
+  emit a deprecation warning.
+
+
+djblets.conditions
+==================
+
+* Revamped the condition rules UI for better usability, accessibility,
+  alignment, and to use :npm:`Ink <@beanbag/ink>`
+
+  This now uses CSS Grid to better lay out the fields and make use of space.
+
+  Keyboard navigation has been added, and the widget is better tuned for
+  screen readers (though this is still very much in progress).
+
+
+djblets.configforms
+===================
+
+* Updated many of the styles to use :npm:`Ink <@beanbag/ink>`.
+
+  This provides consistent styling and Dark Mode support for more of the
+  Config Forms UI.
+
+* Updated the TypeScript class :js:class:`PagesView` (in
+  ``configForms/views/pagesView``) to be Generic.
+
+  This class now takes a model type, ensuring that the typing for
+  ``this.model`` will be correct.
+
+* Fixed small visual issues with the sub-page navigation list.
+
+  The background of the last page item clipped out of bounds when selected.
+
+* Fixed the z-index of pop-up menus for list items.
+
+  These menus should no longer appear behind other elements on the form.
+
+
+djblets.extensions
+==================
+
+* Added Python type hints for
+  :py:class:`djblets.extensions.hooks.BaseRegistryHook` and
+  :py:class:`djblets.extensions.hooks.BaseRegistryMultiItemHook`.
+
+  This helps to specify a compatible registry and to automatically use the
+  right types for any provided items during registration.
+
+
+djblets.integrations
+====================
+
+* Updated the integrations form and :guilabel:`Add Integration` menu for
+  Dark Mode.
+
+
+djblets.siteconfig
+==================
+
+* Fixed issues with stale settings when the cache backend is temporarily down.
+
+
+djblets.util.datastructures
+===========================
+
+* Added utility functions for working with nested dictionaries.
+
+  :py:func:`~djblets.util.datastructures.dict_get_path_value` and
+  :py:func:`~djblets.util.datastructures.dict_set_path_value` can be used
+  to fetch or set data in a nested dictionary by specifying a path to
+  traverse within the dictionary.
+
+  These automatically handle situations like non-dictionary values in a
+  path and missing keys, generating suitable errors for the caller.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin

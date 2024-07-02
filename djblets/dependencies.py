@@ -35,7 +35,7 @@ django_doc_major_version = '4.2'
 reviewboard_doc_major_version = 'dev'
 
 #: The version range required for Django.
-django_version = '~=4.2.7'
+django_version = '~=4.2.13'
 
 ###########################################################################
 # Python dependencies
@@ -82,7 +82,7 @@ package_dependencies = {
 #: Dependencies required for static media building.
 frontend_buildkit_npm_dependencies: Dict[str, str] = {
     '@beanbag/frontend-buildkit': '^1.2.0',
-    '@beanbag/ink': '^0.5.1',
+    '@beanbag/ink': '^0.5.2',
     '@beanbag/spina': '^3.1.1',
     '@types/jquery': '^3.5.30',
     '@types/underscore': '^1.11.4',
