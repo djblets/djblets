@@ -28,6 +28,12 @@ To learn more, see:
 .. _Django: https://www.djangoproject.com/
 
 
+Packaging
+=========
+
+* :pypi:`Django` 4.2.13 (or a higher 4.2.x) is now required.
+
+
 djblets.cache
 =============
 
