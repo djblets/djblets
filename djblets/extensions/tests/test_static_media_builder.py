@@ -7,6 +7,7 @@ Version Added:
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -71,7 +72,7 @@ class StaticMediaBuilderTests(TestCase):
         workspaces_path = base_dir / '.npm-workspaces'
         djblets_path = workspaces_path / 'djblets'
         self.assertTrue(djblets_path.is_symlink())
-        self.assertEqual(djblets_path.readlink(),
+        self.assertEqual(Path(os.readlink(djblets_path)),
                          Path(djblets.__file__).parent)
 
         package_json_path = base_dir / 'package.json'
