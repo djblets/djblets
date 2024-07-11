@@ -29,7 +29,7 @@ export class TableView extends ListView {
      * If the element does not already have a <tbody>, one will be added.
      * All items will go under this.
      */
-    onInitialRender() {
+    protected onInitialRender() {
         const $body = this.getBody();
 
         if ($body.length === 0) {

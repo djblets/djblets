@@ -53,7 +53,7 @@ interface AddRemoveOptions {
 })
 export class ListView<
     TModel extends List = List,
-    TElement extends Element = HTMLUListElement,
+    TElement extends HTMLUListElement = HTMLUListElement,
     TExtraViewOptions extends ListViewOptions = ListViewOptions
 > extends BaseView<TModel, TElement, TExtraViewOptions> {
     static className = 'djblets-c-config-forms-list';
@@ -131,7 +131,7 @@ export class ListView<
      *
      * This will loop through all items and render each one.
      */
-    onRender() {
+    protected onRender() {
         this.$listBody = this.getBody();
 
         this.#renderItems();
