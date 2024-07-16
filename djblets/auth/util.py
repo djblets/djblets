@@ -3,10 +3,22 @@
 This contains some validation functions that may be useful for forms.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.utils.translation import gettext as _
 
+if TYPE_CHECKING:
+    from django.contrib.auth.models import User
+    from django.forms import Form
+    from django.http import HttpRequest
 
-def validate_test_cookie(form, request):
+
+def validate_test_cookie(
+    form: Form,
+    request: HttpRequest,
+) -> None:
     """Validate that the test cookie was properly set in a prior request.
 
     If the test cookie was not set, the given form's ``submit`` field will
@@ -24,7 +36,11 @@ def validate_test_cookie(form, request):
             [_('Cookies must be enabled.')])
 
 
-def validate_old_password(form, user, field_name='password'):
+def validate_old_password(
+    form: Form,
+    user: User,
+    field_name: str = 'password',
+) -> None:
     """Validate that the password given on a form was valid.
 
     This is intended for Password Change forms, and will check that the
@@ -37,9 +53,11 @@ def validate_old_password(form, user, field_name='password'):
         user (django.contrib.auth.models.User):
             The user whose password is being changed.
 
-        field_name (unicode, optional):
+        field_name (str, optional):
             The name of the password field.
     """
-    if (not form.errors.get(field_name) and
-        not user.check_password(form.data.get(field_name))):
-        form.errors[field_name] = form.error_class([_('Incorrect password.')])
+    if not form.errors.get(field_name):
+        password = form.data.get(field_name)
+
+        if not isinstance(password, str) or not user.check_password(password):
+            form.errors[field_name] = form.error_class([_('Incorrect password.')])

@@ -5,11 +5,18 @@ They're designed to take some of the complexity out of creating
 authentication-related forms not otherwise provided by Django.
 """
 
+from __future__ import annotations
+
+from typing import Optional, TYPE_CHECKING
+
 from django import forms
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
+
+if TYPE_CHECKING:
+    from django.http import HttpRequest
 
 
 class RegistrationForm(forms.Form):
@@ -37,7 +44,12 @@ class RegistrationForm(forms.Form):
     first_name = forms.CharField(max_length=30, required=False)
     last_name = forms.CharField(max_length=30, required=False)
 
-    def __init__(self, request=None, *args, **kwargs):
+    def __init__(
+        self,
+        request: Optional[HttpRequest] = None,
+        *args,
+        **kwargs,
+    ) -> None:
         """Initialize the form.
 
         Args:
@@ -50,17 +62,17 @@ class RegistrationForm(forms.Form):
             **kwargs (dict):
                 Keyword arguments to pass to the parent class.
         """
-        super(RegistrationForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.request = request
 
-    def clean_password2(self):
+    def clean_password2(self) -> str:
         """Validate that the two supplied passwords match.
 
         If they do not match, validation will fail, and an error will be
         supplied to the user.
 
         Returns:
-            unicode:
+            str:
             The password supplied on the form.
 
         Raises:
@@ -75,7 +87,7 @@ class RegistrationForm(forms.Form):
 
         return formdata['password2']
 
-    def save(self):
+    def save(self) -> Optional[User]:
         """Save the form, creating a user if validation passes.
 
         The user will be created with the provided username, e-mail address,
@@ -114,7 +126,7 @@ class RegistrationForm(forms.Form):
                 # it's possible that two users could race for a name.
                 if User.objects.filter(username=username).exists():
                     self.errors['username'] = self.error_class(
-                        [_('Sorry, this username is taken.')])
+                        [gettext('Sorry, this username is taken.')])
                 else:
                     raise
 

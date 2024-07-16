@@ -1,5 +1,7 @@
 """Tests for authentication-related views."""
 
+from __future__ import annotations
+
 from django.core.cache import cache
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
@@ -13,11 +15,12 @@ from djblets.testing.testcases import TestCase
 class ViewsTests(SpyAgency, TestCase, Client):
     """Tests for djblets.auth.views"""
 
-    def tearDown(self):
-        super(ViewsTests, self).tearDown()
+    def tearDown(self) -> None:
+        """Tear down the test case."""
+        super().tearDown()
         cache.clear()
 
-    def test_register_without_post_method(self):
+    def test_register_without_post_method(self) -> None:
         """Testing register view when request is not a post method"""
         self.spy_on(render)
 
@@ -27,7 +30,7 @@ class ViewsTests(SpyAgency, TestCase, Client):
         self.assertIsInstance(response.context['form'], RegistrationForm)
         self.assertTrue(render.called)
 
-    def test_register_with_valid_form(self):
+    def test_register_with_valid_form(self) -> None:
         """Testing register view when a valid form is received"""
         request_headers = {
             'username': 'user123',
@@ -48,7 +51,7 @@ class ViewsTests(SpyAgency, TestCase, Client):
         self.assertIsNone(response.context)
         self.assertFalse(render.called)
 
-    def test_register_with_invalid_form(self):
+    def test_register_with_invalid_form(self) -> None:
         """Testing register view when an invalid form is received"""
         request_headers = {
             'username': 'user123',

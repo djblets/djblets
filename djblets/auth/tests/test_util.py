@@ -1,5 +1,7 @@
 """Unit tests for djblets.auth.util."""
 
+from __future__ import annotations
+
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.sessions.middleware import SessionMiddleware
@@ -14,17 +16,20 @@ class ValidateOldPasswordTests(TestCase):
     """Unit tests for djblets.auth.util.validate_old_password."""
 
     class DummyForm(forms.Form):
+        """Form used for tests."""
+
         password = forms.CharField(required=False)
         alt_password = forms.CharField(required=False)
 
-    def setUp(self):
-        super(ValidateOldPasswordTests, self).setUp()
+    def setUp(self) -> None:
+        """Set up the test case."""
+        super().setUp()
 
         self.user = User.objects.create_user(username='test-user',
                                              email='user@example.com',
                                              password='password')
 
-    def test_with_password_matches(self):
+    def test_with_password_matches(self) -> None:
         """Testing validate_old_password with password matching User's
         current password
         """
@@ -35,7 +40,7 @@ class ValidateOldPasswordTests(TestCase):
 
         self.assertNotIn('password', form.errors)
 
-    def test_with_password_does_not_match(self):
+    def test_with_password_does_not_match(self) -> None:
         """Testing validate_old_password with password not matching User's
         current password
         """
@@ -47,7 +52,7 @@ class ValidateOldPasswordTests(TestCase):
         self.assertIn('password', form.errors)
         self.assertEqual(form.errors['password'], ['Incorrect password.'])
 
-    def test_with_existing_errors(self):
+    def test_with_existing_errors(self) -> None:
         """Testing validate_old_password with field already containing errors
         """
         form = self.DummyForm({
@@ -59,7 +64,7 @@ class ValidateOldPasswordTests(TestCase):
         self.assertIn('password', form.errors)
         self.assertEqual(form.errors['password'], ['Something went wrong.'])
 
-    def test_with_field_name_and_password_matches(self):
+    def test_with_field_name_and_password_matches(self) -> None:
         """Testing validate_old_password with explicit field_name and
         password matching User's current password
         """
@@ -70,7 +75,7 @@ class ValidateOldPasswordTests(TestCase):
 
         self.assertNotIn('alt_password', form.errors)
 
-    def test_with_field_name_and_password_does_not_match(self):
+    def test_with_field_name_and_password_does_not_match(self) -> None:
         """Testing validate_old_password with explicit field name and password
         not matching User's current password
         """
@@ -82,7 +87,7 @@ class ValidateOldPasswordTests(TestCase):
         self.assertIn('alt_password', form.errors)
         self.assertEqual(form.errors['alt_password'], ['Incorrect password.'])
 
-    def test_with_field_name_and_existing_errors(self):
+    def test_with_field_name_and_existing_errors(self) -> None:
         """Testing validate_old_password with explicit field name and field
         already containing errors
         """
@@ -101,8 +106,9 @@ class ValidateOldPasswordTests(TestCase):
 class ValidateTestCookieTests(TestCase):
     """Unit tests for djblets.auth.util.validate_test_cookie."""
 
-    def setUp(self):
-        super(ValidateTestCookieTests, self).setUp()
+    def setUp(self) -> None:
+        """Set up the test case."""
+        super().setUp()
 
         class DummyForm(forms.Form):
             pass
@@ -114,7 +120,7 @@ class ValidateTestCookieTests(TestCase):
         middleware = SessionMiddleware(lambda request: HttpResponse(''))
         middleware(self.request)
 
-    def test_with_test_cookie(self):
+    def test_with_test_cookie(self) -> None:
         """Testing validate_test_cookie with test cookie set"""
         self.request.session.set_test_cookie()
 
@@ -122,7 +128,7 @@ class ValidateTestCookieTests(TestCase):
 
         self.assertNotIn('submit', self.form.errors)
 
-    def test_without_test_cookie(self):
+    def test_without_test_cookie(self) -> None:
         """Testing validate_test_cookie without test cookie set"""
         validate_test_cookie(self.form, self.request)
 

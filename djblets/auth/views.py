@@ -4,6 +4,10 @@ The bundled views help with common authentication-related tasks not otherwise
 provided by Django. At the moment, there is only support here for registration.
 """
 
+from __future__ import annotations
+
+from typing import Any, Optional, TYPE_CHECKING
+
 from django.contrib import auth
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
@@ -13,11 +17,20 @@ from djblets.auth.forms import RegistrationForm
 from djblets.auth.signals import user_registered
 from djblets.auth.util import validate_test_cookie
 
+if TYPE_CHECKING:
+    from django.http import HttpRequest, HttpResponse
+
 
 @csrf_protect
-def register(request, next_page, form_class=RegistrationForm,
-             extra_context=None, initial_values=None,
-             form_kwargs=None, template_name="accounts/register.html"):
+def register(
+    request: HttpRequest,
+    next_page: str,
+    form_class: type[RegistrationForm] = RegistrationForm,
+    extra_context: Optional[dict[str, Any]] = None,
+    initial_values: Optional[dict[str, Any]] = None,
+    form_kwargs: Optional[dict[str, Any]] = None,
+    template_name: str = 'accounts/register.html',
+) -> HttpResponse:
     """Handle registration of a new user.
 
     This works along with :py:class:`djblets.auth.forms.RegistrationForm`
@@ -31,7 +44,7 @@ def register(request, next_page, form_class=RegistrationForm,
         request (HttpRequest):
             The HTTP request from the client.
 
-        next_page (unicode):
+        next_page (str):
             The URL to navigate to once registration is successful.
 
         form_class (Form subclass):
@@ -48,11 +61,12 @@ def register(request, next_page, form_class=RegistrationForm,
             Additional keyword arguments to pass to the form class during
             instantiation.
 
-        template_name (unicode):
+        template_name (str):
             The name of the template containing the registration form.
 
     Returns:
-        HttpResponse: The page's rendered response or redirect.
+        django.http.HttpResponse:
+        The page's rendered response or redirect.
     """
     if initial_values is None:
         initial_values = {}
