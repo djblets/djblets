@@ -71,31 +71,26 @@ export class ListItemView<
     static actionHandlers: EventsHash = {};
     actionHandlers: EventsHash;
 
+    static modelEvents: EventsHash = {
+        'actionsChanged': 'render',
+        'change:itemState': '_onItemStateChanged',
+        'destroy': 'remove',
+        'request': 'showSpinner',
+        'sync': 'hideSpinner',
+    };
+
     /**********************
      * Instance variables *
      **********************/
 
     /** The parent element for the loading spinner. */
-    $spinnerParent: JQuery;
+    $spinnerParent: JQuery = null;
 
     /** The loading spinner. */
-    $spinner: JQuery;
+    $spinner: JQuery = null;
 
     /** The item state indicator. */
-    #$itemState: JQuery;
-
-    /**
-     * Initialize the view.
-     */
-    initialize() {
-        this.listenTo(this.model, 'actionsChanged', this.render);
-        this.listenTo(this.model, 'request', this.showSpinner);
-        this.listenTo(this.model, 'sync', this.hideSpinner);
-        this.listenTo(this.model, 'destroy', this.remove);
-
-        this.$spinnerParent = null;
-        this.$spinner = null;
-    }
+    #$itemState: JQuery = null;
 
     /**
      * Render the view.
@@ -103,7 +98,7 @@ export class ListItemView<
      * This will be called every time the list of actions change for
      * the item.
      */
-    onRender() {
+    protected onRender() {
         const model = this.model;
 
         this.$el
@@ -116,7 +111,6 @@ export class ListItemView<
         this.#$itemState =
             this.$('.djblets-c-config-forms-list__item-state');
 
-        this.listenTo(model, 'change:itemState', this._onItemStateChanged);
         this._onItemStateChanged();
 
         this.addActions(this.getActionsParent());

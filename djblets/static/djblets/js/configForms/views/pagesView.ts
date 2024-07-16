@@ -67,7 +67,7 @@ export class PagesView<
      * This will set the default page to be shown, and instruct Backbone
      * to begin handling the routing.
      */
-    onInitialRender() {
+    protected onInitialRender() {
         this._$pageNavs = this.$('.djblets-c-config-forms-page-nav__item');
         this._$pages = this.$('.djblets-c-config-forms-subpage');
 
