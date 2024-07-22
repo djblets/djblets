@@ -1,0 +1,2 @@
+import './addIntegrationPopupViewTests';
+import './integrationConfigListViewTests';

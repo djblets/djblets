@@ -1,7 +1,17 @@
+import { suite } from '@beanbag/jasmine-suites';
+import {
+    describe,
+    expect,
+    it,
+} from 'jasmine-core';
+
+import { AddIntegrationPopupView } from 'djblets/integrations';
+
+
 suite('djblets/integrations/views/AddIntegrationPopupView', function() {
     describe('Rendering', function() {
         it('With integrations', function() {
-            const view = new Djblets.AddIntegrationPopupView({
+            const view = new AddIntegrationPopupView({
                 integrations: [
                     {
                         'addURL': 'int1/add/',
@@ -62,7 +72,7 @@ suite('djblets/integrations/views/AddIntegrationPopupView', function() {
         });
 
         it('Without integrations', function() {
-            const view = new Djblets.AddIntegrationPopupView({
+            const view = new AddIntegrationPopupView({
                 integrations: [],
             });
             view.render();

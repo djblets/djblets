@@ -1,8 +1,68 @@
 /**
  * A popup for selecting an integration to add.
  */
-Djblets.AddIntegrationPopupView = Backbone.View.extend({
-    className: 'djblets-c-integrations-popup',
+
+import {
+    BaseView,
+    spina,
+} from '@beanbag/spina';
+import * as _ from 'underscore';
+
+
+/**
+ * Data for an integration in the popup.
+ *
+ * Version Added:
+ *     6.0
+ */
+export interface IntegrationOptions {
+    /** The URL for adding the integration. */
+    addURL: string;
+
+    /** The description of the integration. */
+    description: string;
+
+    /** The value to use for the <img src> attribute. */
+    iconSrc: string;
+
+    /** The value to use for the <img srcset> attribute. */
+    iconSrcSet: string;
+
+    /** The internal ID of the integration. */
+    id: string;
+
+    /** The name of the integration. */
+    name: string;
+}
+
+
+/**
+ * Options for the AddIntegrationPopupView.
+ *
+ * Version Added:
+ *     6.0
+ */
+export interface AddIntegrationPopupViewOptions {
+    /** The list of integration types. */
+    integrations: IntegrationOptions[];
+}
+
+
+/**
+ * A popup for selecting an integration to add.
+ */
+@spina({
+    prototypeAttrs: [
+        'emptyIntegrationsTemplateSource',
+        'integrationTemplateSource',
+    ],
+})
+export class AddIntegrationPopupView extends BaseView<
+    undefined,
+    HTMLDivElement,
+    AddIntegrationPopupViewOptions
+> {
+    static className = 'djblets-c-integrations-popup';
 
     /**
      * The pre-compiled template for an integration in the popup.
@@ -10,7 +70,7 @@ Djblets.AddIntegrationPopupView = Backbone.View.extend({
      * This will be compiled when the popup is first being built, if
      * integrations are available.
      */
-    integrationTemplateSource: dedent`
+    static integrationTemplateSource = dedent`
         <li class="djblets-c-integration">
          <a href="<%- addURL %>">
           <% if (iconSrc) { %>
@@ -27,7 +87,8 @@ Djblets.AddIntegrationPopupView = Backbone.View.extend({
           </div>
          </a>
         </li>
-    `,
+    `;
+    integrationTemplateSource: string;
 
     /**
      * The pre-compiled template for the empty integrations popup content.
@@ -35,26 +96,32 @@ Djblets.AddIntegrationPopupView = Backbone.View.extend({
      * This will be compiled when the popup is first being built, if
      * integrations are not available.
      */
-    emptyIntegrationsTemplateSource: dedent`
+    static emptyIntegrationsTemplateSource = dedent`
         <p class="djblets-c-integrations-popup__empty">
          ${_.escape(_`There are no integrations currently installed.`)}
         </p>
-    `,
+    `;
+    emptyIntegrationsTemplateSource: string;
+
+    /**********************
+     * Instance variables *
+     **********************/
+
+    /** Data for the integrations items. */
+    integrations: IntegrationOptions[];
 
     /**
      * Initialize the view.
      *
      * Args:
-     *     options (object):
+     *     options (AddIntegrationPopupViewOptions):
      *         Options passed to the view.
-     *
-     * Option Args:
-     *     integrations (Array):
-     *         An array of integration data to render.
      */
-    initialize(options) {
+    initialize(
+        options: AddIntegrationPopupViewOptions,
+    ) {
         this.integrations = options.integrations;
-    },
+    }
 
     /**
      * Render the list of integrations in the popup.
@@ -66,18 +133,13 @@ Djblets.AddIntegrationPopupView = Backbone.View.extend({
      * If there aren't any integrations to display, the
      * :js:attr:`emptyIntegrationsTemplateSource` attribute will be used
      * for the contents.
-     *
-     * Returns:
-     *     Djblets.AddIntegrationPopupView:
-     *     This object, for chaining.
      */
-    render() {
+    protected onInitialRender() {
         const integrations = this.integrations;
 
         if (integrations.length > 0) {
             /* We have integrations to show. Add each to the list. */
-            const itemTemplate =
-                _.template(this.integrationTemplateSource);
+            const itemTemplate = _.template(this.integrationTemplateSource);
             const $list = $('<ul>');
 
             for (let i = 0; i < integrations.length; i++) {
@@ -94,9 +156,7 @@ Djblets.AddIntegrationPopupView = Backbone.View.extend({
                 .addClass('-is-empty')
                 .append(_.template(this.emptyIntegrationsTemplateSource)());
         }
-
-        return this;
-    },
+    }
 
     /**
      * Remove the view.
@@ -104,11 +164,11 @@ Djblets.AddIntegrationPopupView = Backbone.View.extend({
      * This will first hide the popup, unregistering any events, and will
      * then remove the element from the DOM.
      */
-    remove() {
+    protected onRemove() {
         this.hide();
 
-        Backbone.View.prototype.remove.call(this);
-    },
+        super.onRemove();
+    }
 
     /**
      * Show the popup, anchored to a button.
@@ -124,7 +184,9 @@ Djblets.AddIntegrationPopupView = Backbone.View.extend({
      *     $button (jQuery):
      *         The button element to anchor to.
      */
-    show($button) {
+    show(
+        $button: JQuery,
+    ) {
         const $window = $(window);
         const $el = this.$el;
         const el = this.el;
@@ -213,10 +275,10 @@ Djblets.AddIntegrationPopupView = Backbone.View.extend({
          * the window resized.
          */
         $(document).one('click.djblets-integrations-popup',
-                        () => this.hide());
+                        this.hide.bind(this));
         $(window).one('resize.djblets-integrations-popup',
-                      () => this.hide());
-    },
+                      this.hide.bind(this));
+    }
 
     /**
      * Hide the popup.
@@ -229,5 +291,5 @@ Djblets.AddIntegrationPopupView = Backbone.View.extend({
 
         $(document).off('click.djblets-integrations-popup');
         $(window).off('resize.djblets-integrations-popup');
-    },
-});
+    }
+}

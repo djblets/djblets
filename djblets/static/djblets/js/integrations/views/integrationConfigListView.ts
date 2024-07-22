@@ -1,4 +1,43 @@
-(function() {
+/**
+ * View for managing the integration configurations list.
+ */
+
+import {
+    type EventsHash,
+    type Result,
+    BaseView,
+    spina,
+} from '@beanbag/spina';
+
+import {
+    ConfigFormsList,
+    ConfigFormsListItem,
+    ConfigFormsListItems,
+    ConfigFormsTableItemView,
+    ConfigFormsTableView,
+} from 'djblets/configForms';
+import {
+    type ListItemAttrs,
+} from 'djblets/configForms/models/listItemModel';
+import {
+    type IntegrationOptions,
+    AddIntegrationPopupView,
+} from './addIntegrationPopupView';
+
+
+/**
+ * Attributes for the IntegrationConfigItem model.
+ *
+ * Version Added:
+ *     6.0
+ */
+interface IntegrationConfigItemAttrs extends ListItemAttrs {
+    /** The ID of the integration. */
+    integrationID: string;
+
+    /** The name of the integration. */
+    name: string;
+}
 
 
 /**
@@ -7,11 +46,14 @@
  * This stores basic display, actions, and API information for the
  * configuration.
  */
-const IntegrationConfigItem = Djblets.Config.ListItem.extend({
-    defaults: _.defaults({
+@spina
+class IntegrationConfigItem extends ConfigFormsListItem<
+    IntegrationConfigItemAttrs
+> {
+    static defaults: Result<Partial<IntegrationConfigItemAttrs>> = {
         removeLabel: _`Delete`,
         showRemove: true,
-    }, Djblets.Config.ListItem.prototype.defaults),
+    };
 
     /**
      * Return the API URL for the item.
@@ -23,9 +65,9 @@ const IntegrationConfigItem = Djblets.Config.ListItem.extend({
      *     string:
      *     The URL to perform API operations on.
      */
-    url() {
+    url(): string {
         return this.get('editURL');
-    },
+    }
 
     /**
      * Return the attributes for this item from a provided payload.
@@ -39,7 +81,15 @@ const IntegrationConfigItem = Djblets.Config.ListItem.extend({
      *     object:
      *     The new attribute data from the item.
      */
-    parse(data) {
+    parse(
+        data: {
+            editURL: string;
+            enabled: boolean;
+            id: string;
+            integrationID: string;
+            name: string;
+        },
+    ): IntegrationConfigItemAttrs {
         return {
             editURL: data.editURL,
             id: data.id,
@@ -47,8 +97,8 @@ const IntegrationConfigItem = Djblets.Config.ListItem.extend({
             itemState: data.enabled ? 'enabled' : 'disabled',
             name: data.name,
         };
-    },
-});
+    }
+}
 
 
 /**
@@ -57,15 +107,16 @@ const IntegrationConfigItem = Djblets.Config.ListItem.extend({
  * This renders some basic information on the state of the configuration,
  * and provides actions for deleting configurations.
  */
-const IntegrationConfigItemView = Djblets.Config.TableItemView.extend({
-    className:
-        'djblets-c-integration-config djblets-c-config-forms-list__item',
+@spina
+class IntegrationConfigItemView extends ConfigFormsTableItemView {
+    static className =
+        'djblets-c-integration-config djblets-c-config-forms-list__item';
 
-    actionHandlers: {
+    static actionHandlers: EventsHash = {
         'delete': '_onDeleteClicked',
-    },
+    };
 
-    template: _.template(dedent`
+    static template = _.template(dedent`
         <td class="djblets-c-integration-config__name">
          <img src="<%- iconSrc %>"
               srcset="<%- iconSrcSet %>"
@@ -77,7 +128,7 @@ const IntegrationConfigItemView = Djblets.Config.TableItemView.extend({
         </td>
         <td class="djblets-c-config-forms-list__item-state"></td>
         <td></td>
-    `),
+    `);
 
     /**
      * Return context data for rendering the item's template.
@@ -96,7 +147,7 @@ const IntegrationConfigItemView = Djblets.Config.TableItemView.extend({
             iconSrcSet: integration.iconSrcSet,
             integrationName: integration.name,
         };
-    },
+    }
 
     /**
      * Handle the Delete action on the item.
@@ -126,8 +177,41 @@ const IntegrationConfigItemView = Djblets.Config.TableItemView.extend({
                 ],
                 title: _`Are you sure you want to delete this integration?`,
             });
-    },
-});
+    }
+}
+
+
+/**
+ * Options for the IntegrationConfigListView.
+ *
+ * Version Added:
+ *     6.0
+ */
+export interface IntegrationConfigListViewOptions {
+    /** The set of existing integration configurations. */
+    configs: IntegrationConfigItemAttrs[];
+
+    /** An array of integration IDs, in display order. */
+    integrationIDs: string[];
+
+    /** A mapping of integration ID to information. */
+    integrationsMap: Record<string, IntegrationOptions>;
+}
+
+
+/**
+ * Options for the integration config collection.
+ *
+ * Version Added:
+ *     6.0
+ */
+interface IntegrationConfigListItemsOptions {
+    /** The CSRF token to include with form submissions. */
+    csrfToken: string;
+
+    /** A mapping of integration ID to information. */
+    integrationsMap: Record<string, IntegrationOptions>;
+}
 
 
 /**
@@ -135,66 +219,76 @@ const IntegrationConfigItemView = Djblets.Config.TableItemView.extend({
  *
  * This handles events for the Add Integration button and the resulting popup.
  */
-Djblets.IntegrationConfigListView = Backbone.View.extend({
-    events: {
+@spina
+export class IntegrationConfigListView extends BaseView<
+    undefined,
+    HTMLDivElement,
+    IntegrationConfigListViewOptions
+> {
+    static events: EventsHash = {
         'click .djblets-c-integration-configs__add':
             '_onAddIntegrationClicked',
-    },
+    };
 
-    addIntegrationPopupViewType: Djblets.AddIntegrationPopupView,
-    listItemType: IntegrationConfigItem,
-    listItemViewType: IntegrationConfigItemView,
-    listItemsCollectionType: Djblets.Config.ListItems,
-    listViewType: Djblets.Config.TableView,
+    /**********************
+     * Instance variables *
+     **********************/
+
+    /** The list of integrations. */
+    list: ConfigFormsList;
+
+    /** The view for the list. */
+    listView: ConfigFormsTableView;
+
+    /** The container element that the list is in. */
+    _$listContainer: JQuery;
+
+    /** An array of integration Ids, in display order. */
+    _integrationIDs: string[];
+
+    /** A mapping of integration ID to information. */
+    _integrationsMap: Record<number, IntegrationOptions>;
+
+    /** The popup view. */
+    _popup: AddIntegrationPopupView;
 
     /**
      * Initialize the view.
      *
      * Args:
-     *     options (object):
+     *     options (IntegrationConfigListViewOptions):
      *         Options for the view.
-     *
-     * Option Args:
-     *     configs (Array):
-     *         An array of data on the configurations, in display order.
-     *
-     *     integrationIDs (Array):
-     *         An array of integration IDs, in display order.
-     *
-     *     integrationsMap (object):
-     *         A mapping of integration ID to information.
      */
-    initialize(options) {
+    initialize(options: IntegrationConfigListViewOptions) {
         this._integrationIDs = options.integrationIDs;
         this._integrationsMap = options.integrationsMap;
 
-        this.list = new Djblets.Config.List(
+        this.list = new ConfigFormsList(
             {},
             {
-                collection: new this.listItemsCollectionType(
+                collection: new ConfigFormsListItems<
+                    IntegrationConfigItem,
+                    IntegrationConfigListItemsOptions
+                >(
                     options.configs,
                     {
                         csrfToken: options.csrfToken,
                         integrationsMap: options.integrationsMap,
-                        model: this.listItemType,
+                        model: IntegrationConfigItem,
                         parse: true,
                     }
                 ),
             });
 
         this._popup = null;
-    },
+    }
 
     /**
      * Render the view.
-     *
-     * Returns:
-     *     Djblets.IntegrationConfigListView:
-     *     This view, for chaining.
      */
-    render() {
-        this.listView = new this.listViewType({
-            ItemView: this.listItemViewType,
+    protected onInitialRender() {
+        this.listView = new ConfigFormsTableView({
+            ItemView: IntegrationConfigItemView,
             el: this.$('.djblets-c-config-forms-list'),
             model: this.list,
         });
@@ -206,9 +300,7 @@ Djblets.IntegrationConfigListView = Backbone.View.extend({
         this.listenTo(this.list.collection, 'add remove',
                       this._showOrHideConfigsList);
         this._showOrHideConfigsList();
-
-        return this;
-    },
+    }
 
     /**
      * Show or hide the list of configurations.
@@ -222,7 +314,7 @@ Djblets.IntegrationConfigListView = Backbone.View.extend({
         } else {
             this._$listContainer.hide();
         }
-    },
+    }
 
     /**
      * Handler for the Add Integration button.
@@ -239,7 +331,7 @@ Djblets.IntegrationConfigListView = Backbone.View.extend({
      *     e (jQuery.Event):
      *         The click event.
      */
-    _onAddIntegrationClicked(e) {
+    _onAddIntegrationClicked(e: Event) {
         e.preventDefault();
         e.stopPropagation();
 
@@ -252,15 +344,12 @@ Djblets.IntegrationConfigListView = Backbone.View.extend({
                 integrations.push(integrationsMap[integrationIDs[i]]);
             }
 
-            this._popup = new this.addIntegrationPopupViewType({
+            this._popup = new AddIntegrationPopupView({
                 integrations: integrations,
             });
             this._popup.render().$el.appendTo(this.$el);
         }
 
-        this._popup.show($(e.target));
-    },
-});
-
-
-})();
+        this._popup.show($(e.target as HTMLElement));
+    }
+}
