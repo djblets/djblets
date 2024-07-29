@@ -11,7 +11,6 @@ from distutils.core import Command
 from setuptools import find_packages, setup
 from setuptools.command.develop import develop
 from setuptools.command.egg_info import egg_info
-from setuptools.command.test import test
 
 from djblets import get_package_version, VERSION
 from djblets.dependencies import (PYTHON_3_MIN_VERSION,
@@ -467,10 +466,6 @@ class InstallNodeDependenciesCommand(Command):
                 'One or more node.js modules could not be installed.')
 
 
-# Tell `setup.py tests` how to invoke our test suite.
-test.run_tests = lambda *args, **kwargs: os.system('tests/runtests.py')
-
-
 with open('README.rst', 'r') as fp:
     long_description = fp.read()
 
@@ -496,7 +491,6 @@ setup(
     python_requires='>=3.7',
     include_package_data=True,
     zip_safe=False,
-    test_suite='dummy',
     cmdclass={
         'audit_node_deps': AuditNodeDependenciesCommand,
         'build_media': BuildMediaCommand,
