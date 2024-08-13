@@ -1,27 +1,31 @@
 """Managers for Django database models."""
 
-from django.db import models, IntegrityError
+from __future__ import annotations
+
+from typing import TypeVar
+
+from django.db.models import Manager, Model
+from housekeeping import ClassDeprecatedMixin
+
+from djblets.deprecation import RemovedInDjblets80Warning
 
 
-class ConcurrencyManager(models.Manager):
+_T_co = TypeVar('_T_co', bound=Model, covariant=True)
+
+
+class ConcurrencyManager(ClassDeprecatedMixin,
+                         Manager[_T_co],
+                         warning_cls=RemovedInDjblets80Warning):
+    """A Django manager designed to work around database concurrency issues.
+
+    This was used in very old versions of Django where the
+    :py:meth:`get_or_create` method could raise IntegrityErrors due to
+    concurrency. Since Django 1.0, the regular Manager has protections against
+    this.
+
+    Deprecated:
+        6.0:
+        Because this is no longer necessary, this class has been deprecated and
+        will be removed in Djblets 8.0. Any subclasses should change to just
+        inherit from :py:class:`django.db.models.Manager`.
     """
-    A class designed to work around database concurrency issues.
-    """
-    def get_or_create(self, **kwargs):
-        """
-        A wrapper around get_or_create that makes a final attempt to get
-        the object if the creation fails.
-
-        This helps with race conditions in the database where, between the
-        original get() and the create(), another process created the object,
-        causing us to fail. We'll then execute a get().
-
-        This is still prone to race conditions, but they're even more rare.
-        A delete() would have to happen before the unexpected create() but
-        before the get().
-        """
-        try:
-            return super(ConcurrencyManager, self).get_or_create(**kwargs)
-        except IntegrityError:
-            kwargs.pop('defaults', None)
-            return self.get(**kwargs)
