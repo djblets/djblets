@@ -11,15 +11,16 @@
 
 <div class="fields-row">
  <div class="field">
-  {% label_tag form.avatar_service_id %}
-  {{form.avatar_service_id}}
+{% with field=form.avatar_service_id %}
+{%  include "configforms/config_page_form_field.html" %}
+{% endwith %}
  </div>
 </div>
 
-{% for service_id, form in form.avatar_service_forms.items %}
+{% for service_id, subform in form.avatar_service_forms.items %}
 <fieldset class="avatar-service-fields" data-avatar-service-id="{{service_id}}"
           disabled hidden>
- {{form.render|safe}}
+ {{subform.render|safe}}
 </fieldset>
 {% endfor %}
 <script>
