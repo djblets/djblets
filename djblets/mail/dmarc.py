@@ -198,9 +198,10 @@ class DmarcRecord:
             The parsed record, if this is a valid DMARC record. If this
             is not valid, ``None`` will be returned instead.
         """
-        if not txt_record.startswith('"v=DMARC1'):
-            # Records must start with this exact string. If this is missing,
-            # it's not a valid DMARC record.
+        if not txt_record.startswith(('v=DMARC1', '"v=DMARC1')):
+            # Records must start with either of these exact strings (the latter
+            # is there for legacy reasons). If this is missing, it's not a
+            # valid DMARC record.
             return None
 
         fields: Dict[str, str] = {}
@@ -266,9 +267,12 @@ def _fetch_dmarc_record(
     """
     def _fetch_record() -> str:
         try:
-            return dns.resolver.resolve('_dmarc.%s' % hostname,
-                                        dns.rdatatype.TXT,
-                                        search=True)[0].to_text()
+            return b' '.join(
+                dns.resolver.resolve('_dmarc.%s' % hostname,
+                                     dns.rdatatype.TXT,
+                                     search=True)[0]
+                .strings
+            ).decode('utf-8')
         except (IndexError,
                 dns.resolver.NXDOMAIN,
                 dns.resolver.NoAnswer,
@@ -280,7 +284,7 @@ def _fetch_dmarc_record(
     try:
         if use_cache:
             record_str = cache_memoize(
-                'dmarc-record-%s' % hostname,
+                'dmarc-record:%s' % hostname,
                 lambda: _fetch_record(),
                 expiration=cache_expiration)
         else:

@@ -178,6 +178,29 @@ class DmarcTests(DmarcDnsTestsMixin, TestCase):
                 'sp': 'reject',
             })
 
+    def test_get_dmarc_record_with_multiple_strings(self) -> None:
+        """Testing get_dmarc_record with DMARC record with multiple strings"""
+        self.dmarc_txt_records['_dmarc.example.com'] = [
+            'v=DMARC1;',
+            'p=quarantine;',
+            'pct=20',
+        ]
+
+        record = get_dmarc_record('example.com', use_cache=False)
+        assert record
+
+        self.assertEqual(record.hostname, 'example.com')
+        self.assertEqual(record.policy, DmarcPolicy.QUARANTINE)
+        self.assertEqual(record.subdomain_policy, DmarcPolicy.UNSET)
+        self.assertEqual(record.pct, 20)
+        self.assertEqual(
+            record.fields,
+            {
+                'v': 'DMARC1',
+                'p': 'quarantine',
+                'pct': '20',
+            })
+
     def test_get_dmarc_record_with_different_whitespace(self):
         """Testing get_dmarc_record with DMARC record with different amounts
         of whitespace in record
