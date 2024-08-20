@@ -37,7 +37,7 @@ class DmarcDnsTestsMixin(MixinParentClass):
     #:
     #: Type:
     #:     dict
-    dmarc_txt_records: Dict[str, Union[bytes, str]]
+    dmarc_txt_records: Dict[str, Union[bytes, str, list[Union[bytes, str]]]]
 
     def setUp(self) -> None:
         self.dmarc_txt_records = {}
@@ -91,6 +91,17 @@ class DmarcDnsTestsMixin(MixinParentClass):
                 The domain did not have a pre-populated result.
         """
         try:
-            return [TXT(1, 16, [force_bytes(self.dmarc_txt_records[qname])])]
+            strings: list[Union[bytes, str]]
+            value = self.dmarc_txt_records[qname]
+
+            if isinstance(value, list):
+                strings = value
+            else:
+                strings = [value]
+
+            return [TXT(1, 16, [
+                force_bytes(s)
+                for s in strings
+            ])]
         except KeyError:
             raise dns.resolver.NXDOMAIN
