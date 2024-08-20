@@ -1,0 +1,75 @@
+.. default-intersphinx:: django4.2 djblets5.x python3
+
+
+===========================
+Djblets 5.1.1 Release Notes
+===========================
+
+**Release date**: August 19, 2024
+
+
+Installation
+============
+
+To install Djblets 5.1.1, run:
+
+.. code-block:: console
+
+   $ pip3 install Djblets==5.1.1
+
+
+To learn more, see:
+
+* `Documentation <https://www.reviewboard.org/docs/djblets/5.x/>`_
+* `Djblets on PyPI <https://pypi.org/project/Djblets/>`_
+* `Djblets on GitHub <https://github.com/djblets/djblets/>`_
+
+
+.. _Django: https://www.djangoproject.com/
+
+
+Packaging
+=========
+
+* :pypi:`Django` 4.2.15 (or a higher 4.2.x) is now required.
+
+* Fixed deprecation warnings and errors with building Djblets on newer
+  versions of the :pypi:`setuptools` packaging backend.
+
+
+djblets.avatars
+===============
+
+* Updated the avatar configuration form to utilize some of our standard
+  Config Forms HTML templates for rendering.
+
+  This helps avoid some presentation issues that regressed in Djblets 5.
+
+
+djblets.configforms
+===================
+
+* Added styling for ``<input type="tel">`` form fields.
+
+  These will now display like other text-based input fields.
+
+* Removed some default styling for generic labels.
+
+  We had a margin and a block display set for all labels, which conflicted
+  with other styles, and was a holdover from earlier implementations. This
+  styling has been removed to avoid conflicts.
+
+
+djblets.mail
+============
+
+* Improved DNS record parsing to handle a single DMARC record split into
+  multiple quoted strings.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin
