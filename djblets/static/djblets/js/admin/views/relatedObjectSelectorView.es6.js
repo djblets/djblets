@@ -168,7 +168,7 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
     _onItemSelected(item, addToInput) {
         if (this.options.multivalued) {
             const $item = $(`<${this.optionTagName}>`)
-                .html(this.renderOption(item));
+                .html(this.renderSelectedOption(item));
             const $items = this._$selected.children();
             const text = $item.text();
 
@@ -236,6 +236,21 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
      */
     renderOption(/* item */) {
         return '';
+    },
+
+    /**
+     * Render an option in the selected list.
+     *
+     * By default, this uses the same implementation as renderOption. If a
+     * widget wants to display selected options differently, they may override
+     * this.
+     *
+     * Returns:
+     *     string:
+     *     HTML to insert into the selected items list.
+     */
+    renderSelectedOption() {
+        return this.renderOption();
     },
 
     /**
