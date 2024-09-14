@@ -3,6 +3,14 @@
 import os
 import sys
 
+scripts_dir = os.path.abspath(os.path.dirname(__file__))
+
+# Source root directory
+sys.path.insert(0, os.path.abspath(os.path.join(scripts_dir, '..', '..')))
+
+# Script config directory
+sys.path.insert(0, os.path.join(scripts_dir, 'conf'))
+
 import django
 from django.core.management import call_command
 

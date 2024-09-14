@@ -118,8 +118,8 @@ def build_dependency_list(deps, version_prefix=''):
 
     This can be used along with :py:data:`package_dependencies`,
     :py:data:`npm_dependencies`, or other dependency dictionaries to build a
-    list of dependency specifiers for use on the command line or in
-    :file:`setup.py`.
+    list of dependency specifiers for use on the command line and in
+    :file:`build-backend.py`.
 
     Args:
         deps (dict):
