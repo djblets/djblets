@@ -1,3 +1,4 @@
+# General package contents
 graft contrib
 graft djblets
 graft docs
@@ -10,7 +11,26 @@ include COPYING
 include INSTALL
 include NEWS
 include README
-include *-requirements.txt
 include djblets/py.typed
 
 global-exclude .*.sw[op] *.py[co] __pycache__ .DS_Store
+
+# Python builds
+include build-backend.py
+include *-requirements.txt
+
+# Unit testing
+include conftest.py
+include tox.ini
+graft tests
+prune tests/static
+
+# Media builds
+include .browserslistrc
+include .eslintrc.yaml
+include babel.config.json
+include djblets/package.json
+include package-lock.json
+include package.json
+include rollup.config.js
+include tsconfig.json
