@@ -192,9 +192,13 @@ def build_editable(
     """
     _build_data_files(collect_static=False)
 
-    return _build_meta.build_editable(wheel_directory,
-                                      config_settings,
-                                      metadata_directory)
+    return _build_meta.build_editable(
+        wheel_directory,
+        {
+            'editable_mode': 'compat',
+            **(config_settings or {})
+        },
+        metadata_directory)
 
 
 def build_sdist(
