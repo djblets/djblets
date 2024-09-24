@@ -154,7 +154,10 @@
     }
 
     .djblets-c-integration-config__integration-name {
-      color: #djblets-ns-config-forms.list[@state-disabled-color];
+      /*
+       * This is the same as the disabled state in djblets-ns-config-forms.list.
+       */
+      color: var(--ink-p-grey-700);
     }
   }
 
