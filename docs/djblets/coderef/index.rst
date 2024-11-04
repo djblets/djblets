@@ -127,6 +127,7 @@ Database Utilities
    djblets.db.backends.mysql.base
    djblets.db.fields
    djblets.db.fields.base64_field
+   djblets.db.fields.comma_separated_values_field
    djblets.db.fields.counter_field
    djblets.db.fields.json_field
    djblets.db.fields.modification_timestamp_field

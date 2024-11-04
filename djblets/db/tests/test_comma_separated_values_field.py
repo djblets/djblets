@@ -15,6 +15,15 @@ class TestModel(models.Model):
         max_length=512,
         blank=True)
 
+    choices_field = CommaSeparatedValuesField(
+        choices=[
+            ('a', 'Item A'),
+            ('b', 'Item B'),
+            ('c', 'Item C'),
+        ],
+        max_length=512,
+        blank=True)
+
 
 class CommaSeparatedValuesFieldTests(TestModelsLoaderMixin, TestCase):
     """Tests for djblets.db.fields.comma_separated_values_field."""
@@ -35,3 +44,42 @@ class CommaSeparatedValuesFieldTests(TestModelsLoaderMixin, TestCase):
 
         obj.refresh_from_db()
         self.assertEqual(obj.field, ['a', 'b', 'c'])
+
+    def test_get_list(self) -> None:
+        """Testing CommaSeparatedValuesField.get_<fieldname>_list"""
+        obj = TestModel()
+        obj.field = ['a', 'b', 'c', 'c']
+
+        self.assertEqual(obj.get_field_list(), ['a', 'b', 'c', 'c'])
+
+    def test_get_list_with_choices(self) -> None:
+        """Testing CommaSeparatedValuesField.get_<fieldname>_list with
+        choices
+        """
+        obj = TestModel()
+        obj.choices_field = ['a', 'b', 'c', 'c', 'z']
+
+        self.assertEqual(obj.get_choices_field_list(), [
+            'Item A',
+            'Item B',
+            'Item C',
+            'Item C',
+            'z',
+        ])
+
+    def test_get_display(self) -> None:
+        """Testing CommaSeparatedValuesField.get_<fieldname>_list"""
+        obj = TestModel()
+        obj.field = ['a', 'b', 'c', 'c']
+
+        self.assertEqual(obj.get_field_display(), 'a, b, c, c')
+
+    def test_get_display_with_choices(self) -> None:
+        """Testing CommaSeparatedValuesField.get_<fieldname>_list with
+        choices
+        """
+        obj = TestModel()
+        obj.choices_field = ['a', 'b', 'c', 'c', 'z']
+
+        self.assertEqual(obj.get_choices_field_display(),
+                         'Item A, Item B, Item C, Item C, z')
