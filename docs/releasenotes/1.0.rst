@@ -739,7 +739,7 @@ djblets.extensions
 Contributors
 ============
 
-* Barret Rennie
+* Beth Rennie
 * Christian Hammond
 * David Trowbridge
 * John Larmie

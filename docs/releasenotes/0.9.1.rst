@@ -58,5 +58,5 @@ djblets.util
 Contributors
 ============
 
-* Barret Rennie
+* Beth Rennie
 * Weijie Sun

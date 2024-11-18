@@ -53,7 +53,7 @@ djblets.db
 * :py:class:`RelationCounterField` now has a default value for
   ``rel_field_name``, allowing it to be used in a database evolution.
 
-  Patch by Barret Rennie.
+  Patch by Beth Rennie.
 
 
 djblets.extensions
@@ -102,7 +102,7 @@ djblets.urls.resolvers
 Contributors
 ============
 
-* Barret Rennie
+* Beth Rennie
 * Christian Hammond
 * David Trowbridge
 * Justin Maillet
