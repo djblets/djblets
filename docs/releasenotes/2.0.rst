@@ -164,7 +164,7 @@ djblets.db
 * Fixed a rare infinite recursion issue in
   :py:class:`~djblets.db.fields.counter_field.CounterField`.
 
-  Patch by Barret Rennie.
+  Patch by Beth Rennie.
 
 * Removed the deprecated ``encoder`` argument in the
   :py:class:`~djblets.db.fields.json_field.JSONField` constructor, in favor
@@ -418,7 +418,7 @@ djblets.webapi
 Contributors
 ============
 
-* Barret Rennie
+* Beth Rennie
 * Christian Hammond
 * David Trowbridge
 * Hailan Xu
