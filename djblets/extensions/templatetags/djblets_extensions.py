@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import logging
-import warnings
 from typing import Any, Callable, Iterator, TYPE_CHECKING, Union
 
-from django import template
+from django.template import Library, RequestContext
 from django.utils.html import format_html_join
-from django.utils.inspect import func_accepts_kwargs
 from django.utils.safestring import mark_safe
 from pipeline.conf import settings as pipeline_settings
 from pipeline.templatetags.pipeline import JavascriptNode, StylesheetNode
@@ -35,7 +33,7 @@ else:
 
 
 logger = logging.getLogger(__name__)
-register = template.Library()
+register = Library()
 
 
 class ExtensionStaticMediaNodeMixin(_ExtensionStaticMediaNodeMixinBase):
@@ -95,7 +93,7 @@ class ExtensionStylesheetNode(ExtensionStaticMediaNodeMixin, StylesheetNode):
 
 @register.simple_tag(takes_context=True)
 def template_hook_point(
-    context: Context,
+    context: Union[Context, RequestContext],
     name: str,
 ) -> SafeString:
     """Register a place where TemplateHooks can render to.
@@ -104,7 +102,7 @@ def template_hook_point(
         context (dict):
             The template rendering context.
 
-        name (unicode):
+        name (str):
             The name of the CSS bundle to render.
 
     Returns:
@@ -112,7 +110,12 @@ def template_hook_point(
         The rendered HTML.
     """
     def _render_hooks() -> Iterator[tuple[Union[str, SafeString]]]:
-        request: HttpRequest = context['request']
+        request: HttpRequest
+
+        if isinstance(context, RequestContext):
+            request = context.request
+        else:
+            request = context['request']
 
         for hook in TemplateHook.by_name(name):
             try:

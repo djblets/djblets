@@ -9,6 +9,12 @@
 Djblets.RelatedObjectSelectorView = Backbone.View.extend({
     className: 'related-object-selector',
 
+    /** Whether to automatically add a close action to selected options. */
+    autoAddClose: true,
+
+    /** The tag name to use for selected options. */
+    optionTagName: 'li',
+
     /**
      * The search placeholder text.
      *
@@ -161,28 +167,31 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
      */
     _onItemSelected(item, addToInput) {
         if (this.options.multivalued) {
-            const $li = $('<li>').html(this.renderOption(item));
+            const $item = $(`<${this.optionTagName}>`)
+                .html(this.renderSelectedOption(item));
             const $items = this._$selected.children();
-            const text = $li.text();
+            const text = $item.text();
 
-            $('<span class="remove-item fa fa-close">')
-                .click(() => this._onItemRemoved($li, item))
-                .appendTo($li);
+            if (this.autoAddClose) {
+                $('<span class="remove-item fa fa-close">')
+                    .click(() => this._onItemRemoved($item, item))
+                    .appendTo($item);
+            }
 
             let attached = false;
 
             for (let i = 0; i < $items.length; i++) {
-                const $item = $items.eq(i);
+                const $i = $items.eq(i);
 
-                if ($item.text().localeCompare(text) > 0) {
-                    $item.before($li);
+                if ($i.text().localeCompare(text) > 0) {
+                    $i.before($item);
                     attached = true;
                     break;
                 }
             }
 
             if (!attached) {
-                $li.appendTo(this._$selected);
+                $item.appendTo(this._$selected);
             }
 
             this._selectedIDs.set(item.id, item);
@@ -200,14 +209,14 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
      * Callback for when an item is removed from the list.
      *
      * Args:
-     *     $li (jQuery):
+     *     $item (jQuery):
      *         The element representing the item in the selected list.
      *
      *     item (object):
      *         The item being removed.
      */
-    _onItemRemoved($li, item) {
-        $li.remove();
+    _onItemRemoved($item, item) {
+        $item.remove();
         this._selectedIDs.delete(item.id);
         this._updateInput();
     },
@@ -227,6 +236,21 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
      */
     renderOption(/* item */) {
         return '';
+    },
+
+    /**
+     * Render an option in the selected list.
+     *
+     * By default, this uses the same implementation as renderOption. If a
+     * widget wants to display selected options differently, they may override
+     * this.
+     *
+     * Returns:
+     *     string:
+     *     HTML to insert into the selected items list.
+     */
+    renderSelectedOption() {
+        return this.renderOption();
     },
 
     /**

@@ -82,7 +82,7 @@ package_dependencies = {
 #: Dependencies required for static media building.
 frontend_buildkit_npm_dependencies: Dict[str, str] = {
     '@beanbag/frontend-buildkit': '^1.2.0',
-    '@beanbag/ink': '^0.5.2',
+    '@beanbag/ink': '^0.6.0',
     '@beanbag/spina': '^3.1.1',
     '@types/jquery': '^3.5.30',
     '@types/underscore': '^1.11.4',
@@ -117,8 +117,8 @@ def build_dependency_list(deps, version_prefix=''):
 
     This can be used along with :py:data:`package_dependencies`,
     :py:data:`npm_dependencies`, or other dependency dictionaries to build a
-    list of dependency specifiers for use on the command line or in
-    :file:`setup.py`.
+    list of dependency specifiers for use on the command line and in
+    :file:`build-backend.py`.
 
     Args:
         deps (dict):

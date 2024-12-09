@@ -1,0 +1,58 @@
+[build-system]
+requires = [
+    'django_evolution~=2.3',
+    'setuptools>=74',
+]
+build-backend = 'build-backend'
+backend-path = ['.']
+
+[project]
+name = 'Djblets'
+description = 'A collection of useful classes and functions for developing large-scale Django-based web applications.'
+authors = [
+    {name = 'Beanbag, Inc.', email = 'questions@beanbaginc.com'},
+]
+license = { text = 'MIT' }
+readme = 'README.rst'
+requires-python = '>=3.8'
+dynamic = ['dependencies', 'version']
+
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Environment :: Web Environment',
+    'Framework :: Django',
+    'Framework :: Django :: 4.2',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: MIT License',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Topic :: Software Development',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+]
+
+
+[project.urls]
+homepage = 'https://github.com/djblets/djblets'
+documentation = 'https://github.com/djblets/djblets'
+repository = 'https://github.com/djblets/djblets'
+
+
+[tool.setuptools.package-data]
+djblets = ['py.typed']
+
+
+[tool.setuptools.packages.find]
+where = ['.']
+include = ['djblets*']
+namespaces = false
+
+
+[tool.setuptools.dynamic]
+dependencies = { file = 'package-requirements.txt' }
+version = { attr = 'djblets.__version__' }
