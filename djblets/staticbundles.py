@@ -53,10 +53,6 @@ PIPELINE_JAVASCRIPT = {
     'djblets-integrations': {
         'source_filenames': (
             'djblets/js/integrations/index.ts',
-
-            # Legacy JavaScript
-            'djblets/js/integrations/views/addIntegrationPopupView.es6.js',
-            'djblets/js/integrations/views/integrationConfigListView.es6.js',
         ),
         'output_filename': 'djblets/js/integrations.min.js',
     },
@@ -91,8 +87,6 @@ PIPELINE_JAVASCRIPT = {
             'djblets/js/forms/views/tests/conditionSetViewTests.es6.js',
             'djblets/js/forms/views/tests/conditionValueFormFieldViewTests.es6.js',
             'djblets/js/forms/views/tests/listEditViewTests.es6.js',
-            'djblets/js/integrations/views/tests/addIntegrationPopupViewTests.es6.js',
-            'djblets/js/integrations/views/tests/integrationConfigListViewTests.es6.js',
             'djblets/js/utils/tests/urlsTests.es6.js',
         ),
         'output_filename': 'djblets/js/tests.min.js',

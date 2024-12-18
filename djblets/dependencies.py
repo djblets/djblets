@@ -35,7 +35,7 @@ django_doc_major_version = '4.2'
 reviewboard_doc_major_version = 'dev'
 
 #: The version range required for Django.
-django_version = '~=4.2.15'
+django_version = '~=4.2.17'
 
 ###########################################################################
 # Python dependencies
@@ -43,7 +43,7 @@ django_version = '~=4.2.15'
 
 #: All dependencies required to install Djblets.
 package_dependencies = {
-    'cryptography': '>=41.0.4',
+    'cryptography': '>=41.0.7',
     'Django': django_version,
     'django-pipeline': '~=3.1.0',
     'dnspython': '>=2.3.0',
@@ -53,7 +53,7 @@ package_dependencies = {
     'publicsuffixlist': '~=0.10.0',
     'python-dateutil': '>=2.7',
     'pytz': '',
-    'typing_extensions': '>=4.4',
+    'typing_extensions': '>=4.12.2',
 
     # importlib.metadata compatibility import.
     #
@@ -83,6 +83,7 @@ package_dependencies = {
 frontend_buildkit_npm_dependencies: Dict[str, str] = {
     '@beanbag/frontend-buildkit': '^1.2.0',
     '@beanbag/ink': '^0.6.0',
+    '@beanbag/jasmine-suites': '~2.0.0',
     '@beanbag/spina': '^3.1.1',
     '@types/jquery': '^3.5.30',
     '@types/underscore': '^1.11.4',

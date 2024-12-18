@@ -1,3 +1,16 @@
+import { suite } from '@beanbag/jasmine-suites';
+import {
+    beforeEach,
+    describe,
+    expect,
+    it,
+    spyOn,
+} from 'jasmine-core';
+
+import { ConfigFormsListItems } from 'djblets/configForms';
+import { IntegrationConfigListView } from 'djblets/integrations';
+
+
 suite('djblets/integrations/views/IntegrationConfigListView', function() {
     const template = _.template(dedent`
         <div class="djblets-c-integration-configs">
@@ -6,13 +19,13 @@ suite('djblets/integrations/views/IntegrationConfigListView', function() {
          </div>
         </div>
     `);
-    let collection;
-    let view;
+    let collection: ConfigFormsListItems;
+    let view: IntegrationConfigListView;
 
     beforeEach(function() {
         const $el = $(template()).appendTo($testsScratch);
 
-        view = new Djblets.IntegrationConfigListView({
+        view = new IntegrationConfigListView({
             configs: [
                 {
                     'editURL' : 'configs/1/',
