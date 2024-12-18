@@ -5,15 +5,17 @@
              djblets-l-config-forms-container">
 {% if browse_extensions_url %}
   <a href="{{browse_extensions_url}}"
-     class="djblets-c-config-forms-list-action btn">
-   <span class="djblets-o-config-forms-icon-add"></span>
-   {% trans "More Extensions" %}
+     class="djblets-c-config-forms-list-action ink-c-button"
+     role="button">
+   <span class="ink-c-button__icon ink-i-add"></span>
+   <label class="ink-c-button__label">{% trans "More Extensions" %}</label>
   </a>
 {% endif %}
-  <button class="djblets-c-config-forms-list-action
-                 djblets-c-extensions__reload">
-   <span class="fa fa-refresh"></span>
-   {% trans "Reload Extensions" %}
+  <button class="djblets-c-config-forms-list-action ink-c-button
+                 djblets-c-extensions__reload"
+          type="button">
+   <span class="ink-c-button__icon ink-i-refresh"></span>
+   <label class="ink-c-button__label">{% trans "Reload Extensions" %}</label>
   </button>
  </div>
 
@@ -22,7 +24,7 @@
          aria-live="polite" aria-busy="true">
    <tr class="djblets-c-config-forms-list__item">
     <td>
-     <span class="djblets-o-spinner" aria-hidden="true"></span>
+     <span class="ink-c-spinner" aria-hidden="true"></span>
      {% trans "Loading extensions..." %}
     </td>
    </tr>

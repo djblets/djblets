@@ -32,9 +32,15 @@
 @config-forms-forms-width: 60em;
 @config-forms-gap: 2em;
 
-@config-forms-text-field-border-color: var(--ink-p-input-border-color);
-@config-forms-text-field-border-radius: var(--ink-u-border-radius-input);
-@config-forms-text-field-border-size: var(--ink-u-border-thin);
+/*
+ * Legacy variable definitions.
+ *
+ * These are no longer used within Djblets itself, but might still be
+ * referenced by consumers. These will be removed in Djblets 7.
+ */
+@config-forms-text-field-border-color: #AAA;
+@config-forms-text-field-border-radius: 4px;
+@config-forms-text-field-border-size: 1px;
 @config-forms-text-field-padding-horiz: 8px;
 @config-forms-text-field-padding-vert: 4px;
 
@@ -49,7 +55,7 @@
 
 #djblets-ns-config-forms() {
   @container-padding: 1em;
-  @border-color: var(--ink-c-data-table-border-color);
+  @border-color: #AAAAAA;
   @border-radius: 6px;
 
   /**
@@ -78,15 +84,6 @@
   }
 
   .list() {
-    @bg-color: #FFFFFF;
-    @border-color: #djblets-ns-config-forms[@border-color];
-
-    @column-bg-color: #F0F0F3;
-    @column-sep-color: #CCCCCC;
-
-    @item-border-color: #E9E9E9;
-    @item-hover-bg-color: #FAFAFA;
-
     @item-line-height: 32px;
 
     @item-padding-horiz-small: 0.5em;
@@ -103,18 +100,6 @@
     @item-action-padding-vert: 0.5em;
     @item-action-padding-horiz: 1em;
     @item-action-padding: @item-action-padding-vert @item-action-padding-horiz;
-
-    @state-disabled-color: var(--ink-p-grey-700);
-    @state-disabled-icon: var(--ink-i-close);
-    @state-disabled-text-color: var(--ink-p-grey-700);
-
-    @state-enabled-color: var(--ink-p-green-500);
-    @state-enabled-icon: var(--ink-i-check);
-    @state-enabled-text-color: var(--ink-p-green-700);
-
-    @state-error-color: var(--ink-p-red-500);
-    @state-error-icon: var(--ink-i-warning);
-    @state-error-text-color: var(--ink-p-red-700);
 
     /**
      * Define a color state for an item.
@@ -162,6 +147,29 @@
         }
       }
     }
+
+    /*
+     * Legacy variable definitions.
+     *
+     * These are no longer used within Djblets itself, but might still be
+     * referenced by consumers. These will be removed in Djblets 7.
+     */
+    @bg-color: #FFFFFF;
+    @border-color: #djblets-ns-config-forms[@border-color];
+    @column-bg-color: #F0F0F3;
+    @column-sep-color: #CCCCCC;
+    @item-border-color: #E9E9E9;
+    @item-hover-bg-color: #FAFAFA;
+
+    @state-disabled-color: #DDDDDD;
+    @state-disabled-icon: "\f00d";
+    @state-disabled-text-color: darkred;
+    @state-enabled-color: #53CC53;
+    @state-enabled-icon: "\f00c";
+    @state-enabled-text-color: darkgreen;
+    @state-error-color: #E45757;
+    @state-error-icon: "/f057";
+    @state-error-text-color: darkred;
   }
 
   .page() {
@@ -344,8 +352,7 @@
     width: 30em;
     max-width: 30em;
     font-size: inherit;
-    padding: @config-forms-text-field-padding-vert
-             @config-forms-text-field-padding-horiz;
+    padding: var(--ink-u-spacing-xs) var(--ink-u-spacing-s);
   }
 
   option {
@@ -683,8 +690,6 @@
  *     </ul>
  */
 .djblets-c-config-forms-list {
-  @_list-vars: #djblets-ns-config-forms.list();
-
   background: var(--ink-c-data-table-body-bg);
   border-bottom: var(--ink-c-data-table-border);
   border-top: var(--ink-c-data-table-border);
@@ -749,9 +754,9 @@ table.djblets-c-config-forms-list {
 .djblets-c-config-forms-list__column {
   @_list-vars: #djblets-ns-config-forms.list();
 
-  background: @_list-vars[@column-bg-color];
-  border-bottom: 1px @_list-vars[@border-color] solid;
-  border-right: 1px @_list-vars[@column-sep-color] solid;
+  background: var(--ink-c-data-table-header-bg);
+  border-bottom: var(--ink-c-data-table-border);
+  color: var(--ink-c-data-table-header-fg);
   text-align: left;
   padding: @_list-vars[@item-padding-default];
 
@@ -824,11 +829,7 @@ table.djblets-c-config-forms-list {
   li&,
   > td,
   > th {
-    border-bottom:
-      1px
-      var(--if-dark, rgba(255, 255, 255, 0.1))
-      var(--if-light, @_list-vars[@item-border-color])
-      solid;
+    border-bottom: var(--ink-c-data-table-row-border);
     padding: @_list-vars[@item-padding-default];
     list-style: none;
     line-height: @_list-vars[@item-line-height];
@@ -959,7 +960,7 @@ table.djblets-c-config-forms-list {
   /*
    * In practice, there are stylesheets that have higher specificity and will
    * override some of these styles in ways that make things wildly
-   * inconsisten. So, we need to generate some variants to match that.
+   * inconsistent. So, we need to generate some variants to match that.
    */
   &,
   a&,
@@ -1013,23 +1014,21 @@ table.djblets-c-config-forms-list {
 }
 
 
-@_list-vars: #djblets-ns-config-forms.list();
-
 #djblets-ns-config-forms.list.add-item-state(
   @modifier: is-disabled,
-  @color: @_list-vars[@state-disabled-color],
-  @text-color: @_list-vars[@state-disabled-text-color],
-  @icon: @_list-vars[@state-disabled-icon]);
+  @color: var(--ink-p-grey-700),
+  @text-color: var(--ink-p-grey-700),
+  @icon: var(--ink-i-close));
 #djblets-ns-config-forms.list.add-item-state(
   @modifier: is-enabled,
-  @color: @_list-vars[@state-enabled-color],
-  @text-color: @_list-vars[@state-enabled-text-color],
-  @icon: @_list-vars[@state-enabled-icon]);
+  @color: var(--ink-p-green-500),
+  @text-color: var(--ink-p-green-700),
+  @icon: var(--ink-i-check));
 #djblets-ns-config-forms.list.add-item-state(
   @modifier: has-error,
-  @color: @_list-vars[@state-error-color],
-  @text-color: @_list-vars[@state-error-text-color],
-  @icon: @_list-vars[@state-error-icon]);
+  @color: var(--ink-p-red-500),
+  @text-color: var(--ink-p-red-700),
+  @icon: var(--ink-i-warning));
 
 
 /**
@@ -1183,10 +1182,7 @@ table.djblets-c-config-forms-list {
  *     </div>
  */
 .djblets-l-config-forms-container {
-  @_config-forms-vars: #djblets-ns-config-forms();
-  @_border-color: @_config-forms-vars[@border-color];
-
-  margin: @_config-forms-vars[@container-padding];
+  margin: var(--ink-u-spacing-m);
 
   &.-is-bottom-flush {
     margin-bottom: 0;
@@ -1199,8 +1195,8 @@ table.djblets-c-config-forms-list {
   &.-is-recessed {
     margin-left: 0;
     margin-right: 0;
-    border-top: 1px @_border-color solid;
-    border-bottom: 1px @_border-color solid;
+    border-top: var(--ink-c-data-table-border);
+    border-bottom: var(--ink-c-data-table-border);
 
     &.-is-bottom-flush {
       border-bottom: 0;

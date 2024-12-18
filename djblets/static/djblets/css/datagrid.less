@@ -123,7 +123,7 @@
     }
 
     &.datagrid-empty-row {
-      background-color: @_cell-vars[@bg];
+      background-color: var(--ink--c-data-table-row-bg);
     }
   }
 
@@ -157,9 +157,6 @@
 }
 
 .datagrid-header {
-  @_datagrid-vars: #djblets-ns-ui.datagrids();
-  @_header-vars: #djblets-ns-ui.datagrids.header();
-
   --ink-u-icon-std: 14px;
 
   background: var(--ink-c-data-table-header-bg);
@@ -193,8 +190,6 @@
 }
 
 .datagrid-header-drag {
-  @_header-vars: #djblets-ns-ui.datagrids.header();
-
   border-left: var(--ink-g-border-header);
   border-right: var(--ink-g-border-header);
   border-top: 0;

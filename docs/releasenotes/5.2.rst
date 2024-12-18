@@ -1,0 +1,152 @@
+.. default-intersphinx:: django4.2 djblets5.x python3
+
+
+=========================
+Djblets 5.2 Release Notes
+=========================
+
+**Release date**: December 17, 2024
+
+
+Installation
+============
+
+To install Djblets 5.2, run:
+
+.. code-block:: console
+
+   $ pip3 install Djblets==5.2
+
+
+To learn more, see:
+
+* `Documentation <https://www.reviewboard.org/docs/djblets/5.x/>`_
+* `Djblets on PyPI <https://pypi.org/project/Djblets/>`_
+* `Djblets on GitHub <https://github.com/djblets/djblets/>`_
+
+
+.. _Django: https://www.djangoproject.com/
+
+
+Packaging
+=========
+
+* :pypi:`Django` 4.2.17 (or a higher 4.2.x) is now required.
+
+  We previously depended on 4.2.13 or higher.
+
+* Modernized the Djblets package to use the modern Python
+  :file:`pyproject.toml` format.
+
+  This will ensure easy installation going forward.
+
+
+djblets.configforms
+===================
+
+* Reverted changes to LessCSS_ variables for configforms that could affect
+  consumers.
+
+  In :doc:`Djblets 5.1 <5.1>`, the LessCSS variables defining the colors and
+  layout were updated to reference CSS variables instead. This broke any
+  consumers that made calculations on the LessCSS variables (such as applying
+  ``darken()`` on a color).
+
+  We've restored the old variables and deprecated them. Call sites should
+  make use of the new CSS variables instead.
+
+
+.. _LessCSS: https://lesscss.org/
+
+
+djblets.datagrid
+================
+
+* Fixed the color shown for empty rows on datagrids in dark mode.
+
+
+djblets.db
+==========
+
+* Added new helper methods to models using
+  :py:class:`~djblets.db.fields.comma_separated_values_field.
+  CommaSeparatedValuesField`.
+
+  The models gain the following methods:
+
+  * :samp:`get_{fieldname}_list()`
+  * :samp:`get_{fieldname}_display()`
+
+  Both return a version of the stored list using any display names provided
+  by the ``choices=`` argument passed to the field.
+
+
+djblets.extensions
+==================
+
+* Added dark mode support for the extensions UI using :npm:`Ink
+  <@beanbag/ink>`.
+
+* Fixed using :py:class:`django.template.RequestContext` with
+  :py:func:`{% template_hook_point %}
+  <djblets.extensions.templatetags.djblets_extensions.template_hook_point>`.
+
+
+djblets.forms
+=============
+
+* Added dark mode support for several widgets using :npm:`Ink <@beanbag/ink>`.
+
+  This includes:
+
+  * :py:class:`~djblets.forms.widgets.CopyableTextInput`
+  * :py:class:`~djblets.forms.widgets.RelatedObjectWidget`
+
+* Added customization options for the
+  :js:class:`Djblets.RelatedObjectSelectorView` JavaScript class.
+
+ Subclasses of this class can now change the following attributes:
+
+ * :js:attr:`autoAddClose`: Whether to automatically add a close action
+   to selected options (defaults to ``true``).
+
+ * :js:attr:`optionTagName`: The tag name to use for selected options
+   (defaults to ``<li>`` tags).
+
+
+djblets.siteconfig
+==================
+
+* Added new options for patching siteconfig settings using the command line.
+
+  The ``set-siteconfig`` management command now supports the following new
+  arguments:
+
+  * ``--json-patch``: Allows for providing a filename containing a
+    `JSON Patch`_ to apply to the settings.
+
+  * ``--json-merge-patch``: Allows for providing a filename containing a
+    `JSON Merge Patch`_ to apply to the settings.
+
+  Both options can accept a filename or ``-`` to read from standard input.
+  These can create new settings, delete settings, or modify existing
+  settings.
+
+  You will be prompted to confirm the settings before they're applied. You
+  can pass ``--confirm`` to skip this, or ``--dry-run`` to simulate applying
+  settings.
+
+  Note that this feature can be dangerous if used incorrectly. Please test
+  on a backup or staging server if you're unsure.
+
+
+.. _JSON Patch: https://jsonpatch.com
+.. _JSON Merge Patch: https://datatracker.ietf.org/doc/html/rfc7396
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin
