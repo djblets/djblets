@@ -1,11 +1,15 @@
 """Decorators used for WebAPI views."""
 
+from __future__ import annotations
+
 import inspect
 import logging
 from functools import update_wrapper, wraps
+from typing import Callable, TYPE_CHECKING, TypeVar
 
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest
+from typing_extensions import ParamSpec
 
 from djblets.webapi.errors import (NOT_LOGGED_IN, PERMISSION_DENIED,
                                    INVALID_FORM_DATA)
@@ -14,6 +18,10 @@ from djblets.webapi.fields import (BooleanFieldType,
                                    FileFieldType,
                                    IntFieldType,
                                    StringFieldType)
+
+if TYPE_CHECKING:
+    _T = TypeVar('_T')
+    _P = ParamSpec('_P')
 
 
 logger = logging.getLogger(__name__)
@@ -126,6 +134,7 @@ def copy_webapi_decorator_data(from_func, to_func):
     from_optional_fields = getattr(from_func, 'optional_fields', {}).copy()
     to_required_fields = getattr(to_func, 'required_fields', {}).copy()
     to_optional_fields = getattr(to_func, 'optional_fields', {}).copy()
+    webapi_docs = getattr(to_func, 'webapi_docs', None)
 
     update_wrapper(to_func, from_func)
 
@@ -138,6 +147,9 @@ def copy_webapi_decorator_data(from_func, to_func):
         to_func.required_fields.update(to_required_fields)
         to_func.optional_fields = from_optional_fields
         to_func.optional_fields.update(to_optional_fields)
+
+    if webapi_docs is not None:
+        to_func.webapi_docs = webapi_docs
 
     return to_func
 
@@ -351,5 +363,35 @@ def webapi_request_fields(required={}, optional={}, allow_unknown=False):
             _validate.optional_fields.update(view_func.optional_fields)
 
         return _validate
+
+    return _dec
+
+
+def webapi_docs(
+    docs: str,
+) -> Callable[[Callable[_P, _T]], Callable[_P, _T]]:
+    """Add documentation for an API method.
+
+    Args:
+        docs (str):
+            The documentation to attach to the method.
+
+    Returns:
+        callable:
+        The decorated function.
+    """
+    @webapi_decorator
+    def _dec(
+        view_func: Callable[_P, _T],
+    ) -> Callable[_P, _T]:
+        def _inner(
+            *args: _P.args,
+            **kwargs: _P.kwargs,
+        ) -> _T:
+            return view_func(*args, **kwargs)
+
+        _inner.webapi_docs = docs  # pyright:ignore[reportFunctionMemberAccess]
+
+        return _inner
 
     return _dec

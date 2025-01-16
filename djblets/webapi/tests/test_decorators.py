@@ -1,5 +1,7 @@
 """Unit tests for WebAPI decorators."""
 
+from __future__ import annotations
+
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
@@ -7,6 +9,7 @@ from django.test.client import RequestFactory
 from djblets.testing.testcases import TestCase
 from djblets.util.decorators import augment_method_from
 from djblets.webapi.decorators import (copy_webapi_decorator_data,
+                                       webapi_docs,
                                        webapi_login_required,
                                        webapi_permission_required,
                                        webapi_request_fields,
@@ -46,7 +49,7 @@ class WebAPIDecoratorTests(TestCase):
         self.assertTrue(func2.test2)
         self.assertEqual(func2.response_errors, {'a', 'b', 'c', 'd'})
         self.assertEqual(func2.__annotations__, {
-            'return': None,
+            'return': 'None',
         })
         self.assertEqual(func2.__doc__, 'Function 1')
         self.assertEqual(func2.__name__, 'func1')
@@ -68,7 +71,7 @@ class WebAPIDecoratorTests(TestCase):
         self.assertFalse(hasattr(orig_func, 'response_errors'))
 
         self.assertEqual(func.__annotations__, {
-            'return': None,
+            'return': 'None',
         })
         self.assertEqual(func.__doc__, 'Function 1')
         self.assertEqual(func.__name__, 'orig_func')
@@ -88,7 +91,7 @@ class WebAPIDecoratorTests(TestCase):
             """Function 1"""
 
         self.assertEqual(func.__annotations__, {
-            'return': None,
+            'return': 'None',
         })
         self.assertEqual(func.__doc__, 'Function 1')
         self.assertEqual(func.__name__, 'func')
@@ -121,7 +124,7 @@ class WebAPIDecoratorTests(TestCase):
         self.assertFalse(hasattr(orig_func, 'response_errors'))
 
         self.assertEqual(func.__annotations__, {
-            'return': None,
+            'return': 'None',
         })
         self.assertEqual(func.__doc__, 'Function 1')
         self.assertEqual(func.__name__, 'orig_func')
@@ -145,7 +148,7 @@ class WebAPIDecoratorTests(TestCase):
         self.assertFalse(hasattr(orig_func, 'login_required'))
 
         self.assertEqual(func.__annotations__, {
-            'return': None,
+            'return': 'None',
         })
         self.assertEqual(func.__doc__, 'Function 1')
         self.assertEqual(func.__name__, 'orig_func')
@@ -195,7 +198,7 @@ class WebAPIDecoratorTests(TestCase):
         self.assertFalse(hasattr(orig_func, 'response_errors'))
 
         self.assertEqual(func.__annotations__, {
-            'return': None,
+            'return': 'None',
         })
         self.assertEqual(func.__doc__, 'Function 1')
         self.assertEqual(func.__name__, 'orig_func')
@@ -216,7 +219,7 @@ class WebAPIDecoratorTests(TestCase):
         func = webapi_permission_required('myperm')(orig_func)
 
         self.assertEqual(func.__annotations__, {
-            'return': None,
+            'return': 'None',
         })
         self.assertEqual(func.__doc__, 'Function 1')
         self.assertEqual(func.__name__, 'orig_func')
@@ -296,7 +299,7 @@ class WebAPIDecoratorTests(TestCase):
         self.assertFalse(hasattr(orig_func, 'response_errors'))
 
         self.assertEqual(func.__annotations__, {
-            'return': None,
+            'return': 'None',
         })
         self.assertEqual(func.__doc__, 'Function 1')
         self.assertEqual(func.__name__, 'orig_func')
@@ -358,7 +361,7 @@ class WebAPIDecoratorTests(TestCase):
         self.assertTrue(hasattr(orig_func, 'response_errors'))
 
         self.assertEqual(func.__annotations__, {
-            'return': None,
+            'return': 'None',
         })
         self.assertEqual(func.__name__, 'orig_func')
         self.assertEqual(func.__doc__, 'Function 1')
@@ -676,3 +679,25 @@ class WebAPIDecoratorTests(TestCase):
         self.assertEqual(result[0], INVALID_FORM_DATA)
         self.assertTrue('fields' in result[1])
         self.assertTrue('myint' in result[1]['fields'])
+
+    def test_webapi_docs_preserves_state(self) -> None:
+        """Testing @webapi_docs preserves decorator state"""
+
+        @webapi_docs('API documentation.')
+        @webapi_response_errors(DOES_NOT_EXIST)
+        def func() -> None:
+            """Codebase documentation."""
+
+        self.assertTrue(hasattr(func, 'response_errors'))
+        self.assertTrue(hasattr(func, 'webapi_docs'))
+        self.assertEqual(func.__annotations__, {
+            'return': 'None',
+        })
+        self.assertEqual(func.__name__, 'func')
+        self.assertEqual(func.__doc__, 'Codebase documentation.')
+        self.assertEqual(
+            func.__qualname__,
+            'WebAPIDecoratorTests.test_webapi_docs_preserves_state.'
+            '<locals>.func')
+        self.assertEqual(func.webapi_docs, 'API documentation.')
+        self.assertEqual(func.response_errors, {DOES_NOT_EXIST})
