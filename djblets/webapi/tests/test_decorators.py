@@ -23,18 +23,18 @@ from djblets.webapi.fields import (BooleanFieldType,
 class WebAPIDecoratorTests(TestCase):
     """Unit tests for djblets.webapi.decorators."""
 
-    def test_copy_webapi_decorator_data(self):
+    def test_copy_webapi_decorator_data(self) -> None:
         """Testing copy_webapi_decorator_data"""
         def func1() -> None:
             """Function 1"""
 
-        def func2():
+        def func2() -> None:
             """Function 2"""
 
         func1.test1 = True
-        func1.response_errors = set(['a', 'b'])
+        func1.response_errors = {'a', 'b'}
         func2.test2 = True
-        func2.response_errors = set(['c', 'd'])
+        func2.response_errors = {'c', 'd'}
 
         result = copy_webapi_decorator_data(func1, func2)
         self.assertEqual(result, func2)
@@ -44,7 +44,7 @@ class WebAPIDecoratorTests(TestCase):
         self.assertTrue(hasattr(func2, 'response_errors'))
         self.assertTrue(func2.test1)
         self.assertTrue(func2.test2)
-        self.assertEqual(func2.response_errors, set(['a', 'b', 'c', 'd']))
+        self.assertEqual(func2.response_errors, {'a', 'b', 'c', 'd'})
         self.assertEqual(func2.__annotations__, {
             'return': None,
         })
@@ -56,9 +56,9 @@ class WebAPIDecoratorTests(TestCase):
             '<locals>.func1')
 
         self.assertFalse(hasattr(func1, 'test2'))
-        self.assertEqual(func1.response_errors, set(['a', 'b']))
+        self.assertEqual(func1.response_errors, {'a', 'b'})
 
-    def test_webapi_response_errors_state(self):
+    def test_webapi_response_errors_state(self) -> None:
         """Testing @webapi_response_errors state"""
         def orig_func() -> None:
             """Function 1"""
@@ -78,9 +78,9 @@ class WebAPIDecoratorTests(TestCase):
             '<locals>.orig_func')
         self.assertTrue(hasattr(func, 'response_errors'))
         self.assertEqual(func.response_errors,
-                         set([DOES_NOT_EXIST, NOT_LOGGED_IN]))
+                         {DOES_NOT_EXIST, NOT_LOGGED_IN})
 
-    def test_webapi_response_errors_preserves_state(self):
+    def test_webapi_response_errors_preserves_state(self) -> None:
         """Testing @webapi_response_errors preserves decorator state"""
         @webapi_response_errors(DOES_NOT_EXIST)
         @webapi_response_errors(NOT_LOGGED_IN)
@@ -98,9 +98,9 @@ class WebAPIDecoratorTests(TestCase):
             '<locals>.func')
         self.assertTrue(hasattr(func, 'response_errors'))
         self.assertEqual(func.response_errors,
-                         set([DOES_NOT_EXIST, NOT_LOGGED_IN]))
+                         {DOES_NOT_EXIST, NOT_LOGGED_IN})
 
-    def test_webapi_response_errors_call(self):
+    def test_webapi_response_errors_call(self) -> None:
         """Testing @webapi_response_errors calls original function"""
         @webapi_response_errors(DOES_NOT_EXIST, NOT_LOGGED_IN)
         def func():
@@ -110,7 +110,7 @@ class WebAPIDecoratorTests(TestCase):
 
         self.assertTrue(hasattr(func, 'seen'))
 
-    def test_webapi_login_required_state(self):
+    def test_webapi_login_required_state(self) -> None:
         """Testing @webapi_login_required state"""
         def orig_func() -> None:
             """Function 1"""
@@ -132,9 +132,9 @@ class WebAPIDecoratorTests(TestCase):
         self.assertTrue(hasattr(func, 'response_errors'))
         self.assertTrue(hasattr(func, 'login_required'))
         self.assertTrue(func.login_required)
-        self.assertEqual(func.response_errors, set([NOT_LOGGED_IN]))
+        self.assertEqual(func.response_errors, {NOT_LOGGED_IN})
 
-    def test_webapi_login_required_preserves_state(self):
+    def test_webapi_login_required_preserves_state(self) -> None:
         """Testing @webapi_login_required preserves decorator state"""
         @webapi_response_errors(DOES_NOT_EXIST)
         def orig_func() -> None:
@@ -157,9 +157,9 @@ class WebAPIDecoratorTests(TestCase):
         self.assertTrue(hasattr(func, 'login_required'))
         self.assertTrue(func.login_required)
         self.assertEqual(func.response_errors,
-                         set([DOES_NOT_EXIST, NOT_LOGGED_IN]))
+                         {DOES_NOT_EXIST, NOT_LOGGED_IN})
 
-    def test_webapi_login_required_call_when_authenticated(self):
+    def test_webapi_login_required_call_when_authenticated(self) -> None:
         """Testing @webapi_login_required calls when authenticated"""
         @webapi_login_required
         def func(request):
@@ -172,7 +172,7 @@ class WebAPIDecoratorTests(TestCase):
         self.assertTrue(hasattr(func, 'seen'))
         self.assertEqual(result, None)
 
-    def test_webapi_login_required_call_when_anonymous(self):
+    def test_webapi_login_required_call_when_anonymous(self) -> None:
         """Testing @webapi_login_required calls when anonymous"""
         @webapi_login_required
         def func(request):
@@ -185,7 +185,7 @@ class WebAPIDecoratorTests(TestCase):
         self.assertFalse(hasattr(func, 'seen'))
         self.assertEqual(result, NOT_LOGGED_IN)
 
-    def test_webapi_permission_required_state(self):
+    def test_webapi_permission_required_state(self) -> None:
         """Testing @webapi_permission_required state"""
         def orig_func() -> None:
             """Function 1"""
@@ -205,9 +205,9 @@ class WebAPIDecoratorTests(TestCase):
             '<locals>.orig_func')
         self.assertTrue(hasattr(func, 'response_errors'))
         self.assertEqual(func.response_errors,
-                         set([NOT_LOGGED_IN, PERMISSION_DENIED]))
+                         {NOT_LOGGED_IN, PERMISSION_DENIED})
 
-    def test_webapi_permission_required_preserves_state(self):
+    def test_webapi_permission_required_preserves_state(self) -> None:
         """Testing @webapi_permission_required preserves decorator state"""
         @webapi_response_errors(DOES_NOT_EXIST)
         def orig_func() -> None:
@@ -227,10 +227,9 @@ class WebAPIDecoratorTests(TestCase):
             'orig_func')
         self.assertTrue(hasattr(func, 'response_errors'))
         self.assertEqual(func.response_errors,
-                         set([DOES_NOT_EXIST, NOT_LOGGED_IN,
-                              PERMISSION_DENIED]))
+                         {DOES_NOT_EXIST, NOT_LOGGED_IN, PERMISSION_DENIED})
 
-    def test_webapi_permission_required_call_when_anonymous(self):
+    def test_webapi_permission_required_call_when_anonymous(self) -> None:
         """Testing @webapi_permission_required calls when anonymous"""
         @webapi_permission_required('foo')
         def func(request):
@@ -243,7 +242,7 @@ class WebAPIDecoratorTests(TestCase):
         self.assertFalse(hasattr(func, 'seen'))
         self.assertEqual(result, NOT_LOGGED_IN)
 
-    def test_webapi_permission_required_call_when_has_permission(self):
+    def test_webapi_permission_required_call_when_has_permission(self) -> None:
         """Testing @webapi_permission_required calls when has permission"""
         @webapi_permission_required('foo')
         def func(request):
@@ -257,7 +256,7 @@ class WebAPIDecoratorTests(TestCase):
         self.assertTrue(hasattr(func, 'seen'))
         self.assertEqual(result, None)
 
-    def test_webapi_permission_required_call_when_no_permission(self):
+    def test_webapi_permission_required_call_when_no_permission(self) -> None:
         """Testing @webapi_permission_required calls when no permission"""
         @webapi_permission_required('foo')
         def func(request):
@@ -271,7 +270,7 @@ class WebAPIDecoratorTests(TestCase):
         self.assertFalse(hasattr(func, 'seen'))
         self.assertEqual(result, PERMISSION_DENIED)
 
-    def test_webapi_request_fields_state(self):
+    def test_webapi_request_fields_state(self) -> None:
         """Testing @webapi_request_fields state"""
         def orig_func() -> None:
             """Function 1"""
@@ -279,14 +278,14 @@ class WebAPIDecoratorTests(TestCase):
         required = {
             'required_param': {
                 'type': BooleanFieldType,
-                'description': 'Required param'
+                'description': 'Required param',
             },
         }
 
         optional = {
             'optional_param': {
                 'type': BooleanFieldType,
-                'description': 'Optional param'
+                'description': 'Optional param',
             },
         }
 
@@ -310,21 +309,21 @@ class WebAPIDecoratorTests(TestCase):
         self.assertTrue(hasattr(func, 'optional_fields'))
         self.assertEqual(func.required_fields, required)
         self.assertEqual(func.optional_fields, optional)
-        self.assertEqual(func.response_errors, set([INVALID_FORM_DATA]))
+        self.assertEqual(func.response_errors, {INVALID_FORM_DATA})
 
-    def test_webapi_request_fields_preserves_state(self):
+    def test_webapi_request_fields_preserves_state(self) -> None:
         """Testing @webapi_request_fields preserves decorator state"""
         required1 = {
             'required1': {
                 'type': BooleanFieldType,
-                'description': 'Required param'
+                'description': 'Required param',
             },
         }
 
         optional1 = {
             'optional1': {
                 'type': BooleanFieldType,
-                'description': 'Optional param'
+                'description': 'Optional param',
             },
         }
 
@@ -336,14 +335,14 @@ class WebAPIDecoratorTests(TestCase):
         required2 = {
             'required2': {
                 'type': BooleanFieldType,
-                'description': 'Required param'
+                'description': 'Required param',
             },
         }
 
         optional2 = {
             'optional2': {
                 'type': BooleanFieldType,
-                'description': 'Optional param'
+                'description': 'Optional param',
             },
         }
 
@@ -373,18 +372,18 @@ class WebAPIDecoratorTests(TestCase):
         self.assertEqual(func.required_fields, expected_required)
         self.assertEqual(func.optional_fields, expected_optional)
         self.assertEqual(func.response_errors,
-                         set([DOES_NOT_EXIST, INVALID_FORM_DATA]))
+                         {DOES_NOT_EXIST, INVALID_FORM_DATA})
 
-    def test_webapi_request_fields_checks_inheritance(self):
+    def test_webapi_request_fields_checks_inheritance(self) -> None:
         """Testing @webapi_request_fields properly checks inherited fields"""
-        class A(object):
+        class A:
             @webapi_request_fields(required={
                 'required1': {
                     'type': BooleanFieldType,
                     'description': 'Required param',
                 },
             })
-            def test(*args, **kwargs):
+            def test(*args, **kwargs) -> None:
                 pass
 
         class B(A):
@@ -395,7 +394,7 @@ class WebAPIDecoratorTests(TestCase):
                 },
             })
             @augment_method_from(A)
-            def test(*args, **kwargs):
+            def test(*args, **kwargs) -> None:
                 pass
 
         request = RequestFactory().post('/', data={'required2': True})
@@ -409,11 +408,11 @@ class WebAPIDecoratorTests(TestCase):
                          ['This field is required'])
         self.assertFalse('required2' in response['fields'])
 
-    def test_webapi_request_fields_call_normalizes_params(self):
+    def test_webapi_request_fields_call_normalizes_params(self) -> None:
         """Testing @webapi_request_fields normalizes params to function"""
         if not hasattr(__builtins__, 'file'):
             # Python 3.x doesn't have `file`, so define our own for the test.
-            class file(object):
+            class file:
                 pass
 
         @webapi_request_fields(
@@ -438,7 +437,7 @@ class WebAPIDecoratorTests(TestCase):
             optional={
                 'optional_param': {
                     'type': BooleanFieldType,
-                }
+                },
             },
         )
         def func(request, required_int=None, required_string=None,
@@ -480,24 +479,18 @@ class WebAPIDecoratorTests(TestCase):
         self.assertTrue(hasattr(func, 'seen'))
         self.assertIsNone(result)
 
-    def test_webapi_request_fields_call_normalizes_params_legacy_types(self):
+    def test_webapi_request_fields_call_normalizes_params_legacy_types(
+        self,
+    ) -> None:
         """Testing @webapi_request_fields normalizes params to function when
         using legacy types
         """
-        if not hasattr(__builtins__, 'file'):
-            # Python 3.x doesn't have `file`, so define our own for the test.
-            class file(object):
-                pass
-
         @webapi_request_fields(
             required={
                 'required_int': {
                     'type': int,
                 },
-                'required_unicode_str': {
-                    'type': str,
-                },
-                'required_native_str': {
+                'required_str': {
                     'type': str,
                 },
                 'required_choice_list': {
@@ -509,28 +502,22 @@ class WebAPIDecoratorTests(TestCase):
                 'required_bool': {
                     'type': bool,
                 },
-                'required_file': {
-                    'type': file,
-                },
             },
             optional={
                 'optional_param': {
                     'type': bool,
-                }
+                },
             },
         )
-        def func(request, required_int=None, required_unicode_str=None,
-                 required_native_str=None, required_choice_list=None,
-                 required_choice_tuple=None, required_file=None,
+        def func(request, required_int=None, required_str=None,
+                 required_choice_list=None, required_choice_tuple=None,
                  required_bool=None, optional_param=None,
                  parsed_request_fields=None, extra_fields={}):
             func.seen = True
             self.assertEqual(required_int, 42)
-            self.assertEqual(required_unicode_str, 'test')
-            self.assertEqual(required_native_str, str('test'))
+            self.assertEqual(required_str, 'test')
             self.assertEqual(required_choice_list, 'a')
             self.assertEqual(required_choice_tuple, 'c')
-            self.assertEqual(required_file.read(), b'content')
             self.assertTrue(required_bool)
             self.assertTrue(optional_param)
             self.assertFalse(extra_fields)
@@ -538,12 +525,10 @@ class WebAPIDecoratorTests(TestCase):
                 parsed_request_fields,
                 {
                     'required_int': required_int,
-                    'required_unicode_str': required_unicode_str,
-                    'required_native_str': required_native_str,
+                    'required_str': required_str,
                     'required_choice_list': required_choice_list,
                     'required_choice_tuple': required_choice_tuple,
                     'required_bool': required_bool,
-                    'required_file': required_file,
                     'optional_param': optional_param,
                 })
 
@@ -551,13 +536,10 @@ class WebAPIDecoratorTests(TestCase):
             path='/',
             data={
                 'required_int': '42',
-                'required_unicode_str': 'test',
-                'required_native_str': str('test'),
+                'required_str': 'test',
                 'required_choice_list': 'a',
                 'required_choice_tuple': 'c',
                 'required_bool': 'true',
-                'required_file': SimpleUploadedFile(name='test',
-                                                    content=b'content'),
                 'optional_param': '1',
             },
         ))
@@ -571,10 +553,7 @@ class WebAPIDecoratorTests(TestCase):
                 'required_int': {
                     'type': IntFieldType,
                 },
-                'required_unicode_str': {
-                    'type': StringFieldType,
-                },
-                'required_native_str': {
+                'required_str': {
                     'type': StringFieldType,
                 },
                 'required_choice_list': {
@@ -588,18 +567,15 @@ class WebAPIDecoratorTests(TestCase):
                 'required_bool': {
                     'type': BooleanFieldType,
                 },
-                'required_file': {
-                    'type': FileFieldType,
-                },
             })
 
-    def test_webapi_request_fields_call_with_unexpected_arg(self):
+    def test_webapi_request_fields_call_with_unexpected_arg(self) -> None:
         """Testing @webapi_request_fields with unexpected argument"""
         @webapi_request_fields(
             required={
                 'required_param': {
                     'type': IntFieldType,
-                }
+                },
             },
         )
         def func(request, required_param=None, extra_fields={}):
@@ -610,7 +586,7 @@ class WebAPIDecoratorTests(TestCase):
             data={
                 'required_param': '42',
                 'optional_param': '1',
-            }
+            },
         ))
 
         self.assertFalse(hasattr(func, 'seen'))
@@ -624,9 +600,9 @@ class WebAPIDecoratorTests(TestCase):
             required={
                 'required_param': {
                     'type': IntFieldType,
-                }
+                },
             },
-            allow_unknown=True
+            allow_unknown=True,
         )
         def func(request, required_param=None, parsed_request_fields=None,
                  extra_fields={}):
@@ -642,19 +618,19 @@ class WebAPIDecoratorTests(TestCase):
             data={
                 'required_param': '42',
                 'optional_param': '1',
-            }
+            },
         ))
 
         self.assertTrue(hasattr(func, 'seen'))
         self.assertEqual(result, None)
 
-    def test_webapi_request_fields_call_filter_special_params(self):
+    def test_webapi_request_fields_call_filter_special_params(self) -> None:
         """Testing @webapi_request_fields filters special params"""
         @webapi_request_fields(
             required={
                 'required_param': {
                     'type': IntFieldType,
-                }
+                },
             },
         )
         def func(request, required_param=None, parsed_request_fields=None,
@@ -671,20 +647,20 @@ class WebAPIDecoratorTests(TestCase):
             data={
                 'required_param': '42',
                 'api_format': 'json',
-            }
+            },
         ))
 
         self.assertTrue(hasattr(func, 'seen'))
         self.assertEqual(result, None)
 
-    def test_webapi_request_fields_call_validation_int(self):
+    def test_webapi_request_fields_call_validation_int(self) -> None:
         """Testing @webapi_request_fields with int parameter validation"""
         @webapi_request_fields(
             required={
                 'myint': {
                     'type': IntFieldType,
-                }
-            }
+                },
+            },
         )
         def func(request, myint=False, parsed_request_fields=None,
                  extra_fields={}):
@@ -694,7 +670,7 @@ class WebAPIDecoratorTests(TestCase):
             path='/',
             data={
                 'myint': 'abc',
-            }
+            },
         ))
         self.assertFalse(hasattr(func, 'seen'))
         self.assertEqual(result[0], INVALID_FORM_DATA)
