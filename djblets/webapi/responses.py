@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from typing import (Any, Callable, Collection, Dict, Iterator, List, Optional,
-                    Sequence, TYPE_CHECKING, Union)
+from typing import (Any, Callable, Collection, Dict, Iterable, Iterator,
+                    List, Optional, Sequence, TYPE_CHECKING, Union)
 
 from django.http import HttpResponse
 from django.utils.encoding import force_str
@@ -479,10 +479,16 @@ class WebAPIResponsePaginated(WebAPIResponse):
         default_max_results: int = 25,
         max_results_cap: int = 200,
         serialize_object_func: Optional[Callable[[object], Any]] = None,
+        serialize_object_list_func: Optional[Callable[[Iterable[Any]],
+                                                      Sequence[Any]]] = None,
         extra_data: Dict[Any, Any] = {},
         **kwargs,
     ) -> None:
         """Initialize the response.
+
+        Version Changed:
+            5.3:
+            Added the ``serialize_object_list_func`` argument.
 
         Version Changed:
             3.2:
@@ -537,6 +543,15 @@ class WebAPIResponsePaginated(WebAPIResponse):
             serialize_object_func (callable, optional):
                 A function to call to serialize a single result.
 
+            serialize_object_list_func (callable, optional):
+                A function to call to serialize a list of objects.
+
+                If provided, this will take precedence over
+                ``serialize_object_func``.
+
+                Version Added:
+                    5.3
+
             extra_data (dict, optional):
                 Extra payload data to merge into the resulting payload.
 
@@ -569,6 +584,8 @@ class WebAPIResponsePaginated(WebAPIResponse):
 
         if self.total_results == 0:
             self.results = []
+        elif serialize_object_list_func:
+            self.results = serialize_object_list_func(self.results)
         elif serialize_object_func:
             self.results = [
                 serialize_object_func(obj)
