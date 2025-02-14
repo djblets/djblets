@@ -1,5 +1,9 @@
 """Base support and standard operators for condition choices."""
 
+from __future__ import annotations
+
+from typing import Any, ClassVar, Iterable, Optional, TYPE_CHECKING, Type
+
 from django.utils.translation import gettext_lazy as _
 
 from djblets.conditions.errors import (ConditionOperatorConflictError,
@@ -9,9 +13,14 @@ from djblets.registries.registry import (ALREADY_REGISTERED,
                                          ATTRIBUTE_REGISTERED, DEFAULT_ERRORS,
                                          NOT_REGISTERED, OrderedRegistry,
                                          UNREGISTER)
+from djblets.util.typing import StrOrPromise
+
+if TYPE_CHECKING:
+    from djblets.conditions.choices import BaseConditionChoice
+    from djblets.conditions.values import BaseConditionValueField
 
 
-class BaseConditionOperator(object):
+class BaseConditionOperator:
     """Base class for an operator for a condition choice.
 
     An operator forms an expression along with a parent
@@ -22,22 +31,29 @@ class BaseConditionOperator(object):
     Choices will usually have more than one operator registered. Depending on
     the operator, there may or may not be a field for a value.
 
-    Attributes:
-        choice (djblets.conditions.choices.BaseConditionChoice):
-            The choice owning the instance of this operation.
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     #: The ID of the operator.
     #:
     #: This must be unique within a
     #: :py:class:`~djblets.conditions.choices.BaseConditionChoice`.
-    operator_id = None
+    operator_id: ClassVar[Optional[str]] = None
 
     #: The displayed name for the operator.
-    name = None
+    name: ClassVar[Optional[StrOrPromise]] = None
+
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The choice owning the instance of this operator.
+    choice: BaseConditionChoice
 
     @classmethod
-    def with_overrides(cls, **attrs):
+    def with_overrides(cls, **attrs) -> Type[BaseConditionOperator]:
         """Dynamically create a subclass with overridden attributes.
 
         This makes it easy for a choice to make use of existing operators
@@ -53,9 +69,12 @@ class BaseConditionOperator(object):
             type:
             A new subclass with the overridden attributes.
         """
-        return type(str('Custom%s') % cls.__name__, (cls,), attrs)
+        return type(f'Custom{cls.__name__}', (cls,), attrs)
 
-    def __init__(self, choice):
+    def __init__(
+        self,
+        choice: BaseConditionChoice,
+    ) -> None:
         """Initialize the operator.
 
         Args:
@@ -65,7 +84,7 @@ class BaseConditionOperator(object):
         self.choice = choice
 
     @property
-    def value_field(self):
+    def value_field(self) -> Optional[BaseConditionValueField]:
         """The field type used to prompt and render fields.
 
         By default, this will use the default one for the choice. The field
@@ -85,12 +104,17 @@ class BaseConditionOperator(object):
             return default_value_field
 
     @property
-    def has_custom_value_field(self):
+    def has_custom_value_field(self) -> bool:
         """Whether the operator has a custom value field."""
         return (self.__class__.value_field is not
                 BaseConditionOperator.value_field)
 
-    def matches(self, match_value, stored_value, **kwargs):
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether a value matches the operator and condition's value.
 
         This must be implemented by subclasses.
@@ -127,16 +151,27 @@ class IsOneOfOperator(BaseConditionOperator):
     This operator checks if the lookup value matches one of a set of possible
     values listed in the condition.
 
-    This is equivalent to::
+    This is equivalent to:
+
+    .. code-block:: python
 
         if match_value in condition_value:
             ...
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'one-of'
     name = _('Is one of')
 
-    def matches(self, match_value, condition_value, **kwargs):
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value is one of a set of values.
 
         Args:
@@ -173,12 +208,21 @@ class IsNotOneOfOperator(BaseConditionOperator):
 
         if match_value not in condition_value:
             ...
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'not-one-of'
     name = _('Is not one of')
 
-    def matches(self, match_value, condition_value, **kwargs):
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value is not one of a set of values.
 
         Args:
@@ -214,7 +258,9 @@ class AnyOperator(BaseConditionOperator):
     If not 0, or if the value doesn't support a length check, it's assumed
     to have a value.
 
-    This is equivalent to::
+    This is equivalent to:
+
+    .. code-block:: python
 
         if match_value in (0, False) or bool(match_value):
             ...
@@ -222,19 +268,34 @@ class AnyOperator(BaseConditionOperator):
     The operator does not accept a user-provided condition value.
 
     This is the opposite of :py:class:`UnsetOperator`.
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'any'
     name = _('Has a value')
-    value_field = None
 
-    def matches(self, match_value, **kwargs):
+    # Ignore the type check, since value_field is a property.
+    value_field = None  # type: ignore
+
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value is non-empty.
 
         Args:
             match_value (object):
                 The caller's value to check against the state for this
                 operator.
+
+            condition_value (object, unused):
+                The value stored as part of the condition to check against.
+                This is unused by this operator.
 
             **kwargs (dict):
                 Unused extra keyword arguments.
@@ -255,7 +316,9 @@ class UnsetOperator(BaseConditionOperator):
     ``not`` check against the value, but filters out values that evalute to
     ``False`` but are not considered unset.
 
-    This is equivalent to::
+    This is equivalent to:
+
+    .. code-block:: python
 
         if match_value not in (0, False) and not match_value:
             ...
@@ -263,19 +326,34 @@ class UnsetOperator(BaseConditionOperator):
     The operator does not accept a user-provided condition value.
 
     This is the opposite of :py:class:`AnyOperator`.
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'none'
     name = _('Is unset')
-    value_field = None
 
-    def matches(self, match_value, **kwargs):
+    # Ignore the type check, since value_field is a property.
+    value_field = None  # type: ignore
+
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value is empty.
 
         Args:
             match_value (object):
                 The caller's value to check against the state for this
                 operator.
+
+            condition_value (object, unused):
+                The value stored as part of the condition to check against.
+                This is unused by this operator.
 
             **kwargs (dict):
                 Unused extra keyword arguments.
@@ -294,18 +372,29 @@ class IsOperator(BaseConditionOperator):
     This operator checks for equality, comparing the lookup value to the stored
     condition value.
 
-    It's equivalent to::
+    It's equivalent to:
+
+    .. code-block:: python
 
         if match_value == condition_value:
             ...
 
     This is the opposite of :py:class:`IsNotOperator`.
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'is'
     name = _('Is')
 
-    def matches(self, match_value, condition_value, **kwargs):
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value equals a condition value.
 
         Args:
@@ -332,18 +421,29 @@ class IsNotOperator(BaseConditionOperator):
     This operator checks for inequality, comparing the lookup value to the
     stored condition value.
 
-    It's equivalent to::
+    It's equivalent to:
+
+    .. code-block:: python
 
         if match_value != condition_value:
             ...
 
     This is the opposite of :py:class:`IsOperator`.
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'is-not'
     name = _('Is not')
 
-    def matches(self, match_value, condition_value, **kwargs):
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value is not equal to a condition value.
 
         Args:
@@ -371,18 +471,29 @@ class ContainsOperator(BaseConditionOperator):
     value within the value. It's useful for checking if a string or list
     contains some value.
 
-    It's equivalent to::
+    It's equivalent to:
+
+    .. code-block:: python
 
         if condition_value in match_value:
             ...
 
     This is the opposite of :py:class:`DoesNotContainOperator`.
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'contains'
     name = _('Contains')
 
-    def matches(self, match_value, condition_value, **kwargs):
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value contains a condition value.
 
         Args:
@@ -414,18 +525,29 @@ class DoesNotContainOperator(BaseConditionOperator):
     condition value within the value. It's useful for checking if a string
     or list does not contain some value.
 
-    It's equivalent to::
+    It's equivalent to:
+
+    .. code-block:: python
 
         if condition_value not in match_value:
             ...
 
     This is the opposite of :py:class:`ContainsOperator`.
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'does-not-contain'
     name = _('Does not contain')
 
-    def matches(self, match_value, condition_value, **kwargs):
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value does not contain a condition value.
 
         Args:
@@ -457,18 +579,29 @@ class ContainsAnyOperator(BaseConditionOperator):
     a list of condition value. It's useful for checking if a list contains
     anything from another list.
 
-    It's equivalent to::
+    It's equivalent to:
+
+    .. code-block:: python
 
         if set(condition_value) & set(match_value):
             ...
 
     This is the opposite of :py:class:`DoesNotContainAnyOperator`.
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'contains-any'
     name = _('Any of')
 
-    def matches(self, match_value, condition_value, **kwargs):
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value contains any condition values.
 
         Args:
@@ -501,18 +634,29 @@ class DoesNotContainAnyOperator(BaseConditionOperator):
     of the provided condition values. It's useful for checking if a list
     does not contain any items from another list.
 
-    It's equivalent to::
+    It's equivalent to:
+
+    .. code-block:: python
 
         if not (set(condition_value) & set(match_value)):
             ...
 
     This is the opposite of :py:class:`ContainsAnyOperator`.
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'does-not-contain-any'
     name = _('Not any of')
 
-    def matches(self, match_value, condition_value, **kwargs):
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return if the lookup value doesn't contain any condition values.
 
         Args:
@@ -544,23 +688,34 @@ class StartsWithOperator(BaseConditionOperator):
     This operator checks if the lookup value (assumed to be a string) starts
     with the condition value (also a string).
 
-    It's equivalent to::
+    It's equivalent to:
+
+    .. code-block:: python
 
         if match_value.startswith(condition_value):
             ...
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'starts-with'
     name = _('Starts with')
 
-    def matches(self, match_value, condition_value, **kwargs):
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value starts with the condition value.
 
         Args:
-            match_value (unicode):
+            match_value (str):
                 The caller's value to check.
 
-            condition_value (unicode):
+            condition_value (str):
                 The value to check at the start of the lookup value string.
 
             **kwargs (dict):
@@ -588,23 +743,34 @@ class EndsWithOperator(BaseConditionOperator):
     This operator checks if the lookup value (assumed to be a string) ends
     with the condition value (also a string).
 
-    It's equivalent to::
+    It's equivalent to:
+
+    .. code-block:: python
 
         if match_value.endswith(condition_value):
             ...
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'ends-with'
     name = _('Ends with')
 
-    def matches(self, match_value, condition_value, **kwargs):
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value ends with the condition value.
 
         Args:
-            match_value (unicode):
+            match_value (str):
                 The caller's value to check.
 
-            condition_value (unicode):
+            condition_value (str):
                 The value to check at the end of the lookup value string.
 
             **kwargs (dict):
@@ -632,16 +798,27 @@ class GreaterThanOperator(BaseConditionOperator):
     This operator checks if the lookup value (assumed to be an integer or
     similar) is greater than the condition value.
 
-    It's equivalent to::
+    It's equivalent to:
+
+    .. code-block:: python
 
         if match_value > condition_value:
             ...
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'greater-than'
     name = _('Greater than')
 
-    def matches(self, match_value, condition_value, **kwargs):
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value is greater than the condition value.
 
         Args:
@@ -667,16 +844,27 @@ class LessThanOperator(BaseConditionOperator):
     This operator checks if the lookup value (assumed to be an integer or
     similar) is less than the condition value.
 
-    It's equivalent to::
+    It's equivalent to:
+
+    .. code-block:: python
 
         if match_value < condition_value:
             ...
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'less-than'
     name = _('Less than')
 
-    def matches(self, match_value, condition_value, **kwargs):
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value is less than the condition value.
 
         Args:
@@ -699,21 +887,34 @@ class LessThanOperator(BaseConditionOperator):
 class MatchesRegexOperator(BaseConditionOperator):
     """An operator that checks if a value matches against a regex.
 
-    It's equivalent to::
+    It's equivalent to:
+
+    .. code-block:: python
 
         if condition_value.match(match_value):
             ...
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'matches-regex'
     name = _('Matches regex')
-    value_field = ConditionValueRegexField()
 
-    def matches(self, match_value, condition_value, **kwargs):
+    # Ignore the type check, since value_field is a property.
+    value_field = ConditionValueRegexField()  # type: ignore
+
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value matches the condition's regex.
 
         Args:
-            match_value (unicode):
+            match_value (str):
                 The caller's value to check.
 
             condition_value (re.RegexObject):
@@ -732,21 +933,34 @@ class MatchesRegexOperator(BaseConditionOperator):
 class DoesNotMatchRegexOperator(BaseConditionOperator):
     """An operator that checks if a value does not match against a regex.
 
-    It's equivalent to::
+    It's equivalent to:
+
+    .. code-block:: python
 
         if not condition_value.match(match_value):
             ...
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     operator_id = 'does-not-match-regex'
     name = _('Does not match regex')
-    value_field = ConditionValueRegexField()
 
-    def matches(self, match_value, condition_value, **kwargs):
+    # Ignore the type check, since value_field is a property.
+    value_field = ConditionValueRegexField()  # type: ignore
+
+    def matches(
+        self,
+        match_value: Any,
+        condition_value: Any,
+        **kwargs,
+    ) -> bool:
         """Return whether the lookup value doesn't match the condition's regex.
 
         Args:
-            match_value (unicode):
+            match_value (str):
                 The caller's value to check.
 
             condition_value (re.RegexObject):
@@ -763,7 +977,7 @@ class DoesNotMatchRegexOperator(BaseConditionOperator):
         return condition_value.match(match_value) is None
 
 
-class ConditionOperators(OrderedRegistry):
+class ConditionOperators(OrderedRegistry[Type[BaseConditionOperator]]):
     """Represents a list of operators for a condition choice.
 
     This stores a list of operators that can be used for condition choices.
@@ -776,19 +990,24 @@ class ConditionOperators(OrderedRegistry):
 
     This works as a :py:ref:`registry <registry-guides>`, allowing additional
     choices to be added dynamically by extensions or other code.
+
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     #: A list of default operators.
     #:
     #: This is only used if a list of operators is not passed to the
     #: constructor.
-    operator_classes = []
+    operator_classes: list[Type[BaseConditionOperator]] = []
 
     lookup_attrs = ('operator_id',)
     lookup_error_class = ConditionOperatorNotFoundError
     already_registered_error_class = ConditionOperatorConflictError
 
-    default_errors = dict(DEFAULT_ERRORS, **{
+    default_errors = {
+        **DEFAULT_ERRORS,
         ALREADY_REGISTERED: _(
             'Could not register condition operator %(item)s: This operator is '
             'already registered or its ID conflicts with another operator.'
@@ -804,9 +1023,21 @@ class ConditionOperators(OrderedRegistry):
             'Could not unregister condition operator %(item)s: This condition '
             'was not yet registered.'
         ),
-    })
+    }
 
-    def __init__(self, operators=[], *args, **kwargs):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The list of operators assigned.
+    _operators: list[Type[BaseConditionOperator]]
+
+    def __init__(
+        self,
+        operators: list[Type[BaseConditionOperator]] = [],
+        *args,
+        **kwargs,
+    ) -> None:
         """Initialize the list of operators.
 
         Args:
@@ -815,15 +1046,19 @@ class ConditionOperators(OrderedRegistry):
                 is provided, any value set for :py:attr:`operator_classes` will
                 be ignored.
         """
-        super(ConditionOperators, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._operators = operators or self.operator_classes
 
-    def get_operator(self, operator_id, choice):
+    def get_operator(
+        self,
+        operator_id: str,
+        choice: BaseConditionChoice,
+    ) -> BaseConditionOperator:
         """Return an operator instance with the given ID.
 
         Args:
-            operator_id (unicode):
+            operator_id (str):
                 The ID of the operator to retrieve.
 
             choice (djblets.conditions.choices.BaseConditionChoice):
@@ -841,7 +1076,7 @@ class ConditionOperators(OrderedRegistry):
 
         return operator_cls(choice)
 
-    def get_defaults(self):
+    def get_defaults(self) -> Iterable[Type[BaseConditionOperator]]:
         """Return the default operators for the list.
 
         This is used internally by the parent registry classa, and is based on
