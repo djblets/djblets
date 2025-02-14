@@ -8,17 +8,31 @@ from __future__ import annotations
 
 import copy
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Tuple
+from typing import (Any, Callable, Dict, Iterable, Iterator, List, Optional,
+                    Self, TYPE_CHECKING, Tuple, Union)
 
 from django.forms import widgets
 from django.forms.widgets import HiddenInput
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
+from housekeeping import deprecate_non_keyword_only_args
 
 from djblets.conditions import ConditionSet
 from djblets.conditions.errors import (ConditionChoiceNotFoundError,
                                        ConditionOperatorNotFoundError)
+from djblets.deprecation import RemovedInDjblets70Warning
+
+if TYPE_CHECKING:
+    from django.forms.renderers import BaseRenderer
+    from django.forms.utils import _DataT, _FilesT
+    from django.utils.safestring import SafeText
+    from djblets.conditions.choices import (BaseConditionChoice,
+                                            ConditionChoices)
+    from djblets.conditions.conditions import ConditionData, ConditionSetData
+    from djblets.conditions.operators import BaseConditionOperator
+    from djblets.conditions.values import BaseConditionValueField
+    from djblets.util.typing import KwargsDict, StrOrPromise
 
 
 class AmountSelectorWidget(widgets.MultiWidget):
@@ -170,37 +184,60 @@ class ConditionsWidget(widgets.Widget):
     choice-provided field for a value.
 
     Additional conditions can be added by the user dynamically.
-
-    Attributes:
-        choices (djblets.conditions.choices.ConditionChoices):
-            The condition choices for the field.
-
-        mode_widget (django.forms.widgets.RadioSelect):
-            The widget for selecting the mode.
-
-        choice_widget (django.forms.widgets.Select):
-            The widget for selecting choices. One of these will be rendered
-            for every row.
-
-        operator_widget (django.forms.widgets.Select):
-            The widget for selecting operators. One of these will be
-            rendered for every row.
-
-        choice_kwargs (dict):
-            Optional keyword arguments to pass to each
-            :py:class:`~djblets.conditions.choices.BaseConditionChoice`
-            constructor. This is useful for more advanced conditions that
-            need additional data from the form.
-
-            This can be updated dynamically by the form during initialization.
     """
 
     #: The name of the template used to render the widget.
     template_name = 'djblets_forms/conditions_widget.html'
 
-    def __init__(self, choices, mode_widget, choice_widget, operator_widget,
-                 choice_kwargs=None, attrs=None):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The condition choices for the field.
+    choices: ConditionChoices
+
+    #: Optional keyword arguments to pass to each choice.
+    #:
+    #: This is useful for more advanced conditions that need additional data
+    #: from the form.
+    #:
+    #: This can be updated dynamically by the form during initialization.
+    choice_kwargs: KwargsDict
+
+    #: The widget for selecting choices.
+    #:
+    #: One of these will be rendered for every row.
+    choice_widget: widgets.Select
+
+    #: Errors recorded for each condition.
+    condition_errors: dict[int, str]
+
+    #: The widget for selecting the mode.
+    mode_widget: widgets.RadioSelect
+
+    #: The widget for selecting operators.
+    #:
+    #: One of these will be rendered for every row.
+    operator_widget: widgets.Select
+
+    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    def __init__(
+        self,
+        *,
+        choices: ConditionChoices,
+        mode_widget: widgets.RadioSelect,
+        choice_widget: widgets.Select,
+        operator_widget: widgets.Select,
+        choice_kwargs: Optional[KwargsDict] = None,
+        attrs: Optional[KwargsDict] = None,
+    ) -> None:
         """Initialize the widget.
+
+        Version Changed:
+            5.3:
+            All arguments are now keyword-only arguments. Support for
+            positional arguments is deprecated and will be removed in
+            Djblets 7.
 
         Args:
             choices (djblets.conditions.choices.ConditionChoices):
@@ -226,17 +263,17 @@ class ConditionsWidget(widgets.Widget):
             attrs (dict, optional):
                 Additional HTML element attributes for the widget.
         """
-        super(ConditionsWidget, self).__init__(attrs=attrs)
+        super().__init__(attrs=attrs)
 
         self.choices = choices
         self.mode_widget = mode_widget
         self.choice_widget = choice_widget
         self.operator_widget = operator_widget
-        self.choice_kwargs = choice_kwargs
+        self.choice_kwargs = choice_kwargs or {}
         self.condition_errors = {}
 
     @property
-    def media(self):
+    def media(self) -> widgets.Media:
         """Media needed for the widget.
 
         This is used by the form to return all CSS/JavaScript media that the
@@ -246,6 +283,8 @@ class ConditionsWidget(widgets.Widget):
         Type:
             django.forms.widgets.Media
         """
+        widget: Optional[widgets.Widget]
+
         media = (widgets.Media() +
                  self.choice_widget.media +
                  self.operator_widget.media)
@@ -258,18 +297,27 @@ class ConditionsWidget(widgets.Widget):
             if callable(default_value_field):
                 default_value_field = default_value_field()
 
-            if hasattr(default_value_field, 'widget'):
-                media += default_value_field.widget.media
+            widget = getattr(default_value_field, 'widget', None)
+
+            if widget is not None:
+                media += widget.media
 
             for operator in choice.get_operators():
                 if operator.has_custom_value_field:
-                    if (operator.value_field and
-                        hasattr(operator.value_field, 'widget')):
-                        media += operator.value_field.widget.media
+                    if operator.value_field:
+                        widget = getattr(operator.value_field, 'widget', None)
+
+                        if widget is not None:
+                            media += widget.media
 
         return media
 
-    def value_from_datadict(self, data, files, name):
+    def value_from_datadict(
+        self,
+        data: _DataT,
+        files: _FilesT,
+        name: str,
+    ) -> Any:
         """Return a value for the field from a submitted form.
 
         This serializes the data POSTed for the form into a format that the
@@ -282,7 +330,7 @@ class ConditionsWidget(widgets.Widget):
             files (django.http.request.QueryDict):
                 The dictionary containing uploaded files.
 
-            name (unicode):
+            name (str):
                 The field name for the value to load.
 
         Returns:
@@ -290,26 +338,33 @@ class ConditionsWidget(widgets.Widget):
             The value from the form data.
         """
         try:
-            last_id = int(data['%s_last_id' % name]) + 1
+            last_id = int(data[f'{name}_last_id']) + 1
         except (KeyError, ValueError):
             last_id = 0
 
-        conditions = []
+        conditions: list[ConditionData] = []
+        choices = self.choices
+        choice_kwargs = self.choice_kwargs
 
         for i in range(last_id):
-            choice_id = data.get('%s_choice[%s]' % (name, i))
+            choice_id = data.get(f'{name}_choice[{i}]')
 
             if choice_id is None:
                 # There's no choice with this ID. It was probably deleted.
                 continue
 
-            operator_id = data.get('%s_operator[%s]' % (name, i))
-            value_name = '%s_value[%s]' % (name, i)
+            operator_id = data.get(f'{name}_operator[{i}]')
+
+            if operator_id is None:
+                # There's no operator with this ID. It may be stale data.
+                continue
+
+            value_name = f'{name}_value[{i}]'
 
             try:
-                choice = self.choices.get_choice(
+                choice = choices.get_choice(
                     choice_id,
-                    choice_kwargs=self.choice_kwargs)
+                    choice_kwargs=choice_kwargs)
                 operator = choice.get_operator(operator_id)
                 value_field = self._get_value_field(operator)
 
@@ -329,11 +384,17 @@ class ConditionsWidget(widgets.Widget):
             })
 
         return {
-            'mode': data.get('%s_mode' % name),
+            'mode': data.get(f'{name}_mode'),
             'conditions': conditions,
         }
 
-    def render(self, name, value, attrs=None, renderer=None):
+    def render(
+        self,
+        name: str,
+        value: ConditionSetData,
+        attrs: Optional[KwargsDict] = None,
+        renderer: Optional[BaseRenderer] = None,
+    ) -> SafeText:
         """Render the widget to HTML.
 
         This will serialize all the choices, operators, and existing
@@ -360,14 +421,19 @@ class ConditionsWidget(widgets.Widget):
         return render_to_string(self.template_name,
                                 self.get_context(name, value, attrs))
 
-    def get_context(self, name, value, attrs):
+    def get_context(
+        self,
+        name: str,
+        value: ConditionSetData,
+        attrs: Optional[KwargsDict],
+    ) -> dict[str, Any]:
         """Return context for the widget.
 
         This will serialize all the choices, operators, and existing
         conditions needed to render the widget.
 
         Args:
-            name (unicode):
+            name (str):
                 The base form field name of the widget.
 
             value (dict):
@@ -380,27 +446,32 @@ class ConditionsWidget(widgets.Widget):
             dict:
             The context data for the widget.
         """
-        widget_attrs = self.build_attrs(attrs)
-        widget_id = widget_attrs.get('id')
-        rendered_rows = []
-        rows = []
+        widget_attrs = self.build_attrs(attrs or {})
+        widget_id: Optional[str] = widget_attrs.get('id')
+        rendered_rows: list[dict[str, Any]] = []
+        rows: list[dict[str, Any]] = []
 
         # Render the mode radio buttons.
         mode_attrs = widget_attrs
 
         if widget_id:
-            mode_attrs = dict(mode_attrs, id='%s_mode' % name)
+            mode_attrs = dict(mode_attrs, id=f'{name}_mode')
 
         rendered_mode = self.mode_widget.render(
-            name='%s_mode' % name,
+            name=f'{name}_mode',
             value=value.get('mode', ConditionSet.MODE_ALL),
             attrs=mode_attrs)
+
+        choices = self.choices
+        choice_kwargs = self.choice_kwargs
+        choice_widget = self.choice_widget
+        operator_widget = self.operator_widget
 
         for i, condition in enumerate(value['conditions']):
             choice_id = condition['choice']
             operator_id = condition['op']
             condition_value = condition.get('value')
-            error = None
+            error: Optional[str] = None
 
             # Try to load the necessary choice and operator.
             #
@@ -408,10 +479,13 @@ class ConditionsWidget(widgets.Widget):
             # not to break or lose information at this stage if the choice or
             # operator is missing. We'll just show the raw data. It won't save,
             # but the user will at least get a suitable error.
+            choice: Optional[BaseConditionChoice] = None
+            operator: Optional[BaseConditionOperator] = None
+
             try:
-                choice = self.choices.get_choice(
+                choice = choices.get_choice(
                     choice_id,
-                    choice_kwargs=self.choice_kwargs)
+                    choice_kwargs=choice_kwargs)
                 operator = choice.get_operator(operator_id)
                 error = self.condition_errors.get(i)
             except ConditionChoiceNotFoundError:
@@ -430,51 +504,59 @@ class ConditionsWidget(widgets.Widget):
                 # Set the dropdowns to be non-editable.
                 widget_attrs = dict(widget_attrs, disabled='disabled')
 
+            choice_items: list[tuple[str, StrOrPromise]]
+            operator_items: list[tuple[str, StrOrPromise]]
+
             if choice is None:
-                choices = ((choice_id, choice_id),)
+                choice_items = [(choice_id, choice_id)]
             else:
                 # Set this to empty so that it'll use the default for the
                 # field.
-                choices = ()
+                choice_items = []
 
-            if operator is None:
-                operators = ((operator_id, operator_id),)
+            if operator is None or choice is None:
+                operator_items = [(operator_id, operator_id)]
             else:
                 # Build the operators specific to this choice.
-                operators = (
+                operator_items = [
                     (operator.operator_id, operator.name)
-                    for operator in choice.operators
-                )
+                    for operator in choice.operators or []
+                    if (operator.operator_id is not None and
+                        operator.name is not None)
+                ]
 
             # Render the list of condition choices.
-            choice_name = '%s_choice[%s]' % (name, i)
+            choice_name = f'{name}_choice[{i}]'
             choice_attrs = widget_attrs
 
             if widget_id:
                 choice_attrs = dict(choice_attrs,
-                                    id='%s_choice_%s' % (widget_id, i))
+                                    id=f'{widget_id}_choice_{i}')
 
-            with self._add_widget_choices(self.choice_widget, choices):
-                rendered_choice = self.choice_widget.render(
+            with self._add_widget_choices(choice_widget, choice_items):
+                rendered_choice = choice_widget.render(
                     name=choice_name,
                     value=choice_id,
                     attrs=choice_attrs)
 
             # Render the list of operators.
-            operator_name = '%s_operator[%s]' % (name, i)
+            operator_name = f'{name}_operator[{i}]'
             operator_attrs = widget_attrs
 
             if widget_id:
                 operator_attrs = dict(operator_attrs,
-                                      id='%s_operator_%s' % (widget_id, i))
+                                      id=f'{widget_id}_operator_{i}')
 
-            with self._add_widget_choices(self.operator_widget, operators):
-                rendered_operator = self.operator_widget.render(
+            with self._add_widget_choices(operator_widget, operator_items):
+                rendered_operator = operator_widget.render(
                     name=operator_name,
                     value=operator_id,
                     attrs=operator_attrs)
 
             if valid:
+                # We checked this above.
+                assert operator is not None
+
                 value_field = self._get_value_field(operator)
 
                 if value_field is not None:
@@ -497,7 +579,7 @@ class ConditionsWidget(widgets.Widget):
 
             if widget_id:
                 value_attrs = dict(value_attrs,
-                                   id='%s_value_%s' % (widget_id, i))
+                                   id=f'{widget_id}_value_{i}')
 
             # Store the information for the template.
             rendered_rows.append({
@@ -525,13 +607,16 @@ class ConditionsWidget(widgets.Widget):
             'rendered_rows': rendered_rows,
             'serialized_choices': [
                 self._serialize_choice(temp_choice)
-                for temp_choice in self.choices.get_choices(
-                    choice_kwargs=self.choice_kwargs)
+                for temp_choice in choices.get_choices(
+                    choice_kwargs=choice_kwargs)
             ],
             'serialized_rows': rows,
         }
 
-    def _serialize_choice(self, choice):
+    def _serialize_choice(
+        self,
+        choice: BaseConditionChoice,
+    ) -> dict[str, Any]:
         """Return a serialized choice for the widget.
 
         This contains information needed by the JavaScript UI to render the
@@ -558,7 +643,10 @@ class ConditionsWidget(widgets.Widget):
             ]
         }
 
-    def _serialize_operator(self, operator):
+    def _serialize_operator(
+        self,
+        operator: BaseConditionOperator,
+    ) -> dict[str, Any]:
         """Return a serialized operator for the widget.
 
         This contains information needed by the JavaScript UI to render the
@@ -574,7 +662,7 @@ class ConditionsWidget(widgets.Widget):
             dict:
             The serialized operator.
         """
-        data = {
+        data: dict[str, Any] = {
             'id': operator.operator_id,
             'name': operator.name,
             'useValue': True,
@@ -592,7 +680,10 @@ class ConditionsWidget(widgets.Widget):
 
         return data
 
-    def _serialize_value_field(self, value_field):
+    def _serialize_value_field(
+        self,
+        value_field: Optional[BaseConditionValueField],
+    ) -> dict[str, Any]:
         """Return a serialized value field for the widget.
 
         The serialized contents will be used to create a JavaScript widget
@@ -620,7 +711,10 @@ class ConditionsWidget(widgets.Widget):
         else:
             return {}
 
-    def _get_value_field(self, operator):
+    def _get_value_field(
+        self,
+        operator: BaseConditionOperator,
+    ) -> Optional[BaseConditionValueField]:
         """Return the normalized value field for an operator.
 
         If the operator's value field is a function, the resulting value field
@@ -637,7 +731,11 @@ class ConditionsWidget(widgets.Widget):
         """
         return self._normalize_value_field(operator.value_field)
 
-    def _normalize_value_field(self, value_field):
+    def _normalize_value_field(
+        self,
+        value_field: Union[Optional[BaseConditionValueField],
+                           Callable[[], Optional[BaseConditionValueField]]],
+    ) -> Optional[BaseConditionValueField]:
         """Normalize and return a value field.
 
         If ``value_field`` is a function, the resulting value field from
@@ -659,7 +757,11 @@ class ConditionsWidget(widgets.Widget):
         return value_field
 
     @contextmanager
-    def _add_widget_choices(self, widget, choices):
+    def _add_widget_choices(
+        self,
+        widget: widgets.ChoiceWidget,
+        choices: Iterable[tuple[str, StrOrPromise]],
+    ) -> Iterator[None]:
         """Temporarily add choices to a widget.
 
         This temporary appends the provided list of choices to a widget's
@@ -668,20 +770,23 @@ class ConditionsWidget(widgets.Widget):
         choices will be reset.
 
         Args:
-            widget (django.forms.fields.widgets.ChoiceInput):
+            widget (django.forms.fields.widgets.ChoiceWidget):
                 The choice widget.
 
             choices (list):
                 The list of choices to temporarily append.
         """
         old_choices = widget.choices
-        widget.choices = widget.choices + list(choices)
+        widget.choices = list(widget.choices) + list(choices)
 
         yield
 
         widget.choices = old_choices
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(
+        self,
+        memo: dict[int, Any],
+    ) -> Self:
         """Return a deep copy of the widget.
 
         This will return a deep copy of this widget and all subwidgets, so that
@@ -699,7 +804,7 @@ class ConditionsWidget(widgets.Widget):
             ConditionsWidget:
             A deep copy of this widget's instance.
         """
-        obj = super(ConditionsWidget, self).__deepcopy__(memo)
+        obj = super().__deepcopy__(memo)
         obj.mode_widget = copy.deepcopy(self.mode_widget, memo)
         obj.choice_widget = copy.deepcopy(self.choice_widget, memo)
         obj.operator_widget = copy.deepcopy(self.operator_widget, memo)

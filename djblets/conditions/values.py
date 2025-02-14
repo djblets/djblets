@@ -15,7 +15,7 @@ from djblets.conditions.errors import InvalidConditionValueError
 from djblets.util.typing import JSONDict, JSONValue
 
 if TYPE_CHECKING:
-    from django.http import QueryDict
+    from django.forms.utils import _DataT, _FilesT
     from django.utils.safestring import SafeString
 
 
@@ -141,8 +141,8 @@ class BaseConditionValueField(Generic[_T]):
 
     def get_from_form_data(
         self,
-        data: QueryDict,
-        files: QueryDict,
+        data: _DataT,
+        files: _FilesT,
         name: str,
     ) -> Optional[str]:
         """Return a value from a form data dictionary.
@@ -375,8 +375,8 @@ class ConditionValueFormField(BaseConditionValueField[_T]):
 
     def get_from_form_data(
         self,
-        data: QueryDict,
-        files: QueryDict,
+        data: _DataT,
+        files: _FilesT,
         name: str,
     ) -> Optional[str]:
         """Return a value from a form data dictionary.
