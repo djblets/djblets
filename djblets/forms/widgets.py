@@ -9,7 +9,7 @@ from __future__ import annotations
 import copy
 from contextlib import contextmanager
 from typing import (Any, Callable, Dict, Iterable, Iterator, List, Optional,
-                    Self, TYPE_CHECKING, Tuple, Union)
+                    TYPE_CHECKING, Tuple, Union)
 
 from django.forms import widgets
 from django.forms.widgets import HiddenInput
@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from djblets.conditions.operators import BaseConditionOperator
     from djblets.conditions.values import BaseConditionValueField
     from djblets.util.typing import KwargsDict, StrOrPromise
+    from typing_extensions import Self
 
 
 class AmountSelectorWidget(widgets.MultiWidget):
