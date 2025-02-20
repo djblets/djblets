@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import inspect
 import logging
-from typing import (Any, Callable, Dict, Final, List, Mapping, Optional,
-                    Sequence, Set, TYPE_CHECKING, Tuple, Type, Union, cast)
+from typing import (Any, Callable, Dict, Final, Iterable, List, Mapping,
+                    Optional, Sequence, Set, TYPE_CHECKING, Tuple, Type,
+                    Union, cast)
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -1319,21 +1320,25 @@ class WebAPIResource(object):
             except ObjectDoesNotExist:
                 return DOES_NOT_EXIST
 
-            def _serialize_obj(
-                obj: Any,
-            ) -> WebAPIResponsePayload:
-                serializer = self.get_serializer_for_object(obj)
+            def _serialize_obj_list(
+                obj_list: Any,
+            ) -> Sequence[WebAPIResponsePayload]:
+                if not obj_list:
+                    return []
+
+                serializer = self.get_serializer_for_object(obj_list[0])
                 assert serializer is not None
 
-                return serializer.serialize_object(obj,
-                                                   request=request,
-                                                   *args, **kwargs)
+                return serializer.serialize_object_list(obj_list,
+                                                        request=request,
+                                                        *args,
+                                                        **kwargs)
 
             return self.paginated_cls(
                 request,
                 queryset=queryset,
                 results_key=self.list_result_key,
-                serialize_object_func=_serialize_obj,
+                serialize_object_list_func=_serialize_obj_list,
                 extra_data=data,
                 **self.build_response_args(request))
         else:
@@ -2105,6 +2110,47 @@ class WebAPIResource(object):
             serialize_cache[obj] = self._clone_serialized_object(data)
 
         return data
+
+    def serialize_object_list(
+        self,
+        obj_list: Iterable[Any],
+        *args,
+        request: Optional[HttpRequest] = None,
+        **kwargs,
+    ) -> list[WebAPIResponsePayload]:
+        """Return a serialized representation of a list of objects.
+
+        By default, this will return a list of serialized objects, making use
+        of :py:meth:`serialize_object`. Subclasses can override this to
+        perform any pre-processing, post-processing, or modification of the
+        list of objects.
+
+        Version Added:
+            5.3
+
+        Args:
+            obj_list (list):
+                The list of objects to serialize.
+
+            *args (tuple):
+                Positional arguments passed to the view.
+
+            request (django.http.HttpRequest, optional):
+                The HTTP request from the client.
+
+                This can be ``None``.
+
+            **kwargs (dict):
+                Keyword arguments representing values captured from the URL.
+
+        Returns:
+            dict:
+            The serialized object payload.
+        """
+        return [
+            self.serialize_object(obj, request, *args, **kwargs)
+            for obj in obj_list
+        ]
 
     def get_only_fields(
         self,

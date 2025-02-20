@@ -1,6 +1,9 @@
 """HTTP-related utilities."""
 
+from __future__ import annotations
+
 import hashlib
+from typing import Mapping
 from urllib.parse import urlencode
 
 from django.http import HttpResponse, HttpResponseNotModified
@@ -219,14 +222,35 @@ def is_mimetype_a(mimetype, parent_mimetype):
              parts[1].endswith('+' + parent_parts[1])))
 
 
-def get_url_params_except(query, *params):
+def get_url_params_except(
+    query: Mapping[str, str],
+    *params: str,
+) -> str:
     """Return a URL query string that filters out some params.
 
     This is used often when one wants to preserve some GET parameters and not
     others.
+
+    The results are always sorted. This ensures consistent URLs, helping with
+    caching and search indexing.
+
+    Version Changed:
+        5.3:
+        The results are now always sorted.
+
+    Args:
+        query (dict):
+            The query arguments to filter.
+
+        *params (tuple):
+            The parameters to filter out.
+
+    Returns:
+        str:
+        The encoded and sorted query string.
     """
-    return urlencode([
-        (key.encode('utf-8'), value.encode('utf-8'))
+    return urlencode(sorted(
+        (key, value)
         for key, value in query.items()
         if key not in params
-    ])
+    ))

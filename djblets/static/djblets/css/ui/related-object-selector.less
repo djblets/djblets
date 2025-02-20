@@ -62,13 +62,18 @@
       }
     }
 
-    .fa-close {
-      color: #ccc;
+    .remove-item {
       cursor: pointer;
       float: right;
+      padding-top: 2px;
+      padding-bottom: 2px;
 
       &:hover {
-        color: black;
+        color: var(--ink-p-fg);
+      }
+
+      &:not(:hover) {
+        color: var(--ink-p-fg-weak);
       }
     }
   }
@@ -80,6 +85,10 @@
 
     td:last-child {
       width: var(--ink-u-icon-std);
+    }
+
+    .remove-item:hover {
+      color: var(--ink-p-fg);
     }
 
     .remove-item:not(:hover) {

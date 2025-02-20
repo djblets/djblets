@@ -1,19 +1,61 @@
 """Conditions and sets of conditions."""
 
+from __future__ import annotations
+
 import logging
+from typing import Any, Iterable, Iterator, Optional, TYPE_CHECKING
 
 from django.utils.translation import gettext as _
+from typing_extensions import Final, NotRequired, TypedDict
 
 from djblets.conditions.errors import (ConditionChoiceNotFoundError,
                                        ConditionOperatorNotFoundError,
                                        InvalidConditionModeError,
                                        InvalidConditionValueError)
 
+if TYPE_CHECKING:
+    from djblets.conditions.choices import (BaseConditionChoice,
+                                            ConditionChoices)
+    from djblets.conditions.operators import BaseConditionOperator
+    from djblets.conditions.values import ValueStateCache
+    from djblets.util.typing import KwargsDict
+
 
 logger = logging.getLogger(__name__)
 
 
-class Condition(object):
+class ConditionData(TypedDict):
+    """Serialization data for conditions.
+
+    Version Added:
+        5.3
+    """
+
+    #: The ID of the registered condition choice.
+    choice: str
+
+    #: The ID of the registered condition operator.
+    op: str
+
+    #: The value stored for the condition.
+    value: NotRequired[Any]
+
+
+class ConditionSetData(TypedDict):
+    """Serialization data for condition sets.
+
+    Version Added:
+        5.3
+    """
+
+    #: The list of serialized conditions in the set.
+    conditions: list[ConditionData]
+
+    #: The matching mode for the condition set.
+    mode: NotRequired[str]
+
+
+class Condition:
     """A condition used to match state to a choice, operator, and value.
 
     Conditions store a choice, operator, and value (depending on the operator).
@@ -24,24 +66,37 @@ class Condition(object):
     Generally, queries will be made against a :py:class:`ConditionSet`, instead
     of an individual Condition.
 
-    Attributes:
-        choice (djblets.conditions.choices.BaseConditionChoice):
-            The choice stored for this condition.
-
-        operator (djblets.conditions.operators.BaseConditionOperator):
-            The operator stored for this condition.
-
-        value (object):
-            The value stored for this condition.
-
-        raw_value (object):
-            The raw (serialized) value for this condition. This is used
-            internally, and won't usually be needed by a caller.
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The choice stored for this condition.
+    choice: BaseConditionChoice
+
+    #: The operator stored for this condition.
+    operator: BaseConditionOperator
+
+    #: The raw (serialized) value for this condition.
+    #:
+    #: This is used internally, and won't usually be needed by a caller.
+    raw_value: Any
+
+    #: The value stored for this condition.
+    value: Any
+
     @classmethod
-    def deserialize(cls, choices, data, condition_index=None,
-                    choice_kwargs={}):
+    def deserialize(
+        cls,
+        choices: ConditionChoices,
+        data: ConditionData,
+        condition_index: Optional[int] = None,
+        choice_kwargs: KwargsDict = {},
+    ) -> Condition:
         """Deserialize a condition from serialized data.
 
         This expects data serialized by :py:meth:`serialize`.
@@ -125,6 +180,9 @@ class Condition(object):
                 condition_index=condition_index)
 
         # Load the value.
+        raw_value: Any = None
+        value: Any = None
+
         if operator.value_field is not None:
             try:
                 raw_value = data['value']
@@ -145,16 +203,19 @@ class Condition(object):
                 e.condition_index = condition_index
 
                 raise
-        else:
-            raw_value = None
-            value = None
 
         return cls(choice=choice,
                    operator=operator,
                    value=value,
                    raw_value=raw_value)
 
-    def __init__(self, choice, operator, value=None, raw_value=None):
+    def __init__(
+        self,
+        choice: BaseConditionChoice,
+        operator: BaseConditionOperator,
+        value: Any = None,
+        raw_value: Any = None,
+    ) -> None:
         """Initialize the condition.
 
         Args:
@@ -179,7 +240,11 @@ class Condition(object):
         else:
             self.raw_value = raw_value
 
-    def matches(self, value, value_state_cache=None):
+    def matches(
+        self,
+        value: Any,
+        value_state_cache: Optional[ValueStateCache] = None,
+    ) -> bool:
         """Return whether a value matches the condition.
 
         Args:
@@ -204,7 +269,7 @@ class Condition(object):
                                    condition_value=self.value,
                                    value_state_cache=value_state_cache)
 
-    def serialize(self):
+    def serialize(self) -> ConditionData:
         """Serialize the condition to a JSON-serializable dictionary.
 
         Returns:
@@ -212,9 +277,15 @@ class Condition(object):
             A dictionary representing the condition. It can be safely
             serialized to JSON.
         """
-        data = {
-            'choice': self.choice.choice_id,
-            'op': self.operator.operator_id,
+        choice_id = self.choice.choice_id
+        operator_id = self.operator.operator_id
+
+        assert choice_id is not None
+        assert operator_id is not None
+
+        data: ConditionData = {
+            'choice': choice_id,
+            'op': operator_id,
         }
 
         if self.operator.value_field is not None:
@@ -231,7 +302,7 @@ class Condition(object):
     to_json = serialize
 
 
-class ConditionSet(object):
+class ConditionSet:
     """A set of conditions used to match state and define rules.
 
     Condition sets own multiple conditions, and are given a mode indicating
@@ -243,32 +314,45 @@ class ConditionSet(object):
     condition set to pass.  If using :py:attr:`MODE_ANY`, then only one
     condition must be satisfied.
 
-    Attributes:
-        mode (unicode):
-            The matching mode for the condition set. This is one of
-            :py:attr:`MODE_ALL` or :py:attr:`MODE_ANY`.
-
-        conditions (list of Condition):
-            The list of conditions that comprise this set.
+    Version Changed:
+        5.3:
+        Added support for Python type hints.
     """
 
     #: Always match without conditions.
-    MODE_ALWAYS = 'always'
+    MODE_ALWAYS: Final[str] = 'always'
 
     #: All conditions must match a value to satisfy the condition set.
-    MODE_ALL = 'all'
+    MODE_ALL: Final[str] = 'all'
 
     #: Any condition may match a value to satisfy the condition set.
-    MODE_ANY = 'any'
+    MODE_ANY: Final[str] = 'any'
 
     #: A set of all the valid modes.
-    CONDITIONS = (MODE_ALWAYS, MODE_ALL, MODE_ANY)
+    CONDITIONS: Final = (MODE_ALWAYS, MODE_ALL, MODE_ANY)
 
     #: The default mode.
-    DEFAULT_MODE = MODE_ALL
+    DEFAULT_MODE: Final = MODE_ALL
+
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The list of conditions that comprise this set.
+    conditions: list[Condition]
+
+    #: The matching mode for the condition set.
+    #:
+    #: This is one of :py:attr:`MODE_ALL` or :py:attr:`MODE_ANY`.
+    mode: str
 
     @classmethod
-    def deserialize(cls, choices, data, choice_kwargs={}):
+    def deserialize(
+        cls,
+        choices: ConditionChoices,
+        data: ConditionSetData,
+        choice_kwargs: KwargsDict = {},
+    ) -> ConditionSet:
         """Deserialize a set of conditions from serialized data.
 
         This expects data serialized by :py:meth:`deserialize`.
@@ -316,11 +400,15 @@ class ConditionSet(object):
             for i, condition_data in enumerate(data.get('conditions', []))
         ])
 
-    def __init__(self, mode=DEFAULT_MODE, conditions=[]):
+    def __init__(
+        self,
+        mode: str = DEFAULT_MODE,
+        conditions: list[Condition] = [],
+    ) -> None:
         """Initialize the condition set.
 
         Args:
-            mode (unicode, optional):
+            mode (str, optional):
                 The match mode. This defaults to :py:attr:`MODE_ALL`.
 
             conditions (list, optional):
@@ -339,7 +427,7 @@ class ConditionSet(object):
         self.mode = mode
         self.conditions = conditions
 
-    def matches(self, **values):
+    def matches(self, **values) -> bool:
         """Check if a value matches the condition set.
 
         Depending on the mode of the condition set, this will either require
@@ -371,7 +459,7 @@ class ConditionSet(object):
         return match_conditions(self._get_condition_results(self.conditions,
                                                             values))
 
-    def serialize(self):
+    def serialize(self) -> ConditionSetData:
         """Serialize the condition set to a JSON-serializable dictionary.
 
         Returns:
@@ -390,7 +478,11 @@ class ConditionSet(object):
     # Make this serializable in a DjbletsJSONEncoder.
     to_json = serialize
 
-    def _get_condition_results(self, conditions, values):
+    def _get_condition_results(
+        self,
+        conditions: list[Condition],
+        values: KwargsDict,
+    ) -> Iterator[bool]:
         """Yield the results from each condition match.
 
         This will iterate through all the conditions, running a match against
@@ -410,7 +502,7 @@ class ConditionSet(object):
             bool:
             The result of each condition match.
         """
-        value_state_cache = {}
+        value_state_cache: ValueStateCache = {}
 
         for condition in conditions:
             value_kwarg = condition.choice.value_kwarg
@@ -421,7 +513,10 @@ class ConditionSet(object):
             else:
                 yield False
 
-    def _match_all(self, results):
+    def _match_all(
+        self,
+        results: Iterable[bool],
+    ) -> bool:
         """Return whether all results are truthy and the list is non-empty.
 
         This works similarly to :py:func:`all`, but will return ``False`` if

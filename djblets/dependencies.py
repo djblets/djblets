@@ -82,7 +82,7 @@ package_dependencies = {
 #: Dependencies required for static media building.
 frontend_buildkit_npm_dependencies: Dict[str, str] = {
     '@beanbag/frontend-buildkit': '^1.2.0',
-    '@beanbag/ink': '^0.6.0',
+    '@beanbag/ink': '^0.7.0',
     '@beanbag/jasmine-suites': '~2.0.0',
     '@beanbag/spina': '^3.1.1',
     '@types/jquery': '^3.5.30',

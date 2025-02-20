@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import json
 from collections import OrderedDict
-from typing import Optional
+from dataclasses import dataclass
+from typing import Any, Iterable, Optional, TYPE_CHECKING
 
 import kgb
 from django.contrib.auth.models import User
 from django.db import models
-from django.http import HttpResponseNotModified
+from django.http import HttpResponse, HttpResponseNotModified
 from django.test.client import RequestFactory
 
+from djblets.db.query import LocalDataQuerySet
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
 from djblets.webapi.auth.backends import check_login
 from djblets.webapi.fields import (ResourceFieldType,
@@ -24,6 +27,9 @@ from djblets.webapi.responses import (WebAPIEventStreamMessage,
                                       WebAPIEventStreamMessages,
                                       WebAPIResponse,
                                       WebAPIResponseEventStream)
+
+if TYPE_CHECKING:
+    from djblets.webapi.responses import WebAPIResponsePayload
 
 
 class MyTestGroup(models.Model):
@@ -995,6 +1001,93 @@ class WebAPIResourceTests(kgb.SpyAgency, TestModelsLoaderMixin, TestCase):
 
         data = resource.serialize_object(obj, request=request)
         self.assertIn('my_field', data)
+
+    def test_serialize_object_list(self) -> None:
+        """Testing WebAPIResource.serialize_object_list"""
+        @dataclass(eq=True, frozen=True)
+        class TestObject:
+            pk: int
+            name: str
+
+        class TestResource(WebAPIResource):
+            uri_object_key = 'pk'
+            model = TestObject
+
+            fields = {
+                'name': {
+                    'type': StringFieldType,
+                },
+            }
+
+            def get_queryset(self, *args, **kwargs) -> LocalDataQuerySet:
+                return LocalDataQuerySet([
+                    TestObject(pk=1,
+                               name='obj1'),
+                    TestObject(pk=2,
+                               name='obj2'),
+                ])
+
+            def get_href(self, obj, *args, **kwargs):
+                return f'http://testserver/api/test/{obj.pk}/'
+
+            def serialize_object_list(
+                self,
+                obj_list: Iterable[TestObject],
+                *args,
+                **kwargs,
+            ) -> list[WebAPIResponsePayload]:
+                return [
+                    {
+                        'i': i,
+                        **self.serialize_object(obj, *args, **kwargs)
+                    }
+                    for i, obj in enumerate(obj_list)
+                ]
+
+            def get_serializer_for_object(
+                self,
+                obj: Any,
+            ) -> TestResource:
+                return self
+
+        request = RequestFactory().get('/api/test/')
+        resource = TestResource()
+        response = resource(request)
+
+        assert isinstance(response, HttpResponse)
+
+        self.assertEqual(json.loads(response.content), {
+            'links': {
+                'self': {
+                    'href': 'http://testserver/api/test/',
+                    'method': 'GET',
+                },
+            },
+            'stat': 'ok',
+            'testobjects': [
+                {
+                    'i': 0,
+                    'name': 'obj1',
+                    'links': {
+                        'self': {
+                            'href': 'http://testserver/api/test/1/',
+                            'method': 'GET',
+                        },
+                    },
+                },
+                {
+                    'i': 1,
+                    'name': 'obj2',
+                    'links': {
+                        'self': {
+                            'href': 'http://testserver/api/test/2/',
+                            'method': 'GET',
+                        },
+                    },
+                },
+            ],
+            'total_results': 2,
+        })
 
     def test_uri_template_name_default(self):
         """Testing WebAPIResource.uri_template_name defaults to

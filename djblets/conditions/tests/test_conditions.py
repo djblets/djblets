@@ -1,3 +1,7 @@
+"""Unit tests for djblets.conditions.conditions."""
+
+from __future__ import annotations
+
 from django import forms
 from kgb import SpyAgency
 
@@ -19,12 +23,13 @@ class BasicTestOperator(BaseConditionOperator):
 
 class BooleanTestOperator(BaseConditionOperator):
     operator_id = 'boolean-test-op'
-    value_field = ConditionValueFormField(forms.BooleanField())
+    value_field = ConditionValueFormField[bool](
+        forms.BooleanField())  # type: ignore
 
 
 class NoValueTestOperator(BaseConditionOperator):
     operator_id = 'no-value-test-op'
-    value_field = None
+    value_field = None  # type: ignore
 
 
 class EqualsTestOperator(BaseConditionOperator):
@@ -49,7 +54,7 @@ class EqualsTestChoice(BaseConditionChoice):
 class ConditionTests(SpyAgency, TestCase):
     """Unit tests for djblets.conditions.conditions.Condition."""
 
-    def test_deserialize(self):
+    def test_deserialize(self) -> None:
         """Testing Condition.deserialize"""
         choices = ConditionChoices([BasicTestChoice])
 
@@ -66,7 +71,7 @@ class ConditionTests(SpyAgency, TestCase):
         self.assertEqual(condition.value, 'my-value')
         self.assertEqual(condition.raw_value, 'my-value')
 
-    def test_deserialize_with_choice_kwargs(self):
+    def test_deserialize_with_choice_kwargs(self) -> None:
         """Testing Condition.deserialize with choice_kwargs"""
         choices = ConditionChoices([BasicTestChoice])
 
@@ -87,7 +92,7 @@ class ConditionTests(SpyAgency, TestCase):
         self.assertEqual(condition.value, 'my-value')
         self.assertEqual(condition.raw_value, 'my-value')
 
-    def test_deserialize_with_op_value_field(self):
+    def test_deserialize_with_op_value_field(self) -> None:
         """Testing Condition.deserialize with operator's value_field"""
         class MyChoice(BaseConditionChoice):
             choice_id = 'my-choice'
@@ -109,7 +114,7 @@ class ConditionTests(SpyAgency, TestCase):
         self.assertEqual(condition.value, True)
         self.assertEqual(condition.raw_value, True)
 
-    def test_deserialize_with_no_value_field(self):
+    def test_deserialize_with_no_value_field(self) -> None:
         """Testing Condition.deserialize with no value_field"""
         class MyChoice(BaseConditionChoice):
             choice_id = 'my-choice'
@@ -131,14 +136,14 @@ class ConditionTests(SpyAgency, TestCase):
         self.assertEqual(condition.value, None)
         self.assertEqual(condition.raw_value, None)
 
-    def test_deserialize_with_missing_choice(self):
+    def test_deserialize_with_missing_choice(self) -> None:
         """Testing Condition.deserialize with missing choice in data"""
         choices = ConditionChoices()
 
         with self.assertRaises(ConditionChoiceNotFoundError) as cm:
             Condition.deserialize(
                 choices,
-                {
+                {  # type: ignore
                     'op': 'my-op',
                     'value': 'my-value',
                 },
@@ -148,14 +153,14 @@ class ConditionTests(SpyAgency, TestCase):
         self.assertEqual(str(e), 'A choice is required.')
         self.assertEqual(e.condition_index, 1)
 
-    def test_deserialize_with_missing_operator(self):
+    def test_deserialize_with_missing_operator(self) -> None:
         """Testing Condition.deserialize with missing operator in data"""
         choices = ConditionChoices()
 
         with self.assertRaises(ConditionOperatorNotFoundError) as cm:
             Condition.deserialize(
                 choices,
-                {
+                {  # type: ignore
                     'choice': 'my-choice',
                     'value': 'my-value',
                 },
@@ -165,7 +170,7 @@ class ConditionTests(SpyAgency, TestCase):
         self.assertEqual(str(e), 'An operator is required.')
         self.assertEqual(e.condition_index, 1)
 
-    def test_deserialize_with_missing_value(self):
+    def test_deserialize_with_missing_value(self) -> None:
         """Testing Condition.deserialize with missing value in data"""
         choices = ConditionChoices([BasicTestChoice])
 
@@ -182,7 +187,7 @@ class ConditionTests(SpyAgency, TestCase):
         self.assertEqual(str(e), 'A value is required.')
         self.assertEqual(e.condition_index, 1)
 
-    def test_deserialize_with_invalid_choice(self):
+    def test_deserialize_with_invalid_choice(self) -> None:
         """Testing Condition.deserialize with invalid choice in data"""
         choices = ConditionChoices()
 
@@ -203,7 +208,7 @@ class ConditionTests(SpyAgency, TestCase):
         self.assertEqual(e.choice_id, 'invalid-choice')
         self.assertEqual(e.condition_index, 1)
 
-    def test_deserialize_with_invalid_operator(self):
+    def test_deserialize_with_invalid_operator(self) -> None:
         """Testing Condition.deserialize with invalid operator in data"""
         class MyChoice(BaseConditionChoice):
             choice_id = 'my-choice'
@@ -228,7 +233,7 @@ class ConditionTests(SpyAgency, TestCase):
         self.assertEqual(e.operator_id, 'invalid-op')
         self.assertEqual(e.condition_index, 1)
 
-    def test_deserialize_with_invalid_value(self):
+    def test_deserialize_with_invalid_value(self) -> None:
         """Testing Condition.deserialize with invalid value in data"""
         class MyChoice(BaseConditionChoice):
             choice_id = 'my-choice'
@@ -252,7 +257,7 @@ class ConditionTests(SpyAgency, TestCase):
         self.assertEqual(e.code, 'invalid')
         self.assertEqual(e.condition_index, 1)
 
-    def test_serialize(self):
+    def test_serialize(self) -> None:
         """Testing Condition.serialize"""
         class MyChoice(BaseConditionChoice):
             choice_id = 'my-choice'
@@ -271,7 +276,7 @@ class ConditionTests(SpyAgency, TestCase):
                 'value': 123,
             })
 
-    def test_serialize_without_value_field(self):
+    def test_serialize_without_value_field(self) -> None:
         """Testing Condition.serialize without a value_field"""
         class MyChoice(BaseConditionChoice):
             choice_id = 'my-choice'
@@ -287,14 +292,14 @@ class ConditionTests(SpyAgency, TestCase):
                 'op': 'basic-test-op',
             })
 
-    def test_matches_with_match(self):
+    def test_matches_with_match(self) -> None:
         """Testing Condition.matches with match"""
         choice = EqualsTestChoice()
         condition = Condition(choice, choice.get_operator('equals-test-op'),
                               'abc123')
         self.assertTrue(condition.matches('abc123'))
 
-    def test_matches_with_no_match(self):
+    def test_matches_with_no_match(self) -> None:
         """Testing Condition.matches with no match"""
         choice = EqualsTestChoice()
         condition = Condition(choice, choice.get_operator('equals-test-op'),
@@ -305,7 +310,7 @@ class ConditionTests(SpyAgency, TestCase):
 class ConditionSetTests(TestCase):
     """Unit tests for djblets.conditions.conditions.ConditionSet."""
 
-    def test_deserialize(self):
+    def test_deserialize(self) -> None:
         """Testing ConditionSet.deserialize"""
         choices = ConditionChoices([BasicTestChoice])
 
@@ -327,7 +332,7 @@ class ConditionSetTests(TestCase):
         self.assertEqual(condition_set.conditions[0].choice.choice_id,
                          'basic-test-choice')
 
-    def test_deserialize_with_choice_kwargs(self):
+    def test_deserialize_with_choice_kwargs(self) -> None:
         """Testing ConditionSet.deserialize with choice_kwargs"""
         choices = ConditionChoices([BasicTestChoice])
 
@@ -354,7 +359,7 @@ class ConditionSetTests(TestCase):
         self.assertEqual(choice.choice_id, 'basic-test-choice')
         self.assertEqual(choice.extra_state, {'abc': 123})
 
-    def test_deserialize_with_invalid_mode(self):
+    def test_deserialize_with_invalid_mode(self) -> None:
         """Testing ConditionSet.deserialize with invalid mode"""
         choices = ConditionChoices([BasicTestChoice])
 
@@ -372,12 +377,12 @@ class ConditionSetTests(TestCase):
                     ],
                 })
 
-    def test_matches_with_always_mode(self):
+    def test_matches_with_always_mode(self) -> None:
         """Testing ConditionSet.matches with "always" mode"""
         condition_set = ConditionSet(ConditionSet.MODE_ALWAYS, [])
         self.assertTrue(condition_set.matches(value='abc123'))
 
-    def test_matches_with_all_mode_and_match(self):
+    def test_matches_with_all_mode_and_match(self) -> None:
         """Testing ConditionSet.matches with "all" mode and match"""
         choice = EqualsTestChoice()
 
@@ -388,7 +393,7 @@ class ConditionSetTests(TestCase):
 
         self.assertTrue(condition_set.matches(value='abc123'))
 
-    def test_matches_with_all_mode_and_no_match(self):
+    def test_matches_with_all_mode_and_no_match(self) -> None:
         """Testing ConditionSet.matches with "all" mode and no match"""
         choice = EqualsTestChoice()
 
@@ -399,7 +404,7 @@ class ConditionSetTests(TestCase):
 
         self.assertFalse(condition_set.matches(value='abc123'))
 
-    def test_matches_with_any_mode_and_match(self):
+    def test_matches_with_any_mode_and_match(self) -> None:
         """Testing ConditionSet.matches with "any" mode and match"""
         choice = EqualsTestChoice()
 
@@ -410,7 +415,7 @@ class ConditionSetTests(TestCase):
 
         self.assertTrue(condition_set.matches(value='abc123'))
 
-    def test_matches_with_any_mode_and_no_match(self):
+    def test_matches_with_any_mode_and_no_match(self) -> None:
         """Testing ConditionSet.matches with "any" mode and no match"""
         choice = EqualsTestChoice()
 
@@ -421,7 +426,7 @@ class ConditionSetTests(TestCase):
 
         self.assertFalse(condition_set.matches(value='foo'))
 
-    def test_matches_with_custom_value_kwargs(self):
+    def test_matches_with_custom_value_kwargs(self) -> None:
         """Testing ConditionSet.matches with custom value keyword arguments"""
         class CustomEqualsChoice(EqualsTestChoice):
             value_kwarg = 'my_value'
@@ -436,7 +441,9 @@ class ConditionSetTests(TestCase):
         self.assertTrue(condition_set.matches(my_value='abc123'))
         self.assertFalse(condition_set.matches(value='abc123'))
 
-    def test_matches_with_all_mode_and_custom_value_kwargs_multiple(self):
+    def test_matches_with_all_mode_and_custom_value_kwargs_multiple(
+        self,
+    ) -> None:
         """Testing ConditionSet.matches with "all" mode and multiple custom
         value keyword arguments across multiple choices
         """
@@ -463,7 +470,9 @@ class ConditionSetTests(TestCase):
         self.assertFalse(condition_set.matches(my_value1='abc123',
                                                my_value2='xxx'))
 
-    def test_matches_with_any_mode_and_custom_value_kwargs_multiple(self):
+    def test_matches_with_any_mode_and_custom_value_kwargs_multiple(
+        self,
+    ) -> None:
         """Testing ConditionSet.matches with "any" mode and multiple custom
         value keyword arguments across multiple choices
         """
@@ -492,7 +501,7 @@ class ConditionSetTests(TestCase):
         self.assertFalse(condition_set.matches(my_value1='xxx',
                                                my_value2='xxx'))
 
-    def test_serialize(self):
+    def test_serialize(self) -> None:
         """Testing ConditionSet.serialize"""
         basic_choice = BasicTestChoice()
         equals_choice = EqualsTestChoice()
