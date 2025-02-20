@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 import pytz
 from django import forms
@@ -19,6 +19,7 @@ from djblets.forms.widgets import ConditionsWidget, ListEditWidget
 
 if TYPE_CHECKING:
     from djblets.conditions.choices import ConditionChoices
+    from djblets.conditions.conditions import ConditionSetData
     from djblets.util.typing import KwargsDict
 
 
@@ -36,11 +37,17 @@ class ConditionsField(forms.Field):
     """A form field for customizing conditions required for an operation.
 
     This field is used for defining conditions under which something should
-    be processed or run. It takes a condition choice registry (subclass of
-    :py:class:`~djblets.conditions.choices.BaseConditionChoiceRegistry`), which
-    defines all the possible condition choices, each containing possible
+    be processed or run. It takes a condition choice registry (an instance or
+    subclass of :py:class:`~djblets.conditions.choices.ConditionChoices`),
+    which defines all the possible condition choices, each containing possible
     operators for that choice (such as "is," "is not," "starts with," etc.) and
     possible fields for inputting values.
+
+    Version Changed:
+        5.3:
+        This class now explicitly supports instances of
+        :py:class:`~djblets.conditions.choices.ConditionChoices`. Previous
+        versions of Djblets supported this, but didn't document support.
     """
 
     widget = ConditionsWidget
@@ -56,22 +63,46 @@ class ConditionsField(forms.Field):
     # Instance variables #
     ######################
 
-    #: The condition choies for the field.
-    #:
-    #: Type:
-    #:     djblets.conditions.choices.ConditionChoices
+    #: The condition choices for the field.
     choices: ConditionChoices
 
-    def __init__(self, choices, choice_kwargs=None, *args, **kwargs):
+    #: The field for selecting a choice.
+    choice_field: forms.ChoiceField
+
+    #: The field for selecting a mode for the choice.
+    mode_field: forms.ChoiceField
+
+    #: The field for selecting an operator.
+    operator_field: forms.ChoiceField
+
+    def __init__(
+        self,
+        choices: Union[type[ConditionChoices],
+                       ConditionChoices,
+                       Callable[[], ConditionChoices]],
+        choice_kwargs: Optional[KwargsDict] = None,
+        *args,
+        **kwargs,
+    ) -> None:
         """Initialize the field.
 
+        Version Changed:
+            5.3:
+            ``choices`` may now be an instance of
+            :py:class:`~djblets.conditions.choices.ConditionChoices`. Previous
+            versions of Djblets supported this, but didn't document support.
+
         Args:
-            choices (djblets.conditions.choices.BaseConditionChoicesRegistry):
+            choices (djblets.conditions.choices.ConditionChoices or type or
+                     callable):
                 The registry of choices available for the conditions.
 
-                This should either be a class, or a function that returns
-                an instance. Note that the class will be constructed or the
-                function called when the field is first instantiated.
+                This should be an instance, a class, or a function that returns
+                an instance. If a class or function is provided, the resulting
+                instance will be constructed when the field is first
+                instantiated and will be bound to the field. An instance
+                should be used if you want to offer central registration of
+                choices.
 
             choice_kwargs (dict, optional):
                 Optional keyword arguments to pass to each
@@ -123,7 +154,7 @@ class ConditionsField(forms.Field):
 
         self.operator_field = forms.ChoiceField(required=True)
 
-        super(ConditionsField, self).__init__(
+        super().__init__(
             widget=widget_cls(choices=choices,
                               mode_widget=self.mode_field.widget,
                               choice_widget=self.choice_field.widget,
@@ -146,7 +177,10 @@ class ConditionsField(forms.Field):
         return self.widget.choice_kwargs
 
     @choice_kwargs.setter
-    def choice_kwargs(self, value):
+    def choice_kwargs(
+        self,
+        value: KwargsDict,
+    ) -> None:
         """The keyword arguments passed to ConditionChoice functions.
 
         Args:
@@ -155,7 +189,11 @@ class ConditionsField(forms.Field):
         """
         self.widget.choice_kwargs = value
 
-    def prepare_value(self, data):
+    def prepare_value(
+        self,
+        value: Union[ConditionSet,
+                     ConditionSetData],
+    ) -> ConditionSetData:
         """Prepare the value for loading into the field.
 
         This will handle both a loaded
@@ -177,22 +215,25 @@ class ConditionsField(forms.Field):
             ValueError:
                 The value provided is not valid for the widget.
         """
-        if isinstance(data, ConditionSet):
-            data = data.serialize()
-        elif data is None:
-            data = {
+        if isinstance(value, ConditionSet):
+            value = value.serialize()
+        elif value is None:
+            value = {
                 'mode': ConditionSet.DEFAULT_MODE,
                 'conditions': [],
             }
 
-        if not isinstance(data, dict):
+        if not isinstance(value, dict):
             raise ValueError(
                 gettext('%r is not a valid value for a %s')
-                % (data, self.__class__.__name__))
+                % (value, self.__class__.__name__))
 
-        return data
+        return value
 
-    def to_python(self, value):
+    def to_python(
+        self,
+        value: Optional[Any],
+    ) -> Optional[ConditionSet]:
         """Parse and return conditions from the field's data.
 
         This takes the serialized values provided by the field's widget,
@@ -205,31 +246,40 @@ class ConditionsField(forms.Field):
         Returns:
             djblets.conditions.conditions.ConditionSet:
             The resulting condition set from the form.
+
+        Raises:
+            django.core.exceptions.ValidationError:
+                The data failed to deserialize or validate.
         """
         if not value:
             # Let validate() handle this. It will be run by clean() after this
             # method returns.
             return None
 
+        widget = self.widget
+
         try:
             condition_set = ConditionSet.deserialize(
                 self.choices,
                 value,
-                choice_kwargs=self.widget.choice_kwargs)
+                choice_kwargs=widget.choice_kwargs)
         except InvalidConditionModeError as e:
             raise forms.ValidationError(str(e),
                                         code='invalid_mode')
         except (ConditionChoiceNotFoundError,
                 ConditionOperatorNotFoundError,
                 InvalidConditionValueError) as e:
+            error_messages = self.error_messages
+
             if getattr(e, 'code', None) == 'required':
-                self.widget.condition_errors[e.condition_index] = \
-                    self.error_messages['value_required']
+                message = error_messages['value_required']
             else:
-                self.widget.condition_errors[e.condition_index] = str(e)
+                message = str(e)
+
+            widget.condition_errors[e.condition_index] = message
 
             raise forms.ValidationError(
-                self.error_messages['condition_errors'],
+                error_messages['condition_errors'],
                 code='condition_errors')
 
         return condition_set

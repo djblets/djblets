@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Optional
+from typing import Iterable, Optional, TYPE_CHECKING
 
 from django import forms
 from django.contrib.auth.models import User
@@ -24,6 +24,9 @@ from djblets.webapi.responses import (WebAPIEventStreamMessage,
                                       WebAPIResponseEventStream,
                                       WebAPIResponseFormError,
                                       WebAPIResponsePaginated)
+
+if TYPE_CHECKING:
+    from djblets.webapi.responses import WebAPIResponsePayload
 
 
 class WebAPIResponseTests(TestCase):
@@ -154,6 +157,48 @@ class WebAPIResponsePaginatedTests(TestCase):
         rsp = json.loads(force_str(response.content))
         self.assertEqual(rsp['links']['self']['href'],
                          'http://testserver/api/users/?q=%D0%B5')
+
+    def test_with_serialize_object_list_func(self) -> None:
+        """Testing WebAPIResponsePaginated with serialize_object_list_func="""
+        def _my_serialize_list(
+            obj_list: Iterable[User],
+        ) -> list[WebAPIResponsePayload]:
+            return [
+                {
+                    'i': i,
+                    'username': user.username,
+                }
+                for i, user in enumerate(obj_list)
+            ]
+
+        User.objects.bulk_create([
+            User(username='user1'),
+            User(username='user2'),
+        ])
+
+        request = self.factory.get('/')
+
+        response = WebAPIResponsePaginated(
+            request=request,
+            queryset=User.objects.all(),
+            serialize_object_list_func=_my_serialize_list)
+
+        self.assertIs(response.request, request)
+        self.assertEqual(response.api_data, {
+            'links': {},
+            'results': [
+                {
+                    'i': 0,
+                    'username': 'user1',
+                },
+                {
+                    'i': 1,
+                    'username': 'user2',
+                },
+            ],
+            'stat': 'ok',
+            'total_results': 2,
+        })
 
 
 class WebAPIResponseErrorTests(TestCase):

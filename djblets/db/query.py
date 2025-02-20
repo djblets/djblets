@@ -1,10 +1,19 @@
+"""Utilities for aiding in database queries and results."""
+
+from __future__ import annotations
+
 import functools
 import re
 from copy import deepcopy
+from typing import Any, TYPE_CHECKING
 
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db.models.manager import Manager
 from django.db.models.query_utils import Q
+from djblets.util.symbols import UNSET, Unsettable
+
+if TYPE_CHECKING:
+    from django.db.models import Model
 
 
 class LocalDataQuerySet(object):
@@ -206,6 +215,75 @@ def get_object_or_none(cls, *args, **kwargs):
         return manager.get(*args, **kwargs)
     except cls.DoesNotExist:
         return None
+
+
+def get_object_cached_field(
+    obj: Model,
+    field_name: str,
+) -> Unsettable[Any]:
+    """Return the cached value for a field from a queried model object.
+
+    This helps grab a value from an object that was fetched using
+    :py:meth:`~django.db.models.query.QuerySet.prefetch_related` or
+    :py:meth:`~django.db.models.query.QuerySet.select_related`, taking into
+    account field names that may be defined on either side of a relation.
+
+    Version Added:
+        5.3
+
+    Args:
+        obj (django.db.models.Model):
+            The object containing the field.
+
+        field_name (str):
+            The field name to look up.
+
+            This may be a field on the provided model, or on a reverse
+            relation.
+
+    Returns:
+        object or djblets.util.symbols.UNSET:
+        The object value (which may be ``None``), or the UNSET symbol if
+        a value could not be found in cache.
+    """
+    field = obj._meta.get_field(field_name)
+
+    # Check for a cached value. This may come from a select_related().
+    try:
+        if field.is_cached(obj):
+            return field.get_cached_value(obj)
+    except AttributeError:
+        # Ignore this. The field doesn't define this.
+        pass
+
+    # Note that fields_map actually contains *reverse* field mappings, so
+    # we're checking first if there's a ManyToMany relation sourced from
+    # a reverse field mapping.
+    if field.many_to_many and field_name in obj._meta.fields_map:
+        # Reverse ManyToManyFields define a prefetch cache name as the
+        # related query name.
+        #
+        # See django/db/models/fields/related_descriptors.py ->
+        # create_forward_many_to_many_manager() ->
+        # ManyRelatedManager.__init__ and
+        # ManyRelatedManager.get_prefetch_queryset().
+        cache_name = field.remote_field.related_query_name()
+    else:
+        # Everything else lets us safely use get_cache_name() for a consistent
+        # value.
+        #
+        # See all the other get_prefetch_queryset() methods in
+        # django/db/models/fields/related_descriptors.py.
+        cache_name = field.get_cache_name()
+
+    # Pull from the prefetch_related() cache, if found there.
+    try:
+        return list(obj._prefetched_objects_cache[cache_name])
+    except (AttributeError, IndexError, KeyError):
+        pass
+
+    # We couldn't find a cached value.
+    return UNSET
 
 
 def prefix_q(prefix, q, clone=True):

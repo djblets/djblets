@@ -1,11 +1,14 @@
 """Unit tests for djblets.util.http."""
 
+from __future__ import annotations
+
 from django.http import HttpRequest, HttpResponse, HttpResponseNotModified
 
 from djblets.testing.testcases import TestCase
 from djblets.util.http import (build_not_modified_from_response,
                                get_http_accept_lists,
                                get_http_requested_mimetype,
+                               get_url_params_except,
                                is_mimetype_a)
 
 
@@ -112,3 +115,15 @@ class HttpTests(TestCase):
         self.assertNotIn('ETag', new_response)
         self.assertNotIn('Expires', new_response)
         self.assertNotIn('Vary', new_response)
+
+    def test_get_url_params_except(self) -> None:
+        """Testing get_url_params_except"""
+        self.assertEqual(
+            get_url_params_except({
+                'z': '4',
+                'A': '1',
+                'Z': '2',
+                'a': '3',
+                '\U0001f60e': '5',
+            }),
+            'A=1&Z=2&a=3&z=4&%F0%9F%98%8E=5')

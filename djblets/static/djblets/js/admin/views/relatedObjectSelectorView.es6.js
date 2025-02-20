@@ -173,7 +173,7 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
             const text = $item.text();
 
             if (this.autoAddClose) {
-                $('<span class="remove-item fa fa-close">')
+                $('<span class="remove-item ink-i-delete-item">')
                     .click(() => this._onItemRemoved($item, item))
                     .appendTo($item);
             }
@@ -234,7 +234,7 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
      *     string:
      *     HTML to insert into the drop-down menu.
      */
-    renderOption(/* item */) {
+    renderOption(item) {
         return '';
     },
 
@@ -245,12 +245,16 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
      * widget wants to display selected options differently, they may override
      * this.
      *
+     * Args:
+     *     item (object):
+     *         The item to render.
+     *
      * Returns:
      *     string:
      *     HTML to insert into the selected items list.
      */
-    renderSelectedOption() {
-        return this.renderOption();
+    renderSelectedOption(item) {
+        return this.renderOption(item);
     },
 
     /**

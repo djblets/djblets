@@ -1,3 +1,7 @@
+"""Unit tests for djblets.conditions.operators."""
+
+from __future__ import annotations
+
 import re
 
 from djblets.conditions.choices import BaseConditionChoice
@@ -28,7 +32,7 @@ from djblets.testing.testcases import TestCase
 class BaseConditionOperatorTests(TestCase):
     """Unit tests for djblets.conditions.operators.BaseConditionOperator."""
 
-    def test_value_field_with_default(self):
+    def test_value_field_with_default(self) -> None:
         """Testing BaseConditionOperator.value_field with default choice field
         """
         class MyOperator(BaseConditionOperator):
@@ -39,14 +43,14 @@ class BaseConditionOperatorTests(TestCase):
                 MyOperator,
             ])
 
-            default_value_field = BaseConditionValueField()
+            default_value_field = BaseConditionValueField[str]()
 
         choice = MyChoice()
         op = choice.get_operator('my-op')
         self.assertEqual(op.value_field, choice.default_value_field)
         self.assertFalse(op.has_custom_value_field)
 
-    def test_value_field_with_default_as_function(self):
+    def test_value_field_with_default_as_function(self) -> None:
         """Testing BaseConditionOperator.value_field with default choice field
         as a function
         """
@@ -61,40 +65,40 @@ class BaseConditionOperatorTests(TestCase):
             def default_value_field(self, **kwargs):
                 return _my_value_field
 
-        _my_value_field = BaseConditionValueField()
+        _my_value_field = BaseConditionValueField[str]()
 
         choice = MyChoice()
         op = choice.get_operator('my-op')
         self.assertEqual(op.value_field, _my_value_field)
         self.assertFalse(op.has_custom_value_field)
 
-    def test_value_field_with_custom(self):
+    def test_value_field_with_custom(self) -> None:
         """Testing BaseConditionOperator.value_field with custom choice field
         """
         class MyOperator(BaseConditionOperator):
             operator_id = 'my-op'
 
-            value_field = BaseConditionValueField()
+            value_field = BaseConditionValueField[str]()  # type: ignore
 
         class MyChoice(BaseConditionChoice):
             operators = ConditionOperators([
                 MyOperator,
             ])
 
-            default_value_field = BaseConditionValueField()
+            default_value_field = BaseConditionValueField[str]()
 
         choice = MyChoice()
         op = choice.get_operator('my-op')
         self.assertNotEqual(op.value_field, choice.default_value_field)
         self.assertTrue(op.has_custom_value_field)
 
-    def test_with_overrides(self):
+    def test_with_overrides(self) -> None:
         """Testing BaseConditionOperator.with_overrides"""
         class MyOperator(BaseConditionOperator):
             operator_id = 'my-op'
             name = 'My Op'
 
-            value_field = BaseConditionValueField()
+            value_field = BaseConditionValueField[int]()  # type: ignore
 
         CustomOperator = MyOperator.with_overrides(
             name='Custom Op',
@@ -109,8 +113,9 @@ class BaseConditionOperatorTests(TestCase):
 class ConditionOperatorsTests(TestCase):
     """Unit tests for djblets.conditions.operators.ConditionOperators."""
 
-    def test_init_with_class_operators(self):
-        """Testing ConditionOperators initialization with class-defined operators
+    def test_init_with_class_operators(self) -> None:
+        """Testing ConditionOperators initialization with class-defined
+        operators
         """
         class MyOperator1(BaseConditionOperator):
             operator_id = 'my-operator-1'
@@ -123,8 +128,9 @@ class ConditionOperatorsTests(TestCase):
         operators = MyOperators()
         self.assertEqual(list(operators), [MyOperator1])
 
-    def test_init_with_caller_operators(self):
-        """Testing ConditionOperators initialization with caller-defined operators
+    def test_init_with_caller_operators(self) -> None:
+        """Testing ConditionOperators initialization with caller-defined
+        operators
         """
         class MyOperator1(BaseConditionOperator):
             operator_id = 'my-operator-1'
@@ -140,7 +146,7 @@ class ConditionOperatorsTests(TestCase):
         operators = MyOperators([MyOperator2])
         self.assertEqual(list(operators), [MyOperator2])
 
-    def test_get_operator(self):
+    def test_get_operator(self) -> None:
         """Testing ConditionOperators.get_operator"""
         class MyOperator1(BaseConditionOperator):
             operator_id = 'my-operator-1'
@@ -149,93 +155,95 @@ class ConditionOperatorsTests(TestCase):
             operators = ConditionOperators([MyOperator1])
 
         choice = MyChoice()
+        assert choice.operators is not None
+
         self.assertEqual(
             choice.operators.get_operator('my-operator-1', choice).__class__,
             MyOperator1)
 
-    def test_get_operator_with_invalid_id(self):
+    def test_get_operator_with_invalid_id(self) -> None:
         """Testing ConditionOperators.get_operator with invalid ID"""
         operators = ConditionOperators()
 
         with self.assertRaises(ConditionOperatorNotFoundError):
-            operators.get_operator('invalid', None)
+            operators.get_operator('invalid', None)  # type: ignore
 
 
 class StandardOperatorTests(TestCase):
     """Unit tests for standard condition operators."""
 
-    def test_is_one_of_op_with_match(self):
+    def test_is_one_of_op_with_match(self) -> None:
         """Testing IsOneOfOperator with match"""
         self.assertTrue(self._check_match(IsOneOfOperator, 'a',
                                           ['a', 'b', 'c']))
         self.assertTrue(self._check_match(IsOneOfOperator, 1, [0, 1, 2]))
 
-    def test_is_one_of_op_without_match(self):
+    def test_is_one_of_op_without_match(self) -> None:
         """Testing IsOneOfOperator without match"""
         self.assertFalse(self._check_match(IsOneOfOperator, 'd',
                                            ['a', 'b', 'c']))
         self.assertFalse(self._check_match(IsOneOfOperator, 4, [0, 1, 2]))
 
-    def test_is_not_one_of_op_with_match(self):
+    def test_is_not_one_of_op_with_match(self) -> None:
         """Testing IsNotOneOfOperator with match"""
         self.assertTrue(self._check_match(IsNotOneOfOperator, 'z',
                                           ['a', 'b', 'c']))
         self.assertTrue(self._check_match(IsNotOneOfOperator, 9, [0, 1, 2]))
 
-    def test_is_not_one_of_op_without_match(self):
+    def test_is_not_one_of_op_without_match(self) -> None:
         """Testing IsNotOneOfOperator without match"""
         self.assertFalse(self._check_match(IsNotOneOfOperator, 'a',
                                            ['a', 'b', 'c']))
         self.assertFalse(self._check_match(IsNotOneOfOperator, 0, [0, 1, 2]))
 
-    def test_any_op_with_match(self):
+    def test_any_op_with_match(self) -> None:
         """Testing AnyOperator with match"""
         self.assertTrue(self._check_match(AnyOperator, 'foo'))
         self.assertTrue(self._check_match(AnyOperator, 0))
         self.assertTrue(self._check_match(AnyOperator, False))
 
-    def test_any_op_without_match(self):
+    def test_any_op_without_match(self) -> None:
         """Testing AnyOperator without match"""
         self.assertFalse(self._check_match(AnyOperator, ''))
         self.assertFalse(self._check_match(AnyOperator, None))
         self.assertFalse(self._check_match(AnyOperator, {}))
         self.assertFalse(self._check_match(AnyOperator, []))
 
-    def test_unset_op_with_match(self):
+    def test_unset_op_with_match(self) -> None:
         """Testing UnsetOperator with match"""
         self.assertTrue(self._check_match(UnsetOperator, ''))
         self.assertTrue(self._check_match(UnsetOperator, None))
         self.assertTrue(self._check_match(UnsetOperator, {}))
         self.assertTrue(self._check_match(UnsetOperator, []))
 
-    def test_unset_op_without_match(self):
+    def test_unset_op_without_match(self) -> None:
         """Testing UnsetOperator without match"""
         self.assertFalse(self._check_match(UnsetOperator, 'foo'))
         self.assertFalse(self._check_match(UnsetOperator, 0))
         self.assertFalse(self._check_match(UnsetOperator, False))
 
-    def test_is_op_with_match(self):
+    def test_is_op_with_match(self) -> None:
         """Testing IsOperator with match"""
         self.assertTrue(self._check_match(IsOperator, 1, 1))
         self.assertTrue(self._check_match(IsOperator, 'test', 'test'))
         self.assertTrue(self._check_match(IsOperator, True, True))
         self.assertTrue(self._check_match(IsOperator, ['a', 'b'], ['a', 'b']))
 
-    def test_is_op_without_match(self):
+    def test_is_op_without_match(self) -> None:
         """Testing IsOperator without match"""
         self.assertFalse(self._check_match(IsOperator, 0, 1))
         self.assertFalse(self._check_match(IsOperator, 'hi', 'test'))
         self.assertFalse(self._check_match(IsOperator, True, False))
         self.assertFalse(self._check_match(IsOperator, [1, 2], ['a', 'b']))
 
-    def test_is_not_op_with_match(self):
+    def test_is_not_op_with_match(self) -> None:
         """Testing IsNotOperator with match"""
         self.assertTrue(self._check_match(IsNotOperator, 0, 1))
         self.assertTrue(self._check_match(IsNotOperator, 'hi', 'test'))
         self.assertTrue(self._check_match(IsNotOperator, True, False))
         self.assertTrue(self._check_match(IsNotOperator, [1, 2], ['a', 'b']))
 
-    def test_is_not_op_without_match(self):
+    def test_is_not_op_without_match(self) -> None:
         """Testing IsNotOperator without match"""
         self.assertFalse(self._check_match(IsNotOperator, 1, 1))
         self.assertFalse(self._check_match(IsNotOperator, 'test', 'test'))
@@ -243,33 +251,33 @@ class StandardOperatorTests(TestCase):
         self.assertFalse(self._check_match(IsNotOperator,
                                            ['a', 'b'], ['a', 'b']))
 
-    def test_contains_op_with_match(self):
+    def test_contains_op_with_match(self) -> None:
         """Testing ContainsOperator with match"""
         self.assertTrue(self._check_match(ContainsOperator,
                                           'hello world', 'world'))
         self.assertTrue(self._check_match(ContainsOperator, [1, 2, 3], 1))
 
-    def test_contains_op_without_match(self):
+    def test_contains_op_without_match(self) -> None:
         """Testing ContainsOperator without match"""
         self.assertFalse(self._check_match(ContainsOperator,
                                            'hello world', 'hey'))
         self.assertFalse(self._check_match(ContainsOperator, [1, 2, 3], 4))
 
-    def test_does_not_contain_op_with_match(self):
+    def test_does_not_contain_op_with_match(self) -> None:
         """Testing DoesNotContainOperator with match"""
         self.assertTrue(self._check_match(DoesNotContainOperator,
                                           'hello world', 'hey'))
         self.assertTrue(self._check_match(DoesNotContainOperator,
                                           [1, 2, 3], 4))
 
-    def test_does_not_contain_op_without_match(self):
+    def test_does_not_contain_op_without_match(self) -> None:
         """Testing DoesNotContainOperator without match"""
         self.assertFalse(self._check_match(DoesNotContainOperator,
                                            'hello world', 'hello'))
         self.assertFalse(self._check_match(DoesNotContainOperator,
                                            [1, 2, 3], 1))
 
-    def test_contains_any_op_with_match(self):
+    def test_contains_any_op_with_match(self) -> None:
         """Testing ContainsAnyOperator with match"""
         self.assertTrue(self._check_match(ContainsAnyOperator,
                                           ['abc', 'def', 'xyz'],
@@ -278,19 +286,19 @@ class StandardOperatorTests(TestCase):
                                           ['abc', 'def', 'xyz'],
                                           ['def', 'XXX']))
 
-    def test_contains_any_op_without_match(self):
+    def test_contains_any_op_without_match(self) -> None:
         """Testing ContainsAnyOperator without match"""
         self.assertFalse(self._check_match(ContainsAnyOperator,
                                            ['abc', 'def', 'xyz'],
                                            ['XXX']))
 
-    def test_does_not_contain_any_op_with_match(self):
+    def test_does_not_contain_any_op_with_match(self) -> None:
         """Testing DoesNotContainAnyOperator with match"""
         self.assertTrue(self._check_match(DoesNotContainAnyOperator,
                                           ['abc', 'def', 'xyz'],
                                           ['XXX']))
 
-    def test_does_not_contain_any_op_without_match(self):
+    def test_does_not_contain_any_op_without_match(self) -> None:
         """Testing DoesNotContainAnyOperator without match"""
         self.assertFalse(self._check_match(DoesNotContainAnyOperator,
                                            ['abc', 'def', 'xyz'],
@@ -299,64 +307,64 @@ class StandardOperatorTests(TestCase):
                                            ['abc', 'def', 'xyz'],
                                            ['def', 'XXX']))
 
-    def test_starts_with_op_with_match(self):
+    def test_starts_with_op_with_match(self) -> None:
         """Testing StartsWithOperator with match"""
         self.assertTrue(self._check_match(StartsWithOperator,
                                           'hello world', 'he'))
 
-    def test_starts_without_op_without_match(self):
+    def test_starts_without_op_without_match(self) -> None:
         """Testing StartsWithOperator without match"""
         self.assertFalse(self._check_match(StartsWithOperator,
                                            'hello world', 'wo'))
 
-    def test_ends_with_op_with_match(self):
+    def test_ends_with_op_with_match(self) -> None:
         """Testing EndsWithOperator with match"""
         self.assertTrue(self._check_match(EndsWithOperator,
                                           'hello world', 'ld'))
 
-    def test_ends_without_op_without_match(self):
+    def test_ends_without_op_without_match(self) -> None:
         """Testing EndsWithOperator without match"""
         self.assertFalse(self._check_match(EndsWithOperator,
                                            'hello world', 'lo'))
 
-    def test_greater_than_op_with_match(self):
+    def test_greater_than_op_with_match(self) -> None:
         """Testing GreaterThanOperator with match"""
         self.assertTrue(self._check_match(GreaterThanOperator, 100, 20))
 
-    def test_greater_than_op_without_match(self):
+    def test_greater_than_op_without_match(self) -> None:
         """Testing GreaterThanOperator without match"""
         self.assertFalse(self._check_match(GreaterThanOperator, 20, 100))
 
-    def test_less_than_op_with_match(self):
+    def test_less_than_op_with_match(self) -> None:
         """Testing LessThanOperator with match"""
         self.assertTrue(self._check_match(LessThanOperator, 20, 100))
 
-    def test_less_than_op_without_match(self):
+    def test_less_than_op_without_match(self) -> None:
         """Testing LessThanOperator without match"""
         self.assertFalse(self._check_match(LessThanOperator, 100, 20))
 
-    def test_matches_regex_op_with_match(self):
+    def test_matches_regex_op_with_match(self) -> None:
         """Testing MatchesRegexOperator with match"""
         self.assertTrue(self._check_match(
             MatchesRegexOperator,
             'abccd',
             re.compile('abc+de?')))
 
-    def test_matches_regex_op_without_match(self):
+    def test_matches_regex_op_without_match(self) -> None:
         """Testing MatchesRegexOperator without match"""
         self.assertFalse(self._check_match(
             MatchesRegexOperator,
             'xyz',
             re.compile('abc+de?')))
 
-    def test_does_not_match_regex_op_with_match(self):
+    def test_does_not_match_regex_op_with_match(self) -> None:
         """Testing DoesNotMatchRegexOperator with match"""
         self.assertTrue(self._check_match(
             DoesNotMatchRegexOperator,
             'xyz',
             re.compile('abc+de?')))
 
-    def test_does_not_match_regex_op_without_match(self):
+    def test_does_not_match_regex_op_without_match(self) -> None:
         """Testing DoesNotMatchRegexOperator without match"""
         self.assertFalse(self._check_match(
             DoesNotMatchRegexOperator,
