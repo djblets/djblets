@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import Optional, Sequence, TYPE_CHECKING, Union
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 if TYPE_CHECKING:
@@ -113,7 +114,7 @@ class CommaSeparatedValuesField(models.CharField):
 
     def to_python(
         self,
-        value: Union[str, list],
+        value: Union[str, list[str]],
     ) -> list[str]:
         """Convert the given value from DB representation to Python.
 
@@ -191,7 +192,7 @@ class CommaSeparatedValuesField(models.CharField):
         """
         return self.get_prep_value(self.value_from_object(obj))
 
-    def get_default(self) -> list:
+    def get_default(self) -> list[str]:
         """Return the default value for the field.
 
         Returns:
@@ -207,6 +208,42 @@ class CommaSeparatedValuesField(models.CharField):
             return []
 
         return default
+
+    def validate(
+        self,
+        value: list[str],
+        model_instance: models.Model,
+    ) -> None:
+        """Validate the value.
+
+        Args:
+            value (list of str):
+                The list of selected items.
+
+            model_instance (django.db.models.Model):
+                The model which owns the field.
+
+        Raises:
+            django.core.exceptions.ValidationError:
+            The value was not valid.
+        """
+        if not self.editable:
+            # Skip validation.
+            return
+
+        if self.choices is not None:
+            options = {
+                choice[0]
+                for choice in self.choices
+            }
+
+            for v in value:
+                if v not in options:
+                    raise ValidationError(
+                        self.error_messages['invalid_choice']
+                        % {
+                            'value': v,
+                        })
 
     def _get_list(
         self,

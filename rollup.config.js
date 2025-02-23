@@ -11,6 +11,7 @@ const extensions = [
 
 
 const globalsMap = {
+    '@beanbag/ink': 'Ink',
     '@beanbag/jasmine-suites': 'window',
     '@beanbag/spina': 'Spina',
     backbone: 'Backbone',

@@ -203,21 +203,15 @@ suite('djblets/integrations/views/IntegrationConfigListView', function() {
             });
         });
 
-        describe('Actions', function() {
-            it('Delete', function() {
+        describe('Actions', () => {
+            it('Delete', async () => {
                 const config = collection.at(0);
-
                 spyOn(config, 'destroy').and.callThrough();
                 spyOn(config, 'sync');
 
-                spyOn($.fn, 'modalBox').and.callFake(
-                    options => options.buttons[1].click());
+                await view.listView.views[0]._onDeleteConfirmed();
 
-                $row1.find('.config-forms-list-action-delete').click();
-
-                expect($.fn.modalBox).toHaveBeenCalled();
                 expect(config.destroy).toHaveBeenCalled();
-
                 expect(collection.length).toBe(3);
                 expect(view.listView.$('tr').length).toBe(3);
             });

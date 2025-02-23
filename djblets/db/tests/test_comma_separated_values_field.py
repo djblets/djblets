@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from djblets.db.fields import CommaSeparatedValuesField
@@ -83,3 +84,18 @@ class CommaSeparatedValuesFieldTests(TestModelsLoaderMixin, TestCase):
 
         self.assertEqual(obj.get_choices_field_display(),
                          'Item A, Item B, Item C, Item C, z')
+
+    def test_validate(self) -> None:
+        """Testing CommaSeparatedValuesField.validate"""
+        obj = TestModel()
+
+        obj.field = ['a', 'b', 'c', 'd']
+        obj.choices_field = ['a', 'b']
+
+        obj.full_clean()
+
+        message = '''{'choices_field': ["Value 'z' is not a valid choice."]}'''
+
+        with self.assertRaisesMessage(ValidationError, message):
+            obj.choices_field = ['a', 'b', 'z']
+            obj.full_clean()
