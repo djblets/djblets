@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Mapping
+from typing import Mapping, Union
 from urllib.parse import urlencode
 
 from django.http import HttpResponse, HttpResponseNotModified
@@ -52,18 +52,24 @@ def set_etag(response, etag):
     response['ETag'] = etag
 
 
-def encode_etag(etag):
-    """Encode a string as a SHA1 value, for use in an ETag.
+def encode_etag(
+    etag: Union[bytes, str],
+) -> str:
+    """Encode a string as a SHA256 value, for use in an ETag.
+
+    Version Changed:
+        5.3:
+        Uses SHA256 encoding instead of SHA1.
 
     Args:
-        etag (bytes or unicode):
+        etag (bytes or str):
             The ETag to encode.
 
     Returns:
-        bytes:
+        str:
         The encoded ETag.
     """
-    return hashlib.sha1(force_bytes(etag)).hexdigest()
+    return hashlib.sha256(force_bytes(etag)).hexdigest()
 
 
 def etag_if_none_match(request, etag):
