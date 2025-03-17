@@ -321,7 +321,8 @@ class WebAPIResourceTests(kgb.SpyAgency, TestModelsLoaderMixin, TestCase):
                 }
 
         resource = TestResource()
-        etag = '790fc95c3f89afe28403c272553e790274ea1d3e'
+        etag = (
+            '1a1cc685d9d9a6440f2aade6981248c959fc69fc3abd6faa868ec7d3e0fb85df')
 
         request = self.factory.get('/api/tests/',
                                    HTTP_ACCEPT='application/json',
@@ -355,8 +356,9 @@ class WebAPIResourceTests(kgb.SpyAgency, TestModelsLoaderMixin, TestCase):
 
         self.assertIsInstance(response, WebAPIResponse)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['ETag'],
-                         '790fc95c3f89afe28403c272553e790274ea1d3e')
+        self.assertEqual(
+            response['ETag'],
+            '1a1cc685d9d9a6440f2aade6981248c959fc69fc3abd6faa868ec7d3e0fb85df')
 
     def test_get_with_auth_response_headers(self):
         """Testing WebAPIResource with GET and ensuring that any headers
