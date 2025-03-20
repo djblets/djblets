@@ -10,6 +10,7 @@ from django.http import HttpRequest
 from django.test.client import RequestFactory
 from django.utils.encoding import force_str
 from django.utils.safestring import SafeText
+from django_assert_queries import assert_queries
 
 from djblets.datagrid.grids import (CheckboxColumn, Column, DataGrid,
                                     DateTimeSinceColumn, StatefulColumn,
@@ -537,7 +538,7 @@ class DataGridTests(kgb.SpyAgency, TestCase):
             },
         ]
 
-        with self.assertQueries(queries):
+        with assert_queries(queries):
             datagrid.precompute_objects()
 
         rows = datagrid.rows
