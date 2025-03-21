@@ -4,6 +4,7 @@
 {% block title %}{{datagrid.title}}{% endblock %}
 
 {% block extrahead %}
+{{datagrid.meta_tags_html}}
 {%  stylesheet 'djblets-datagrid' %}
 {%  include 'js/jquery.html' %}
 {%  include 'js/jquery-ui.html' %}

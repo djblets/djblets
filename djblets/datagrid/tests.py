@@ -146,18 +146,96 @@ class DataGridTests(kgb.SpyAgency, TestCase):
         self.assertIn('<div class="paginator">', content)
         self.assertIn('<div class="datagrid-menu', content)
 
-    def test_render_paginator(self):
+    def test_render_paginator(self) -> None:
         """Testing DataGrid.render_paginator"""
-        self.datagrid.load_state()
-        content = self.datagrid.render_paginator()
+        datagrid = self.datagrid
+        datagrid.load_state()
+
+        content = datagrid.render_paginator()
 
         self.assertHTMLEqual(
             content,
             '<div class="paginator">'
             ' <span class="current-page">1</span>'
             ' <a href="?page=2" title="Page 2">2</a>'
-            ' <a href="?page=2" title="Next Page">&gt;</a>'
+            ' <a href="?page=2" rel="next" title="Next Page">&gt;</a>'
             ' <span class="page-count">2 pages&nbsp;</span>'
+            '</div>')
+
+    maxDiff = None
+
+    def test_render_paginator_with_first(self) -> None:
+        """Testing DataGrid.render_paginator with first page link"""
+        self.request.GET['page'] = '10'
+
+        datagrid = self.datagrid
+        datagrid.paginate_by = 10
+        datagrid.load_state()
+
+        content = datagrid.render_paginator()
+
+        self.assertHTMLEqual(
+            content,
+            '<div class="paginator">'
+            ' <a href="?" rel="first" title="First Page">«</a>'
+            ' <a href="?page=9" rel="prev" title="Previous Page">&lt;</a>'
+            ' <a href="?page=7" title="Page 7">7</a>'
+            ' <a href="?page=8" title="Page 8">8</a>'
+            ' <a href="?page=9" title="Page 9">9</a>'
+            ' <span class="current-page">10</span>'
+            ' <span class="page-count">10 pages&nbsp;</span>'
+            '</div>')
+
+    def test_render_paginator_with_last(self) -> None:
+        """Testing DataGrid.render_paginator with last page link"""
+        datagrid = self.datagrid
+        datagrid.paginate_by = 10
+        datagrid.load_state()
+
+        content = datagrid.render_paginator()
+
+        self.assertHTMLEqual(
+            content,
+            '<div class="paginator">'
+            ' <span class="current-page">1</span>'
+            ' <a href="?page=2" title="Page 2">2</a>'
+            ' <a href="?page=3" title="Page 3">3</a>'
+            ' <a href="?page=4" title="Page 4">4</a>'
+            ' <a href="?page=2" rel="next" title="Next Page">&gt;</a>'
+            ' <a href="?page=10" rel="last nofollow" title="Last Page">»</a>'
+            ' <span class="page-count">10 pages&nbsp;</span>'
+            '</div>')
+
+    def test_render_paginator_with_search_indexing_disabled(self) -> None:
+        """Testing DataGrid.render_paginator with search indexing disabled"""
+        self.request.GET['page'] = '10'
+
+        datagrid = self.datagrid
+        datagrid.allow_search_indexing = False
+        datagrid.paginate_by = 2
+        datagrid.load_state()
+
+        content = datagrid.render_paginator()
+
+        self.assertHTMLEqual(
+            content,
+            '<div class="paginator">'
+            ' <a href="?" rel="first nofollow noindex"'
+            ' title="First Page">«</a>'
+            ' <a href="?page=9" rel="prev nofollow noindex"'
+            ' title="Previous Page">&lt;</a>'
+            ' <a href="?page=7" rel="nofollow noindex" title="Page 7">7</a>'
+            ' <a href="?page=8" rel="nofollow noindex" title="Page 8">8</a>'
+            ' <a href="?page=9" rel="nofollow noindex" title="Page 9">9</a>'
+            ' <span class="current-page">10</span>'
+            ' <a href="?page=11" rel="nofollow noindex" title="Page 11">11</a>'
+            ' <a href="?page=12" rel="nofollow noindex" title="Page 12">12</a>'
+            ' <a href="?page=13" rel="nofollow noindex" title="Page 13">13</a>'
+            ' <a href="?page=11" rel="next nofollow noindex"'
+            ' title="Next Page">&gt;</a>'
+            ' <a href="?page=48" rel="last nofollow noindex"'
+            ' title="Last Page">»</a>'
+            ' <span class="page-count">48 pages&nbsp;</span>'
             '</div>')
 
     def test_load_state_with_sort_ascending(self):
