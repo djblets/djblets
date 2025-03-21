@@ -13,6 +13,7 @@ from django.utils.encoding import force_str
 from housekeeping import deprecate_non_keyword_only_args
 
 from djblets.deprecation import RemovedInDjblets60Warning
+from djblets.log import log_timed
 from djblets.mail.dmarc import is_email_allowed_by_dmarc
 from djblets.mail.utils import build_email_address_via_service
 
@@ -382,3 +383,27 @@ class EmailMessage(EmailMultiAlternatives):
                 msg[name] = value
 
         return msg
+
+    def send(self, *args, **kwargs) -> int:
+        """Send the e-mail.
+
+        This will log the timing of the e-mail and send it using the
+        configured backend.
+
+        Args:
+            *args (tuple):
+                Positional arguments to pass to the parent method.
+
+            **kwargs (dict):
+                Keyword arguments to pass to the parent method.
+
+        Returns:
+            int:
+            The number of messages that went out.
+        """
+        recipients = self.recipients()
+
+        with log_timed(f'Sending e-mail from {self.from_email} to '
+                       f'{recipients} (subject "{self.subject}")',
+                       logger=logger):
+            return super().send(*args, **kwargs)
