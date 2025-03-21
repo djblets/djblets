@@ -13,6 +13,7 @@ from publicsuffixlist import PublicSuffixList
 
 from djblets.cache.backend import DEFAULT_EXPIRATION_TIME, cache_memoize
 from djblets.deprecation import RemovedInDjblets60Warning
+from djblets.log import log_timed
 
 
 logger = logging.getLogger(__name__)
@@ -235,6 +236,23 @@ class DmarcRecord:
                    pct=pct,
                    fields=fields)
 
+    def __repr__(self) -> str:
+        """Return a string representation of the record.
+
+        Version Added:
+            5.3
+
+        Returns:
+            str:
+            The string representation.
+        """
+        return (
+            f'<DmarcRecord(hostname={self.hostname!r},'
+            f' policy={self.policy!r},'
+            f' subdomain_policy={self.subdomain_policy!r},'
+            f' fields={self.fields!r})>'
+        )
+
 
 def _fetch_dmarc_record(
     hostname: str,
@@ -266,18 +284,27 @@ def _fetch_dmarc_record(
         ``None`` will be returned instead.
     """
     def _fetch_record() -> str:
-        try:
-            return b' '.join(
-                dns.resolver.resolve('_dmarc.%s' % hostname,
-                                     dns.rdatatype.TXT,
-                                     search=True)[0]
-                .strings
-            ).decode('utf-8')
-        except (IndexError,
-                dns.resolver.NXDOMAIN,
-                dns.resolver.NoAnswer,
-                dns.resolver.NoNameservers):
-            raise ValueError
+        with log_timed(f'Fetching DMARC record for {hostname}',
+                       logger=logger) as timer:
+            try:
+                return b' '.join(
+                    dns.resolver.resolve('_dmarc.%s' % hostname,
+                                         dns.rdatatype.TXT,
+                                         search=True)[0]
+                    .strings
+                ).decode('utf-8')
+            except dns.resolver.NXDOMAIN:
+                logger.debug('[%s] No DMARC record found for %s',
+                             timer.trace_id, hostname)
+
+                raise ValueError
+            except (IndexError,
+                    dns.resolver.NoAnswer,
+                    dns.resolver.NoNameservers) as e:
+                logger.error('[%s] Unable to retrieve DMARC record for %s: %s',
+                             timer.trace_id, hostname, e)
+
+                raise ValueError
 
     record_str: Optional[str]
 
