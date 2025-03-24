@@ -30,6 +30,7 @@ import string
 import traceback
 from typing import (Any, Callable, Dict, Iterable, List, Optional, Sequence,
                     Set, TYPE_CHECKING, Type, Union)
+from urllib.parse import urlencode
 
 import pytz
 from django.conf import settings
@@ -615,16 +616,19 @@ class Column:
             # this.
             del sort_list[2:]
 
-            url_params = get_url_params_except(
-                datagrid.request.GET,
-                'sort', 'datagrid-id', 'gridonly', 'columns')
+            query_args = datagrid.request.GET.copy()
 
-            if url_params:
-                url_params = f'{url_params}&'
+            for key in ('datagrid-id', 'gridonly', 'columns'):
+                query_args.pop(key, None)
 
-            url_prefix = f'?{url_params}sort='
-            unsort_url = url_prefix + ','.join(sort_list[1:])
-            sort_url = url_prefix + ','.join(sort_list)
+            sort_query_args = query_args.copy()
+            sort_query_args['sort'] = ','.join(sort_list)
+
+            unsort_query_args = query_args.copy()
+            unsort_query_args['sort'] = ','.join(sort_list[1:])
+
+            sort_url = '?%s' % urlencode(sort_query_args)
+            unsort_url = '?%s' % urlencode(unsort_query_args)
 
         return datagrid.column_header_template_obj.render(context={
             'column': self,
@@ -1367,6 +1371,12 @@ class DataGrid:
 
     _columns = None
 
+    #: Whether to allow search indexing on the page.
+    #:
+    #: Version Added:
+    #:     5.3
+    allow_search_indexing: bool = True
+
     #: The list of default columns for this datagrid.
     #:
     #: Type:
@@ -1813,6 +1823,66 @@ class DataGrid:
             return self.queryset.model
 
         return self._model
+
+    @cached_property
+    def meta_tags_html(self) -> SafeString:
+        """The meta tags to include on the datagrid page.
+
+        This will set the canonical URL for the page (which will exclude
+        view customization options like ``columns`` and ``sort``), and
+        disable search indexing if :py:attr:`allow_search_indexing` is
+        ``False``.
+
+        Version Added:
+            5.3
+
+        Type:
+            django.utils.safestring.SafeString
+        """
+        tags: list[SafeString] = [
+            format_html('<link rel="canonical" href="{}">',
+                        self.get_canonical_url()),
+        ]
+
+        if not self.allow_search_indexing:
+            tags.append(mark_safe(
+                '<meta name="robots" content="nofollow,noindex">'
+            ))
+
+        return mark_safe('\n'.join(tags))
+
+    def get_canonical_url(self) -> str:
+        """Return the canonical URL for the current datagrid page.
+
+        By default, the canonical URL excludes the following:
+
+        * Default view customization query string options (``columns``,
+          ``datagrid-id``, ``gridonly``, ``sort``).
+
+        * ``page``, if the page number is 1.
+
+        The result must always be an absolute URL.
+
+        Version Added:
+            5.3
+
+        Returns:
+            str:
+            The canonical URL for the current datagrid page.
+        """
+        request = self.request
+        url = request.path
+        exclude = ['columns', 'datagrid-id', 'gridonly', 'sort']
+
+        if request.GET.get('page') == '1':
+            exclude.append('page')
+
+        url_params = get_url_params_except(request.GET, *exclude)
+
+        if url_params:
+            url += f'?{url_params}'
+
+        return request.build_absolute_uri(url)
 
     def get_stateful_column(
         self,
@@ -2520,7 +2590,8 @@ class DataGrid:
             django.utils.safestring.SafeString:
             The paginator as HTML.
         """
-        extra_query = get_url_params_except(self.request.GET,
+        request = self.request
+        extra_query = get_url_params_except(request.GET,
                                             'page', 'gridonly',
                                             *self.special_query_args)
 
@@ -2534,21 +2605,47 @@ class DataGrid:
                           min(paginator.num_pages,
                               page.number + adjacent_pages) + 1)
 
+        if page_nums:
+            show_first = (page_nums[0] != 1)
+            show_last = (page_nums[-1] != paginator.num_pages)
+        else:
+            show_first = False
+            show_last = False
+
         if extra_query:
             extra_query += '&'
 
+        # Generate rel tags for the HTML.
+        rel_common: str = ''
+        nofollow: str = ''
+
+        if (not self.allow_search_indexing or
+            'sort' in request.GET or
+            'columns' in request.GET or
+            'gridonly' in request.GET):
+            # When there are view options or internal flags, we want to
+            # avoid following or indexing any pagination links.
+            rel_common = ' nofollow noindex'
+        else:
+            nofollow = ' nofollow'
+
         context = {
-            'is_paginated': page.has_other_pages(),
-            'hits': paginator.count,
-            'results_per_page': self.paginate_by,
-            'page': page.number,
-            'pages': paginator.num_pages,
-            'page_numbers': page_nums,
+            'extra_query': extra_query,
             'has_next': page.has_next(),
             'has_previous': page.has_previous(),
-            'show_first': 1 not in page_nums,
-            'show_last': paginator.num_pages not in page_nums,
-            'extra_query': extra_query,
+            'hits': paginator.count,
+            'is_paginated': page.has_other_pages(),
+            'page': page.number,
+            'page_numbers': page_nums,
+            'pages': paginator.num_pages,
+            'rel_first_page': f'first{rel_common}',
+            'rel_last_page': f'last{nofollow}{rel_common}',
+            'rel_next_page': f'next{rel_common}',
+            'rel_page': rel_common.strip(),
+            'rel_prev_page': f'prev{rel_common}',
+            'results_per_page': self.paginate_by,
+            'show_first': show_first,
+            'show_last': show_last,
         }
 
         if page.has_next():

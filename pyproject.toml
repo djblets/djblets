@@ -38,9 +38,10 @@ classifiers = [
 
 
 [project.urls]
-homepage = 'https://github.com/djblets/djblets'
-documentation = 'https://github.com/djblets/djblets'
-repository = 'https://github.com/djblets/djblets'
+Homepage = 'https://github.com/djblets/djblets'
+Documentation = 'https://github.com/djblets/djblets'
+Repository = 'https://github.com/djblets/djblets'
+Support = 'https://www.reviewboard.org/support/'
 
 
 [tool.setuptools.package-data]
