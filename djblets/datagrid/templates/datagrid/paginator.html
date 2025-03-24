@@ -1,24 +1,25 @@
 {% load i18n %}
+
 {% if is_paginated %}
 <div class="paginator">
 {%  if show_first %}
- <a href="?{{extra_query}}page=1" title="{% trans "First Page" %}">&laquo;</a>
+ <a href="?{{extra_query}}" title="{% trans "First Page" %}" rel="{{rel_first_page}}">&laquo;</a>
 {%  endif %}
 {%  if has_previous %}
- <a href="?{{extra_query}}page={{previous}}" title="{% trans "Previous Page" %}">&lt;</a>
+ <a href="?{{extra_query}}page={{previous}}" title="{% trans "Previous Page" %}" rel="{{rel_prev_page}}">&lt;</a>
 {%  endif %}
 {%  for pagenum in page_numbers %}
 {%   if pagenum == page %}
  <span class="current-page">{{pagenum}}</span>
 {%   else %}
- <a href="?{{extra_query}}page={{pagenum}}" title="{% blocktrans %}Page {{pagenum}}{% endblocktrans %}">{{pagenum}}</a>
+ <a href="?{{extra_query}}page={{pagenum}}" title="{% blocktrans %}Page {{pagenum}}{% endblocktrans %}"{% if rel_page %} rel="{{rel_page}}"{% endif %}>{{pagenum}}</a>
 {%   endif %}
 {%  endfor %}
 {%  if has_next %}
- <a href="?{{extra_query}}page={{next}}" title="{% trans "Next Page" %}">&gt;</a>
+ <a href="?{{extra_query}}page={{next}}" title="{% trans "Next Page" %}" rel="{{rel_next_page}}">&gt;</a>
 {%  endif %}
 {%  if show_last %}
- <a href="?{{extra_query}}page={{pages}}" title="{% trans "Last Page" %}">&raquo;</a>
+ <a href="?{{extra_query}}page={{pages}}" title="{% trans "Last Page" %}" rel="{{rel_last_page}}">&raquo;</a>
 {%  endif %}
  <span class="page-count">{{pages}} pages&nbsp;</span>
 </div>

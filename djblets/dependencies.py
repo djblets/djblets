@@ -45,6 +45,7 @@ django_version = '~=4.2.17'
 package_dependencies = {
     'cryptography': '>=41.0.7',
     'Django': django_version,
+    'django-assert-queries': '~=2.0',
     'django-pipeline': '~=3.1.0',
     'dnspython': '>=2.3.0',
     'housekeeping': '~=1.1',
