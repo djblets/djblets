@@ -1,5 +1,5 @@
-Djblets: Your Django Power Tools
-================================
+Djblets: Your Django Production Power Tools
+===========================================
 
 **Project:** |license-badge| |reviewed-badge|
 
