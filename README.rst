@@ -1,5 +1,10 @@
-Djblets
-=======
+Djblets: Your Django Power Tools
+================================
+
+**Project:** |license-badge| |reviewed-badge|
+
+**Latest release:** |latest-version-badge| |latest-pyvers-badge|
+|latest-django-badge|
 
 Djblets is a large collection of general and special-purpose building blocks
 designed to help with the development of web applications written using
@@ -180,6 +185,17 @@ Djblets.
 .. _djblets.webapi:
    https://www.reviewboard.org/docs/djblets/latest/coderef/#coderef-djblets-webapi
 
+.. |latest-django-badge| image:: https://img.shields.io/pypi/frameworkversions/django/Djblets
+   :target: https://www.djangoproject.com
+.. |latest-pyvers-badge| image:: https://img.shields.io/pypi/pyversions/Djblets
+   :target: https://pypi.org/project/Djblets
+.. |latest-version-badge| image:: https://img.shields.io/pypi/v/Djblets
+   :target: https://pypi.org/project/Djblets
+.. |license-badge| image:: https://img.shields.io/badge/license-MIT-green.svg
+   :target: https://opensource.org/licenses/MIT
+.. |reviewed-badge| image:: https://img.shields.io/badge/Review%20Board-d0e6ff?label=reviewed%20with
+   :target: https://www.reviewboard.org
+
 
 Compatibility
 =============
@@ -228,6 +244,21 @@ Getting Support
 We can help you with Djblets-related development over on our `Review Board
 development list`_.
 
+We also provide more `dedicated, private support
+<https://www.reviewboard.org/support/>`_ for your organization through a
+support contract, offering:
+
+* Same-day responses (generally within a few hours, if not sooner)
+* Confidential communications
+* Installation/upgrade assistance
+* Emergency database repair
+* Video/chat meetings (by appointment)
+* Priority fixes for urgent bugs
+* Backports of urgent fixes to older releases (when possible)
+
+Support contracts fund the development of Djblets, Review Board, and our other
+open source projects.
+
 
 .. _Review Board development list:
    https://groups.google.com/group/reviewboard-dev
@@ -259,12 +290,52 @@ We accept patches on `reviews.reviewboard.org
 <https://reviews.reviewboard.org/>`_. (Please note that we *do not* accept pull
 requests.)
 
+To post a change for review:
+
+1. Download RBTools:
+
+   .. code-block:: console
+
+      $ pip install rbtools
+
+2. Create a branch in your Git clone and make your changes.
+
+3. Post the change for review:
+
+   .. code-block:: console
+
+      $ rbt post
+
+   To update your change:
+
+   .. code-block:: console
+
+      $ rbt post -u
+
+
 .. _Review Board Contributor Guide:
    https://www.notion.so/reviewboard/Review-Board-45d228fb07a0459b84fee509ac054cec
 
 
-Related Projects
-================
+Our Other Projects
+==================
 
 * `Review Board`_ -
   Our dedicated open source code review product for teams of all sizes.
+
+* `Housekeeping <https://github.com/beanbaginc/housekeeping>`_ -
+  Deprecation management for Python modules, classes, functions, and
+  attributes.
+
+* `kgb <https://github.com/beanbaginc/kgb>`_ -
+  A powerful function spy implementation to help write Python unit tests.
+
+* `Registries <https://github.com/beanbaginc/python-registries>`_ -
+  A flexible, typed implementation of the Registry Pattern for more
+  maintainable and extensible codebases.
+
+* `Typelets <https://github.com/beanbaginc/python-typelets>`_ -
+  Type hints and utility objects for Python and Django projects.
+
+You can see more on `github.com/beanbaginc <https://github.com/beanbaginc>`_
+and `github.com/reviewboard <https://github.com/reviewboard>`_.
