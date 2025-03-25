@@ -44,6 +44,8 @@ except ImportError:
     Version = None
 
 if TYPE_CHECKING:
+    from contextlib import AbstractContextManager
+
     from django_assert_queries import ExpectedQuery
 
 
@@ -361,7 +363,6 @@ class TestCase(testcases.TestCase):
             'Djblets 7'
         )
     )
-    @contextmanager
     def assertQueries(
         self,
         queries: Sequence[Union[ExpectedQuery,
@@ -372,7 +373,7 @@ class TestCase(testcases.TestCase):
         traceback_size: int = 15,
         check_join_types: bool = True,
         check_subqueries: bool = True,
-    ) -> Iterator[None]:
+    ) -> AbstractContextManager[None]:
         """Assert the number and complexity of queries.
 
         This provides advanced checking of queries, allowing the caller to
@@ -458,12 +459,12 @@ class TestCase(testcases.TestCase):
                 The parameters passed, or the queries compared, failed
                 expectations.
         """
-        yield assert_queries(queries=queries,
-                             num_statements=num_statements,
-                             with_tracebacks=with_tracebacks,
-                             traceback_size=traceback_size,
-                             check_join_types=check_join_types,
-                             check_subqueries=check_subqueries)
+        return assert_queries(queries=queries,
+                              num_statements=num_statements,
+                              with_tracebacks=with_tracebacks,
+                              traceback_size=traceback_size,
+                              check_join_types=check_join_types,
+                              check_subqueries=check_subqueries)
 
 
 class TestModelsLoaderMixin(object):
