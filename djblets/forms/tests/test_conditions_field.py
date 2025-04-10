@@ -35,19 +35,6 @@ class ConditionsFieldTests(TestCase):
 
         self.assertEqual(field.widget.choice_kwargs, field.choice_kwargs)
 
-    def test_init_with_missing_operators(self):
-        """Testing ConditionsField initialization with choices missing
-        operators
-        """
-        class MyChoice(BaseConditionChoice):
-            choice_id = 'my-choice'
-
-        choices = ConditionChoices([MyChoice])
-        msg = 'MyChoice must define a non-empty "operators" attribute.'
-
-        with self.assertRaisesMessage(ValueError, msg):
-            ConditionsField(choices=choices)
-
     def test_choice_kwargs_with_multiple_instances(self):
         """Testing ConditionsField.choice_kwargs works with multiple instances
         """

@@ -17,8 +17,10 @@ from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from housekeeping import deprecate_non_keyword_only_args
+from typing_extensions import Self, TypeAlias
 
 from djblets.conditions import ConditionSet
+from djblets.conditions.choices import ConditionChoices
 from djblets.conditions.errors import (ConditionChoiceNotFoundError,
                                        ConditionOperatorNotFoundError)
 from djblets.deprecation import RemovedInDjblets70Warning
@@ -27,13 +29,22 @@ if TYPE_CHECKING:
     from django.forms.renderers import BaseRenderer
     from django.forms.utils import _DataT, _FilesT
     from django.utils.safestring import SafeText
-    from djblets.conditions.choices import (BaseConditionChoice,
-                                            ConditionChoices)
+    from djblets.conditions.choices import BaseConditionChoice
     from djblets.conditions.conditions import ConditionData, ConditionSetData
     from djblets.conditions.operators import BaseConditionOperator
     from djblets.conditions.values import BaseConditionValueField
     from djblets.util.typing import KwargsDict, StrOrPromise
     from typing_extensions import Self
+
+
+#: The types of arguments available as choices to a ConditionsField.
+#:
+#: Version Added:
+#:     5.3
+ConditionsWidgetChoices: TypeAlias = Union[
+    ConditionChoices,
+    Callable[[], ConditionChoices],
+]
 
 
 class AmountSelectorWidget(widgets.MultiWidget):
@@ -194,9 +205,6 @@ class ConditionsWidget(widgets.Widget):
     # Instance variables #
     ######################
 
-    #: The condition choices for the field.
-    choices: ConditionChoices
-
     #: Optional keyword arguments to pass to each choice.
     #:
     #: This is useful for more advanced conditions that need additional data
@@ -221,11 +229,31 @@ class ConditionsWidget(widgets.Widget):
     #: One of these will be rendered for every row.
     operator_widget: widgets.Select
 
+    #: The calculated condition choices for the widget.
+    #:
+    #: Version Added:
+    #:     5.3
+    _choices: Optional[ConditionChoices]
+
+    #: The original condition choices passed to the widget.
+    #:
+    #: This may be a callable or a list of choices. It's used to dynamically
+    #: populate :py:attr:`choices` on request whenever a new field instance is
+    #: created, so that changes in registered choices can be taken into
+    #: account.
+    #:
+    #: Unlike :py:attr:`choices`, this value is preserved when cloning (such
+    #: as when creating a local instance of a form from a class definition).
+    #:
+    #: Version Added:
+    #:     5.3
+    _orig_choices: ConditionsWidgetChoices
+
     @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
     def __init__(
         self,
         *,
-        choices: ConditionChoices,
+        choices: ConditionsWidgetChoices,
         mode_widget: widgets.RadioSelect,
         choice_widget: widgets.Select,
         operator_widget: widgets.Select,
@@ -236,13 +264,22 @@ class ConditionsWidget(widgets.Widget):
 
         Version Changed:
             5.3:
-            All arguments are now keyword-only arguments. Support for
-            positional arguments is deprecated and will be removed in
-            Djblets 7.
+            * All arguments are now keyword-only arguments. Support for
+              positional arguments is deprecated and will be removed in
+              Djblets 7.
+
+            * ``choices`` may now be a callable.
 
         Args:
-            choices (djblets.conditions.choices.ConditionChoices):
+            choices (djblets.conditions.choices.ConditionChoices or callable):
                 The condition choices for the field.
+
+                This may be a callable, which will cause the choices to load
+                only when needed.
+
+                Version Changed:
+                    5.3:
+                    Added support for a callable.
 
             mode_widget (django.forms.widgets.RadioSelect):
                 The widget for selecting the mode.
@@ -266,12 +303,50 @@ class ConditionsWidget(widgets.Widget):
         """
         super().__init__(attrs=attrs)
 
-        self.choices = choices
+        self._orig_choices = choices
+        self._choices = None
+
         self.mode_widget = mode_widget
         self.choice_widget = choice_widget
         self.operator_widget = operator_widget
         self.choice_kwargs = choice_kwargs or {}
         self.condition_errors = {}
+
+    @property
+    def choices(self) -> ConditionChoices:
+        """The condition choices for the widget.
+
+        Type:
+            djblets.conditions.choices.ConditionChoices
+        """
+        choices = self._choices
+
+        if choices is None:
+            orig_choices = self._orig_choices
+
+            if callable(orig_choices):
+                choices = orig_choices()
+            else:
+                choices = orig_choices
+
+            self._choices = choices
+
+        return choices
+
+    @choices.setter
+    def choices(
+        self,
+        choices: ConditionsWidgetChoices,
+    ) -> None:
+        """Set the condition choices for the widget.
+
+        Args:
+            value (djblets.conditions.choices.ConditionChoices or type or
+                   callable):
+                The new choices value.
+        """
+        self._orig_choices = choices
+        self._choices = None
 
     @property
     def media(self) -> widgets.Media:
@@ -811,6 +886,8 @@ class ConditionsWidget(widgets.Widget):
         obj.operator_widget = copy.deepcopy(self.operator_widget, memo)
         obj.condition_errors = copy.deepcopy(self.condition_errors, memo)
         obj.choice_kwargs = self.choice_kwargs.copy()
+        obj._orig_choices = self._orig_choices
+        obj._choices = None
 
         return obj
 

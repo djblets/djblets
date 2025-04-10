@@ -320,6 +320,15 @@ class ConditionValueFormField(BaseConditionValueField[_T]):
     ) -> None:
         self._field = field
 
+    @property
+    def widget(self) -> forms.Field:
+        """The associated form field's widget.
+
+        Version Added:
+            5.3
+        """
+        return self.field.widget
+
     def serialize_value(
         self,
         value: _T,

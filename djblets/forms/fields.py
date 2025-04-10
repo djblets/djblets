@@ -2,28 +2,38 @@
 
 from __future__ import annotations
 
-import logging
-from typing import Any, Callable, Optional, TYPE_CHECKING, Union
+import copy
+from typing import Any, Optional, TYPE_CHECKING, Union
 
 import pytz
 from django import forms
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _, gettext
+from typing_extensions import Self, TypeAlias
 
+from djblets.conditions.choices import ConditionChoices
 from djblets.conditions.conditions import ConditionSet
 from djblets.conditions.errors import (ConditionChoiceNotFoundError,
                                        ConditionOperatorNotFoundError,
                                        InvalidConditionModeError,
                                        InvalidConditionValueError)
-from djblets.forms.widgets import ConditionsWidget, ListEditWidget
+from djblets.forms.widgets import (ConditionsWidget,
+                                   ConditionsWidgetChoices,
+                                   ListEditWidget)
 
 if TYPE_CHECKING:
-    from djblets.conditions.choices import ConditionChoices
     from djblets.conditions.conditions import ConditionSetData
     from djblets.util.typing import KwargsDict
 
 
 TIMEZONE_CHOICES = tuple(zip(pytz.common_timezones, pytz.common_timezones))
+
+
+#: The types of arguments available as choices to a ConditionsField.
+#:
+#: Version Added:
+#:     5.3
+ConditionsFieldChoices: TypeAlias = ConditionsWidgetChoices
 
 
 class TimeZoneField(forms.ChoiceField):
@@ -37,9 +47,18 @@ class ConditionsField(forms.Field):
     """A form field for customizing conditions required for an operation.
 
     This field is used for defining conditions under which something should
-    be processed or run. It takes a condition choice registry (an instance or
-    subclass of :py:class:`~djblets.conditions.choices.ConditionChoices`),
-    which defines all the possible condition choices, each containing possible
+    be processed or run. It takes a condition choice registry, which may be
+    one of the following:
+
+    1. A :py:class:`~djblets.conditions.choices.ConditionChoices` instance
+       (recommended)
+
+    2. A :py:class:`~djblets.conditions.choices.ConditionChoices` subclass
+
+    2. A callable returning a
+       :py:class:`~djblets.conditions.choices.ConditionChoices` instance
+
+    These define all the possible condition choices, each containing possible
     operators for that choice (such as "is," "is not," "starts with," etc.) and
     possible fields for inputting values.
 
@@ -63,9 +82,6 @@ class ConditionsField(forms.Field):
     # Instance variables #
     ######################
 
-    #: The condition choices for the field.
-    choices: ConditionChoices
-
     #: The field for selecting a choice.
     choice_field: forms.ChoiceField
 
@@ -77,9 +93,7 @@ class ConditionsField(forms.Field):
 
     def __init__(
         self,
-        choices: Union[type[ConditionChoices],
-                       ConditionChoices,
-                       Callable[[], ConditionChoices]],
+        choices: ConditionsFieldChoices,
         choice_kwargs: Optional[KwargsDict] = None,
         *args,
         **kwargs,
@@ -116,22 +130,7 @@ class ConditionsField(forms.Field):
             **kwargs (dict):
                 Extra keyword arguments for the field.
         """
-        if callable(choices):
-            choices = choices()
-
-        for choice in choices:
-            if choice.operators is None or len(choice.operators) == 0:
-                logging.error('%s must define a non-empty "operators" '
-                              'attribute.',
-                              choice.__name__)
-
-                raise ValueError(
-                    _('%s must define a non-empty "operators" attribute.')
-                    % choice.__name__)
-
         widget_cls = kwargs.get('widget', self.widget)
-
-        self.choices = choices
 
         self.mode_field = forms.ChoiceField(
             required=True,
@@ -147,9 +146,9 @@ class ConditionsField(forms.Field):
 
         self.choice_field = forms.ChoiceField(
             required=True,
-            choices=(
+            choices=lambda: (
                 (choice.choice_id, choice.name)
-                for choice in choices
+                for choice in self.choices
             ))
 
         self.operator_field = forms.ChoiceField(required=True)
@@ -161,6 +160,29 @@ class ConditionsField(forms.Field):
                               operator_widget=self.operator_field.widget,
                               choice_kwargs=choice_kwargs or {}),
             *args, **kwargs)
+
+    @property
+    def choices(self) -> ConditionChoices:
+        """The condition choices for the field.
+
+        Type:
+            djblets.conditions.choices.ConditionChoices
+        """
+        return self.widget.choices
+
+    @choices.setter
+    def choices(
+        self,
+        value: ConditionsFieldChoices,
+    ) -> None:
+        """Set the condition choices for the field.
+
+        Args:
+            value (djblets.conditions.choices.ConditionChoices or type or
+                   callable):
+                The new choices value.
+        """
+        self.widget.choices = value
 
     @property
     def choice_kwargs(self) -> KwargsDict:
@@ -283,6 +305,34 @@ class ConditionsField(forms.Field):
                 code='condition_errors')
 
         return condition_set
+
+    def __deepcopy__(
+        self,
+        memo: dict[int, Any],
+    ) -> Self:
+        """Return a deep copy of the field.
+
+        This will return a deep copy of this field and all subfields, so that
+        a particular form instance can easily manipulate state without
+        affecting other instances.
+
+        Only the state that may be manipulated by an instance will be deep
+        copied.
+
+        Args:
+            memo (dict):
+                The memo dictionary used to track IDs to objects.
+
+        Returns:
+            ConditionsField:
+            A deep copy of this field's instance.
+        """
+        obj = super().__deepcopy__(memo)
+        obj.choice_field = copy.deepcopy(self.choice_field, memo)
+        obj.mode_field = copy.deepcopy(self.mode_field, memo)
+        obj.operator_field = copy.deepcopy(self.operator_field, memo)
+
+        return obj
 
 
 class ListEditField(forms.Field):
