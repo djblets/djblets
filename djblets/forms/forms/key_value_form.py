@@ -1,9 +1,58 @@
 """A form for working with key/value stores."""
 
+from __future__ import annotations
+
+from typing import (Any, Dict, Generic, Protocol, TYPE_CHECKING,
+                    runtime_checkable)
+
 from django import forms
+from typing_extensions import TypeVar
+
+if TYPE_CHECKING:
+    from typing import ClassVar, Mapping, Sequence
+
+    from django.core.files.uploadedfile import UploadedFile
+    from django.utils.datastructures import MultiValueDict
 
 
-class KeyValueForm(forms.Form):
+_T = TypeVar('_T', default=Dict[str, Any])
+
+
+@runtime_checkable
+class _Gettable(Protocol):
+    """Protocol for things that support a get() method.
+
+    This is used for type checking with the default implementation of
+    :py:meth:`KeyValueForm.get_key_value`.
+    """
+
+    def get(
+        self,
+        key: str,
+        default: Any = None,
+        /,
+    ) -> Any:
+        ...
+
+
+@runtime_checkable
+class _Settable(Protocol):
+    """Protocol for things that support __setitem__.
+
+    This is used for type checking with the default implementation of
+    :py:meth:`KeyValueForm.set_key_value`.
+    """
+
+    def __setitem__(
+        self,
+        name: str,
+        value: Any,
+        /,
+    ) -> None:
+        ...
+
+
+class KeyValueForm(forms.Form, Generic[_T]):
     """A form for working with key/value stores.
 
     Typical forms are built to work either with database models or with
@@ -76,12 +125,26 @@ class KeyValueForm(forms.Form):
     """
 
     #: The list of CSS bundle names to include on the page.
-    css_bundle_names = []
+    css_bundle_names: ClassVar[Sequence[str]] = []
 
     #: The list of JavaScript bundle names to include on the page.
-    js_bundle_names = []
+    js_bundle_names: ClassVar[Sequence[str]] = []
 
-    def __init__(self, data=None, files=None, instance=None, *args, **kwargs):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The object instance.
+    instance: _T | None
+
+    def __init__(
+        self,
+        data: (Mapping[str, Any] | None) = None,
+        files: (MultiValueDict[str, UploadedFile] | None) = None,
+        instance: (_T | None) = None,
+        *args,
+        **kwargs,
+    ) -> None:
         """Initialize the form.
 
         Args:
@@ -100,8 +163,7 @@ class KeyValueForm(forms.Form):
             **kwargs (dict):
                 Keyword arguments for the form.
         """
-        super(KeyValueForm, self).__init__(data=data, files=files,
-                                           *args, **kwargs)
+        super().__init__(data=data, files=files, *args, **kwargs)
 
         self.instance = instance
         self.disabled_fields = {}
@@ -109,7 +171,7 @@ class KeyValueForm(forms.Form):
 
         self.load()
 
-    def load(self):
+    def load(self) -> None:
         """Load form fields from the instance.
 
         If an instance was passed to the form, any values found in that
@@ -126,7 +188,7 @@ class KeyValueForm(forms.Form):
             if self.instance is not None and field_name not in load_blacklist:
                 value = self.get_key_value(field_name, default=field.initial)
                 deserialize_func = getattr(self,
-                                           'deserialize_%s_field' % field_name,
+                                           f'deserialize_{field_name}_field',
                                            None)
 
                 if deserialize_func is not None:
@@ -137,7 +199,11 @@ class KeyValueForm(forms.Form):
             if field_name in disabled_fields:
                 field.widget.attrs['disabled'] = 'disabled'
 
-    def save(self, commit=True, extra_save_blacklist=[]):
+    def save(
+        self,
+        commit: bool = True,
+        extra_save_blacklist: (Sequence[str] | None) = None,
+    ) -> _T:
         """Save form fields back to the instance.
 
         This will save the values of any fields not in the blacklist out to
@@ -163,6 +229,9 @@ class KeyValueForm(forms.Form):
             raise ValueError('The form could not be saved due to one or more '
                              'errors.')
 
+        if extra_save_blacklist is None:
+            extra_save_blacklist = []
+
         if self.instance is None:
             self.instance = self.create_instance()
 
@@ -170,8 +239,7 @@ class KeyValueForm(forms.Form):
 
         for key, value in self.cleaned_data.items():
             if key not in blacklist:
-                serialize_func = getattr(self, 'serialize_%s_field' % key,
-                                         None)
+                serialize_func = getattr(self, f'serialize_{key}_field', None)
 
                 if serialize_func is not None:
                     value = serialize_func(value)
@@ -183,7 +251,11 @@ class KeyValueForm(forms.Form):
 
         return self.instance
 
-    def get_key_value(self, key, default=None):
+    def get_key_value(
+        self,
+        key: str,
+        default: Any = None,
+    ) -> Any:
         """Return the value for a key in the instance.
 
         This defaults to calling a ``get()`` method on the instance,
@@ -194,7 +266,7 @@ class KeyValueForm(forms.Form):
         instance.
 
         Args:
-            key (unicode):
+            key (str):
                 The key to fetch from the instance. This will be a field
                 name in the form.
 
@@ -205,9 +277,14 @@ class KeyValueForm(forms.Form):
             object:
             The value from the instance.
         """
+        assert isinstance(self.instance, _Gettable)
         return self.instance.get(key, default)
 
-    def set_key_value(self, key, value):
+    def set_key_value(
+        self,
+        key: str,
+        value: Any,
+    ) -> None:
         """Set a value in the instance.
 
         This defaults to calling the ``[]`` operator (as in ``instance[key]``)
@@ -216,15 +293,16 @@ class KeyValueForm(forms.Form):
         This can be overridden to change how values are set in the instance.
 
         Args:
-            key (unicode):
+            key (str):
                 The key in the instance where the value should be stored.
 
             value (object):
                 The value to store in the instance.
         """
+        assert isinstance(self.instance, _Settable)
         self.instance[key] = value
 
-    def create_instance(self):
+    def create_instance(self) -> _T:
         """Create a new instance.
 
         If an instance was not provided to the form, this will be called
@@ -243,10 +321,10 @@ class KeyValueForm(forms.Form):
                 The method was not overridden by a subclass, but was called
                 due to an instance not being passed to the form.
         """
-        raise NotImplementedError('%r must implement create_instance()'
-                                  % self.__class__)
+        raise NotImplementedError(
+            f'{self.__class__.__name__} must implement create_instance()')
 
-    def save_instance(self):
+    def save_instance(self) -> None:
         """Save the instance.
 
         By default, this doesn't do anything. Subclasses can override it to
@@ -254,7 +332,7 @@ class KeyValueForm(forms.Form):
         """
         pass
 
-    def get_load_blacklist(self):
+    def get_load_blacklist(self) -> Sequence[str]:
         """Return the field blacklist for loading.
 
         Any field names returned from here will not be loaded from the
@@ -271,13 +349,12 @@ class KeyValueForm(forms.Form):
             list:
             The field names to blacklist from loading from the instance.
         """
-        if hasattr(self, 'Meta'):
-            return getattr(self.Meta, 'load_blacklist',
-                           self.get_save_blacklist())
+        if meta := getattr(self, 'Meta', None):
+            return getattr(meta, 'load_blacklist', self.get_save_blacklist())
 
         return []
 
-    def get_save_blacklist(self):
+    def get_save_blacklist(self) -> Sequence[str]:
         """Return the field blacklist for saving.
 
         Any field names returned from here will not be saved to the
@@ -292,7 +369,7 @@ class KeyValueForm(forms.Form):
             list:
             The field names to blacklist from saving to the instance.
         """
-        if hasattr(self, 'Meta'):
-            return getattr(self.Meta, 'save_blacklist', [])
+        if meta := getattr(self, 'Meta', None):
+            return getattr(meta, 'save_blacklist', [])
 
         return []

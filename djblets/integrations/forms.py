@@ -2,20 +2,22 @@
 
 from __future__ import annotations
 
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from djblets.forms.forms import KeyValueForm
+from djblets.integrations.models import BaseIntegrationConfig
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from django.http import HttpRequest
     from djblets.integrations.integration import Integration
-    from djblets.integrations.models import BaseIntegrationConfig
 
 
-class IntegrationConfigForm(KeyValueForm):
+class IntegrationConfigForm(KeyValueForm[BaseIntegrationConfig]):
     """Base class for an integration settings form.
 
     This makes it easy to provide a basic form for manipulating the settings
@@ -63,11 +65,6 @@ class IntegrationConfigForm(KeyValueForm):
     ######################
     # Instance variables #
     ######################
-
-    #: The integration configuration being updated.
-    #:
-    #: This will be ``None`` if creating a new configuration.
-    instance: Optional[BaseIntegrationConfig]
 
     #: The integration being configured.
     integration: Integration
@@ -124,10 +121,10 @@ class IntegrationConfigForm(KeyValueForm):
             fieldsets = getattr(meta, 'fieldsets', ())
 
             if not fieldsets or fieldsets[0] != cls.basic_info_fieldset:
-                meta.fieldsets = (cls.basic_info_fieldset,) + fieldsets
+                meta.fieldsets = (cls.basic_info_fieldset, *fieldsets)
 
     @property
-    def config(self) -> Optional[BaseIntegrationConfig]:
+    def config(self) -> BaseIntegrationConfig | None:
         """The configuration that's being edited.
 
         If this is a brand new configuration, this will be ``None`` until
@@ -142,7 +139,7 @@ class IntegrationConfigForm(KeyValueForm):
     def get_key_value(
         self,
         key: str,
-        default: Optional[object] = None,
+        default: Any = None,
     ) -> object:
         """Return the value for a key.
 
@@ -176,7 +173,7 @@ class IntegrationConfigForm(KeyValueForm):
     def set_key_value(
         self,
         key: str,
-        value: Optional[object],
+        value: Any,
     ) -> None:
         """Set the value for a key.
 
