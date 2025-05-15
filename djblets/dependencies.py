@@ -45,7 +45,7 @@ django_version = '~=4.2.17'
 package_dependencies = {
     'cryptography': '>=41.0.7',
     'Django': django_version,
-    'django-assert-queries': '~=2.0',
+    'django-assert-queries': '~=2.0.1',
     'django-pipeline': '~=3.1.0',
     'dnspython': '>=2.3.0',
     'housekeeping': '~=1.1',
@@ -83,7 +83,7 @@ package_dependencies = {
 #: Dependencies required for static media building.
 frontend_buildkit_npm_dependencies: Dict[str, str] = {
     '@beanbag/frontend-buildkit': '^1.2.0',
-    '@beanbag/ink': '^0.7.0',
+    '@beanbag/ink': '^0.8.0',
     '@beanbag/jasmine-suites': '~2.0.0',
     '@beanbag/spina': '^3.1.1',
     '@types/jquery': '^3.5.30',
