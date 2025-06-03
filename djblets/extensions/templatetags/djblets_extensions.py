@@ -126,8 +126,51 @@ def ext_static(context, extension, path):
 
 
 def _render_bundle(context, node_cls, extension, name, bundle_type):
+    """Render an extension bundle, catching and logging any errors.
+
+    This will attempt to render the named bundle for the given extension.
+    The result will be HTML that loads in the bundle, compiling it first if
+    necessary.
+
+    If there's any error during this process, the error will be logged and
+    the bundle will be skipped.
+
+    Version Changed:
+        4.1, 5.3:
+        The ``name`` argument now accepts full bundle IDs, in addition to
+        relative bundle names.
+
+    Args:
+        context (django.template.Context):
+            The current template context.
+
+        node_cls (type):
+            The template tag node used to render the bundle.
+
+        extension (djblets.extensions.extension.Extension):
+            The extension that owns the bundle.
+
+        name (str):
+            The full bundle ID or name of the bundle to render.
+
+        bundle_type (str):
+            The type of bundle.
+
+            This is only used for logging purposes when indicating the type
+            of bundle that failed.
+
+    Returns:
+        django.utils.safestring.SafeString:
+        The HTML used to load the bundle.
+    """
+    if name.startswith(extension.id):
+        # The name is already the full bundle ID.
+        bundle_id = name
+    else:
+        bundle_id = extension.get_bundle_id(name)
+
     try:
-        return node_cls('"%s"' % extension.get_bundle_id(name)).render(context)
+        return node_cls(f'"{bundle_id}"').render(context)
     except Exception:
         logger.error('Unable to render %s bundle "%s" for extension "%s" '
                      '(%s). The extension may not be installed correctly. '
