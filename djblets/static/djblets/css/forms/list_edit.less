@@ -66,6 +66,16 @@
    *     <input class="djblets-c-list-edit-widget__input" ...>
    */
   &__input {
+    /*
+     * If this is inside config-forms, <input> will have a width: 30em rule,
+     * which causes these to bust out of the width of the configforms
+     * container. Remove the 30em and instead just have these expand to fill.
+     */
+    .djblets-c-config-forms-page__content & {
+      flex-grow: 1;
+      width: inherit !important;
+    }
+
     + & {
       margin-right: 0.5em;
     }
