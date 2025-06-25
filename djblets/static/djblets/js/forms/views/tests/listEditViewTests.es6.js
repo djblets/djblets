@@ -1,31 +1,32 @@
 suite('djblets/forms/views/ListEditView', function() {
-
     const formTemplate = _.template(dedent`
-    <div class="djblets-c-list-edit-widget list-edit-widget">
-    <input type="hidden" name="_num_rows" value="<%- renderedRows.length %>">
-      <ul class="djblets-c-list-edit-widget__entries">
-      <% if (renderedRows.length > 0) { %>
-        <% renderedRows.forEach(function(row, i) { %>
-        <li class="djblets-c-list-edit-widget__entry"
-            data-list-index="<%- i %>">
-        <%= row %>
-        <a href="#" class="djblets-c-list-edit-widget__remove-item"
-            role="button">
-        <span class="fa fa-times"></span>
-        </a>
-        </li>
-      <% }); %>
-      <% } else { %>
-        <li class="djblets-c-list-edit-widget__entry" data-list-index="0">
-        <%= renderedDefaultRow %>
-        <a href="#" class="djblets-c-list-edit-widget__remove-item"></a>
-        </li>
-      <% } %>
-      </ul>
-     <button class="djblets-c-list-edit-widget__add-item btn" role="button">
-     <span class="fa fa-plus"></span>
-     </button>
-    </div>
+        <div class="djblets-c-list-edit-widget list-edit-widget">
+        <input type="hidden" name="_num_rows"
+               value="<%- renderedRows.length %>">
+          <ul class="djblets-c-list-edit-widget__entries">
+          <% if (renderedRows.length > 0) { %>
+            <% renderedRows.forEach(function(row, i) { %>
+            <li class="djblets-c-list-edit-widget__entry"
+                data-list-index="<%- i %>">
+            <%= row %>
+            <a href="#" class="djblets-c-list-edit-widget__remove-item"
+                role="button">
+            <span class="fa fa-times"></span>
+            </a>
+            </li>
+          <% }); %>
+          <% } else { %>
+            <li class="djblets-c-list-edit-widget__entry" data-list-index="0">
+            <%= renderedDefaultRow %>
+            <a href="#" class="djblets-c-list-edit-widget__remove-item"></a>
+            </li>
+          <% } %>
+          </ul>
+         <button class="djblets-c-list-edit-widget__add-item ink-c-button">
+          <span class="ink-c-button__icon ink-i-add"></span>
+          <label class="ink-c-button__label>Add item</label>
+         </button>
+        </div>
     `);
 
     const makeView = function makeView(
