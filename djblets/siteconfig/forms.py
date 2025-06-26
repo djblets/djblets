@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
-from django.http import HttpRequest
+from typing import TYPE_CHECKING
 
 from djblets.forms.forms import KeyValueForm
-from djblets.siteconfig.models import (SiteConfiguration,
-                                       SiteConfigurationSettingsValue)
+from djblets.siteconfig.models import SiteConfiguration
+
+if TYPE_CHECKING:
+    from django.http import HttpRequest
+
+    from djblets.siteconfig.models import SiteConfigurationSettingsValue
 
 
-class SiteSettingsForm(KeyValueForm):
+class SiteSettingsForm(KeyValueForm[SiteConfiguration]):
     """A base form for loading/saving settings for a SiteConfiguration.
 
     This is meant to be subclassed for different settings pages. Any fields
@@ -22,7 +24,7 @@ class SiteSettingsForm(KeyValueForm):
     #:
     #: Type:
     #:     django.http.HttpRequest
-    request: HttpRequest
+    request: HttpRequest | None
 
     #: The site configuration settings that are loaded from and saved to.
     #:
@@ -34,9 +36,14 @@ class SiteSettingsForm(KeyValueForm):
         self,
         siteconfig: SiteConfiguration,
         *args,
+        request: (HttpRequest | None) = None,
         **kwargs,
     ) -> None:
         """Initialize the form.
+
+        Version Changed:
+            6.0:
+            Made ``request`` an explicitly listed parameter.
 
         Args:
             siteconfig (djblets.siteconfig.models.SiteConfiguration):
@@ -45,10 +52,13 @@ class SiteSettingsForm(KeyValueForm):
             *args (tuple):
                 Positional arguments to pass to the parent constructor.
 
+            request (django.http.HttpRequest, optional):
+                The HTTP request from the client.
+
             **kwargs (dict):
                 Keyword arguments to pass to the parent constructor.
         """
-        self.request = kwargs.pop('request', None)
+        self.request = request
         self.siteconfig = siteconfig
 
         super().__init__(instance=siteconfig, *args, **kwargs)
@@ -56,8 +66,8 @@ class SiteSettingsForm(KeyValueForm):
     def get_key_value(
         self,
         key: str,
-        default: Optional[SiteConfigurationSettingsValue] = None,
-    ) -> Optional[SiteConfigurationSettingsValue]:
+        default: (SiteConfigurationSettingsValue | None) = None,
+    ) -> SiteConfigurationSettingsValue | None:
         """Return the value for a SiteConfiguration settings key.
 
         Args:

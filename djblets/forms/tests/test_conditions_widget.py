@@ -1,13 +1,20 @@
+"""Unit tests for djblets.forms.widgets.ConditionsWidget."""
+
+from __future__ import annotations
+
 import copy
 
+from django import forms
 from django.utils.datastructures import MultiValueDict
 
 from djblets.conditions.choices import (BaseConditionChoice,
                                         BaseConditionIntegerChoice,
                                         ConditionChoices)
-from djblets.conditions.operators import (BaseConditionOperator,
+from djblets.conditions.operators import (AnyOperator,
+                                          BaseConditionOperator,
                                           ConditionOperators)
 from djblets.conditions.values import (ConditionValueCharField,
+                                       ConditionValueFormField,
                                        ConditionValueIntegerField)
 from djblets.forms.fields import ConditionsField
 from djblets.testing.testcases import TestCase
@@ -35,6 +42,8 @@ class ConditionsWidgetTests(TestCase):
         self.assertEqual(widget2.choice_widget.attrs, {})
         self.assertEqual(widget2.operator_widget.attrs, {})
         self.assertEqual(widget2.condition_errors, {})
+        self.assertIs(widget2._orig_choices, choices)
+        self.assertIsNone(widget2._choices)
 
         # Choices won't be modified between copies, and is a shared object,
         # so both should have the same instance.
@@ -658,3 +667,101 @@ class ConditionsWidgetTests(TestCase):
             '<option value="my-op" selected(="selected")?>My Op</option>')
         self.assertIn('<span class="conditions-field-value"></span>',
                       rendered)
+
+    def test_choices_get_with_class(self) -> None:
+        """Testing ConditionsWidget.choices getter with ConditionSet subclass
+        """
+        class MyChoice(BaseConditionIntegerChoice):
+            choice_id = 'my-choice'
+
+        class MyConditionChoices(ConditionChoices):
+            choice_classes = [
+                MyChoice,
+            ]
+
+        widget = ConditionsField(choices=MyConditionChoices).widget
+
+        self.assertIsInstance(widget.choices, MyConditionChoices)
+        self.assertIs(widget._orig_choices, MyConditionChoices)
+
+    def test_choices_get_with_instance(self) -> None:
+        """Testing ConditionsWidget.choices getter with ConditionSet instance
+        """
+        class MyChoice(BaseConditionIntegerChoice):
+            choice_id = 'my-choice'
+
+        choices = ConditionChoices(choices=[MyChoice])
+        widget = ConditionsField(choices=choices).widget
+
+        self.assertIs(widget.choices, choices)
+        self.assertIs(widget._orig_choices, choices)
+        self.assertIs(widget._choices, choices)
+
+    def test_choices_get_with_callable(self) -> None:
+        """Testing ConditionsWidget.choices getter with callable"""
+        class MyChoice(BaseConditionIntegerChoice):
+            choice_id = 'my-choice'
+
+        choices = ConditionChoices(choices=[MyChoice])
+
+        def _get_choices() -> ConditionChoices:
+            return choices
+
+        widget = ConditionsField(choices=_get_choices).widget
+
+        self.assertIs(widget.choices, choices)
+        self.assertIs(widget._orig_choices, _get_choices)
+        self.assertIs(widget._choices, choices)
+
+    def test_choices_set(self) -> None:
+        """Testing ConditionsWidget.choices setter"""
+        class MyChoice(BaseConditionIntegerChoice):
+            choice_id = 'my-choice'
+
+        choices = ConditionChoices(choices=[MyChoice])
+        widget = ConditionsField(choices=ConditionChoices).widget
+
+        widget.choices = choices
+        self.assertIs(widget.choices, choices)
+        self.assertIs(widget._orig_choices, choices)
+        self.assertIs(widget._choices, choices)
+
+    def test_dynamic_condition_choices(self) -> None:
+        """Testing ConditionsWidget sees new condition choices dynamically
+        added to ConditionChoices
+        """
+        class MyWidget1(forms.widgets.Widget):
+            class Media:
+                js = ['widget1.js']
+
+        class MyWidget2(forms.widgets.Widget):
+            class Media:
+                js = ['widget2.js']
+
+        class MyChoice1(BaseConditionChoice):
+            choice_id = 'my-choice1'
+            default_value_field = ConditionValueFormField(
+                field=forms.CharField(widget=MyWidget1))
+            operators = ConditionOperators([AnyOperator])
+
+        class MyChoice2(BaseConditionIntegerChoice):
+            choice_id = 'my-choice2'
+            default_value_field = ConditionValueFormField(
+                field=forms.CharField(widget=MyWidget2))
+            operators = ConditionOperators([AnyOperator])
+
+        choices = ConditionChoices(choices=[MyChoice1])
+        widget = ConditionsField(choices=choices).widget
+
+        # We'll just test one usage of choices. This is the simplest test,
+        # but will ensure we see changes to the available choices.
+        media = widget.media
+        self.assertEqual(media._css, {})
+        self.assertEqual(media._js, ['widget1.js'])
+
+        # Now add a new choice.
+        choices.register(MyChoice2)
+
+        media = widget.media
+        self.assertEqual(media._css, {})
+        self.assertEqual(media._js, ['widget1.js', 'widget2.js'])

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 _SITECONFIG_CACHE: Dict[int, SiteConfiguration] = {}
 
 
-class SiteConfigurationManager(models.Manager):
+class SiteConfigurationManager(models.Manager['SiteConfiguration']):
     """Manages cached instances of a SiteConfiguration.
 
     This provides functions for retrieving the current

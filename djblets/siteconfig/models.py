@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import TYPE_CHECKING
 
 from django.contrib.sites.models import Site
 from django.db import models
@@ -12,6 +12,9 @@ from djblets.cache.synchronizer import GenerationSynchronizer
 from djblets.db.fields.json_field import JSONField
 from djblets.siteconfig.managers import SiteConfigurationManager
 from djblets.util.typing import JSONDict, JSONValue
+
+if TYPE_CHECKING:
+    from typing import ClassVar, Sequence
 
 
 #: An alias for valid value types in site configuration settings.
@@ -28,10 +31,10 @@ SiteConfigurationSettings: TypeAlias = JSONDict
 
 
 _GLOBAL_DEFAULTS: SiteConfigurationSettings = {}
-_DEFAULTS: Dict[int, SiteConfigurationSettings] = {}
+_DEFAULTS: dict[int, SiteConfigurationSettings] = {}
 
 
-class SiteConfigSettingsWrapper(object):
+class SiteConfigSettingsWrapper:
     """Wraps the settings for a SiteConfiguration.
 
     This is used by the context processor for templates to wrap accessing
@@ -63,7 +66,7 @@ class SiteConfigSettingsWrapper(object):
     def __getattr__(
         self,
         name: str,
-    ) -> Optional[object]:
+    ) -> SiteConfigurationSettingsValue | None:
         """Return an attribute from the site configuration.
 
         If the attribute is not present in the site configuration's settings,
@@ -103,7 +106,7 @@ class SiteConfiguration(models.Model):
     #: A JSON dictionary field of settings stored for a site.
     settings = JSONField()
 
-    objects = SiteConfigurationManager()
+    objects: ClassVar[SiteConfigurationManager] = SiteConfigurationManager()
 
     @classmethod
     def add_global_defaults(
@@ -117,7 +120,7 @@ class SiteConfiguration(models.Model):
         precedent over global defaults.
 
         Args:
-            default_dict (dict):
+            defaults_dict (dict):
                 A dictionary of defaults, mapping siteconfig settings keys to
                 JSON-serializable values.
         """
@@ -199,15 +202,17 @@ class SiteConfiguration(models.Model):
         # Begin managing the synchronization of settings between all
         # SiteConfigurations.
         self._gen_sync = GenerationSynchronizer(
-            '%s:siteconfig:%s:generation' % (self.site.domain, self.pk))
+            f'{self.site.domain}:siteconfig:{self.pk}:generation')
 
         self.settings_wrapper = SiteConfigSettingsWrapper(self)
 
     def get(
         self,
         key: str,
-        default: Optional[SiteConfigurationSettingsValue] = None,
-    ) -> Optional[SiteConfigurationSettingsValue]:
+        default: (SiteConfigurationSettingsValue | None) = None,
+        *,
+        layers: (Sequence[SiteConfigurationSettings] | None) = None,
+    ) -> SiteConfigurationSettingsValue | None:
         """Return the value for a setting.
 
         If the setting is not found, the default value will be returned. This
@@ -215,6 +220,10 @@ class SiteConfiguration(models.Model):
         default (from :py:meth:`add_default`) if set.
 
         If no default is available, ``None`` will be returned.
+
+        Version Changed:
+            5.3:
+            Added the ``layers`` argument.
 
         Args:
             key (str):
@@ -224,17 +233,32 @@ class SiteConfiguration(models.Model):
                 The default value to return. If not provided, the registered
                 default will be returned.
 
+            layers (list of SiteConfigurationSettings, optional):
+                An optional list of additional settings dictionaries to check.
+
+                Version Added:
+                    5.3
+
         Returns:
             object:
             The resulting value.
         """
         if default is None:
-            try:
-                default = _DEFAULTS[self.pk][key]
-            except KeyError:
-                default = _GLOBAL_DEFAULTS.get(key)
+            method_defaults = None
+        else:
+            method_defaults = {key: default}
 
-        return self.settings.get(key, default)
+        for layer in [
+            *(layers or []),
+            self.settings,
+            method_defaults,
+            _DEFAULTS.get(self.pk),
+            _GLOBAL_DEFAULTS,
+        ]:
+            if layer and key in layer:
+                return layer[key]
+
+        return None
 
     def set(
         self,
@@ -266,7 +290,7 @@ class SiteConfiguration(models.Model):
         and will not be registered for global defaults.
 
         Args:
-            default_dict (dict):
+            defaults_dict (dict):
                 A dictionary of defaults, mapping siteconfig settings keys to
                 JSON-serializable values.
         """
@@ -355,6 +379,9 @@ class SiteConfiguration(models.Model):
         next request.
 
         Args:
+            *args (tuple):
+                Positional arguments to pass through to the parent method.
+
             clear_caches (bool, optional):
                 Whether to clear the caches. This is ``True`` by default.
 
@@ -382,9 +409,11 @@ class SiteConfiguration(models.Model):
             str:
             The string representation of the site configuration.
         """
-        return '%s (version %s)' % (self.site, self.version)
+        return f'{self.site} (version {self.version})'
 
     class Meta:
+        """Metadata for the model."""
+
         # Djblets 0.9+ sets an app label of "djblets_siteconfig" on
         # Django 1.7+, which would affect the table name. We need to retain
         # the old name for backwards-compatibility.
