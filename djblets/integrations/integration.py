@@ -9,10 +9,11 @@ from typing_extensions import TypeAlias
 from djblets.integrations.forms import IntegrationConfigForm
 
 if TYPE_CHECKING:
+    from typelets.django.strings import StrOrPromise
+
     from djblets.extensions.hooks import ExtensionHook
     from djblets.integrations.manager import IntegrationManager
     from djblets.integrations.models import BaseIntegrationConfig
-    from djblets.util.typing import StrOrPromise
 
 
 class Integration(object):

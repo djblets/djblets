@@ -25,11 +25,11 @@ from typing_extensions import NotRequired, TypeAlias, TypedDict
 from djblets.extensions.errors import InstallExtensionMediaError
 from djblets.extensions.models import RegisteredExtension
 from djblets.extensions.settings import ExtensionSettings
-from djblets.util.typing import JSONDict
 from djblets.webapi.resources import WebAPIResource
 
 if TYPE_CHECKING:
     from importlib_metadata import EntryPoint
+    from typelets.json import JSONDict
 
     from djblets.extensions.hooks import ExtensionHook
     from djblets.extensions.manager import ExtensionManager

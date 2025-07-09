@@ -11,10 +11,11 @@ from typing_extensions import TypeAlias
 from djblets.cache.synchronizer import GenerationSynchronizer
 from djblets.db.fields.json_field import JSONField
 from djblets.siteconfig.managers import SiteConfigurationManager
-from djblets.util.typing import JSONDict, JSONValue
+from typelets.json import JSONDict, JSONValue
 
 if TYPE_CHECKING:
-    from typing import ClassVar, Sequence
+    from collections.abc import Sequence
+    from typing import ClassVar
 
 
 #: An alias for valid value types in site configuration settings.

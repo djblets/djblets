@@ -12,7 +12,8 @@ import logging
 from enum import Enum
 from threading import RLock
 from typing import (Dict, Generic, Iterable, Iterator, List, Optional,
-                    Sequence, Set, Type, TypeVar)
+                    Sequence, Type, TypeVar)
+from typelets.django.strings import StrOrPromise
 
 from django.utils.translation import gettext_lazy as _
 from importlib_metadata import EntryPoint, entry_points
@@ -23,7 +24,6 @@ from djblets.registries.errors import (AlreadyRegisteredError,
                                        ItemLookupError,
                                        RegistrationError)
 from djblets.registries.signals import registry_populating
-from djblets.util.typing import StrOrPromise
 
 logger = logging.getLogger(__name__)
 

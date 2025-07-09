@@ -9,9 +9,9 @@ from djblets.forms.forms import KeyValueForm
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
+    from typelets.json import JSONValue
 
     from djblets.extensions.extension import Extension
-    from djblets.util.typing import JSONValue
 
 
 class SettingsForm(KeyValueForm[ExtensionSettings]):

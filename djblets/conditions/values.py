@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from typing_extensions import TypeAlias, TypeVar
 
 from djblets.conditions.errors import InvalidConditionValueError
-from djblets.util.typing import JSONDict, JSONValue
+from typelets.json import JSONDict, JSONValue
 
 if TYPE_CHECKING:
     from django.forms.utils import _DataT, _FilesT
