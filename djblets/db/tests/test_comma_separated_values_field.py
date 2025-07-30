@@ -9,7 +9,7 @@ from djblets.db.fields import CommaSeparatedValuesField
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
 
 
-class TestModel(models.Model):
+class _TestModel(models.Model):
     """Test model for the CommaSeparatedValuesField."""
 
     field = CommaSeparatedValuesField(
@@ -33,12 +33,12 @@ class CommaSeparatedValuesFieldTests(TestModelsLoaderMixin, TestCase):
 
     def test_empty_field(self) -> None:
         """Testing CommaSeparatedValuesField with empty initial value."""
-        obj = TestModel()
+        obj = _TestModel()
         self.assertEqual(obj.field, [])
 
     def test_set_value(self) -> None:
         """Testing CommaSeparatedValuesField with setting value"""
-        obj = TestModel()
+        obj = _TestModel()
 
         obj.field = ['a', 'b', 'c']
         obj.save()
@@ -48,7 +48,7 @@ class CommaSeparatedValuesFieldTests(TestModelsLoaderMixin, TestCase):
 
     def test_get_list(self) -> None:
         """Testing CommaSeparatedValuesField.get_<fieldname>_list"""
-        obj = TestModel()
+        obj = _TestModel()
         obj.field = ['a', 'b', 'c', 'c']
 
         self.assertEqual(obj.get_field_list(), ['a', 'b', 'c', 'c'])
@@ -57,7 +57,7 @@ class CommaSeparatedValuesFieldTests(TestModelsLoaderMixin, TestCase):
         """Testing CommaSeparatedValuesField.get_<fieldname>_list with
         choices
         """
-        obj = TestModel()
+        obj = _TestModel()
         obj.choices_field = ['a', 'b', 'c', 'c', 'z']
 
         self.assertEqual(obj.get_choices_field_list(), [
@@ -70,7 +70,7 @@ class CommaSeparatedValuesFieldTests(TestModelsLoaderMixin, TestCase):
 
     def test_get_display(self) -> None:
         """Testing CommaSeparatedValuesField.get_<fieldname>_list"""
-        obj = TestModel()
+        obj = _TestModel()
         obj.field = ['a', 'b', 'c', 'c']
 
         self.assertEqual(obj.get_field_display(), 'a, b, c, c')
@@ -79,7 +79,7 @@ class CommaSeparatedValuesFieldTests(TestModelsLoaderMixin, TestCase):
         """Testing CommaSeparatedValuesField.get_<fieldname>_list with
         choices
         """
-        obj = TestModel()
+        obj = _TestModel()
         obj.choices_field = ['a', 'b', 'c', 'c', 'z']
 
         self.assertEqual(obj.get_choices_field_display(),
@@ -87,7 +87,7 @@ class CommaSeparatedValuesFieldTests(TestModelsLoaderMixin, TestCase):
 
     def test_validate(self) -> None:
         """Testing CommaSeparatedValuesField.validate"""
-        obj = TestModel()
+        obj = _TestModel()
 
         obj.field = ['a', 'b', 'c', 'd']
         obj.choices_field = ['a', 'b']
