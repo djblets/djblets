@@ -1,7 +1,10 @@
 """Consent tracking and storage capabilities."""
 
+from __future__ import annotations
+
 import hashlib
 from importlib import import_module
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.core.cache import cache
@@ -12,6 +15,11 @@ from djblets.db.query import get_object_or_none
 from djblets.privacy.consent.base import Consent
 from djblets.privacy.consent.registry import get_consent_requirements_registry
 from djblets.privacy.models import StoredConsentData
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from django.contrib.auth.models import User
 
 
 class BaseConsentTracker(object):
@@ -168,7 +176,10 @@ class BaseConsentTracker(object):
         """
         raise NotImplementedError
 
-    def _get_user_cache_key(self, user):
+    def _get_user_cache_key(
+        self,
+        user: User,
+    ) -> Sequence[str]:
         """Return a consent cache key for the provided user.
 
         Args:
@@ -176,10 +187,10 @@ class BaseConsentTracker(object):
                 The user to generate the cache key for.
 
         Returns:
-            unicode:
+            tuple of str:
             The resulting cache key.
         """
-        return 'privacy-consent:%s' % user.pk
+        return ('privacy-consent', str(user.pk))
 
 
 class DatabaseConsentTracker(BaseConsentTracker):

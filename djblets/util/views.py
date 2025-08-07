@@ -59,7 +59,7 @@ def cached_javascript_catalog(
         locale_serials[package_str] = serial
 
     return cache_memoize(
-        'jsi18n-%s-%s-%s-%d' % (domain, package_str, get_language(), serial),
+        ('jsi18n', domain, package_str, get_language(), str(serial)),
         lambda: JavaScriptCatalog.as_view(domain=domain,
                                           packages=packages)(request),
         large_data=True,

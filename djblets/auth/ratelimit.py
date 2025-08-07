@@ -200,9 +200,10 @@ def get_usage_count(request, increment=False, limit_type=RATE_LIMIT_LOGIN):
     # period left.
     now = _get_time_int()
     window = _get_window(period, now)
-    cache_key = make_cache_key('%s:%d/%d%s%s'
-                               % (cache_key_prefix, limit, period,
-                                  user_id_or_ip, window))
+    cache_key = make_cache_key((
+        cache_key_prefix,
+        f'{limit:d}/{period:d}{user_id_or_ip}{window}',
+    ))
     time_left = window - now
 
     count = None

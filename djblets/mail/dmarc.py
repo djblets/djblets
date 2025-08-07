@@ -311,7 +311,7 @@ def _fetch_dmarc_record(
     try:
         if use_cache:
             record_str = cache_memoize(
-                'dmarc-record:%s' % hostname,
+                ('dmarc-record', hostname),
                 lambda: _fetch_record(),
                 expiration=cache_expiration)
         else:

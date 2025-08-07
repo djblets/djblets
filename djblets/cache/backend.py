@@ -15,8 +15,7 @@ import logging
 import pickle
 import re
 import zlib
-from typing import (Any, Callable, Iterable, Iterator, Optional,
-                    TYPE_CHECKING, Tuple, TypeVar, Union)
+from typing import Optional, TYPE_CHECKING, Tuple, TypeVar
 
 from django.conf import settings
 from django.core.cache import cache
@@ -34,6 +33,9 @@ from djblets.util.symbols import UNSET
 from housekeeping import deprecate_non_keyword_only_args
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from typing import Any, Callable, Iterable, Iterator
+
     from django.core.cache.backends.base import BaseCache
     from typing_extensions import Annotated, TypeAlias
 
@@ -88,7 +90,9 @@ class _CacheContext:
     ######################
 
     #: The base cache key for caching operations.
-    base_cache_key: str
+    #:
+    #: This may now be a string or sequence of strings.
+    base_cache_key: str | Sequence[str]
 
     #: The The Django cache connection that all operations will work on.
     cache: BaseCache
@@ -97,7 +101,7 @@ class _CacheContext:
     compress_large_data: bool
 
     #: Whether to use encryption when storing or reading data.
-    encryption_key: Optional[bytes]
+    encryption_key: bytes | None
 
     #: The expiration time in seconds for all data cached using this context.
     expiration: int
@@ -112,25 +116,34 @@ class _CacheContext:
         self,
         *,
         cache: BaseCache,
-        base_cache_key: str,
+        base_cache_key: str | Sequence[str],
         expiration: int,
         compress_large_data: bool,
-        use_encryption: Optional[bool],
-        encryption_key: Optional[bytes],
+        use_encryption: bool | None,
+        encryption_key: bytes | None,
     ) -> None:
         """Initialize the context.
+
+        Version Changed:
+            5.3:
+            ``base_cache_key`` may now be a sequence of string components of
+            the key.
 
         Args:
             cache (django.core.cache.backends.base.BaseCache):
                 The Django cache connection that all operations will work
                 on.
 
-            base_cache_key (str):
+            base_cache_key (str or Sequence[str]):
                 The base cache key for caching operations.
 
                 This is the value passed in to ::py:func:`cache_memoize` or
                 :py:func:`cache_memoize_iter`, and will be used when
                 constructing related cache keys.
+
+                Version Changed:
+                    5.3:
+                    This may now be a sequence of strings.
 
             expiration (int):
                 The expiration time in seconds for all data cached using
@@ -179,13 +192,21 @@ class _CacheContext:
 
     def make_key(
         self,
-        key: str,
+        key: str | Sequence[str],
     ) -> str:
         """Return a full cache key from the provided base key.
 
+        Version Changed:
+            5.3:
+            ``key`` may now be a sequence of string components of the key.
+
         Args:
-            key (str):
+            key (str or Sequence[str]):
                 The base cache key to make a full key from.
+
+                Version Changed:
+                    5.3:
+                    This may now be a sequence of strings.
 
         Returns:
             str:
@@ -200,7 +221,7 @@ class _CacheContext:
 
     def make_subkey(
         self,
-        suffix: Union[int, str],
+        suffix: int | str,
     ) -> str:
         """Return a full cache key combining the main key and a suffix.
 
@@ -215,7 +236,17 @@ class _CacheContext:
             str:
             The full cache key in the form of ``<mainkey>-<suffix>``.
         """
-        return self.make_key(f'{self.base_cache_key}-{suffix}')
+        key: str | Sequence[str]
+
+        base_cache_key = self.base_cache_key
+
+        if isinstance(base_cache_key, str):
+            key = f'{base_cache_key}-{suffix}'
+        else:
+            key = list(base_cache_key)
+            key[-1] += f'-{suffix}'
+
+        return self.make_key(key)
 
     def prepare_value(
         self,
@@ -277,7 +308,7 @@ class _CacheContext:
 
     def load_value(
         self,
-        key: Optional[str] = None,
+        key: (str | None) = None,
     ) -> Any:
         """Load a value from cache.
 
@@ -335,7 +366,7 @@ class _CacheContext:
         self,
         value: Any,
         *,
-        key: Optional[str] = None,
+        key: (str | None) = None,
         raw: bool = False,
     ) -> None:
         """Store a value in cache.
@@ -681,7 +712,7 @@ def _cache_encrypt_data(
     # 3. If there was nothing in the queue when we get data, then yield the
     #    data but with has_item=False, so it'll be stored but not yielded as
     #    results.
-    item_queue: list[tuple[bool, Optional[_T]]] = []
+    item_queue: list[tuple[bool, _T | None]] = []
 
     def _gen_data() -> Iterator[bytes]:
         for data, has_item, item in items:
@@ -761,7 +792,7 @@ def _cache_store_chunks(
     can_cache: bool = True
     read_start: int = 0
     i: int = 0
-    error: Optional[Exception] = None
+    error: (Exception | None) = None
 
     for data, has_item, item in items:
         if has_item:
@@ -914,17 +945,23 @@ def _cache_store_items(
 
 @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
 def cache_memoize_iter(
-    key: str,
-    items_or_callable: Union[Callable[[], Iterable[_T]],
-                             Iterable[_T]],
+    key: str | Sequence[str],
+    items_or_callable: (
+        Callable[[], Iterable[_T]] |
+        Iterable[_T]
+    ),
     *,
     expiration: int = _default_expiration,
     force_overwrite: bool = False,
     compress_large_data: bool = True,
-    use_encryption: Optional[bool] = None,
-    encryption_key: Optional[bytes] = None,
+    use_encryption: (bool | None) = None,
+    encryption_key: (bytes | None) = None,
 ) -> Iterator[_T]:
     """Memoize an iterable list of items inside the configured cache.
+
+    Callers that supply user-provided input can pass in a sequence of strings
+    as the key. These will all be escaped and joined together to form a final
+    key without risk of key injection attacks.
 
     If the provided list of items is a function, the function must return a
     an iterable object, such as a list or a generator.
@@ -947,6 +984,10 @@ def cache_memoize_iter(
     the data won't be retrievable from the cache.
 
     Version Changed:
+        5.3:
+        ``key`` may now be a sequence of string components of the key.
+
+    Version Changed:
         5.1:
         * All arguments (except ``key`` and ``items_or_callable``) are now
           keyword-only arguments. Passing these as positional arguments is
@@ -959,8 +1000,15 @@ def cache_memoize_iter(
         ``use_encryption`` and ``encryption_key`` arguments.
 
     Args:
-        key (str):
+        key (str or Sequence[str]):
             The key to use in the cache.
+
+            This may be a sequence of strings, which will take care of
+            serializing each component to help avoid key injection attacks.
+
+            Version Changed:
+                5.3:
+                This may now be a sequence of strings.
 
         items_or_callable (list or callable):
             A list of items or callable returning a list of items to cache,
@@ -1103,7 +1151,7 @@ def cache_memoize_iter(
 
 @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
 def cache_memoize(
-    key: str,
+    key: str | Sequence[str],
     lookup_callable: Callable[[], _T],
     *,
     expiration: int = _default_expiration,
@@ -1111,16 +1159,24 @@ def cache_memoize(
     large_data: bool = False,
     compress_large_data: bool = True,
     use_generator: bool = False,
-    use_encryption: Optional[bool] = None,
-    encryption_key: Optional[bytes] = None,
+    use_encryption: (bool | None) = None,
+    encryption_key: (bytes | None) = None,
 ) -> _T:
     """Memoize the results of a callable inside the configured cache.
+
+    Callers that supply user-provided input can pass in a sequence of strings
+    as the key. These will all be escaped and joined together to form a final
+    key without risk of key injection attacks.
 
     Data can be encrypted using AES encryption, for safe storage of potentially
     sensitive information or state. This adds to the processing time slightly,
     but can be important for cache keys containing sensitive information or
     that impact access control, particularly in the event that the cache is
     compromised or shared between services.
+
+    Version Changed:
+        5.3:
+        ``key`` may now be a sequence of string components of the key.
 
     Version Changed:
         5.1:
@@ -1140,8 +1196,15 @@ def cache_memoize(
         Added support for non-iterable value types.
 
     Args:
-        key (str):
+        key (str or Sequence[str]):
             The key to use in the cache.
+
+            This may be a sequence of strings, which will take care of
+            serializing each component to help avoid key injection attacks.
+
+            Version Changed:
+                5.3:
+                This may now be a sequence of strings.
 
         lookup_callable (callable):
             A callable to execute in the case where the data did not exist in
@@ -1272,16 +1335,24 @@ def cache_memoize(
 
 @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
 def make_cache_key(
-    key: str,
+    key: str | Sequence[str],
     *,
-    use_encryption: Optional[bool] = None,
-    encryption_key: Optional[bytes] = None,
+    use_encryption: (bool | None) = None,
+    encryption_key: (bytes | None) = None,
 ) -> str:
     """Create a cache key guaranteed to avoid conflicts and size limits.
 
     The cache key will be prefixed by the site's domain, and will be
     changed to an SHA256 hash if it's larger than the maximum key size or
     contains characters not compatible with the cache backend.
+
+    Callers that supply user-provided input can pass in a sequence of strings
+    as the key. These will all be escaped and joined together to form a final
+    key without risk of key injection attacks.
+
+    Version Changed:
+        5.3:
+        ``key`` may now be a sequence of string components of the key.
 
     Version Changed:
         5.1:
@@ -1303,8 +1374,15 @@ def make_cache_key(
           more suitable for modern versions of Django.
 
     Args:
-        key (str):
+        key (str or Sequence[str]):
             The base key to generate a cache key from.
+
+            This may be a sequence of strings, which will take care of
+            serializing each component to help avoid key injection attacks.
+
+            Version Changed:
+                5.3:
+                This may now be a sequence of strings.
 
         use_encryption (bool, optional):
             Whether to generate an encrypted key.
@@ -1337,6 +1415,18 @@ def make_cache_key(
     if use_encryption is None:
         use_encryption = _get_default_use_encryption()
 
+    norm_key: Sequence[str]
+
+    if isinstance(key, str):
+        norm_key = (key,)
+    elif len(key) > 1:
+        norm_key = [
+            part.replace('%', '%25').replace(':', '%3A')
+            for part in key
+        ]
+    else:
+        norm_key = key
+
     try:
         site = Site.objects.get_current()
 
@@ -1345,13 +1435,17 @@ def make_cache_key(
         # instances on the same host.
         site_root = getattr(settings, 'SITE_ROOT', None)
 
+        key_prefix: Sequence[str]
+
         if site_root:
-            key = f'{site.domain}:{site_root}:{key}'
+            key_prefix = (site.domain, site_root)
         else:
-            key = f'{site.domain}:{key}'
+            key_prefix = (site.domain,)
+
+        key = ':'.join((*key_prefix, *norm_key))
     except Exception:
         # The install doesn't have a Site app, so use the key as-is.
-        pass
+        key = ':'.join(norm_key)
 
     if use_encryption:
         if encryption_key:
