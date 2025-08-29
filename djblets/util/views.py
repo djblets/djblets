@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 from enum import Enum
-from typing import Dict, Sequence
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.core.cache import caches
@@ -12,7 +13,6 @@ from django.core.cache.backends.locmem import LocMemCache
 from django.db import connections
 from django.db.utils import OperationalError
 from django.http import HttpRequest, HttpResponseForbidden, JsonResponse
-from django.http.response import HttpResponseBase
 from django.utils.translation import get_language
 from django.views.generic import View
 from django.views.i18n import JavaScriptCatalog
@@ -22,16 +22,22 @@ from djblets.cache.backend import cache_memoize, make_cache_key
 from djblets.cache.serials import generate_locale_serial
 from djblets.util.symbols import UNSET
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
+    from django.db.backends.utils import CursorWrapper
+    from django.http.response import HttpResponse
+
 
 logger = logging.getLogger(__name__)
-locale_serials: Dict[str, int] = {}
+locale_serials: dict[str, int] = {}
 
 
 def cached_javascript_catalog(
     request: HttpRequest,
     domain: str = 'djangojs',
     packages: Sequence[str] = [],
-) -> HttpResponseBase:
+) -> HttpResponse:
     """A cached version of javascript_catalog.
 
     Args:
@@ -104,10 +110,10 @@ class HealthCheckResult(TypedDict):
     """
 
     #: The individual checks that were run.
-    checks: Dict[str, HealthCheckStatus]
+    checks: dict[str, HealthCheckStatus]
 
     #: A mapping of the check name to the error if the service is down.
-    errors: Dict[str, str]
+    errors: dict[str, str]
 
     #: The overall health status of the server.
     status: HealthCheckStatus
@@ -121,6 +127,15 @@ class HealthCheckView(View):
     or 503, and the payload will be a JSON blob defined by
     :py:class:`HealthCheckResult`.
 
+    This will only allow requests from whitelisted IP addresses. These are set
+    in a Django setting named ``DJBLETS_HEALTHCHECK_IPS``, which should be a
+    list of strings.
+
+    Version Changed:
+        5.3:
+        Changed to allow CIDR subnets in the ``DJBLETS_HEALTHCHECK_IPS``
+        setting.
+
     Version Added:
         4.0
     """
@@ -130,12 +145,16 @@ class HealthCheckView(View):
         request: HttpRequest,
         *args,
         **kwargs,
-    ) -> HttpResponseBase:
+    ) -> HttpResponse:
         """Perform a health check.
 
         This will do a health check on whether the database and cache server
         can be used. If both are accessible, this will return an HTTP 200. If
         not, this will return HTTP 500.
+
+        Version Changed:
+            5.3:
+            Changed IP matching to use networks instead of single IP addresses.
 
         Args:
             request (django.http.HttpRequest):
@@ -154,7 +173,33 @@ class HealthCheckView(View):
         allowed_ips = getattr(settings, 'DJBLETS_HEALTHCHECK_IPS',
                               settings.INTERNAL_IPS)
 
-        if request.META.get('REMOTE_ADDR') not in allowed_ips:
+        if not isinstance(allowed_ips, list):
+            logger.error('Health check: setting "%r" for healthcheck IPs must '
+                         'be a list, got type "%r".',
+                         allowed_ips, type(allowed_ips))
+
+            return HttpResponseForbidden()
+
+        remote_addr = request.META.get('REMOTE_ADDR')
+        assert isinstance(remote_addr, str)
+
+        networks: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
+
+        for network in allowed_ips:
+            try:
+                networks.append(ipaddress.ip_network(network))
+            except ValueError:
+                logger.error('Health check: invalid value in setting '
+                             'DJBLETS_HEALTHCHECK_IPS: %r',
+                             network)
+
+        address = ipaddress.ip_address(remote_addr)
+
+        if not any(address in network for network in networks):
+            logger.warning('Health check: got request to healthcheck endpoint '
+                           'from invalid remote address %s',
+                           remote_addr)
+
             return HttpResponseForbidden()
 
         result: HealthCheckResult = {
@@ -165,13 +210,11 @@ class HealthCheckView(View):
         status: int = 200
         success: bool = True
 
-        for key in settings.DATABASES.keys():
+        for key in self._get_database_names():
             result_key = f'database.{key}'
 
             try:
-                db = connections[key]
-
-                with db.cursor():
+                with self._get_db_cursor(key):
                     pass
 
                 result['checks'][result_key] = HealthCheckStatus.UP
@@ -187,7 +230,7 @@ class HealthCheckView(View):
 
         cache_key = make_cache_key('djblets-healthcheck')
 
-        for key in settings.CACHES.keys():
+        for key in settings.CACHES:
             if key == 'forwarded_backend':
                 # This is the backing for a Djblets cache forwarding backend
                 # (which will be covered under another cache backend key).
@@ -255,3 +298,42 @@ class HealthCheckView(View):
             result['status'] = HealthCheckStatus.DOWN
 
         return JsonResponse(result, status=status)
+
+    def _get_database_names(self) -> Iterable[str]:
+        """Return a list of configured database names.
+
+        This method exists to make it easier to do unit tests.
+
+        Version Added:
+            5.3
+
+        Returns:
+            iterator of str:
+            An iterator of the database names.
+        """
+        return settings.DATABASES.keys()
+
+    def _get_db_cursor(
+        self,
+        name: str,
+    ) -> CursorWrapper:
+        """Return a database cursor.
+
+        This method exists to make it easier to do unit tests.
+
+        Version Added:
+            5.3
+
+        Args:
+            name (str):
+                The name of the database to get the cursor for.
+
+        Returns:
+            django.db.backends.utils.CursorWrapper:
+            The database cursor.
+
+        Raises:
+            django.db.utils.OperationalError:
+                The database could not be connected.
+        """
+        return connections[name].cursor()
