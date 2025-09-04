@@ -125,8 +125,9 @@ class SourceMapStaleCheckMixin:
         # load a potentially large file every time we want to check this.
         classname = type(self).__name__
         sourcemap_sources_key = (
-            f'{classname}-sourcemap-sources:{sourcemap_filename}:'
-            f'{sourcemap_mtime}'
+            f'{classname}-sourcemap-sources',
+            sourcemap_filename,
+            str(sourcemap_mtime),
         )
 
         try:

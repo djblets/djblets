@@ -40,14 +40,20 @@ class AliasPropertyTests(TestCase):
             other_prop = 100
 
         obj = MyObject()
-        assert_type(obj.prop, int)
 
-        expected_message = (
+        expected_access_message = (
+            'MyObject.prop is deprecated. Please access MyObject.other_prop '
+            'instead.'
+        )
+        expected_set_message = (
             'MyObject.prop is deprecated. Please set MyObject.other_prop '
             'instead.'
         )
 
-        with self.assertWarns(MyDeprecationWarning, expected_message):
+        with self.assertWarns(MyDeprecationWarning, expected_access_message):
+            assert_type(obj.prop, int)
+
+        with self.assertWarns(MyDeprecationWarning, expected_set_message):
             obj.prop = 42
 
         self.assertEqual(obj.other_prop, 42)
@@ -110,12 +116,14 @@ class AliasPropertyTests(TestCase):
             other_prop = 100
 
         obj = MyObject()
-        assert_type(obj.prop, int)
 
         expected_message = (
             'MyObject.prop is deprecated. Please access MyObject.other_prop '
             'instead.'
         )
+
+        with self.assertWarns(MyDeprecationWarning, expected_message):
+            assert_type(obj.prop, int)
 
         with self.assertWarns(MyDeprecationWarning, expected_message):
             self.assertEqual(obj.prop, 100)

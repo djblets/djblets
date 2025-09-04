@@ -36,11 +36,11 @@ from djblets.registries.registry import (ALREADY_REGISTERED,
 
 if TYPE_CHECKING:
     from django.db.models import QuerySet
+    from typelets.funcs import KwargsDict
 
     from djblets.conditions.operators import BaseConditionOperator
     from djblets.conditions.values import (BaseConditionValueField,
                                            ValueStateCache)
-    from djblets.util.typing import KwargsDict
 
 
 class BaseConditionChoice:

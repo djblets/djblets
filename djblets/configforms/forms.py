@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from django import forms
 from django.template.loader import render_to_string
 from django.utils.translation import gettext_lazy as _
 
-from djblets.util.typing import StrOrPromise
+if TYPE_CHECKING:
+    from typelets.django.strings import StrOrPromise
 
 
 class ConfigPageForm(forms.Form):

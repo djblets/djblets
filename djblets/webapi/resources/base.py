@@ -63,8 +63,8 @@ if TYPE_CHECKING:
     from django.db.models import Model
     from django.http import HttpRequest
     from django.urls import URLPattern, URLResolver
+    from typelets.funcs import KwargsDict
 
-    from djblets.util.typing import KwargsDict
     from djblets.webapi.fields import (BaseAPIFieldType,
                                        ListFieldTypeItemsInfo)
     from djblets.webapi.responses import (WebAPIResponseLink,

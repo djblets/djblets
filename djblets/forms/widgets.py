@@ -29,12 +29,13 @@ if TYPE_CHECKING:
     from django.forms.renderers import BaseRenderer
     from django.forms.utils import _DataT, _FilesT
     from django.utils.safestring import SafeText
+    from typelets.django.strings import StrOrPromise
+    from typelets.funcs import KwargsDict
+
     from djblets.conditions.choices import BaseConditionChoice
     from djblets.conditions.conditions import ConditionData, ConditionSetData
     from djblets.conditions.operators import BaseConditionOperator
     from djblets.conditions.values import BaseConditionValueField
-    from djblets.util.typing import KwargsDict, StrOrPromise
-    from typing_extensions import Self
 
 
 #: The types of arguments available as choices to a ConditionsField.

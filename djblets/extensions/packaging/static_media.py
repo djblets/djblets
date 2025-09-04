@@ -25,10 +25,11 @@ from djblets.pipeline.settings import build_pipeline_settings
 from djblets.util.filesystem import is_exe_in_path
 
 if TYPE_CHECKING:
+    from typelets.json import JSONDict
+
     from djblets.extensions.extension import (CSSBundleConfigs,
                                               Extension,
                                               JSBundleConfigs)
-    from djblets.util.typing import JSONDict
 
     _BundleConfigsT = TypeVar('_BundleConfigsT',
                               CSSBundleConfigs,

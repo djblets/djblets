@@ -176,3 +176,9 @@ OAUTH2_PROVIDER = {
     'DEFAULT_SCOPES': 'root:read',
     'SCOPES': {},
 }
+
+
+INTERNAL_IPS = [
+    '127.0.0.1',
+    '::1',
+]

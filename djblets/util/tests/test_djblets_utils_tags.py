@@ -605,3 +605,54 @@ class QuerystringTagTests(TestCase):
         return t.render(Context({
             'request': request,
         })).replace('&amp;', '&')
+
+
+class UniqueIDTests(TestCase):
+    """Unit tests for the {% unique_id %} template tag.
+
+    Version Added:
+        5.3
+    """
+
+    def test_basic_usage(self) -> None:
+        """Testing {% unique_id %}"""
+        self.assertEqual(
+            self._render_tag(
+                'ID 1: {% unique_id "my_prefix1_" %}\n'
+                'ID 2: {% unique_id "my_prefix1_" %}\n'
+                'ID 3: {% unique_id "my_prefix2_" %}\n'
+            ),
+            'ID 1: my_prefix1_1\n'
+            'ID 2: my_prefix1_2\n'
+            'ID 3: my_prefix2_1\n')
+
+    def test_with_as(self) -> None:
+        """Testing {% unique_id %} with "as" syntax"""
+        self.assertEqual(
+            self._render_tag(
+                '{% unique_id "my_prefix_" as my_id %}'
+                'ID 1: {{my_id}}'
+            ),
+            'ID 1: my_prefix_1')
+
+    def _render_tag(
+        self,
+        template: str,
+    ) -> str:
+        """Return a rendered template tag for the test.
+
+        Args:
+            tag (str):
+                The template tag line to test.
+
+        Returns:
+            str:
+            The rendered content.
+        """
+        t = Template(f'{{% load djblets_utils %}}{template}')
+
+        request = HttpRequest()
+
+        return t.render(Context({
+            'request': request,
+        }))

@@ -9,8 +9,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.storage import storages
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
-from django.utils.html import mark_safe
-from django.utils.safestring import SafeText
+from django.utils.safestring import SafeText, mark_safe
 from kgb import SpyAgency
 
 from djblets.avatars.errors import DisabledServiceError
@@ -27,6 +26,7 @@ from djblets.configforms.pages import ConfigPage
 from djblets.gravatars import get_gravatar_url_for_email
 from djblets.privacy.consent import ConsentData, get_consent_tracker
 from djblets.registries.errors import ItemLookupError
+from djblets.registries.registry import RegistryState
 from djblets.siteconfig.models import SiteConfiguration
 from djblets.testing.decorators import requires_user_profile
 from djblets.testing.testcases import TestCase
@@ -707,10 +707,10 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         self.siteconfig.save()
 
         registry = TestRegistry()
-        self.assertFalse(registry.populated)
+        self.assertNotEqual(registry.state, RegistryState.READY)
 
         enabled_services = set(registry.enabled_services)
-        self.assertTrue(registry.populated)
+        self.assertEqual(registry.state, RegistryState.READY)
         self.assertSetEqual(enabled_services, {DummyAvatarService})
 
     def test_set_enabled_services_invalid_service(self):
@@ -893,7 +893,7 @@ class AvatarServiceRegistryTests(SpyAgency, TestCase):
         registry = AvatarServiceRegistry()
         registry.populate()
 
-        self.assertTrue(registry.populated)
+        self.assertEqual(registry.state, RegistryState.READY)
         self.assertIsInstance(registry.default_service, GravatarService)
         self.assertEqual(registry.enabled_services, {GravatarService})
 

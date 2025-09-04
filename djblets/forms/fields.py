@@ -22,8 +22,9 @@ from djblets.forms.widgets import (ConditionsWidget,
                                    ListEditWidget)
 
 if TYPE_CHECKING:
+    from typelets.funcs import KwargsDict
+
     from djblets.conditions.conditions import ConditionSetData
-    from djblets.util.typing import KwargsDict
 
 
 TIMEZONE_CHOICES = tuple(zip(pytz.common_timezones, pytz.common_timezones))

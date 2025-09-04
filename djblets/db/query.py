@@ -13,7 +13,11 @@ from django.db.models.query_utils import Q
 from djblets.util.symbols import UNSET, Unsettable
 
 if TYPE_CHECKING:
+    from typing import TypeVar
+
     from django.db.models import Model
+
+    _TModel = TypeVar('_TModel', bound=Model)
 
 
 class LocalDataQuerySet(object):
@@ -185,7 +189,11 @@ class LocalDataQuerySet(object):
                 yield item
 
 
-def get_object_or_none(cls, *args, **kwargs):
+def get_object_or_none(
+    cls: type[_TModel],
+    *args,
+    **kwargs,
+) -> _TModel | None:
     """Return a model instance or None if one can not be found.
 
     Args:

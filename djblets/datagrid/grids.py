@@ -59,7 +59,7 @@ if TYPE_CHECKING:
     from django.template.context import Context
     from django.utils.safestring import SafeString
 
-    from djblets.util.typing import StrOrPromise
+    from typelets.django.strings import StrOrPromise
 
     _RenderContext: TypeAlias = Union[
         Context,
