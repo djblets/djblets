@@ -1,7 +1,12 @@
+"""Unit tests for djblets.cache.backend."""
+
+from __future__ import annotations
+
 import inspect
 import pickle
 import re
 import zlib
+from typing import TYPE_CHECKING
 
 import kgb
 from django.contrib.sites.models import Site
@@ -17,6 +22,9 @@ from djblets.cache.backend import (CACHE_CHUNK_SIZE,
                                    _get_default_encryption_key)
 from djblets.secrets.crypto import AES_BLOCK_SIZE, aes_decrypt, aes_encrypt
 from djblets.testing.testcases import TestCase
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 class BaseCacheTestCase(kgb.SpyAgency, TestCase):
@@ -1267,34 +1275,66 @@ class CacheMemoizeIterTests(BaseCacheTestCase):
 class MakeCacheKeyTests(BaseCacheTestCase):
     """Unit tests for make_cache_key."""
 
-    def test_default(self):
+    def test_default(self) -> None:
         """Testing make_cache_key"""
         self._check_key('test123',
                         'example.com:test123')
 
+    def test_with_sequence(self) -> None:
+        """Testing make_cache_key with key sequence"""
+        self._check_key(('test', '123'),
+                        'example.com:test:123')
+
+    def test_with_sequence_escapes(self) -> None:
+        """Testing make_cache_key with key sequence escapes parts"""
+        self._check_key(('%test%', '%1:2:3%'),
+                        'example.com:%25test%25:%251%3A2%3A3%25')
+
     @override_settings(SITE_ROOT='/subdir/')
-    def test_with_site_root(self):
+    def test_with_site_root(self) -> None:
         """Testing make_cache_key with SITE_ROOT"""
         self._check_key('test123',
                         'example.com:/subdir/:test123')
 
-    def test_without_site(self):
+    @override_settings(SITE_ROOT='/subdir/')
+    def test_with_site_root_and_sequence(self) -> None:
+        """Testing make_cache_key with SITE_ROOT and key sequence"""
+        self._check_key(('test', ':123'),
+                        'example.com:/subdir/:test:%3A123')
+
+    def test_without_site(self) -> None:
         """Testing make_cache_key without Site object."""
         Site.objects.all().delete()
         self._check_key('test123',
                         'test123')
 
-    def test_with_unicode(self):
+    def test_without_site_and_sequence(self) -> None:
+        """Testing make_cache_key without Site object and key sequence"""
+        Site.objects.all().delete()
+        self._check_key(('test', ':123'),
+                        'test:%3A123')
+
+    def test_with_unicode(self) -> None:
         """Testing make_cache_key with Unicode characters"""
         self._check_key('test🥳123',
                         'example.com:test🥳123')
 
-    def test_with_invalid_chars(self):
+    def test_with_unicode_and_sequence(self) -> None:
+        """Testing make_cache_key with Unicode characters and key sequence"""
+        self._check_key((':test', '🥳123'),
+                        'example.com:%3Atest:🥳123')
+
+    def test_with_invalid_chars(self) -> None:
         """Testing make_cache_key with invalid characters"""
         self._check_key('test\0\tkey !"\x7f',
                         r'example.com:test\x00\x09key\x20!"\x7f')
 
-    def test_with_large_keys_max_length(self):
+    def test_with_invalid_chars_and_sequence(self) -> None:
+        """Testing make_cache_key with invalid characters and key sequence"""
+        self._check_key(('t:est\0\t', 'k%ey !"\x7f'),
+                        r'example.com:t%3Aest\x00\x09:k%25ey\x20!"\x7f')
+
+    def test_with_large_keys_max_length(self) -> None:
         """Testing make_cache_key with large keys at max length"""
         length = MAX_KEY_SIZE - len('example.com:')
         self._check_key(
@@ -1304,7 +1344,19 @@ class MakeCacheKeyTests(BaseCacheTestCase):
             'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
             'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
 
-    def test_with_large_keys_overflow(self):
+    def test_with_large_keys_max_length_and_sequence(self) -> None:
+        """Testing make_cache_key with large keys at max length and key
+        sequence
+        """
+        length = MAX_KEY_SIZE - len('example.com:') - 1
+        self._check_key(
+            ('x' * 10, 'x' * (length - 10)),
+            'example.com:xxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+            'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+            'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+            'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+
+    def test_with_large_keys_overflow(self) -> None:
         """Testing make_cache_key with large keys > max length"""
         length = MAX_KEY_SIZE - len('example.com:') + 1
         self._check_key(
@@ -1314,14 +1366,33 @@ class MakeCacheKeyTests(BaseCacheTestCase):
             'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxedf8474a1b91e737'
             'ec28252abe7a8aa5604539b239505e8ccad8890a44198c58')
 
-    def test_with_encryption(self):
+    def test_with_large_keys_overflow_and_sequence(self) -> None:
+        """Testing make_cache_key with large keys > max length and key
+        sequence
+        """
+        length = MAX_KEY_SIZE - len('example.com:')
+        self._check_key(
+            ('x' * 10, 'x' * (length - 10)),
+            'example.com:xxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+            'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+            'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxc1f6edf6f476acb9'
+            '3b1858f99ee2fbe8dac1907d595c7f9f9d211fe7c46335c1')
+
+    def test_with_encryption(self) -> None:
         """Testing make_cache_key with use_encryption=True"""
         self._check_key(
             'abc123',
             '0a3195ea908f9bd178ab3c67a257ea4e7954e4b67ac240d1c86953953cde3a0b',
             use_encryption=True)
 
-    def test_with_encryption_and_custom_encryption_key(self):
+    def test_with_encryption_and_sequence(self) -> None:
+        """Testing make_cache_key with use_encryption=True and key sequence"""
+        self._check_key(
+            ('abc', '123'),
+            '61f180a36b711a5364235cc13096d237b5b27256be8aa78e723faf1d73237851',
+            use_encryption=True)
+
+    def test_with_encryption_and_custom_encryption_key(self) -> None:
         """Testing make_cache_key with use_encryption=True and custom
         encryption_key
         """
@@ -1331,8 +1402,20 @@ class MakeCacheKeyTests(BaseCacheTestCase):
             use_encryption=True,
             encryption_key=self.CUSTOM_ENCRYPTION_KEY)
 
+    def test_with_encryption_and_custom_encryption_key_and_sequence(
+        self,
+    ) -> None:
+        """Testing make_cache_key with use_encryption=True and custom
+        encryption_key and key sequence
+        """
+        self._check_key(
+            ('abc', '123'),
+            'c93f54fcf3063f17a1bb59d74e3ecd146a1154ea0bf7a4a7d95c82e71c56be7e',
+            use_encryption=True,
+            encryption_key=self.CUSTOM_ENCRYPTION_KEY)
+
     @override_settings(DJBLETS_CACHE_FORCE_ENCRYPTION=True)
-    def test_with_force_encryption_setting(self):
+    def test_with_force_encryption_setting(self) -> None:
         """Testing make_cache_key with
         settings.DJBLETS_CACHE_FORCE_ENCRYPTION=True
         """
@@ -1340,11 +1423,25 @@ class MakeCacheKeyTests(BaseCacheTestCase):
             'abc123',
             '0a3195ea908f9bd178ab3c67a257ea4e7954e4b67ac240d1c86953953cde3a0b')
 
-    def _check_key(self, key, expected_key, **kwargs):
+    @override_settings(DJBLETS_CACHE_FORCE_ENCRYPTION=True)
+    def test_with_force_encryption_setting_and_key_sequence(self) -> None:
+        """Testing make_cache_key with
+        settings.DJBLETS_CACHE_FORCE_ENCRYPTION=True and key sequence
+        """
+        self._check_key(
+            ('abc', '123'),
+            '61f180a36b711a5364235cc13096d237b5b27256be8aa78e723faf1d73237851')
+
+    def _check_key(
+        self,
+        key: str | Sequence[str],
+        expected_key: str,
+        **kwargs,
+    ) -> None:
         """Check the results of a key, and ensure it works in cache.
 
         Args:
-            key (str):
+            key (str or Sequence[str]):
                 The key to build a cache key out of.
 
             expected_key (str):

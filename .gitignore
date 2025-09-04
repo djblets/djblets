@@ -9,7 +9,7 @@ package-requirements.txt
 # Only ignore the top-level node_modules, so that if one is created somewhere
 # else in the tree (which may interfere with builds in strange ways), it'll
 # be easier to spot.
-./node_modules
+/node_modules
 
 .coverage
 .noseids

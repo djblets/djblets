@@ -304,7 +304,7 @@ class ExtensionHookPoint(type):
 
 
 if TYPE_CHECKING:
-    MixinParent = Extension
+    MixinParent = ExtensionHook
 else:
     MixinParent = object
 
@@ -317,9 +317,16 @@ class AppliesToURLMixin(MixinParent):
     page.
     """
 
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The list of URL names that the hook will apply to by default.
+    apply_to: Sequence[str]
+
     def initialize(
         self,
-        apply_to: List[str] = [],
+        apply_to: (Sequence[str] | None) = None,
         *args,
         **kwargs,
     ) -> None:
@@ -329,7 +336,7 @@ class AppliesToURLMixin(MixinParent):
             apply_to (list, optional):
                 A list of URL names that the hook will apply to by default.
         """
-        self.apply_to = apply_to
+        self.apply_to = apply_to or []
 
         super().initialize(*args, **kwargs)
 

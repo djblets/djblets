@@ -1,10 +1,11 @@
 """Miscellaneous utility template tags."""
 
+from __future__ import annotations
+
 import datetime
 import os
 import re
-import warnings
-from urllib.parse import urlencode
+from typing import TYPE_CHECKING
 
 from django import template
 from django.http import QueryDict
@@ -19,6 +20,9 @@ from djblets.util.decorators import blocktag
 from djblets.util.dates import get_tz_aware_utcnow
 from djblets.util.http import get_url_params_except
 from djblets.util.humanize import humanize_list
+
+if TYPE_CHECKING:
+    from django.template import Context
 
 
 register = template.Library()
@@ -323,6 +327,58 @@ def escapespaces(value):
            </div>
     """
     return value.replace('  ', '&nbsp; ').replace('\n', '<br />')
+
+
+@register.simple_tag(takes_context=True)
+def unique_id(
+    context: Context,
+    prefix: str,
+) -> str:
+    """Output a (potentially) unique ID for a given prefix.
+
+    The ID will be generated as a combination of the prefix and an
+    auto-incrementing number. It's considered unique for the duration of a
+    template render, so long as nothing else directly outputs that same
+    ID.
+
+    This can be used for DOM elements, scripts, or other use cases.
+
+    Version Added:
+        5.3
+
+    Args:
+        context (django.template.Context):
+            The current template context.
+
+        prefix (str):
+            The prefix for the ID.
+
+    Returns:
+        str:
+        The generated ID.
+
+    Example:
+        .. code-block:: html+django
+
+           {% unique_id "my_component" as my_unique_id %}
+
+           <div aria-labelledby="{{my_unique_id}}">
+            <h2 id="{{my_unique_id}}">Header</h2>
+           </div>
+    """
+    request = context['request']
+    unique_ids: dict[str, int]
+
+    try:
+        unique_ids = request._djblets_tag_unique_ids
+    except AttributeError:
+        unique_ids = {}
+        request._djblets_tag_unique_ids = unique_ids
+
+    new_id = unique_ids.get(prefix, 0) + 1
+    unique_ids[prefix] = new_id
+
+    return f'{prefix}{new_id}'
 
 
 @register.simple_tag
