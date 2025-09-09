@@ -13,9 +13,9 @@ from djblets.registries.registry import (ALREADY_REGISTERED,
                                          ATTRIBUTE_REGISTERED, DEFAULT_ERRORS,
                                          NOT_REGISTERED, OrderedRegistry,
                                          UNREGISTER)
-from djblets.util.typing import StrOrPromise
-
 if TYPE_CHECKING:
+    from typelets.django.strings import StrOrPromise
+
     from djblets.conditions.choices import BaseConditionChoice
     from djblets.conditions.values import BaseConditionValueField
 

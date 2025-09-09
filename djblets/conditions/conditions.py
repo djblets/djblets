@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Iterable, Iterator, Optional, TYPE_CHECKING
+from typing import Any, Final, Iterable, Iterator, Optional, TYPE_CHECKING
 
 from django.utils.translation import gettext as _
-from typing_extensions import Final, NotRequired, TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from djblets.conditions.errors import (ConditionChoiceNotFoundError,
                                        ConditionOperatorNotFoundError,
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
                                             ConditionChoices)
     from djblets.conditions.operators import BaseConditionOperator
     from djblets.conditions.values import ValueStateCache
-    from djblets.util.typing import KwargsDict
+    from typelets.funcs import KwargsDict
 
 
 logger = logging.getLogger(__name__)

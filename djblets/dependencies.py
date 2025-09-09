@@ -55,6 +55,7 @@ package_dependencies = {
     'publicsuffixlist': '~=0.10.0',
     'python-dateutil': '>=2.7',
     'pytz': '',
+    'typelets': '~=1.0.1',
     'typing_extensions': '>=4.12.2',
 
     # importlib.metadata compatibility import.

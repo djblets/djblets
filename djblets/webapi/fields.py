@@ -19,8 +19,8 @@ if TYPE_CHECKING:
     from django.http import QueryDict
     from django.utils.datastructures import MultiValueDict
     from typing_extensions import TypeAlias
+    from typelets.django.strings import StrOrPromise
 
-    from djblets.util.typing import StrOrPromise
     from djblets.webapi.resources import WebAPIResource
 
     _FieldInfo: TypeAlias = Mapping[str, Any]

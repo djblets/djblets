@@ -8,7 +8,7 @@ from djblets.features.checkers import get_feature_checker
 from djblets.features.level import FeatureLevel
 
 if TYPE_CHECKING:
-    from djblets.util.typing import StrOrPromise
+    from typelets.django.strings import StrOrPromise
 
 
 class Feature:

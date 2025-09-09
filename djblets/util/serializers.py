@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from django.core.serializers.json import DjangoJSONEncoder
 
 if TYPE_CHECKING:
-    from djblets.util.typing import SerializableJSONValue
+    from typelets.django.json import SerializableDjangoJSONValue
 
 
 class DjbletsJSONEncoder(DjangoJSONEncoder):
@@ -61,8 +61,8 @@ class DjbletsJSONEncoder(DjangoJSONEncoder):
 
     def default(
         self,
-        obj: SerializableJSONValue,
-    ) -> SerializableJSONValue:
+        obj: SerializableDjangoJSONValue,
+    ) -> SerializableDjangoJSONValue:
         """Encode the object into a JSON-compatible structure.
 
         The result from this will be re-encoded as JSON.
