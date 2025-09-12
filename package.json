@@ -2,7 +2,6 @@
     "name": "djblets-root",
     "private": true,
     "scripts": {
-        "dependencies": "./contrib/internal/build-npm-deps.py",
         "lint": "eslint djblets/static/djblets/js"
     },
     "browserslist": [
