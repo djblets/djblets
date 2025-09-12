@@ -97,45 +97,6 @@ package_dependencies: Mapping[str, Dependency] = {
 
 
 ###########################################################################
-# JavaScript dependencies
-#
-# These are auto-generated when running `npm install --save ...` (if the
-# package is not already in node_modules).
-#
-# To re-generate manually, run: `./contrib/internal/build-npm-deps.py`.
-###########################################################################
-
-# Auto-generated Node.js dependencies {
-
-
-#: Dependencies required for static media building.
-frontend_buildkit_npm_dependencies: Mapping[str, str] = {
-    '@beanbag/frontend-buildkit': '^2.0.0',
-    '@beanbag/js-buildkit': '^1.0.3',
-}
-
-#: Dependencies required for static media linting.
-lint_npm_dependencies: Mapping[str, str] = {
-
-}
-
-#: Node dependencies required to package/develop/test Djblets.
-npm_dependencies: Mapping[str, str] = {
-    '@beanbag/ink': '^0.9.1',
-    '@selectize/selectize': '^0.15.2',
-    'jasmine-core': '^5.12.0',
-    'jquery': '^3.7.1',
-    'jquery-ui': '^1.14.1',
-}
-
-npm_dependencies.update(frontend_buildkit_npm_dependencies)
-npm_dependencies.update(lint_npm_dependencies)
-
-
-# } Auto-generated Node.js dependencies
-
-
-###########################################################################
 # Packaging utilities
 ###########################################################################
 
