@@ -2115,7 +2115,7 @@ class WebAPIResource(object):
         self,
         obj_list: Iterable[Any],
         *args,
-        request: Optional[HttpRequest] = None,
+        request: (HttpRequest | None) = None,
         **kwargs,
     ) -> list[WebAPIResponsePayload]:
         """Return a serialized representation of a list of objects.
@@ -2148,7 +2148,7 @@ class WebAPIResource(object):
             The serialized object payload.
         """
         return [
-            self.serialize_object(obj, request, *args, **kwargs)
+            self.serialize_object(obj, request=request, *args, **kwargs)
             for obj in obj_list
         ]
 
