@@ -26,6 +26,22 @@ custom changes:
 
 Version Added:
     5.2
+
+
+Editable Installs
+-----------------
+
+If you need to set up an editable install against in-development builds of
+Django, Django-Pipeline, or other packages, you will need to set up symlinks
+to your local packages in :file:`.local-packages/`. For example:
+
+.. code-block:: console
+
+   $ cd .local-packages
+   $ ln -s ~/src/typelets typelets
+
+This must match the package name as listed in the dependencies (but is
+case-insensitive).
 """
 
 from __future__ import annotations
@@ -33,15 +49,21 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from setuptools import build_meta as _build_meta
 
 from djblets.dependencies import build_dependency_list, package_dependencies
 
+if TYPE_CHECKING:
+    from typing import Any
+
+
+LOCAL_PACKAGES_DIR = '.local-packages'
+
 
 def get_requires_for_build_editable(
-    config_settings: Optional[dict] = None,
+    config_settings: (dict[str, Any] | None) = None,
 ) -> list[str]:
     """Return build-time requirements for editable builds.
 
@@ -58,14 +80,24 @@ def get_requires_for_build_editable(
     """
     _write_dependencies()
 
-    return (
-        _get_build_dependencies() +
-        _build_meta.get_requires_for_build_wheel(config_settings)
-    )
+    local_paths: dict[str, str] = {}
+
+    if os.path.exists(LOCAL_PACKAGES_DIR):
+        for name in os.listdir(LOCAL_PACKAGES_DIR):
+            local_paths[name.lower()] = os.path.abspath(
+                os.readlink(os.path.join(LOCAL_PACKAGES_DIR, name)))
+
+    return [
+        *build_dependency_list(
+            package_dependencies,
+            local_packages=local_paths),
+        *_get_dev_dependencies(),
+        *_build_meta.get_requires_for_build_wheel(config_settings),
+    ]
 
 
 def get_requires_for_build_sdist(
-    config_settings: Optional[dict] = None,
+    config_settings: (dict[str, Any] | None) = None,
 ) -> list[str]:
     """Return build-time requirements for source distributions.
 
@@ -82,14 +114,15 @@ def get_requires_for_build_sdist(
     """
     _write_dependencies()
 
-    return (
-        _get_build_dependencies() +
-        _build_meta.get_requires_for_build_wheel(config_settings)
-    )
+    return [
+        *build_dependency_list(package_dependencies),
+        *_get_dev_dependencies(),
+        *_build_meta.get_requires_for_build_wheel(config_settings)
+    ]
 
 
 def get_requires_for_build_wheel(
-    config_settings: Optional[dict] = None,
+    config_settings: (dict[str, Any] | None) = None,
 ) -> list[str]:
     """Return build-time requirements for wheel distributions.
 
@@ -106,15 +139,16 @@ def get_requires_for_build_wheel(
     """
     _write_dependencies()
 
-    return (
-        _get_build_dependencies() +
-        _build_meta.get_requires_for_build_wheel(config_settings)
-    )
+    return [
+        *build_dependency_list(package_dependencies),
+        *_get_dev_dependencies(),
+        *_build_meta.get_requires_for_build_wheel(config_settings)
+    ]
 
 
 def prepare_metadata_for_build_editable(
     metadata_directory: str,
-    config_settings: Optional[dict] = None,
+    config_settings: (dict[str, Any] | None) = None,
 ) -> str:
     """Prepare metadata for an editable build.
 
@@ -141,7 +175,7 @@ def prepare_metadata_for_build_editable(
 
 def prepare_metadata_for_build_wheel(
     metadata_directory: str,
-    config_settings: Optional[dict] = None,
+    config_settings: (dict[str, Any] | None) = None,
 ) -> str:
     """Prepare metadata for a wheel distribution.
 
@@ -168,8 +202,8 @@ def prepare_metadata_for_build_wheel(
 
 def build_editable(
     wheel_directory: str,
-    config_settings: Optional[dict] = None,
-    metadata_directory: Optional[str] = None,
+    config_settings: (dict[str, Any] | None) = None,
+    metadata_directory: (str | None) = None,
 ) -> str:
     """Build an editable environment.
 
@@ -203,7 +237,7 @@ def build_editable(
 
 def build_sdist(
     sdist_directory: str,
-    config_settings: Optional[dict] = None,
+    config_settings: (dict[str, Any] | None) = None,
 ) -> str:
     """Build a source distribution.
 
@@ -229,8 +263,8 @@ def build_sdist(
 
 def build_wheel(
     wheel_directory: str,
-    config_settings: Optional[dict] = None,
-    metadata_directory: Optional[str] = None,
+    config_settings: (dict[str, Any] | None) = None,
+    metadata_directory: (str | None) = None,
 ) -> str:
     """Build a wheel.
 
@@ -258,17 +292,15 @@ def build_wheel(
                                    metadata_directory)
 
 
-def _get_build_dependencies() -> list[str]:
+def _get_dev_dependencies() -> list[str]:
     # For a build, we need django-evolution. Rather than hard-coding the
     # dependency twice, pull this from dev-requirements.txt.
-    with open('dev-requirements.txt', 'r') as fp:
-        dev_deps = [
+    with open('dev-requirements.txt', mode='r', encoding='utf-8') as fp:
+        return [
             dep.strip()
             for dep in fp
             if dep.startswith('django_evolution')
         ]
-
-    return build_dependency_list(package_dependencies) + dev_deps
 
 
 def _write_dependencies() -> None:
@@ -276,13 +308,12 @@ def _write_dependencies() -> None:
 
     This will write to :file:`package-requirements.txt`, so that
     :file:`pyproject.toml` can reference it.
-
-    Context:
-        The file will exist until the context closes.
     """
-    with open('package-requirements.txt', 'w') as fp:
-        fp.write('%s\n'
-                 % '\n'.join(build_dependency_list(package_dependencies)))
+    with open('package-requirements.txt', mode='w', encoding='utf-8') as fp:
+        dependencies = '\n'.join(
+            build_dependency_list(package_dependencies))
+
+        fp.write(f'{dependencies}\n')
 
 
 def _build_data_files(

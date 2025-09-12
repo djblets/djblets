@@ -12,6 +12,7 @@ package-requirements.txt
 /node_modules
 
 .coverage
+.local-packages
 .noseids
 
 *.rej
