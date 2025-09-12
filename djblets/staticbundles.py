@@ -120,9 +120,10 @@ PIPELINE_JAVASCRIPT: Mapping[str, StaticBundle] = {
     },
     'djblets-widgets': {
         'source_filenames': (
+            'lib/js/selectize/index.ts',
+
             # Legacy JavaScript
             'djblets/js/admin/views/relatedObjectSelectorView.es6.js',
-            'lib/js/selectize-0.12.4.js',
         ),
         'output_filename': 'djblets/js/widgets.min.js',
     },
@@ -172,7 +173,6 @@ PIPELINE_STYLESHEETS: Mapping[str, StaticBundle] = {
     },
     'djblets-ui': {
         'source_filenames': (
-            'lib/css/selectize.default-0.12.4.css',
             'djblets/css/ui/modalbox.less',
             'djblets/css/ui/related-object-selector.less',
             'djblets/css/ui/spinner.less',
