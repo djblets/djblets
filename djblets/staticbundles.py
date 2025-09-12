@@ -1,4 +1,16 @@
-PIPELINE_JAVASCRIPT = {
+"""Static bundles for Djblets."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from djblets.pipeline.bundles import StaticBundle
+
+
+PIPELINE_JAVASCRIPT: Mapping[str, StaticBundle] = {
     'djblets-avatars-config': {
         'source_filenames': (
             'djblets/js/avatars/index.ts',
@@ -117,7 +129,7 @@ PIPELINE_JAVASCRIPT = {
 }
 
 
-PIPELINE_STYLESHEETS = {
+PIPELINE_STYLESHEETS: Mapping[str, StaticBundle] = {
     'djblets-avatars-config': {
         'source_filenames': (
             'djblets/css/avatars.less',
@@ -166,6 +178,5 @@ PIPELINE_STYLESHEETS = {
             'djblets/css/ui/spinner.less',
         ),
         'output_filename': 'djblets/css/ui.min.css',
-        'absolute_paths': False,
     },
 }

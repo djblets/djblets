@@ -1,24 +1,14 @@
 {
-  "name": "@beanbag/djblets",
-  "private": "true",
-  "files": [],
-  "scripts": {
-    "dependencies": "./contrib/internal/build-npm-deps.py"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "@beanbag/eslint-plugin": "^1.0.2",
-    "@beanbag/frontend-buildkit": "^1.2.0",
-    "@beanbag/ink": "^0.8.0",
-    "@beanbag/spina": "^3.1.1",
-    "@types/jquery": "^3.5.30",
-    "@types/underscore": "^1.11.4",
-    "backbone": "^1.4.1",
-    "eslint": "^8.29.0",
-    "jasmine-core": "^5.0.1",
-    "jquery": "^3.7.1",
-    "jquery-ui": "^1.13.3"
-  }
+    "name": "@beanbag/djblets",
+    "private": true,
+    "dependencies": {
+        "@beanbag/ink": "^0.9.1",
+        "jquery": "^3.7.1",
+        "jquery-ui": "^1.14.1"
+    },
+    "devDependencies": {
+        "@beanbag/frontend-buildkit": "^2.0.0",
+        "@beanbag/js-buildkit": "^1.0.3",
+        "jasmine-core": "^5.12.0"
+    }
 }

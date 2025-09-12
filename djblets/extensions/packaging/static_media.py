@@ -533,6 +533,7 @@ class StaticMediaBuilder:
             javascript_bundles=build_context.pipeline_js_bundles,
             stylesheet_bundles=build_context.pipeline_css_bundles,
             use_rollup=True,
+            use_terser=True,
             extra_config={
                 # Tell djblets.pipeline.compiles.less.LessCompiler not to
                 # check for outdated files using its special import script,

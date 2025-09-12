@@ -1,4 +1,15 @@
+"""Settings for djblets while running unit tests."""
+
+from __future__ import annotations
+
 import os
+from pathlib import Path
+
+from djblets.pipeline.settings import (
+    build_pipeline_settings,
+    find_node_modules_dirs,
+)
+
 
 DEBUG = True
 PRODUCTION = False
@@ -36,11 +47,6 @@ SITE_ID = 1
 USE_I18N = True
 
 USE_TZ = True
-
-# Absolute path to the directory that holds media.
-# Example: "/home/media/media.lawrence.com/"
-STATIC_ROOT = os.path.abspath(os.path.join(__file__, '..', 'static'))
-MEDIA_ROOT = os.path.abspath(os.path.join(__file__, '..', 'media'))
 
 MEDIA_URL = '/media/'
 
@@ -96,36 +102,26 @@ ROOT_URLCONF = 'djblets.testing.urls'
 # from Django 1.7.
 TEST_RUNNER = 'djblets.testing.testrunners.TestRunner'
 
-base_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                         "..", "djblets"))
+
+DJBLETS_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'djblets'))
+HTDOCS_ROOT = os.path.join(DJBLETS_ROOT, 'htdocs')
+STATIC_ROOT = os.path.join(HTDOCS_ROOT, 'static')
+MEDIA_ROOT = os.path.join(HTDOCS_ROOT, 'media')
 
 
-NODE_PATH = os.path.join(base_path, '..', 'node_modules')
-os.environ['NODE_PATH'] = NODE_PATH
+NODE_PATH = ':'.join(
+    str(path)
+    for path in find_node_modules_dirs(Path(DJBLETS_ROOT).parent)
+)
 
-PIPELINE = {
-    'PIPELINE_ENABLED': True,
-    'COMPILERS': [
-        'djblets.pipeline.compilers.es6.ES6Compiler',
-        'djblets.pipeline.compilers.less.LessCompiler',
-    ],
-    'CSS_COMPRESSOR': None,
-    'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
-    'BABEL_BINARY': os.path.join(NODE_PATH, '.bin', 'babel'),
-    'BABEL_ARGUMENTS': [
-        '--presets', '@babel/preset-env',
-        '--plugins', ['dedent', 'django-gettext'],
-        '-s', 'true',
-    ],
-    'LESS_BINARY': os.path.join(NODE_PATH, 'less', 'bin', 'lessc'),
-    'LESS_ARGUMENTS': [
-        '--no-color',
-        '--source-map',
-        '--js',
-        '--autoprefix',
-    ],
-    'UGLIFYJS_BINARY': os.path.join(NODE_PATH, 'uglify-js', 'bin', 'uglifyjs'),
-}
+PIPELINE = build_pipeline_settings(
+    pipeline_enabled=True,
+    node_modules_path=NODE_PATH,
+    static_root=STATIC_ROOT,
+    use_rollup=True,
+    use_terser=True,
+    validate_paths=True)
 
 
 INSTALLED_APPS = [
@@ -141,7 +137,7 @@ INSTALLED_APPS = [
 
 
 STATICFILES_DIRS = (
-    ('djblets', os.path.join(base_path, 'static', 'djblets')),
+    ('djblets', os.path.join(STATIC_ROOT, 'djblets')),
 )
 
 STATICFILES_FINDERS = (
@@ -161,12 +157,12 @@ STORAGES = {
 }
 
 
-for entry in os.listdir(base_path):
-    fullpath = os.path.join(base_path, entry)
+for entry in os.listdir(DJBLETS_ROOT):
+    fullpath = os.path.join(DJBLETS_ROOT, entry)
 
     if (os.path.isdir(fullpath) and
-        os.path.exists(os.path.join(fullpath, "__init__.py"))):
-        INSTALLED_APPS += ["djblets.%s" % entry]
+        os.path.exists(os.path.join(fullpath, '__init__.py'))):
+        INSTALLED_APPS += [f'djblets.{entry}']
 
 
 INSTALLED_APPS += ['django_evolution']

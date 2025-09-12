@@ -6,9 +6,15 @@ static media to bundle with djblets.
 This should generally not be used in a project.
 """
 
-import os
+from __future__ import annotations
 
-from djblets.pipeline.settings import build_pipeline_settings
+import os
+from pathlib import Path
+
+from djblets.pipeline.settings import (
+    build_pipeline_settings,
+    find_node_modules_dirs,
+)
 from djblets.staticbundles import PIPELINE_JAVASCRIPT, PIPELINE_STYLESHEETS
 
 
@@ -44,7 +50,10 @@ STORAGES = {
 }
 
 
-NODE_PATH = os.path.abspath(os.path.join(DJBLETS_ROOT, '..', 'node_modules'))
+NODE_PATH = ':'.join(
+    str(path)
+    for path in find_node_modules_dirs(Path(DJBLETS_ROOT).parent)
+)
 
 
 PIPELINE = build_pipeline_settings(
@@ -57,6 +66,7 @@ PIPELINE = build_pipeline_settings(
     javascript_bundles=PIPELINE_JAVASCRIPT,
     stylesheet_bundles=PIPELINE_STYLESHEETS,
     use_rollup=True,
+    use_terser=True,
     validate_paths=not PRODUCTION)
 
 

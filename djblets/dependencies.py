@@ -109,32 +109,29 @@ package_dependencies: Mapping[str, Dependency] = {
 
 
 #: Dependencies required for static media building.
-frontend_buildkit_npm_dependencies: Dict[str, str] = {
-    '@beanbag/frontend-buildkit': '^1.2.0',
-    '@beanbag/ink': '^0.8.0',
-    '@beanbag/spina': '^3.1.1',
-    '@types/jquery': '^3.5.30',
-    '@types/underscore': '^1.11.4',
-    'backbone': '^1.4.1',
-    'jasmine-core': '^5.0.1',
-    'jquery': '^3.7.1',
-    'jquery-ui': '^1.13.3',
+frontend_buildkit_npm_dependencies: Mapping[str, str] = {
+    '@beanbag/frontend-buildkit': '^2.0.0',
+    '@beanbag/js-buildkit': '^1.0.3',
 }
 
 #: Dependencies required for static media linting.
-lint_npm_dependencies: Dict[str, str] = {
-    '@beanbag/eslint-plugin': '^1.0.2',
-    'eslint': '^8.29.0',
+lint_npm_dependencies: Mapping[str, str] = {
+
 }
+
+#: Node dependencies required to package/develop/test Djblets.
+npm_dependencies: Mapping[str, str] = {
+    '@beanbag/ink': '^0.9.1',
+    'jasmine-core': '^5.12.0',
+    'jquery': '^3.7.1',
+    'jquery-ui': '^1.14.1',
+}
+
+npm_dependencies.update(frontend_buildkit_npm_dependencies)
+npm_dependencies.update(lint_npm_dependencies)
 
 
 # } Auto-generated Node.js dependencies
-
-
-#: Node dependencies required to package/develop/test Djblets.
-npm_dependencies = {}
-npm_dependencies.update(frontend_buildkit_npm_dependencies)
-npm_dependencies.update(lint_npm_dependencies)
 
 
 ###########################################################################

@@ -1,1 +1,15 @@
-djblets/package.json
+{
+    "name": "djblets-root",
+    "private": true,
+    "scripts": {
+        "dependencies": "./contrib/internal/build-npm-deps.py",
+        "lint": "eslint djblets/static/djblets/js"
+    },
+    "browserslist": [
+        "baseline widely available"
+    ],
+    "workspaces": [
+        "djblets",
+        ".npm-workspaces/*"
+    ]
+}
