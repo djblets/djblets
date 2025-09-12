@@ -158,6 +158,68 @@ class TemplateTagTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
             '/ext/djblets.extensions.tests.test_templatetags.MyTestExtension/'
             'css/default-test.dad0c9b31e59.css')
 
+    def test_ext_css_bundle_tag_with_bundle_name(self) -> None:
+        """Testing ext_css_bundle template tag with a relative bundle name"""
+        t = Template('{% load djblets_extensions %}'
+                     '{% ext_css_bundle ext "default" %}')
+
+        self.assertHTMLEqual(
+            t.render(Context({
+                'ext': self.extension,
+                'request': self.request,
+            })),
+            '<link href="/ext/djblets.extensions.tests.test_templatetags'
+            '.MyTestExtension/css/default.min.dad0c9b31e59.css" '
+            'media="all" rel="stylesheet" type="text/css" />')
+
+    def test_ext_css_bundle_tag_with_bundle_id(self) -> None:
+        """Testing ext_css_bundle template tag with a full bundle ID"""
+        t = Template(
+            '{% load djblets_extensions %}'
+            '{% ext_css_bundle ext "djblets.extensions.tests.'
+            'test_templatetags.MyTestExtension-default" %}')
+
+        self.assertHTMLEqual(
+            t.render(Context({
+                'ext': self.extension,
+                'request': self.request,
+            })),
+            '<link href="/ext/djblets.extensions.tests.test_templatetags.'
+            'MyTestExtension/css/default.min.dad0c9b31e59.css" '
+            'media="all" rel="stylesheet" type="text/css">')
+
+    def test_ext_js_bundle_tag_with_bundle_name(self) -> None:
+        """Testing ext_js_bundle template tag with a relative bundle name"""
+        t = Template('{% load djblets_extensions %}'
+                     '{% ext_js_bundle ext "default" %}')
+
+        self.assertHTMLEqual(
+            t.render(Context({
+                'ext': self.extension,
+                'request': self.request,
+            })),
+            '<script type="text/javascript" '
+            'src="/ext/djblets.extensions.tests.test_templatetag'
+            's.MyTestExtension/js/default.min.dad0c9b31e59.js" '
+            'charset="utf-8"></script>')
+
+    def test_ext_js_bundle_tag_with_bundle_id(self) -> None:
+        """Testing ext_js_bundle template tag with a full bundle ID"""
+        t = Template(
+            '{% load djblets_extensions %}'
+            '{% ext_js_bundle ext "djblets.extensions.tests.'
+            'test_templatetags.MyTestExtension-default" %}')
+
+        self.assertHTMLEqual(
+            t.render(Context({
+                'ext': self.extension,
+                'request': self.request,
+            })),
+            '<script type="text/javascript" '
+            'src="/ext/djblets.extensions.tests.test_templatetag'
+            's.MyTestExtension/js/default.min.dad0c9b31e59.js" '
+            'charset="utf-8"></script>')
+
     def test_ext_css_bundle_tag_with_pipeline_enabled(self):
         """Testing ext_css_bundle template tag with PIPELINE_ENABLED=True"""
         pipeline_settings.PIPELINE_ENABLED = True
