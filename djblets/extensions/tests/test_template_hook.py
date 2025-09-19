@@ -74,6 +74,32 @@ class TemplateHookTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
         self.assertIn(self.extension.template_hook_with_applies,
                       self.extension.hooks)
 
+    def test_with_class_attrs(self) -> None:
+        """Testing TemplateHook with class attributes"""
+        class MyTemplateHook(TemplateHook):
+            name = 'my-name'
+            apply_to = ['url1', 'url2']
+            template_name = 'my-template.html'
+            extra_context = {
+                'key': 'value',
+            }
+
+        extension = self.extension
+        assert extension is not None
+
+        hook = MyTemplateHook(extension)
+
+        self.assertAttrsEqual(
+            hook,
+            {
+                'apply_to': ['url1', 'url2'],
+                'extra_context': {
+                    'key': 'value',
+                },
+                'name': 'my-name',
+                'template_name': 'my-template.html',
+            })
+
     def test_applies_to_default(self):
         """Testing TemplateHook.applies_to defaults to everything"""
         self.assertTrue(
@@ -90,10 +116,13 @@ class TemplateHookTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
         self.assertTrue(
             self.extension.template_hook_with_applies.applies_to(self.request))
 
-    def test_render(self):
+    def test_render(self) -> None:
         """Testing TemplateHook.render"""
+        extension = self.extension
+        assert extension is not None
+
         hook = TemplateHook(
-            self.extension,
+            extension,
             name='test',
             template_name='deco/box.html',
             extra_context={
@@ -107,6 +136,8 @@ class TemplateHookTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
                 'classname': 'test',
             }))
 
+        assert result is not None
+
         self.assertHTMLEqual(
             result['content'],
             '<div class="box-container">'
@@ -116,6 +147,32 @@ class TemplateHookTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
             '  </div>'
             ' </div>'
             '</div>')
+
+    def test_render_with_should_render_false(self) -> None:
+        """Testing TemplateHook.render with should_render() returning False"""
+        class MyTemplateHook(TemplateHook):
+            def should_render(self, *args, **kwargs) -> bool:
+                return False
+
+        extension = self.extension
+        assert extension is not None
+
+        hook = MyTemplateHook(
+            extension,
+            name='test',
+            template_name='deco/box.html',
+            extra_context={
+                'content': 'Hello world',
+            })
+
+        request = RequestFactory().request()
+        result = hook.render(
+            request=request,
+            context=RequestContext(request, {
+                'classname': 'test',
+            }))
+
+        assert result is None
 
     def test_context_doesnt_leak(self):
         """Testing TemplateHook's context won't leak state"""
