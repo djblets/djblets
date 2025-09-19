@@ -2,8 +2,8 @@
 
 from django.template import Context, RequestContext, Template
 from django.test.client import RequestFactory
+from django.urls import ResolverMatch
 from kgb import SpyAgency
-from mock import Mock
 
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import TemplateHook
@@ -41,11 +41,15 @@ class TemplateHookTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
     def setUp(self):
         super(TemplateHookTests, self).setUp()
 
-        self.request = Mock()
-        self.request._djblets_extensions_kwargs = {}
-        self.request.path_info = '/'
-        self.request.resolver_match = Mock()
-        self.request.resolver_match.url_name = 'root'
+        request = RequestFactory().get('/')
+        request._djblets_extensions_kwargs = {}  # type: ignore
+        request.resolver_match = ResolverMatch(
+            func=lambda *args, **kwargs: None,
+            args=(),
+            kwargs={},
+            url_name='root')
+
+        self.request = request
 
     def test_hook_added_to_class_by_name(self):
         """Testing TemplateHook registration"""
@@ -86,8 +90,8 @@ class TemplateHookTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
         self.assertTrue(
             self.extension.template_hook_with_applies.applies_to(self.request))
 
-    def test_render_to_string(self):
-        """Testing TemplateHook.render_to_string"""
+    def test_render(self):
+        """Testing TemplateHook.render"""
         hook = TemplateHook(
             self.extension,
             name='test',
@@ -97,12 +101,14 @@ class TemplateHookTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
             })
 
         request = RequestFactory().request()
-        result = hook.render_to_string(request, RequestContext(request, {
-            'classname': 'test',
-        }))
+        result = hook.render(
+            request=request,
+            context=RequestContext(request, {
+                'classname': 'test',
+            }))
 
         self.assertHTMLEqual(
-            result,
+            result['content'],
             '<div class="box-container">'
             ' <div class="box test">'
             '  <div class="box-inner">'
@@ -166,4 +172,4 @@ class TemplateHookTests(SpyAgency, ExtensionTestCaseMixin, TestCase):
 
         self.assertEqual(string, '')
 
-        self.assertTrue(hook.applies_to.called)
+        self.assertSpyCalled(hook.applies_to)

@@ -1,11 +1,24 @@
 """Middleware for extensions."""
 
+from __future__ import annotations
+
 import threading
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 
 from djblets.extensions.manager import get_extension_managers
+from djblets.pagestate.middleware import PageStateMiddleware
+
+if TYPE_CHECKING:
+    from django.http import HttpRequest, HttpResponseBase
+
+
+needs_page_state_middleware = (
+    'djblets.pagestate.middleware.PageStateMiddleware'
+    not in settings.MIDDLEWARE
+)
 
 
 class ExtensionsMiddleware(MiddlewareMixin):
@@ -30,6 +43,34 @@ class ExtensionsMiddleware(MiddlewareMixin):
     def process_request(self, request):
         if self.do_expiration_checks:
             self._check_expired()
+
+    def process_response(
+        self,
+        request: HttpRequest,
+        response: HttpResponseBase,
+    ) -> HttpResponseBase:
+        """Process the HTTP response.
+
+        If the application doesn't have
+        :py:class:`~djblets.pagestate.middleware.PageStateMiddleware` in the
+        list of middleware, this will directly pass this through to the
+        middleware to process any ETags for the page.
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
+
+            response (django.http.HttpResponse):
+                The HTTP response to check and update.
+
+        Returns:
+            django.http.HttpResponseBase:
+            The resulting HTTP response.
+        """
+        if needs_page_state_middleware:
+            response = PageStateMiddleware(lambda request: response)(request)
+
+        return response
 
     def process_view(self, request, view, args, kwargs):
         request._djblets_extensions_kwargs = kwargs

@@ -139,6 +139,21 @@ Database Utilities
    djblets.db.validators
 
 
+.. _coderef-djblets-pagestate:
+
+Dynamic Page State
+==================
+
+.. autosummary::
+   :toctree: python
+
+   djblets.pagestate
+   djblets.pagestate.injectors
+   djblets.pagestate.middleware
+   djblets.pagestate.state
+   djblets.pagestate.templatetags.djblets_pagestate
+
+
 .. _coderef-djblets-extensions:
 
 Extensions

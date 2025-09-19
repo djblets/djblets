@@ -68,6 +68,9 @@ template tags, templates, etc. that can be used by your own codebase.
   Markdown rendering for pages and e-mails, with WYSIWYG editing/rendering
   support
 
+* djblets.pagestate_ -
+  Dynamic injection of content for page templates.
+
 * djblets.pipeline_ -
   Pipeline_ compilers for ES6 JavaScript and optimized LessCSS support
 
