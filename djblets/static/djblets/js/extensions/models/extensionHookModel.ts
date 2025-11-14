@@ -22,7 +22,7 @@ export interface ExtensionHookAttrs extends ModelAttributes {
     /**
      * The extension that owns this hook.
      */
-    extension: Extension;
+    extension: Extension | null;
 }
 
 
@@ -57,8 +57,8 @@ export class ExtensionHook<
      * This must be defined and instantiated by a subclass of ExtensionHook,
      * but not by subclasses created by extensions.
      */
-    static hookPoint: ExtensionHookPoint = null;
-    hookPoint: ExtensionHookPoint;
+    static hookPoint: (ExtensionHookPoint | null) = null;
+    declare hookPoint: ExtensionHookPoint;
 
     static defaults: Partial<ExtensionHookAttrs> = {
         extension: null,
