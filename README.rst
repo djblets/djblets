@@ -78,6 +78,9 @@ template tags, templates, etc. that can be used by your own codebase.
   Privacy-by-design support, allowing consent to be requested and tracked
   and personal information redacted
 
+* djblets.protect_ -
+  Locks, rate limiting, and other service protection mechanisms.
+
 * djblets.recaptcha_ -
   Mixins and form widgets for reCAPTCHA_ integration
 

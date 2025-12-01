@@ -361,6 +361,19 @@ Privacy Protection
    :ref:`privacy-guides`
 
 
+.. _coderef-djblets-protect:
+
+
+Service Protection
+==================
+
+.. autosummary::
+   :toctree: python
+
+   djblets.protect
+   djblets.protect.locks
+
+
 .. _coderef-djblets-recaptcha:
 
 reCAPTCHA
