@@ -248,6 +248,7 @@ HTTP Utilities
    :toctree: python
 
    djblets.http.middleware
+   djblets.http.requests
    djblets.http.responses
 
 
