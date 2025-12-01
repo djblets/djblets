@@ -14,8 +14,8 @@ from djblets.testing.testcases import TestCase
 class GenerationSynchronizerTests(kgb.SpyAgency, TestCase):
     """Unit tests for djblets.cache.synchronizer.GenerationSynchronizer."""
 
-    def setUp(self):
-        super(GenerationSynchronizerTests, self).setUp()
+    def setUp(self) -> None:
+        super().setUp()
 
         self.gen_sync = GenerationSynchronizer('test-synchronizer')
 
@@ -74,3 +74,15 @@ class GenerationSynchronizerTests(kgb.SpyAgency, TestCase):
         self.assertEqual(self.gen_sync.sync_gen, sync_gen + 1)
         self.assertEqual(cache.get(self.gen_sync.cache_key),
                          self.gen_sync.sync_gen)
+
+    def test_with_cache_key_sequence(self) -> None:
+        """Testing GenerationSynchronizer with cache key as sequence"""
+        gen_sync = GenerationSynchronizer(['test', 'synchronizer'])
+        sync_gen = gen_sync.sync_gen
+
+        assert sync_gen is not None
+
+        gen_sync.mark_updated()
+        self.assertEqual(gen_sync.sync_gen, sync_gen + 1)
+        self.assertEqual(cache.get(gen_sync.cache_key),
+                         gen_sync.sync_gen)
