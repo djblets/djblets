@@ -18,11 +18,10 @@ from django.utils.timezone import is_aware
 
 from djblets.util.decorators import blocktag
 from djblets.util.dates import get_tz_aware_utcnow
-from djblets.util.http import get_url_params_except
 from djblets.util.humanize import humanize_list
 
 if TYPE_CHECKING:
-    from django.template import Context
+    from django.template import Context, NodeList
 
 
 register = template.Library()
@@ -31,16 +30,61 @@ register = template.Library()
 WS_RE = re.compile(r'\s+')
 
 
+#: All type-specific options for definevar.
+#:
+#: Version Added:
+#:     7.1
+_DEFINEVAR_OPTIONS = {
+    'bool': {
+        'global',
+    },
+    'int': {
+        'global',
+    },
+    'str': {
+        'global',
+        'spaceless',
+        'strip',
+        'unsafe',
+    },
+}
+
+
 @register.tag
 @blocktag(resolve_vars=False)
-def definevar(context, nodelist, varname, *options):
+def definevar(
+    context: Context,
+    nodelist: NodeList,
+    varname: str,
+    *options: str,
+    as_type: str = 'str',
+) -> str:
     """Define a variable for later use in the template.
 
     The variable defined can be used within the same context (such as the
     same block or for loop). This is useful for caching a portion of a
     template that would otherwise be expensive to repeatedly compute.
 
-    Version Added:
+    By default, the value is stored as a string (supporting the ``strip``,
+    ``spaceless``, and ``unsafe`` options). The ``as_type`` keyword argument
+    can be set to store as a ``bool`` or ``int``.
+
+    If using ``as_type=bool``, the result will be ``True`` if the contained
+    string is ``true`` (normalized to lowercase) or ``1``.
+
+    If using ``as_type=int``, the value must be able to be parsed as an
+    integer. Otherwise, it's considered a syntax error.
+
+    A variable can be registered global for the entire template context
+    by using the ``global`` option. If used, this must be registered before
+    use.
+
+    Version Changed:
+        5.3:
+        Added the new ``as_type`` option, supporting ``bool``, ``int``, and
+        ``str`` (default).
+
+    Version Changed:
         2.0:
         Added the new ``global`` option.
 
@@ -49,11 +93,18 @@ def definevar(context, nodelist, varname, *options):
         Added new ``strip``, ``spaceless``, and ``unsafe`` options.
 
     Args:
-        varname (unicode):
+        context (django.template.Context):
+            The current template context.
+
+        nodelist (django.template.NodeList):
+            The nodes within the block.
+
+        varname (str):
             The variable name.
 
-        *options (list of unicode, optional):
-            A list of options passed. This supports the following:
+        *options (list of str, optional):
+            A list of options passed. This supports the following for all
+            types:
 
             ``global``:
                 Register the variable in the top-level context, for other
@@ -63,6 +114,9 @@ def definevar(context, nodelist, varname, *options):
                 so consumers are advised to have a dedicated template block
                 for this purpose. Also note that if a later block defines a
                 variable with the same name, that will take precedence.
+
+            The following are supported for string results (the default or
+            when using ``as_type=str``).
 
             ``strip``:
                 Strip whitespace at the beginning/end of the value.
@@ -75,8 +129,18 @@ def definevar(context, nodelist, varname, *options):
                 Mark the text as unsafe. The contents will be HTML-escaped when
                 inserted into the page.
 
-        block_content (unicode):
-            The block content to set in the variable.
+        as_type (str, optional):
+            A type to cast the value to.
+
+            This supports ``str`` (default), ``bool``, and ``int``.
+
+            Version Added:
+                5.3
+
+    Raises:
+        django.template.TemplateSyntaxError:
+            An option was invalid, or a value can't be parsed for the given
+            type.
 
     Example:
         .. code-block:: html+django
@@ -94,20 +158,55 @@ def definevar(context, nodelist, varname, *options):
            {{myvar1}}
            {{myvar2}}
     """
+    # Validate the options passed for the current type.
+    options_set = set(options)
+
+    try:
+        valid_options = _DEFINEVAR_OPTIONS[as_type]
+    except KeyError:
+        raise TemplateSyntaxError(f'as_type={as_type} is not supported')
+
+    if (invalid_options := options_set - valid_options):
+        invalid_options_str = ', '.join(sorted(invalid_options))
+
+        raise TemplateSyntaxError(
+            f'{invalid_options_str!r} cannot be used with as_type={as_type}'
+        )
+
+    # The resulting types that may be computed based on as_type.
+    #
+    # Note that str includes SafeString.
+    result: bool | int | str
+
     varname = Variable(varname).resolve(context)
-    result = nodelist.render(context)
+    rendered = nodelist.render(context)
 
-    if 'spaceless' in options:
-        result = strip_spaces_between_tags(result.strip())
-    elif 'strip' in options:
-        result = result.strip()
+    if as_type == 'str':
+        if 'spaceless' in options_set:
+            result = strip_spaces_between_tags(rendered.strip())
+        elif 'strip' in options_set:
+            result = rendered.strip()
+        else:
+            result = rendered
 
-    if 'unsafe' in options:
-        result = escape(result)
+        if 'unsafe' in options_set:
+            result = escape(result)
+        else:
+            result = mark_safe(result)
+    elif as_type == 'bool':
+        result = (rendered.strip().lower() in {'true', '1'})
+    elif as_type == 'int':
+        try:
+            result = int(rendered.strip())
+        except ValueError:
+            raise TemplateSyntaxError(
+                f'Defined variable {varname!r} could not parse '
+                f'{rendered!r} as an integer.'
+            )
     else:
-        result = mark_safe(result)
+        assert False, 'Not reached'
 
-    if 'global' in options:
+    if 'global' in options_set:
         # Note that we're setting at index 1. That's the first mutable
         # context dictionary. Index 0 is reserved for primitives (True,
         # False, None).
