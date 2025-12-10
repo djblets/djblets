@@ -1,11 +1,27 @@
 """Miscellaneous, useful decorators."""
 
+from __future__ import annotations
+
+import inspect
 from functools import update_wrapper, wraps
-from inspect import getfullargspec
+from typing import TYPE_CHECKING, overload
 
 from django import template
-from django.template import TemplateSyntaxError, Variable
+from djblets.deprecation import RemovedInDjblets70Warning
+from django.template.library import parse_bits
 from django.utils.functional import cached_property as django_cached_property
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping, Sequence
+    from typing import Any, Concatenate, ParamSpec, TypeAlias, TypeVar
+
+    from django.template import Context, Node, NodeList
+    from django.template.base import FilterExpression, Parser, Token
+
+    _P = ParamSpec('_P')
+    _R = TypeVar('_R')
+    _TagFunc: TypeAlias = Callable[Concatenate[Context, NodeList, _P], _R]
+    _TagCompiler: TypeAlias = Callable[[Parser, Token], Node]
 
 
 # The decorator decorator.  This is copyright unknown, verbatim from
@@ -68,32 +84,206 @@ def augment_method_from(klass):
     return _dec
 
 
-def blocktag(*args, **kwargs):
-    """Creates a block template tag with beginning/end tags.
+class _BlockTagNode(template.Node):
+    """Node used to render block tags.
+
+    This is an internal class returned by :py:func:`blocktag`, used to
+    interface with a provided function for processing a block of nodes.
+    It is not subject to any API stability guarantees.
+
+    Version Added:
+        5.3:
+        This was moved out from inside of :py:func:`blocktag`.
+    """
+
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The list of nodes inside the block to process.
+    node_list: NodeList
+
+    #: Whether to resolve variables passed to the template tag.
+    resolve_vars: bool
+
+    #: The positional argument bits passed to the template tag.
+    tag_args: Sequence[FilterExpression]
+
+    #: The function to call to handle the block's contents.
+    tag_func: _TagFunc
+
+    #: The positional keyword bits passed to the template tag.
+    tag_kwargs: Mapping[str, FilterExpression]
+
+    def __init__(
+        self,
+        *,
+        tag_func: _TagFunc,
+        nodelist: NodeList,
+        tag_args: Sequence[FilterExpression],
+        tag_kwargs: Mapping[str, FilterExpression],
+        resolve_vars: bool,
+    ) -> None:
+        """Initialize the node.
+
+        Args:
+            tag_func (callable):
+                The function to call to handle the block's contents.
+
+            nodelist (django.template.NodeList):
+                The list of nodes inside the block to process.
+
+            tag_args (list of str):
+                The positional argument bits passed to the template tag.
+
+            tag_kwargs (list of str):
+                The positional keyword bits passed to the template tag.
+
+            resolve_vars (bool, optional):
+                Whether to resolve variables passed to the template tag.
+        """
+        self.tag_func = tag_func
+        self.nodelist = nodelist
+        self.tag_args = tag_args
+        self.tag_kwargs = tag_kwargs
+        self.resolve_vars = resolve_vars
+
+    def render(
+        self,
+        context: Context,
+    ) -> str:
+        """Render the contents of the block.
+
+        This will resolve any variables, if requested, and pass everything
+        to the wrapped function.
+
+        Args:
+            context (django.template.Context):
+                The current template context.
+
+        Returns:
+            str:
+            The resulting rendered content.
+        """
+        tag_args = self.tag_args
+        tag_kwargs = self.tag_kwargs
+
+        if self.resolve_vars:
+            tag_args = [
+                var.resolve(context)
+                for var in tag_args
+            ]
+
+            tag_kwargs = {
+                name: var.resolve(context)
+                for name, var in tag_kwargs.items()
+            }
+        else:
+            tag_args = [
+                var.token
+                for var in tag_args
+            ]
+
+            tag_kwargs = {
+                name: var.token
+                for name, var in tag_kwargs.items()
+            }
+
+        return self.tag_func(context, self.nodelist, *tag_args, **tag_kwargs)
+
+
+@overload
+def blocktag(
+    func: _TagFunc[_P, _R],
+) -> _TagCompiler:
+    ...
+
+
+@overload
+def blocktag(
+    *,
+    end_prefix: str = 'end',
+    resolve_vars: bool = True,
+) -> Callable[[_TagFunc[_P, _R]], _TagCompiler]:
+    ...
+
+
+def blocktag(
+    func: (_TagFunc[_P, _R] | None) = None,
+    *args,
+    end_prefix: str = 'end',
+    name: (str | None) = None,
+    resolve_vars: bool = True,
+    **kwargs,
+) -> Any:
+    """Create a block template tag with beginning/end tags.
 
     This does all the hard work of creating a template tag that can
     parse the arguments passed in and then parse all nodes between a
-    beginning and end tag (such as myblock/endmyblock).
+    beginning and end tag (such as ``myblock``/``endmyblock``).
+
+    Both positional and keyword arguments (``name=value``) are supported,
+    in any order.
 
     By default, the end tag is prefixed with "end", but that can be
-    changed by passing ``end_prefix="end_"`` or similar to @blocktag.
+    changed by passing ``end_prefix="end_"`` or similar to ``@blocktag``.
 
-    blocktag will call the wrapped function with `context`  and `nodelist`
+    blocktag will call the wrapped function with ``context`` and ``nodelist``
     parameters, as well as any parameters passed to the tag. It will
     also ensure that a proper error is raised if too many or too few
     parameters are passed.
 
+    Version Changed:
+        5.3:
+        * Keyword arguments are now supported using ``name=value`` format.
+        * The decorated function now supports keyword-only arguments.
+        * Template filters are now supported for arguments.
+        * Added the ``name`` argument.
+        * Arbitrary arguments are deprecated and support will be removed
+          in Djblets 7.
+
     Args:
-        end_prefix (unicode, optional):
+        tag_func (callable, optional):
+            The function being decorated.
+
+            This is only set if no other arguments are provided.
+
+        *args (tuple, unused):
+            Extra positional arguments.
+
+            This is ignored.
+
+            Deprecated:
+                7.1:
+                This will be removed in Djblets 7.
+
+        end_prefix (str, optional):
             The prefix for the end tag. This defaults to ``'end'``, but
             template tags using underscores in the name might want to change
             this to ``'end_'``.
+
+        name (str, optional):
+            An explicit name for the template tag.
+
+            If not provided, the function name will be used.
+
+            Version Added:
+                5.3
 
         resolve_vars (bool, optional):
             Whether to automatically resolve all variables provided to the
             template tag. By default, variables are resolved. Template tags
             can turn this off if they want to handle variable parsing
             manually.
+
+        **kwargs (dict, unused):
+            Extra keyword arguments.
+
+            This is ignored.
+
+            Deprecated:
+                7.1:
+                This will be removed in Djblets 7.
 
     Returns:
         callable:
@@ -104,65 +294,82 @@ def blocktag(*args, **kwargs):
 
             @register.tag
             @blocktag
-            def divify(context, nodelist, div_id=None):
-                s = "<div"
+            def divify(context, nodelist, div_id=None, *,
+                       css_class='my-class'):
+                s = format_html('<div class="{}"', my_class)
 
                 if div_id:
-                    s += " id='%s'" % div_id
+                    s += format_html(' id="{}"', div_id)
 
-                return s + ">" + nodelist.render(context) + "</div>"
+                return s + '>' + nodelist.render(context) + '</div>'
     """
-    class BlockTagNode(template.Node):
-        def __init__(self, tag_name, tag_func, nodelist, args):
-            self.tag_name = tag_name
-            self.tag_func = tag_func
-            self.nodelist = nodelist
-            self.args = args
+    def _blocktag_func(
+        tag_func: _TagFunc[_P, _R],
+    ) -> _TagCompiler:
+        (
+            params,
+            varargs,
+            varkw,
+            defaults,
+            kwonly,
+            kwonly_defaults,
+            *_unused,
+        ) = inspect.getfullargspec(inspect.unwrap(tag_func))
 
-        def render(self, context):
-            if kwargs.get('resolve_vars', True):
-                args = [Variable(var).resolve(context) for var in self.args]
-            else:
-                args = self.args
+        tag_name = name or tag_func.__name__
+        end_tag_name = f'{end_prefix}{tag_name}'
 
-            return self.tag_func(context, self.nodelist, *args)
-
-    def _blocktag_func(tag_func):
-        def _setup_tag(parser, token):
+        @wraps(tag_func)
+        def _setup_tag(
+            parser: Parser,
+            token: Token,
+        ) -> _BlockTagNode:
             bits = token.split_contents()
-            tag_name = bits[0]
-            del(bits[0])
+            tag_args, tag_kwargs = parse_bits(
+                parser,
+                bits[1:],    # Skip the tag name.
+                params[2:],  # Skip the context and nodelist params.
+                varargs,
+                varkw,
+                defaults,
+                kwonly,
+                kwonly_defaults,
+                takes_context=False,
+                name=tag_name,
+            )
 
-            argspec = getfullargspec(tag_func)
-            params = argspec.args
-            varargs = argspec.varargs
-            defaults = argspec.defaults
-
-            max_args = len(params) - 2  # Ignore context and nodelist
-            min_args = max_args - len(defaults or [])
-
-            if len(bits) < min_args or (not varargs and len(bits) > max_args):
-                if not varargs and min_args == max_args:
-                    raise TemplateSyntaxError(
-                        "%r tag takes %d arguments." % (tag_name, min_args))
-                else:
-                    raise TemplateSyntaxError(
-                        "%r tag takes %d to %d arguments, got %d." %
-                        (tag_name, min_args, max_args, len(bits)))
-
-            nodelist = parser.parse((('%s%s' % (end_prefix, tag_name)),))
+            # Parse the contents of the block into a list of nodes.
+            nodelist = parser.parse(((end_tag_name),))
             parser.delete_first_token()
-            return BlockTagNode(tag_name, tag_func, nodelist, bits)
+
+            # Return our node for handling this list.
+            return _BlockTagNode(
+                tag_func=tag_func,
+                nodelist=nodelist,
+                tag_args=tag_args,
+                tag_kwargs=tag_kwargs,
+                resolve_vars=resolve_vars,
+            )
 
         update_wrapper(_setup_tag, tag_func)
 
         return _setup_tag
 
-    end_prefix = kwargs.get('end_prefix', 'end')
+    if args:
+        RemovedInDjblets70Warning.warn(
+            '@blocktag no longer takes extra positional arguments. This '
+            'will be removed in Djblets 7.'
+        )
 
-    if len(args) == 1 and callable(args[0]):
+    if kwargs:
+        RemovedInDjblets70Warning.warn(
+            '@blocktag no longer takes extra keyword arguments. This '
+            'will be removed in Djblets 7.'
+        )
+
+    if func is not None:
         # This is being called in the @blocktag form.
-        return _blocktag_func(args[0])
+        return _blocktag_func(func)
     else:
         # This is being called in the @blocktag(...) form.
         return _blocktag_func
