@@ -19,18 +19,28 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import (Any, Callable, Dict, Generic, List, Optional,
-                    Sequence, TYPE_CHECKING, Type, cast)
+from collections.abc import Mapping
+from typing import Generic, TYPE_CHECKING, cast
 
 from django.dispatch import Signal
 from django.http import HttpRequest
 from django.template import Context
 from django.template.loader import render_to_string
 from django.urls import URLPattern
+from typing_extensions import final
 
 from djblets.datagrid.grids import Column, DataGrid
 from djblets.extensions.extension import Extension
+from djblets.pagestate.injectors import page_state_injectors
 from djblets.registries.registry import Registry, RegistryItemType
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator, Sequence
+    from typing import Any, List, Optional, Type
+
+    from django.utils.safestring import SafeString
+
+    from djblets.pagestate.state import PageStateData
 
 
 logger = logging.getLogger(__name__)
@@ -503,84 +513,244 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
     """Custom templates hook.
 
     A hook that renders a template at hook points defined in another template.
+
+    The template hook point's name, template name, extra context, and URLs
+    this applies to can all be passed during construction or set as class
+    attributes on a subclass.
+
+    For example:
+
+    .. code-block:: python
+
+       TemplateHook(extension,
+                    name='my-hook',
+                    template_name='my-template.html',
+                    apply_to=['url-name1', 'url-name2'],
+                    extra_context={'key': 'value'})
+
+       # Or:
+       class MyTemplateHook(TemplateHook):
+           name = 'my-hook'
+           template_name = 'my-template.html'
+           apply_to = ['url-name1', 'url-name2']
+           extra_context = {
+               'key': 'value',
+           }
+
+       MyTemplateHook(extension)
     """
 
-    _by_name: Dict[str, List[TemplateHook]] = {}
+    _by_name: dict[str, List[TemplateHook]] = {}
 
     ######################
     # Instance variables #
     ######################
 
+    #: The list of URL names that the hook will apply to by default.
+    #:
+    #: Version Changed:
+    #:     5.3:
+    #:     This can also be set as a class variable so it doesn't need to be
+    #:     passed to :py:meth:`__init__`.
+    apply_to: Sequence[str]
+
     #: The name of the hook point to attach to.
     #:
-    #: Type:
-    #:     str
+    #: Version Changed:
+    #:     5.3:
+    #:     This can also be set as a class variable so it doesn't need to be
+    #:     passed to :py:meth:`__init__`.
     name: str
 
     #: The name of the template file to render.
     #:
-    #: Type:
-    #:     str
+    #: Version Changed:
+    #:     5.3:
+    #:     This can also be set as a class variable so it doesn't need to be
+    #:     passed to :py:meth:`__init__`.
     template_name: Optional[str]
 
     #: Any additional context to use when rendering.
     #:
-    #: Type:
-    #:     dict
-    extra_context: dict
+    #: Version Changed:
+    #:     5.3:
+    #:     This can also be set as a class variable so it doesn't need to be
+    #:     passed to :py:meth:`__init__`.
+    extra_context: Mapping[str, Any]
 
     def initialize(
         self,
-        name: str,
-        template_name: Optional[str] = None,
-        apply_to: List[str] = [],
-        extra_context: Dict[str, Any] = {},
+        name: (str | None) = None,
+        template_name: (str | None) = None,
+        apply_to: (Sequence[str] | None) = None,
+        extra_context: (Mapping[str, Any] | None) = None,
         *args,
         **kwargs,
     ) -> None:
         """Initialize the hook.
 
         Args:
-            name (str):
+            name (str, optional):
                 The name of the template hook point that should render this
                 template. This is application-specific.
 
+                If not provided, :py:attr:`name` must be set.
+
+                Version Changed:
+                    5.3:
+                    This is now optional if :py:attr`name` is set.
+
             template_name (str, optional):
                 The name of the template to render.
+
+                If not provided, :py:attr:`template_name` may be set.
+
+                A template name is not required if overriding
+                :py:meth:`render_to_string` to render in an alternate
+                method.
 
             apply_to (list, optional):
                 The list of URL names where this template should render.
                 By default, all templates containing the template hook
                 point will render this template.
 
+                If not provided, :py:attr:`apply_to` will be used instead
+                if set.
+
             extra_context (dict):
                 Extra context to include when rendering the template.
+
+                If not provided, :py:attr:`extra_context` will be used
+                instead if set.
 
             *args (tuple):
                 Additional positional arguments for future expansion.
 
             **kwargs (dict):
                 Additional keyword arguments for future expansion.
+
+        Raises:
+            ValueError:
+                A required parameter was not provided during construction
+                or on the class.
         """
+        if name is None:
+            try:
+                name = self.name
+            except AttributeError:
+                raise ValueError('The "name" parameter or class attribute '
+                                 'must be provided.')
+
+        if apply_to is None:
+            apply_to = getattr(self, 'apply_to', [])
+
+        if template_name is None:
+            template_name = getattr(self, 'template_name', None)
+
+        if extra_context is None:
+            extra_context = getattr(self, 'extra_context', {})
+
+            assert isinstance(extra_context, Mapping)
+
         super().initialize(apply_to=apply_to)
 
         self.name = name
         self.template_name = template_name
         self.extra_context = extra_context
 
-        if name not in self.__class__._by_name:
-            self.__class__._by_name[name] = [self]
+        cls = type(self)
+
+        if name not in cls._by_name:
+            cls._by_name[name] = [self]
         else:
-            self.__class__._by_name[name].append(self)
+            cls._by_name[name].append(self)
 
     def shutdown(self) -> None:
-        self.__class__._by_name[self.name].remove(self)
+        """Shut down the hook.
+
+        This will unregister it from the hook point.
+        """
+        type(self)._by_name[self.name].remove(self)
+
+    @final
+    def render(
+        self,
+        *,
+        request: HttpRequest,
+        context: Context,
+    ) -> PageStateData | None:
+        """Perform a render of the template and associated data.
+
+        This is used when rendering the hook into a template. It will
+        call :py:meth:`render_to_string` and :py:meth:`get_etag`, returning
+        the results.
+
+        Subclasses must not override this.
+
+        Any errors caught during render will be logged and the results
+        ignored.
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request.
+
+            context (django.template.Conetxt):
+                The template render context.
+
+        Returns:
+            djblets.pagestate.state.PageStateData:
+            The rendered data for the template hook.
+        """
+        context_data = {
+            'extension': self.extension,
+        }
+        context_data.update(self.get_extra_context(request, context))
+        context_data.update(self.extra_context)
+
+        # Note that context.update implies a push().
+        context.update(context_data)
+
+        try:
+            # Check if the template should be rendered.
+            try:
+                if not self.should_render(request=request,
+                                          context=context):
+                    # The template won't be rendered and the ETag won't be
+                    # factored in.
+                    return None
+            except Exception as e:
+                logger.exception('Error calling %s.should_render(): %s',
+                                 type(self).__name__, e,
+                                 extra={'request': request})
+                return None
+
+            # Render the template.
+            try:
+                content = self.render_to_string(request=request,
+                                                context=context)
+                etag = self.get_etag(request=request,
+                                     context=context,
+                                     content=content)
+            except Exception as e:
+                logger.exception('Error rendering TemplateHook %r: %s',
+                                 self, e,
+                                 extra={'request': request})
+
+                return None
+        finally:
+            # Pop the update() we did before.
+            context.pop()
+
+        return {
+            'content': content,
+            'etag': etag,
+        }
 
     def render_to_string(
         self,
         request: HttpRequest,
         context: Context,
-    ) -> str:
+    ) -> SafeString:
         """Render the content for the hook.
 
         By default, this renders the provided template name to a string
@@ -597,29 +767,83 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
             str:
             Rendered content to include in the template.
         """
-        context_data = {
-            'extension': self.extension,
-        }
-        context_data.update(self.get_extra_context(request, context))
-        context_data.update(self.extra_context)
-
-        # Note that context.update implies a push().
-        context.update(context_data)
-
         assert self.template_name is not None
-        s = render_to_string(template_name=self.template_name,
-                             context=context.flatten(),
-                             request=request)
 
-        context.pop()
+        return render_to_string(template_name=self.template_name,
+                                context=context.flatten(),
+                                request=request)
 
-        return s
+    def should_render(
+        self,
+        *,
+        request: HttpRequest,
+        context: Context,
+    ) -> bool:
+        """Return whether the template should render.
+
+        This can be based off of state calculated in
+        :py:meth:`get_extra_context`.
+
+        Version Added:
+            5.3
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request from the clietn.
+
+            context (django.template.Context):
+                The context used to render the template.
+
+        Returns:
+            bool:
+            ``True`` if the template can render. ``False`` if it cannot.
+        """
+        return True
+
+    def get_etag(
+        self,
+        *,
+        request: HttpRequest,
+        context: Context,
+        content: SafeString,
+    ) -> str | None:
+        """Return an ETag representing the state of the content.
+
+        By default, this will return an ETag generated from the rendered
+        content.
+
+        Subclasses can override this to return an ETag based on state
+        generated elsewhere (such as :py:meth:`get_extra_context`), which
+        might be faster than the default way of generating the ETag.
+
+        Proper ETag data ensures that caches are invalidated when the content
+        changes.
+
+        Version Added:
+            5.3
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
+
+            context (django.template.Context):
+                The context used to render the template.
+
+            content (django.utils.safestring.SafeString):
+                The rendered content.
+
+        Returns:
+            str:
+            An ETag representing the content, or ``None`` if one wasn't
+            computed.
+        """
+        return None
 
     def get_extra_context(
         self,
         request: HttpRequest,
         context: Context,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Return extra context for the hook.
 
         Subclasses can override this to provide additional context
@@ -768,3 +992,65 @@ class BaseRegistryMultiItemHook(Generic[RegistryItemType],
 
         for item in self.items:
             registry.unregister(item)
+
+
+# Inject TemplateHooks into PageStates.
+class _TemplateHookPageStateInjector:
+    """Page state injector for TemplateHooks.
+
+    This allows TemplateHooks to work as page state injectors for named
+    template points.
+    """
+
+    # NOTE: Ideally this would be Final[str], but that ends up being a
+    #       type mismatch with any definition tried in
+    #       PageStateInjectorProtocol (as of 3-August-2025). This may be
+    #       addressed in future typing support.
+    injector_id: str = 'djblets-template-hooks'
+
+    def iter_page_state_data(
+        self,
+        *,
+        point_name: str,
+        request: HttpRequest,
+        context: Context,
+    ) -> Iterator[PageStateData]:
+        """Generate page state data from TemplateHooks.
+
+        This will iterate through every :py:class:`TemplateHook` registered
+        udner the template point name, render the hook's template, and
+        return it for the page.
+
+        Args:
+            point_name (str):
+                The template point name to populate.
+
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
+
+            context (django.template.Context):
+                The context for the templates.
+
+        Yields:
+            djblets.pagestate.state.PageStateData:
+            Data for each rendered template hook.
+        """
+        for hook in TemplateHook.by_name(point_name):
+            try:
+                if not hook.applies_to(request):
+                    continue
+            except Exception as e:
+                logger.exception('Error when calling applies_to for '
+                                 'TemplateHook %r: %s',
+                                 hook, e,
+                                 extra={'request': request})
+                continue
+
+            data = hook.render(request=request,
+                               context=context)
+
+            if data is not None:
+                yield data
+
+
+page_state_injectors.register(_TemplateHookPageStateInjector())

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import atexit
 import errno
+import inspect
 import logging
 import os
 import shutil
@@ -15,8 +16,7 @@ import traceback
 import warnings
 from contextlib import contextmanager
 from importlib import import_module, reload
-from typing import (Any, Dict, Iterator, List, Optional, Set, TYPE_CHECKING,
-                    Type, Union)
+from typing import TYPE_CHECKING
 from weakref import WeakValueDictionary
 
 import importlib_metadata
@@ -52,7 +52,13 @@ from djblets.template.caches import (clear_template_caches,
 from djblets.urls.resolvers import DynamicURLResolver
 
 if TYPE_CHECKING:
-    from djblets.extensions.extension import CSSBundleConfigs, JSBundleConfigs
+    from collections.abc import Iterator, Sequence
+    from types import ModuleType
+    from typing import Any
+
+    from djblets.extensions.extension import (CSSBundleConfigs,
+                                              ExtensionMiddlewareCallable,
+                                              JSBundleConfigs)
 
 
 logger = logging.getLogger(__name__)
@@ -79,7 +85,7 @@ class SettingListWrapper:
         self,
         setting_name: str,
         display_name: str,
-        parent_dict: Union[Optional[Dict[str, Any]], LazySettings] = None,
+        parent_dict: (dict[str, Any] | LazySettings | None) = None,
     ) -> None:
         """Initialize the settings wrapper.
 
@@ -146,7 +152,7 @@ class SettingListWrapper:
 
     def add_list(
         self,
-        items: List[Any],
+        items: list[Any],
     ) -> None:
         """Add a list of items to the setting.
 
@@ -198,8 +204,8 @@ class SettingListWrapper:
 
     def remove_list(
         self,
-        items: List[Any],
-    ) -> List[Any]:
+        items: list[Any],
+    ) -> list[Any]:
         """Remove a list of items from the setting.
 
         Args:
@@ -211,7 +217,7 @@ class SettingListWrapper:
             The list of items that were removed (or that did not exist in
             the list).
         """
-        removed_items = []
+        removed_items: list[Any] = []
 
         for item in items:
             try:
@@ -278,23 +284,23 @@ class ExtensionManager:
     # Instance variables #
     ######################
 
-    #: Extension middleware class names, ordered by dependencies.
+    #: Extension middleware, ordered by dependencies.
     #:
     #: Type:
-    #:     list of str
-    middleware_classes: List[str]
+    #:     list of callable
+    middleware_classes: list[ExtensionMiddlewareCallable]
 
     #: A mapping of extension ID to extension classes.
-    _extension_classes: Dict[str, Type[Extension]]
+    _extension_classes: dict[str, type[Extension]]
 
     #: A mapping of extension ID to extension class instances.
-    _extension_instances: Dict[str, Extension]
+    _extension_instances: dict[str, Extension]
 
     #: The URL to the extension list.
-    _extension_list_url: Optional[str]
+    _extension_list_url: str | None
 
     #: A mapping of extension ID to error message.
-    _load_errors: Dict[str, str]
+    _load_errors: dict[str, str]
 
     def __init__(
         self,
@@ -337,7 +343,7 @@ class ExtensionManager:
         instance_id = id(self)
         _extension_managers[instance_id] = self
 
-    def get_url_patterns(self) -> List[DynamicURLResolver]:
+    def get_url_patterns(self) -> list[DynamicURLResolver]:
         """Return the URL patterns for the Extension Manager.
 
         This should be included in the root urlpatterns for the site.
@@ -440,7 +446,7 @@ class ExtensionManager:
     def get_enabled_extension(
         self,
         extension_id: str,
-    ) -> Optional[Extension]:
+    ) -> Extension | None:
         """Return an enabled extension for the given exetnsion ID.
 
         Args:
@@ -454,7 +460,7 @@ class ExtensionManager:
         """
         return self._extension_instances.get(extension_id)
 
-    def get_enabled_extensions(self) -> List[Extension]:
+    def get_enabled_extensions(self) -> list[Extension]:
         """Return a list of all enabled extensions.
 
         Returns:
@@ -463,7 +469,7 @@ class ExtensionManager:
         """
         return list(self._extension_instances.values())
 
-    def get_installed_extensions(self) -> List[Type[Extension]]:
+    def get_installed_extensions(self) -> list[type[Extension]]:
         """Return a list of all installed extension classes.
 
         Returns:
@@ -475,7 +481,7 @@ class ExtensionManager:
     def get_installed_extension(
         self,
         extension_id: str,
-    ) -> Type[Extension]:
+    ) -> type[Extension]:
         """Return the installed extension class with the given extension ID.
 
         The extension class must be available on the system and must be
@@ -501,7 +507,7 @@ class ExtensionManager:
     def get_dependent_extensions(
         self,
         dependency_extension_id: str,
-    ) -> List[str]:
+    ) -> list[str]:
         """Return a list of all extension IDs required by an extension.
 
         Args:
@@ -530,7 +536,7 @@ class ExtensionManager:
     def enable_extension(
         self,
         extension_id: str,
-    ) -> Optional[Extension]:
+    ) -> Extension | None:
         """Enable an extension.
 
         Enabling an extension will install any data files the extension
@@ -755,27 +761,31 @@ class ExtensionManager:
             self._load_errors = {}
 
         # Preload all the RegisteredExtension objects
-        registered_extensions = {
+        registered_extensions: dict[str, RegisteredExtension] = {
             registered_ext.class_name: registered_ext
             for registered_ext in RegisteredExtension.objects.all()
         }
 
-        found_extensions = {}
-        found_registrations = {}
-        registrations_to_fetch = []
-        find_registrations = False
-        extensions_changed = False
+        found_extensions: dict[str, type[Extension]] = {}
+        found_registrations: dict[str, RegisteredExtension] = {}
+        registrations_to_fetch: list[tuple[str, str]] = []
+        find_registrations: bool = False
+        extensions_changed: bool = False
 
         for entrypoint in self._entrypoint_iterator():
             registered_ext = None
 
             try:
                 ext_class = entrypoint.load()
+
+                if (not inspect.isclass(ext_class) or
+                    not issubclass(ext_class, Extension)):
+                    raise ValueError(_('This is not an extension subclass.'))
             except Exception as e:
                 logger.exception('Error loading extension %s: %s',
                                  entrypoint.name, e)
                 extension_id = '%s.%s' % (entrypoint.module, entrypoint.attr)
-                self._store_load_error(extension_id, e)
+                self._store_load_error(extension_id, str(e))
                 continue
 
             # A class's extension ID is its class name. We want to
@@ -911,7 +921,7 @@ class ExtensionManager:
 
     def _init_extension(
         self,
-        ext_class: Type[Extension],
+        ext_class: type[Extension],
     ) -> Extension:
         """Initialize an extension.
 
@@ -1051,8 +1061,8 @@ class ExtensionManager:
 
     def _sync_database(
         self,
-        ext_class: Type[Extension],
-        new_installed_app_names: List[str],
+        ext_class: type[Extension],
+        new_installed_app_names: Sequence[str],
     ) -> None:
         """Synchronize extension-provided models to the database.
 
@@ -1098,15 +1108,16 @@ class ExtensionManager:
             except Exception as e:
                 logger.exception('Error evolving extension models for %s: %s',
                                  ext_class.id, e)
+                msg = str(e)
 
                 raise InstallExtensionError(
-                    str(e),
-                    self._store_load_error(ext_class.id, str(e)))
+                    msg,
+                    self._store_load_error(ext_class.id, msg))
 
     def _get_app_modules_with_models(
         self,
-        app_names: List[str],
-    ) -> List[str]:
+        app_names: Sequence[str],
+    ) -> Sequence[ModuleType]:
         """Return app modules containing models for each app name.
 
         This will iterate through the list of app names for an extension and
@@ -1117,10 +1128,10 @@ class ExtensionManager:
                 The list of Django app names.
 
         Returns:
-            list of str:
+            list of module:
             The list of modules for each app that contains models.
         """
-        results = []
+        results: list[ModuleType] = []
 
         # There's no way of looking up an AppConfig based on the app
         # name, so we'll need to start by building our own map.
@@ -1235,7 +1246,7 @@ class ExtensionManager:
 
     def install_extension_media(
         self,
-        ext_class: Type[Extension],
+        ext_class: type[Extension],
         force: bool = False,
         max_lock_attempts: int = 10,
     ) -> None:
@@ -1313,7 +1324,7 @@ class ExtensionManager:
             # Nothing to do. The media is up-to-date.
             return
 
-        lockfile = '%s.lock' % ext_class.id
+        lockfile = f'{ext_class.id}.lock'
         attempt = 0
 
         while old_version != cur_version and attempt < max_lock_attempts:
@@ -1368,7 +1379,7 @@ class ExtensionManager:
 
     def _install_extension_media_internal(
         self,
-        ext_class: Type[Extension],
+        ext_class: type[Extension],
     ) -> None:
         """Install static media for an extension.
 
@@ -1486,16 +1497,16 @@ class ExtensionManager:
 
             if hasattr(urlconf, 'urlpatterns'):
                 extension.admin_urlpatterns = [
-                    path('%s%s/config/' % (prefix, extension.id),
+                    path(f'{prefix}{extension.id}/config/',
                          include(urlconf.__name__)),
                 ]
 
                 self.dynamic_urls.add_patterns(extension.admin_urlpatterns)
 
-        if getattr(extension, 'admin_site', None):
+        if (admin_site := getattr(extension, 'admin_site', None)) is not None:
             extension.admin_site_urlpatterns = [
-                path('%s%s/db/' % (prefix, extension.id),
-                     extension.admin_site.urls)
+                path(f'{prefix}{extension.id}/db/',
+                     admin_site.urls)
             ]
 
             self.dynamic_urls.add_patterns(extension.admin_site_urlpatterns)
@@ -1522,7 +1533,7 @@ class ExtensionManager:
         def _add_bundles(
             *,
             pipeline_bundles: dict[str, dict[str, Any]],
-            extension_bundles: Union[CSSBundleConfigs, JSBundleConfigs],
+            extension_bundles: CSSBundleConfigs | JSBundleConfigs,
             default_dir: str,
             ext: str,
         ) -> None:
@@ -1566,7 +1577,7 @@ class ExtensionManager:
         def _remove_bundles(
             *,
             pipeline_bundles: dict[str, dict[str, Any]],
-            extension_bundles: Union[CSSBundleConfigs, JSBundleConfigs],
+            extension_bundles: CSSBundleConfigs | JSBundleConfigs,
         ) -> None:
             for name, bundle in extension_bundles.items():
                 try:
@@ -1625,7 +1636,7 @@ class ExtensionManager:
     def _add_to_installed_apps(
         self,
         extension: Extension,
-    ) -> List[str]:
+    ) -> list[str]:
         """Add an extension's apps to the list of installed apps.
 
         This will register each app with Django and clear any caches needed
@@ -1710,17 +1721,20 @@ class ExtensionManager:
         All middleware provided by extensions will be registered in the
         Django settings and will be used for future requests.
         """
-        self.middleware_classes = []
-        done: Set[Extension] = set()
+        middleware_classes: list[ExtensionMiddlewareCallable] = []
+
+        done: set[Extension] = set()
 
         for e in self.get_enabled_extensions():
-            self.middleware_classes += self._get_extension_middleware(e, done)
+            middleware_classes += self._get_extension_middleware(e, done)
+
+        self.middleware_classes = middleware_classes
 
     def _get_extension_middleware(
         self,
         extension: Extension,
-        done: Set[Extension],
-    ) -> List[str]:
+        done: set[Extension],
+    ) -> list[ExtensionMiddlewareCallable]:
         """Return a list of middleware for an extension and its dependencies.
 
         This is a recursive utility function initially called by
@@ -1740,7 +1754,7 @@ class ExtensionManager:
             list:
             A list of classes for middleware.
         """
-        middleware: List[str] = []
+        middleware: list[ExtensionMiddlewareCallable] = []
 
         if extension in done:
             return middleware
@@ -1748,18 +1762,17 @@ class ExtensionManager:
         done.add(extension)
 
         for req in extension.requirements:
-            e = self.get_enabled_extension(req)
-
-            if e:
+            if (e := self.get_enabled_extension(req)):
                 middleware += self._get_extension_middleware(e, done)
 
-        middleware.extend(extension.middleware_classes)
+        middleware += extension.middleware_classes
+
         return middleware
 
     def _parse_version(
         self,
-        version: Optional[str],
-    ) -> Optional[Version]:
+        version: str | None,
+    ) -> Version | None:
         """Parse and return a Version for a package.
 
         If the version can't be parsed, ``None`` will be returned.
@@ -1787,10 +1800,10 @@ class ExtensionManager:
     @contextmanager
     def _open_lock_file(
         self,
-        ext_class: Type[Extension],
+        ext_class: type[Extension],
         filename: str,
         lock_flags: int = locks.LOCK_EX | locks.LOCK_NB,
-    ) -> Iterator:
+    ) -> Iterator[None]:
         """Open a lock file for a multi-threaded/process operation.
 
         This will attempt to create a lock file and acquire a lock on it,
@@ -1845,7 +1858,7 @@ class ExtensionManager:
                             filename, ext_class.info, e)
 
 
-def get_extension_managers() -> List[ExtensionManager]:
+def get_extension_managers() -> list[ExtensionManager]:
     """Return all extension manager instances.
 
     This will return all the extension managers that have been constructed.

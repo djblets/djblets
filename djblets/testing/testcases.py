@@ -14,6 +14,7 @@ from contextlib import contextmanager
 from importlib import import_module
 from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec
+from itertools import zip_longest
 from typing import (Any, Dict, Iterator, List, Optional, Sequence,
                     TYPE_CHECKING, Type, Union)
 from unittest.util import safe_repr
@@ -45,6 +46,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from contextlib import AbstractContextManager
+    from warnings import WarningMessage
 
     from django_assert_queries import ExpectedQuery
 
@@ -326,24 +328,61 @@ class TestCase(testcases.TestCase):
             try:
                 yield
             finally:
-                self.assertEqual(len(w), len(warning_list))
+                errors: list[str] = []
 
-                for i, (emitted, expected) in enumerate(zip(w, warning_list),
-                                                        start=1):
-                    expected_cls = expected['cls']
-                    expected_message = expected.get('message')
+                warnings_iter: enumerate[tuple[WarningMessage | None,
+                                               ExpectedWarning | None]] = \
+                    enumerate(zip_longest(w, warning_list),
+                              start=1)
 
-                    self.assertTrue(
-                        issubclass(emitted.category, expected_cls),
-                        'Warning #%d: Class %r != %r'
-                        % (i, emitted.category, expected_cls))
+                for i, (emitted, expected) in warnings_iter:
+                    emitted_cls: type[Warning] | None
+                    emitted_message: str | None
+                    expected_cls: type[Warning] | None
+                    expected_message: str | None
 
-                    if expected_message is not None:
-                        self.assertEqual(
-                            str(emitted.message),
-                            expected_message,
-                            'Warning #%d: Message %r != %r'
-                            % (i, str(emitted.message), str(expected_message)))
+                    if emitted:
+                        emitted_cls = emitted.category
+                        emitted_message = str(emitted.message)
+                    else:
+                        emitted_cls = None
+                        emitted_message = None
+
+                    if expected:
+                        expected_cls = expected['cls']
+                        expected_message = expected.get('message')
+                    else:
+                        expected_cls = None
+                        expected_message = None
+
+                    if ((expected_cls is None or
+                         emitted_cls is None or
+                         not issubclass(emitted_cls, expected_cls)) or
+                        ((expected_message is not None or
+                          emitted_message is None) and
+                         (expected_message != emitted_message))):
+                        # The warning is not a match. Report the full
+                        # details.
+                        if emitted_cls is not None:
+                            emitted_item = \
+                                f'{emitted_cls.__name__}({emitted_message!r})'
+                        else:
+                            emitted_item = 'None'
+
+                        if expected_cls is not None:
+                            expected_item = (
+                                f'{expected_cls.__name__}('
+                                f'{expected_message!r})'
+                            )
+                        else:
+                            expected_item = 'None'
+
+                        errors.append(
+                            f'Warning #{i}: {emitted_item} != {expected_item}'
+                        )
+
+                if errors:
+                    self.fail('\n\n'.join(errors))
 
     @contextmanager
     def assertNoWarnings(self):

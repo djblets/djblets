@@ -5,13 +5,16 @@ from __future__ import annotations
 import logging
 import time
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from django.core.cache import cache
 from housekeeping import deprecate_non_keyword_only_args
 
 from djblets.cache.backend import make_cache_key
 from djblets.deprecation import RemovedInDjblets70Warning
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 logger = logging.getLogger(__name__)
@@ -48,16 +51,21 @@ class GenerationSynchronizer:
     cache_key: str
 
     #: The synchronization generation number last fetched/set by this instance.
-    sync_gen: Optional[int]
+    sync_gen: int | None
 
     @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
     def __init__(
         self,
-        cache_key: str,
+        cache_key: str | Sequence[str],
         *,
         normalize_cache_key: bool = True,
     ) -> None:
         """Initialize the synchronizer.
+
+        Version Changed:
+            5.3:
+            ``cache_key`` may now be a sequence of string components of
+            the key.
 
         Version Changed:
             5.1:
@@ -65,19 +73,33 @@ class GenerationSynchronizer:
             be enforced in Djblets 7.
 
         Args:
-            cache_key (str):
+            cache_key (str or list of str):
                 The base cache key used for all synchronization. This will be
                 normalized by
                 :py:func:`~djblets.cache.backends.make_cache_key`.
+
+                Version Changed:
+                    5.3:
+                    This may now be a sequence of strings.
 
             normalize_cache_key (bool, optional):
                 Whether to normalize the cache key. Normalizing it will
                 ensure it can fit within the key length constraints, and
                 reduces changes of colliding with keys from other services.
                 This is enabled by default.
+
+        Raises:
+            ValueError:
+                ``cache_key`` was not a string, and ``normalize_cache_key``
+                was ``False``.
         """
         if normalize_cache_key:
             cache_key = make_cache_key(cache_key)
+        elif not isinstance(cache_key, str):
+            raise ValueError(
+                'cache_key must be a string if setting '
+                'normalize_cache_key=False.'
+            )
 
         self.cache_key = cache_key
         self.sync_gen = None
@@ -89,7 +111,7 @@ class GenerationSynchronizer:
                 'Unexpected error checking for initial state in cached '
                 'synchronization state key "%s". Is the cache server down? '
                 'Error = %s',
-                self.cache_key, e)
+                cache_key, e)
 
     def is_expired(self) -> bool:
         """Return whether the current state has expired.

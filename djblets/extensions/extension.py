@@ -7,8 +7,7 @@ import logging
 import os
 from pathlib import PosixPath
 from types import ModuleType
-from typing import (Any, Callable, ClassVar, Dict, List, Optional, Sequence,
-                    Set, TYPE_CHECKING, Type, Union)
+from typing import Any, Dict, Mapping, TYPE_CHECKING
 
 import importlib_resources
 from django.conf import settings
@@ -28,18 +27,33 @@ from djblets.extensions.settings import ExtensionSettings
 from djblets.webapi.resources import WebAPIResource
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from importlib_metadata import EntryPoint
+    from typing import ClassVar, Protocol
+
+    from django.http import HttpResponseBase
     from typelets.json import JSONDict
 
     from djblets.extensions.hooks import ExtensionHook
     from djblets.extensions.manager import ExtensionManager
+
+    class ExtensionMiddlewareCallable(Protocol):
+        def __call__(
+            self,
+            request: HttpRequest,
+        ) -> HttpResponseBase:
+            ...
 
 
 logger = logging.getLogger(__name__)
 
 
 #: Type for the extension metadata dict.
-ExtensionMetadata: TypeAlias = Dict[str, Any]
+#:
+#: Version Changed:
+#:     5.3:
+#:     This is now immutable, matching the purpose of the type.
+ExtensionMetadata: TypeAlias = Mapping[str, Any]
 
 
 class BaseStaticBundleConfig(TypedDict):
@@ -119,7 +133,7 @@ class BaseStaticBundleConfig(TypedDict):
     #:
     #: This can be used to provide special logic for loading the bundle.
     #: It's generally not needed.
-    template_name: NotRequired[Optional[str]]
+    template_name: NotRequired[str | None]
 
 
 class CSSBundleConfig(BaseStaticBundleConfig):
@@ -137,7 +151,7 @@ class CSSBundleConfig(BaseStaticBundleConfig):
     #:
     #: This can be set to ``"datauri"`` to encode any referenced images or
     #: fonts inline using ``url("data:...")``.
-    variant: NotRequired[Optional[str]]
+    variant: NotRequired[str | None]
 
 
 class JSBundleConfig(BaseStaticBundleConfig):
@@ -193,12 +207,12 @@ class JSExtension:
     #:
     #: This class will be instantiated on the page. It should be a subclass of
     #: :js:class:`Djblets.Extension`.
-    model_class: Optional[str] = None
+    model_class: (str | None) = None
 
     #: The list of URL names to load this extension on.
     #:
     #: If not provided, this will be loaded on all pages.
-    apply_to: Optional[List[str]] = None
+    apply_to: (list[str] | None) = None
 
     def __init__(
         self,
@@ -287,7 +301,7 @@ class Extension:
     #:
     #: Type:
     #:     Extension
-    instance: Optional[Extension] = None
+    instance: (Extension | None) = None
 
     #: The extension registration in the database.
     #:
@@ -317,7 +331,7 @@ class Extension:
     #: * ``Author-home-page``: The URL of the author writing/maintaining the
     #:   extension.
     #: * ``Home-page``: The URL of the extension's home/product/company page.
-    metadata: Optional[ExtensionMetadata] = None
+    metadata: (ExtensionMetadata | None) = None
 
     #: Whether or not the extension is user-configurable.
     #:
@@ -346,34 +360,34 @@ class Extension:
     #: This is used to ensure that another extension is enabled before this
     #: one. It's primarily for extensions that are augmenting or depending on
     #: another extension's functionality.
-    requirements: List[str] = []
+    requirements: list[str] = []
 
     #: A list of API resource instances offered by this extension.
     #:
     #: Each entry in the list is an instance of a custom
     #: :py:class:`~djblets.webapi.resources.WebAPIResource`. These resources
     #: will appear underneath the extension's own resource.
-    resources: List[WebAPIResource] = []
+    resources: list[WebAPIResource] = []
 
     #: A list of Django application module paths to load.
     #:
     #: Each of these will be added to :django:setting:`INSTALLED_APPS` while
     #: the extension is enabled. It follows the same format as that setting.
-    apps: List[str] = []
+    apps: list[str] = []
 
     #: A list of Django context processors to load.
     #:
     #: Each of these will be added to
     #: :django:setting:`TEMPLATE_CONTEXT_PROCESSORS` while the extension is
     #: enabled. It follows the same format as that setting.
-    context_processors: List[str] = []
+    context_processors: list[str] = []
 
     #: A list of Django middleware to load.
     #:
     #: Each of these will be run as if they were part of
     #: :django:setting:`MIDDLEWARE` depending on your setup) while the
     #: extension is enabled. It follows the same format as that setting.
-    middleware: List[str] = []
+    middleware: list[str] = []
 
     #: A dictionary of CSS bundles to include in the package.
     #:
@@ -426,13 +440,13 @@ class Extension:
     #:
     #: Type:
     #:     set of djblets.extensions.hooks.ExtensionHook
-    hooks: Set[ExtensionHook]
+    hooks: set[ExtensionHook]
 
     #: URLs for the extension's admin interface.
     #:
     #: Type:
     #:     list of django.urls.URLResolver
-    admin_urlpatterns: List[URLResolver]
+    admin_urlpatterns: list[URLResolver]
 
     #: The database administration site set for the extension.
     #:
@@ -441,13 +455,13 @@ class Extension:
     #:
     #: Type:
     #:     django.contrib.admin.sites.AdminSite
-    admin_site: Optional[AdminSite]
+    admin_site: AdminSite | None
 
     #: URLs for the extension's admin site (DB forms, etc).
     #:
     #: Type:
     #:     list of django.urls.URLPattern
-    admin_site_urlpatterns: List[Union[URLPattern, URLResolver]]
+    admin_site_urlpatterns: list[URLPattern | URLResolver]
 
     #: The extension manager that manages this extension.
     #:
@@ -462,7 +476,7 @@ class Extension:
     #:
     #: Type:
     #:     list of callable
-    middleware_classes: Sequence[Callable]
+    middleware_classes: Sequence[ExtensionMiddlewareCallable]
 
     #: The settings for the extension.
     #:
@@ -586,7 +600,7 @@ class ExtensionInfo:
     #:     3.3:
     #:     This is no longer used by Djblets and may be removed in a future
     #:     version.
-    encodings: List[str] = [
+    encodings: list[str] = [
         'utf-8',
         locale.getpreferredencoding(False),
         'latin1',
@@ -604,13 +618,13 @@ class ExtensionInfo:
     #:
     #: Type:
     #:     list of Extension
-    requirements: List[Type[Extension]]
+    requirements: list[type[Extension]]
 
     @classmethod
     def create_from_entrypoint(
         cls,
         entrypoint: EntryPoint,
-        ext_class: Type[Extension],
+        ext_class: type[Extension],
     ) -> ExtensionInfo:
         """Create a new ExtensionInfo from a Python EntryPoint.
 
@@ -649,7 +663,7 @@ class ExtensionInfo:
 
     def __init__(
         self,
-        ext_class: Type[Extension],
+        ext_class: type[Extension],
         package_name: str,
         metadata: ExtensionMetadata = {},
     ) -> None:
@@ -755,7 +769,7 @@ class ExtensionInfo:
     def extract_resource(
         self,
         path: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Return the filesystem path to an extracted resource.
 
         A resource is a file or directory that exists within an extension's
@@ -818,7 +832,7 @@ class ExtensionInfo:
                     'path': version_path,
                 })
 
-    def get_installed_static_version(self) -> Optional[str]:
+    def get_installed_static_version(self) -> str | None:
         """Return the extension's locally-written static media version.
 
         Returns:

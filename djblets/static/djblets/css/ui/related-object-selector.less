@@ -1,4 +1,5 @@
 @import (reference) "../defs.less";
+@import (inline) "@selectize/selectize/dist/css/selectize.default.css";
 
 
 /***************************************************************************
@@ -82,6 +83,10 @@
   table.related-object-selected {
     padding: var(--ink-u-spacing-xs);
     width: 100%;
+
+    td {
+      padding: var(--ink-u-spacing-xs);
+    }
 
     td:last-child {
       width: var(--ink-u-icon-std);

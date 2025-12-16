@@ -97,15 +97,16 @@ class StaticMediaBuilderTests(TestCase):
         assert build_context is not None
 
         djblets_path = Path(djblets.__file__).parent
+        htdocs_path = djblets_path / 'htdocs'
+        static_path = htdocs_path / 'static'
+        node_path = build_context.node_modules_dir
 
         self.assertEqual(builder._build_lessc_args(), [
             '--no-color',
             '--source-map',
             '--js',
-            '--autoprefix',
-            '--include-path=%s:%s:%s' % (djblets_path,
-                                         djblets_path / 'static',
-                                         build_context.node_modules_dir),
+            '--plugin=@beanbag/less-plugin-autoprefix',
+            f'--include-path={htdocs_path}:{static_path}:{node_path}',
             '--global-var=DEBUG=false',
             '--global-var=STATIC_ROOT="/static/"',
         ])

@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import pickle
 import re
+import time
 import zlib
 from typing import TYPE_CHECKING
 
@@ -20,11 +21,12 @@ from djblets.cache.backend import (CACHE_CHUNK_SIZE,
                                    cache_memoize_iter,
                                    make_cache_key,
                                    _get_default_encryption_key)
+from djblets.protect.locks import CacheLock
 from djblets.secrets.crypto import AES_BLOCK_SIZE, aes_decrypt, aes_encrypt
 from djblets.testing.testcases import TestCase
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Iterator, Sequence
 
 
 class BaseCacheTestCase(kgb.SpyAgency, TestCase):
@@ -37,15 +39,33 @@ class BaseCacheTestCase(kgb.SpyAgency, TestCase):
 
         cache.clear()
 
-    def build_test_chunk_data(self, num_chunks, extra_len=0,
-                              use_compression=False, use_encryption=False,
-                              encryption_key=None):
+    def build_test_chunk_data(
+        self,
+        *,
+        data_char: str = 'x',
+        num_chunks: int,
+        extra_len: int = 0,
+        use_compression: bool = False,
+        use_encryption: bool = False,
+        encryption_key: (bytes | None) = None,
+    ) -> tuple[str, bytes]:
         """Build enough test data to fill up the specified number of chunks.
 
         This takes into account the size of the pickle data, and will
         get us to exactly the specified number of chunks of data in the cache.
 
+        Version Changed:
+            5.3:
+            * Made all arguments keyword-only.
+            * Added the ``data_char`` argumnet.
+
         Args:
+            data_char (str, optional):
+                The character to use for the test value.
+
+                Version Added:
+                    5.3
+
             num_chunks (int):
                 The number of chunks to build.
 
@@ -65,18 +85,23 @@ class BaseCacheTestCase(kgb.SpyAgency, TestCase):
             tuple:
             A 2-tuple containing:
 
-            1. The raw generated data.
-            2. The resulting chunk data to store.
+            Tuple:
+                0 (str):
+                    The raw generated data.
+
+                1 (bytes):
+                    The resulting chunk data to store.
         """
         data_len = CACHE_CHUNK_SIZE * num_chunks - 3 * num_chunks + extra_len
 
         if use_encryption:
             data_len -= AES_BLOCK_SIZE
 
-        data = 'x' * data_len
+        data = data_char * data_len
 
         chunk_data = pickle.dumps(data, protocol=0)
-        self.assertTrue(chunk_data.startswith(b'Vxxxxxxxx'))
+        self.assertTrue(chunk_data.startswith(
+            b'V%s' % (data_char.encode('utf-8') * 8)))
 
         if use_compression:
             chunk_data = zlib.compress(chunk_data)
@@ -983,6 +1008,273 @@ class CacheMemoizeTests(BaseCacheTestCase):
         self.assertEqual(result, data)
         self.assertSpyCallCount(cache_func, 1)
 
+    def test_with_lock_and_in_cache(self) -> None:
+        """Testing cache_memoize with lock and data in cache"""
+        lock = CacheLock(timeout_secs=0.1,
+                         retry_secs=0.05)
+
+        self.spy_on(lock.acquire)
+        self.spy_on(lock.release)
+
+        cache_key = 'abc123'
+
+        def cache_func() -> str:
+            return 'new result'
+
+        self.spy_on(cache_func)
+
+        cache.set(make_cache_key(cache_key), 'existing result')
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               lock=lock)
+        self.assertEqual(result, 'existing result')
+        self.assertSpyNotCalled(cache_func)
+
+        self.assertSpyNotCalled(lock.acquire)
+        self.assertSpyNotCalled(lock.release)
+        self.assertIsNone(cache.get(lock.full_cache_key))
+
+    def test_with_lock_and_cache_miss(self) -> None:
+        """Testing cache_memoize with lock and cache miss"""
+        lock = CacheLock(timeout_secs=0.1,
+                         retry_secs=0.05)
+
+        self.spy_on(lock.acquire)
+        self.spy_on(lock.release)
+
+        cache_key = 'abc123'
+        data = 'test123'
+
+        def cache_func() -> str:
+            self.assertEqual(cache.get(lock.full_cache_key), lock.token)
+
+            return data
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               lock=lock)
+        self.assertEqual(result, data)
+        self.assertSpyCallCount(cache_func, 1)
+
+        self.assertSpyCallCount(lock.acquire, 1)
+        self.assertSpyCallCount(lock.release, 1)
+        self.assertIsNone(cache.get(lock.full_cache_key))
+
+    def test_with_lock_and_in_cache_after_lock(self) -> None:
+        """Testing cache_memoize with lock and data in cache after lock"""
+        lock = CacheLock(timeout_secs=0.1,
+                         retry_secs=0.05)
+
+        def _lock_acquire(_self, *args, **kwargs) -> bool:
+            cache.set(make_cache_key(cache_key), 'existing result')
+
+            return lock.acquire.call_original(*args, **kwargs)
+
+        self.spy_on(lock.acquire, call_fake=_lock_acquire)
+        self.spy_on(lock.release)
+
+        cache_key = 'abc123'
+
+        def cache_func() -> str:
+            return 'new result'
+
+        self.spy_on(cache_func)
+
+        result = cache_memoize(cache_key,
+                               cache_func,
+                               lock=lock)
+        self.assertEqual(result, 'existing result')
+        self.assertSpyNotCalled(cache_func)
+
+        self.assertSpyCallCount(lock.acquire, 1)
+        self.assertSpyCallCount(lock.release, 1)
+        self.assertIsNone(cache.get(lock.full_cache_key))
+
+    def test_with_lock_and_wait_with_result(self) -> None:
+        """Testing cache_memoize with lock and waiting with result from cache
+        """
+        existing_lock = CacheLock(key='lock-key')
+        lock_key = existing_lock.full_cache_key
+
+        with existing_lock as locked:
+            self.assertTrue(locked)
+
+            new_lock = CacheLock(key='lock-key',
+                                 timeout_secs=0.1,
+                                 retry_secs=0.05)
+
+            def _lock_acquire(_self, *args, **kwargs) -> bool:
+                # Place a value in cache and release the lock so the new
+                # lock can be acquired.
+                cache.set(make_cache_key(cache_key), 'existing result')
+                existing_lock.release()
+
+                return new_lock.acquire.call_original(*args, **kwargs)
+
+            self.spy_on(new_lock.acquire, call_fake=_lock_acquire)
+            self.spy_on(new_lock.release)
+
+            cache_key = 'abc123'
+
+            def cache_func() -> str:
+                return 'new result'
+
+            self.spy_on(cache_func)
+
+            result = cache_memoize(cache_key,
+                                   cache_func,
+                                   lock=new_lock)
+            self.assertEqual(result, 'existing result')
+            self.assertSpyNotCalled(cache_func)
+
+            self.assertSpyCallCount(new_lock.acquire, 1)
+            self.assertSpyCallCount(new_lock.release, 1)
+
+            self.assertIsNone(cache.get(lock_key))
+
+        self.assertIsNone(cache.get(lock_key))
+
+    def test_with_lock_and_wait_with_timeout(self) -> None:
+        """Testing cache_memoize with lock and waiting with timeout"""
+        existing_lock = CacheLock(key='lock-key')
+        lock_key = existing_lock.full_cache_key
+
+        with existing_lock as locked:
+            self.assertTrue(locked)
+
+            new_lock = CacheLock(key='lock-key',
+                                 timeout_secs=0.1,
+                                 retry_secs=0.05)
+
+            self.spy_on(new_lock.acquire)
+            self.spy_on(new_lock.release)
+
+            cache_key = 'abc123'
+
+            def cache_func() -> str:
+                return 'new result'
+
+            self.spy_on(cache_func)
+
+            with self.assertLogs() as cm:
+                result = cache_memoize(cache_key,
+                                       cache_func,
+                                       lock=new_lock)
+
+            self.assertEqual(result, 'new result')
+            self.assertSpyCallCount(cache_func, 1)
+
+            self.assertSpyCallCount(new_lock.acquire, 1)
+            self.assertSpyNotCalled(new_lock.release)
+            self.assertSpyLastRaisedMessage(
+                new_lock.acquire,
+                TimeoutError,
+                'Timed out waiting for lock: example.com:lock-key')
+
+            self.assertEqual(cache.get(lock_key), existing_lock.token)
+
+            self.assertEqual(cm.output, [
+                f'WARNING:djblets.protect.locks:Timed out waiting for cache '
+                f'lock "example.com:lock-key" (token "{new_lock.token}") '
+                f'for 0.1 seconds',
+
+                f'ERROR:djblets.cache.backend:Timeout waiting on distributed '
+                f'cache lock {new_lock!r}',
+            ])
+
+        self.assertIsNone(cache.get(lock_key))
+
+    def test_with_lock_and_wait_with_timeout_and_value_in_cache(self) -> None:
+        """Testing cache_memoize with lock and waiting with timeout and new
+        value in cache
+        """
+        existing_lock = CacheLock(key='lock-key')
+        lock_key = existing_lock.full_cache_key
+
+        with existing_lock as locked:
+            self.assertTrue(locked)
+
+            new_lock = CacheLock(key='lock-key',
+                                 timeout_secs=0.1,
+                                 retry_secs=0.05)
+
+            def _lock_acquire(_self, *args, **kwargs) -> bool:
+                cache.set(make_cache_key(cache_key), 'existing result')
+
+                return new_lock.acquire.call_original(*args, **kwargs)
+
+            self.spy_on(new_lock.acquire, call_fake=_lock_acquire)
+            self.spy_on(new_lock.release)
+
+            cache_key = 'abc123'
+
+            def cache_func() -> str:
+                return 'new result'
+
+            self.spy_on(cache_func)
+
+            result = cache_memoize(cache_key,
+                                   cache_func,
+                                   lock=new_lock)
+            self.assertEqual(result, 'existing result')
+            self.assertSpyNotCalled(cache_func)
+
+            self.assertSpyCallCount(new_lock.acquire, 1)
+            self.assertSpyNotCalled(new_lock.release)
+            self.assertSpyLastRaisedMessage(
+                new_lock.acquire,
+                TimeoutError,
+                'Timed out waiting for lock: example.com:lock-key')
+
+            self.assertEqual(cache.get(lock_key), existing_lock.token)
+
+        self.assertIsNone(cache.get(lock_key))
+
+    def test_with_lock_and_wait_with_prev_lock_expired(self) -> None:
+        """Testing cache_memoize with lock and waiting with previous lock
+        expired
+        """
+        existing_lock = CacheLock(key='lock-key',
+                                  lock_expiration_secs=0.01)
+        lock_key = existing_lock.full_cache_key
+
+        time.sleep(0.015)
+
+        with existing_lock as locked:
+            self.assertTrue(locked)
+
+            new_lock = CacheLock(key='lock-key',
+                                 timeout_secs=0.1,
+                                 retry_secs=0.05)
+
+            self.spy_on(new_lock.acquire)
+            self.spy_on(new_lock.release)
+
+            cache_key = 'abc123'
+
+            def cache_func() -> str:
+                return 'new result'
+
+            self.spy_on(cache_func)
+
+            with self.assertNoLogs():
+                result = cache_memoize(cache_key,
+                                       cache_func,
+                                       lock=new_lock)
+
+            self.assertEqual(result, 'new result')
+            self.assertSpyCallCount(cache_func, 1)
+
+            self.assertSpyCallCount(new_lock.acquire, 1)
+            self.assertSpyCallCount(new_lock.release, 1)
+
+            self.assertIsNone(cache.get(lock_key))
+
+        self.assertIsNone(cache.get(lock_key))
+
 
 class CacheMemoizeIterTests(BaseCacheTestCase):
     """Unit tests for cache_memoize_iter."""
@@ -1270,6 +1562,332 @@ class CacheMemoizeIterTests(BaseCacheTestCase):
         self.assertEqual(data_yielded, ['data1', 'data2'])
         self.assertEqual(len(results), 2)
         self.assertEqual(results, [data1, data2])
+
+    def test_with_lock_and_in_cache(self) -> None:
+        """Testing cache_memoize_iter with lock and data in cache"""
+        lock = CacheLock(timeout_secs=0.1,
+                         retry_secs=0.05)
+
+        self.spy_on(lock.acquire)
+        self.spy_on(lock.release)
+
+        cache_key = 'abc123'
+        data_yielded = []
+
+        data1 = self.build_test_chunk_data(num_chunks=2)[0]
+        data2 = self.build_test_chunk_data(num_chunks=2)[0]
+
+        def cache_func() -> Iterator[str]:
+            yield data1
+            data_yielded.append('data1')
+
+            yield data2
+            data_yielded.append('data2')
+
+        self.spy_on(cache_func)
+
+        cache.set(make_cache_key(cache_key), 'existing result')
+
+        results = list(cache_memoize_iter(cache_key,
+                                          cache_func,
+                                          compress_large_data=False,
+                                          lock=lock))
+        self.assertEqual(data_yielded, ['data1', 'data2'])
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results, [data1, data2])
+
+        self.assertSpyCallCount(cache_func, 1)
+
+        self.assertSpyNotCalled(lock.acquire)
+        self.assertSpyNotCalled(lock.release)
+        self.assertIsNone(cache.get(lock.full_cache_key))
+
+    def test_with_lock_and_cache_miss(self) -> None:
+        """Testing cache_memoize_iter with lock and cache miss"""
+        lock = CacheLock(timeout_secs=0.1,
+                         retry_secs=0.05)
+
+        self.spy_on(lock.acquire)
+        self.spy_on(lock.release)
+
+        cache_key = 'abc123'
+        data_yielded = []
+
+        data1 = self.build_test_chunk_data(num_chunks=2)[0]
+        data2 = self.build_test_chunk_data(num_chunks=2)[0]
+
+        def cache_func() -> Iterator[str]:
+            self.assertEqual(cache.get(lock.full_cache_key), lock.token)
+
+            yield data1
+            data_yielded.append('data1')
+
+            yield data2
+            data_yielded.append('data2')
+
+        self.spy_on(cache_func)
+
+        results = list(cache_memoize_iter(cache_key,
+                                          cache_func,
+                                          compress_large_data=False,
+                                          lock=lock))
+        self.assertEqual(data_yielded, ['data1', 'data2'])
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results, [data1, data2])
+
+        self.assertSpyCallCount(cache_func, 1)
+
+        self.assertSpyCallCount(lock.acquire, 1)
+        self.assertSpyCallCount(lock.release, 1)
+        self.assertIsNone(cache.get(lock.full_cache_key))
+
+    def test_with_lock_and_in_cache_after_lock(self) -> None:
+        """Testing cache_memoize_iter with lock and data in cache after lock
+        """
+        existing1 = self.build_test_chunk_data(data_char='z',
+                                               num_chunks=2)[0]
+        existing2 = self.build_test_chunk_data(data_char='z',
+                                               num_chunks=2)[0]
+
+        lock = CacheLock(timeout_secs=0.1,
+                         retry_secs=0.05)
+
+        def _lock_acquire(_self, *args, **kwargs) -> bool:
+            list(cache_memoize_iter(cache_key,
+                                    lambda: [existing1, existing2],
+                                    compress_large_data=False))
+
+            return lock.acquire.call_original(*args, **kwargs)
+
+        self.spy_on(lock.acquire, call_fake=_lock_acquire)
+        self.spy_on(lock.release)
+
+        cache_key = 'abc123'
+        data_yielded = []
+
+        data1 = self.build_test_chunk_data(num_chunks=2)[0]
+        data2 = self.build_test_chunk_data(num_chunks=2)[0]
+
+        def cache_func() -> Iterator[str]:
+            yield data1
+            data_yielded.append('data1')
+
+            yield data2
+            data_yielded.append('data2')
+
+        self.spy_on(cache_func)
+
+        results = list(cache_memoize_iter(cache_key,
+                                          cache_func,
+                                          compress_large_data=False,
+                                          lock=lock))
+        self.assertEqual(data_yielded, [])
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results, [existing1, existing2])
+
+        self.assertSpyNotCalled(cache_func)
+
+        self.assertSpyCallCount(lock.acquire, 1)
+        self.assertSpyCallCount(lock.release, 1)
+        self.assertIsNone(cache.get(lock.full_cache_key))
+
+    def test_with_lock_and_wait_with_result(self) -> None:
+        """Testing cache_memoize_iter with lock and waiting with result
+        from cache
+        """
+        existing_lock = CacheLock(key='lock-key')
+        lock_key = existing_lock.full_cache_key
+
+        with existing_lock as locked:
+            self.assertTrue(locked)
+
+            existing1 = self.build_test_chunk_data(data_char='z',
+                                                   num_chunks=2)[0]
+            existing2 = self.build_test_chunk_data(data_char='z',
+                                                   num_chunks=2)[0]
+
+            new_lock = CacheLock(key='lock-key',
+                                 timeout_secs=0.1,
+                                 retry_secs=0.05)
+
+            def _lock_acquire(_self, *args, **kwargs) -> bool:
+                # Place a value in cache and release the lock so the new
+                # lock can be acquired.
+                list(cache_memoize_iter(cache_key,
+                                        lambda: [existing1, existing2],
+                                        compress_large_data=False))
+                existing_lock.release()
+
+                return new_lock.acquire.call_original(*args, **kwargs)
+
+            self.spy_on(new_lock.acquire, call_fake=_lock_acquire)
+            self.spy_on(new_lock.release)
+
+            cache_key = 'abc123'
+            data_yielded = []
+
+            data1 = self.build_test_chunk_data(num_chunks=2)[0]
+            data2 = self.build_test_chunk_data(num_chunks=2)[0]
+
+            def cache_func() -> Iterator[str]:
+                yield data1
+                data_yielded.append('data1')
+
+                yield data2
+                data_yielded.append('data2')
+
+            self.spy_on(cache_func)
+
+            results = list(cache_memoize_iter(cache_key,
+                                              cache_func,
+                                              compress_large_data=False,
+                                              lock=new_lock))
+            self.assertEqual(data_yielded, [])
+            self.assertEqual(len(results), 2)
+            self.assertEqual(results, [existing1, existing2])
+
+            self.assertSpyNotCalled(cache_func)
+
+            self.assertSpyCallCount(new_lock.acquire, 1)
+            self.assertSpyCallCount(new_lock.release, 1)
+
+            self.assertIsNone(cache.get(lock_key))
+
+        self.assertIsNone(cache.get(lock_key))
+
+    def test_with_lock_and_wait_with_timeout(self) -> None:
+        """Testing cache_memoize_iter with lock and waiting with timeout"""
+        existing_lock = CacheLock(key='lock-key')
+        lock_key = existing_lock.full_cache_key
+
+        with existing_lock as locked:
+            self.assertTrue(locked)
+
+            new_lock = CacheLock(key='lock-key',
+                                 timeout_secs=0.1,
+                                 retry_secs=0.05)
+
+            self.spy_on(new_lock.acquire)
+            self.spy_on(new_lock.release)
+
+            cache_key = 'abc123'
+            data_yielded = []
+
+            data1 = self.build_test_chunk_data(num_chunks=2)[0]
+            data2 = self.build_test_chunk_data(num_chunks=2)[0]
+
+            def cache_func() -> Iterator[str]:
+                yield data1
+                data_yielded.append('data1')
+
+                yield data2
+                data_yielded.append('data2')
+
+            self.spy_on(cache_func)
+
+            with self.assertLogs() as cm:
+                results = list(cache_memoize_iter(cache_key,
+                                                  cache_func,
+                                                  compress_large_data=False,
+                                                  lock=new_lock))
+
+            self.assertEqual(data_yielded, ['data1', 'data2'])
+            self.assertEqual(len(results), 2)
+            self.assertEqual(results, [data1, data2])
+
+            self.assertSpyCallCount(cache_func, 1)
+
+            self.assertSpyCallCount(new_lock.acquire, 1)
+            self.assertSpyNotCalled(new_lock.release)
+            self.assertSpyLastRaisedMessage(
+                new_lock.acquire,
+                TimeoutError,
+                'Timed out waiting for lock: example.com:lock-key')
+
+            self.assertEqual(cm.output, [
+                f'WARNING:djblets.protect.locks:Timed out waiting for cache '
+                f'lock "example.com:lock-key" (token "{new_lock.token}") '
+                f'for 0.1 seconds',
+
+                f'ERROR:djblets.cache.backend:Timeout waiting on distributed '
+                f'cache lock {new_lock!r}',
+            ])
+
+            self.assertEqual(cache.get(lock_key), existing_lock.token)
+
+        self.assertIsNone(cache.get(lock_key))
+
+    def test_with_lock_and_wait_with_timeout_and_value_in_cache(self) -> None:
+        """Testing cache_memoize_iter with lock and waiting with timeout and
+        new value in cache
+        """
+        existing_lock = CacheLock(key='lock-key')
+        lock_key = existing_lock.full_cache_key
+
+        with existing_lock as locked:
+            self.assertTrue(locked)
+
+            existing1 = self.build_test_chunk_data(data_char='z',
+                                                   num_chunks=2)[0]
+            existing2 = self.build_test_chunk_data(data_char='z',
+                                                   num_chunks=2)[0]
+
+            new_lock = CacheLock(key='lock-key',
+                                 timeout_secs=0.1,
+                                 retry_secs=0.05)
+
+            def _lock_acquire(_self, *args, **kwargs) -> bool:
+                # Place a value in cache and release the lock so the new
+                # lock can be acquired.
+                list(cache_memoize_iter(cache_key,
+                                        lambda: [existing1, existing2],
+                                        compress_large_data=False))
+
+                return new_lock.acquire.call_original(*args, **kwargs)
+
+            self.spy_on(new_lock.acquire, call_fake=_lock_acquire)
+            self.spy_on(new_lock.release)
+
+            cache_key = 'abc123'
+            data_yielded = []
+
+            def cache_func() -> Iterator[str]:
+                yield self.build_test_chunk_data(num_chunks=2)[0]
+                data_yielded.append('data1')
+
+            self.spy_on(cache_func)
+
+            with self.assertLogs() as cm:
+                results = list(cache_memoize_iter(cache_key,
+                                                  cache_func,
+                                                  compress_large_data=False,
+                                                  lock=new_lock))
+
+            self.assertEqual(data_yielded, [])
+            self.assertEqual(len(results), 2)
+            self.assertEqual(results, [existing1, existing2])
+
+            self.assertSpyNotCalled(cache_func)
+
+            self.assertSpyCallCount(new_lock.acquire, 1)
+            self.assertSpyNotCalled(new_lock.release)
+            self.assertSpyLastRaisedMessage(
+                new_lock.acquire,
+                TimeoutError,
+                'Timed out waiting for lock: example.com:lock-key')
+
+            self.assertEqual(cm.output, [
+                f'WARNING:djblets.protect.locks:Timed out waiting for cache '
+                f'lock "example.com:lock-key" (token "{new_lock.token}") '
+                f'for 0.1 seconds',
+
+                f'ERROR:djblets.cache.backend:Timeout waiting on distributed '
+                f'cache lock {new_lock!r}',
+            ])
+
+            self.assertEqual(cache.get(lock_key), existing_lock.token)
+
+        self.assertIsNone(cache.get(lock_key))
 
 
 class MakeCacheKeyTests(BaseCacheTestCase):
