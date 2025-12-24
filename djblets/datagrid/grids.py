@@ -24,6 +24,7 @@ All datagrids are meant to be subclassed.
 
 from __future__ import annotations
 
+import datetime
 import logging
 import re
 import string
@@ -32,7 +33,6 @@ from typing import (Any, Callable, Dict, Iterable, List, Optional, Sequence,
                     Set, TYPE_CHECKING, Type, Union)
 from urllib.parse import urlencode
 
-import pytz
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import InvalidPage, Paginator
@@ -1239,12 +1239,26 @@ class CheckboxColumn(Column):
 class DateTimeColumn(Column):
     """A column that renders a date or time."""
 
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The format string used to show the date/time.
+    format: str | None
+
+    #: The timezone to normalize the date/time to.
+    #:
+    #: Version Changed:
+    #:     6.0:
+    #:     Changed to use the standard library timezone type instead of pytz.
+    timezone: datetime.tzinfo
+
     def __init__(
         self,
-        label: Optional[StrOrPromise] = None,
-        format: Optional[str] = None,
+        label: (StrOrPromise | None) = None,
+        format: (str | None) = None,
         sortable: bool = True,
-        timezone: Any = pytz.utc,
+        timezone: datetime.tzinfo = datetime.timezone.utc,
         *args,
         **kwargs,
     ) -> None:
@@ -1265,8 +1279,13 @@ class DateTimeColumn(Column):
 
                 This is enabled by default.
 
-            timezone (object, optional):
+            timezone (datetime.tzinfo, optional):
                 The timezone used to normalize the date/time to.
+
+                Version Changed:
+                    6.0:
+                    Changed type to use the standard library tzinfo instead of
+                    pytz.
 
             *args (tuple):
                 Additional positional arguments for the column.
@@ -1301,8 +1320,7 @@ class DateTimeColumn(Column):
         datetime = getattr(obj, self.field_name)
 
         if settings.USE_TZ:
-            datetime = pytz.utc.normalize(datetime).\
-                astimezone(self.timezone)
+            datetime = datetime.replace(tzinfo=self.timezone)
 
         return date(datetime, self.format)
 

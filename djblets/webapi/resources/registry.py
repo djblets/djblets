@@ -77,8 +77,8 @@ class ResourcesRegistry(object):
                     error = e
 
             if not found:
-                logger.exception('Unable to load webapi resource %s: %s',
-                                 name, error)
+                logger.error('Unable to load webapi resource %s: %s',
+                             name, error)
                 raise AttributeError('%s is not a valid resource name' % name)
 
         return self.__dict__[name]

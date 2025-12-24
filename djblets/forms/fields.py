@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import copy
 from typing import Any, Optional, TYPE_CHECKING, Union
+from zoneinfo import available_timezones
 
-import pytz
 from django import forms
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _, gettext
@@ -27,7 +27,8 @@ if TYPE_CHECKING:
     from djblets.conditions.conditions import ConditionSetData
 
 
-TIMEZONE_CHOICES = tuple(zip(pytz.common_timezones, pytz.common_timezones))
+AVAILABLE_TIMEZONES = available_timezones()
+TIMEZONE_CHOICES = tuple(zip(AVAILABLE_TIMEZONES, AVAILABLE_TIMEZONES))
 
 
 #: The types of arguments available as choices to a ConditionsField.
@@ -38,7 +39,7 @@ ConditionsFieldChoices: TypeAlias = ConditionsWidgetChoices
 
 
 class TimeZoneField(forms.ChoiceField):
-    """A form field that only allows pytz common timezones as the choices."""
+    """A form field that only allows available timezones as the choices."""
 
     def __init__(self, choices=TIMEZONE_CHOICES, *args, **kwargs):
         super(TimeZoneField, self).__init__(choices=choices, *args, **kwargs)

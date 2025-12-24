@@ -11,7 +11,6 @@ import dateutil.parser
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _, gettext
-from pytz.exceptions import AmbiguousTimeError
 from typing_extensions import TypedDict
 
 if TYPE_CHECKING:
@@ -346,14 +345,15 @@ class DateTimeFieldType(BaseAPIFieldType):
                             'date/time'))
 
         if timezone.is_naive(value):
-            try:
-                value = timezone.make_aware(value,
-                                            timezone.get_current_timezone())
-            except AmbiguousTimeError:
+            tz = timezone.get_current_timezone()
+
+            if timezone._datetime_ambiguous_or_imaginary(value, tz):
                 raise ValidationError(
                     gettext('This timestamp needs a UTC offset to avoid '
                             'being ambiguous due to daylight savings time '
                             'changes'))
+
+            value = timezone.make_aware(value, tz)
 
         return value
 

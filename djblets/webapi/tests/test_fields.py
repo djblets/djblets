@@ -1,8 +1,8 @@
 """Unit tests for djblets.webapi.fields."""
 
 import datetime
+from zoneinfo import ZoneInfo
 
-import pytz
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import UploadedFile
 from django.utils import timezone
@@ -147,11 +147,11 @@ class DateTimeFieldTypeTests(SpyAgency, TestCase):
         dt = datetime.datetime(2018, 2, 20, 13, 42, 0)
         self.assertTrue(timezone.is_naive(dt))
 
-        pst = pytz.timezone('US/Pacific')
+        pst = ZoneInfo('America/Los_Angeles')
 
         with timezone.override(pst):
             self.assertEqual(self.field_type.clean_value(dt),
-                             pst.localize(dt))
+                             dt.replace(tzinfo=pst))
 
     def test_clean_value_with_timestamp_string_utc(self):
         """Testing DateTimeFieldType.clean_value with timestamp string with
@@ -166,18 +166,18 @@ class DateTimeFieldTypeTests(SpyAgency, TestCase):
         """Testing DateTimeFieldType.clean_value with timestamp string without
         timezone offset
         """
-        pst = pytz.timezone('US/Pacific')
+        pst = ZoneInfo('America/Los_Angeles')
 
         with timezone.override(pst):
             self.assertEqual(
                 self.field_type.clean_value('2018-02-20T13:42:00'),
-                pst.localize(datetime.datetime(2018, 2, 20, 13, 42, 0)))
+                datetime.datetime(2018, 2, 20, 13, 42, 0, tzinfo=pst))
 
     def test_clean_value_with_timestamp_string_ambiguous(self):
         """Testing DateTimeFieldType.clean_value with timestamp string with
         ambiguous time
         """
-        with timezone.override(pytz.timezone('America/Chicago')):
+        with timezone.override(ZoneInfo('America/Chicago')):
             expected_message = (
                 'This timestamp needs a UTC offset to avoid being ambiguous '
                 'due to daylight savings time changes'

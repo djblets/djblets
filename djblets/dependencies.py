@@ -80,7 +80,6 @@ package_dependencies: Mapping[str, Dependency] = {
     'Pillow': '>=6.2',
     'publicsuffixlist': '~=0.10.0',
     'python-dateutil': '>=2.7',
-    'pytz': '',
     'typelets': '~=1.1.0',
     'typing_extensions': '>=4.12.2',
 
