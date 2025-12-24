@@ -397,6 +397,7 @@ class ExtensionTestCaseMixin(MixinParent):
 
         if extension_manager is None:
             extension_manager = self.default_extension_manager_cls(
-                key='tests-%s' % uuid.uuid4())
+                key=f'tests-{uuid.uuid4()}',
+                delay_init=False)
 
         return extension_manager

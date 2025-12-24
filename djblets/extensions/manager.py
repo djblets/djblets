@@ -37,6 +37,7 @@ except ImportError:
     Evolver = None
 
 from djblets.cache.synchronizer import GenerationSynchronizer
+from djblets.deprecation import RemovedInDjblets80Warning
 from djblets.extensions.errors import (EnablingExtensionError,
                                        InstallExtensionError,
                                        InstallExtensionMediaError,
@@ -302,16 +303,34 @@ class ExtensionManager:
     #: A mapping of extension ID to error message.
     _load_errors: dict[str, str]
 
+    #: The generation synchronizer.
+    _gen_sync: GenerationSynchronizer | None
+
     def __init__(
         self,
         key: str,
+        *,
+        delay_init: (bool | None) = None,
     ) -> None:
         """Initialize the extension manager.
+
+        Version Changed:
+            6.0:
+            Added the ``delay_init`` argument.
 
         Args:
             key (str):
                 A key that's unique to this extension manager instance. It
                 must also be the same key used to look up Python entry points.
+
+            delay_init (bool, optional):
+                Whether to delay initializing parts of the ExtensionManager
+                which require database access.
+
+                This will become a required argument in Djblets 8.0.
+
+                Version Added:
+                    6.0
         """
         self.key = key
 
@@ -320,10 +339,18 @@ class ExtensionManager:
         self._load_errors = {}
 
         # State synchronization
-        self._gen_sync = GenerationSynchronizer('extensionmgr:%s:gen' % key)
+        self._gen_sync = None
         self._load_lock = threading.Lock()
         self._shutdown_lock = threading.Lock()
         self._block_sync_gen = False
+
+        if not delay_init:
+            self.init()
+
+            if delay_init is None:
+                RemovedInDjblets80Warning.warn(
+                    'The delay_init parameter to ExtensionManager will become '
+                    'mandatory in Djblets 8.')
 
         self.dynamic_urls = DynamicURLResolver()
         self._extension_list_url = None
@@ -342,6 +369,19 @@ class ExtensionManager:
 
         instance_id = id(self)
         _extension_managers[instance_id] = self
+
+    def init(self) -> None:
+        """Initialize parts of the manager which require database access.
+
+        This can either be explicitly called, or will be called as part of
+        :py:meth:`load`.
+
+        Version Added:
+            6.0
+        """
+        if self._gen_sync is None:
+            self._gen_sync = GenerationSynchronizer(
+                f'extensionmgr:{self.key}:gen')
 
     def get_url_patterns(self) -> list[DynamicURLResolver]:
         """Return the URL patterns for the Extension Manager.
@@ -367,6 +407,7 @@ class ExtensionManager:
             bool:
             Whether the state has expired.
         """
+        assert self._gen_sync is not None
         return self._gen_sync.is_expired()
 
     def clear_sync_cache(self) -> None:
@@ -375,6 +416,7 @@ class ExtensionManager:
         This will force every process to reload the extension list and
         settings.
         """
+        assert self._gen_sync is not None
         self._gen_sync.clear()
 
     def get_absolute_url(self) -> str:
@@ -723,6 +765,9 @@ class ExtensionManager:
                 enabled extensions, clearing all state, and re-loading
                 all extension data.
         """
+        if self._gen_sync is None:
+            self.init()
+
         with self._load_lock:
             self._block_sync_gen = True
             self._load_extensions(full_reload)
@@ -1714,6 +1759,12 @@ class ExtensionManager:
         if self._block_sync_gen:
             return
 
+        if self._gen_sync is None:
+            # This can occur in some unit testing scenarios with extensions
+            # that try to save extension settings during test case init.
+            self.init()
+
+        assert self._gen_sync is not None
         self._gen_sync.mark_updated()
         settings.AJAX_SERIAL = self._gen_sync.sync_gen
 

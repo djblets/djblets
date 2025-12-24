@@ -114,7 +114,7 @@ class ExtensionEnabledWebAPIScopeDictionaryTests(ExtensionTestCaseMixin,
     def setUpClass(cls):
         super(ExtensionEnabledWebAPIScopeDictionaryTests, cls).setUpClass()
 
-        cls._extension_manager = ExtensionManager('')
+        cls._extension_manager = ExtensionManager('', delay_init=False)
 
         cls._resources = make_resource_tree(mixins=[
             ResourceOAuth2TokenMixin,

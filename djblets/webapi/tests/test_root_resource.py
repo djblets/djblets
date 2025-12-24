@@ -269,7 +269,7 @@ class RootResourceTemplateRegistrationTests(TestCase):
     def setUp(self):
         super(RootResourceTemplateRegistrationTests, self).setUp()
 
-        self.ext_mgr = ExtensionManager('')
+        self.ext_mgr = ExtensionManager('', delay_init=False)
         self.ext_res = ExtensionResource(self.ext_mgr)
         self.root_res = RootResource([self.ext_res])
         self.root_res._registered_uri_templates = {
