@@ -1,18 +1,69 @@
+"""Decorators used for unit tests."""
+
+from __future__ import annotations
+
 import inspect
+import os
+import warnings
 from functools import wraps
+from typing import TYPE_CHECKING
 
 from django.contrib.auth.models import User
 from django.utils.decorators import method_decorator
 
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+    from typing import ParamSpec, TypeVar
 
-def add_fixtures(fixtures, replace=False):
-    """Adds or replaces the fixtures used for this test.
+    _P = ParamSpec('_P')
+    _T = TypeVar('_T')
+
+
+def add_fixtures(
+    fixtures: Sequence[str],
+    replace: bool = False,
+) -> Callable[[Callable[_P, _T]], Callable[_P, _T]]:
+    """Add fixtures used for this test.
 
     This must be used along with :py:func:`djblets.testing.testcases.TestCase`.
+
+    Args:
+        fixtures (list of str):
+            A list of fixtures to add.
+
+        replace (bool, optional):
+            Whether to replace the fixtures.
+
+            Deprecated:
+                5.3:
+                Replacing fixtures is no longer possible due to changes in
+                Django 1.8. This argument will be removed in Djblets 7.
+
+    Returns:
+        callable:
+        The wrapped test case method.
     """
-    def _dec(func):
-        func._fixtures = fixtures
-        func._replace_fixtures = replace
+    if replace:
+        raise ValueError(
+            'Calling add_fixtures() with replace=True can no longer work '
+            'with Django >= 1.8 because of changes inside '
+            'django.test.TestCase. This argument will be removed entirely '
+            'in Djblets 7.0.'
+        )
+
+    if os.environ.get('DJBLETS_DEBUG_FIXTURES') == '1':
+        # For now, hide this behind an environment variable.
+        warnings.warn(
+            'In Django >= 1.8, fixtures are applied at TestCase '
+            'class initialization rather than per test method. Where '
+            'possible, fixtures should be set at the class level using '
+            'the `fixtures` ClassVar.'
+        )
+
+    def _dec(
+        func: Callable[_P, _T],
+    ) -> Callable[_P, _T]:
+        func._fixtures = fixtures  # type: ignore
         return func
 
     return _dec
