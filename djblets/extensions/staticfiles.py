@@ -86,11 +86,28 @@ class ExtensionFinder(BaseFinder):
                     for path in get_files(storage, ignore_patterns):
                         yield path, storage
 
-    def find(self, path, all=False):
-        """Finds the real path to a static file, given a static path.
+    def find(
+        self,
+        path: str,
+        find_all: bool = False,
+    ) -> list[str] | str:
+        """Find the real path to a static file, given a static path.
 
         The path must start with "ext/<extension_id>/". The files within will
         map to files within the extension's "static" directory.
+
+        Args:
+            path (str):
+                The name of the static file to find.
+
+            find_all (bool):
+                If ``True``, find all occurrences of the given filename.
+                Otherwise, just return the first match.
+
+        Returns:
+            list or str:
+            A list of file paths, or a single file path, depending on the value
+            of ``find_all``.
         """
         parts = path.split('/', 2)
 
@@ -109,7 +126,7 @@ class ExtensionFinder(BaseFinder):
                     # The static file support allows for the same name
                     # across many locations, but as we involve extension IDs,
                     # we know we'll only have one.
-                    if all:
+                    if find_all:
                         return [match]
                     else:
                         return match
