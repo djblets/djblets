@@ -10,9 +10,9 @@ from django.test import RequestFactory
 from django.test.utils import override_settings
 
 from djblets.auth.ratelimit import (Rate,
-                                    _get_time_int,
                                     get_usage_count,
                                     is_ratelimited)
+from djblets.protect.ratelimit import _get_time_int
 from djblets.testing.testcases import TestCase
 
 
@@ -62,7 +62,8 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
             is_ratelimited(request, increment=False)
 
         self.assertEqual(str(context.exception),
-                         'LOGIN_LIMIT_RATE setting could not be parsed.')
+                         'LOGIN_LIMIT_RATE setting could not be parsed '
+                         'as a rate limit value.')
 
     @override_settings(LOGIN_LIMIT_RATE='1/h')
     def test_rate_limit_exceeded(self):
@@ -202,10 +203,10 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
         self.assertRegex(
             logs.output[0],
             re.compile(
-                r'^ERROR:djblets\.auth\.ratelimit:Failed to fetch rate limit '
-                r'cache key "example\.com:login-ratelimit:1/\d+"\. Rate limit '
-                r'checks are currently unreliable\. Is the cache server '
-                r'down\? Error = Oh no\n'
+                r'^ERROR:djblets\.protect\.ratelimit:Failed to fetch rate '
+                r'limit cache key "example\.com:_ratelimit_:login-ratelimit:'
+                r'1:1/1:\d+"\. Rate limit checks are currently unreliable\. '
+                r'Is the cache server down\? Error = Oh no\n'
                 r'Traceback.*Exception: Oh no',
                 re.S))
 
@@ -233,10 +234,10 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
         self.assertRegex(
             logs.output[0],
             re.compile(
-                r'^ERROR:djblets\.auth\.ratelimit:Failed to set rate limit '
-                r'cache key "example\.com:login-ratelimit:1/\d+"\. Rate limit '
-                r'checks are currently unreliable\. Is the cache server '
-                r'down\? Error = Oh no\n'
+                r'^ERROR:djblets\.protect\.ratelimit:Failed to set rate limit '
+                r'cache key "example\.com:_ratelimit_:login-ratelimit:1:1/1:'
+                r'\d+"\. Rate limit checks are currently unreliable\. Is '
+                r'the cache server down\? Error = Oh no\n'
                 r'Traceback.*Exception: Oh no',
                 re.S))
 
@@ -274,9 +275,9 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
         self.assertRegex(
             logs.output[0],
             re.compile(
-                r'^ERROR:djblets\.auth\.ratelimit:Failed to set rate limit '
-                r'cache key "example\.com:login-ratelimit:1/\d+"\. Rate limit '
-                r'checks are currently unreliable\. Is the cache server '
-                r'down\? Error = Oh no\n'
+                r'^ERROR:djblets\.protect\.ratelimit:Failed to set rate limit '
+                r'cache key "example\.com:_ratelimit_:login-ratelimit:1:1/1:'
+                r'\d+"\. Rate limit checks are currently unreliable\. Is '
+                r'the cache server down\? Error = Oh no\n'
                 r'Traceback.*Exception: Oh no',
                 re.S))

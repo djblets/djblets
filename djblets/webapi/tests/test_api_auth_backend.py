@@ -13,7 +13,7 @@ from django.test.client import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
 
-from djblets.auth.ratelimit import _get_time_int
+from djblets.protect.ratelimit import _get_time_int
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
 from djblets.webapi.auth.backends.api_tokens import (TokenAuthBackendMixin,
                                                      WebAPITokenAuthBackend)
