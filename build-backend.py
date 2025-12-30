@@ -224,7 +224,7 @@ def build_editable(
         str:
         The basename for the generated source distribution file.
     """
-    _build_data_files(collect_static=False)
+    _install_npm_packages()
 
     return _build_meta.build_editable(
         wheel_directory,
@@ -316,45 +316,51 @@ def _write_dependencies() -> None:
         fp.write(f'{dependencies}\n')
 
 
-def _build_data_files(
-    *,
-    collect_static: bool = True,
-) -> None:
+def _install_npm_packages() -> None:
+    """Install NPM packages.
+
+    Raises:
+        RuntimeError:
+            There was an error installing npm packages.
+    """
+    try:
+        subprocess.run(['npm', 'install'],
+                       stdout=subprocess.PIPE,
+                       stderr=subprocess.STDOUT,
+                       check=True)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f'Failed to install npm packages: {e.output}')
+
+
+def _build_data_files() -> None:
     """Build static media and i18n data files.
-
-    Args:
-        collect_static (bool, optional):
-            Whether to run a ``collectstatic`` operation to build media
-            files.
-
-            If ``False``, support for building static media will still be
-            installed.
 
     Raises:
         RuntimeError:
             There was an error building the media or i18n files.
     """
-    media_env: dict[str, str] = os.environ.copy()
+    try:
+        # Build the static media.
+        subprocess.run(
+            [
+                sys.executable,
+                os.path.join('contrib', 'internal', 'build-media.py'),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=True)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f'Failed to build media files: {e.output}')
 
-    if not collect_static:
-        media_env['RUN_COLLECT_STATIC'] = '0'
-
-    # Build the static media.
-    retcode = subprocess.call(
-        [
-            sys.executable,
-            os.path.join('contrib', 'internal', 'build-media.py'),
-        ],
-        env=media_env)
-
-    if retcode != 0:
-        raise RuntimeError('Failed to build media files')
-
-    # Build the i18n files.
-    retcode = subprocess.call([
-        sys.executable,
-        os.path.join('contrib', 'internal', 'build-i18n.py'),
-    ])
-
-    if retcode != 0:
-        raise RuntimeError('Failed to build i18n files')
+    try:
+        # Build the i18n files.
+        subprocess.run(
+            [
+                sys.executable,
+                os.path.join('contrib', 'internal', 'build-i18n.py'),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=True)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f'Failed to build i18n files: {e.output}')
