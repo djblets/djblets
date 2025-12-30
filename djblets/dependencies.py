@@ -122,6 +122,7 @@ lint_npm_dependencies: Mapping[str, str] = {
 #: Node dependencies required to package/develop/test Djblets.
 npm_dependencies: Mapping[str, str] = {
     '@beanbag/ink': '^0.9.1',
+    '@rollup/plugin-commonjs': '^29.0.0',
     '@selectize/selectize': '^0.15.2',
     'jasmine-core': '^5.12.0',
     'jquery': '^3.7.1',
