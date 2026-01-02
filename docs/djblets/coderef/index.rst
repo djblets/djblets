@@ -363,7 +363,6 @@ Privacy Protection
 
 .. _coderef-djblets-protect:
 
-
 Service Protection
 ==================
 
@@ -372,6 +371,7 @@ Service Protection
 
    djblets.protect
    djblets.protect.locks
+   djblets.protect.ratelimit
 
 
 .. _coderef-djblets-recaptcha:

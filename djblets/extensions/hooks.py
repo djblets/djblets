@@ -704,7 +704,16 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
         context_data = {
             'extension': self.extension,
         }
-        context_data.update(self.get_extra_context(request, context))
+
+        try:
+            context_data.update(self.get_extra_context(request, context))
+        except Exception as e:
+            logger.exception('Error calling %s.get_extra_context(): %s',
+                             type(self).__name__, e,
+                             extra={'request': request})
+
+            return None
+
         context_data.update(self.extra_context)
 
         # Note that context.update implies a push().
@@ -789,7 +798,7 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
 
         Args:
             request (django.http.HttpRequest):
-                The HTTP request from the clietn.
+                The HTTP request from the client.
 
             context (django.template.Context):
                 The context used to render the template.
