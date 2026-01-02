@@ -1,0 +1,1 @@
+import '@selectize/selectize';

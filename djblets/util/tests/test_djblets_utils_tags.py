@@ -5,7 +5,7 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 
 from django.http import HttpRequest, QueryDict
-from django.template import Context, Template
+from django.template import Context, Template, TemplateSyntaxError
 
 from djblets.testing.testcases import TagTest, TestCase
 from djblets.util.templatetags.djblets_utils import (ageid, escapespaces,
@@ -199,6 +199,163 @@ class DefineVarTagTests(TestCase):
                      '{{myvar}}')
 
         self.assertEqual(t.render(Context()), '&lt;hello&gt;')
+
+    def test_with_as_type_bool(self) -> None:
+        """Testing {% definevar %} with as_type=bool and true/false"""
+        t = Template(
+            '{% load djblets_utils %}'
+            '{% definevar "truthy" as_type=bool %}true{% enddefinevar %}'
+            '{% definevar "falsy" as_type=bool %}xxx{% enddefinevar %}'
+            '{% if truthy %}true!{% endif %}'
+            '{% if falsy %}false!{% endif %}'
+        )
+
+        self.assertEqual(t.render(Context()), 'true!')
+
+    def test_with_as_type_bool_and_alt_casing(self) -> None:
+        """Testing {% definevar %} with as_type=bool and true/false and
+        alternative casing
+        """
+        t = Template(
+            '{% load djblets_utils %}'
+            '{% definevar "truthy" as_type=bool %}TRUE{% enddefinevar %}'
+            '{% definevar "falsy" as_type=bool %}FALSE{% enddefinevar %}'
+            '{% if truthy %}true!{% endif %}'
+            '{% if falsy %}false!{% endif %}'
+        )
+
+        self.assertEqual(t.render(Context()), 'true!')
+
+    def test_with_as_type_bool_and_1_0(self) -> None:
+        """Testing {% definevar %} with as_type=bool and 1/0"""
+        t = Template(
+            '{% load djblets_utils %}'
+            '{% definevar "truthy" as_type=bool %}1{% enddefinevar %}'
+            '{% definevar "falsy" as_type=bool %}0{% enddefinevar %}'
+            '{% if truthy %}true!{% endif %}'
+            '{% if falsy %}false!{% endif %}'
+        )
+
+        self.assertEqual(t.render(Context()), 'true!')
+
+    def test_with_as_type_bool_and_whitespace(self) -> None:
+        """Testing {% definevar %} with as_type=bool and whitespace"""
+        t = Template(
+            '{% load djblets_utils %}'
+            '{% definevar "truthy" as_type=bool %} true {% enddefinevar %}'
+            '{% definevar "falsy" as_type=bool %} false {% enddefinevar %}'
+            '{% if truthy %}true!{% endif %}'
+            '{% if falsy %}false!{% endif %}'
+        )
+
+        self.assertEqual(t.render(Context()), 'true!')
+
+    def test_with_as_type_bool_invalid_options(self) -> None:
+        """Testing {% definevar %} with as_type=bool and invalid options"""
+        t = Template(
+            '{% load djblets_utils %}'
+            '{% definevar "truthy" strip spaceless unsafe xxx as_type=bool %}'
+            'true'
+            '{% enddefinevar %}'
+        )
+
+        message = (
+            "'spaceless, strip, unsafe, xxx' cannot be used with as_type=bool"
+        )
+
+        with self.assertRaisesMessage(TemplateSyntaxError, message):
+            t.render(Context())
+
+    def test_with_as_type_int(self) -> None:
+        """Testing {% definevar %} with as_type=int"""
+        t = Template(
+            '{% load djblets_utils %}'
+            '{% definevar "myval" as_type=int %}123{% enddefinevar %}'
+            '{% if myval > 100 %}> 100{% endif %}'
+            '{% if myval < 100 %}< 100{% endif %}'
+            ' ({{myval}})'
+        )
+
+        self.assertEqual(t.render(Context()), '> 100 (123)')
+
+    def test_with_as_type_int_with_0(self) -> None:
+        """Testing {% definevar %} with as_type=int and 0"""
+        t = Template(
+            '{% load djblets_utils %}'
+            '{% definevar "myval" as_type=int %}0{% enddefinevar %}'
+            '{% if myval > 0 %}> 0{% endif %}'
+            '{% if myval == 0 %}== 0{% endif %}'
+            '{% if myval < 0 %}< 0{% endif %}'
+            ' ({{myval}})'
+        )
+
+        self.assertEqual(t.render(Context()), '== 0 (0)')
+
+    def test_with_as_type_int_with_negative(self) -> None:
+        """Testing {% definevar %} with as_type=int and negative value"""
+        t = Template(
+            '{% load djblets_utils %}'
+            '{% definevar "myval" as_type=int %}-100{% enddefinevar %}'
+            '{% if myval > 0 %}> 0{% endif %}'
+            '{% if myval < 0 %}< 0{% endif %}'
+            ' ({{myval}})'
+        )
+
+        self.assertEqual(t.render(Context()), '< 0 (-100)')
+
+    def test_with_as_type_whitespace(self) -> None:
+        """Testing {% definevar %} with as_type=int and whitespace"""
+        t = Template(
+            '{% load djblets_utils %}'
+            '{% definevar "myval" as_type=int %}\n123 {% enddefinevar %}'
+            '{% if myval > 100 %}> 100{% endif %}'
+            '{% if myval < 100 %}< 100{% endif %}'
+            ' ({{myval}})'
+        )
+
+        self.assertEqual(t.render(Context()), '> 100 (123)')
+
+    def test_with_as_type_int_and_invalid(self) -> None:
+        """Testing {% definevar %} with as_type=int and invalid value"""
+        t = Template(
+            '{% load djblets_utils %}'
+            '{% definevar "myval" as_type=int %}xyz{% enddefinevar %}'
+        )
+
+        message = (
+            "Defined variable 'myval' could not parse 'xyz' as an integer."
+        )
+
+        with self.assertRaisesMessage(TemplateSyntaxError, message):
+            t.render(Context())
+
+    def test_with_as_type_int_invalid_options(self) -> None:
+        """Testing {% definevar %} with as_type=bool and invalid options"""
+        t = Template(
+            '{% load djblets_utils %}'
+            '{% definevar "myval" strip spaceless unsafe xxx as_type=int %}'
+            '123'
+            '{% enddefinevar %}'
+        )
+
+        message = (
+            "'spaceless, strip, unsafe, xxx' cannot be used with as_type=int"
+        )
+
+        with self.assertRaisesMessage(TemplateSyntaxError, message):
+            t.render(Context())
+
+    def test_with_as_type_invalid(self) -> None:
+        """Testing {% definevar %} with as_type= with invalid type"""
+        t = Template(
+            '{% load djblets_utils %}'
+            '{% definevar "myval" as_type=xxx %}xyz{% enddefinevar %}'
+        )
+
+        message = 'as_type=xxx is not supported'
+
+        with self.assertRaisesMessage(TemplateSyntaxError, message):
+            t.render(Context())
 
 
 class EscapeSpacesFilterTests(TestCase):

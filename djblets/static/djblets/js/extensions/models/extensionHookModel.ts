@@ -60,7 +60,7 @@ export class ExtensionHook<
     static hookPoint: ExtensionHookPoint = null;
     hookPoint: ExtensionHookPoint;
 
-    static defaults: ExtensionHookAttrs = {
+    static defaults: Partial<ExtensionHookAttrs> = {
         extension: null,
     };
 
@@ -74,12 +74,13 @@ export class ExtensionHook<
      *     context (object, optional):
      *         Optional context to use when calling the callback.
      */
-    static each(
-        cb: (ExtensionHook) => void,
+    static each<T extends ExtensionHook<any>>(
+        this: abstract new (...args: any[]) => T,
+        cb: (hook: T) => void,
         context: unknown = null,
     ) {
         for (const hook of this.prototype.hookPoint.hooks) {
-            cb.call(context, hook);
+            cb.call(context, hook as T);
         }
     }
 

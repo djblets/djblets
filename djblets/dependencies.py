@@ -11,7 +11,34 @@ you're going to make use of data from this file, code defensively.
 #       packaging and may be needed before any dependencies have been
 #       installed.
 
-from typing import Dict
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+    from typing import List, TypedDict, Union
+
+    from typing_extensions import TypeAlias
+
+    class PythonSpecificDependency(TypedDict):
+        """A dependency definition that differs based on Python version.
+
+        Version Added:
+            5.3
+        """
+
+        #: The version limiter of Python the dependency is for.
+        python: str
+
+        #: The version of the dependency to use.
+        version: str
+
+    #: A package dependency version.
+    #:
+    #: Version Added:
+    #:     5.3
+    Dependency: TypeAlias = Union[str, List[PythonSpecificDependency]]
 
 
 ###########################################################################
@@ -19,7 +46,7 @@ from typing import Dict
 ###########################################################################
 
 #: The minimum supported version of Python 3.x.
-PYTHON_3_MIN_VERSION = (3, 9)
+PYTHON_3_MIN_VERSION = (3, 8)
 
 #: A string representation of the minimum supported version of Python 3.x.
 PYTHON_3_MIN_VERSION_STR = '%s.%s' % PYTHON_3_MIN_VERSION
@@ -42,7 +69,7 @@ django_version = '~=4.2.17'
 ###########################################################################
 
 #: All dependencies required to install Djblets.
-package_dependencies = {
+package_dependencies: Mapping[str, Dependency] = {
     'cryptography': '>=41.0.7',
     'Django': django_version,
     'django-assert-queries': '~=2.0.1',
@@ -82,65 +109,82 @@ package_dependencies = {
 
 
 #: Dependencies required for static media building.
-frontend_buildkit_npm_dependencies: Dict[str, str] = {
-    '@beanbag/frontend-buildkit': '^1.2.0',
-    '@beanbag/ink': '^0.8.0',
-    '@beanbag/jasmine-suites': '~2.0.0',
-    '@beanbag/spina': '^3.1.1',
-    '@types/jquery': '^3.5.30',
-    '@types/underscore': '^1.11.4',
-    'backbone': '^1.4.1',
-    'jasmine-core': '^5.0.1',
-    'jquery': '^3.7.1',
-    'jquery-ui': '^1.13.3',
+frontend_buildkit_npm_dependencies: Mapping[str, str] = {
+    '@beanbag/frontend-buildkit': '^2.0.0',
+    '@beanbag/js-buildkit': '^1.0.3',
 }
 
 #: Dependencies required for static media linting.
-lint_npm_dependencies: Dict[str, str] = {
-    '@beanbag/eslint-plugin': '^1.0.2',
-    'eslint': '^8.29.0',
+lint_npm_dependencies: Mapping[str, str] = {
+
 }
+
+#: Node dependencies required to package/develop/test Djblets.
+npm_dependencies: Mapping[str, str] = {
+    '@beanbag/ink': '^0.9.1',
+    '@selectize/selectize': '^0.15.2',
+    'jasmine-core': '^5.12.0',
+    'jquery': '^3.7.1',
+    'jquery-ui': '^1.14.1',
+}
+
+npm_dependencies.update(frontend_buildkit_npm_dependencies)
+npm_dependencies.update(lint_npm_dependencies)
 
 
 # } Auto-generated Node.js dependencies
-
-
-#: Node dependencies required to package/develop/test Djblets.
-npm_dependencies = {}
-npm_dependencies.update(frontend_buildkit_npm_dependencies)
-npm_dependencies.update(lint_npm_dependencies)
 
 
 ###########################################################################
 # Packaging utilities
 ###########################################################################
 
-def build_dependency_list(deps, version_prefix=''):
+def build_dependency_list(
+    deps: Mapping[str, Dependency],
+    version_prefix: str = '',
+    *,
+    local_packages: Mapping[str, str] = {},
+) -> Sequence[str]:
     """Build a list of dependency specifiers from a dependency map.
 
-    This can be used along with :py:data:`package_dependencies`,
-    :py:data:`npm_dependencies`, or other dependency dictionaries to build a
-    list of dependency specifiers for use on the command line and in
-    :file:`build-backend.py`.
+    This can be used along with :py:data:`package_dependencies`
+    or other dependency dictionaries to build a list of dependency specifiers
+    for use on the command line and in :file:`build-backend.py`.
 
     Args:
         deps (dict):
             A dictionary of dependencies.
 
+        version_prefix (str, optional):
+            The prefix to include on version specifiers.
+
+        local_packages (dict, optional):
+            A mapping of dependency names to local paths where they could
+            be found.
+
+            Version Added:
+                5.3
+
     Returns:
-        list of unicode:
+        list of str:
         A list of dependency specifiers.
     """
     new_deps = []
 
     for dep_name, dep_details in deps.items():
-        if isinstance(dep_details, list):
+        lower_dep_name = dep_name.lower()
+
+        if lower_dep_name in local_packages:
+            package_path = local_packages[lower_dep_name]
+            new_deps.append(f'{dep_name} @ file://{package_path}')
+        elif isinstance(dep_details, list):
             new_deps += [
-                '%s%s%s; python_version%s'
-                % (dep_name, version_prefix, entry['version'], entry['python'])
+                f'{dep_name}{version_prefix}{entry["version"]}; '
+                f'python_version{entry["python"]}'
                 for entry in dep_details
             ]
         else:
-            new_deps.append('%s%s%s' % (dep_name, version_prefix, dep_details))
+            new_deps.append(
+                f'{dep_name}{version_prefix}{dep_details}')
 
     return sorted(new_deps, key=lambda s: s.lower())

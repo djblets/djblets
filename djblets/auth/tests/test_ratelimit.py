@@ -1,7 +1,5 @@
 """Tests for the utilities for rate-limiting login attempts."""
 
-from __future__ import annotations
-
 import re
 
 import kgb
@@ -11,31 +9,27 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import RequestFactory
 from django.test.utils import override_settings
 
-from djblets.auth.ratelimit import (
-    Rate,
-    _get_time_int,
-    get_usage_count,
-    is_ratelimited,
-)
+from djblets.auth.ratelimit import (Rate,
+                                    get_usage_count,
+                                    is_ratelimited)
+from djblets.protect.ratelimit import _get_time_int
 from djblets.testing.testcases import TestCase
 
 
 class RateLimitTests(kgb.SpyAgency, TestCase):
     """Unit tests for djblets.auth.ratelimit."""
 
-    def setUp(self) -> None:
-        """Set up the test case."""
-        super().setUp()
+    def setUp(self):
+        super(RateLimitTests, self).setUp()
         self.request_factory = RequestFactory()
 
         self.spy_on(_get_time_int, op=kgb.SpyOpReturn(1659732041))
 
-    def tearDown(self) -> None:
-        """Tear down the test case."""
-        super().tearDown()
+    def tearDown(self):
+        super(RateLimitTests, self).tearDown()
         cache.clear()
 
-    def test_rate_parsing(self) -> None:
+    def test_rate_parsing(self):
         """Testing Rate.parse"""
         test_rates = (
             ('100/s', Rate(100, 1)),
@@ -51,7 +45,7 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
             self.assertEqual(rate, Rate.parse(rate_str))
 
     @override_settings(LOGIN_LIMIT_RATE='7/m')
-    def test_unauthenticated_user(self) -> None:
+    def test_unauthenticated_user(self):
         """Testing is_ratelimited with unauthenticated user"""
         request = self.request_factory.get('/')
         request.user = AnonymousUser()
@@ -59,7 +53,7 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
         self.assertFalse(is_ratelimited(request, increment=False))
 
     @override_settings(LOGIN_LIMIT_RATE='blah')
-    def test_invalid_rate_limit(self) -> None:
+    def test_invalid_rate_limit(self):
         """Testing is_ratelimited with invalid rate limit parameter"""
         request = self.request_factory.get('/')
         request.user = User(pk=1)
@@ -68,10 +62,11 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
             is_ratelimited(request, increment=False)
 
         self.assertEqual(str(context.exception),
-                         'LOGIN_LIMIT_RATE setting could not be parsed.')
+                         'LOGIN_LIMIT_RATE setting could not be parsed '
+                         'as a rate limit value.')
 
     @override_settings(LOGIN_LIMIT_RATE='1/h')
-    def test_rate_limit_exceeded(self) -> None:
+    def test_rate_limit_exceeded(self):
         """Testing is_ratelimited when limit exceeded"""
         request = self.request_factory.get('/')
         request.user = User(pk=1)
@@ -80,7 +75,7 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
         self.assertTrue(is_ratelimited(request, increment=True))
 
     @override_settings(LOGIN_LIMIT_RATE='1/s')
-    def test_get_usage_count_at_1s(self) -> None:
+    def test_get_usage_count_at_1s(self):
         """Testing get_usage_count at 1/s"""
         request = self.request_factory.get('/')
         request.user = User(pk=1)
@@ -106,7 +101,7 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
             })
 
     @override_settings(LOGIN_LIMIT_RATE='1/m')
-    def test_get_usage_count_at_1m(self) -> None:
+    def test_get_usage_count_at_1m(self):
         """Testing get_usage_count at 1/m"""
         request = self.request_factory.get('/')
         request.user = User(pk=1)
@@ -132,7 +127,7 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
             })
 
     @override_settings(LOGIN_LIMIT_RATE='1/h')
-    def test_get_usage_count_at_1h(self) -> None:
+    def test_get_usage_count_at_1h(self):
         """Testing get_usage_count at 1/h"""
         request = self.request_factory.get('/')
         request.user = User(pk=1)
@@ -158,7 +153,7 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
             })
 
     @override_settings(LOGIN_LIMIT_RATE='1/s')
-    def test_get_usage_count_with_increment_false(self) -> None:
+    def test_get_usage_count_with_increment_false(self):
         """Testing get_usage_count with increment=False"""
         request = self.request_factory.get('/')
         request.user = User(pk=1)
@@ -208,10 +203,10 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
         self.assertRegex(
             logs.output[0],
             re.compile(
-                r'^ERROR:djblets\.auth\.ratelimit:Failed to fetch rate limit '
-                r'cache key "example\.com:login-ratelimit:1/\d+"\. Rate limit '
-                r'checks are currently unreliable\. Is the cache server '
-                r'down\? Error = Oh no\n'
+                r'^ERROR:djblets\.protect\.ratelimit:Failed to fetch rate '
+                r'limit cache key "example\.com:_ratelimit_:login-ratelimit:'
+                r'1:1/1:\d+"\. Rate limit checks are currently unreliable\. '
+                r'Is the cache server down\? Error = Oh no\n'
                 r'Traceback.*Exception: Oh no',
                 re.S))
 
@@ -239,10 +234,10 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
         self.assertRegex(
             logs.output[0],
             re.compile(
-                r'^ERROR:djblets\.auth\.ratelimit:Failed to set rate limit '
-                r'cache key "example\.com:login-ratelimit:1/\d+"\. Rate limit '
-                r'checks are currently unreliable\. Is the cache server '
-                r'down\? Error = Oh no\n'
+                r'^ERROR:djblets\.protect\.ratelimit:Failed to set rate limit '
+                r'cache key "example\.com:_ratelimit_:login-ratelimit:1:1/1:'
+                r'\d+"\. Rate limit checks are currently unreliable\. Is '
+                r'the cache server down\? Error = Oh no\n'
                 r'Traceback.*Exception: Oh no',
                 re.S))
 
@@ -280,9 +275,9 @@ class RateLimitTests(kgb.SpyAgency, TestCase):
         self.assertRegex(
             logs.output[0],
             re.compile(
-                r'^ERROR:djblets\.auth\.ratelimit:Failed to set rate limit '
-                r'cache key "example\.com:login-ratelimit:1/\d+"\. Rate limit '
-                r'checks are currently unreliable\. Is the cache server '
-                r'down\? Error = Oh no\n'
+                r'^ERROR:djblets\.protect\.ratelimit:Failed to set rate limit '
+                r'cache key "example\.com:_ratelimit_:login-ratelimit:1:1/1:'
+                r'\d+"\. Rate limit checks are currently unreliable\. Is '
+                r'the cache server down\? Error = Oh no\n'
                 r'Traceback.*Exception: Oh no',
                 re.S))

@@ -1,4 +1,5 @@
 import babel from '@rollup/plugin-babel';
+import commonjs from '@rollup/plugin-commonjs';
 import externalGlobals from 'rollup-plugin-external-globals';
 import resolve from '@rollup/plugin-node-resolve';
 
@@ -45,6 +46,11 @@ export default {
         globals: globalsMap,
     },
     plugins: [
+        commonjs({
+            ignoreTryCatch: false,
+            transformMixedEsModules: true,
+        }),
+
         /* Configure rollup to use Babel to compile files. */
         babel({
             babelHelpers: 'bundled',
@@ -65,11 +71,12 @@ export default {
 
         /* Specify where modules should be looked up from. */
         resolve({
+            browser: true,
             extensions: extensions,
             modulePaths: [
                 'djblets/static/lib/js',
                 'djblets/static/djblets/js',
-                'node_modules',
+                '../node_modules',
             ],
         }),
     ],

@@ -1,22 +1,18 @@
 {
+    "extends": "@beanbag/js-buildkit/tsconfig.json",
     "compilerOptions": {
         "allowJs": true,
         "baseUrl": "./",
         "declaration": false,
-        "esModuleInterop": true,
-        "experimentalDecorators": true,
-        "isolatedModules": true,
-        "moduleResolution": "node",
         "moduleSuffixes": [
             ".es6",
             ""
         ],
         "noEmit": true,
         "paths": {
-            "backbone": ["node_modules/@beanbag/spina/lib/@types/backbone"],
+            "backbone": ["djblets/static/lib/js/@types/backbone"],
             "djblets/*": ["djblets/static/djblets/js/*"]
-        },
-        "target": "ESNext"
+        }
     },
     "include": [
         "djblets/static/lib/js/**/*",

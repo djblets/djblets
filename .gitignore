@@ -1,7 +1,7 @@
 build
 _build
 dist
-djblets/htdocs/*
+djblets/htdocs
 Djblets.egg-info
 docs/djblets/coderef/python
 package-requirements.txt
@@ -10,9 +10,12 @@ package-requirements.txt
 # else in the tree (which may interfere with builds in strange ways), it'll
 # be easier to spot.
 /node_modules
+/djblets/node_modules
 
 .coverage
+.local-packages
 .noseids
+.npm-workspaces
 
 *.rej
 *.orig

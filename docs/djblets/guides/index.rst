@@ -11,6 +11,7 @@ Guides
    extensions/index
    features/index
    integrations/index
+   pagestate/index
    privacy/index
    recaptcha/index
    registries/index

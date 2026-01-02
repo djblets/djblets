@@ -11,12 +11,10 @@ from typing import TYPE_CHECKING
 
 import kgb
 from django.conf import settings
-from django.core.cache import caches
 from django.db.utils import OperationalError
 from django.test import RequestFactory, override_settings
 
 from djblets.testing.testcases import TestCase
-from djblets.util.symbols import UNSET
 from djblets.util.views import (
     HealthCheckStatus,
     HealthCheckView,
@@ -73,14 +71,7 @@ class HealthCheckViewTests(kgb.SpyAgency, TestCase):
 
         self.assertEqual(response.status_code, 403)
 
-    @override_settings(
-        DJBLETS_HEALTHCHECK_IPS=['192.168.1.100'],
-        CACHES={
-            'default': {
-                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            },
-        },
-    )
+    @override_settings(DJBLETS_HEALTHCHECK_IPS=['192.168.1.100'])
     def test_get_with_allowed_ip_single(self) -> None:
         """Testing HealthCheckView.get with allowed single IP address"""
         request = self.factory.get('/health/')
@@ -97,25 +88,30 @@ class HealthCheckViewTests(kgb.SpyAgency, TestCase):
                 },
             ]))
 
+        self.spy_on(self.view._get_cache_names,
+                    op=kgb.SpyOpReturn(['default']))
+        self.spy_on(
+            self.view._check_cache,
+            op=kgb.SpyOpMatchInOrder([
+                {
+                    'args': ['default'],
+                    'call_original': False,
+                },
+            ]))
+
         response = self.view.get(request)
 
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(response.content.decode(), {
             'checks': {
+                'cache.default': HealthCheckStatus.UP,
                 'database.default': HealthCheckStatus.UP,
             },
             'errors': {},
             'status': HealthCheckStatus.UP,
         })
 
-    @override_settings(
-        DJBLETS_HEALTHCHECK_IPS=['192.168.1.0/24'],
-        CACHES={
-            'default': {
-                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            },
-        },
-    )
+    @override_settings(DJBLETS_HEALTHCHECK_IPS=['192.168.1.0/24'])
     def test_get_with_allowed_ip_network(self) -> None:
         """Testing HealthCheckView.get with allowed IP network"""
         request = self.factory.get('/health/')
@@ -132,11 +128,23 @@ class HealthCheckViewTests(kgb.SpyAgency, TestCase):
                 },
             ]))
 
+        self.spy_on(self.view._get_cache_names,
+                    op=kgb.SpyOpReturn(['default']))
+        self.spy_on(
+            self.view._check_cache,
+            op=kgb.SpyOpMatchInOrder([
+                {
+                    'args': ['default'],
+                    'call_original': False,
+                },
+            ]))
+
         response = self.view.get(request)
 
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(response.content.decode(), {
             'checks': {
+                'cache.default': HealthCheckStatus.UP,
                 'database.default': HealthCheckStatus.UP,
             },
             'errors': {},
@@ -148,11 +156,6 @@ class HealthCheckViewTests(kgb.SpyAgency, TestCase):
             '192.168.1.0/24',
             '10.0.0.0/8',
         ],
-        CACHES={
-            'default': {
-                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            },
-        },
     )
     def test_get_with_multiple_allowed_networks(self) -> None:
         """Testing HealthCheckView.get with multiple allowed networks"""
@@ -170,6 +173,17 @@ class HealthCheckViewTests(kgb.SpyAgency, TestCase):
                 },
             ]))
 
+        self.spy_on(self.view._get_cache_names,
+                    op=kgb.SpyOpReturn(['default']))
+        self.spy_on(
+            self.view._check_cache,
+            op=kgb.SpyOpMatchInOrder([
+                {
+                    'args': ['default'],
+                    'call_original': False,
+                },
+            ]))
+
         response = self.view.get(request)
 
         self.assertEqual(response.status_code, 200)
@@ -184,20 +198,15 @@ class HealthCheckViewTests(kgb.SpyAgency, TestCase):
             response = self.view.get(request)
 
         self.assertEqual(response.status_code, 403)
+
+        assert logs is not None
         self.assertEqual(logs.output, [
             'ERROR:djblets.util.views:Health check: setting '
             '"\'192.168.1.0/24\'" for healthcheck IPs must be a list, got '
             'type "<class \'str\'>".',
         ])
 
-    @override_settings(
-        INTERNAL_IPS=['127.0.0.1'],
-        CACHES={
-            'default': {
-                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            },
-        },
-    )
+    @override_settings(INTERNAL_IPS=['127.0.0.1'])
     def test_get_uses_internal_ips_fallback(self) -> None:
         """Testing HealthCheckView.get uses INTERNAL_IPS as fallback"""
         # Remove DJBLETS_HEALTHCHECK_IPS if it exists.
@@ -217,18 +226,22 @@ class HealthCheckViewTests(kgb.SpyAgency, TestCase):
                 },
             ]))
 
+        self.spy_on(self.view._get_cache_names,
+                    op=kgb.SpyOpReturn(['default']))
+        self.spy_on(
+            self.view._check_cache,
+            op=kgb.SpyOpMatchInOrder([
+                {
+                    'args': ['default'],
+                    'call_original': False,
+                },
+            ]))
+
         response = self.view.get(request)
 
         self.assertEqual(response.status_code, 200)
 
-    @override_settings(
-        DJBLETS_HEALTHCHECK_IPS=['127.0.0.1'],
-        CACHES={
-            'default': {
-                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            },
-        },
-    )
+    @override_settings(DJBLETS_HEALTHCHECK_IPS=['127.0.0.1'])
     def test_get_with_database_connection_failure(self) -> None:
         """Testing HealthCheckView.get with database connection failure"""
         request = self.factory.get('/health/')
@@ -246,12 +259,24 @@ class HealthCheckViewTests(kgb.SpyAgency, TestCase):
                 },
             ]))
 
+        self.spy_on(self.view._get_cache_names,
+                    op=kgb.SpyOpReturn(['default']))
+        self.spy_on(
+            self.view._check_cache,
+            op=kgb.SpyOpMatchInOrder([
+                {
+                    'args': ['default'],
+                    'call_original': False,
+                },
+            ]))
+
         with self.assertLogs(views_logger) as logs:
             response = self.view.get(request)
 
         self.assertEqual(response.status_code, 503)
         self.assertJSONEqual(response.content.decode(), {
             'checks': {
+                'cache.default': HealthCheckStatus.UP,
                 'database.default': HealthCheckStatus.DOWN,
             },
             'errors': {
@@ -265,18 +290,7 @@ class HealthCheckViewTests(kgb.SpyAgency, TestCase):
             'database "default": Connection failed',
         ])
 
-    @override_settings(
-        DJBLETS_HEALTHCHECK_IPS=['127.0.0.1'],
-        CACHES={
-            'default': {
-                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            },
-            'memcache': {
-                'BACKEND': 'django.core.cache.backends.memcached.'
-                           'PyMemcacheCache',
-            },
-        },
-    )
+    @override_settings(DJBLETS_HEALTHCHECK_IPS=['127.0.0.1'])
     def test_get_with_cache_connection_failure(self) -> None:
         """Testing HealthCheckView.get with cache connection failure"""
         request = self.factory.get('/health/')
@@ -292,9 +306,22 @@ class HealthCheckViewTests(kgb.SpyAgency, TestCase):
                     'op': kgb.SpyOpReturn(_db_cursor()),
                 },
             ]))
+
+        self.spy_on(self.view._get_cache_names,
+                    op=kgb.SpyOpReturn(['default', 'memcache']))
         self.spy_on(
-            caches['memcache'].set,
-            op=kgb.SpyOpRaise(Exception('Memcached connection failed')))
+            self.view._check_cache,
+            op=kgb.SpyOpMatchInOrder([
+                {
+                    'args': ['default'],
+                    'call_original': False,
+                },
+                {
+                    'args': ['memcache'],
+                    'op': kgb.SpyOpRaise(
+                        Exception('Memcached connection failed')),
+                },
+            ]))
 
         with self.assertLogs(views_logger) as logs:
             response = self.view.get(request)
@@ -303,6 +330,7 @@ class HealthCheckViewTests(kgb.SpyAgency, TestCase):
         self.assertJSONEqual(response.content.decode(), {
             'checks': {
                 'database.default': HealthCheckStatus.UP,
+                'cache.default': HealthCheckStatus.UP,
                 'cache.memcache': HealthCheckStatus.DOWN,
             },
             'errors': {
@@ -310,113 +338,14 @@ class HealthCheckViewTests(kgb.SpyAgency, TestCase):
             },
             'status': HealthCheckStatus.DOWN,
         })
+
+        assert logs is not None
         self.assertEqual(logs.output, [
             'ERROR:djblets.util.views:Health check: unable to connect to '
             'cache "memcache": Memcached connection failed',
         ])
 
-    @override_settings(
-        DJBLETS_HEALTHCHECK_IPS=['127.0.0.1'],
-        CACHES={
-            'default': {
-                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            },
-            'memcache': {
-                'BACKEND': 'django.core.cache.backends.memcached.'
-                           'PyMemcacheCache',
-            },
-        }
-    )
-    def test_get_skips_locmem_cache(self) -> None:
-        """Testing HealthCheckView.get skips local memory cache"""
-        request = self.factory.get('/health/')
-        request.META['REMOTE_ADDR'] = '127.0.0.1'
-
-        self.spy_on(self.view._get_database_names,
-                    op=kgb.SpyOpReturn(['default']))
-        self.spy_on(
-            self.view._get_db_cursor,
-            op=kgb.SpyOpMatchInOrder([
-                {
-                    'args': ['default'],
-                    'op': kgb.SpyOpReturn(_db_cursor()),
-                },
-            ]))
-        self.spy_on(caches['memcache'].set, op=kgb.SpyOpReturn(None))
-        self.spy_on(caches['memcache'].get, op=kgb.SpyOpReturn(True))
-
-        response = self.view.get(request)
-
-        self.assertEqual(response.status_code, 200)
-
-        # Local memory cache (cache.default) should not be in checks.
-        self.assertJSONEqual(response.content.decode(), {
-            'checks': {
-                'database.default': HealthCheckStatus.UP,
-                'cache.memcache': HealthCheckStatus.UP,
-            },
-            'errors': {},
-            'status': HealthCheckStatus.UP,
-        })
-
-    @override_settings(
-        DJBLETS_HEALTHCHECK_IPS=['127.0.0.1'],
-        CACHES={
-            'memcache': {
-                'BACKEND': 'django.core.cache.backends.memcached.'
-                           'PyMemcacheCache',
-            },
-        },
-    )
-    def test_get_with_cache_key_not_retrieved(self) -> None:
-        """Testing HealthCheckView.get with cache key not being retrieved"""
-        request = self.factory.get('/health/')
-        request.META['REMOTE_ADDR'] = '127.0.0.1'
-
-        self.spy_on(self.view._get_database_names,
-                    op=kgb.SpyOpReturn(['default']))
-        self.spy_on(
-            self.view._get_db_cursor,
-            op=kgb.SpyOpMatchInOrder([
-                {
-                    'args': ['default'],
-                    'op': kgb.SpyOpReturn(_db_cursor()),
-                },
-            ]))
-        self.spy_on(caches['memcache'].set, op=kgb.SpyOpReturn(None))
-        self.spy_on(caches['memcache'].get, op=kgb.SpyOpReturn(UNSET))
-
-        with self.assertLogs(views_logger) as logs:
-            response = self.view.get(request)
-
-        self.assertEqual(response.status_code, 503)
-        self.assertJSONEqual(response.content.decode(), {
-            'checks': {
-                'cache.memcache': HealthCheckStatus.DOWN,
-                'database.default': HealthCheckStatus.UP,
-            },
-            'errors': {
-                'cache.memcache': 'Unable to communicate with cache server',
-            },
-            'status': HealthCheckStatus.DOWN,
-        })
-        self.assertEqual(logs.output, [
-            'ERROR:djblets.util.views:Health check: unable to connect to '
-            'cache "memcache": Unable to communicate with cache server',
-        ])
-
-    @override_settings(
-        DJBLETS_HEALTHCHECK_IPS=['127.0.0.1'],
-        CACHES={
-            'default': {
-                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            },
-            'memcache': {
-                'BACKEND': 'django.core.cache.backends.memcached.'
-                           'PyMemcacheCache',
-            },
-        }
-    )
+    @override_settings(DJBLETS_HEALTHCHECK_IPS=['127.0.0.1'])
     def test_get_successful_health_check(self) -> None:
         """Testing HealthCheckView.get with successful health check"""
         request = self.factory.get('/health/')
@@ -434,6 +363,17 @@ class HealthCheckViewTests(kgb.SpyAgency, TestCase):
                 {
                     'args': ['secondary'],
                     'op': kgb.SpyOpReturn(_db_cursor()),
+                },
+            ]))
+
+        self.spy_on(self.view._get_cache_names,
+                    op=kgb.SpyOpReturn(['memcache']))
+        self.spy_on(
+            self.view._check_cache,
+            op=kgb.SpyOpMatchInOrder([
+                {
+                    'args': ('memcache',),
+                    'call_original': False,
                 },
             ]))
 

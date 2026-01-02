@@ -68,12 +68,18 @@ template tags, templates, etc. that can be used by your own codebase.
   Markdown rendering for pages and e-mails, with WYSIWYG editing/rendering
   support
 
+* djblets.pagestate_ -
+  Dynamic injection of content for page templates.
+
 * djblets.pipeline_ -
   Pipeline_ compilers for ES6 JavaScript and optimized LessCSS support
 
 * djblets.privacy_ -
   Privacy-by-design support, allowing consent to be requested and tracked
   and personal information redacted
+
+* djblets.protect_ -
+  Locks, rate limiting, and other service protection mechanisms.
 
 * djblets.recaptcha_ -
   Mixins and form widgets for reCAPTCHA_ integration

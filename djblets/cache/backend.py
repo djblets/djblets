@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from django.core.cache.backends.base import BaseCache
     from typing_extensions import Annotated, TypeAlias
 
+    from djblets.protect.locks import CacheLock
     from djblets.util.symbols import Unsettable
 
     _T = TypeVar('_T')
@@ -109,6 +110,12 @@ class _CacheContext:
     #: The full cache key used for caching operations.
     full_cache_key: str
 
+    #: An optional cache lock to guard recomputing and writing data.
+    #:
+    #: Version Added:
+    #:     5.3
+    lock: CacheLock | None
+
     #: Whether to use encryption when storing or reading data.
     use_encryption: bool
 
@@ -121,13 +128,16 @@ class _CacheContext:
         compress_large_data: bool,
         use_encryption: bool | None,
         encryption_key: bytes | None,
+        lock: CacheLock | None,
     ) -> None:
         """Initialize the context.
 
         Version Changed:
             5.3:
-            ``base_cache_key`` may now be a sequence of string components of
-            the key.
+            * ``base_cache_key`` may now be a sequence of string components of
+              the key.
+
+            * Added the ``lock`` argument.
 
         Args:
             cache (django.core.cache.backends.base.BaseCache):
@@ -168,6 +178,12 @@ class _CacheContext:
                 to the default AES encryption key for the server as provided by
                 :py:func:`djblets.secrets.crypto.
                 get_default_aes_encryption_key`.
+
+            lock (djblets.protect.locks.CacheLock):
+                An optional cache lock to guard recomputing and writing data.
+
+                Version Added:
+                    5.3
         """
         if use_encryption is None:
             use_encryption = _get_default_use_encryption()
@@ -189,6 +205,20 @@ class _CacheContext:
         self.compress_large_data = compress_large_data
 
         self.full_cache_key = self.make_key(base_cache_key)
+
+        # Set a default cache key for the lock, if an explicit key is not
+        # provided.
+        if lock and not lock.full_cache_key:
+            lock_key: str | Sequence[str]
+
+            if isinstance(base_cache_key, str):
+                lock_key = f'_lock_:{base_cache_key}'
+            else:
+                lock_key = ['_lock_', *base_cache_key]
+
+            lock.full_cache_key = self.make_key(lock_key)
+
+        self.lock = lock
 
     def make_key(
         self,
@@ -326,7 +356,8 @@ class _CacheContext:
 
         Returns:
             object:
-            The value from the cache, or :py:data:`_NO_RESULTS` if not found.
+            The value from the cache, or :py:data:`djblets.util.symbols.UNSET`
+            if not found.
 
         Raises:
             Exception:
@@ -359,6 +390,60 @@ class _CacheContext:
                                'key %s: %s.',
                                key, e)
                 raise
+
+        return value
+
+    def load_value_or_lock_for_write(
+        self,
+        key: (str | None) = None,
+    ) -> Any:
+        """Load a value from cache, and lock if not present.
+
+        This will optimistically attempt to fetch a value from the cache.
+        If it's not present, this will attempt to acquire a lock before
+        checking again and then returning.
+
+        If the lock times out, the timeout will be logged and not acquired.
+        The caller may still write to the cache.
+
+        Version Added:
+            5.3
+
+        Args:
+            key (str):
+                The full cache key to load from cache.
+
+                If not provided, the full main cache key will be used.
+
+        Returns:
+            object:
+            The value from the cache, or :py:data:`djblets.util.symbols.UNSET`
+            if not found.
+
+        Raises:
+            Exception:
+                An error occurred reading from cache or processing results.
+                The exception is raised as-is.
+        """
+        value = self.load_value(key)
+
+        if value is UNSET:
+            # There was no value in the cache. We'll want to write, so first
+            # acquire a lock if there's one passed.
+            lock = self.lock
+
+            if lock is not None:
+                try:
+                    lock.acquire()
+                except TimeoutError:
+                    logger.error('Timeout waiting on distributed cache lock '
+                                 '%r',
+                                 lock)
+
+                # We've either acquired a lock or timed out waiting for one.
+                # Check if there's a new value in the cache and return that
+                # result.
+                value = self.load_value(key)
 
         return value
 
@@ -793,6 +878,7 @@ def _cache_store_chunks(
     read_start: int = 0
     i: int = 0
     error: (Exception | None) = None
+    lock = cache_context.lock
 
     for data, has_item, item in items:
         if has_item:
@@ -830,6 +916,9 @@ def _cache_store_chunks(
             # Store the keys in the cache in a single request.
             try:
                 cache_context.store_many(cached_data)
+
+                if lock and lock.locked():
+                    lock.update_expiration()
             except Exception as e:
                 # Store this error and skip any further cache operations.
                 error = e
@@ -851,6 +940,10 @@ def _cache_store_chunks(
             cache_context.store_value([chunk],
                                       key=cache_context.make_subkey(i),
                                       raw=True)
+
+            if lock and lock.locked():
+                lock.update_expiration()
+
             i += 1
         except Exception as e:
             # Store this error and skip any further cache operations.
@@ -956,6 +1049,7 @@ def cache_memoize_iter(
     compress_large_data: bool = True,
     use_encryption: (bool | None) = None,
     encryption_key: (bytes | None) = None,
+    lock: (CacheLock | None) = None,
 ) -> Iterator[_T]:
     """Memoize an iterable list of items inside the configured cache.
 
@@ -985,7 +1079,8 @@ def cache_memoize_iter(
 
     Version Changed:
         5.3:
-        ``key`` may now be a sequence of string components of the key.
+        * ``key`` may now be a sequence of string components of the key.
+        * Added the ``lock`` argument.
 
     Version Changed:
         5.1:
@@ -1049,6 +1144,12 @@ def cache_memoize_iter(
             Version Added:
                 3.0
 
+        lock (djblets.protect.locks.CacheLock):
+            An optional cache lock to guard recomputing and writing data.
+
+            Version Added:
+                5.3
+
     Yields:
         object:
         The list of items from the cache or from ``items_or_callable`` if
@@ -1068,85 +1169,97 @@ def cache_memoize_iter(
         expiration=expiration,
         compress_large_data=compress_large_data,
         use_encryption=use_encryption,
-        encryption_key=encryption_key)
+        encryption_key=encryption_key,
+        lock=lock,
+    )
     full_cache_key = cache_context.full_cache_key
 
     results: Unsettable[Iterable[_T]] = UNSET
     data_from_cache: bool = False
 
-    if not force_overwrite:
-        try:
-            chunk_count = cache_context.load_value()
-        except Exception as e:
-            # We've logged specifics, but add some more context.
-            logger.error('Failed to fetch large or iterable data entry count '
-                         'from cache for key "%s". Rebuilding data. '
-                         'Error = %s',
-                         cache_context.full_cache_key, e)
-            chunk_count = UNSET
+    try:
+        if not force_overwrite:
+            try:
+                chunk_count = cache_context.load_value_or_lock_for_write()
+            except Exception as e:
+                # We've logged specifics, but add some more context.
+                logger.error('Failed to fetch large or iterable data entry '
+                             'count from cache for key "%s". Rebuilding '
+                             'data. Error = %s',
+                             cache_context.full_cache_key, e)
+                chunk_count = UNSET
 
-        if chunk_count is not UNSET:
-            data_from_cache = True
+            if chunk_count is not UNSET:
+                data_from_cache = True
+
+                try:
+                    results = _cache_iter_large_data(
+                        cache_context=cache_context,
+                        data=_cache_fetch_large_data(
+                            cache_context=cache_context,
+                            chunk_count=int(chunk_count)))
+                except Exception as e:
+                    logger.warning('Failed to fetch large or iterable data '
+                                   'from cache for key "%s": %s',
+                                   full_cache_key, e)
+                    results = UNSET
+            else:
+                # The value was not found in cache. It will need to be
+                # recomputed.
+                logger.debug('Cache miss for key "%s"',
+                             full_cache_key)
+
+        if results is UNSET:
+            data_from_cache = False
+
+            if callable(items_or_callable):
+                # NOTE: We don't want to catch exceptions here, since a
+                #       function may need to bubble exceptions up to a caller.
+                items = items_or_callable()
+            else:
+                items = items_or_callable
 
             try:
-                results = _cache_iter_large_data(
-                    cache_context=cache_context,
-                    data=_cache_fetch_large_data(
-                        cache_context=cache_context,
-                        chunk_count=int(chunk_count)))
+                results = _cache_store_items(cache_context=cache_context,
+                                             items=items)
             except Exception as e:
-                logger.warning('Failed to fetch large or iterable data from '
-                               'cache for key "%s": %s',
-                               full_cache_key, e)
-                results = UNSET
-        else:
-            logger.debug('Cache miss for key "%s"' % full_cache_key)
+                # We've logged specifics. Log a general error.
+                #
+                # Note that this will only happen if an error occurs prior to
+                # yielding results. It shouldn't be cache backend-related.
+                logger.error('Failed to generate large or iterable cache data '
+                             'for key "%s". Newly-generated data will be '
+                             'returned but not cached. Error = %s',
+                             full_cache_key, e)
 
-    if results is UNSET:
-        data_from_cache = False
+                # Return the results as-is without caching.
+                results = items
 
-        if callable(items_or_callable):
-            # NOTE: We don't want to catch exceptions here, since a function
-            #       may need to bubble exceptions up to a caller.
-            items = items_or_callable()
-        else:
-            items = items_or_callable
-
+        # Yield the results to the caller.
         try:
-            results = _cache_store_items(cache_context=cache_context,
-                                         items=items)
+            yield from results
         except Exception as e:
-            # We've logged specifics. Log a general error.
-            #
-            # Note that this will only happen if an error occurs prior to
-            # yielding results. It shouldn't be cache backend-related.
-            logger.error('Failed to generate large or iterable cache data for '
-                         'key "%s". Newly-generated data will be returned but '
-                         'not cached. Error = %s',
-                         full_cache_key, e)
-
-            # Return the results as-is without caching.
-            results = items
-
-    # Yield the results to the caller.
-    try:
-        yield from results
-    except Exception as e:
-        if data_from_cache:
-            # This really shouldn't happen, since we've already fetched it
-            # above, but we'll log it just in case.
-            logger.error('Failed to return large or iterable cache data for '
-                         'key "%s". Something went wrong when returning '
-                         'processed results to the caller. Error = %s',
-                         full_cache_key, e)
-        else:
-            # The newly-generated results couldn't be cached. At this point,
-            # we should have yielded all data to the caller, and this should
-            # be the final error caught and raised at the end of that process.
-            logger.error('Failed to store or retrieve large or iterable '
-                         'cache data for key "%s". Newly-generated data '
-                         'will be returned but not cached. Error = %s',
-                         full_cache_key, e)
+            if data_from_cache:
+                # This really shouldn't happen, since we've already fetched it
+                # above, but we'll log it just in case.
+                logger.error('Failed to return large or iterable cache data '
+                             'for key "%s". Something went wrong when '
+                             'returning processed results to the caller. '
+                             'Error = %s',
+                             full_cache_key, e)
+            else:
+                # The newly-generated results couldn't be cached. At this
+                # point, we should have yielded all data to the caller, and
+                # this should be the final error caught and raised at the end
+                # of that process.
+                logger.error('Failed to store or retrieve large or iterable '
+                             'cache data for key "%s". Newly-generated data '
+                             'will be returned but not cached. Error = %s',
+                             full_cache_key, e)
+    finally:
+        # If there's an active write lock established, release it.
+        if lock and lock.locked():
+            lock.release()
 
 
 @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
@@ -1161,6 +1274,7 @@ def cache_memoize(
     use_generator: bool = False,
     use_encryption: (bool | None) = None,
     encryption_key: (bytes | None) = None,
+    lock: (CacheLock | None) = None,
 ) -> _T:
     """Memoize the results of a callable inside the configured cache.
 
@@ -1176,7 +1290,8 @@ def cache_memoize(
 
     Version Changed:
         5.3:
-        ``key`` may now be a sequence of string components of the key.
+        * ``key`` may now be a sequence of string components of the key.
+        * Added the ``lock`` argument.
 
     Version Changed:
         5.1:
@@ -1257,6 +1372,12 @@ def cache_memoize(
             Version Added:
                 3.0
 
+        lock (djblets.protect.locks.CacheLock):
+            An optional cache lock to guard recomputing and writing data.
+
+            Version Added:
+                5.3
+
     Returns:
         object:
         The cached data, or the result of ``lookup_callable`` if uncached.
@@ -1272,6 +1393,7 @@ def cache_memoize(
             expiration=expiration,
             force_overwrite=force_overwrite,
             compress_large_data=compress_large_data,
+            lock=lock,
             use_encryption=use_encryption,
             encryption_key=encryption_key))
 
@@ -1285,50 +1407,61 @@ def cache_memoize(
             expiration=expiration,
             compress_large_data=compress_large_data,
             use_encryption=use_encryption,
-            encryption_key=encryption_key)
+            encryption_key=encryption_key,
+            lock=lock,
+        )
         full_cache_key = cache_context.full_cache_key
 
-        if not force_overwrite:
-            try:
-                result = cache_context.load_value(full_cache_key)
-            except Exception:
-                # We've already logged enough information for this. Proceed
-                # to generate new data.
-                result = UNSET
-
-            if result is not UNSET:
-                return result
-            else:
-                logger.debug('Cache miss for key "%s"' % full_cache_key)
-
-        data = lookup_callable()
-
-        # Most people will be using memcached, and memcached has a limit of
-        # 1MB. Data this big should be broken up somehow, so let's warn
-        # about this. Users should hopefully be using large_data=True which
-        # will handle this appropriately.
-        #
-        # If we do get here, we try to do some sanity checking.
-        # python-memcached will return a result in the case where the data
-        # exceeds the value size, which Django will then silently use to clear
-        # out the key. We won't know at all whether we had success unless we
-        # come back and try to verify the value.
-        #
-        # This check handles the common case of large string data being stored
-        # in cache. It's still possible to attempt to store large data
-        # structures (where len(data) might be something like '6' but the
-        # serialized value is huge), where this can still fail.
-        if (isinstance(data, str) and
-            len(data) >= CACHE_CHUNK_SIZE):
-            logger.warning('Cache data for key "%s" (length %s) may be too '
-                           'big for the cache.',
-                           full_cache_key, len(data))
-
         try:
-            cache_context.store_value(data, key=full_cache_key)
-        except Exception:
-            # We've already caught and logged this error.
-            pass
+            if not force_overwrite:
+                try:
+                    result = cache_context.load_value_or_lock_for_write(
+                        full_cache_key)
+                except Exception:
+                    # We've already logged enough information for this. Proceed
+                    # to generate new data.
+                    result = UNSET
+
+                if result is not UNSET:
+                    return result
+
+                # The value was not found in cache. It will need to be
+                # recomputed.
+                logger.debug('Cache miss for key "%s"',
+                             full_cache_key)
+
+            data = lookup_callable()
+
+            # Most people will be using memcached, and memcached has a limit of
+            # 1MB. Data this big should be broken up somehow, so let's warn
+            # about this. Users should hopefully be using large_data=True which
+            # will handle this appropriately.
+            #
+            # If we do get here, we try to do some sanity checking.
+            # python-memcached will return a result in the case where the data
+            # exceeds the value size, which Django will then silently use to
+            # clear out the key. We won't know at all whether we had success
+            # unless we come back and try to verify the value.
+            #
+            # This check handles the common case of large string data being
+            # stored in cache. It's still possible to attempt to store large
+            # data structures (where len(data) might be something like '6' but
+            # the serialized value is huge), where this can still fail.
+            if (isinstance(data, str) and
+                len(data) >= CACHE_CHUNK_SIZE):
+                logger.warning('Cache data for key "%s" (length %s) may be '
+                               'too big for the cache.',
+                               full_cache_key, len(data))
+
+            try:
+                cache_context.store_value(data, key=full_cache_key)
+            except Exception:
+                # We've already caught and logged this error.
+                pass
+        finally:
+            # If there's an active write lock established, release it.
+            if lock and lock.locked():
+                lock.release()
 
         return data
 

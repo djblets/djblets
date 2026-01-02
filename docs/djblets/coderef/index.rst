@@ -139,6 +139,21 @@ Database Utilities
    djblets.db.validators
 
 
+.. _coderef-djblets-pagestate:
+
+Dynamic Page State
+==================
+
+.. autosummary::
+   :toctree: python
+
+   djblets.pagestate
+   djblets.pagestate.injectors
+   djblets.pagestate.middleware
+   djblets.pagestate.state
+   djblets.pagestate.templatetags.djblets_pagestate
+
+
 .. _coderef-djblets-extensions:
 
 Extensions
@@ -233,6 +248,7 @@ HTTP Utilities
    :toctree: python
 
    djblets.http.middleware
+   djblets.http.requests
    djblets.http.responses
 
 
@@ -343,6 +359,19 @@ Privacy Protection
 .. seealso::
 
    :ref:`privacy-guides`
+
+
+.. _coderef-djblets-protect:
+
+Service Protection
+==================
+
+.. autosummary::
+   :toctree: python
+
+   djblets.protect
+   djblets.protect.locks
+   djblets.protect.ratelimit
 
 
 .. _coderef-djblets-recaptcha:

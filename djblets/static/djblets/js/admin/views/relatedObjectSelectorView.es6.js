@@ -75,21 +75,23 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
      */
     render() {
         const self = this;
+        const multivalued = this.options.multivalued;
 
         this.$el.html(this.template({
-            multivalued: this.options.multivalued,
+            multivalued: multivalued,
             searchPlaceholderText: this.searchPlaceholderText,
         }));
 
         this._$selected = this.$('.related-object-selected');
 
-        const renderItem = this.options.multivalued
-                           ? () => ''
+        const renderItem = multivalued
+                           ? () => '<span>'
                            : this.renderOption;
 
         const selectizeOptions = _.defaults(this._selectizeOptions, {
             copyClassesToDropdown: true,
             dropdownParent: 'body',
+            mode: multivalued ? 'multi' : 'single',
             preload: 'focus',
 
             render: {
@@ -110,18 +112,18 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
                 if (selected) {
                     self._onItemSelected(this.options[selected], true);
 
-                    if (self.options.multivalued) {
+                    if (multivalued) {
                         this.removeOption(selected);
                     }
                 }
 
-                if (self.options.multivalued) {
+                if (multivalued) {
                     this.clear();
                 }
             },
         });
 
-        if (!this.options.multivalued && this.options.initialOptions.length) {
+        if (!multivalued && this.options.initialOptions.length) {
             const item = this.options.initialOptions[0];
             selectizeOptions.options = this.options.initialOptions;
             selectizeOptions.items = [item[selectizeOptions.valueField]];
@@ -129,7 +131,7 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
 
         this.$('select').selectize(selectizeOptions);
 
-        if (this.options.multivalued) {
+        if (multivalued) {
             this.options.initialOptions.forEach(
                 item => this._onItemSelected(item, false)
             );
@@ -235,7 +237,7 @@ Djblets.RelatedObjectSelectorView = Backbone.View.extend({
      *     HTML to insert into the drop-down menu.
      */
     renderOption(item) {
-        return '';
+        return '<span>';
     },
 
     /**

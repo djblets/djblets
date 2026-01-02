@@ -14,6 +14,7 @@ from typing_extensions import TypeAlias
 
 from djblets.extensions.hooks import TemplateHook
 from djblets.extensions.manager import get_extension_managers
+from djblets.pagestate.templatetags.djblets_pagestate import page_hook_point
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
@@ -98,6 +99,10 @@ def template_hook_point(
 ) -> SafeString:
     """Register a place where TemplateHooks can render to.
 
+    This is an alias for :py:func:`{% page_hook_point %}
+    <djblets.pagestate.templatetags.djblets_pagestate.page_hook_point>`.
+    It may be deprecated in the future.
+
     Args:
         context (dict):
             The template rendering context.
@@ -106,37 +111,10 @@ def template_hook_point(
             The name of the CSS bundle to render.
 
     Returns:
-        django.utils.safetext.SafeString:
+        django.utils.safestring.SafeString:
         The rendered HTML.
     """
-    def _render_hooks() -> Iterator[tuple[Union[str, SafeString]]]:
-        request: HttpRequest
-
-        if isinstance(context, RequestContext):
-            request = context.request
-        else:
-            request = context['request']
-
-        for hook in TemplateHook.by_name(name):
-            try:
-                if hook.applies_to(request):
-                    context.push()
-
-                    try:
-                        yield (hook.render_to_string(request, context),)
-                    except Exception as e:
-                        logger.exception('Error rendering TemplateHook %r: %s',
-                                         hook, e,
-                                         extra={'request': request})
-
-                    context.pop()
-            except Exception as e:
-                logger.exception('Error when calling applies_to for '
-                                 'TemplateHook %r: %s',
-                                 hook, e,
-                                 extra={'request': request})
-
-    return format_html_join('', '{0}', _render_hooks())
+    return page_hook_point(context, name)
 
 
 @register.simple_tag(takes_context=True)
@@ -187,6 +165,11 @@ def _render_bundle(
     If there's any error during this process, the error will be logged and
     the bundle will be skipped.
 
+    Version Changed:
+        4.1, 5.3:
+        The ``name`` argument now accepts full bundle IDs, in addition to
+        relative bundle names.
+
     Args:
         context (django.template.Context):
             The current template context.
@@ -198,7 +181,7 @@ def _render_bundle(
             The extension that owns the bundle.
 
         name (str):
-            The name of the bundle to render.
+            The full bundle ID or name of the bundle to render.
 
         bundle_type (str):
             The type of bundle.
@@ -210,8 +193,14 @@ def _render_bundle(
         django.utils.safestring.SafeString:
         The HTML used to load the bundle.
     """
+    if name.startswith(extension.id):
+        # The name is already the full bundle ID.
+        bundle_id = name
+    else:
+        bundle_id = extension.get_bundle_id(name)
+
     try:
-        return node_cls('"%s"' % extension.get_bundle_id(name)).render(context)
+        return node_cls(f'"{bundle_id}"').render(context)
     except Exception:
         logger.exception('Unable to render %s bundle "%s" for extension "%s" '
                          '(%s). The extension may not be installed correctly. '

@@ -4,17 +4,21 @@ from __future__ import annotations
 
 import logging
 import re
-import time
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 from django.conf import settings
-from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
-from typing_extensions import Self, TypedDict
+from django.utils.translation import gettext as _
+from housekeeping import ClassDeprecatedMixin
 
-from djblets.cache.backend import make_cache_key
+from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.http.requests import get_http_request_ip
+from djblets.protect.ratelimit import RateLimit, check_rate_limit
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from typing import Any
+
     from django.http import HttpRequest
 
 
@@ -54,7 +58,7 @@ _RATE_LIMIT_DATA = {
 
 
 class UsageCount(TypedDict):
-    """Rate limit status for a given user or IP address.
+    """Rate limit states for a given user or IP address.
 
     Version Added:
         6.0
@@ -66,7 +70,7 @@ class UsageCount(TypedDict):
     #: The number of attempts allowed.
     limit: int
 
-    #: The time left before rate limit is over.
+    #: The time left before the rate limit is over.
     time_left: int
 
 
@@ -87,58 +91,7 @@ def get_user_id_or_ip(
     if hasattr(request, 'user') and request.user.is_authenticated:
         return str(request.user.pk)
 
-    try:
-        return request.META['HTTP_X_REAL_IP']
-    except KeyError:
-        try:
-            return request.META['HTTP_X_FORWARDED_FOR'].split(',')[0].strip()
-        except KeyError:
-            return request.META['REMOTE_ADDR']
-
-
-def _get_time_int() -> int:
-    """Return the current time as an integer rounded to the nearest second.
-
-    This is available as a convenience wrapper to help with unit testing.
-
-    Version Added:
-        2.3.4
-
-    Returns:
-        int:
-        The current time rounded to the nearest second.
-    """
-    return int(time.time())
-
-
-def _get_window(
-    period: int,
-    timestamp: int,
-) -> int:
-    """Return window period within the given time period.
-
-    This helps determine the time left before the rate limit is over
-    for the given user (see ``time_left`` variable in
-    :py:func:`get_usage_count`).
-
-    Args:
-        period (int):
-            The total time period in seconds from the rate.
-
-        timestamp (int):
-            The time in seconds used as "now" for the window calculation.
-
-            Version Added:
-                2.3.4
-
-    Returns:
-        int:
-        The window period.
-    """
-    if period == 1:
-        return timestamp
-
-    return timestamp - (timestamp % period) + period
+    return get_http_request_ip(request)
 
 
 def is_ratelimited(
@@ -167,7 +120,6 @@ def is_ratelimited(
         Whether the current user has exceeded the rate limit of login attempts.
     """
     usage = get_usage_count(request, increment, limit_type)
-
     return (usage is not None and
             usage['count'] > usage['limit'])
 
@@ -176,7 +128,7 @@ def get_usage_count(
     request: HttpRequest,
     increment: bool = False,
     limit_type: int = RATE_LIMIT_LOGIN,
-) -> Optional[UsageCount]:
+) -> UsageCount | None:
     """Return rate limit status for a given user or IP address.
 
     This method performs validation checks on the input parameters
@@ -201,89 +153,104 @@ def get_usage_count(
         The rate limit status.
 
     Raises:
+        ValueError:
+            An invalid value was specified for ``limit_type``.
+
         django.core.exceptions.ImproperlyConfigured:
-            The :django:setting:`LOGIN_LIMIT_RATE` setting could not be parsed.
+            A rate limit setting could not be parsed.
     """
     try:
-        try:
-            settings_key, default_value, cache_key_prefix = \
-                _RATE_LIMIT_DATA[limit_type]
-        except KeyError:
-            raise ValueError(
-                f'"limit_type" argument had unexpected value "{limit_type}"')
+        settings_key, default_value = _RATE_LIMIT_DATA[limit_type][:2]
+    except KeyError:
+        raise ValueError(_('"limit_type" argument had unexpected value "%s"')
+                         % limit_type)
 
-        limit_str = getattr(settings, settings_key, default_value)
+    limit_str = getattr(settings, settings_key, default_value)
 
-        if limit_str is None:
-            # If the setting is explicitly None, don't do any rate limiting.
-            return None
+    if limit_str is None:
+        # If the setting is explicitly None, don't do any rate limiting.
+        return None
 
-        rate_limit = Rate.parse(limit_str)
+    try:
+        rate_limit = RateLimit.parse(limit_str)
     except ValueError:
-        raise ImproperlyConfigured('LOGIN_LIMIT_RATE setting could not '
-                                   'be parsed.')
+        raise ImproperlyConfigured(
+            _('{key} setting could not be parsed as a rate limit value.')
+            .format(key=settings_key))
 
-    limit = rate_limit.count
-    period = rate_limit.seconds
+    key = _get_auth_rate_limit_key(request=request,
+                                   limit_type=limit_type)
 
-    # Determine user ID or IP address from HTTP request.
-    user_id_or_ip = get_user_id_or_ip(request)
+    usage = check_rate_limit(rate_limit=rate_limit,
+                             key=key,
+                             increment_count=increment)
 
-    # Prepare cache key to add or update to cache and determine remaining time
-    # period left.
-    now = _get_time_int()
-    window = _get_window(period, now)
-    cache_key = make_cache_key((
-        cache_key_prefix,
-        f'{limit:d}/{period:d}{user_id_or_ip}{window}',
-    ))
-    time_left = window - now
-
-    count = None
-
-    if increment:
-        try:
-            try:
-                count = cache.incr(cache_key)
-            except ValueError:
-                cache.add(cache_key, 1)
-        except Exception as e:
-            logger.exception('Failed to set rate limit cache key "%s". Rate '
-                             'limit checks are currently unreliable. Is the '
-                             'cache server down? Error = %s',
-                             cache_key, e)
-
-    if count is None:
-        try:
-            count = cache.get(cache_key, 0)
-        except Exception as e:
-            logger.exception('Failed to fetch rate limit cache key "%s". Rate '
-                             'limit checks are currently unreliable. Is the '
-                             'cache server down? Error = %s',
-                             cache_key, e)
-            count = 0
-
-    if not increment:
-        # Add one to the returned value, even if we aren't incrementing the
-        # stored value. This makes it so that we're consistent in how many
-        # tries per period regardless of whether we're incrementing now or
-        # later.
-        count += 1
+    if usage is None:
+        return None
 
     return {
-        'count': count,
-        'limit': limit,
-        'time_left': time_left,
+        'count': usage.count,
+        'limit': usage.limit,
+        'time_left': usage.time_left_secs,
     }
 
 
-class Rate:
+def _get_auth_rate_limit_key(
+    request: HttpRequest,
+    *,
+    limit_type: int = RATE_LIMIT_LOGIN,
+) -> Sequence[str]:
+    """Return a rate limit key used to interact with rate limit data.
+
+    The key will be specific to the rate limit type and the user or IP address
+    from the request.
+
+    Version Added:
+        5.3
+
+    Args:
+        request (django.http.HttpRequest):
+            The HTTP request from the client.
+
+        limit_type (int, optional):
+            The rate limit type to use for the key.
+
+    Returns:
+        list of str:
+        A 2-entry list in the form of:
+
+        1. The resulting rate limit key.
+        2. The result of :py:func:`get_user_id_or_ip`.
+
+    Raises:
+        ValueError:
+            An invalid value was specified for ``limit_type``.
+    """
+    try:
+        cache_key_prefix = _RATE_LIMIT_DATA[limit_type][2]
+    except KeyError:
+        raise ValueError('"limit_type" argument had unexpected value "%s"'
+                         % limit_type)
+
+    user_id_or_ip = get_user_id_or_ip(request)
+
+    return [cache_key_prefix, user_id_or_ip]
+
+
+class Rate(ClassDeprecatedMixin,
+           warning_cls=RemovedInDjblets70Warning):
     """A rate representing login attempt frequency.
 
     The main functionality of this class is found in the :py:meth:`parse`
     function. This class converts a rate into a Rate object, which
     contains the number of login attempts allowed within a time period based
     on a given rate string.
+
+    Deprecated:
+        5.3:
+        This has been replaced with
+        :py:class:`djblets.protect.ratelimit.RateLimit`. Callers should be
+        updated to use this instead.
     """
 
     #: Dictionary contains keys that represent different time periods.
@@ -301,29 +268,16 @@ class Rate:
     #: Regular expression that interprets the rate string.
     RATE_RE = re.compile(r'(\d+)/(\d*)([smhd])?')
 
-    ######################
-    # Instance variables #
-    ######################
-
-    #: The number of failed login attempts allowed.
-    count: int
-
-    #: The time period for the login attempts in seconds.
-    seconds: int
-
     @classmethod
-    def parse(
-        cls,
-        rate_str: str,
-    ) -> Self:
+    def parse(cls, rate_str):
         """Return a Rate parsed from the given rate string.
 
         Converts the given rate string into a Rate object, which contains
         the number of login attempts allowed (count) and the time period
-        allotted for these attempts (seconds).
+        alotted for these attempts (seconds).
 
         Args:
-            rate_str (str):
+            rate (unicode):
                 The number of attempts allowed within a period
                 of time (can be seconds, minutes, hours, or days).
 
@@ -335,14 +289,14 @@ class Rate:
 
         Raises:
             ValueError:
-                The value could not be parsed.
+                The provided ``rate_str`` value could not be parsed.
         """
         m = Rate.RATE_RE.match(rate_str)
 
         if m:
             count, multiplier, period = m.groups()
         else:
-            raise ValueError(f'Could not parse given rate "{rate_str}".')
+            raise ValueError('Could not parse given rate: %s.' % rate_str)
 
         seconds = Rate.PERIODS[period or 's']
 
@@ -351,11 +305,7 @@ class Rate:
 
         return cls(count=int(count), seconds=seconds)
 
-    def __init__(
-        self,
-        count: int,
-        seconds: int,
-    ) -> None:
+    def __init__(self, count, seconds):
         """Initialize attributes for the Rate object.
 
         This initializes the number of failed login attempts allowed, and
@@ -372,10 +322,7 @@ class Rate:
         self.count = count
         self.seconds = seconds
 
-    def __eq__(
-        self,
-        other: Any,
-    ) -> bool:
+    def __eq__(self, other):
         """Return whether the two Rate instances are equal.
 
         Returns:
