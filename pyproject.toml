@@ -44,6 +44,25 @@ Repository = 'https://github.com/djblets/djblets'
 Support = 'https://www.reviewboard.org/support/'
 
 
+[tool.pytest]
+python_files = ["tests.py", "test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+pythonpath = ["."]
+norecursedirs = ["djblets/htdocs"]
+testpaths = ["djblets"]
+
+addopts = ["--reuse-db"]
+
+# Require the following plugins
+required_plugins = [
+    "pytest-django",
+    "pytest-env",
+]
+
+DJANGO_SETTINGS_MODULE = "tests.settings"
+
+
 [tool.setuptools.package-data]
 djblets = ['py.typed']
 
