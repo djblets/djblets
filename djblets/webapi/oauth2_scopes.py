@@ -1,19 +1,30 @@
 """OAuth2 scope generation for WebAPI resources."""
 
+from __future__ import annotations
+
 import logging
 import threading
 from collections import defaultdict
+from collections.abc import Mapping
 from importlib import import_module
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import gettext as _
+from oauth2_provider.settings import oauth2_settings
 
 from djblets.extensions.manager import get_extension_managers
 from djblets.extensions.signals import (extension_enabled,
                                         extension_disabled)
 from djblets.webapi.resources.mixins.oauth2_tokens import (
     ResourceOAuth2TokenMixin)
+
+if TYPE_CHECKING:
+    from collections.abc import (ItemsView, Iterable, Iterator, KeysView,
+                                 ValuesView)
+
+    from djblets.webapi.resources.base import WebAPIResource
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +33,7 @@ _enable_lock = threading.Lock()
 _scopes = None
 
 
-def get_scope_dictionary():
+def get_scope_dictionary() -> WebAPIScopeDictionary:
     """Return the scope dictionary.
 
     This method requires :setting:`WEB_API_ROOT_RESOURCE` setting to point to
@@ -53,9 +64,8 @@ def get_scope_dictionary():
                                  scopes_cls_attr)
         except (AttributeError, ImportError) as e:
             raise ImproperlyConfigured(
-                'settings.WEB_API_SCOPE_DICT_CLASS %r could not be imported: '
-                '%s'
-                % (scopes_cls_name, e)
+                f'settings.WEB_API_SCOPE_DICT_CLASS {scopes_cls_name} could '
+                f'not be imported: {e}'
             )
 
         try:
@@ -73,8 +83,8 @@ def get_scope_dictionary():
                                     root_resource_attr)
         except (AttributeError, ImportError) as e:
             raise ImproperlyConfigured(
-                'settings.WEB_API_ROOT_RESOURCE %r could not be imported: %s'
-                % (root_resource_path, e)
+                f'settings.WEB_API_ROOT_RESOURCE {root_resource_path} could '
+                f'not be imported: {e}'
             )
 
         _scopes = scopes_cls(root_resource)
@@ -82,7 +92,7 @@ def get_scope_dictionary():
     return _scopes
 
 
-class WebAPIScopeDictionary(object):
+class WebAPIScopeDictionary(Mapping[str, str]):
     """A Web API scope dictionary.
 
     This class knows how to build a list of available scopes from the WebAPI
@@ -92,7 +102,20 @@ class WebAPIScopeDictionary(object):
     value can be cached.
     """
 
-    def __init__(self, root_resource):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The set of resource trees included in the API.
+    resource_trees: set[WebAPIResource]
+
+    #: The mapping from scope name to description.
+    _scope_dict: dict[str, str]
+
+    def __init__(
+        self,
+        root_resource: WebAPIResource,
+    ) -> None:
         """Initialize the scope dictionary.
 
         Args:
@@ -103,8 +126,82 @@ class WebAPIScopeDictionary(object):
         self._update_lock = threading.Lock()
         self._scope_dict = {}
 
+    def __bool__(self) -> bool:
+        """Return whether the object is truthy.
+
+        Returns:
+            bool:
+            ``True`` if the scopes dictionary is non-empty.
+        """
+        return bool(self.scope_dict)
+
+    def __contains__(
+        self,
+        key: str,
+    ) -> bool:
+        """Return whether the dictionary has a particular scope.
+
+        Args:
+            key (str):
+                The scope's key.
+
+        Returns:
+            bool:
+            ``True`` if the scope is in the dictionary.
+        """
+        return key in self.scope_dict
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterate over the keys in the dictionary.
+
+        Yields:
+            str:
+            Each scope key.
+        """
+        yield from self.scope_dict
+
+    def __getitem__(
+        self,
+        key: str,
+    ) -> str:
+        """Return the description of a given scope.
+
+        Args:
+            key (str):
+                The scope's key.
+
+        Returns:
+            str:
+            The scope's description.
+
+        Raises:
+            KeyError:
+                The scope's key was not in the dictionary.
+        """
+        return self.scope_dict[key]
+
+    def __len__(self) -> int:
+        """Return the size of the scope dictionary.
+
+        Returns:
+            int:
+            The size of the scope dictionary.
+        """
+        return len(self.scope_dict)
+
+    def __repr__(self) -> str:
+        """Return a string representation of this object.
+
+        Returns:
+            str:
+            A string representation of this object.
+        """
+        keys = list(self.keys())
+
+        return f'{type(self).__name__}({keys!r})'
+
     @property
-    def scope_dict(self):
+    def scope_dict(self) -> dict[str, str]:
         """The dictionary of scopes defined by this dictionary.
 
         The value is cached so that it will only be recomputed when the
@@ -119,19 +216,7 @@ class WebAPIScopeDictionary(object):
 
         return self._scope_dict
 
-    def keys(self):
-        """Iterate through all keys in the dictionary.
-
-        This is used by oauth2_provider when on Python 3.x to get the list
-        of scope keys.
-
-        Yields:
-            unicode:
-            The key for each scope.
-        """
-        return self.scope_dict.keys()
-
-    def clear(self):
+    def clear(self) -> None:
         """Clear all scopes from the dictionary.
 
         The next attempt at fetching scopes will repopulate the dictionary
@@ -139,17 +224,45 @@ class WebAPIScopeDictionary(object):
         """
         self._scope_dict.clear()
 
-    def _walk_resources(self, resources):
+    def keys(self) -> KeysView[str]:
+        """Iterate through all keys in the dictionary.
+
+        This is used by oauth2_provider to get the list of scope keys.
+
+        Returns:
+            collections.abc.KeysView:
+            The key for each scope.
+        """
+        return self.scope_dict.keys()
+
+    def items(self) -> ItemsView[str, str]:
+        """Iterate through all items in the dictionary.
+
+        Returns:
+            collections.abc.ItemsView:
+            The key for each scope.
+        """
+        return self.scope_dict.items()
+
+    def values(self) -> ValuesView[str]:
+        """Iterate through all values in the dictionary.
+
+        Returns:
+            collections.abc.ItemsView:
+            The key for each scope.
+        """
+        return self.scope_dict.values()
+
+    def _walk_resources(
+        self,
+        resources: Iterable[WebAPIResource],
+    ) -> None:
         """Traverse the given resource trees and add the appropriate scopes.
 
         Args:
             resources (list of djblets.webapi.resources.base.WebAPIResource):
                 The resources to generate scopes for. The children of these
                 resources will also be traversed.
-
-        Returns:
-            list of unicode:
-            The list of scopes added by walking the given resources.
         """
         for resource in resources:
             self._walk_resources(resource.list_child_resources)
@@ -158,7 +271,7 @@ class WebAPIScopeDictionary(object):
             scope_to_methods = defaultdict(list)
 
             if not isinstance(resource, ResourceOAuth2TokenMixin):
-                logging.warning(
+                logger.warning(
                     'Resource %r does not inherit from '
                     'djblets.webapi.resources.mixins.oauth2_tokens.'
                     'ResourceOAuth2TokenMixin: it will not be accessible with '
@@ -166,6 +279,7 @@ class WebAPIScopeDictionary(object):
                     'inherit from a base class that includes this mixin.',
                     type(resource),
                 )
+
                 continue
 
             if not resource.oauth2_token_access_allowed:
@@ -179,12 +293,13 @@ class WebAPIScopeDictionary(object):
                                  'HTTP_SCOPE_METHOD_MAP: a scope will not be '
                                  'generated for this method.',
                                  method)
+
                     continue
 
                 scope_to_methods[suffix].append(method)
 
             for suffix, methods in scope_to_methods.items():
-                scope_name = '%s:%s' % (resource.scope_name, suffix)
+                scope_name = f'{resource.scope_name}:{suffix}'
 
                 self._scope_dict[scope_name] = (
                     _('Ability to perform HTTP %(methods)s on the %(name)s '
@@ -194,46 +309,6 @@ class WebAPIScopeDictionary(object):
                         'name': resource.name,
                     }
                 )
-
-    def __getitem__(self, key):
-        """Return the description of a given scope.
-
-        Args:
-            key (unicode):
-                The scope's key.
-
-        Returns:
-            unicode:
-            The scope's description.
-
-        Raises:
-            KeyError:
-                The scope's key was not in the dictionary.
-        """
-        return self.scope_dict[key]
-
-    def __contains__(self, key):
-        """Return whether the dictionary has a particular scope.
-
-        Args:
-            key (unicode):
-                The scope's key.
-
-        Returns:
-            bool:
-            ``True`` if the scope is in the dictionary.
-        """
-        return key in self.scope_dict
-
-    def __repr__(self):
-        """Return a string representation of this object.
-
-        Returns:
-            unicode:
-            A string representation of this object.
-        """
-        return '%s(%r)' % (type(self).__name__,
-                           list(self.scope_dict.keys()))
 
 
 class ExtensionEnabledWebAPIScopeDictionary(WebAPIScopeDictionary):
@@ -313,3 +388,5 @@ def enable_web_api_scopes(*args, **kwargs):
         if not isinstance(settings.OAUTH2_PROVIDER['SCOPES'],
                           WebAPIScopeDictionary):
             settings.OAUTH2_PROVIDER['SCOPES'] = get_scope_dictionary()
+
+        oauth2_settings.reload()

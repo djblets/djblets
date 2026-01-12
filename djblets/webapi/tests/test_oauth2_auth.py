@@ -1,5 +1,7 @@
 """Tests for OAuth2 authentication with the web API."""
 
+from __future__ import annotations
+
 from datetime import timedelta
 
 from django.contrib.auth.backends import ModelBackend
@@ -9,16 +11,18 @@ from django.urls import include, path
 from django.utils import timezone
 from oauth2_provider.models import AccessToken, Application
 
+from djblets.testing.testcases import TestCase
 from djblets.webapi.auth.backends import reset_auth_backends
 from djblets.webapi.auth.backends.oauth2_tokens import OAuth2TokenBackendMixin
 from djblets.webapi.errors import (LOGIN_FAILED,
                                    NOT_LOGGED_IN,
                                    OAUTH_ACCESS_DENIED_ERROR,
                                    OAUTH_MISSING_SCOPE_ERROR)
+from djblets.webapi.oauth2_scopes import enable_web_api_scopes
 from djblets.webapi.resources.mixins.oauth2_tokens import (
     ResourceOAuth2TokenMixin)
 from djblets.webapi.testing.resources import make_resource_tree
-from djblets.webapi.testing.testcases import TestCase, WebAPITestCaseMixin
+from djblets.webapi.testing.testcases import WebAPITestCaseMixin
 
 
 resource_tree = make_resource_tree(
@@ -58,19 +62,24 @@ class OAuth2TokenAuthTests(WebAPITestCaseMixin, TestCase):
     error_mimetype = 'application/json'
 
     @classmethod
-    def setUpClass(cls):
-        super(OAuth2TokenAuthTests, cls).setUpClass()
+    def setUpClass(cls) -> None:
+        """Set up the test case class."""
+        super().setUpClass()
 
         reset_auth_backends()
 
-    def tearDown(self):
-        super(OAuth2TokenAuthTests, self).tearDown()
+    def tearDown(self) -> None:
+        """Tear down the test case class."""
+        super().tearDown()
 
         reset_auth_backends()
 
     @override_settings(**SETTINGS)
-    def setUp(self):
-        super(OAuth2TokenAuthTests, self).setUp()
+    def setUp(self) -> None:
+        """Set up the test case."""
+        super().setUp()
+
+        enable_web_api_scopes()
 
         self.owner = User.objects.create_user(username='app_owner',
                                               email='owner@example.com')
