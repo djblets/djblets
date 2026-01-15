@@ -1,0 +1,33 @@
+/**
+ * Backwards-compatibility file for retina.less.
+ *
+ * Callers should use mixins/retina.less instead.
+ *
+ * .. deprecated:: 1.0
+ */
+
+@import (reference) "mixins/retina.less";
+
+
+/*
+ * Enable support for a 2x Retina image for an element.
+ *
+ * This is a backwards-compatible mixin for supporting ``@2x`` files for
+ * an image. It will be removed in a future release. It's recommended that
+ * callers use ``.retina()`` from ``mixins/retina.less` instead.
+ *
+ * .. deprecated:: 1.0
+ *
+ * Args:
+ *     path (string):
+ *         The path to the main image file.
+ *
+ *     w (number):
+ *         The width of the main image file.
+ *
+ *     h (number):
+ *         The height of the main image file.
+ */
+.at2x(@path, @w: auto, @h: auto) {
+  .retina(@path, @w @h);
+}

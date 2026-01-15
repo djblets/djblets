@@ -1,0 +1,66 @@
+/** A spinner component. */
+
+
+#djblets-ns-ui() {
+  .spinners() {
+    /*
+     * These values will help this fit in well with text, keeping the
+     * existing height.
+     */
+    @default-width: 1em;
+    @default-height: 1em;
+
+    /**
+     * Set the theme for a spinner.
+     *
+     * Currently, "dark" and "light" themes are supported.
+     *
+     * Args:
+     *     @theme (string):
+     *         The theme to set.
+     */
+    .set-theme(@theme) {
+      background-image: data-uri('djblets/images/ui/spinners/@{theme}.svg');
+    }
+  }
+}
+
+
+/**
+ * A spinner.
+ *
+ * Spinners represent an in-progress activity, such as new content being
+ * loaded or a request being sent to a server.
+ *
+ * The default spinner uses a black rotating curve. Consumers can use
+ * ``#djblets-ns-ui.spinners.set-theme(light)`` on a selector to switch to
+ * a white spinner, for darker backgrounds.
+ *
+ * Accessibility Notes:
+ *     When using the spinner to represent content loading in a parent element,
+ *     it's best to set ``aria-busy="true"`` on that element in order to inform
+ *     screen readers that the content is still loading. It's very important to
+ *     remove this attribute once the load has completed.
+ *
+ *     This should be used along with ``aria-live=`` to indicate that the
+ *     element will be updated.
+ *
+ *     Alternatively, you might want to use ``aria-hidden="false"`` on this, if
+ *     it should not be read or seen by the screen reader, or
+ *     ``aria-label="..."`` if it should (and does not otherwise have
+ *     accompanying text).
+ *
+ * Structure:
+ *     <div class="djblets-o-spinner"></div>
+ */
+.djblets-o-spinner {
+  @_spinners-vars: #djblets-ns-ui.spinners();
+
+  background-repeat: no-repeat;
+  display: inline-block;
+  width: @_spinners-vars[@default-width];
+  height: @_spinners-vars[@default-height];
+  vertical-align: middle;
+
+  #djblets-ns-ui.spinners.set-theme('dark');
+}

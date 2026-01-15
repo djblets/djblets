@@ -1,0 +1,138 @@
+@import (reference) "../defs.less";
+
+
+/***************************************************************************
+ * Related object autocomplete
+ ***************************************************************************/
+
+.related-object-options,
+.related-object-selected {
+  font-size: @widget_font_size;
+
+  img {
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    vertical-align: top;
+  }
+
+  span {
+    line-height: 20px;
+    vertical-align: top;
+  }
+
+  .title {
+    display: inline-block;
+    min-width: 20em;
+    font-size: @widget_font_size;
+  }
+
+  .description {
+    display: inline-block;
+    font-size: (@widget_font_size * 0.9);
+    padding: 0;
+  }
+}
+
+.related-object-selector {
+  vertical-align: middle;
+
+  .related-object-selected {
+    background: var(--ink-p-input-bg);
+    border: var(--ink-g-border-input);
+    border-radius: var(--ink-g-border-radius-input);
+    margin: 0.5em 0 0 0;
+    max-height: 20em;
+    min-height: 3em;
+    overflow-y: auto;
+    padding: 0;
+  }
+
+  // Selectors that render as a list.
+  ul.related-object-selected {
+    list-style: none;
+
+    li {
+      cursor: default;
+      padding: 5px 8px; // To match the selectize style in the drop-down menu.
+      vertical-align: middle;
+
+      div {
+        display: inline-block;
+      }
+    }
+
+    .remove-item {
+      cursor: pointer;
+      float: right;
+      padding-top: 2px;
+      padding-bottom: 2px;
+
+      &:hover {
+        color: var(--ink-p-fg);
+      }
+
+      &:not(:hover) {
+        color: var(--ink-p-fg-weak);
+      }
+    }
+  }
+
+  // Selectors that render as a table.
+  table.related-object-selected {
+    padding: var(--ink-u-spacing-xs);
+    width: 100%;
+
+    td:last-child {
+      width: var(--ink-u-icon-std);
+    }
+
+    .remove-item:hover {
+      color: var(--ink-p-fg);
+    }
+
+    .remove-item:not(:hover) {
+      color: var(--ink-p-fg-weak);
+    }
+  }
+
+  .selectize-control {
+    .selectize-input {
+      background: var(--ink-p-input-bg);
+      border: var(--ink-g-border-input);
+      box-shadow: none;
+      font-size: @widget_font_size;
+      padding: 4px;
+
+      &::after {
+        right: 10px;
+      }
+
+      &.selectize-input.input-active {
+        background: var(--ink-p-input-bg);
+      }
+
+      &.selectize-input.dropdown-active:before {
+        background: none;
+      }
+
+      input {
+        color: var(--ink-p-input-fg) !important;
+        width: 100% !important;
+        /* To overwrite the measureString() return value,
+        which seems to  be broken in selectize-0.12.1 */
+      }
+    }
+  }
+}
+
+.selectize-dropdown {
+  border-color: var(--ink-p-input-border-color) !important;
+  background: var(--ink-p-input-bg);
+  color: var(--ink-p-input-fg);
+
+  .active {
+    background: var(--ink-p-input-selection-bg);
+    color: var(--ink-p-input-fg);
+  }
+}

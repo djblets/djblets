@@ -1,0 +1,153 @@
+@conditions-error-color: #990000;
+
+.conditions-field {
+  overflow: hidden;
+
+  .conditions-field-action {
+    cursor: pointer;
+    text-align: center;
+    color: var(--ink-c-data-table-header-fg);
+
+    .ink-i-add {
+      margin-right: var(--ink-u-spacing-s);
+      vertical-align: top;
+    }
+  }
+
+  .conditions-field-add-condition {
+    background: var(--ink-c-data-table-header-bg);
+    display: flex;
+    padding: var(--ink-u-spacing-m);
+  }
+
+  .conditions-field-mode {
+    ul {
+      margin: 0 0 1em 0;
+      padding: 0;
+
+      li {
+        display: inline-block;
+        margin-left: 1em;
+
+        input {
+          margin: 0;
+          vertical-align: baseline;
+        }
+
+        label {
+          display: inline-block;
+        }
+      }
+    }
+  }
+
+  .conditions-field-rows-container {
+    border: var(--ink-c-data-table-border);
+    border-radius: var(--ink-u-border-radius-std);
+    overflow: hidden;  /* Don't let backgrounds overlap borders. */
+    margin: 0.5em 0 0 1.5em;
+  }
+
+  .conditions-field-rows {
+    /*
+     * There's no good way with CSS grid to draw a border between rows. We
+     * therefore set the background of the container to be our border color
+     * and set the row-gap to be our border width. This will let the
+     * container background shine through in that gap.
+     */
+    background: var(--ink-c-data-table-row-border-color);
+    display: grid;
+    grid-auto-rows: auto;
+    grid-template-columns:
+      [action] min-content
+      [choice] min-content
+      [operator] min-content
+      [value] auto;
+    margin: 0;
+    padding: 0;
+    row-gap: var(--ink-u-border-thin);
+
+    &:not(:empty) {
+      /*
+       * Use this to draw a border between the last row and the "Add a
+       * new condition" <a> below it.
+       */
+      padding-bottom: var(--ink-u-border-thin);
+    }
+  }
+
+  .conditions-field-row {
+    background: var(--ink-c-data-table-body-bg);
+    display: grid;
+    grid-column: 1 / span 4;
+    grid-row: auto;
+    grid-template-columns: subgrid;
+    margin: 0;
+    padding: var(--ink-u-spacing-m);
+
+    .conditions-field-action {
+      grid-column: action;
+
+      /*
+       * We don't have a good way of doing vertical centering for this.
+       * Using baseline doesn't work because a <select multiple> has its
+       * baseline at the bottom of the widget regardless of how tall it is.
+       *
+       * The best solution for now seems to be just adding some manual
+       * padding to handle the difference between the icon height and the
+       * line height of the <select> widget that appears next to it.
+       */
+      .ink-i-delete-item {
+        padding-top: 6px;
+      }
+    }
+
+    .conditions-field-choice {
+      grid-column: choice;
+    }
+
+    .conditions-field-operator {
+      grid-column: operator;
+    }
+
+    .conditions-field-value {
+      grid-column: value;
+    }
+
+    .conditions-field-error {
+      color: var(--ink-p-red-600);
+      grid-column: 2 / span 3;
+      padding: var(--ink-u-spacing-s);
+    }
+
+    .conditions-field-choice,
+    .conditions-field-operator,
+    .conditions-field-value {
+      padding: 0 var(--ink-u-spacing-s);
+
+      select {
+        min-width: 130px;
+      }
+
+      /*
+       * config-forms.less sets the width of these to 30em. We want to just
+       * fill the available space in the column.
+       */
+      input[type=email],
+      input[type=number],
+      input[type=password],
+      input[type=search],
+      input[type=text],
+      input[type=url],
+      select {
+        width: 100%;
+      }
+    }
+  }
+
+  .error-list {
+    color: @conditions-error-color;
+    margin: 0 0 var(--ink-u-spacing-m) 0;
+    padding: 0;
+  }
+}

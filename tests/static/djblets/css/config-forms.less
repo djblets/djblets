@@ -1,0 +1,1439 @@
+/**
+ * Standard styling for configuration forms and widgets.
+ *
+ * This contains some formal structure and styles for configuration forms
+ * and multi-sub-page layout, useful for account settings and administrative
+ * pages.
+ *
+ * .. note::
+ *
+ *    Many of the styles here are old and cobbled together from some of our
+ *    other codebases. We're working to deprecate anything not in the
+ *    ``djblets-*`` namespace, and may even alter and remove some styles within
+ *    those.
+ *
+ *    Also worth noting that, due to a LessCSS bug, we can't use our standard
+ *    component pattern of defining sub-element styles using ``&__subelement``.
+ *    It doesn't work with the ``&:extend()`` pattern we're using for
+ *    backwards-compatibility.
+ *
+ * Version Changed:
+ *     5.0:
+ *     Everything in this module is being converted to Ink. At this time,
+ *     Ink is required, and styles are in flux. Over time, much of this
+ *     module's styling will be deprecated in favor of Ink components.
+ */
+
+@import (reference) "@beanbag/ink/lib/ink.less";
+@import (reference) "defs.less";
+
+@img-base: '../images/config-forms';
+
+@config-forms-forms-width: 60em;
+@config-forms-gap: 2em;
+
+/*
+ * Legacy variable definitions.
+ *
+ * These are no longer used within Djblets itself, but might still be
+ * referenced by consumers. These will be removed in Djblets 7.
+ */
+@config-forms-text-field-border-color: #AAA;
+@config-forms-text-field-border-radius: 4px;
+@config-forms-text-field-border-size: 1px;
+@config-forms-text-field-padding-horiz: 8px;
+@config-forms-text-field-padding-vert: 4px;
+
+
+.ellipsize() {
+  /* Ellipsize the text contents. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+#djblets-ns-config-forms() {
+  @container-padding: 1em;
+  @border-color: #AAAAAA;
+  @border-radius: 6px;
+
+  /**
+   * Set the widths for the navigation and forms content.
+   *
+   * Args:
+   *     nav-width (number, optional):
+   *         The width of the navigation menu.
+   *
+   *     forms-width (number, optional):
+   *         The width of the forms section.
+   */
+  .set-page-widths(@nav-width: #djblets-ns-config-forms.page[@nav-width],
+                   @forms-width: #djblets-ns-config-forms.page[@forms-width]) {
+    .config-forms-container,  /* Deprecated */
+    .djblets-c-config-forms-page {
+      width: (@nav-width + @forms-width +
+              #djblets-ns-config-forms.page[@gap] +
+              (2 * #djblets-ns-config-forms[@container-padding]));
+    }
+
+    .config-forms-page-content,  /* Deprecated */
+    .djblets-c-config-forms-page__content {
+      width: @forms-width;
+    }
+  }
+
+  .list() {
+    @item-line-height: 32px;
+
+    @item-padding-horiz-small: 0.5em;
+    @item-padding-horiz-large: 1em;
+    @item-padding-vert-small: 0.5em;
+    @item-padding-vert-large: 1em;
+    @item-padding-default: @item-padding-vert-small @item-padding-horiz-large;
+    @item-padding-small: @item-padding-vert-small @item-padding-horiz-small;
+    @item-padding-large: @item-padding-vert-large @item-padding-horiz-large;
+
+    @item-action-color: black;
+    @item-action-font-size: 110%;
+    @item-action-spacing: 5px;
+    @item-action-padding-vert: 0.5em;
+    @item-action-padding-horiz: 1em;
+    @item-action-padding: @item-action-padding-vert @item-action-padding-horiz;
+
+    /**
+     * Define a color state for an item.
+     *
+     * This adds a modifier class to a ``.djblets-c-config-forms-list``
+     * element that, when set, will provide a colored border on the
+     * left-hand side of the item. This can be used to differentiate between
+     * item states, such as enabled, disabled, errors, etc.
+     *
+     * This should be called within a selector for a variant on the list.
+     *
+     * Args:
+     *     modifier (string):
+     *         The name of the new modifier. This must not have the leading
+     *         ``-``.
+     *
+     *     color (string):
+     *         The border color to define for the modifier.
+     *
+     *     text-color (string, optional):
+     *         The text color for any status text.
+     */
+    .add-item-state(
+      @modifier,
+      @color,
+      @text-color: black,
+      @icon: none,
+    ) {
+      .djblets-c-config-forms-list__item.-@{modifier},
+      tr.djblets-c-config-forms-list__item.-@{modifier} {
+        > td:first-child {
+          border-left: 8px @color solid !important;
+        }
+
+        .djblets-c-config-forms-list__item-state {
+          color: @text-color;
+
+          & when not (@icon = none) {
+            &:before {
+              #ink-ns-ui.icons.svg-icon(@icon);
+              margin-right: var(--ink-u-spacing-xs);
+              vertical-align: middle;
+            }
+          }
+        }
+      }
+    }
+
+    /*
+     * Legacy variable definitions.
+     *
+     * These are no longer used within Djblets itself, but might still be
+     * referenced by consumers. These will be removed in Djblets 7.
+     */
+    @bg-color: #FFFFFF;
+    @border-color: #djblets-ns-config-forms[@border-color];
+    @column-bg-color: #F0F0F3;
+    @column-sep-color: #CCCCCC;
+    @item-border-color: #E9E9E9;
+    @item-hover-bg-color: #FAFAFA;
+
+    @state-disabled-color: #DDDDDD;
+    @state-disabled-icon: "\f00d";
+    @state-disabled-text-color: darkred;
+    @state-enabled-color: #53CC53;
+    @state-enabled-icon: "\f00c";
+    @state-enabled-text-color: darkgreen;
+    @state-error-color: #E45757;
+    @state-error-icon: "/f057";
+    @state-error-text-color: darkred;
+  }
+
+  .page() {
+    @box-bg-color: #F3F3F3;
+    @box-padding: 1em;
+    @box-border-radius: 6px;
+    @box-sep-width: 2em;
+    @font-size: 9pt;
+
+    @forms-width: 60em;
+    @nav-width: 17em;
+    @gap: 2em;
+
+    @nav-item-bg-color: @box-bg-color;
+    @nav-item-active-bg-color: #FEFEFE;
+    @nav-item-hover-bg-color: darken(@nav-item-bg-color, 5%);
+    @nav-item-padding-horiz: 1em;
+    @nav-item-padding-vert: 0.5em;
+    @nav-item-sep-color: #D9D9D9;
+  }
+
+  .popup-menu() {
+    @bg-color: #FFFFF0;
+    @border-color: #BBBBB0;
+
+    @item-padding-vert: 0;
+    @item-padding-horiz: 0.5em;
+    @item-label-margin-left: 0.2em;
+  }
+
+  .spinner() {
+    @margin: 1px;
+    @size: 16px;
+
+    /**
+     * Set the size of a spinner.
+     *
+     * Args:
+     *     @size (number):
+     *         The size, in pixels.
+     */
+    .set-size(@size) {
+      /*
+       * We need !important in order to ensure that .fa's default size is
+       * overridden.
+       */
+      font-size: @size !important;
+      width: @size;
+      height: @size;
+    }
+  }
+}
+
+
+/****************************************************************************
+ * Base styling for config forms
+ ****************************************************************************/
+
+/**
+ * A full-page configuration UI with navigation panels and subpages.
+ *
+ * Modifiers:
+ *     -has-sidebar:
+ *         Whether there's a ``.djblets-c-config-forms-side-nav`` sidebar
+ *         on the page.
+ *
+ * Structure:
+ *     <div class="djblets-c-config-forms-page -has-sidebar">
+ *      <div class="djblets-c-config-forms-side-nav">
+ *       ...
+ *      </div>
+ *      <div class="djblets-c-config-forms-page__content">
+ *       <div class="djblets-c-config-forms-subpage">
+ *        ...
+ *       </div>
+ *       ...
+ *      </div>
+ *     </div>
+ */
+.djblets-c-config-forms-page {
+  @_page-vars: #djblets-ns-config-forms.page();
+
+  font-size: @_page-vars[@font-size];
+  margin: 0 auto;
+
+  &.-has-sidebar .djblets-c-config-forms-page__content {
+    float: left;
+    margin-left: @_page-vars[@gap];
+  }
+
+  a {
+    color: var(--ink-p-link-fg);
+    text-decoration: none;
+
+    &.btn {
+      color: black;
+    }
+  }
+
+  .box {
+    background: var(--ink-p-container-bg);
+    margin: 0 0 @_page-vars[@box-sep-width] 0;
+  }
+
+  .box-container {
+    margin: 0;
+    width: auto;
+  }
+
+  .box-inner {
+    background: transparent;
+  }
+
+  .box-main {
+    padding: 0;
+  }
+
+  /**
+   * Actions shown on the form.
+   *
+   * Version Added:
+   *     5.0
+   *
+   * Structure:
+   *     <div class="djblets-c-config-forms-page__actions">
+   *      ...
+   *     </div>
+   */
+  .djblets-c-config-forms-actions {
+    margin-top: var(--ink-u-spacing-xl);
+  }
+}
+
+
+/**
+ * The content area of a full-page configuration UI.
+ *
+ * Structure:
+ *     <div class="djblets-c-config-forms-page__content">
+ *      <div class="djblets-c-config-forms-subpage">
+ *       ...
+ *      </div>
+ *      ...
+ *     </div>
+ */
+.djblets-c-config-forms-page__content {
+  margin-top: 0;
+  margin-left: auto;
+  margin-right: auto;
+  width: #djblets-ns-config-forms.page[@forms-width];
+
+  fieldset {
+    border: 0;
+    margin: 2em 0;
+    padding: 0;
+
+    h2 {
+      font-size: 120%;
+      margin-top: 0;
+    }
+  }
+
+  form {
+    margin: 0 auto;
+  }
+
+  input[type=email],
+  input[type=number],
+  input[type=password],
+  input[type=search],
+  input[type=text],
+  input[type=url],
+  input[type=tel],
+  select {
+    background: var(--ink-p-input-bg);
+    border: var(--ink-g-border-input);
+    border-radius: var(--ink-u-border-radius-input);
+    box-sizing: border-box;
+    color: var(--ink-p-input-fg);
+    width: 30em;
+    max-width: 30em;
+    font-size: inherit;
+    padding: var(--ink-u-spacing-xs) var(--ink-u-spacing-s);
+  }
+
+  option {
+    background: var(--ink-p-input-bg);
+    color: var(--ink-p-input-fg);
+  }
+
+  legend {
+    border-bottom: 1px #D0D0D0 solid;
+    font-size: 100%;
+    font-weight: bold;
+    padding: 0 0 0 0.4em;
+    margin-bottom: 1em;
+  }
+
+  p {
+    font-size: inherit;
+    line-height: 1.5;
+    margin: 1em 0;
+  }
+
+  select {
+    font-size: inherit;
+  }
+
+  #messages {
+    @msg-bg-color: #FFC;
+    @msg-border-color: darken(@msg-bg-color, 50%);
+
+    margin: 0 0 1em 0;
+    padding: 0;
+
+    li {
+      background: @msg-bg-color url('@{img-base}/icon_success.gif')
+                  5px .3em no-repeat;
+      border: 1px solid @msg-border-color;
+      color: #666;
+      display: block;
+      font-size: 12px;
+      margin: 0 0 3px 0;
+      padding: 4px 5px 4px 25px;
+
+      &.error {
+        background-image: url('@{img-base}/icon_error.gif');
+      }
+
+      &.warning {
+        background-image: url('@{img-base}/icon_alert.gif');
+      }
+    }
+  }
+
+  .box-main {
+    p {
+      &:first-child {
+        margin-top: 0;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .description {
+      margin: 0 0 1em 0;
+    }
+  }
+
+  .btn {
+    padding: 5px 14px 6px;
+  }
+
+  .buttons {
+    input[type=reset],
+    input[type=submit] {
+      text-align: center;
+      margin: 0 auto;
+    }
+  }
+
+  .checkbox-row {
+    .field {
+      width: 100%;
+
+      input, label {
+        display: inline;
+        width: auto;
+      }
+
+      label {
+        color: inherit;
+        text-align: left;
+        margin-left: 0;
+        vertical-align: middle;
+      }
+
+      li {
+        margin: 0.5em 0;
+      }
+
+      ul {
+        list-style: none;
+        margin: 0 0 0 1em;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      .help {
+        margin-left: 2em;
+      }
+    }
+  }
+
+  .errorlist {
+    clear: both;
+    display: block;
+    padding: 0;
+    margin: 0.5em;
+    list-style: none;
+
+    li {
+      display: list-item;
+      color: darkred;
+    }
+  }
+
+  .fields-row {
+    margin: 0 0 1em 0;
+    position: relative;
+
+    &:after {
+      clear: both;
+      display: table;
+      content: "";
+      line-height: 0;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .field {
+    display: block;
+    float: left;
+    margin-right: 1em;
+
+    &:last-child {
+      margin-right: 0;
+    }
+
+    input {
+      width: 21em;
+
+      &[type=checkbox],
+      &[type=radio] {
+        width: auto;
+      }
+    }
+
+    p.help {
+      color: #666666;
+      font-size: 90%;
+      margin: 1em 0;
+    }
+
+    .hint {
+      display: block;
+      margin: 0.5em 0 0 0.5em;
+      font-size: 90%;
+    }
+  }
+}
+
+
+/**
+ * A navigation sidebar for full-page configuration UIs.
+ *
+ * Structure:
+ *     <div class="djblets-c-config-forms-page-nav">
+ *      <ul class="djblets-c-config-forms-page-nav__list">
+ *       <li class="djblets-c-config-forms-page-nav__item -is-active">...</li>
+ *       <li class="djblets-c-config-forms-page-nav__item">...</li>
+ *       ...
+ *      </ul>
+ *     </div>
+ */
+.djblets-c-config-forms-page-nav {
+  @_page-vars: #djblets-ns-config-forms.page();
+
+  float: left;
+  width: @_page-vars[@nav-width];
+
+  .box-main {
+    padding: 0;
+  }
+}
+
+
+/**
+ * A clickable item in the navigation sidebar.
+ *
+ * Modifiers:
+ *     -is-active:
+ *         Whether this is the currently-active item, corresponding to the
+ *         current page.
+ *
+ * Structure:
+ *     <li class="djblets-c-config-forms-page-nav__item -is-active">
+ *      <a href="#page-id">label</a>
+ *     </li>
+ */
+.djblets-c-config-forms-page-nav__item {
+  @_page-vars: #djblets-ns-config-forms.page();
+
+  border-bottom:
+    1px
+    var(--if-dark, transparent)
+    var(--if-light, @_page-vars[@nav-item-sep-color])
+    solid;
+
+  &:last-child {
+    border-bottom: 0;
+
+    &.-is-active, &:hover {
+      border-radius:
+        0 0
+        var(--ink-u-border-radius-s-inner)
+        var(--ink-u-border-radius-s-inner);
+    }
+  }
+
+  &:hover {
+    background: var(--ink-p-container-hover-bg);
+    color: var(--ink-p-container-hover-fg);
+  }
+
+  &.-is-active {
+    &,
+    &:hover {
+      background: var(--ink-p-accent-primary-bg);
+      color: var(--ink-p-accent-primary-fg);
+    }
+
+    a {
+      cursor: default;
+    }
+  }
+
+  a {
+    color: inherit;
+    display: block;
+    font-weight: normal;
+    outline: none;
+    padding: @_page-vars[@nav-item-padding-vert]
+             @_page-vars[@nav-item-padding-horiz];
+    text-decoration: none;
+  }
+}
+
+
+/**
+ * A list of items in the navigation sidebar.
+ *
+ * Structure:
+ *      <ul class="djblets-c-config-forms-page-nav__list">
+ *       <li class="djblets-c-config-forms-page-nav__item -is-active">...</li>
+ *       <li class="djblets-c-config-forms-page-nav__item">...</li>
+ *       ...
+ *      </ul>
+ */
+.djblets-c-config-forms-page-nav__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+
+/**
+ * A subpage in a full-page configuration UI.
+ *
+ * This can contain any kind of content, but will usually contain forms.
+ *
+ * Modifiers:
+ *     -is-active:
+ *         This is the actively-shown subpage.
+ *
+ * Structure:
+ *     <div class="djblets-c-config-forms-subpage -is-active">
+ *      ...
+ *     </div>
+ */
+.djblets-c-config-forms-subpage {
+  display: none;
+
+  &.-is-active {
+    display: block;
+  }
+}
+
+
+/* Set the default widths for the page. */
+#djblets-ns-config-forms.set-page-widths();
+
+
+/****************************************************************************
+ * Lists and tables of actionable items
+ ****************************************************************************/
+
+/**
+ * A single-column or multi-column list of items.
+ *
+ * The items may have actions associated with it, which can include buttons
+ * and dropdown menus.
+ *
+ * Modifiers:
+ *     -all-items-are-multiline:
+ *         All list items should be styled to support multi-line content.
+ *         This will cause actions and state columns to be vertically-aligned
+ *         to the top of the row. This is short-hand for adding
+ *         ``-is-multiline` to all list items.
+ *
+ *     -all-items-have-actions:
+ *         All list items have actions shown on the right-hand side. This
+ *         is short-hand for adding ``-has-actions`` to all list items.
+ *
+ *     -all-items-have-icons:
+ *         All list items have icons shown on the left-hand side. This
+ *         is short-hand for adding ``-has-icons`` to all list items.
+ *
+ * Structure:
+ *     <ul class="djblets-c-config-forms-list">
+ *      <li class="djblets-c-config-forms-list__item">...</li>
+ *      ...
+ *     </ul>
+ */
+.djblets-c-config-forms-list {
+  background: var(--ink-c-data-table-body-bg);
+  border-bottom: var(--ink-c-data-table-border);
+  border-top: var(--ink-c-data-table-border);
+  margin-bottom: 0;
+  padding: 0;
+
+  > :last-child {
+    border-bottom: none;
+  }
+
+  &:empty {
+    border: none;
+  }
+
+  .-is-bottom-flush &:is(:last-child) {
+    border-bottom: none;
+  }
+}
+
+
+/**
+ * The table variation on a list of items.
+ *
+ * This sets some basic styling to allow the table to display correctly.
+ *
+ * Structure:
+ *     <table class="djblets-c-config-forms-list">
+ *      <thead>
+ *       <tr>
+ *        <th class="djblets-c-config-forms-list__column">...</th>
+ *        ...
+ *       </tr>
+ *      </thead>
+ *      <tbody>
+ *       <tr class="djblets-c-config-forms-list__item">...</tr>
+ *       ...
+ *      </tbody>
+ *     </table>
+ */
+table.djblets-c-config-forms-list {
+  border-collapse: collapse;
+  border-spacing: 0;
+  border-top: 0;
+  border-bottom: 0;
+  width: 100%;
+
+  > tbody > tr:last-child {
+    td,
+    th {
+      border-bottom: 0;
+    }
+  }
+}
+
+
+/**
+ * A column in a multi-column list of items.
+ *
+ * Structure:
+ *     <th class="djblets-c-config-forms-list__column">...</th>
+ */
+.djblets-c-config-forms-list__column {
+  @_list-vars: #djblets-ns-config-forms.list();
+
+  background: var(--ink-c-data-table-header-bg);
+  border-bottom: var(--ink-c-data-table-border);
+  color: var(--ink-c-data-table-header-fg);
+  text-align: left;
+  padding: @_list-vars[@item-padding-default];
+
+  &:last-child {
+    border-right: 0;
+  }
+}
+
+
+/**
+ * An item in a single or multi-column list.
+ *
+ * Items may be single-column (found in ``ul.djblets-c-config-forms-list``
+ * elements) or multi-column (found in ``table.djblets-c-config-forms-list``
+ * elements). They may have an icon docked on the left, and actions docked
+ * on the right.
+ *
+ * By default, items support two modifiers that add a visual indicator as to
+ * the item's state, showing a colored border on the left-hand side of the
+ * item. These are ``-is-enabled`` and ``-is-disabled``. Additional state
+ * modifiers can be defined through
+ * ``#djblets-ns-config-forms.list.add-item-state()`.
+ *
+ * Modifiers:
+ *     -has-actions:
+ *         The list item has actions shown on the right-hand side. This is
+ *         not needed if the parent list has the ``-all-items-have-actions``
+ *         modifier.
+ *
+ *     -has-error:
+ *         The list item has an error state. This will show a thick red
+ *         border on the left.
+ *
+ *     -has-icon:
+ *         The list item has an icon shown on the left-hand side. This is
+ *         not needed if the parent list has the ``-all-items-have-icons``
+ *         modifier.
+ *
+ *     -is-multiline:
+ *         The list item should be styled to support multi-line content.
+ *         This will cause actions and state columns to be vertically-aligned
+ *         to the top of the row. It will also turn off custom line heights
+ *         and re-enable line wrapping for contents in a
+ *         ``djblets-c-config-forms-list__item-main`` child.
+ *
+ *     -is-disabled:
+ *         The list item has a disabled state. This will show a thick grey
+ *         border on the left.
+ *
+ *     -is-enabled:
+ *         The list item has an enabled state. This will show a thick green
+ *         border on the left.
+ *
+ * Structure:
+ *     <li class="djblets-c-config-forms-list__item">...</li>
+ *     <li class="djblets-c-config-forms-list__item -has-actions">...</li>
+ *     <li class="djblets-c-config-forms-list__item -is-enabled">...</li>
+ *     ...
+ *
+ *     Or:
+ *
+ *     <tr class="djblets-c-config-forms-list__item">...</tr>
+ *     <tr class="djblets-c-config-forms-list__item -has-actions">...</tr>
+ *     <tr class="djblets-c-config-forms-list__item -is-enabled">...</tr>
+ *     ...
+ */
+.djblets-c-config-forms-list__item {
+  @_list-vars: #djblets-ns-config-forms.list();
+
+  li&,
+  > td,
+  > th {
+    border-bottom: var(--ink-c-data-table-row-border);
+    padding: @_list-vars[@item-padding-default];
+    list-style: none;
+    line-height: @_list-vars[@item-line-height];
+    vertical-align: middle;
+    .ellipsize();
+  }
+
+  &:last-child {
+    li&,
+    > td,
+    > th {
+      border-bottom: 0;
+    }
+  }
+
+  .djblets-c-config-forms-list.-all-items-have-actions &,
+  &.-has-actions {
+    li&,
+    > td:last-child,
+    > th:last-child {
+      padding-right: @_list-vars[@item-padding-horiz-small];
+    }
+  }
+
+  .djblets-c-config-forms-list.-all-items-have-icons &,
+  &.-has-icon {
+    li&,
+    > td:first-child,
+    > th:first-child {
+      padding-left: @_list-vars[@item-padding-horiz-small];
+    }
+  }
+
+  .djblets-c-config-forms-list.-all-items-are-multiline &,
+  &.-is-multiline {
+    li&,
+    > td,
+    > th,
+    > td:first-child,  /* Overrides the actions/icons above. */
+    > th:first-child,
+    > td:last-child,
+    > th:last-child {
+      padding: @_list-vars[@item-padding-large];
+      vertical-align: top;
+    }
+
+    .djblets-c-config-forms-list__item-actions {
+      width: 100%;
+    }
+
+    .djblets-c-config-forms-list__item-action {
+      display: block;
+      width: 100%;
+
+      + .djblets-c-config-forms-list__item-action {
+        margin: @_list-vars[@item-action-spacing] 0 0 0;
+      }
+    }
+
+    .djblets-c-config-forms-list__item-main {
+      line-height: normal;
+      white-space: normal;
+    }
+  }
+
+  a {
+    color: var(--ink-p-link-fg);
+    font-weight: normal;
+    text-decoration: none;
+  }
+
+  img {
+    display: inline-block;
+    margin-right: @_list-vars[@item-padding-horiz-small];
+    vertical-align: middle;
+  }
+}
+
+
+/**
+ * A list of actions for an item in a list.
+ *
+ * This is shown on the right-hand side of the list.
+ *
+ * Structure:
+ *     <div class="djblets-c-config-forms-list__item-actions">
+ *      <button class="djblets-c-config-forms-list__item-action">...</button>
+ *      ...
+ *     </div>
+ */
+.djblets-c-config-forms-list__item-actions {
+  li.djblets-c-config-forms-list__item & {
+    float: right;
+  }
+}
+
+
+/**
+ * An action for an item.
+ *
+ * This is shown on the right-hand side of the list.
+ *
+ * Modifiers:
+ *     -is-danger:
+ *         Indicates that the action performs an operation that might result
+ *         in data loss (such as discarding a form or deleting data).
+ *
+ *         This is not styled by default. It is up to the consuming
+ *         application to provide a style. It will generally be the same
+ *         styling used for this modifier on a ``<button>``.
+ *
+ *     -is-primary:
+ *         Indicates that the button is the primary action for the item.
+ *
+ *         This is not styled by default. It is up to the consuming
+ *         application to provide a style. It will generally be the same
+ *         styling used for this modifier on a ``<button>``.
+ *
+ * Structure:
+ *     <button class="djblets-c-config-forms-list__item-action">...</button>
+ *
+ *     <a class="djblets-c-config-forms-list__item-action" role="button"
+ *        href="...">...</a>
+ */
+.djblets-c-config-forms-list__item-action {
+  @_list-vars: #djblets-ns-config-forms.list();
+
+  /*
+   * In practice, there are stylesheets that have higher specificity and will
+   * override some of these styles in ways that make things wildly
+   * inconsistent. So, we need to generate some variants to match that.
+   */
+  &,
+  a&,
+  button& {
+    box-sizing: border-box;
+    font-size: @_list-vars[@item-action-font-size];
+    margin: 0;
+    padding: @_list-vars[@item-action-padding];
+    text-align: center;
+  }
+
+  &.ink-c-button {
+    --ink-c-button-padding-vert: @_list-vars[@item-action-padding-vert];
+    --ink-c-button-padding-horiz: @_list-vars[@item-action-padding-horiz];
+  }
+
+  + .djblets-c-config-forms-list__item-action {
+    margin: 0 0 0 @_list-vars[@item-action-spacing];
+  }
+}
+
+
+/**
+ * The main content of an item.
+ *
+ * This is an optional child that can define the main content of more complex
+ * list items. It is currently required if you want to use list items with
+ * the ``-is-multiline`` modifier.
+ *
+ * Structure:
+ *     <div class="djblets-c-config-forms-list__item-main">...</div>
+ */
+.djblets-c-config-forms-list__item-main {
+}
+
+
+/**
+ * A text/icon-based state indicator for an item.
+ *
+ * This can be used as part of an item to indicate the enabled/disabled/etc.
+ * state of an item. It will be color-coded based on the registered item
+ * state. This is purely optional and up to the implementation to use.
+ *
+ * Structure:
+ *     <td class="djblets-c-config-forms-list__item-state">
+ *      <span class="fa ..."></span> ...
+ *     </td>
+ */
+.djblets-c-config-forms-list__item-state {
+  white-space: nowrap;
+}
+
+
+#djblets-ns-config-forms.list.add-item-state(
+  @modifier: is-disabled,
+  @color: var(--ink-p-grey-700),
+  @text-color: var(--ink-p-grey-700),
+  @icon: var(--ink-i-close));
+#djblets-ns-config-forms.list.add-item-state(
+  @modifier: is-enabled,
+  @color: var(--ink-p-green-500),
+  @text-color: var(--ink-p-green-700),
+  @icon: var(--ink-i-check));
+#djblets-ns-config-forms.list.add-item-state(
+  @modifier: has-error,
+  @color: var(--ink-p-red-500),
+  @text-color: var(--ink-p-red-700),
+  @icon: var(--ink-i-warning));
+
+
+/**
+ * Actions shown above a list component.
+ *
+ * This should generally be mixed in with a
+ * ``.djblets-l-config-forms-container``.
+ *
+ * Structure:
+ *     <div class="djblets-c-config-forms-list-actions
+ *                 djblets-l-config-forms-container">
+ *      <button class="djblets-c-config-forms-list-actions__acction">
+ *       ...
+ *      </button>
+ *      ...
+ *     </div>
+ */
+.djblets-c-config-forms-list-actions {
+  /**
+   * An action shown above a list.
+   *
+   * This does not provide styling for the action, aside from spacing.
+   * It's up to consumers to style the actions that they need, or to mix in
+   * additional classes.
+   *
+   * Structure:
+   *     <button class="djblets-c-config-forms-list-actions__action">
+   *      ...
+   *     </button>
+   *
+   *     <a href="..." class="djblets-c-config-forms-list-actions__action btn">
+   *      ...
+   *     </a>
+   */
+  &__action {
+    margin: 0;
+
+    & + & {
+      margin-left: 0.5em;
+    }
+  }
+}
+
+
+/****************************************************************************
+ * Pop-up menu component
+ ****************************************************************************/
+
+/**
+ * A pop-up menu of items.
+ *
+ * Structure:
+ *     <div class="djblets-c-config-forms-popup-menu">
+ *      <ul class="djblets-c-config-forms-popup-menu__items">
+ *       <li class="djblets-c-config-forms-popup-menu__item">
+ *        <input type="checkbox" />
+ *        <label>...</label>
+ *       </li>
+ *       <li class="djblets-c-config-forms-popup-menu__item">
+ *        <a href="...">...</a>
+ *       </li>
+ *       ...
+ *      </ul>
+ *     </div>
+ */
+.djblets-c-config-forms-popup-menu {
+  @_popup-menu-vars: #djblets-ns-config-forms.popup-menu();
+
+  background: var(--ink-c-menu-bg);
+  border: var(--ink-c-menu-border);
+  color: var(--ink-c-menu-fg);
+  z-index: var(--ink-z-menu);
+}
+
+
+/**
+ * A list of items in a pop-up menu.
+ *
+ * Structure:
+ *     <ul class="djblets-c-config-forms-popup-menu__items">
+ *      <li class="djblets-c-config-forms-popup-menu__item">...</li>
+ *      ...
+ *     </ul>
+ */
+.djblets-c-config-forms-popup-menu__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  white-space: nowrap;
+}
+
+
+/**
+ * An item in a pop-up menu.
+ *
+ * Structure:
+ *     <li class="djblets-c-config-forms-popup-menu__item">...</li>
+ */
+.djblets-c-config-forms-popup-menu__item {
+  @_popup-menu-vars: #djblets-ns-config-forms.popup-menu();
+
+  padding: @_popup-menu-vars[@item-padding-vert]
+           @_popup-menu-vars[@item-padding-horiz];
+
+  input {
+    vertical-align: middle;
+  }
+
+  label {
+    display: inline;
+    margin-left: @_popup-menu-vars[@item-label-margin-left];
+    vertical-align: middle;
+  }
+}
+
+
+/****************************************************************************
+ * Standard layout containers
+ ****************************************************************************/
+
+/**
+ * A container within a config form, containing margins and content.
+ *
+ * Containers are meant to contain other content within a config form, such
+ * as form elements, text descriptions, images, or more complex components.
+ *
+ * It's recommended to use containers for any margins rather than applying
+ * padding to the parent, so that margins can be better controlled in a
+ * consistent way.
+ *
+ * By default, containers have a consistent margin on all sides, separating
+ * it from other containers and from its parent. However, they can also be
+ * set in a recessed mode, which removes the left/right margins in order to
+ * make the contents flush with the parent container.
+ *
+ * Modifiers:
+ *     -is-bottom-flush:
+ *         Removes the bottom margin (and border, if using ``-is-recessed``) in
+ *         order to make the container flush with the bottom of the parent.
+ *
+ *     -is-recessed:
+ *         Recesses the container, removing the left and right margins.
+ *
+ *     -is-top-flush:
+ *         Removes the top margin (and border, if using ``-is-recessed``) in
+ *         order to make the container flush with the top of the parent.
+ *
+ * Structure:
+ *     <div class="djblets-l-config-forms-container -is-recessed">
+ *      ...
+ *     </div>
+ */
+.djblets-l-config-forms-container {
+  margin: var(--ink-u-spacing-m);
+
+  &.-is-bottom-flush {
+    margin-bottom: 0;
+  }
+
+  &.-is-top-flush {
+    margin-top: 0;
+  }
+
+  &.-is-recessed {
+    margin-left: 0;
+    margin-right: 0;
+    border-top: var(--ink-c-data-table-border);
+    border-bottom: var(--ink-c-data-table-border);
+
+    &.-is-bottom-flush {
+      border-bottom: 0;
+    }
+
+    &.-is-top-flush {
+      border-top: 0;
+    }
+  }
+}
+
+
+/****************************************************************************
+ * Utility objects
+ ****************************************************************************/
+
+/**
+ * A spinner widget.
+ *
+ * This is suited for appearing in an item when an action is being taken.
+ * It's meant to be used with the ``fa fa-spinner fa-pulse`` classes.
+ *
+ * Deprecated:
+ *     2.0:
+ *     Consumers should use ``djblets-o-spinner`` instead.
+ *
+ * Structure:
+ *     <span class="fa fa-spinner fa-pulse djblets-o-config-forms-spinner">
+ *     </span>
+ */
+.djblets-o-config-forms-spinner {
+  @_spinner-vars: #djblets-ns-config-forms.spinner();
+
+  #djblets-ns-config-forms.spinner.set-size(@_spinner-vars[@size]);
+
+  display: inline-block;
+  margin: @_spinner-vars[@margin];
+  vertical-align: middle;
+}
+
+
+/**
+ * An Add icon for buttons and other widgets.
+ */
+.djblets-o-config-forms-icon-add {
+  color: #00AA00;
+  display: inline-block;
+  font-family: FontAwesome;
+  font-size: 120%;
+  vertical-align: text-bottom;
+
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  &:before {
+    content: "\f055";  /* Code for fa-plus-circle */
+  }
+}
+
+
+/****************************************************************************
+ * Deprecated styles
+ ****************************************************************************/
+@_config-forms-vars: #djblets-ns-config-forms();
+@config-forms-container-padding: @_config-forms-vars[@container-padding];
+
+@_config-forms-list-vars: #djblets-ns-config-forms.list();
+@config-forms-list-bg-color:
+  @_config-forms-list-vars[@bg-color];
+@config-forms-list-border-color:
+  @_config-forms-list-vars[@border-color];
+@config-forms-list-item-border-color:
+  @_config-forms-list-vars[@item-border-color];
+@config-forms-list-item-hover-bg-color:
+  @_config-forms-list-vars[@item-hover-bg-color];
+@config-forms-list-item-line-height:
+  @_config-forms-list-vars[@item-line-height];
+@config-forms-list-item-padding-horiz:
+  @_config-forms-list-vars[@item-padding-horiz-large];
+@config-forms-list-item-padding-horiz-small:
+  @_config-forms-list-vars[@item-padding-horiz-small];
+@config-forms-list-item-padding-vert:
+  @_config-forms-list-vars[@item-padding-vert-small];
+@config-forms-list-item-padding:
+  @_config-forms-list-vars[@item-padding-default];
+
+@_config-forms-page-vars: #djblets-ns-config-forms.page();
+@config-forms-box-bg: @_config-forms-page-vars[@box-bg-color];
+@config-forms-box-padding: @_config-forms-page-vars[@box-padding];
+@config-forms-box-border-radius: @_config-forms-page-vars[@box-border-radius];
+@config-forms-side-nav-width: @_config-forms-page-vars[@nav-width];
+
+
+.config-forms-container {
+  &:extend(.djblets-c-config-forms-page all);
+
+  padding: @config-forms-container-padding;
+
+  &.config-forms-has-sidebar .config-forms-page-content {
+    &:extend(.djblets-c-config-forms-page.-has-sidebar
+             .djblets-c-config-forms-page__content);
+  }
+
+  .djblets-l-config-forms-container {
+    padding: 0;
+  }
+}
+
+.config-forms-list {
+  &:extend(.djblets-c-config-forms-list all);
+
+  &:empty ~ .config-forms-list-empty {
+    display: block;
+  }
+
+  &-actions {
+    margin: 1em 0 0 0em;
+  }
+
+  &-full {
+    margin-top: 1em;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  &-header-actions {
+    margin: 0 0 1em 0;
+  }
+}
+
+table.config-forms-list thead th {
+  &:extend(.djblets-c-config-forms-list__column all);
+}
+
+.config-forms-list-item {
+  &:extend(.djblets-c-config-forms-list__item all);
+  &:extend(.djblets-c-config-forms-list__item.-has-actions all);
+
+  &.disabled label {
+    color: #C0C0C0;
+  }
+
+  &-actions {
+    &:extend(.djblets-c-config-forms-list__item-actions all);
+  }
+
+  &-empty {
+    background: @config-forms-list-bg-color;
+    border-bottom: 1px solid @config-forms-list-border-color;
+    border-top: 1px solid @config-forms-list-border-color;
+    display: none;
+    line-height: @config-forms-list-item-line-height;
+    padding: @config-forms-list-item-padding;
+  }
+
+  &-spinner {
+    &:extend(.djblets-o-config-forms-spinner all);
+  }
+
+  ul {
+    &:extend(.djblets-c-config-forms-popup-menu,
+             .djblets-c-config-forms-popup-menu__items);
+
+    li {
+      &:extend(.djblets-c-config-forms-popup-menu__item all);
+    }
+  }
+}
+
+.config-forms-page-content {
+  &:extend(.djblets-c-config-forms-page__content all);
+
+  .box-main {
+    padding: @config-forms-box-padding;
+  }
+
+  .box-recessed {
+    margin: 0 -@config-forms-box-padding;
+  }
+
+  .djblets-l-config-forms-container {
+    margin-left: 0;
+    margin-right: 0;
+
+    &.-is-recessed {
+      margin-left: -@config-forms-box-padding;
+      margin-right: -@config-forms-box-padding;
+    }
+  }
+
+  .page {
+    &:extend(.djblets-c-config-forms-subpage);
+
+    &.active {
+      &:extend(.djblets-c-config-forms-subpage.-is-active);
+    }
+  }
+
+  .search {
+    margin: 0 0 @config-forms-box-padding 0;
+    padding: 0;
+
+    input {
+      margin-left: 0.5em;
+      max-width: 100%;
+      width: @config-forms-forms-width - 7em;
+    }
+  }
+}
+
+.config-forms-side-nav {
+  &:extend(.djblets-c-config-forms-page-nav);
+
+  li {
+    &:extend(.djblets-c-config-forms-page-nav__item all);
+
+    &:last-child.active {
+      &:extend(.djblets-c-config-forms-page-nav__item:last-child.-is-active);
+    }
+
+    &.active {
+      &:extend(.djblets-c-config-forms-page-nav__item.-is-active all);
+    }
+  }
+
+  ul {
+    &:extend(.djblets-c-config-forms-page-nav__list);
+  }
+}
+
+.config-forms-subsection {
+  margin: 2em 0;
+
+  h3 {
+    &:extend(.djblets-c-config-forms-page__content legend);
+  }
+}

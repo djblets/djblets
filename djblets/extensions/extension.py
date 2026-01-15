@@ -638,6 +638,8 @@ class ExtensionInfo:
         # primitives for how to safely iterate over contents. This is not a
         # simple dictionary under the hood.
         dist_metadata = entrypoint.dist.metadata
+        assert dist_metadata is not None
+
         metadata = {
             key: dist_metadata[key]
             for key in dist_metadata
@@ -651,7 +653,7 @@ class ExtensionInfo:
         self,
         ext_class: Type[Extension],
         package_name: str,
-        metadata: ExtensionMetadata = {},
+        metadata: (dict[str, Any] | None) = None,
     ) -> None:
         """Instantiate the ExtensionInfo using metadata and an extension class.
 
@@ -692,7 +694,7 @@ class ExtensionInfo:
         self.is_configurable = ext_class.is_configurable
         self.has_admin_site = ext_class.has_admin_site
         self.installed_htdocs_path = \
-            os.path.join(settings.MEDIA_ROOT, 'ext', self.package_name)
+            os.path.join(settings.MEDIA_ROOT, 'ext', package_name)
         self.installed_static_path = \
             os.path.join(settings.STATIC_ROOT, 'ext', ext_class.id)
 
@@ -702,6 +704,8 @@ class ExtensionInfo:
         self.requirements = []
         self.apps_registered = False
         self.context_processors_registered = False
+
+        metadata = metadata or {}
 
         # Set information from the provided metadata.
         if ext_class.metadata is not None:
