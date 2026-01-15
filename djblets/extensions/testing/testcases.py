@@ -2,260 +2,24 @@
 
 from __future__ import annotations
 
-import os
 import uuid
 import weakref
 from contextlib import contextmanager
-from pathlib import Path
-from typing import Optional, Union
-
-import importlib_metadata
+from typing import TYPE_CHECKING
 
 from djblets.extensions.extension import ExtensionInfo
 from djblets.extensions.manager import (ExtensionManager,
                                         get_extension_managers,
                                         _extension_managers)
 from djblets.extensions.models import RegisteredExtension
+from djblets.extensions.tests.base import FakeEntryPoint
 
+if TYPE_CHECKING:
+    from django.test import TestCase
 
-class _FakeProvider:
-    """A fake provider for a distribution.
-
-    Version Added:
-        2.3
-    """
-
-    egg_info = '/fake/path'
-
-    def __init__(self, author='Example Author',
-                 author_email='author@example.com',
-                 description='Test description\u2049',
-                 home_page='http://example.com',
-                 project_name='ExampleProject', license_name='Drivers',
-                 summary='Test summary', version='1.0'):
-        """Initialize the FakeDistribution.
-
-        Args:
-            author (unicode):
-                The package author.
-
-            author_email (unicode):
-                The package author's e-mail address.
-
-            description (unicode):
-                The package description.
-
-            home_page (unicode):
-                The package's URL.
-
-            project_name (unicode):
-                The package's name.
-
-            license_name (unicode):
-                The name of the package license.
-
-            summary (unicode):
-                The package summary.
-        """
-        self.metadata = {
-            'Author': author,
-            'Author-email': author_email,
-            'Description': description,
-            'Home-page': home_page,
-            'Name': project_name,
-            'License': license_name,
-            'Summary': summary,
-            'Version': version,
-        }
-
-    def _get(self, path):
-        """Return the metadata content.
-
-        This is the method that package resource providers must override to
-        return metadata content for the package. It's expected to return
-        byte strings, which will then be handled through the normal metadata
-        functions.
-
-        Returns:
-            bytes:
-            The package metadata content.
-        """
-        return ''.join(
-            '%s: %s\n' % (field_name, value)
-            for field_name, value in self.metadata.items()
-        ).encode('utf-8')
-
-
-class _FakeDistribution(importlib_metadata.Distribution):
-    """A fake packaging distribution.
-
-    Version Added:
-        3.3
-    """
-
-    def __init__(
-        self,
-        files,
-    ) -> None:
-        """Initialize the distribution.
-
-        Args:
-            files (dict):
-                A dictionary of resource filenames to Unicode contents.
-        """
-        self._files = files
-
-    def read_text(
-        self,
-        filename: str,
-    ) -> Optional[str]:
-        """Return text for a file.
-
-        Args:
-            filename (str):
-                The resource filename.
-
-        Returns:
-            str:
-            The text content, or ``None`` if the file could not be found.
-        """
-        try:
-            return self._files[filename]
-        except KeyError:
-            return None
-
-    def locate_file(
-        self,
-        path: Union[str, os.PathLike],
-    ) -> Path:
-        """Return the path to a resource file.
-
-        This returns the path as-is, wrapped in a :py:class:`pathlib.Path`.
-
-        Args:
-            path (str):
-                The resource path.
-
-        Returns:
-            pathlib.Path:
-            The wrapped path.
-        """
-        return Path(path)
-
-
-class _FakeEntryPoint:
-    """A fake entry point.
-
-    This is modelled after :py:class:`importlib.metadata.EntryPoint`.
-
-    Version Added:
-        2.3
-    """
-
-    def __init__(
-        self,
-        value,
-        project_name: str = 'ExampleProject',
-        version: str = '1.0',
-        *,
-        author: str = 'Example Author',
-        author_email: str = 'author@example.com',
-        description: str = 'Test description\u2049',
-        home_page: str = 'http://example.com',
-        license_name: str = 'Drivers',
-        summary: str = 'Test summary',
-        **metadata_kwargs,
-    ) -> None:
-        """Initialize the FakeEntryPoint.
-
-        Version Changed:
-            3.3:
-            Added argument and default values for ``author``, ``author_email``,
-            ``description``, ``home_page``, ``license_name``, ``summary``,
-            and ``version``. These are preferred over older Python package
-            metadata names.
-
-        Args:
-            value (object):
-                The value to be returned when the entry point is loaded.
-
-            project_name (str, optional):
-                The project name. This will be set in the metadata and as
--               the distribution's name.
-
-                Version Changed:
-                    3.3:
-                    This now has a default value.
-
-            version (str, optional):
-                The value for the ``Version`` metadata field.
-
-                Version Added:
-                    3.3
-
-            author (str, optional):
-                The value for the ``Author`` metadata field.
-
-                Version Added:
-                    3.3
-
-            author_email (str, optional):
-                The value for the ``Author-email`` metadata field.
-
-                Version Added:
-                    3.3
-
-            description (str, optional):
-                The value for the ``Description`` metadata field.
-
-                Version Added:
-                    3.3
-
-            home_page (str, optional):
-                The value for the ``Home-page`` metadata field.
-
-                Version Added:
-                    3.3
-
-            license_name (str, optional):
-                The value for the ``License`` metadata field.
-
-                Version Added:
-                    3.3
-
-            summary (str, optional):
-                The value for the ``Summary`` metadata field.
-
-                Version Added:
-                    3.3
-        """
-        metadata = {
-            'Author': author,
-            'Author-email': author_email,
-            'Description': description,
-            'Home-page': home_page,
-            'License': license_name,
-            'Name': project_name,
-            'Summary': summary,
-            'Version': version,
-        }
-        metadata.update(metadata_kwargs)
-
-        self._value = value
-        self.dist = _FakeDistribution(files={
-            'METADATA': ''.join(
-                f'{key}: {value}\n'
-                for key, value in metadata.items()
-            )
-        })
-
-    def load(self):
-        """Load the entry point.
-
-        Returns:
-            object: The value specified at initialization time.
-        """
-        return self._value
+    MixinParent = TestCase
+else:
+    MixinParent = object
 
 
 class DefaultTestsExtensionManager(ExtensionManager):
@@ -266,7 +30,7 @@ class DefaultTestsExtensionManager(ExtensionManager):
     """
 
 
-class ExtensionTestCaseMixin(object):
+class ExtensionTestCaseMixin(MixinParent):
     """Unit tests mixin for more easily testing extensions.
 
     This will do the hard work of creating the fake registration information
@@ -341,8 +105,16 @@ class ExtensionTestCaseMixin(object):
     #:     bool
     allow_existing_extension_manager = True
 
-    def setUp(self):
-        super(ExtensionTestCaseMixin, self).setUp()
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The extension manager instance.
+    extension_mgr: ExtensionManager | None
+
+    def setUp(self) -> None:
+        """Set up the test case."""
+        super().setUp()
 
         self.extension_mgr = self.get_extension_manager()
 
@@ -360,12 +132,13 @@ class ExtensionTestCaseMixin(object):
         else:
             self.extension = None
 
-    def tearDown(self):
-        super(ExtensionTestCaseMixin, self).tearDown()
+    def tearDown(self) -> None:
+        """Tear down the test case."""
+        super().tearDown()
 
         self.reset_extensions()
 
-    def reset_extensions(self):
+    def reset_extensions(self) -> None:
         """Unregister and clean up all extensions and extension managers.
 
         This will disable and unregister any extensions that have been set
@@ -398,6 +171,7 @@ class ExtensionTestCaseMixin(object):
             {self.extension_mgr})
 
         for extension_mgr in new_extension_mgrs:
+            assert extension_mgr is not None
             extension_mgr.clear_sync_cache()
             extension_mgr.shutdown()
 
@@ -472,8 +246,8 @@ class ExtensionTestCaseMixin(object):
                     else:
                         package_name = self.extension_package_name
 
-                results.append(_FakeEntryPoint(extension_cls,
-                                               project_name=package_name))
+                results.append(FakeEntryPoint(extension_cls,
+                                              project_name=package_name))
 
             return results
 
