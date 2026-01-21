@@ -555,6 +555,7 @@ def restart_logging():
         while logger.handlers:
             handler = logger.handlers[0]
             handler.flush()
+            handler.close()
             logger.removeHandler(handler)
 
     _logging_setup = False

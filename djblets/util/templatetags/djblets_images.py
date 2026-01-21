@@ -28,9 +28,8 @@ register = template.Library()
 
 def save_image_to_storage(image, storage, filename):
     """Save an image to storage."""
-    f = storage.open(filename, mode='w+b')
-    image.save(f, 'png')
-    f.close()
+    with storage.open(filename, mode='w+b') as f:
+        image.save(f, 'png')
 
 
 @register.simple_tag
@@ -49,9 +48,8 @@ def crop_image(f, x, y, width, height):
 
     if not storage.exists(new_name):
         try:
-            f = storage.open(filename)
-            data = io.BytesIO(f.read())
-            f.close()
+            with storage.open(filename) as f:
+                data = io.BytesIO(f.read())
 
             image = Image.open(data)
             image = image.crop((x, y, x + width, y + height))
