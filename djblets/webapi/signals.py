@@ -1,6 +1,6 @@
 """Web API signals."""
 
-from django.core.signals import Signal
+from django.dispatch import Signal
 
 
 #: A signal indicating a WebAPI token has been created.

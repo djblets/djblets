@@ -1,6 +1,6 @@
 """An avatar service for providing Gravatars."""
 
-from django.utils.html import mark_safe
+from django.utils.safestring import mark_safe
 
 from djblets.avatars.services.base import AvatarService
 from djblets.gravatars import get_gravatar_url_for_email
