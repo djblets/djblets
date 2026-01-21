@@ -18,7 +18,8 @@ from djblets.cache.backend import make_cache_key
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from typing import Self
+
+    from typing_extensions import Self
 
 
 logger = logging.getLogger(__name__)
