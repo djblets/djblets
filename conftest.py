@@ -11,54 +11,36 @@ Version Added:
     3.0
 """
 
-from __future__ import unicode_literals
+from __future__ import annotations
 
 import os
-import shutil
 import sys
 
-import django
-import pytest
+import djblets
 
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
 
-@pytest.fixture(autouse=True, scope='session')
-def django_setup_static(request):
-    """Collect static media at session start.
-
-    Args:
-        request (object):
-            The pytest request.
-    """
-    from django.conf import settings
-    from django.core import management
-
-    for path in (settings.MEDIA_ROOT, settings.STATIC_ROOT):
-        shutil.rmtree(path, ignore_errors=True)
-
-        if not os.path.exists(path):
-            os.mkdir(path, 0o755)
-
-    management.call_command('collectstatic',
-                            verbosity=request.config.option.verbose,
-                            interactive=False)
-
-
-def pytest_report_header(config):
+def pytest_report_header(
+    *args,
+    **kwargs,
+) -> list[str]:
     """Return information for the report header.
 
-    This will log the version of Django.
+    This will log the version of Djblets.
 
     Args:
-        config (object):
-            The pytest configuration object.
+        *args (tuple):
+            Unused positional arguments.
+
+        **kwargs (dict):
+            Unused keyword arguments.
 
     Returns:
-        list of unicode:
+        list of str:
         The report header entries to log.
     """
     return [
-        'django version: %s' % django.get_version(),
+        f'Djblets: {djblets.get_version_string()}',
     ]

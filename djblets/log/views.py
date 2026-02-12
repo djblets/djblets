@@ -89,42 +89,45 @@ def iter_log_lines(from_timestamp, to_timestamp, requested_levels):
         # about accurate.
         return
 
-    for line in fp:
-        line = line.rstrip()
+    with fp:
+        for line in fp:
+            line = line.rstrip()
 
-        m = LOG_LINE_RE.match(line)
+            m = LOG_LINE_RE.match(line)
 
-        if m:
-            if line_info:
-                # We have a fully-formed log line and this new line isn't
-                # part of it, so yield it now.
-                yield line_info
-                line_info = None
+            if m:
+                if line_info:
+                    # We have a fully-formed log line and this new line
+                    # isn't part of it, so yield it now.
+                    yield line_info
+                    line_info = None
 
-            timestamp_str = m.group('timestamp')
-            level = m.group('level')
-            message = m.group('message')
+                timestamp_str = m.group('timestamp')
+                level = m.group('level')
+                message = m.group('message')
 
-            if not requested_levels or level.lower() in requested_levels:
-                timestamp = parse_timestamp(TIMESTAMP_FMT,
-                                            timestamp_str.split(',')[0])
+                if (not requested_levels or
+                    level.lower() in requested_levels):
+                    timestamp = parse_timestamp(
+                        TIMESTAMP_FMT,
+                        timestamp_str.split(',')[0])
 
-                timestamp_date = timestamp.date()
+                    timestamp_date = timestamp.date()
 
-                if ((from_timestamp and from_timestamp > timestamp_date) or
-                    (to_timestamp and to_timestamp < timestamp_date)):
-                    continue
+                    if ((from_timestamp and
+                         from_timestamp > timestamp_date) or
+                        (to_timestamp and
+                         to_timestamp < timestamp_date)):
+                        continue
 
-                line_info = (timestamp, level, message)
-        elif line_info:
-            line_info = (line_info[0],
-                         line_info[1],
-                         line_info[2] + "\n" + line)
+                    line_info = (timestamp, level, message)
+            elif line_info:
+                line_info = (line_info[0],
+                             line_info[1],
+                             line_info[2] + "\n" + line)
 
-    if line_info:
-        yield line_info
-
-    fp.close()
+        if line_info:
+            yield line_info
 
 
 def get_log_filtersets(request, requested_levels,

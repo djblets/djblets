@@ -216,14 +216,14 @@ class LessCompiler(PipelineLessCompiler):
             The filenames imported, or ``None`` if there was an error
             parsing any of the files.
         """
-        p = subprocess.Popen(self.less_imports_command + [filename],
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        output, errors = p.communicate()
+        with subprocess.Popen(
+            self.less_imports_command + [filename],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ) as p:
+            output, errors = p.communicate()
 
-        rc = p.wait()
-
-        if rc == 0:
+        if p.returncode == 0:
             files = set(output.decode('utf-8').splitlines())
         else:
             logging.error('Error reading LessCSS imports from %s: %s',

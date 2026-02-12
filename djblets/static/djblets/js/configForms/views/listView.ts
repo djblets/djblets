@@ -60,7 +60,7 @@ export class ListView<
     static tagName = 'ul';
 
     static defaultItemView: Class<ListItemView> = ListItemView;
-    defaultItemView: Class<ListItemView>;
+    declare defaultItemView: Class<ListItemView>;
 
     /**********************
      * Instance variables *

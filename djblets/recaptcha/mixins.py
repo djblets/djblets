@@ -75,11 +75,11 @@ class RecaptchaFormMixin(forms.Form):
             })
 
             try:
-                resp = urlopen(
+                with urlopen(
                     'https://www.google.com/recaptcha/api/siteverify',
-                    data.encode('utf-8'))
-
-                payload = resp.read()
+                    data.encode('utf-8'),
+                ) as resp:
+                    payload = resp.read()
             except HTTPError as e:
                 logger.exception('Could not make reCAPTCHA request: HTTP %s: '
                                  '%s',

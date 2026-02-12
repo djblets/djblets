@@ -44,7 +44,7 @@ export class ListItemView<
     static tagName = 'li';
 
     static iconBaseClassName = 'djblets-icon';
-    iconBaseClassName: string;
+    declare iconBaseClassName: string;
 
     /**
      * A mapping of item states to CSS classes.
@@ -57,7 +57,7 @@ export class ListItemView<
         enabled: '-is-enabled',
         error: '-has-error',
     };
-    itemStateClasses: { [key: string]: string };
+    declare itemStateClasses: { [key: string]: string };
 
     static template = _.template(dedent`
         <% if (editURL) { %>
@@ -66,10 +66,10 @@ export class ListItemView<
         <%- text %>
         <% } %>
     `);
-    template: _.CompiledTemplate;
+    declare template: _.CompiledTemplate;
 
     static actionHandlers: EventsHash = {};
-    actionHandlers: EventsHash;
+    declare actionHandlers: EventsHash;
 
     static modelEvents: EventsHash = {
         'actionsChanged': 'render',

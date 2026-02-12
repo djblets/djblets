@@ -14,13 +14,10 @@ import { TableItemView } from './tableItemView';
  * This is an extension to ListView that's designed for lists with multiple
  * columns of data.
  */
-@spina({
-    prototypeAttrs: [
-        'defaultItemView',
-    ],
-})
+@spina
 export class TableView extends ListView {
     static tagName = 'table';
+
     static defaultItemView = TableItemView;
 
     /**

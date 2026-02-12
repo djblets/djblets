@@ -88,7 +88,7 @@ export class AddIntegrationPopupView extends BaseView<
          </a>
         </li>
     `;
-    integrationTemplateSource: string;
+    declare integrationTemplateSource: string;
 
     /**
      * The pre-compiled template for the empty integrations popup content.
@@ -101,7 +101,7 @@ export class AddIntegrationPopupView extends BaseView<
          ${_.escape(_`There are no integrations currently installed.`)}
         </p>
     `;
-    emptyIntegrationsTemplateSource: string;
+    declare emptyIntegrationsTemplateSource: string;
 
     /**********************
      * Instance variables *
