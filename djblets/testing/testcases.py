@@ -698,18 +698,19 @@ class FixturesCompilerMixin(MixinParent):
             for db in databases:
                 cls.load_fixtures(fixtures, db=db)
 
-    def _fixture_setup(self) -> None:
+    @classmethod
+    def _fixture_setup(cls) -> None:
         """Set up fixtures for unit tests."""
         # TestCase._fixture_setup shouldn't actually load fixtures on any
         # database other than the dummy backend (confusingly enough), but
         # it does call _enter_atomics(), which sets up necessary state.
-        fixtures = self.fixtures
-        self.fixtures = None
+        fixtures = cls.fixtures
+        cls.fixtures = None
 
         try:
             super()._fixture_setup()
         finally:
-            self.fixtures = fixtures
+            cls.fixtures = fixtures
 
     @classmethod
     def load_fixtures(
