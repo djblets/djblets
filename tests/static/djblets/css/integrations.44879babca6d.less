@@ -1,0 +1,220 @@
+/**
+ * Styles for the integration list and configuration pages.
+ */
+
+@import (reference) "config-forms.less";
+
+
+#djblets-ns-integrations() {
+  .integrations-popup() {
+    @blank-bg: var(--ink-p-container-bg);
+    @border-color: var(--ink-p-container-border-color);
+    @border-radius: 4px;
+    @border-size: 1px;
+    @box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    @color: var(--ink-p-container-fg);
+    @padding: 1em;
+    @tile-bg: var(--ink-p-container-active-bg);
+    @tile-height: 13em;
+    @tile-width: 23em;
+    @tile-border-color: @border-color;
+    @tile-border-size: @border-size;
+    @tile-hover-bg: var(--ink-p-container-hover-bg);
+    @window-offset: 1em;
+  }
+}
+
+
+/**
+ * Information on an available integration.
+ *
+ * This is displayed in the popup menu (``.djblets-c-integrations-popup``),
+ * and is presented as a clickable tile.
+ *
+ * Structure:
+ *     <li class="djblets-c-integration">
+ *      <a href="...">
+ *       <img class="djblets-c-integration__icon" ...>
+ *       <div class="djblets-c-integration__details">
+ *        <div class="djblets-c-integration__name">...</div>
+ *        <div class="djblets-c-integration__description">...</div>
+ *       </div>
+ *      </a>
+ *     </li>
+ */
+.djblets-c-integration {
+  #djblets-ns-integrations.integrations-popup();
+
+  background: @tile-bg;
+  border: @tile-border-size @tile-border-color solid;
+  display: inline-block;
+  list-style: none;
+  position: relative;
+
+  /* Overlaps the borders. */
+  margin: -@tile-border-size 0 0 -@tile-border-size;
+
+  &:hover {
+    background: @tile-hover-bg;
+  }
+
+  > a {
+    color: inherit;
+    display: block;
+    padding: @padding;
+    width: @tile-width;
+    height: @tile-height;
+  }
+
+  &__details {
+    margin-top: @padding;
+    text-align: center;
+  }
+
+  &__details,
+  &__icon {
+    display: inline-block;
+    vertical-align: top;
+  }
+
+  &__icon {
+    display: block;
+    margin: 0 auto;
+  }
+
+  &__name {
+    font-size: 120%;
+    font-weight: bold;
+    margin-top: 0;
+    margin-bottom: @padding;
+  }
+}
+
+
+/**
+ * Main component for presenting a list of configurations.
+ *
+ * This houses the popup, Add Integration button, and the list of
+ * configurations.
+ *
+ * Structure:
+ *     <div class="djblets-c-integration-configs">
+ *      <div class="djblets-c-integrations-popup">
+ *       ...
+ *      </div>
+ *      <div class="djblets-l-config-forms-container">
+ *       <button class="djblets-c-integration-configs__add">...</button>
+ *      </div>
+ *      <div class="djblets-l-config-forms-container">
+ *       <table class="djblets-c-config-forms-list">
+ *        <tr class="djblets-c-integration-config
+ *                   djblets-c-config-forms-list__item">...</tr>
+ *        ...
+ *       </table>
+ *      </div>
+ *     </div>
+ */
+.djblets-c-integration-configs {
+  margin: 0;
+}
+
+
+/**
+ * Details for an integration configuration.
+ *
+ * This is presented as an item in a list, and contains some information on
+ * the configuration, along with a link for editing the configuration.
+ *
+ * This should be used along with the ``.djblets-c-config-forms-list__item``
+ * class.
+ *
+ * Modifiers:
+ *     -is-disabled:
+ *         The configuration is disabled.
+
+ *     -is-enabled:
+ *         The configuration is enabled.
+ *
+ * Structure:
+ *     <tr class="djblets-c-integration-config
+ *                djblets-c-config-forms-list__item -is-enabled">
+ *      <td class="djblets-c-integration-config__name">
+ *       <img ...>
+ *       <a href="{edit-url}">{name}</a>
+ *      </td>
+ *      <td class="djblets-c-integration-config__integration-name">...</td>
+ *      <td class="djblets-c-integration-config__status">...</td>
+ *     </tr>
+ */
+.djblets-c-integration-config {
+  &.-is-disabled {
+    .djblets-c-integration-config__name img {
+      filter: grayscale(100%);
+      opacity: 0.7;
+    }
+
+    .djblets-c-integration-config__integration-name {
+      /*
+       * This is the same as the disabled state in djblets-ns-config-forms.list.
+       */
+      color: var(--ink-p-grey-700);
+    }
+  }
+
+  &__name {
+    width: 100%;
+
+    a {
+      display: inline-block;
+    }
+  }
+}
+
+
+/**
+ * A popup menu containing a list of integrations to configure.
+ *
+ * Modifiers:
+ *     -is-empty:
+ *         The list is empty. The ``<ul>`` should not be added, and instead
+ *         text inside a ``.djblets-c-integrations-popup__empty`` element
+ *         should be provided.
+ *
+ * Structure:
+ *     <div class="djblets-c-integrations-popup">
+ *      <ul>
+ *       <li class="djblets-c-integration">...</li>
+ *       ...
+ *      </ul>
+ *     </div>
+ *
+ *     If empty:
+ *
+ *     <div class="djblets-c-integrations-popup -is-empty">
+ *      <div class="djblets-c-integrations-popup__empty">...</div>
+ *     </div>
+ */
+.djblets-c-integrations-popup {
+  #djblets-ns-integrations.integrations-popup();
+
+  border: @border-size @border-color solid;
+  box-shadow: @box-shadow;
+  box-sizing: border-box;
+  color: @color;
+  margin: 0 @window-offset @window-offset 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  > ul {
+    background: @blank-bg;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  &__empty {
+    background: @tile-bg;
+    margin: 0;
+    padding: @padding;
+  }
+}

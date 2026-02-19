@@ -1,0 +1,60 @@
+@avatar-size: 48px;
+
+
+.avatar-preview {
+  box-sizing: border-box;
+  border-radius: 50%;
+  overflow: hidden;
+  height: @avatar-size;
+  width: @avatar-size;
+
+  &.avatar-preview-unset {
+    background: var(--ink-p-grey-100);
+    border: 1px var(--ink-p-grey-400) dashed;
+  }
+
+  img {
+    width: @avatar-size;
+    height: @avatar-size;
+  }
+}
+
+.avatar-service-configuration {
+  display: none;
+}
+
+.avatar-file-upload-config {
+  background: var(--ink-p-input-bg);
+  border: 2px var(--ink-p-input-border-color) dashed;
+  color: var(--ink-p-input-fg);
+  display: inline-block;
+  margin: 1em 0;
+  padding: 1em;
+
+  &.drag-hover {
+    border-color: var(--ink-p-accent-primary-bg);
+    content: 'Drop to set your avatar';
+
+    * {
+      pointer-events: none;
+    }
+
+    .avatar-file-upload-instructions {
+      display: none;
+    }
+
+    .avatar-file-upload-drop-instructions {
+      display: block;
+    }
+  }
+
+  .avatar-file-upload-drop-instructions {
+    display: none;
+    text-align: center;
+  }
+
+  .avatar-preview {
+    cursor: pointer;
+    margin: 0 auto 1em auto;
+  }
+}

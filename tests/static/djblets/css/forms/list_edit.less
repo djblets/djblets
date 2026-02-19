@@ -1,0 +1,93 @@
+/**
+ * A form widget for managing a list of text values.
+ *
+ * Structure:
+ *     <div class="djblets-c-list-edit-widget">
+ *      <ul class="djblets-c-list-edit-widget__entries">
+ *       ...
+ *      </ul>
+ *      <button class="djblets-c-list-edit-widget__add-item">
+ *       ...
+ *      </button>
+ *     </div>
+ */
+.djblets-c-list-edit-widget {
+  overflow: hidden;
+
+  /**
+   * A button for adding an item to the list.
+   *
+   * Structure:
+   *     <button class="djblets-c-list-edit-widget__add-item">
+   *      <span class="fa fa-plus"></span> ...
+   *     </button>
+   */
+  &__add-item {
+    margin-top: 0.5em;
+  }
+
+  /**
+   * A list of entries that have been added.
+   *
+   * Structure:
+   *     <ul class="djblets-c-list-edit-widget__entries">
+   *      <li class="djblets-c-list-edit-widget__entry">...</li>
+   *      ...
+   *     </ul>
+   */
+  &__entries {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /**
+   * An entry that has been added.
+   *
+   * Structure:
+   *     <li class="djblets-c-list-edit-widget__entry">
+   *      <input class="djblets-c-list-edit-widget__input" ...>
+   *      <a class="djblets-c-list-edit-widget__remove-item" href="#">...</a>
+   *     </li>
+   */
+  &__entry {
+    display: flex;
+    gap: 0.5em;
+    list-style: none;
+  }
+
+  /**
+   * The input field for an entry.
+   *
+   * Structure:
+   *     <input class="djblets-c-list-edit-widget__input" ...>
+   */
+  &__input {
+    + & {
+      margin-right: 0.5em;
+    }
+  }
+
+  /**
+   * A button for removing an item from the list.
+   *
+   * Structure:
+   *     <a class="djblets-c-list-edit-widget__remove-item" href="#">
+   *      <span class="fa fa-times">
+   *     </a>
+   */
+  &__remove-item {
+    border: 0;
+    padding: 0.5em;
+
+    &,
+    &:link,
+    &:visited {
+      color: darkred;
+      text-decoration: none;
+    }
+  }
+}

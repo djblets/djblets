@@ -1,0 +1,270 @@
+@import (reference) "../defs.less";
+
+
+@code-block-bg: #FBFAF8;
+@code-block-border-color: #DDD;
+@code-block-border-size: 1px;
+@code-block-border-radius: 3px;
+@code-block-padding-vert: 3px;
+@code-block-padding-horiz: @textarea-editor-padding;
+
+@inline-code-bg: @code-block-bg;
+@inline-code-border-color: #E3E3E3;
+@inline-code-border-radius: @code-block-border-radius;
+@inline-code-border-size: @code-block-border-size;
+@inline-code-text-color: #BB1144;
+
+
+/*
+ * A mixin to add styles for the Markdown WYSIWYG extension's output.
+ *
+ * This is implemented as a mixin so that the caller can embed it in any
+ * CSS class they like.
+
+ * Note that there's similar styling code in
+ * djblets/markdown/extensions/wysiwyg_email.py. If you make substantial
+ * changes here, you may also want to make changes there.
+ */
+.markdown-wysiwyg() {
+  box-sizing: border-box;
+  line-height: @textarea-line-height;
+
+  .hide-br() {
+    br {
+      display: none;
+    }
+  }
+
+  .show-br() {
+    br {
+      display: block;
+    }
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+
+    line-height: inherit;
+    text-rendering: inherit;
+    white-space: normal;
+
+    .show-br();
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-size: 100%;
+  }
+
+  p {
+    white-space: inherit;
+
+    /* Don't show both the <br> and the blank line. */
+    .hide-br();
+  }
+
+  ul, ol {
+    line-height: 0;
+    margin: 0;
+    padding: 0;
+
+    p {
+      /*
+       * <p> tags in a list do not preserve whitespace, since there's
+       * mandatory leading whitespace before the content.
+       */
+      .show-br();
+    }
+
+    ul, ol {
+      margin-left: 2ch;
+    }
+  }
+
+  ol {
+    /*
+     * We want to keep wrapped text within the confines of the list item. So:
+     *
+     * 1. This is long text that
+     *    wraps like this.
+     *
+     * Instead of:
+     *
+     * 1. This is long text that
+     * wraps like this.
+     *
+     * To do this, we need to use display: table and display: table-cell.
+     * However, that loses item counter rendering, so we have to do counters
+     * ourselves. In combination with StyledOListBlockProcessor in
+     * reviewboard/reviews/markdown_extensions.py, this maintains compatibility
+     * with the start= attribute.
+     */
+    counter-reset: li;
+    display: table;
+    list-style-position: inside;
+
+    > li {
+      counter-increment: li;
+      display: table;
+
+      &::before {
+        content: counter(li) ". ";
+        padding-right: 1ch;
+        display: table-cell;
+        text-align: right;
+      }
+    }
+  }
+
+  ul {
+    list-style-position: outside;
+    list-style: disc;
+    margin-left: 2ch;
+  }
+
+  li {
+    line-height: @textarea-line-height;
+
+    ~ li:last-child {
+      p:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    p {
+      margin-bottom: @textarea-line-height;
+
+      /*
+       * If the list item ends up with a sole <p>, just remove the margins.
+       * Depending on neighboring elements, Python Markdown will sometimes
+       * create list items this way.
+       */
+      &:first-child:last-child {
+        margin: 0;
+      }
+    }
+  }
+
+  table {
+    border-collapse: collapse;
+    margin-left: 4px;
+
+    td, th {
+      padding: 0.2em 1em;
+    }
+
+    td {
+      border: 1px solid #bbbbbb;
+    }
+
+    th {
+      border-bottom: 1px solid @markdown-table-header-border-color;
+      border-left: 1px solid @markdown-table-border-color;
+      border-right: 1px solid @markdown-table-border-color;
+    }
+
+    thead tr:last-child th {
+      padding-bottom: 0.5em;
+    }
+
+    tbody tr {
+      &:first-child td {
+        padding-top: 0.5em;
+      }
+
+      &:last-child td {
+        border-bottom: none;
+      }
+    }
+  }
+
+  code {
+    background: var(--ink-p-code-literal-bg);
+    border: @inline-code-border-size var(--ink-p-code-literal-border-color)
+            solid;
+    border-radius: @inline-code-border-radius;
+    color: var(--ink-p-code-literal-fg);
+    display: inline-block;
+    margin: -@inline-code-border-size;
+
+    /*
+     * Add just enough spacing to represent the backtick (`) before and after
+     * the code block, so we can leave room there. The goal is to align the
+     * content the best we can, so there's a more predictable width for the
+     * line.
+     */
+    &:before, &:after {
+      content: "`";
+      visibility: hidden;
+    }
+  }
+
+  pre {
+    font-size: inherit;
+    margin-left: 2.5em;
+    white-space: pre-wrap;
+
+    * {
+      white-space: pre-wrap;
+    }
+  }
+
+  blockquote {
+    border-left: 1px solid #bbb;
+    padding-left: 1em;
+    margin-left: 0.5em;
+  }
+
+  hr {
+    border: 1px solid #ddd;
+  }
+
+  .codehilite {
+    background: var(--ink-p-input-bg);
+    color: var(--ink-p-input-fg);
+    border: var(--ink-g-input-border);
+    border-radius: @code-block-border-radius;
+    margin: -(@code-block-padding-vert + @code-block-border-size)
+            -(@code-block-padding-horiz + @code-block-border-size);
+    padding: @code-block-padding-vert @code-block-padding-horiz;
+
+    code {
+      /*
+       * Undo all the rules above. This is necessary with Python-Markdown 3.2+,
+       * which places a <code> around the code block. Previous versions did
+       * not do this.
+       */
+      background: none;
+      border: none;
+      border-radius: 0;
+      color: inherit;
+      display: inline;
+      margin: 0;
+
+      &:before, &:after {
+        content: none;
+      }
+    }
+
+    pre {
+      margin-left: 0;
+      padding: 0;
+    }
+
+    &.codehilite-multiline-start {
+      border-bottom: 0;
+      border-radius: 3px 3px 0 0;
+    }
+
+    &.codehilite-multiline-middle {
+      border-top: 0;
+      border-bottom: 0;
+      border-radius: 0;
+    }
+
+    &.codehilite-multiline-end {
+      border-top: 0;
+      border-radius: 0 0 3px 3px;
+    }
+  }
+}

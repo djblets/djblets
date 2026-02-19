@@ -1,0 +1,95 @@
+/**
+ * Mixins for adding high-dpi (Retina) images to an element.
+ *
+ * This is somewhat based off the Retina stylesheet from
+ * https://github.com/strues/retinajs/blob/master/src/retina.less. It has
+ * been modified for SVG support and backwards-compatibility.
+ */
+
+/**
+ * Enable one or more high-DPI images for an element.
+ *
+ * This allows for ``@2x``, ``@3x``, etc. and ``.svg`` images to be used for
+ * for an element based on the DPI of the screen. By default, this will
+ * attempt to find a ``@2x`` PNG, but ``@3x`` and higher can be used by
+ * setting ``@max-ratio``.
+ *
+ * SVGs can also be used for any resolutions higher than the max ratio by
+ * setting ``@has-svg: true``. This expects a ``.svg`` file to be avalable.
+ *
+ * Args:
+ *     path (string):
+ *         The path to the main image file.
+ *
+ *     size (*):
+ *         The size used for the main image file. This is generally in
+ *         ``width height`` form, but any value allowed by
+ *         ``background-size`` can be used.
+ *
+ *     max-ratio (number):
+ *         The maximum pixel ratio for raster images. All ratios 2 through this
+ *         this number (inclusive) will be used. CSS rules will be added for
+ *         each that look for ``@2x``, ``@3x``, etc. up to the specified ratio.
+ *
+ *     has-svg (boolean):
+ *         Whether a SVG file exists and should be used. If ``true``, any
+ *         screen DPIs higher than ``max-ratio`` will make use of the SVG
+ *         file. To enable SVG for 2x, set ``@max-ratio: 1``.
+ */
+.retina(@path, @size: auto auto, @max-ratio: 2, @has-svg: false) {
+  /* Set up the default image and size. */
+  background-image: url(@path);
+  background-size: @size;
+
+  .at2x-query(@retina-path) {
+    @media (-webkit-min-device-pixel-ratio: 1.5),
+           (min--moz-device-pixel-ratio: 1.5),
+           (-o-min-device-pixel-ratio: 3/2),
+           (min-resolution: 1.5dppx) {
+      background-image: url(@retina-path);
+      background-size: @size;
+    }
+  }
+
+  .higher-dpi-queries(@retina-path, @ratio) {
+    @media (-webkit-min-device-pixel-ratio: @ratio),
+           (min-resolution: (@ratio * 96dpi)) {
+      background-image: url(@retina-path);
+      background-size: @size;
+    }
+  }
+
+  /*
+   * If there are 2 or more ratio levels, loop through and create media
+   * selectors for each.
+   */
+  & when (@max-ratio >= 2) {
+    .at2x-query(~`@{path}.replace(/\.\w+$/, function(ext) { return '@2x' + ext; })`);
+
+    .loop(@ratio) when (@ratio <= @max-ratio) {
+      .higher-dpi-queries(
+        ~`@{path}.replace(/\.\w+$/, function(ext) { return '@@{ratio}x' + ext; })`,
+        @ratio);
+
+      .loop(@ratio + 1);
+    }
+
+    .loop(2);
+  }
+
+  /*
+   * If SVG is enabled, create a media selector for it based on the max
+   * ratio.
+   */
+  & when (@has-svg = true) {
+    @svg-path: ~`@{path}.replace(/\.\w+$/, function() { return '.svg'; })`;
+
+    & when (@max-ratio = 1) {
+      .at2x-query(@svg-path);
+    }
+
+    & when (@max-ratio >= 2) {
+      .higher-dpi-queries(@svg-path, @max-ratio + 1);
+    }
+  }
+}

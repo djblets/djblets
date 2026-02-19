@@ -1,0 +1,450 @@
+@import (reference) "mixins/retina.less";
+
+
+#djblets-ns-ui() {
+  .datagrids() {
+    .cells() {
+      @height: 1.4em;
+      @padding: 4px;
+
+      @bg: #FFFFFF;
+      @hover-bg: #D4E0F3;
+
+      @even-bg: #F2F2F2;
+      @even-hover-bg: @hover-bg;
+    }
+
+    .header() {
+      @padding: #djblets-ns-ui.datagrids.cells[@padding];
+
+      @border-color: #999999;
+      @drag-border-color: @border-color;
+      @sep-border-color: #CCCCCC;
+      @text-color: #000000;
+
+      @unsort-icon-color: #444444;
+    }
+
+    .menu() {
+      @bg: #F0F0F0;
+      @border-color: #303030;
+      @padding: 0.3em;
+    }
+
+    .paginator() {
+      @padding: 0 0 0 var(--ink-u-spacing-m);
+      @page-padding: 2px 6px;
+
+      @active-bg-color: #D4E0F3;
+      @active-border-color: #CCCCCC;
+
+      @hover-border-color: @active-border-color;
+      @hover-bg-color: #9BC0F2;
+
+      @text-color: #000000;
+      @count-text-color: #444444;
+    }
+  }
+}
+
+
+/* These are deprecated in Djblets 2.0. */
+@datagrid-cell-height: #djblets-ns-ui.datagrids.cells[@height];
+@datagrid-menu-checkbox-size: #djblets-ns-ui.datagrids.cells[@height];
+
+
+@media screen and (max-width: 720px),
+       screen and (max-device-width: 720px) and (orientation: landscape) {
+  .datagrid {
+    table {
+      display: block;
+    }
+
+    .datagrid-body {
+      tbody {
+        tr {
+          background: var(--ink-p-grey-200);
+
+          &.even {
+            th {
+              background: var(--ink-c-data-table-row-alt-bg);
+            }
+          }
+
+          td {
+            background: var(--ink-c-data-table-body-bg);
+          }
+
+          th {
+            &:first-child {
+              border-right: 1px var(--ink-c-data-table-row-border-color) solid;
+              font-weight: normal;
+              padding: var(--ink-c-data-table-cell-padding-horiz);
+              text-align: right;
+              white-space: nowrap;
+            }
+          }
+
+          td, th {
+            border-bottom: var(--ink-u-border-thin)
+                           var(--ink-c-data-table-row-border-color)
+                           solid;
+          }
+        }
+      }
+    }
+
+    .datagrid-row-continues {
+      td, th {
+        border-bottom: 0 !important;
+      }
+    }
+  }
+}
+
+
+.datagrid {
+  @_cell-vars: #djblets-ns-ui.datagrids.cells();
+
+  background: var(--ink-c-data-table-body-bg);
+  border-collapse: collapse;
+  width: 100%;
+
+  tr {
+    background-color: var(--ink-c-data-table-row-bg);
+    cursor: pointer;
+
+    &:nth-child(2n) {
+      background-color: var(--ink-c-data-table-row-alt-bg);
+    }
+
+    &:hover.headers {
+      background-color: transparent;
+    }
+
+    &.datagrid-empty-row {
+      background-color: var(--ink--c-data-table-row-bg);
+    }
+  }
+
+  td,
+  th {
+    line-height: @_cell-vars[@height];
+    padding: var(--ink-c-data-table-cell-padding);
+    vertical-align: inherit;
+  }
+
+  td {
+    &.has-link > a {
+      /*
+       * Ensure the link takes the full width of the cell. Ideally it would
+       * also take the full height, but that's a much harder problem to
+       * tackle (we could set height: 100%, but vertical alignment breaks).
+       */
+      display: block;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+  }
+
+  th.day {
+    background-color: #E9E9E9;
+    border-bottom: 1px #999999 solid;
+  }
+}
+
+.datagrid-header {
+  --ink-u-icon-std: 14px;
+
+  background: var(--ink-c-data-table-header-bg);
+  border-bottom: var(--ink-g-border-header);
+  color: var(--ink-c-data-table-header-fg);
+  cursor: pointer;
+  font-weight: bold;
+  padding: var(--ink-c-data-table-cell-padding);
+  text-align: left;
+  white-space: nowrap;
+
+  > * {
+    vertical-align: middle;
+  }
+
+  a:link,
+  a:visited {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      color: var(--ink-c-data-table-header-hover-text-color);
+      text-decoration: underline;
+    }
+  }
+
+  .ink-i-sort-ascending,
+  .ink-i-sort-descending {
+    margin-left: var(--ink-u-spacing-sm);
+  }
+}
+
+.datagrid-header-drag {
+  border-left: var(--ink-g-border-header);
+  border-right: var(--ink-g-border-header);
+  border-top: 0;
+  border-bottom: 0;
+}
+
+.edit-columns {
+  width: 1.2em;
+}
+
+
+/****************************************************************************
+ * Titles
+ ****************************************************************************/
+.datagrid-title,
+.datagrid-titlebox {
+  margin: 0;
+  padding: var(--ink-u-spacing-std);
+}
+
+.datagrid-titlebox {
+  h1 {
+    display: inline;
+    font-size: var(--ink-u-font-l);
+    padding-right: var(--ink-u-spacing-l);
+  }
+
+  ul {
+    list-style: none;
+    display: inline;
+    margin: 0;
+    padding: 0;
+
+    li {
+      display: inline;
+
+      a {
+        color: var(--ink-p-link-fg);
+      }
+    }
+  }
+}
+
+/****************************************************************************
+ * Paginator
+ ****************************************************************************/
+
+.datagrid-wrapper .paginator {
+  @_paginator-vars: #djblets-ns-ui.datagrids.paginator();
+  @_active-bg-color: @_paginator-vars[@active-bg-color];
+  @_active-border-color: @_paginator-vars[@active-border-color];
+  @_hover-border-color: @_paginator-vars[@hover-border-color];
+  @_hover-bg-color: @_paginator-vars[@hover-bg-color];
+  @_text-color: @_paginator-vars[@text-color];
+  @_page-padding: @_paginator-vars[@page-padding];
+
+  background: var(--ink-p-footer-bg);
+  border-top: var(--ink-g-border-container);
+  padding: @_paginator-vars[@padding];
+
+  .current-page {
+    border-bottom: 3px var(--ink-p-fg-weak) solid;
+    min-width: var(--ink-u-spacing-l);
+    padding: @_page-padding;
+  }
+
+  .page-count {
+    color: var(--ink-p-fg-weak);
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  a:link,
+  a:visited {
+    border-bottom: 3px transparent solid;
+    color: var(--ink-p-fg-weak);
+    display: inline-block;
+    text-decoration: none;
+
+    &:hover {
+      color: var(--ink-p-fg);
+    }
+  }
+
+  a:link,
+  a:visited,
+  .current-page {
+    font-weight: bold;
+  }
+
+  a:link,
+  a:visited,
+  .current-page,
+  .page-count {
+    padding: var(--ink-u-spacing-sm);
+    text-align: center;
+  }
+}
+
+
+.datagrid-head,
+.datagrid-body {
+  border-collapse: collapse;
+}
+
+.datagrid-body {
+  color: var(--ink-c-data-table-body-fg);
+
+  /*
+   * Add a single pixel between the thead and the tbody. This will prevent
+   * a border from being collapsed between the two, resulting in the same
+   * styling that we'll get when separating out the thead into its own
+   * table. This prevents a 1px jump.
+   */
+  thead:after {
+    content: "";
+    display: block;
+    line-height: 1px;
+  }
+}
+
+.datagrid-main {
+  position: relative;
+  border: var(--ink-g-border-container);
+  border-radius: var(--ink-u-border-radius-container);
+  box-shadow: var(--ink-g-shadow-std);
+  overflow: hidden;
+}
+
+.datagrid-menu {
+  @_menu-vars: #djblets-ns-ui.datagrids.menu();
+
+  /*
+   * Note that as of the time of this writing (30-April-2024), there's no
+   * standard drawer component in Ink, and so no defined color palette. We're
+   * using the footer visuals to keep visual consistency.
+   */
+  background:
+    var(--if-dark, var(--ink-p-container-bg))
+    var(--if-light, var(--ink-p-footer-bg));
+  border-left: var(--ink-u-border-thin)
+               var(--ink-p-footer-border-color)
+               solid;
+  color: var(--ink-p-fg);
+  box-sizing: border-box;
+  margin: 1px 0 0 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  right: 0;
+  top: 0;
+  bottom: 0;
+
+  padding: @_menu-vars[@padding];
+
+  table {
+    border-collapse: collapse;
+  }
+
+  td {
+    margin: 0;
+    padding: 0;
+    white-space: nowrap;
+
+    input {
+      vertical-align: baseline;
+    }
+
+    div, img {
+      vertical-align: sub;
+    }
+  }
+
+  .datagrid-menu-checkbox, a {
+    padding: 0.4em;
+  }
+
+  a:hover,
+  a:link,
+  a:visited {
+    color: inherit;
+    display: block;
+    text-decoration: none;
+
+    /*
+     * Provide enough room on the right for the scrollbar, so that it doesn't
+     * overlap any content when it appears. That would result in a horizontal
+     * scrollbar then appearing.
+     */
+    padding-right: 2em;
+  }
+
+  tr:hover {
+    .datagrid-menu-checkbox {
+      cursor: pointer;
+    }
+
+    .datagrid-menu-label {
+      text-decoration: underline;
+    }
+  }
+
+  .datagrid-menu-checkbox {
+    text-align: center;
+    vertical-align: top;
+
+    .datagrid-icon-checkmark {
+      vertical-align: sub;
+    }
+  }
+}
+
+.datagrid-menu-checkbox {
+  @_cell-vars: #djblets-ns-ui.datagrids.cells();
+
+  height: @_cell-vars[@height];
+  width: @_cell-vars[@height];
+
+  img {
+    display: block;
+    margin: 0 auto;
+    margin-top: 0.4em;
+  }
+}
+
+.datagrid-icon {
+  background-repeat: no-repeat;
+  display: inline-block;
+  overflow: hidden;
+  text-indent: -99999px;
+  vertical-align: middle;
+
+  .retina('../images/datagrid/icons.png', 66px 16px, @has-svg: true);
+
+  // For IE7
+  zoom: 1;
+  *display: inline;
+}
+
+& {
+  .djblets-datagrid-icon(@name, @x, @y, @width, @height) {
+    .datagrid-icon-@{name} {
+      background-position: -@x -@y;
+      width: @width;
+      height: @height;
+    }
+  }
+
+  /*
+   * NOTE: Keep these in the same order as found in the spritesheet.
+   */
+  .djblets-datagrid-icon(edit, 1px, 1px, 18px, 14px);
+  .djblets-datagrid-icon(sort-asc-primary, 21px, 2px, 10px, 5px);
+  .djblets-datagrid-icon(sort-desc-primary, 21px, 9px, 10px, 5px);
+  .djblets-datagrid-icon(sort-asc-secondary, 33px, 2px, 10px, 5px);
+  .djblets-datagrid-icon(sort-desc-secondary, 33px, 9px, 10px, 5px);
+  .djblets-datagrid-icon(unsort, 45px, 2px, 8px, 8px);
+  .djblets-datagrid-icon(checkmark, 54px, -1px, 12px, 12px);
+}

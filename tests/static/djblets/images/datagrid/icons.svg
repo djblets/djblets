@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.4, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 width="66px" height="16px" viewBox="0 0 66 16" enable-background="new 0 0 66 16" xml:space="preserve">
+<g id="Pencil">
+	
+		<radialGradient id="Shadow_2_" cx="399.3115" cy="-7747.4961" r="5.9131" fx="396.1513" fy="-7747.5127" gradientTransform="matrix(1.6058 0 0 -0.2018 -630.2155 -1549.7526)" gradientUnits="userSpaceOnUse">
+		<stop  offset="0" style="stop-color:#000000;stop-opacity:0.9"/>
+		<stop  offset="1" style="stop-color:#000000;stop-opacity:0"/>
+	</radialGradient>
+	<path id="Shadow_1_" opacity="0.5" fill="url(#Shadow_2_)" enable-background="new    " d="M20.5,13.691
+		c0,0.66-4.253,1.193-9.5,1.193c-5.245,0-9.5-0.533-9.5-1.193c0-0.658,4.255-1.191,9.5-1.191C16.248,12.5,20.5,13.033,20.5,13.691z"
+		/>
+	<path id="Head_1_" fill="#B8B500" stroke="#A19A00" stroke-width="0.75" stroke-linecap="square" stroke-linejoin="round" d="
+		M6.621,8.536l3.536,3.536l-4.95,1.414L6.621,8.536z"/>
+	<path id="Head_Shine_1_" opacity="0.4945" fill="#EEEEEC" enable-background="new    " d="M6.021,12.004l0.812-2.723L7.292,9.74
+		l-0.799,2.638L6.021,12.004z"/>
+	
+		<linearGradient id="Body_2_" gradientUnits="userSpaceOnUse" x1="-980.2363" y1="-1917.1279" x2="-980.2656" y2="-1922.1853" gradientTransform="matrix(0.5122 -0.5122 -0.727 -0.727 -882.7173 -1889.9224)">
+		<stop  offset="0" style="stop-color:#FFFE81"/>
+		<stop  offset="1" style="stop-color:#CDCA00"/>
+	</linearGradient>
+	
+		<polygon id="Body_1_" fill="url(#Body_2_)" stroke="#A19A00" stroke-width="0.75" stroke-linecap="square" stroke-linejoin="bevel" points="
+		6.656,8.57 11.605,3.621 15.143,7.157 10.191,12.105 	"/>
+	<polygon id="Body_Shine_1_" opacity="0.4945" fill="#EEEEEC" enable-background="new    " points="7.188,8.58 11.605,4.141 
+		12.543,4.807 7.938,9.34 	"/>
+	<path id="Tip_1_" d="M4.631,14.052l0.881-3.007l2.182,2.167L4.631,14.052z"/>
+	
+		<linearGradient id="Eraser_1_" gradientUnits="userSpaceOnUse" x1="-816.3809" y1="-1966.0439" x2="-816.3809" y2="-1970.2277" gradientTransform="matrix(0.7071 -0.7071 -0.7071 -0.7071 -799.8875 -1964.5234)">
+		<stop  offset="0" style="stop-color:#F28F00"/>
+		<stop  offset="1" style="stop-color:#A86200"/>
+	</linearGradient>
+	<polygon id="Eraser_3_" fill="url(#Eraser_1_)" points="12.062,3.621 13.734,1.938 16.781,5 15.143,6.719 	"/>
+	<polygon id="Eraser_Shine_1_" opacity="0.4945" fill="#EEEEEC" enable-background="new    " points="12.062,3.621 13.693,2 
+		14.4,2.707 12.668,4.438 	"/>
+	
+		<polyline id="Eraser_border_top" fill="none" stroke="#9F5D05" stroke-width="0.75" stroke-linecap="square" stroke-linejoin="round" points="
+		12.668,2.561 13.729,1.5 15.461,3.232 17.264,5.035 16.203,6.096 	"/>
+	<polyline id="Eraser_border_bottom" fill="none" stroke="#9D5C03" stroke-width="0.75" stroke-linecap="square" points="
+		16.203,6.096 15.143,7.157 13.34,5.354 11.605,3.621 12.668,2.561 	"/>
+</g>
+<polygon stroke="#000000" stroke-miterlimit="10" points="22,6.5 26,2.5 30,6.5 "/>
+<polygon stroke="#000000" stroke-miterlimit="10" points="22,9.5 26,13.5 30,9.5 "/>
+<polygon fill="#7F7F7F" stroke="#7F7F7F" stroke-miterlimit="10" points="34,6.5 38,2.5 42,6.5 "/>
+<polygon fill="#7F7F7F" stroke="#7F7F7F" stroke-miterlimit="10" points="34,9.5 38,13.5 42,9.5 "/>
+<path d="M52.911,6.129L52.911,6.129z"/>
+<g>
+	<path d="M52.535,3.879c0,0-0.157,0.157-0.419,0.419c-0.265,0.213-0.513,0.415-0.745,0.609c-0.089,0.07-0.189,0.144-0.342,0.239
+		C50,6,49,7,48.146,8.031c-0.097,0.152-0.17,0.252-0.24,0.341c-0.194,0.233-0.396,0.479-0.609,0.745
+		c-0.262,0.262-0.419,0.419-0.419,0.419l-1.414-1.415c0,0,0.157-0.157,0.419-0.419c0.266-0.213,0.512-0.415,0.745-0.609
+		c0.089-0.07,0.188-0.144,0.341-0.239C48,6,49,5,49.854,3.969c0.097-0.151,0.17-0.252,0.24-0.341
+		c0.193-0.233,0.396-0.48,0.608-0.745c0.262-0.262,0.419-0.419,0.419-0.419L52.535,3.879z"/>
+	<path d="M51.121,9.535c0,0-0.157-0.157-0.419-0.419c-0.214-0.265-0.415-0.513-0.608-0.745c-0.07-0.089-0.145-0.189-0.238-0.339
+		C49,7,48,6,46.969,5.146c-0.152-0.095-0.252-0.169-0.341-0.239c-0.233-0.194-0.479-0.396-0.745-0.609
+		c-0.262-0.262-0.419-0.419-0.419-0.419l1.415-1.414c0,0,0.157,0.157,0.419,0.419c0.214,0.265,0.415,0.512,0.609,0.745
+		c0.069,0.089,0.144,0.189,0.239,0.342C49,5,50,6,51.029,6.854c0.152,0.095,0.254,0.169,0.343,0.239
+		c0.233,0.194,0.479,0.396,0.745,0.609c0.262,0.262,0.418,0.419,0.418,0.419L51.121,9.535z"/>
+</g>
+<polygon points="63.767,1.5 58.472,6.795 55.824,4.147 54.5,5.472 58.472,9.442 65.09,2.824 "/>
+</svg>
