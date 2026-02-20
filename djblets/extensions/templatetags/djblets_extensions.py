@@ -187,6 +187,11 @@ def _render_bundle(
     If there's any error during this process, the error will be logged and
     the bundle will be skipped.
 
+    Version Changed:
+        4.1, 5.3:
+        The ``name`` argument now accepts full bundle IDs, in addition to
+        relative bundle names.
+
     Args:
         context (django.template.Context):
             The current template context.
@@ -210,8 +215,14 @@ def _render_bundle(
         django.utils.safestring.SafeString:
         The HTML used to load the bundle.
     """
+    if name.startswith(extension.id):
+        # The name is already the full bundle ID.
+        bundle_id = name
+    else:
+        bundle_id = extension.get_bundle_id(name)
+
     try:
-        return node_cls('"%s"' % extension.get_bundle_id(name)).render(context)
+        return node_cls(f'"{bundle_id}"').render(context)
     except Exception:
         logger.exception('Unable to render %s bundle "%s" for extension "%s" '
                          '(%s). The extension may not be installed correctly. '
