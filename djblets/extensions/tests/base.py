@@ -1,121 +1,171 @@
 """Base support for djblets.extensions unit tests."""
 
-import pkg_resources
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from importlib_metadata import Distribution, EntryPoint
 
 from djblets.extensions.manager import ExtensionManager
 
+if TYPE_CHECKING:
+    import os
+    from typing import Any
+    from unittest import TestCase
 
-class FakeEntryPoint(object):
-    """A fake entry point.
+    from djblets.extensions.base import Extension
 
-    This is modelled after :py:class:`pkg_resources.EntryPoint`.
+    MixinParent = TestCase
+else:
+    MixinParent = object
+
+
+class FakeDistribution(Distribution):
+    """A fake distribution.
+
+    Version Added:
+        6.0
     """
 
-    def __init__(self, value, project_name, version='1.0', **metadata_kwargs):
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The project name.
+    _project_name: str
+
+    #: The project version.
+    _version: str
+
+    #: The metadata dictionary.
+    _metadata: dict[str, Any]
+
+    def __init__(
+        self,
+        *,
+        project_name: str = 'ExampleProject',
+        version: str = '1.0',
+        metadata: (dict[str, Any] | None) = None,
+    ) -> None:
+        """Initialize the distribution.
+
+        Args:
+            project_name (str, optional):
+                The name of the extension package.
+
+            version (str, optional):
+                The version of the extension package.
+
+            metadata (dict, optional):
+                Metadata for the distribution.
+        """
+        self._project_name = project_name
+        self._version = version
+        self._metadata = {
+            'Author': 'Example Author',
+            'Author-email': 'author@example.com',
+            'Description': 'Test description\u2049',
+            'Home-page': 'http://example.com',
+            'Name': project_name,
+            'License': 'Drivers',
+            'Summary': 'Test summary',
+            'Version': version,
+        }
+
+        if metadata:
+            self._metadata.update(metadata)
+
+    def read_text(
+        self,
+        filename: str,
+    ) -> str | None:
+        """Attempt to read a file.
+
+        This is used to return the metadata for the fake package.
+
+        Args:
+            filename (str):
+                The file to read.
+
+        Returns:
+            str or None:
+            The metadata as a string.
+        """
+        return '\n'.join(
+            f'{key}: {value}'
+            for key, value in self._metadata.items()
+        )
+
+    def locate_file(
+        self,
+        path: str | os.PathLike[str],
+    ) -> Any:
+        """Return a path for a file in the distribution.
+
+        This method must be implemented in order to create a subclass of the
+        abstract base, but we don't actually use it.
+
+        Args:
+            path (str or os.PathLike):
+                The path to search for.
+
+        Returns:
+            object:
+            The path object.
+        """
+        raise NotImplementedError
+
+
+class FakeEntryPoint(EntryPoint):
+    """A fake entry point.
+
+    Version Changed:
+        6.0:
+        Changed to inherit from importlib_metadata.EntryPoint.
+    """
+
+    _value: type[Extension]
+
+    def __init__(
+        self,
+        value: type[Extension],
+        *,
+        project_name: str,
+        version: str = '1.0',
+        **metadata_kwargs,
+    ) -> None:
         """Initialize the FakeEntryPoint.
 
         Args:
             value (object):
                 The value to be returned when the entry point is loaded.
 
-            project_name (unicode):
+            project_name (str):
                 The project name. This will be set in the metadata and as
                 the distribution's name.
 
+            version (str, optional):
+                The project version.
+
             **metadata_kwargs (dict):
                 Keyword arguments to pass to the associated
-                :py:class:`FakeProvider` constructor.
+                :py:class:`FakeDistribution` constructor.
         """
-        self._value = value
-        self.dist = pkg_resources.Distribution(
+        dist = FakeDistribution(
             project_name=project_name,
             version=version,
-            metadata=FakeProvider(project_name=project_name,
-                                  version=version,
-                                  **metadata_kwargs))
+            metadata=metadata_kwargs,
+        )
 
-    def load(self):
+        vars(self).update(_value=value, dist=dist)
+
+    def load(self) -> Any:
         """Load the entry point.
 
         Returns:
             object: The value specified at initialization time.
         """
         return self._value
-
-
-class FakeProvider(pkg_resources.DefaultProvider):
-    """A fake provider for a distribution."""
-
-    egg_info = '/fake/path'
-
-    def __init__(self,
-                 metadata=None,
-                 author='Example Author',
-                 author_email='author@example.com',
-                 description='Test description\u2049',
-                 home_page='http://example.com',
-                 project_name='ExampleProject',
-                 license_name='Drivers',
-                 summary='Test summary',
-                 version='1.0'):
-        """Initialize the FakeDistribution.
-
-        Args:
-            metadata (dict, optional):
-                Metadata to assign to the provider. If this is provided, it
-                overrides all other arguments.
-
-            author (unicode, optional):
-                The package author.
-
-            author_email (unicode, optional):
-                The package author's e-mail address.
-
-            description (unicode, optional):
-                The package description.
-
-            home_page (unicode, optional):
-                The package's URL.
-
-            project_name (unicode, optional):
-                The package's name.
-
-            license_name (unicode, optional):
-                The name of the package license.
-
-            summary (unicode, optional):
-                The package summary.
-        """
-        if metadata is not None:
-            self.metadata = metadata
-        else:
-            self.metadata = {
-                'Author': author,
-                'Author-email': author_email,
-                'Description': description,
-                'Home-page': home_page,
-                'Name': project_name,
-                'License': license_name,
-                'Summary': summary,
-                'Version': version,
-            }
-
-    def _get(self, path):
-        """Return the metadata content.
-
-        This is the method that package resource providers must override to
-        return metadata content for the package. It's expected to return
-        byte strings, which will then be handled through the normal metadata
-        functions.
-
-        Returns:
-            bytes:
-            The package metadata content.
-        """
-        return ''.join(
-            '%s: %s\n' % (field_name, value)
-            for field_name, value in self.metadata.items()
-        ).encode('utf-8')
 
 
 class MyTestExtensionManager(ExtensionManager):
@@ -151,7 +201,7 @@ class MyTestExtensionManager(ExtensionManager):
         return self._entry_points
 
 
-class ExtensionTestsMixin(object):
+class ExtensionTestsMixin(MixinParent):
     """Mixin for Djblets extension-related unit tests.
 
     This is used to help set up an extension and extension manager to test
@@ -165,25 +215,30 @@ class ExtensionTestsMixin(object):
     #: The project name to use in the entrypoint.
     test_project_name = 'TestProject'
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up state before a test run."""
-        super(ExtensionTestsMixin, self).setUp()
+        super().setUp()
 
         self.manager = None
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Tear down state after a test run.
 
         This will properly ensure that the extension manager, if one was
         created, will clear all state and shut down.
         """
-        super(ExtensionTestsMixin, self).tearDown()
+        super().tearDown()
 
         if self.manager:
             self.manager.clear_sync_cache()
             self.manager.shutdown()
 
-    def setup_extension(self, extension_cls, enable=True, manager_key='tests'):
+    def setup_extension(
+        self,
+        extension_cls: type[Extension],
+        enable: bool = True,
+        manager_key: str = 'tests',
+    ) -> Extension | None:
         """Set up an extension for use in a test.
 
         This will register the class in a new extension manager and then
@@ -196,7 +251,7 @@ class ExtensionTestsMixin(object):
             enable (bool, optional):
                 Whether the returned extension should be enabled.
 
-            manager_key (unicode, optional):
+            manager_key (str, optional):
                 The key to use for the extension manager.
 
         Returns:

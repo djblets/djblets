@@ -784,16 +784,18 @@ class ExtensionManager:
             except Exception as e:
                 logger.exception('Error loading extension %s: %s',
                                  entrypoint.name, e)
-                extension_id = '%s.%s' % (entrypoint.module, entrypoint.attr)
+                extension_id = f'{entrypoint.module}.{entrypoint.attr}'
                 self._store_load_error(extension_id, str(e))
+
                 continue
 
             # A class's extension ID is its class name. We want to
             # make this easier for users to access by giving it an 'id'
             # variable, which will be accessible both on the class and on
             # instances.
-            class_name = ext_class.id = '%s.%s' % (ext_class.__module__,
-                                                   ext_class.__name__)
+            class_name = f'{ext_class.__module__}.{ext_class.__name__}'
+            ext_class.id = class_name
+
             self._extension_classes[class_name] = ext_class
             found_extensions[class_name] = ext_class
 

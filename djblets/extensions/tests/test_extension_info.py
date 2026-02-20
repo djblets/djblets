@@ -1,6 +1,9 @@
 """Unit tests for djblets.extensions.extension.ExtensionInfo."""
 
+from __future__ import annotations
+
 import os
+from typing import Any, TYPE_CHECKING
 
 from django.conf import settings
 
@@ -10,20 +13,25 @@ from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.extensions.tests.base import FakeEntryPoint
 from djblets.testing.testcases import TestCase
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
-class DjbletsTestExtension(Extension):
+    from djblets.extensions.extension import ExtensionMetadata
+
+
+class _DjbletsTestExtension(Extension):
     __module__ = 'djblets'
-    id = 'djblets:TestExtension',
+    id = 'djblets:TestExtension'
 
 
 class ExtensionInfoTests(ExtensionTestCaseMixin, TestCase):
     """Unit tests for djblets.extensions.extension.ExtensionInfo."""
 
-    def test_create_from_entrypoint(self):
+    def test_create_from_entrypoint(self) -> None:
         """Testing ExtensionInfo.create_from_entrypoint"""
         module_name = 'test_extension.dummy.submodule'
         package_name = 'DummyExtension'
-        extension_id = '%s:DummyExtension' % module_name
+        extension_id = f'{module_name}:DummyExtension'
 
         class TestExtension(Extension):
             __module__ = module_name
@@ -33,24 +41,35 @@ class ExtensionInfoTests(ExtensionTestCaseMixin, TestCase):
         extension_info = ExtensionInfo.create_from_entrypoint(entrypoint,
                                                               TestExtension)
 
+        dist = entrypoint.dist
+        assert dist is not None
+
+        metadata = dist.metadata
+        assert metadata is not None
+
+        expected_metadata = {
+            key: metadata[key]
+            for key in metadata
+        }
+
         self._check_extension_info(extension_info=extension_info,
                                    app_name='test_extension.dummy',
                                    package_name=package_name,
                                    extension_id=extension_id,
-                                   metadata=entrypoint.dist.metadata)
+                                   metadata=expected_metadata)
 
-    def test_create_from_entrypoint_with_custom_metadata(self):
+    def test_create_from_entrypoint_with_custom_metadata(self) -> None:
         """Testing ExtensionInfo.create_from_entrypoint with custom
         Extension.metadata
         """
         package_name = 'DummyExtension'
         module_name = 'test_extension.dummy.submodule'
-        extension_id = '%s:DummyExtension' % module_name
+        extension_id = f'{module_name}:DummyExtension'
 
         class TestExtension(Extension):
             __module__ = module_name
             id = extension_id
-            metadata = {
+            metadata: ExtensionMetadata = {
                 'Name': 'OverrideName',
                 'Version': '3.14159',
                 'Summary': 'Lorem ipsum dolor sit amet.',
@@ -63,7 +82,16 @@ class ExtensionInfoTests(ExtensionTestCaseMixin, TestCase):
         extension_info = ExtensionInfo.create_from_entrypoint(entrypoint,
                                                               TestExtension)
 
-        expected_metadata = entrypoint.dist.metadata.copy()
+        dist = entrypoint.dist
+        assert dist is not None
+
+        metadata = dist.metadata
+        assert metadata is not None
+
+        expected_metadata = {
+            key: metadata[key]
+            for key in metadata
+        }
         expected_metadata.update(TestExtension.metadata)
 
         self._check_extension_info(extension_info=extension_info,
@@ -72,18 +100,18 @@ class ExtensionInfoTests(ExtensionTestCaseMixin, TestCase):
                                    extension_id=extension_id,
                                    metadata=expected_metadata)
 
-    def test_create_from_entrypoint_with_broken_metadata(self):
+    def test_create_from_entrypoint_with_broken_metadata(self) -> None:
         """Testing ExtensionInfo.create_from_entrypoint with broken
         Extension.metadata
         """
         package_name = 'DummyExtension'
         module_name = 'test_extension.dummy.submodule'
-        extension_id = '%s:DummyExtension' % module_name
+        extension_id = f'{module_name}:DummyExtension'
 
         class TestExtension(Extension):
             __module__ = module_name
             id = extension_id
-            metadata = {
+            metadata: ExtensionMetadata = {
                 'Author': 'Example Author',
                 'Author-email': 'author@example.com',
                 'Name': 'OverrideName',
@@ -94,45 +122,63 @@ class ExtensionInfoTests(ExtensionTestCaseMixin, TestCase):
                 'Home-page': 'http://127.0.0.1/',
             }
 
-        entrypoint = FakeEntryPoint(TestExtension, project_name=package_name,
+        entrypoint = FakeEntryPoint(TestExtension,
+                                    project_name=package_name,
                                     metadata={})
         extension_info = ExtensionInfo.create_from_entrypoint(entrypoint,
                                                               TestExtension)
 
-        expected_metadata = entrypoint.dist.metadata.copy()
+        dist = entrypoint.dist
+        assert dist is not None
+
+        metadata = dist.metadata
+        assert metadata is not None
+
+        expected_metadata = {
+            key: metadata[key]
+            for key in metadata
+        }
         expected_metadata.update(TestExtension.metadata)
 
         self._check_extension_info(extension_info=extension_info,
                                    app_name='test_extension.dummy',
-                                   package_name=extension_id,
+                                   package_name=package_name,
                                    extension_id=extension_id,
                                    metadata=expected_metadata)
 
     def test_has_resource_with_file(self) -> None:
         """Testing ExtensionInfo.has_resource with file"""
-        self.setup_extension(DjbletsTestExtension, enable=False)
-        extension = DjbletsTestExtension(self.extension_mgr)
+        self.setup_extension(_DjbletsTestExtension, enable=False)
+        assert self.extension_mgr is not None
+
+        extension = _DjbletsTestExtension(self.extension_mgr)
 
         self.assertTrue(extension.info.has_resource('deprecation.py'))
 
     def test_has_resource_with_dir(self) -> None:
         """Testing ExtensionInfo.has_resource with directory"""
-        self.setup_extension(DjbletsTestExtension, enable=False)
-        extension = DjbletsTestExtension(self.extension_mgr)
+        self.setup_extension(_DjbletsTestExtension, enable=False)
+        assert self.extension_mgr is not None
+
+        extension = _DjbletsTestExtension(self.extension_mgr)
 
         self.assertTrue(extension.info.has_resource('extensions'))
 
     def test_has_resource_with_not_found(self) -> None:
         """Testing ExtensionInfo.has_resource with not found"""
-        self.setup_extension(DjbletsTestExtension, enable=False)
-        extension = DjbletsTestExtension(self.extension_mgr)
+        self.setup_extension(_DjbletsTestExtension, enable=False)
+        assert self.extension_mgr is not None
+
+        extension = _DjbletsTestExtension(self.extension_mgr)
 
         self.assertFalse(extension.info.has_resource('blarghy-blargh'))
 
     def test_extract_resource_with_file(self) -> None:
         """Testing ExtensionInfo.has_resource with file"""
-        self.setup_extension(DjbletsTestExtension, enable=False)
-        extension = DjbletsTestExtension(self.extension_mgr)
+        self.setup_extension(_DjbletsTestExtension, enable=False)
+        assert self.extension_mgr is not None
+
+        extension = _DjbletsTestExtension(self.extension_mgr)
 
         self.assertEqual(
             extension.info.extract_resource('deprecation.py'),
@@ -141,8 +187,10 @@ class ExtensionInfoTests(ExtensionTestCaseMixin, TestCase):
 
     def test_extract_resource_with_dir(self) -> None:
         """Testing ExtensionInfo.has_resource with directory"""
-        self.setup_extension(DjbletsTestExtension, enable=False)
-        extension = DjbletsTestExtension(self.extension_mgr)
+        self.setup_extension(_DjbletsTestExtension, enable=False)
+        assert self.extension_mgr is not None
+
+        extension = _DjbletsTestExtension(self.extension_mgr)
 
         self.assertEqual(
             extension.info.extract_resource('extensions'),
@@ -151,13 +199,39 @@ class ExtensionInfoTests(ExtensionTestCaseMixin, TestCase):
 
     def test_extract_resource_with_not_found(self) -> None:
         """Testing ExtensionInfo.has_resource with not found"""
-        self.setup_extension(DjbletsTestExtension, enable=False)
-        extension = DjbletsTestExtension(self.extension_mgr)
+        self.setup_extension(_DjbletsTestExtension, enable=False)
+        assert self.extension_mgr is not None
+
+        extension = _DjbletsTestExtension(self.extension_mgr)
 
         self.assertIsNone(extension.info.extract_resource('blarghy-blargh'))
 
-    def _check_extension_info(self, extension_info, app_name, package_name,
-                              extension_id, metadata):
+    def _check_extension_info(
+        self,
+        extension_info: ExtensionInfo,
+        app_name: str,
+        package_name: str,
+        extension_id: str,
+        metadata: Mapping[str, Any],
+    ) -> None:
+        """Check an ExtensionInfo result.
+
+        Args:
+            extension_info (djblets.extensions.extension.ExtensionInfo):
+                The extension info result.
+
+            app_name (str):
+                The expected app name.
+
+            package_name (str):
+                The expected package name.
+
+            extension_id (str):
+                The expected extension ID.
+
+            metadata (dict):
+                The expected extension metadata.
+        """
         htdocs_path = os.path.join(settings.MEDIA_ROOT, 'ext', package_name)
         static_path = os.path.join(settings.STATIC_ROOT, 'ext', extension_id)
 
