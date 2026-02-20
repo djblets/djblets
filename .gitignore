@@ -5,6 +5,7 @@ djblets/htdocs/*
 Djblets.egg-info
 docs/djblets/coderef/python
 package-requirements.txt
+tests/static
 
 # Only ignore the top-level node_modules, so that if one is created somewhere
 # else in the tree (which may interfere with builds in strange ways), it'll
