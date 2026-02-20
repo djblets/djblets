@@ -1,4 +1,5 @@
 import io
+import sys
 from html.entities import codepoint2name
 
 from markdown import __version_info__ as markdown_version, markdown
@@ -91,8 +92,10 @@ class MarkdownUtilsTests(MarkdownTestCase):
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',
-            '"': '&quot;',
         }
+
+        if sys.version_info < (3, 13):
+            toxml_expanded_chars['"'] = '&quot;'
 
         for char_code, entity_name in codepoint2name.items():
             rendered_html_entities.append('&%s;' % entity_name)

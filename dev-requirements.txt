@@ -6,8 +6,6 @@ kgb>=7.3
 Markdown>=3.3.3
 mock
 pygments
-
-# Install pytest and all the plugin dependencies we use.
 pytest~=8.3.2
 pytest-django~=4.8.0
 pytest-env~=1.1.3

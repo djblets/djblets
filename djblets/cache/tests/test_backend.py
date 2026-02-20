@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import pickle
 import re
+import sys
 import time
 import zlib
 from typing import TYPE_CHECKING
@@ -27,6 +28,14 @@ from djblets.testing.testcases import TestCase
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
+
+
+# Workaround for different implementations of assertNoLogs() between Django and
+# the standard library.
+if sys.version_info < (3, 10):
+    root_logger = 'root'
+else:
+    root_logger = None
 
 
 class BaseCacheTestCase(kgb.SpyAgency, TestCase):
@@ -1260,7 +1269,7 @@ class CacheMemoizeTests(BaseCacheTestCase):
 
             self.spy_on(cache_func)
 
-            with self.assertNoLogs():
+            with self.assertNoLogs(logger=root_logger):
                 result = cache_memoize(cache_key,
                                        cache_func,
                                        lock=new_lock)

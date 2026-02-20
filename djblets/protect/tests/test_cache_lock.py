@@ -7,12 +7,21 @@ Version Added:
 from __future__ import annotations
 
 import logging
+import sys
 
 import kgb
 from django.core.cache import cache
 
 from djblets.protect.locks import CacheLock
 from djblets.testing.testcases import TestCase
+
+
+# Workaround for different implementations of assertNoLogs() between Django and
+# the standard library.
+if sys.version_info < (3, 10):
+    root_logger = 'root'
+else:
+    root_logger = None
 
 
 class CacheLockTests(kgb.SpyAgency, TestCase):
@@ -73,7 +82,7 @@ class CacheLockTests(kgb.SpyAgency, TestCase):
                              blocking=False)
         self.assertFalse(new_lock.blocking)
 
-        with self.assertNoLogs(level=logging.DEBUG):
+        with self.assertNoLogs(logger=root_logger, level=logging.DEBUG):
             self.assertFalse(new_lock.acquire())
 
         self.assertFalse(new_lock.acquired)
@@ -161,7 +170,7 @@ class CacheLockTests(kgb.SpyAgency, TestCase):
                              blocking=True,
                              timeout_secs=10)
 
-        with self.assertNoLogs(level=logging.DEBUG):
+        with self.assertNoLogs(logger=root_logger, level=logging.DEBUG):
             self.assertFalse(new_lock.acquire(blocking=False))
 
         self.assertFalse(new_lock.acquired)
@@ -192,7 +201,7 @@ class CacheLockTests(kgb.SpyAgency, TestCase):
 
         message = 'Cannot release a lock that was not acquired.'
 
-        with self.assertNoLogs(level=logging.DEBUG):
+        with self.assertNoLogs(logger=root_logger, level=logging.DEBUG):
             with self.assertRaisesMessage(RuntimeError, message):
                 lock.release()
 
