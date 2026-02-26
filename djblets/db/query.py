@@ -277,12 +277,11 @@ def get_object_cached_field(
         # ManyRelatedManager.get_prefetch_queryset().
         cache_name = field.remote_field.related_query_name()
     else:
-        # Everything else lets us safely use get_cache_name() for a consistent
-        # value.
+        # Everything else lets us safely use cache_name for a consistent value.
         #
         # See all the other get_prefetch_queryset() methods in
         # django/db/models/fields/related_descriptors.py.
-        cache_name = field.get_cache_name()
+        cache_name = field.cache_name
 
     # Pull from the prefetch_related() cache, if found there.
     try:

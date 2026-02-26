@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 ###########################################################################
 
 #: The minimum supported version of Python 3.x.
-PYTHON_3_MIN_VERSION = (3, 8)
+PYTHON_3_MIN_VERSION = (3, 10)
 
 #: A string representation of the minimum supported version of Python 3.x.
 PYTHON_3_MIN_VERSION_STR = '%s.%s' % PYTHON_3_MIN_VERSION
@@ -56,13 +56,13 @@ PYTHON_3_RANGE = ">='%s'" % PYTHON_3_MIN_VERSION_STR
 
 
 #: The major version of Django we're using for documentation.
-django_doc_major_version = '4.2'
+django_doc_major_version = '5.2'
 
 #: The major version of Review Board we're using for documentation.
 reviewboard_doc_major_version = 'dev'
 
 #: The version range required for Django.
-django_version = '~=4.2.17'
+django_version = '~=5.2.9'
 
 ###########################################################################
 # Python dependencies
@@ -72,15 +72,14 @@ django_version = '~=4.2.17'
 package_dependencies: Mapping[str, Dependency] = {
     'cryptography': '>=41.0.7',
     'Django': django_version,
-    'django-assert-queries': '~=2.0.1',
-    'django-pipeline': '~=3.1.0',
+    'django-assert-queries': '>=3.0a0.dev0,==3.*',
+    'django-pipeline': '~=4.1.0',
     'dnspython': '>=2.3.0',
     'housekeeping': '~=1.1',
     'packaging': '>=23.1',
     'Pillow': '>=6.2',
     'publicsuffixlist': '~=0.10.0',
     'python-dateutil': '>=2.7',
-    'pytz': '',
     'typelets': '~=1.1.0',
     'typing_extensions': '>=4.12.2',
 

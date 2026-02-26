@@ -1,5 +1,7 @@
 """WebAPI scope dictionary tests."""
 
+from __future__ import annotations
+
 from django.test.utils import override_settings
 from oauth2_provider.settings import oauth2_settings
 
@@ -22,8 +24,9 @@ class WebAPIScopeDictionaryTests(TestCase):
     """Tests for WebAPIScopeDictionary."""
 
     @classmethod
-    def setUpClass(cls):
-        super(WebAPIScopeDictionaryTests, cls).setUpClass()
+    def setUpClass(cls) -> None:
+        """Set up the test case class."""
+        super().setUpClass()
 
         cls._resources = make_resource_tree(mixins=[
             ResourceOAuth2TokenMixin,
@@ -114,7 +117,7 @@ class ExtensionEnabledWebAPIScopeDictionaryTests(ExtensionTestCaseMixin,
     def setUpClass(cls):
         super(ExtensionEnabledWebAPIScopeDictionaryTests, cls).setUpClass()
 
-        cls._extension_manager = ExtensionManager('')
+        cls._extension_manager = ExtensionManager('', delay_init=False)
 
         cls._resources = make_resource_tree(mixins=[
             ResourceOAuth2TokenMixin,

@@ -67,14 +67,16 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
 
     def test_added_to_extension_managers(self):
         """Testing ExtensionManager registration"""
-        manager = ExtensionManager('unit-tests')
+        manager = ExtensionManager('unit-tests',
+                                   delay_init=False)
         self.assertIn(manager, get_extension_managers())
 
     def test_get_enabled_extensions_returns_empty(self):
         """Testing ExtensionManager.get_enabled_extensions with no
         extensions
         """
-        manager = ExtensionManager('unit-tests')
+        manager = ExtensionManager('unit-tests',
+                                   delay_init=False)
         manager.load()
 
         self.assertEqual(len(manager.get_enabled_extensions()), 0)
@@ -1001,8 +1003,8 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
         """
         key = 'extension-list-sync'
 
-        manager1 = ExtensionManager(key)
-        manager2 = ExtensionManager(key)
+        manager1 = ExtensionManager(key, delay_init=False)
+        manager2 = ExtensionManager(key, delay_init=False)
 
         with self.scanned_extensions([MyTestExtension],
                                      extension_mgr=manager1):
@@ -1041,8 +1043,8 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
         setting_key = 'foo'
         setting_val = 'abc123'
 
-        manager1 = ExtensionManager(key)
-        manager2 = ExtensionManager(key)
+        manager1 = ExtensionManager(key, delay_init=False)
+        manager2 = ExtensionManager(key, delay_init=False)
 
         with self.scanned_extensions([MyTestExtension],
                                      extension_mgr=manager1):
@@ -1088,8 +1090,8 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
         number
         """
         key = 'check-expired-test'
-        manager1 = ExtensionManager(key)
-        manager2 = ExtensionManager(key)
+        manager1 = ExtensionManager(key, delay_init=False)
+        manager2 = ExtensionManager(key, delay_init=False)
 
         with self.scanned_extensions([MyTestExtension],
                                      extension_mgr=manager1):
