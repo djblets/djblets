@@ -72,7 +72,7 @@ django_version = '~=5.2.9'
 package_dependencies: Mapping[str, Dependency] = {
     'cryptography': '>=41.0.7',
     'Django': django_version,
-    'django-assert-queries': '~=3.0.0a0',
+    'django-assert-queries': '>=3.0a0.dev0,==3.*',
     'django-pipeline': '~=4.1.0',
     'dnspython': '>=2.3.0',
     'housekeeping': '~=1.1',

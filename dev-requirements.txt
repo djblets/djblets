@@ -1,5 +1,5 @@
 coverage
-django_evolution~=3.0.0a0
+django_evolution>=3.0a0.dev0,==3.*
 django_oauth_toolkit~=3.2.0
 kgb>=7.3
 markdown~=3.10.0

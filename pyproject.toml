@@ -1,6 +1,5 @@
 [build-system]
 requires = [
-    'django_evolution~=2.3',
     'setuptools>=74',
 ]
 build-backend = 'build-backend'
