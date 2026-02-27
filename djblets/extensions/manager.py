@@ -1332,6 +1332,17 @@ class ExtensionManager:
         while old_version != cur_version and attempt < max_lock_attempts:
             try:
                 with self._open_lock_file(ext_class, lockfile):
+                    if not force:
+                        # Re-check the version now that we hold the lock.
+                        # Another thread/process may have installed media
+                        # while we were waiting to acquire it.
+                        old_version = (
+                            ext_class.info
+                            .get_installed_static_version())
+
+                        if old_version == cur_version:
+                            break
+
                     # These will raise exceptions if there's a fatal error,
                     # such as permission issues with the destination directory
                     # for static media files and the version file.
