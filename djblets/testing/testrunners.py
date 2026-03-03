@@ -255,9 +255,9 @@ class TestRunner(DiscoverRunner):
             argv = sys.argv
 
         if self.use_pytest:
-            self._run_pytest_tests(test_labels, argv, *args, **kwargs)
+            return self._run_pytest_tests(test_labels, argv, *args, **kwargs)
         else:
-            self._run_nose_tests(test_labels, argv, *args, **kwargs)
+            return self._run_nose_tests(test_labels, argv, *args, **kwargs)
 
     def _run_pytest_tests(
         self,
@@ -265,7 +265,7 @@ class TestRunner(DiscoverRunner):
         argv: Optional[List[str]] = None,
         *args,
         **kwargs,
-    ) -> None:
+    ) -> int:
         """Run the test suite using pytest.
 
         Args:
@@ -318,6 +318,11 @@ class TestRunner(DiscoverRunner):
 
         import pytest
         self.result = pytest.main(pytest_argv)
+
+        if self.result:
+            return 1
+        else:
+            return 0
 
     def _run_nose_tests(self, test_labels=[], argv=None, *args, **kwargs):
         """Run the test suite using nose.
