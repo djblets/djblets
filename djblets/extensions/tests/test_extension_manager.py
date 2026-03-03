@@ -30,15 +30,20 @@ logger = logging.getLogger(__name__)
 
 
 class MyTestExtension(Extension):
-    # We set this to djblets.extensions to avoid an issue unique to tests
+    # We set this to djblets.util to avoid an issue unique to tests
     # involving multiple ExtensionManagers. They'd both try wrapping
     # INSTALLED_APPS, and would try adding the same default app for the
     # extension upon load. While doing that, they'd assert that the extension
     # wasn't in INSTALLED_APPS, and that'd fail. The issue should only occur in
     # this test, or in a case of an app with multiple extension managers
     # loading the same list of apps.
+    #
+    # Prior to 5.3, we used djblets.extensions for the test, but with the
+    # fix to reloading the `.admin` module for each app, we ended up hitting
+    # issues with djblets.extensions.admin. So we now use an app that isn't
+    # going to include an `.admin` module.
     apps = [
-        'djblets.extensions',
+        'djblets.util',
     ]
 
 
