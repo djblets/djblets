@@ -1669,27 +1669,29 @@ class ExtensionManager:
         """
         extension.admin_site = AdminSite(extension.info.app_name)
 
-        # Import the extension's admin module.
-        try:
-            admin_module_name = '%s.admin' % extension.info.app_name
+        # Import each app's admin module.
+        for app_name in (extension.apps or [extension.info.app_name]):
+            admin_module_name = f'{app_name}.admin'
 
-            if admin_module_name in sys.modules:
-                # If the extension has been loaded previously and we are
-                # re-enabling it, we must reload the module. Just importing
-                # again will not cause the ModelAdmins to be registered.
-                reload(sys.modules[admin_module_name])
-            else:
-                import_module(admin_module_name)
-        except ImportError:
-            mod = import_module(extension.info.app_name)
+            try:
+                if admin_module_name in sys.modules:
+                    # If the extension has been loaded previously and we are
+                    # re-enabling it, we must reload the module. Just importing
+                    # again will not cause the ModelAdmins to be registered.
+                    reload(sys.modules[admin_module_name])
+                else:
+                    import_module(admin_module_name)
+            except ImportError:
+                mod = import_module(app_name)
 
-            # Decide whether to bubble up this error. If the app just doesn't
-            # have an admin module, we can ignore the error attempting to
-            # import it, otherwise we want it to bubble up.
-            if module_has_submodule(mod, 'admin'):
-                raise ImportError(
-                    'Importing admin module for extension "%s" failed'
-                    % extension.info.app_name)
+                # Decide whether to bubble up this error. If the app just
+                # doesn't have an admin module, we can ignore the error
+                # attempting to import it, otherwise we want it to bubble up.
+                if module_has_submodule(mod, 'admin'):
+                    raise ImportError(
+                        f'Importing admin module for extension "{app_name}" '
+                        f'failed'
+                    )
 
     def _add_to_installed_apps(
         self,
