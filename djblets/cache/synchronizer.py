@@ -15,6 +15,7 @@ from djblets.deprecation import RemovedInDjblets70Warning
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from typing import Final
 
 
 logger = logging.getLogger(__name__)
@@ -43,9 +44,23 @@ class GenerationSynchronizer:
     cache.
     """
 
+    #: Default expiration timeout for cache state.
+    #:
+    #: The default expiration is 1 year.
+    #:
+    #: Version Added:
+    #:     5.3
+    DEFAULT_EXPIRATION_SECS: Final[int] = 60 * 60 * 24 * 365
+
     ######################
     # Instance variables #
     ######################
+
+    #: Cache expiration for stored state in seconds.
+    #:
+    #: Version Added:
+    #:     5.3
+    cache_expiration_secs: int
 
     #: The synchronization cache key.
     cache_key: str
@@ -59,13 +74,17 @@ class GenerationSynchronizer:
         cache_key: str | Sequence[str],
         *,
         normalize_cache_key: bool = True,
+        cache_expiration_secs: int = DEFAULT_EXPIRATION_SECS,
     ) -> None:
         """Initialize the synchronizer.
 
         Version Changed:
             5.3:
-            ``cache_key`` may now be a sequence of string components of
-            the key.
+            * ``cache_key`` may now be a sequence of string components of
+              the key.
+
+            * Cached synchronization state will now persist for up to 1 year
+              by default, and can be overridden with ``cache_expiration_secs``.
 
         Version Changed:
             5.1:
@@ -88,6 +107,14 @@ class GenerationSynchronizer:
                 reduces changes of colliding with keys from other services.
                 This is enabled by default.
 
+            cache_expiration_secs (int, optional):
+                Cache expiration for stored state in seconds.
+
+                The default expiration is 1 year.
+
+                Version Added:
+                    5.3
+
         Raises:
             ValueError:
                 ``cache_key`` was not a string, and ``normalize_cache_key``
@@ -101,6 +128,7 @@ class GenerationSynchronizer:
                 'normalize_cache_key=False.'
             )
 
+        self.cache_expiration_secs = cache_expiration_secs
         self.cache_key = cache_key
         self.sync_gen = None
 
@@ -192,7 +220,8 @@ class GenerationSynchronizer:
         sync_gen = int(time.mktime(datetime.now().timetuple()))
 
         try:
-            stored = cache.add(self.cache_key, sync_gen)
+            stored = cache.add(self.cache_key, sync_gen,
+                               timeout=self.cache_expiration_secs)
         except Exception:
             # Set this as the latest generation. We'll then let a caller
             # handle this exception.

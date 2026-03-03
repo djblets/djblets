@@ -18,7 +18,7 @@ from djblets.pagestate.injectors import page_state_injectors
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from hashlib import _Hash
-    from typing import Literal
+    from typing import Any, Literal
 
     from django.http import HttpRequest
     from django.template import Context
@@ -70,6 +70,10 @@ class PageState:
     multiple template renders within a request/response cycle, each point
     will contain the injected content.
 
+    Callers can also store and retrieve arbitrary data using the
+    :py:attr:`extra_data` attribute. This will not affect page rendering
+    or ETags.
+
     Version Added:
         5.3
     """
@@ -77,6 +81,9 @@ class PageState:
     ######################
     # Instance variables #
     ######################
+
+    #: A dictionary callers can use for arbitrary storage of data.
+    extra_data: dict[str, Any]
 
     #: A mapping of point names to lists of page state data.
     _data: dict[str, list[PageStateData]]
@@ -143,6 +150,7 @@ class PageState:
 
     def __init__(self) -> None:
         """Initialize the page state."""
+        self.extra_data = {}
         self._data = {}
         self._etag_sha = None
 
