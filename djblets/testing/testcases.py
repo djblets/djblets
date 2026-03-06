@@ -15,8 +15,8 @@ from importlib import import_module
 from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec
 from itertools import zip_longest
-from typing import (Any, Dict, Iterator, List, Optional, TYPE_CHECKING, Type,
-                    Union)
+from typing import (Any, Dict, Iterator, List, Optional, Sequence,
+                    TYPE_CHECKING, Type, Union)
 from unittest.util import safe_repr
 
 from django.apps import apps
@@ -45,10 +45,7 @@ except ImportError:
     Version = None
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
     from contextlib import AbstractContextManager
-    from types import ModuleType
-    from typing import ClassVar
     from warnings import WarningMessage
 
     from django_assert_queries import ExpectedQuery
@@ -105,22 +102,20 @@ class TestCase(testcases.TestCase):
     """
     ws_re = re.compile(r'\s+')
 
-    def setUp(self) -> None:
-        """Set up the test case."""
+    def __call__(self, *args, **kwargs):
         method = getattr(self, self._testMethodName)
+        old_fixtures = getattr(self, 'fixtures', None)
 
-        # Load any fixtures that were added with @add_fixtures.
-        if (fixtures := getattr(method, '_fixtures', None)):
-            databases = self._databases_names(include_mirrors=False)
+        if hasattr(method, '_fixtures'):
+            if (getattr(method, '_replace_fixtures') or
+                old_fixtures is None):
+                self.fixtures = method._fixtures
+            else:
+                self.fixtures = old_fixtures + method._fixtures
 
-            for db_name in databases:
-                if isinstance(self, FixturesCompilerMixin):
-                    self.load_fixtures(fixtures, db=db_name)
-                else:
-                    call_command('loaddata', *fixtures, verbosity=0,
-                                 database=db_name)
+        super(TestCase, self).__call__(*args, **kwargs)
 
-        super().setUp()
+        self.fixtures = old_fixtures
 
     def shortDescription(self):
         """Returns the description of the current test.
@@ -511,13 +506,7 @@ class TestCase(testcases.TestCase):
                               check_subqueries=check_subqueries)
 
 
-if TYPE_CHECKING:
-    MixinParent = TestCase
-else:
-    MixinParent = object
-
-
-class TestModelsLoaderMixin(MixinParent):
+class TestModelsLoaderMixin(object):
     """Allows unit test modules to provide models to test against.
 
     This allows a unit test file to provide models that will be synced to the
@@ -649,7 +638,7 @@ class TestModelsLoaderMixin(MixinParent):
         cls._tests_loader_models_mod = None
 
 
-class FixturesCompilerMixin(MixinParent):
+class FixturesCompilerMixin(object):
     """Compiles and efficiently loads fixtures into a test suite.
 
     Unlike Django's standard fixture support, this doesn't re-discover
@@ -661,50 +650,27 @@ class FixturesCompilerMixin(MixinParent):
     non-JSON fixtures.
     """
 
-    #: The precompiled fixtures.
-    _precompiled_fixtures: ClassVar[dict[str, dict[str, Any]]] = {}
+    _precompiled_fixtures = {}
+    _fixture_dirs = []
 
-    #: The list of fixture directories used by this test class.
-    _fixture_dirs: ClassVar[list[str]] = []
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        """Set up the test case class."""
-        databases = cls._databases_names(include_mirrors=False)
-
-        # Hide the fixtures from Django's TestCase.setUpClass.
-        fixtures = cls.fixtures
-        cls.fixtures = None
-
-        try:
-            super().setUpClass()
-        finally:
-            cls.fixtures = fixtures
-
-        # Now we can load them ourselves.
-        if fixtures:
-            for db in databases:
-                cls.load_fixtures(fixtures, db=db)
-
-    def _fixture_setup(self) -> None:
+    def _fixture_setup(self):
         """Set up fixtures for unit tests."""
-        # TestCase._fixture_setup shouldn't actually load fixtures on any
-        # database other than the dummy backend (confusingly enough), but
-        # it does call _enter_atomics(), which sets up necessary state.
-        fixtures = self.fixtures
-        self.fixtures = None
+        # Temporarily hide the fixtures, so that the parent class won't
+        # do anything with them.
+        self._hide_fixtures = True
+        super(FixturesCompilerMixin, self)._fixture_setup()
+        self._hide_fixtures = False
 
-        try:
-            super()._fixture_setup()
-        finally:
-            self.fixtures = fixtures
+        if getattr(self, 'multi_db', False):
+            databases = connections
+        else:
+            databases = [DEFAULT_DB_ALIAS]
 
-    @classmethod
-    def load_fixtures(
-        cls,
-        fixtures: Sequence[str],
-        db: str = DEFAULT_DB_ALIAS,
-    ) -> None:
+        if hasattr(self, 'fixtures'):
+            for db in databases:
+                self.load_fixtures(self.fixtures, db=db)
+
+    def load_fixtures(self, fixtures, db=DEFAULT_DB_ALIAS):
         """Load fixtures for the current test.
 
         This is called for every fixture in the test case's ``fixtures``
@@ -712,48 +678,43 @@ class FixturesCompilerMixin(MixinParent):
         fixtures on top of that.
 
         Args:
-            fixtures (list of str):
+            fixtures (list of unicode):
                 The list of fixtures to load.
 
-            db (str, optional):
+            db (unicode):
                 The database name to load fixture data on.
         """
         if not fixtures:
             return
 
-        if db not in cls._precompiled_fixtures:
-            cls._precompiled_fixtures[db] = {}
+        if db not in self._precompiled_fixtures:
+            self._precompiled_fixtures[db] = {}
 
         for fixture in fixtures:
-            if fixture not in cls._precompiled_fixtures[db]:
-                cls._precompile_fixture(fixture, db)
+            if fixture not in self._precompiled_fixtures[db]:
+                self._precompile_fixture(fixture, db)
 
-        cls._load_fixtures(fixtures, db)
+        self._load_fixtures(fixtures, db)
 
-    @classmethod
-    def _precompile_fixture(
-        cls,
-        fixture: str,
-        db: str,
-    ) -> None:
+    def _precompile_fixture(self, fixture, db):
         """Precompile a fixture.
 
         The fixture is loaded and deserialized, and the resulting objects
         are stored for future use.
 
         Args:
-            fixture (str):
+            fixture (unicode):
                 The name of the fixture.
 
-            db (str):
+            db (unicode):
                 The database name to load fixture data on.
         """
-        assert db in cls._precompiled_fixtures
-        assert fixture not in cls._precompiled_fixtures[db]
+        assert db in self._precompiled_fixtures
+        assert fixture not in self._precompiled_fixtures[db]
 
         fixture_path = None
 
-        for fixture_dir in cls._get_fixture_dirs():
+        for fixture_dir in self._get_fixture_dirs():
             fixture_path = os.path.join(fixture_dir, fixture + '.json')
 
             if os.path.exists(fixture_path):
@@ -761,33 +722,32 @@ class FixturesCompilerMixin(MixinParent):
 
         try:
             if not fixture_path:
-                raise OSError('Fixture path not found')
+                raise IOError('Fixture path not found')
 
-            with open(fixture_path, 'r', encoding='utf-8') as fp:
-                cls._precompiled_fixtures[db][fixture] = [
+            with open(fixture_path, 'r') as fp:
+                self._precompiled_fixtures[db][fixture] = [
                     obj
                     for obj in serializers.deserialize('json', fp, using=db)
-                    if router.allow_migrate_model(db, obj.object)
+                    if ((hasattr(router, 'allow_syncdb') and
+                         router.allow_syncdb(db, obj.object.__class__)) or
+                        (hasattr(router, 'allow_migrate_model') and
+                         router.allow_migrate_model(db, obj.object)))
                 ]
-        except OSError as e:
-            sys.stderr.write(f'Unable to load fixture {fixture}: {e}\n')
+        except IOError as e:
+            sys.stderr.write('Unable to load fixture %s: %s\n' % (fixture, e))
 
-    @classmethod
-    def _get_fixture_dirs(
-        cls,
-    ) -> Sequence[str]:
+    def _get_fixture_dirs(self):
         """Return the list of fixture directories.
 
         This is computed only once and cached.
 
         Returns:
-            list of str:
             The list of fixture directories.
         """
-        if not cls._fixture_dirs:
+        if not self._fixture_dirs:
             app_module_paths = []
 
-            for app in cls._get_app_model_modules():
+            for app in self._get_app_model_modules():
                 if hasattr(app, '__path__'):
                     # It's a 'models/' subpackage.
                     for path in app.__path__:
@@ -801,30 +761,25 @@ class FixturesCompilerMixin(MixinParent):
                 for path in app_module_paths
             ]
 
-            cls._fixture_dirs = [
+            self._fixture_dirs = [
                 fixture_dir
                 for fixture_dir in all_fixture_dirs
                 if os.path.exists(fixture_dir)
             ]
 
-        return cls._fixture_dirs
+        return self._fixture_dirs
 
-    @classmethod
-    def _load_fixtures(
-        cls,
-        fixtures: Sequence[str],
-        db: str,
-    ) -> None:
+    def _load_fixtures(self, fixtures, db):
         """Load precompiled fixtures.
 
         Each precompiled fixture is loaded and then used to populate the
         database.
 
         Args:
-            fixtures (list of str):
+            fixtures (list of unicode):
                 The list of fixtures to load.
 
-            db (str):
+            db (unicode):
                 The database name to load fixture data on.
         """
         table_names = set()
@@ -832,9 +787,9 @@ class FixturesCompilerMixin(MixinParent):
 
         with connection.constraint_checks_disabled():
             for fixture in fixtures:
-                assert db in cls._precompiled_fixtures
-                assert fixture in cls._precompiled_fixtures[db]
-                deserialized_objs = cls._precompiled_fixtures[db][fixture]
+                assert db in self._precompiled_fixtures
+                assert fixture in self._precompiled_fixtures[db]
+                deserialized_objs = self._precompiled_fixtures[db][fixture]
 
                 to_save = OrderedDict()
                 to_save_m2m = []
@@ -864,14 +819,12 @@ class FixturesCompilerMixin(MixinParent):
                 # That's wasteful. Instead, we're going to just delete
                 # everything matching the deserialized objects' IDs and then
                 # bulk-create new entries.
-                model_cls = None
-
                 try:
                     for model_cls, objs in to_save.items():
                         obj_ids = [
-                            obj.pk
-                            for obj in objs
-                            if obj.pk
+                            _obj.pk
+                            for _obj in objs
+                            if _obj.pk
                         ]
 
                         if obj_ids:
@@ -879,13 +832,13 @@ class FixturesCompilerMixin(MixinParent):
 
                         model_cls.objects.using(db).bulk_create(objs)
                 except (DatabaseError, IntegrityError) as e:
-                    assert model_cls is not None
                     meta = model_cls._meta
                     sys.stderr.write(
-                        f'Could not load {meta.app_label}.{meta.object_name} '
-                        f'from fixture "{fixture}": {e}\n'
-                    )
-
+                        'Could not load %s.%s from fixture "%s": %s\n'
+                        % (meta.app_label,
+                           meta.object_name,
+                           fixture,
+                           e))
                     raise
 
                 # Now save any Many-to-Many field relations.
@@ -902,19 +855,19 @@ class FixturesCompilerMixin(MixinParent):
                     except (DatabaseError, IntegrityError) as e:
                         meta = obj._meta
                         sys.stderr.write(
-                            f'Could not load Many-to-Many entries for '
-                            f'{meta.app_label}.{meta.object_name} '
-                            f'(pk={obj.pk}) in fixture "{fixture}": {e}\n')
-
+                            'Could not load Many-to-Many entries for %s.%s '
+                            '(pk=%s) in fixture "%s": %s\n'
+                            % (meta.app_label,
+                               meta.object_name,
+                               obj.pk,
+                               fixture,
+                               e))
                         raise
 
         # We disabled constraints above, so check now.
         connection.check_constraints(table_names=sorted(table_names))
 
-    @classmethod
-    def _get_app_model_modules(
-        cls,
-    ) -> Sequence[ModuleType]:
+    def _get_app_model_modules(self):
         """Return the entire list of registered Django app models modules.
 
         This is an internal utility function that's used to provide
@@ -929,6 +882,12 @@ class FixturesCompilerMixin(MixinParent):
             for app in apps.get_app_configs()
             if app.models_module
         ]
+
+    def __getattribute__(self, name):
+        if name == 'fixtures' and self.__dict__.get('_hide_fixtures'):
+            raise AttributeError
+
+        return super(FixturesCompilerMixin, self).__getattribute__(name)
 
 
 class TagTest(TestCase):
@@ -995,7 +954,9 @@ class TestServerThread(threading.Thread):
         super(TestServerThread, self).__init__()
 
     def run(self):
-        """Set up test server and database and loop, handling http requests."""
+        """
+        Sets up test server and database and loops over handling http requests.
+        """
         try:
             handler = basehttp.AdminMediaHandler(WSGIHandler())
             server_address = (self.address, self.port)
@@ -1019,10 +980,12 @@ class TestServerThread(threading.Thread):
             test_db_name = settings.TEST_DATABASE_NAME
 
         if (db_engine.endswith('sqlite3') and
-            (not test_db_name or test_db_name == ':memory:') and
-            (fixtures := getattr(self, 'fixtures', None))):
+            (not test_db_name or test_db_name == ':memory:')):
             # Import the fixture data into the test database.
-            call_command('loaddata', *fixtures, verbosity=0)
+            if hasattr(self, 'fixtures'):
+                # We have to use this slightly awkward syntax due to the fact
+                # that we're using *args and **kwargs together.
+                testcases.call_command('loaddata', verbosity=0, *self.fixtures)
 
         # Loop until we get a stop event.
         while not self._stopevent.isSet():
