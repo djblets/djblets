@@ -1,5 +1,7 @@
 """Unit tests for djblets.datagrid."""
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 
 import kgb
@@ -9,7 +11,7 @@ from django.db.models import Count, Q
 from django.http import HttpRequest
 from django.test.client import RequestFactory
 from django.utils.encoding import force_str
-from django.utils.safestring import SafeText
+from django.utils.safestring import SafeString
 from django_assert_queries import assert_queries
 
 from djblets.datagrid.grids import (CheckboxColumn, Column, DataGrid,
@@ -23,11 +25,14 @@ class GroupDataGrid(DataGrid):
     objid = Column('ID', link=True, sortable=True, field_name='id')
     name = Column('Group Name', link=True, sortable=True, expand=True)
 
-    def __init__(self, request):
-        super(GroupDataGrid, self).__init__(
+    def __init__(self, request, **kwargs):
+        super().__init__(
             request=request,
             queryset=Group.objects.order_by('pk'),
-            title='All Groups')
+            title='All Groups',
+            **kwargs,
+        )
+
         self.default_sort = []
         self.default_columns = ['objid', 'name']
 
@@ -106,6 +111,8 @@ class DateTimeSinceColumnTests(TestCase):
 class DataGridTests(kgb.SpyAgency, TestCase):
     """Unit tests for djblets.datagrid.grids.DataGrid."""
 
+    maxDiff = None
+
     def setUp(self):
         super(DataGridTests, self).setUp()
 
@@ -123,7 +130,7 @@ class DataGridTests(kgb.SpyAgency, TestCase):
         """Testing DataGrid.render_listview"""
         result = self.datagrid.render_listview()
 
-        self.assertIsInstance(result, SafeText)
+        self.assertIsInstance(result, SafeString)
         self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">', result)
         self.assertIn('<div class="datagrid-main">', result)
         self.assertInHTML('<td colspan="2">Group 01</td>', result)
@@ -161,8 +168,6 @@ class DataGridTests(kgb.SpyAgency, TestCase):
             ' <a href="?page=2" rel="next" title="Next Page">&gt;</a>'
             ' <span class="page-count">2 pages&nbsp;</span>'
             '</div>')
-
-    maxDiff = None
 
     def test_render_paginator_with_first(self) -> None:
         """Testing DataGrid.render_paginator with first page link"""
@@ -238,50 +243,188 @@ class DataGridTests(kgb.SpyAgency, TestCase):
             ' <span class="page-count">48 pages&nbsp;</span>'
             '</div>')
 
-    def test_load_state_with_sort_ascending(self):
-        """Testing DataGrid.load_state with ascending sort"""
+    def test_load_state_with_sort_ascending_init(self) -> None:
+        """Testing DataGrid.load_state with ascending sort in __init__"""
+        datagrid = GroupDataGrid(request=self.request,
+                                 sort=['name', 'objid'])
+        datagrid.load_state()
+
+        self.assertEqual(datagrid.sort_list, ['name', 'objid'])
+        self.assertEqual(len(datagrid.rows), datagrid.paginate_by)
+        self.assertEqual(datagrid.rows[0]['object'].name, 'Group 01')
+        self.assertEqual(datagrid.rows[1]['object'].name, 'Group 02')
+        self.assertEqual(datagrid.rows[2]['object'].name, 'Group 03')
+
+        # Exercise the code paths when rendering.
+        result = datagrid.render_listview()
+        self.assertIsInstance(result, SafeString)
+        self.assertIn('<div class="datagrid-wrapper" id="datagrid-1">',
+                      result)
+
+    def test_load_state_with_sort_ascending_request(self) -> None:
+        """Testing DataGrid.load_state with ascending sort in request"""
         self.request.GET['sort'] = 'name,objid'
-        self.datagrid.load_state()
 
-        self.assertEqual(self.datagrid.sort_list, ['name', 'objid'])
-        self.assertEqual(len(self.datagrid.rows), self.datagrid.paginate_by)
-        self.assertEqual(self.datagrid.rows[0]['object'].name, 'Group 01')
-        self.assertEqual(self.datagrid.rows[1]['object'].name, 'Group 02')
-        self.assertEqual(self.datagrid.rows[2]['object'].name, 'Group 03')
+        datagrid = self.datagrid
+        datagrid.load_state()
+
+        self.assertEqual(datagrid.sort_list, ['name', 'objid'])
+        self.assertEqual(len(datagrid.rows), datagrid.paginate_by)
+        self.assertEqual(datagrid.rows[0]['object'].name, 'Group 01')
+        self.assertEqual(datagrid.rows[1]['object'].name, 'Group 02')
+        self.assertEqual(datagrid.rows[2]['object'].name, 'Group 03')
 
         # Exercise the code paths when rendering.
-        result = self.datagrid.render_listview()
-        self.assertIsInstance(result, SafeText)
-        self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">', result)
+        result = datagrid.render_listview()
+        self.assertIsInstance(result, SafeString)
+        self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">',
+                      result)
 
-    def test_load_state_with_sort_descending(self):
-        """Testing DataGrid.load_state with descending sort"""
+    def test_load_state_with_sort_descending_init(self) -> None:
+        """Testing DataGrid.load_state with descending sort in __init__"""
+        datagrid = GroupDataGrid(request=self.request,
+                                 sort=['-name'])
+        datagrid.load_state()
+
+        self.assertEqual(datagrid.sort_list, ['-name'])
+        self.assertEqual(len(datagrid.rows), datagrid.paginate_by)
+        self.assertEqual(datagrid.rows[0]['object'].name, 'Group 99')
+        self.assertEqual(datagrid.rows[1]['object'].name, 'Group 98')
+        self.assertEqual(datagrid.rows[2]['object'].name, 'Group 97')
+
+        # Exercise the code paths when rendering.
+        result = datagrid.render_listview()
+        self.assertIsInstance(result, SafeString)
+        self.assertIn('<div class="datagrid-wrapper" id="datagrid-1">',
+                      result)
+
+    def test_load_state_with_sort_descending_request(self) -> None:
+        """Testing DataGrid.load_state with descending sort in request"""
         self.request.GET['sort'] = '-name'
-        self.datagrid.load_state()
 
-        self.assertEqual(self.datagrid.sort_list, ['-name'])
-        self.assertEqual(len(self.datagrid.rows), self.datagrid.paginate_by)
-        self.assertEqual(self.datagrid.rows[0]['object'].name, 'Group 99')
-        self.assertEqual(self.datagrid.rows[1]['object'].name, 'Group 98')
-        self.assertEqual(self.datagrid.rows[2]['object'].name, 'Group 97')
+        datagrid = self.datagrid
+        datagrid.load_state()
+
+        self.assertEqual(datagrid.sort_list, ['-name'])
+        self.assertEqual(len(datagrid.rows), datagrid.paginate_by)
+        self.assertEqual(datagrid.rows[0]['object'].name, 'Group 99')
+        self.assertEqual(datagrid.rows[1]['object'].name, 'Group 98')
+        self.assertEqual(datagrid.rows[2]['object'].name, 'Group 97')
 
         # Exercise the code paths when rendering.
-        result = self.datagrid.render_listview()
-        self.assertIsInstance(result, SafeText)
-        self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">', result)
+        result = datagrid.render_listview()
+        self.assertIsInstance(result, SafeString)
+        self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">',
+                      result)
 
-    def test_load_state_with_custom_column_orders(self):
-        """Testing DataGrid.load_state with custom column orders"""
+    def test_load_state_with_sort_none_init(self) -> None:
+        """Testing DataGrid.load_state with sort=None in __init__"""
+        class MyGroupDataGrid(GroupDataGrid):
+            def __init__(self, **kwargs) -> None:
+                super().__init__(**kwargs)
+
+                self.default_sort = ['-objid']
+
+        request = self.request
+        request.GET['sort'] = '-name'
+
+        datagrid = MyGroupDataGrid(request=request,
+                                   sort=None)
+        datagrid.load_state()
+
+        self.assertEqual(datagrid.sort_list, ['-objid'])
+        self.assertEqual(len(datagrid.rows), datagrid.paginate_by)
+        self.assertEqual(datagrid.rows[0]['object'].name, 'Group 99')
+        self.assertEqual(datagrid.rows[1]['object'].name, 'Group 98')
+        self.assertEqual(datagrid.rows[2]['object'].name, 'Group 97')
+
+        # Exercise the code paths when rendering.
+        result = datagrid.render_listview()
+        self.assertIsInstance(result, SafeString)
+        self.assertIn('<div class="datagrid-wrapper" id="datagrid-1">',
+                      result)
+
+    def test_load_state_with_custom_columns_init(self) -> None:
+        """Testing DataGrid.load_state with custom columns in __init__"""
+        datagrid = GroupDataGrid(request=self.request,
+                                 columns=['objid'])
+        datagrid.load_state()
+
+        objid_column = datagrid.get_column('objid')
+        assert objid_column is not None
+
+        self.assertEqual(
+            datagrid.columns,
+            [
+                datagrid.get_stateful_column(objid_column),
+            ])
+
+        self.assertEqual(len(datagrid.rows), datagrid.paginate_by)
+        self.assertEqual(len(datagrid.rows[0]['cells']), 1)
+
+        result = datagrid.render_listview()
+
+        self.assertIsInstance(result, SafeString)
+        self.assertIn('<div class="datagrid-wrapper" id="datagrid-1">',
+                      result)
+
+    def test_load_state_with_custom_columns_request(self) -> None:
+        """Testing DataGrid.load_state with custom columns in request.GET
+        """
         self.request.GET['columns'] = 'objid'
-        self.datagrid.load_state()
 
-        self.assertEqual(len(self.datagrid.rows), self.datagrid.paginate_by)
-        self.assertEqual(len(self.datagrid.rows[0]['cells']), 1)
+        datagrid = self.datagrid
+        datagrid.load_state()
+
+        objid_column = datagrid.get_column('objid')
+        assert objid_column is not None
+
+        self.assertEqual(
+            datagrid.columns,
+            [
+                datagrid.get_stateful_column(objid_column),
+            ])
+
+        self.assertEqual(len(datagrid.rows), datagrid.paginate_by)
+        self.assertEqual(len(datagrid.rows[0]['cells']), 1)
 
         # Exercise the code paths when rendering.
-        result = self.datagrid.render_listview()
-        self.assertIsInstance(result, SafeText)
-        self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">', result)
+        result = datagrid.render_listview()
+
+        self.assertIsInstance(result, SafeString)
+        self.assertIn('<div class="datagrid-wrapper" id="datagrid-0">',
+                      result)
+
+    def test_load_state_with_columns_none_init(self) -> None:
+        """Testing DataGrid.load_state with columns=None in __init__"""
+        request = self.request
+        request.GET['columns'] = 'name'
+
+        datagrid = GroupDataGrid(request=request,
+                                 columns=None)
+        datagrid.load_state()
+
+        objid_column = datagrid.get_column('objid')
+        name_column = datagrid.get_column('name')
+
+        assert objid_column is not None
+        assert name_column is not None
+
+        self.assertEqual(
+            datagrid.columns,
+            [
+                datagrid.get_stateful_column(objid_column),
+                datagrid.get_stateful_column(name_column),
+            ])
+
+        self.assertEqual(len(datagrid.rows), datagrid.paginate_by)
+        self.assertEqual(len(datagrid.rows[0]['cells']), 2)
+
+        result = datagrid.render_listview()
+
+        self.assertIsInstance(result, SafeString)
+        self.assertIn('<div class="datagrid-wrapper" id="datagrid-1">',
+                      result)
 
     def test_load_state_with_load_extra_state_fields(self):
         """Testing DataGrid.load_state with load_extra_state returning fields
@@ -424,6 +567,39 @@ class DataGridTests(kgb.SpyAgency, TestCase):
         self.assertEqual(my_profile.my_columns, 'objid,name')
         self.assertEqual(my_profile.my_sort, 'name')
 
+    def test_load_state_with_stored_settings_columns_and_init(self) -> None:
+        """Testing DataGrid.load_state with stored columns changed on load
+        and not saved due to being in __init__
+        """
+        class MyProfile:
+            my_columns = 'objid,name'
+            my_sort = 'name'
+
+            def save(self, **kwargs):
+                pass
+
+        class TestDataGrid(GroupDataGrid):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+                self.profile_columns_field = 'my_columns'
+                self.profile_sort_field = 'my_sort'
+
+            def get_user_profile(self):
+                return my_profile
+
+        my_profile = MyProfile()
+        self.spy_on(my_profile.save)
+
+        datagrid = TestDataGrid(request=self.request,
+                                columns=['objid'])
+        datagrid.load_state()
+
+        # The explicitly-defined columns will not be saved.
+        self.assertSpyNotCalled(my_profile.save)
+        self.assertEqual(my_profile.my_columns, 'objid,name')
+        self.assertEqual(my_profile.my_sort, 'name')
+
     def test_load_state_with_stored_settings_sort_changed(self) -> None:
         """Testing DataGrid.load_state with stored sort changed on load"""
         class MyProfile(object):
@@ -487,6 +663,43 @@ class DataGridTests(kgb.SpyAgency, TestCase):
                                  update_fields=['my_sort'])
         self.assertEqual(my_profile.my_columns, 'name')
         self.assertEqual(my_profile.my_sort, 'name')
+
+    def test_load_state_with_stored_settings_sort_changed_and_init(
+        self,
+    ) -> None:
+        """Testing DataGrid.load_state with stored sort changed on load
+        and not saved due to being in __init__
+        """
+        class MyProfile:
+            my_columns = 'objid,name'
+            my_sort = 'objid'
+
+            def save(self, **kwargs):
+                pass
+
+        class TestDataGrid(GroupDataGrid):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+                self.profile_columns_field = 'my_columns'
+                self.profile_sort_field = 'my_sort'
+
+            def get_user_profile(self):
+                return my_profile
+
+        my_profile = MyProfile()
+        self.spy_on(my_profile.save)
+
+        request = self.request
+
+        datagrid = TestDataGrid(request=request,
+                                sort=['-name'])
+        datagrid.load_state()
+
+        # The explicitly-defined sort order will not be saved.
+        self.assertSpyNotCalled(my_profile.save)
+        self.assertEqual(my_profile.my_columns, 'objid,name')
+        self.assertEqual(my_profile.my_sort, 'objid')
 
     def test_precompute_objects_with_unsortable_column_ascending(self):
         """Testing DataGrid.precompute_objects with improper sort key

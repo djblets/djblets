@@ -47,7 +47,10 @@ from django.utils.safestring import mark_safe
 from django.utils.timesince import timesince
 from django.utils.translation import gettext_lazy as _
 from typing_extensions import Final, TypeAlias, TypedDict
+from typelets.symbols import UNSET
 
+from djblets.deprecation import (RemovedInDjblets70Warning,
+                                 deprecate_non_keyword_only_args)
 from djblets.template.context import get_default_template_context_processors
 from djblets.util.http import get_url_params_except
 
@@ -60,6 +63,7 @@ if TYPE_CHECKING:
     from django.utils.safestring import SafeString
 
     from typelets.django.strings import StrOrPromise
+    from typelets.symbols import Unsettable
 
     _RenderContext: TypeAlias = Union[
         Context,
@@ -1560,11 +1564,23 @@ class DataGrid:
     #:     bool
     use_distinct: bool
 
+    #: Any explicit column names provided during initialization.
+    #:
+    #: Version Added:
+    #:     5.3
+    _column_names: Unsettable[Sequence[str] | None]
+
     #: The model for the objects in the datagrid.
     #:
     #: Type:
     #:     type
     _model: Optional[Type[Model]]
+
+    #: Any explicit column sort order provided during initialization.
+    #:
+    #: Version Added:
+    #:     5.3
+    _sort_column_names: Unsettable[Sequence[str] | None]
 
     @classmethod
     def add_column(
@@ -1680,17 +1696,27 @@ class DataGrid:
 
                     cls.add_column(column)
 
+    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
     def __init__(
         self,
+        *,
         request: HttpRequest,
-        queryset: Optional[QuerySet] = None,
+        queryset: (QuerySet | None) = None,
         title: str = '',
-        extra_context: _RenderContext = {},
+        extra_context: (_RenderContext | None) = None,
         optimize_sorts: bool = True,
-        model: Optional[Type[Model]] = None,
+        model: (type[Model] | None) = None,
         use_distinct: bool = True,
+        columns: Unsettable[Sequence[str] | None] = UNSET,
+        sort: Unsettable[Sequence[str] | None] = UNSET,
     ) -> None:
         """Initialize the datagrid.
+
+        Version Changed:
+            5.3:
+            * Added ``columns`` and ``sort`` arguments.
+            * All arguments are now keyword-only. Positional arguments are
+              deprecated and will no longer be supported in Djblets 7.
 
         Version Changed:
             3.4:
@@ -1726,6 +1752,26 @@ class DataGrid:
 
                 Version Added:
                     3.4
+
+            columns (list of str, optional):
+                An explicit list of column names to show for the datagrid.
+
+                If specified, this will take precedence over any provided
+                in an HTTP request or from a user profile, and will not be
+                saved in the profile.
+
+                Version Added:
+                    5.3
+
+            sort (list of str, optional):
+                An explicit column sort order to use for the datagrid.
+
+                If specified, this will take precedence over any provided
+                in an HTTP request or from a user profile, and will not be
+                saved in the profile.
+
+                Version Added:
+                    5.3
         """
         self.request = request
         self.queryset = queryset
@@ -1738,11 +1784,13 @@ class DataGrid:
         self.sort_list = None
         self.state_loaded = False
         self.page_num = 0
-        self.extra_context = dict(extra_context)
+        self.extra_context = dict(extra_context or {})
         self.optimize_sorts = optimize_sorts
         self.use_distinct = use_distinct
         self.special_query_args = []
         self._model = model
+        self._column_names = columns
+        self._sort_column_names = sort
         self.default_sort = []
 
         datagrid_count = getattr(request, 'datagrid_count', 0)
@@ -1907,7 +1955,7 @@ class DataGrid:
 
     def load_state(
         self,
-        render_context: Optional[_RenderContext] = None,
+        render_context: (_RenderContext | None) = None,
     ) -> None:
         """Load the state of the datagrid.
 
@@ -1924,60 +1972,86 @@ class DataGrid:
 
         request = self.request
 
-        profile_sort_list: Optional[List[str]] = None
-        profile_columns_list: Optional[List[str]] = None
-        profile: Optional[Model] = None
-        profile_dirty_fields: List[str] = []
-        profile_dirty_fields_all: bool = False
+        profile_sort_list: (str | None) = None
+        profile_columns_list: (str | None) = None
+        profile: (Model | None) = None
+        profile_dirty_fields: list[str] = []
+        profile_columns_field: (str | None) = None
+        profile_sort_field: (str | None) = None
 
         # Get the saved settings for this grid in the profile. These will
         # work as defaults and allow us to determine if we need to save
         # the profile.
-        if request.user.is_authenticated:
-            profile = self.get_user_profile()
+        if (request.user.is_authenticated and
+            (profile := self.get_user_profile())):
+            # We have a profile we can load defaults from, if needed.
+            profile_sort_field = self.profile_sort_field
+            profile_columns_field = self.profile_columns_field
 
-            if profile:
-                if self.profile_sort_field:
-                    profile_sort_list = \
-                        getattr(profile, self.profile_sort_field, None)
+            if profile_sort_field:
+                profile_sort_list = getattr(profile, profile_sort_field, None)
 
-                if self.profile_columns_field:
-                    profile_columns_list = \
-                        getattr(profile, self.profile_columns_field, None)
+            if profile_columns_field:
+                profile_columns_list = getattr(profile, profile_columns_field,
+                                               None)
 
-        # Figure out the columns we're going to display
-        # We're also going to calculate the column widths based on the
-        # shrink and expand values.
-        colnames = request.GET.get('columns', profile_columns_list) or ''
+        profile_can_save_columns: bool = profile_columns_field is not None
+        profile_can_save_sort: bool = profile_sort_field is not None
 
-        if isinstance(colnames, str):
-            colnames_list = colnames.split(',')
-        elif isinstance(colnames, list):
-            colnames_list = colnames
+        # Figure out the columns we're going to display.
+        column_names = self._column_names
+
+        if column_names is UNSET:
+            temp_column_names = (
+                request.GET.get('columns', profile_columns_list) or
+                ''
+            )
+
+            if isinstance(temp_column_names, str):
+                column_names = temp_column_names.split(',')
+            elif isinstance(temp_column_names, list):
+                column_names = temp_column_names
+            else:
+                column_names = []
         else:
-            colnames_list = []
+            # The caller provided a custom columns list for this instance,
+            # so don't save it back to the profile.
+            profile_can_save_columns = False
 
-        columns: List[Optional[Column]] = list(filter(None, [
-            self.get_column(colname)
-            for colname in colnames_list
+            if column_names is None:
+                column_names = []
+
+        # Try to load the columns. If the resulting list is empty (due to
+        # an empty list of column names, or missing columns), we'll load
+        # from defaults.
+        columns: list[Column | None] = list(filter(None, [
+            self.get_column(column_name)
+            for column_name in column_names
         ]))
 
         if not columns:
-            colnames = ','.join(self.default_columns)
+            # No columns could be loaded. Fall back on defaults.
+            column_names = self.default_columns
             columns = [
-                self.get_column(colname)
-                for colname in self.default_columns
+                self.get_column(column_name)
+                for column_name in column_names
             ]
 
-        expand_columns: List[StatefulColumn] = []
-        normal_columns: List[StatefulColumn] = []
+        # Create the stateful columns and begin separating into expanded
+        # and normal columns.
+        #
+        # We're also going to calculate the column widths based on the
+        # shrink and expand values.
+        stateful_columns = self.columns
+        expand_columns: list[StatefulColumn] = []
+        normal_columns: list[StatefulColumn] = []
 
         for column_def in columns:
             if column_def is None:
                 continue
 
             stateful_column = self.get_stateful_column(column_def)
-            self.columns.append(stateful_column)
+            stateful_columns.append(stateful_column)
             stateful_column.active = True
 
             if stateful_column.expand:
@@ -1994,14 +2068,14 @@ class DataGrid:
                 # up the lists of expanded and normal sized columns.
                 normal_columns.append(stateful_column)
 
-        self.columns[-1].last = True
+        stateful_columns[-1].last = True
 
         # Try to figure out the column widths for each column.
         # We'll start with the normal sized columns.
         total_pct = 100.0
 
         # Each expanded column counts as two normal columns.
-        normal_column_width = total_pct / (len(self.columns) +
+        normal_column_width = total_pct / (len(stateful_columns) +
                                            len(expand_columns))
 
         for stateful_column in normal_columns:
@@ -2017,31 +2091,46 @@ class DataGrid:
             stateful_column.width = expanded_column_width
 
         # Now get the sorting order for the columns.
-        sort_str = request.GET.get('sort', profile_sort_list)
+        sort_column_names = self._sort_column_names
 
-        if isinstance(sort_str, list):
-            sort_str = sort_str[0]
+        if sort_column_names is UNSET:
+            temp_sort_column_names = request.GET.get('sort', profile_sort_list)
 
-        sort_list: List[str] = []
+            if isinstance(temp_sort_column_names, str):
+                sort_column_names = temp_sort_column_names.split(',')
+            elif isinstance(temp_sort_column_names, list):
+                sort_column_names = temp_sort_column_names
+            else:
+                sort_column_names = []
+        else:
+            # The caller provided a custom sort list for this instance,
+            # so don't save it back to the profile.
+            profile_can_save_sort = False
 
-        if sort_str:
-            for sort_item in sort_str.split(','):
-                if not sort_item:
-                    continue
+            if sort_column_names is None:
+                sort_column_names = []
 
-                if sort_item[0] == '-':
-                    base_sort_item = sort_item[1:]
-                else:
-                    base_sort_item = sort_item
+        sort_list: list[str] = []
 
-                column = self.get_column(base_sort_item)
+        # If there are columns names to sort, filter out any that aren't
+        # sortable or can't be found.
+        for sort_item in sort_column_names:
+            if not sort_item:
+                continue
 
-                if column and column.sortable:
-                    sort_list.append(sort_item)
+            if sort_item[0] == '-':
+                base_sort_item = sort_item[1:]
+            else:
+                base_sort_item = sort_item
+
+            column = self.get_column(base_sort_item)
+
+            if column and column.sortable:
+                sort_list.append(sort_item)
 
         if not sort_list:
+            # No sorted columns were found. Fall back on defaults.
             sort_list = self.default_sort
-            sort_str = ','.join(sort_list)
 
         self.sort_list = sort_list
 
@@ -2054,20 +2143,30 @@ class DataGrid:
 
         # Now that we have all that, figure out if we need to save new
         # settings back to the profile.
+        #
+        # We'll only save if the caller didn't pass in custom columns or
+        # sort to the constructor.
         if profile:
-            if (self.profile_columns_field and
-                colnames != profile_columns_list):
-                setattr(profile, self.profile_columns_field, colnames)
-                profile_dirty_fields.append(self.profile_columns_field)
+            if profile_can_save_columns:
+                stored_column_names = ','.join(column_names)
 
-            if self.profile_sort_field and sort_str != profile_sort_list:
-                setattr(profile, self.profile_sort_field, sort_str)
-                profile_dirty_fields.append(self.profile_sort_field)
+                if stored_column_names != profile_columns_list:
+                    assert profile_columns_field is not None
 
-            if profile_dirty_fields_all:
-                # This can be removed in Djblets 4.
-                profile.save()
-            elif profile_dirty_fields:
+                    setattr(profile, profile_columns_field,
+                            stored_column_names)
+                    profile_dirty_fields.append(profile_columns_field)
+
+            if profile_can_save_sort:
+                stored_sort = ','.join(sort_list)
+
+                if stored_sort != profile_sort_list:
+                    assert profile_sort_field is not None
+
+                    setattr(profile, profile_sort_field, stored_sort)
+                    profile_dirty_fields.append(profile_sort_field)
+
+            if profile_dirty_fields:
                 profile.save(update_fields=profile_dirty_fields)
 
         self.state_loaded = True
@@ -2094,11 +2193,15 @@ class DataGrid:
     def load_extra_state(
         self,
         profile: Optional[Model],
-    ) -> Union[bool, List[str]]:
+    ) -> list[str]:
         """Load any extra state needed for this grid.
 
         This is used by subclasses that may have additional data to load
         and save.
+
+        Version Changed:
+            5.3:
+            This must now return a list of strings, not a bool.
 
         Version Changed:
             3.0:
@@ -2111,13 +2214,9 @@ class DataGrid:
                 The profile model instance to load from, if any.
 
         Returns:
-            bool or list of str:
+            list of str:
             A list of field names on ``profile`` that have been modified and
             should be saved.
-
-            Djblets 3.0 and older support ``True`` to save the entire object,
-            or ``False`` if fields weren't modified. This support will be
-            removed in Djblets 4.0.
         """
         return []
 
@@ -2760,6 +2859,9 @@ class AlphanumericDataGrid(DataGrid):
     #:     str
     current_letter: str
 
+    # TODO: After Djblets 7, convert this to keyword-only with deprecation.
+    #       We want to wait until after DataGrid is moved over, so we don't
+    #       break *args.
     def __init__(
         self,
         request: HttpRequest,
