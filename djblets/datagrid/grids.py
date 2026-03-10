@@ -1185,6 +1185,12 @@ class StatefulColumn:
     #:     djblets.datagrid.grids.DataGrid
     datagrid: DataGrid
 
+    #: Extra state data used by subclasses.
+    #:
+    #: Version Added:
+    #:     5.3
+    extra_data: dict[str, Any]
+
     #: Whether this is the last column in the datagrid.
     #:
     #: Type:
@@ -1218,6 +1224,7 @@ class StatefulColumn:
         self.width = 0
         self.data_cache = {}
         self.cell_render_cache = {}
+        self.extra_data = {}
 
         try:
             column.setup_state(self)
