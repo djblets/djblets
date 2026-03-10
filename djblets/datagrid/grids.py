@@ -28,6 +28,7 @@ import logging
 import re
 import string
 import traceback
+from datetime import datetime
 from typing import (Any, Callable, Dict, Iterable, List, Optional, Sequence,
                     Set, TYPE_CHECKING, Type, Union)
 from urllib.parse import urlencode
@@ -46,15 +47,17 @@ from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 from django.utils.timesince import timesince
 from django.utils.translation import gettext_lazy as _
+from housekeeping import deprecate_non_keyword_only_args
 from typing_extensions import Final, TypeAlias, TypedDict
 from typelets.symbols import UNSET
 
-from djblets.deprecation import (RemovedInDjblets70Warning,
-                                 deprecate_non_keyword_only_args)
+from djblets.deprecation import RemovedInDjblets70Warning
 from djblets.template.context import get_default_template_context_processors
 from djblets.util.http import get_url_params_except
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from django.core.paginator import Page
     from django.db.models import Model
     from django.http import HttpRequest
@@ -62,6 +65,7 @@ if TYPE_CHECKING:
     from django.template.context import Context
     from django.utils.safestring import SafeString
 
+    from typelets.django.json import SerializableDjangoJSONValue
     from typelets.django.strings import StrOrPromise
     from typelets.symbols import Unsettable
 
@@ -71,9 +75,144 @@ if TYPE_CHECKING:
     ]
 
     class _DataGridRow(TypedDict):
+        cells: Sequence[SafeString]
         object: Any
-        cells: List[str]
-        url: Optional[str]
+        url: str | None
+
+
+class DataGridColumnJSONData(TypedDict):
+    """JSON-serializable data for a column definition in a datagrid.
+
+    Version Added:
+        5.3
+    """
+
+    #: Whether the column expands to take available space.
+    expand: bool
+
+    #: The ID of the column.
+    id: str
+
+    #: The displayed label of the column.
+    label: str
+
+    #: Whether the column shrinks to take minimal space.
+    shrink: bool
+
+    #: Whether the column is sortable.
+    sortable: bool
+
+    #: The calculated width of the column, as a percentage.
+    width: float
+
+
+class DataGridCellJSONData(TypedDict):
+    """JSON-serializable data for a cell in a datagrid row.
+
+    Version Added:
+        5.3
+    """
+
+    #: The rendered HTML contents of the cell.
+    #:
+    #: This will be wrapped in a ``<td>``, and may contain CSS classes and
+    #: column span information. Consumers may want to use that information
+    #: and then normalize it for display, depending on their needs.
+    html: SafeString
+
+    #: A JSON value representing the contents of the cell.
+    value: SerializableDjangoJSONValue
+
+
+class DataGridRowJSONData(TypedDict):
+    """JSON-serializable data for a row in a datagrid.
+
+    Version Added:
+        5.3
+    """
+
+    #: A mapping of column IDs to cell JSON data.
+    cells: Mapping[str, DataGridCellJSONData]
+
+    #: An optional URL represented by the row.
+    url: str | None
+
+
+class DataGridPaginationJSONData(TypedDict):
+    """JSON-serializable data for a datagrid's pagination state.
+
+    Version Added:
+        5.3
+    """
+
+    #: The current 1-based page number of the results.
+    current_page: int
+
+    #: The 1-based index of the last row in the result.
+    #:
+    #: This index is within the total list of objects across all pages.
+    end_index: int
+
+    #: Whether there's a next page of results.
+    has_next: bool
+
+    #: Whether there's a previous page of results.
+    has_previous: bool
+
+    #: The number of rows to show per page.
+    per_page: int
+
+    #: The 1-based index of the first row in the result.
+    #:
+    #: This index is within the total list of objects across all pages.
+    start_index: int
+
+    #: The total number of rows across all pages.
+    total_count: int
+
+    #: The total number of pages.
+    total_pages: int
+
+
+class DataGridSortItemJSONData(TypedDict):
+    """JSON-serializable data for a column sort item.
+
+    Version Added:
+        5.3
+    """
+
+    #: Whether the column is sorted in ascending order.
+    ascending: bool
+
+    #: The ID of the sorted column.
+    column: str
+
+
+class DataGridJSONData(TypedDict):
+    """JSON-serializable data for a datagrid.
+
+    This can be fed into
+    :py:class:`~djblets.util.serializers.DjbletsJSONEncoder` to serialize to
+    a JSON document.
+
+    Version Added:
+        5.3
+    """
+
+    #: JSON data on all active columns shown in the datagrid.
+    columns: Sequence[DataGridColumnJSONData]
+
+    #: JSON data on all inactive columns for the datagrid.
+    available_columns: Sequence[DataGridColumnJSONData]
+
+    #: JSON data on each row shown in the datagrid.
+    rows: Sequence[DataGridRowJSONData]
+
+    #: JSON data on the pagination state.
+    pagination: DataGridPaginationJSONData
+
+    #: JSON data on all the selected sort criteria.
+    sort: Sequence[DataGridSortItemJSONData]
 
 
 logger = logging.getLogger(__name__)
@@ -697,7 +836,7 @@ class Column:
         state: StatefulColumn,
         obj: Any,
         render_context: _RenderContext,
-    ) -> str:
+    ) -> SafeString:
         """Render the table cell containing column data.
 
         Args:
@@ -811,17 +950,81 @@ class Column:
                 state.data_cache[pk] = escape(value)
                 return value
         else:
-            # Follow . separators like in the django template library
-            value = obj
+            return escape(self.get_raw_object_value(state, obj) or '')
 
-            for field_name in field_name.split('.'):
-                if field_name:
-                    value = getattr(value, field_name)
+    def to_json(
+        self,
+        state: StatefulColumn,
+        obj: Any,
+    ) -> SerializableDjangoJSONValue:
+        """Return a JSON-serializable value for an object in a cell.
 
-                    if callable(value):
-                        value = value()
+        Subclasses can override this to customize value extraction for JSON.
 
-            return escape(value)
+        Version Added:
+            5.3
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            obj (object):
+                The object being processed for this row.
+
+        Returns:
+            typelets.django.json.SerializableDjangoJSONValue:
+            The raw value suitable for JSON serialization, or ``None`` if
+            this column has no ``field_name``.
+        """
+        return self.get_raw_object_value(state, obj)
+
+    def get_raw_object_value(
+        self,
+        state: StatefulColumn,
+        obj: Any,
+    ) -> Any:
+        """Return the raw value for a given object in a cell.
+
+        This is used to return a value that can be used by
+        :py:meth:`render_data` and :py:meth:`to_json`.
+
+        By default, this will use :py:attr:`field_name` as a ``.``-separated
+        path of attributes. Any attributes mapping to a function will be
+        called, returning the value for the next part in the path.
+
+        Subclasses can override this to customize the logic for returning
+        the object's value.
+
+        Version Added:
+            5.3
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            obj (object):
+                The object being processed for this row.
+
+        Returns:
+            object:
+            The resulting value, or ``None`` if the field was not found
+            on the object.
+        """
+        field_name = self.field_name
+
+        if not field_name:
+            return None
+
+        value = obj
+
+        for field_name in field_name.split('.'):
+            if field_name:
+                value = getattr(value, field_name)
+
+                if callable(value):
+                    value = value()
+
+        return value
 
     def augment_queryset_for_filter(
         self,
@@ -962,7 +1165,7 @@ class StatefulColumn:
     #:
     #: Type:
     #:     dict
-    cell_render_cache: Dict[str, str]
+    cell_render_cache: Dict[str, SafeString]
 
     #: The column instance that this state is associated with.
     #:
@@ -1239,6 +1442,31 @@ class CheckboxColumn(Column):
         """
         return False
 
+    def to_json(
+        self,
+        state: StatefulColumn,
+        obj: Any,
+    ) -> SerializableDjangoJSONValue:
+        """Return a JSON-serializable value for an object in a cell.
+
+        Version Added:
+            5.3
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            obj (object):
+                The object being processed for this row.
+
+        Returns:
+            typelets.django.json.SerializableDjangoJSONValue:
+            ``True`` if the checkbox is selected, ``False`` if not
+            selectable or not selected.
+        """
+        return (self.is_selectable(state, obj) and
+                self.is_selected(state, obj))
+
 
 class DateTimeColumn(Column):
     """A column that renders a date or time."""
@@ -1301,14 +1529,74 @@ class DateTimeColumn(Column):
             str:
             The rendered data as HTML.
         """
+        return date(self.get_raw_object_value(state, obj), self.format)
+
+    def to_json(
+        self,
+        state: StatefulColumn,
+        obj: Any,
+    ) -> SerializableDjangoJSONValue:
+        """Return a JSON-serializable value for an object in a cell.
+
+        Version Added:
+            5.3
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            obj (object):
+                The object being processed for this row.
+
+        Returns:
+            typelets.django.json.SerializableDjangoJSONValue:
+            The datetime value as an ISO-formatted string, or ``None`` if
+            not present.
+        """
+        timestamp = self.get_raw_object_value(state, obj)
+
+        if timestamp is None:
+            return None
+
+        return timestamp.isoformat()
+
+    def get_raw_object_value(
+        self,
+        state: StatefulColumn,
+        obj: Any,
+    ) -> datetime | None:
+        """Return the raw value for a given object in a cell.
+
+        This will return a normalized :py:class:`datetime.datetime` for the
+        object in the cell.
+
+        Version Added:
+            5.3
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            obj (object):
+                The object being processed for this row.
+
+        Returns:
+            datetime.datetime:
+            The resulting value.
+        """
+        result = getattr(obj, self.field_name, None)
+
+        if result is None:
+            return None
+
         # If the datetime object is tz aware, convert it to local time.
-        datetime = getattr(obj, self.field_name)
-
         if settings.USE_TZ:
-            datetime = pytz.utc.normalize(datetime).\
-                astimezone(self.timezone)
+            result = (
+                pytz.utc.normalize(result)
+                .astimezone(self.timezone)
+            )
 
-        return date(datetime, self.format)
+        return result
 
 
 class DateTimeSinceColumn(Column):
@@ -1358,7 +1646,40 @@ class DateTimeSinceColumn(Column):
             str:
             The rendered data as HTML.
         """
-        return _('%s ago') % timesince(getattr(obj, self.field_name))
+        return _('%s ago') % timesince(self.get_raw_object_value(state, obj))
+
+    def to_json(
+        self,
+        state: StatefulColumn,
+        obj: Any,
+    ) -> SerializableDjangoJSONValue:
+        """Return a JSON-serializable value for an object in a cell.
+
+        Unlike :py:meth:`render_data`, which returns a human-readable
+        "X ago" string, this returns the actual datetime value as an
+        ISO-formatted string suitable for JSON serialization.
+
+        Version Added:
+            5.3
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            obj (object):
+                The object being processed for this row.
+
+        Returns:
+            typelets.django.json.SerializableDjangoJSONValue:
+            The datetime value as an ISO-formatted string, or ``None`` if
+            not present.
+        """
+        timestamp = self.get_raw_object_value(state, obj)
+
+        if timestamp is None:
+            return None
+
+        return timestamp.isoformat()
 
 
 class DataGrid:
@@ -2426,7 +2747,7 @@ class DataGrid:
 
             render_context['_datagrid_object_url'] = obj_url
 
-            cells: List[str] = []
+            cells: list[SafeString] = []
 
             for stateful_column in stateful_columns:
                 try:
@@ -2438,7 +2759,7 @@ class DataGrid:
                         'Column %r: %s',
                         stateful_column, e,
                         extra={'request': request})
-                    rendered_cell = ''
+                    rendered_cell = mark_safe('')
 
                 cells.append(rendered_cell)
 
@@ -2792,6 +3113,121 @@ class DataGrid:
             total_count=total_count,
             per_page=self.paginate_by,
             orphans=self.paginate_orphans)
+
+    def to_json(self) -> DataGridJSONData:
+        """Serialize the datagrid to a JSON-compatible dictionary.
+
+        This method produces a complete representation of the datagrid's
+        current state, including column metadata, row data, pagination
+        information, and sort state. The result is suitable for use with
+        :py:class:`~django.http.JsonResponse` or an API response.
+
+        Version Added:
+            5.3
+
+        Returns:
+            DataGridJSONData:
+            A dictionary containing a JSON-serializable representation of
+            the datagrid.
+        """
+        self.load_state()
+
+        stateful_columns = self.columns
+
+        # Serialize the information for each column.
+        active_columns_data: list[DataGridColumnJSONData] = []
+        inactive_columns_data: list[DataGridColumnJSONData] = []
+        active_columns: set[str] = set()
+
+        for stateful_column in stateful_columns:
+            column = stateful_column.column
+            active_columns.add(column.id)
+
+            active_columns_data.append({
+                'expand': column.expand,
+                'id': column.id,
+                'label': str(column.label),
+                'shrink': column.shrink,
+                'sortable': column.sortable,
+                'width': stateful_column.width,
+            })
+
+        for stateful_column in self.all_columns:
+            column = stateful_column.column
+
+            if column.id not in active_columns:
+                inactive_columns_data.append({
+                    'expand': column.expand,
+                    'id': column.id,
+                    'label': str(column.label),
+                    'shrink': column.shrink,
+                    'sortable': column.sortable,
+                    'width': stateful_column.width,
+                })
+
+        # Begin serializing each row in the datagrid.
+        rows_data: list[DataGridRowJSONData] = []
+        page = self.page
+
+        assert page is not None
+
+        for row in self.rows:
+            # Serialize each cell in the row.
+            cells_data: dict[str, DataGridCellJSONData] = {}
+            obj = row['object']
+
+            for stateful_column, html in zip(stateful_columns, row['cells']):
+                column = stateful_column.column
+
+                cells_data[column.id] = {
+                    'html': html,
+                    'value': column.to_json(stateful_column, obj),
+                }
+
+            rows_data.append({
+                'cells': cells_data,
+                'url': row['url'],
+            })
+
+        # Serialize the pagination data.
+        paginator = self.paginator
+        assert paginator is not None
+
+        pagination_data: DataGridPaginationJSONData = {
+            'current_page': page.number,
+            'end_index': page.end_index(),
+            'has_next': page.has_next(),
+            'has_previous': page.has_previous(),
+            'per_page': self.paginate_by,
+            'start_index': page.start_index(),
+            'total_count': paginator.count,
+            'total_pages': paginator.num_pages,
+        }
+
+        # Serialize the sort state.
+        sort_data: list[DataGridSortItemJSONData] = []
+
+        if sort_list := self.sort_list:
+            for sort_item in sort_list:
+                if sort_item.startswith('-'):
+                    column_id = sort_item[1:]
+                    ascending = False
+                else:
+                    column_id = sort_item
+                    ascending = True
+
+                sort_data.append({
+                    'ascending': ascending,
+                    'column': column_id,
+                })
+
+        return {
+            'available_columns': inactive_columns_data,
+            'columns': active_columns_data,
+            'pagination': pagination_data,
+            'rows': rows_data,
+            'sort': sort_data,
+        }
 
     def _build_render_context(self) -> _RenderContext:
         """Build a dictionary containing RequestContext contents.

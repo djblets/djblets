@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import kgb
 from django.conf import settings
@@ -14,16 +14,35 @@ from django.utils.encoding import force_str
 from django.utils.safestring import SafeString
 from django_assert_queries import assert_queries
 
-from djblets.datagrid.grids import (CheckboxColumn, Column, DataGrid,
-                                    DateTimeSinceColumn, StatefulColumn,
+from djblets.datagrid.grids import (CheckboxColumn,
+                                    Column,
+                                    DataGrid,
+                                    DateTimeColumn,
+                                    DateTimeSinceColumn,
+                                    StatefulColumn,
                                     logger)
 from djblets.testing.testcases import TestCase
 from djblets.util.dates import get_tz_aware_utcnow
 
 
 class GroupDataGrid(DataGrid):
-    objid = Column('ID', link=True, sortable=True, field_name='id')
-    name = Column('Group Name', link=True, sortable=True, expand=True)
+    objid = Column(
+        'ID',
+        link=True,
+        sortable=True,
+        field_name='id',
+    )
+
+    name = Column(
+        'Group Name',
+        link=True,
+        sortable=True,
+        expand=True,
+    )
+
+    other_column = Column(
+        'Other Column',
+    )
 
     def __init__(self, request, **kwargs):
         super().__init__(
@@ -80,6 +99,49 @@ class CheckboxColumnTests(TestCase):
             '<input type="checkbox" data-object-id="1"'
             ' data-checkbox-name="my_checkbox&amp;">')
 
+    def test_to_json_with_selected(self) -> None:
+        """Testing CheckboxColumn.to_json with selected object"""
+        group = Group.objects.create(name='test')
+
+        datagrid = DataGrid(request=RequestFactory().request(),
+                            queryset=Group.objects.all())
+
+        column = CheckboxColumn()
+        column.is_selected = lambda *args, **kwargs: True  # type: ignore
+
+        state = StatefulColumn(datagrid=datagrid,
+                               column=column)
+
+        self.assertIs(column.to_json(state, group), True)
+
+    def test_to_json_with_unselected(self) -> None:
+        """Testing CheckboxColumn.to_json with unselected object"""
+        group = Group.objects.create(name='test')
+
+        datagrid = DataGrid(request=RequestFactory().request(),
+                            queryset=Group.objects.all())
+
+        column = CheckboxColumn()
+        state = StatefulColumn(datagrid=datagrid,
+                               column=column)
+
+        self.assertIs(column.to_json(state, group), False)
+
+    def test_to_json_with_not_selectable(self) -> None:
+        """Testing CheckboxColumn.to_json with non-selectable object"""
+        group = Group.objects.create(name='test')
+
+        datagrid = DataGrid(request=RequestFactory().request(),
+                            queryset=Group.objects.all())
+
+        column = CheckboxColumn()
+        column.is_selectable = lambda *args, **kwargs: False  # type: ignore
+
+        state = StatefulColumn(datagrid=datagrid,
+                               column=column)
+
+        self.assertIs(column.to_json(state, group), False)
+
 
 class DateTimeSinceColumnTests(TestCase):
     """Unit tests for djblets.datagrid.grids.DateTimeSinceColumn."""
@@ -106,6 +168,79 @@ class DateTimeSinceColumnTests(TestCase):
 
         obj.time = now - timedelta(days=7)
         self.assertEqual(column.render_data(state, obj), '1\xa0week ago')
+
+    def test_to_json(self) -> None:
+        """Testing DateTimeSinceColumn.to_json"""
+        class DummyObj:
+            time: (datetime | None) = None
+
+        datagrid = DataGrid(request=RequestFactory().request(),
+                            queryset=Group.objects.all())
+
+        column = DateTimeSinceColumn('Test', field_name='time')
+        state = StatefulColumn(datagrid=datagrid,
+                               column=column)
+
+        obj = DummyObj()
+        obj.time = datetime(2026, 2, 15, 10, 20, 30,
+                            tzinfo=UTC)
+
+        self.assertEqual(column.to_json(state, obj),
+                         '2026-02-15T10:20:30+00:00')
+
+    def test_to_json_with_none(self) -> None:
+        """Testing DateTimeSinceColumn.to_json with None value"""
+        class DummyObj:
+            time = None
+
+        datagrid = DataGrid(request=RequestFactory().request(),
+                            queryset=Group.objects.all())
+
+        column = DateTimeSinceColumn('Test',
+                                     field_name='time')
+        state = StatefulColumn(datagrid=datagrid,
+                               column=column)
+
+        self.assertIsNone(column.to_json(state, DummyObj()))
+
+
+class DateTimeColumnTests(TestCase):
+    """Unit tests for djblets.datagrid.grids.DateTimeColumn."""
+
+    def test_to_json(self) -> None:
+        """Testing DateTimeColumn.to_json"""
+        class DummyObj:
+            time: (datetime | None) = None
+
+        datagrid = DataGrid(request=RequestFactory().request(),
+                            queryset=Group.objects.all())
+
+        column = DateTimeColumn('Test',
+                                field_name='time')
+        state = StatefulColumn(datagrid=datagrid,
+                               column=column)
+
+        obj = DummyObj()
+        obj.time = datetime(2026, 2, 15, 10, 20, 30,
+                            tzinfo=UTC)
+
+        self.assertEqual(column.to_json(state, obj),
+                         '2026-02-15T10:20:30+00:00')
+
+    def test_to_json_with_none(self) -> None:
+        """Testing DateTimeColumn.to_json with None value"""
+        class DummyObj:
+            time = None
+
+        datagrid = DataGrid(request=RequestFactory().request(),
+                            queryset=Group.objects.all())
+
+        column = DateTimeColumn('Test',
+                                field_name='time')
+        state = StatefulColumn(datagrid=datagrid,
+                               column=column)
+
+        self.assertIsNone(column.to_json(state, DummyObj()))
 
 
 class DataGridTests(kgb.SpyAgency, TestCase):
@@ -870,7 +1005,8 @@ class DataGridTests(kgb.SpyAgency, TestCase):
                 return super(TestDataGrid, self).post_process_queryset(
                     queryset.select_related('baz'))
 
-        grid = TestDataGrid(self.request, queryset=Group.objects.all())
+        grid = TestDataGrid(request=self.request,
+                            queryset=Group.objects.all())
         grid.columns = [
             grid.get_stateful_column(grid.get_column(name))
             for name in grid.default_columns
@@ -964,6 +1100,80 @@ class DataGridTests(kgb.SpyAgency, TestCase):
         self.assertIn('Error when calling get_sort_field for DataGrid Column',
                       logger.exception.last_call.args[0])
 
+    def test_to_json(self) -> None:
+        """Testing DataGrid.to_json"""
+        self.assertEqual(
+            self.datagrid.to_json(),
+            {
+                'available_columns': [
+                    {
+                        'expand': False,
+                        'id': 'other_column',
+                        'label': 'Other Column',
+                        'shrink': False,
+                        'sortable': False,
+                        'width': 0,
+                    },
+                ],
+                'columns': [
+                    {
+                        'expand': False,
+                        'id': 'objid',
+                        'label': 'ID',
+                        'shrink': False,
+                        'sortable': True,
+                        'width': 33.333333333333336,
+                    },
+                    {
+                        'expand': True,
+                        'id': 'name',
+                        'label': 'Group Name',
+                        'shrink': False,
+                        'sortable': True,
+                        'width': 66.66666666666666,
+                    },
+                ],
+                'rows': [
+                    {
+                        'cells': {
+                            'name': {
+                                'html': (
+                                    f'<td colspan="2">\n'
+                                    f'\n'
+                                    f' Group {i:02}\n'
+                                    f'\n'
+                                    f'</td>\n'
+                                ),
+                                'value': f'Group {i:02}',
+                            },
+                            'objid': {
+                                'html': (
+                                    f'<td>\n'
+                                    f'\n'
+                                    f' {i}\n'
+                                    f'\n'
+                                    f'</td>\n'
+                                ),
+                                'value': i,
+                            },
+                        },
+                        'url': None,
+                    }
+                    for i in range(1, 51)
+                ],
+                'pagination': {
+                    'current_page': 1,
+                    'end_index': 50,
+                    'has_next': True,
+                    'has_previous': False,
+                    'per_page': 50,
+                    'start_index': 1,
+                    'total_count': 99,
+                    'total_pages': 2,
+                },
+                'sort': [],
+            })
+
 
 class ColumnTests(kgb.SpyAgency, TestCase):
     """Unit tests for djblets.datagrid.grids.Column."""
@@ -992,3 +1202,69 @@ class ColumnTests(kgb.SpyAgency, TestCase):
         self.assertTrue(column.render_data.called)
         self.assertIn('Error when calling render_data for DataGrid Column',
                       logger.exception.last_call.args[0])
+
+    def test_to_json(self) -> None:
+        """Testing Column.to_json"""
+        group = Group.objects.create(name='Test Group')
+
+        datagrid = DataGrid(request=RequestFactory().request(),
+                            queryset=Group.objects.all())
+
+        column = Column(id='name',
+                        field_name='name')
+        state = StatefulColumn(datagrid=datagrid,
+                               column=column)
+
+        self.assertEqual(column.to_json(state, group),
+                         'Test Group')
+
+    def test_to_json_with_no_field_name(self) -> None:
+        """Testing Column.to_json with no field name"""
+        group = Group.objects.create(name='Test Group')
+
+        datagrid = DataGrid(request=RequestFactory().request(),
+                            queryset=Group.objects.all())
+
+        column = Column(id='test')
+        state = StatefulColumn(datagrid=datagrid,
+                               column=column)
+
+        self.assertIsNone(column.to_json(state, group))
+
+    def test_to_json_with_dotted_field(self) -> None:
+        """Testing Column.to_json with dotted field name"""
+        class DummyObj:
+            def __init__(self) -> None:
+                self.related = DummyRelated()
+
+        class DummyRelated:
+            def __init__(self) -> None:
+                self.value = 'nested_value'
+
+        datagrid = DataGrid(request=RequestFactory().request(),
+                            queryset=Group.objects.all())
+
+        column = Column(id='test',
+                        field_name='related.value')
+        state = StatefulColumn(datagrid=datagrid,
+                               column=column)
+
+        self.assertEqual(column.to_json(state, DummyObj()),
+                         'nested_value')
+
+    def test_to_json_with_callable(self) -> None:
+        """Testing Column.to_json with callable field"""
+        class DummyObj:
+            def get_display_name(self):
+                return 'Display Name'
+
+        datagrid = DataGrid(request=RequestFactory().request(),
+                            queryset=Group.objects.all())
+
+        column = Column(id='test',
+                        field_name='get_display_name')
+        state = StatefulColumn(datagrid=datagrid,
+                               column=column)
+
+        self.assertEqual(column.to_json(state, DummyObj()),
+                         'Display Name')
