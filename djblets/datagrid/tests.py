@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import kgb
 from django.conf import settings
@@ -183,7 +183,7 @@ class DateTimeSinceColumnTests(TestCase):
 
         obj = DummyObj()
         obj.time = datetime(2026, 2, 15, 10, 20, 30,
-                            tzinfo=UTC)
+                            tzinfo=timezone.utc)
 
         self.assertEqual(column.to_json(state, obj),
                          '2026-02-15T10:20:30+00:00')
@@ -222,7 +222,7 @@ class DateTimeColumnTests(TestCase):
 
         obj = DummyObj()
         obj.time = datetime(2026, 2, 15, 10, 20, 30,
-                            tzinfo=UTC)
+                            tzinfo=timezone.utc)
 
         self.assertEqual(column.to_json(state, obj),
                          '2026-02-15T10:20:30+00:00')
