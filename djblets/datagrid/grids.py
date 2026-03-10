@@ -46,12 +46,17 @@ from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 from django.utils.timesince import timesince
 from django.utils.translation import gettext_lazy as _
+from housekeeping import deprecate_non_keyword_only_args
 from typing_extensions import Final, TypeAlias, TypedDict
+from typelets.symbols import UNSET
 
+from djblets.deprecation import RemovedInDjblets70Warning
 from djblets.template.context import get_default_template_context_processors
 from djblets.util.http import get_url_params_except
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from django.core.paginator import Page
     from django.db.models import Model
     from django.http import HttpRequest
@@ -59,7 +64,9 @@ if TYPE_CHECKING:
     from django.template.context import Context
     from django.utils.safestring import SafeString
 
+    from typelets.django.json import SerializableDjangoJSONValue
     from typelets.django.strings import StrOrPromise
+    from typelets.symbols import Unsettable
 
     _RenderContext: TypeAlias = Union[
         Context,
@@ -67,9 +74,144 @@ if TYPE_CHECKING:
     ]
 
     class _DataGridRow(TypedDict):
+        cells: Sequence[SafeString]
         object: Any
-        cells: List[str]
-        url: Optional[str]
+        url: str | None
+
+
+class DataGridColumnJSONData(TypedDict):
+    """JSON-serializable data for a column definition in a datagrid.
+
+    Version Added:
+        5.3
+    """
+
+    #: Whether the column expands to take available space.
+    expand: bool
+
+    #: The ID of the column.
+    id: str
+
+    #: The displayed label of the column.
+    label: str
+
+    #: Whether the column shrinks to take minimal space.
+    shrink: bool
+
+    #: Whether the column is sortable.
+    sortable: bool
+
+    #: The calculated width of the column, as a percentage.
+    width: float
+
+
+class DataGridCellJSONData(TypedDict):
+    """JSON-serializable data for a cell in a datagrid row.
+
+    Version Added:
+        5.3
+    """
+
+    #: The rendered HTML contents of the cell.
+    #:
+    #: This will be wrapped in a ``<td>``, and may contain CSS classes and
+    #: column span information. Consumers may want to use that information
+    #: and then normalize it for display, depending on their needs.
+    html: SafeString
+
+    #: A JSON value representing the contents of the cell.
+    value: SerializableDjangoJSONValue
+
+
+class DataGridRowJSONData(TypedDict):
+    """JSON-serializable data for a row in a datagrid.
+
+    Version Added:
+        5.3
+    """
+
+    #: A mapping of column IDs to cell JSON data.
+    cells: Mapping[str, DataGridCellJSONData]
+
+    #: An optional URL represented by the row.
+    url: str | None
+
+
+class DataGridPaginationJSONData(TypedDict):
+    """JSON-serializable data for a datagrid's pagination state.
+
+    Version Added:
+        5.3
+    """
+
+    #: The current 1-based page number of the results.
+    current_page: int
+
+    #: The 1-based index of the last row in the result.
+    #:
+    #: This index is within the total list of objects across all pages.
+    end_index: int
+
+    #: Whether there's a next page of results.
+    has_next: bool
+
+    #: Whether there's a previous page of results.
+    has_previous: bool
+
+    #: The number of rows to show per page.
+    per_page: int
+
+    #: The 1-based index of the first row in the result.
+    #:
+    #: This index is within the total list of objects across all pages.
+    start_index: int
+
+    #: The total number of rows across all pages.
+    total_count: int
+
+    #: The total number of pages.
+    total_pages: int
+
+
+class DataGridSortItemJSONData(TypedDict):
+    """JSON-serializable data for a column sort item.
+
+    Version Added:
+        5.3
+    """
+
+    #: Whether the column is sorted in ascending order.
+    ascending: bool
+
+    #: The ID of the sorted column.
+    column: str
+
+
+class DataGridJSONData(TypedDict):
+    """JSON-serializable data for a datagrid.
+
+    This can be fed into
+    :py:class:`~djblets.util.serializers.DjbletsJSONEncoder` to serialize to
+    a JSON document.
+
+    Version Added:
+        5.3
+    """
+
+    #: JSON data on all active columns shown in the datagrid.
+    columns: Sequence[DataGridColumnJSONData]
+
+    #: JSON data on all inactive columns for the datagrid.
+    available_columns: Sequence[DataGridColumnJSONData]
+
+    #: JSON data on each row shown in the datagrid.
+    rows: Sequence[DataGridRowJSONData]
+
+    #: JSON data on the pagination state.
+    pagination: DataGridPaginationJSONData
+
+    #: JSON data on all the selected sort criteria.
+    sort: Sequence[DataGridSortItemJSONData]
 
 
 logger = logging.getLogger(__name__)
@@ -693,7 +835,7 @@ class Column:
         state: StatefulColumn,
         obj: Any,
         render_context: _RenderContext,
-    ) -> str:
+    ) -> SafeString:
         """Render the table cell containing column data.
 
         Args:
@@ -807,17 +949,81 @@ class Column:
                 state.data_cache[pk] = escape(value)
                 return value
         else:
-            # Follow . separators like in the django template library
-            value = obj
+            return escape(self.get_raw_object_value(state, obj) or '')
 
-            for field_name in field_name.split('.'):
-                if field_name:
-                    value = getattr(value, field_name)
+    def to_json(
+        self,
+        state: StatefulColumn,
+        obj: Any,
+    ) -> SerializableDjangoJSONValue:
+        """Return a JSON-serializable value for an object in a cell.
 
-                    if callable(value):
-                        value = value()
+        Subclasses can override this to customize value extraction for JSON.
 
-            return escape(value)
+        Version Added:
+            5.3
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            obj (object):
+                The object being processed for this row.
+
+        Returns:
+            typelets.django.json.SerializableDjangoJSONValue:
+            The raw value suitable for JSON serialization, or ``None`` if
+            this column has no ``field_name``.
+        """
+        return self.get_raw_object_value(state, obj)
+
+    def get_raw_object_value(
+        self,
+        state: StatefulColumn,
+        obj: Any,
+    ) -> Any:
+        """Return the raw value for a given object in a cell.
+
+        This is used to return a value that can be used by
+        :py:meth:`render_data` and :py:meth:`to_json`.
+
+        By default, this will use :py:attr:`field_name` as a ``.``-separated
+        path of attributes. Any attributes mapping to a function will be
+        called, returning the value for the next part in the path.
+
+        Subclasses can override this to customize the logic for returning
+        the object's value.
+
+        Version Added:
+            5.3
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            obj (object):
+                The object being processed for this row.
+
+        Returns:
+            object:
+            The resulting value, or ``None`` if the field was not found
+            on the object.
+        """
+        field_name = self.field_name
+
+        if not field_name:
+            return None
+
+        value = obj
+
+        for field_name in field_name.split('.'):
+            if field_name:
+                value = getattr(value, field_name)
+
+                if callable(value):
+                    value = value()
+
+        return value
 
     def augment_queryset_for_filter(
         self,
@@ -958,7 +1164,7 @@ class StatefulColumn:
     #:
     #: Type:
     #:     dict
-    cell_render_cache: Dict[str, str]
+    cell_render_cache: Dict[str, SafeString]
 
     #: The column instance that this state is associated with.
     #:
@@ -977,6 +1183,12 @@ class StatefulColumn:
     #: Type:
     #:     djblets.datagrid.grids.DataGrid
     datagrid: DataGrid
+
+    #: Extra state data used by subclasses.
+    #:
+    #: Version Added:
+    #:     5.3
+    extra_data: dict[str, Any]
 
     #: Whether this is the last column in the datagrid.
     #:
@@ -1011,6 +1223,7 @@ class StatefulColumn:
         self.width = 0
         self.data_cache = {}
         self.cell_render_cache = {}
+        self.extra_data = {}
 
         try:
             column.setup_state(self)
@@ -1235,6 +1448,31 @@ class CheckboxColumn(Column):
         """
         return False
 
+    def to_json(
+        self,
+        state: StatefulColumn,
+        obj: Any,
+    ) -> SerializableDjangoJSONValue:
+        """Return a JSON-serializable value for an object in a cell.
+
+        Version Added:
+            5.3
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            obj (object):
+                The object being processed for this row.
+
+        Returns:
+            typelets.django.json.SerializableDjangoJSONValue:
+            ``True`` if the checkbox is selected, ``False`` if not
+            selectable or not selected.
+        """
+        return (self.is_selectable(state, obj) and
+                self.is_selected(state, obj))
+
 
 class DateTimeColumn(Column):
     """A column that renders a date or time."""
@@ -1316,13 +1554,71 @@ class DateTimeColumn(Column):
             str:
             The rendered data as HTML.
         """
+        return date(self.get_raw_object_value(state, obj), self.format)
+
+    def to_json(
+        self,
+        state: StatefulColumn,
+        obj: Any,
+    ) -> SerializableDjangoJSONValue:
+        """Return a JSON-serializable value for an object in a cell.
+
+        Version Added:
+            5.3
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            obj (object):
+                The object being processed for this row.
+
+        Returns:
+            typelets.django.json.SerializableDjangoJSONValue:
+            The datetime value as an ISO-formatted string, or ``None`` if
+            not present.
+        """
+        timestamp = self.get_raw_object_value(state, obj)
+
+        if timestamp is None:
+            return None
+
+        return timestamp.isoformat()
+
+    def get_raw_object_value(
+        self,
+        state: StatefulColumn,
+        obj: Any,
+    ) -> datetime.datetime | None:
+        """Return the raw value for a given object in a cell.
+
+        This will return a normalized :py:class:`datetime.datetime` for the
+        object in the cell.
+
+        Version Added:
+            5.3
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            obj (object):
+                The object being processed for this row.
+
+        Returns:
+            datetime.datetime:
+            The resulting value.
+        """
+        result = getattr(obj, self.field_name, None)
+
+        if result is None:
+            return None
+
         # If the datetime object is tz aware, convert it to local time.
-        datetime = getattr(obj, self.field_name)
-
         if settings.USE_TZ:
-            datetime = datetime.replace(tzinfo=self.timezone)
+            result = result.replace(tzinfo=self.timezone)
 
-        return date(datetime, self.format)
+        return result
 
 
 class DateTimeSinceColumn(Column):
@@ -1372,7 +1668,40 @@ class DateTimeSinceColumn(Column):
             str:
             The rendered data as HTML.
         """
-        return _('%s ago') % timesince(getattr(obj, self.field_name))
+        return _('%s ago') % timesince(self.get_raw_object_value(state, obj))
+
+    def to_json(
+        self,
+        state: StatefulColumn,
+        obj: Any,
+    ) -> SerializableDjangoJSONValue:
+        """Return a JSON-serializable value for an object in a cell.
+
+        Unlike :py:meth:`render_data`, which returns a human-readable
+        "X ago" string, this returns the actual datetime value as an
+        ISO-formatted string suitable for JSON serialization.
+
+        Version Added:
+            5.3
+
+        Args:
+            state (StatefulColumn):
+                The state for the DataGrid instance.
+
+            obj (object):
+                The object being processed for this row.
+
+        Returns:
+            typelets.django.json.SerializableDjangoJSONValue:
+            The datetime value as an ISO-formatted string, or ``None`` if
+            not present.
+        """
+        timestamp = self.get_raw_object_value(state, obj)
+
+        if timestamp is None:
+            return None
+
+        return timestamp.isoformat()
 
 
 class DataGrid:
@@ -1578,11 +1907,23 @@ class DataGrid:
     #:     bool
     use_distinct: bool
 
+    #: Any explicit column names provided during initialization.
+    #:
+    #: Version Added:
+    #:     5.3
+    _column_names: Unsettable[Sequence[str] | None]
+
     #: The model for the objects in the datagrid.
     #:
     #: Type:
     #:     type
     _model: Optional[Type[Model]]
+
+    #: Any explicit column sort order provided during initialization.
+    #:
+    #: Version Added:
+    #:     5.3
+    _sort_column_names: Unsettable[Sequence[str] | None]
 
     @classmethod
     def add_column(
@@ -1698,17 +2039,27 @@ class DataGrid:
 
                     cls.add_column(column)
 
+    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
     def __init__(
         self,
+        *,
         request: HttpRequest,
-        queryset: Optional[QuerySet] = None,
+        queryset: (QuerySet | None) = None,
         title: str = '',
-        extra_context: _RenderContext = {},
+        extra_context: (_RenderContext | None) = None,
         optimize_sorts: bool = True,
-        model: Optional[Type[Model]] = None,
+        model: (type[Model] | None) = None,
         use_distinct: bool = True,
+        columns: Unsettable[Sequence[str] | None] = UNSET,
+        sort: Unsettable[Sequence[str] | None] = UNSET,
     ) -> None:
         """Initialize the datagrid.
+
+        Version Changed:
+            5.3:
+            * Added ``columns`` and ``sort`` arguments.
+            * All arguments are now keyword-only. Positional arguments are
+              deprecated and will no longer be supported in Djblets 7.
 
         Version Changed:
             3.4:
@@ -1744,6 +2095,26 @@ class DataGrid:
 
                 Version Added:
                     3.4
+
+            columns (list of str, optional):
+                An explicit list of column names to show for the datagrid.
+
+                If specified, this will take precedence over any provided
+                in an HTTP request or from a user profile, and will not be
+                saved in the profile.
+
+                Version Added:
+                    5.3
+
+            sort (list of str, optional):
+                An explicit column sort order to use for the datagrid.
+
+                If specified, this will take precedence over any provided
+                in an HTTP request or from a user profile, and will not be
+                saved in the profile.
+
+                Version Added:
+                    5.3
         """
         self.request = request
         self.queryset = queryset
@@ -1756,11 +2127,13 @@ class DataGrid:
         self.sort_list = None
         self.state_loaded = False
         self.page_num = 0
-        self.extra_context = dict(extra_context)
+        self.extra_context = dict(extra_context or {})
         self.optimize_sorts = optimize_sorts
         self.use_distinct = use_distinct
         self.special_query_args = []
         self._model = model
+        self._column_names = columns
+        self._sort_column_names = sort
         self.default_sort = []
 
         datagrid_count = getattr(request, 'datagrid_count', 0)
@@ -1925,7 +2298,7 @@ class DataGrid:
 
     def load_state(
         self,
-        render_context: Optional[_RenderContext] = None,
+        render_context: (_RenderContext | None) = None,
     ) -> None:
         """Load the state of the datagrid.
 
@@ -1942,60 +2315,86 @@ class DataGrid:
 
         request = self.request
 
-        profile_sort_list: Optional[List[str]] = None
-        profile_columns_list: Optional[List[str]] = None
-        profile: Optional[Model] = None
-        profile_dirty_fields: List[str] = []
-        profile_dirty_fields_all: bool = False
+        profile_sort_list: (str | None) = None
+        profile_columns_list: (str | None) = None
+        profile: (Model | None) = None
+        profile_dirty_fields: list[str] = []
+        profile_columns_field: (str | None) = None
+        profile_sort_field: (str | None) = None
 
         # Get the saved settings for this grid in the profile. These will
         # work as defaults and allow us to determine if we need to save
         # the profile.
-        if request.user.is_authenticated:
-            profile = self.get_user_profile()
+        if (request.user.is_authenticated and
+            (profile := self.get_user_profile())):
+            # We have a profile we can load defaults from, if needed.
+            profile_sort_field = self.profile_sort_field
+            profile_columns_field = self.profile_columns_field
 
-            if profile:
-                if self.profile_sort_field:
-                    profile_sort_list = \
-                        getattr(profile, self.profile_sort_field, None)
+            if profile_sort_field:
+                profile_sort_list = getattr(profile, profile_sort_field, None)
 
-                if self.profile_columns_field:
-                    profile_columns_list = \
-                        getattr(profile, self.profile_columns_field, None)
+            if profile_columns_field:
+                profile_columns_list = getattr(profile, profile_columns_field,
+                                               None)
 
-        # Figure out the columns we're going to display
-        # We're also going to calculate the column widths based on the
-        # shrink and expand values.
-        colnames = request.GET.get('columns', profile_columns_list) or ''
+        profile_can_save_columns: bool = profile_columns_field is not None
+        profile_can_save_sort: bool = profile_sort_field is not None
 
-        if isinstance(colnames, str):
-            colnames_list = colnames.split(',')
-        elif isinstance(colnames, list):
-            colnames_list = colnames
+        # Figure out the columns we're going to display.
+        column_names = self._column_names
+
+        if column_names is UNSET:
+            temp_column_names = (
+                request.GET.get('columns', profile_columns_list) or
+                ''
+            )
+
+            if isinstance(temp_column_names, str):
+                column_names = temp_column_names.split(',')
+            elif isinstance(temp_column_names, list):
+                column_names = temp_column_names
+            else:
+                column_names = []
         else:
-            colnames_list = []
+            # The caller provided a custom columns list for this instance,
+            # so don't save it back to the profile.
+            profile_can_save_columns = False
 
-        columns: List[Optional[Column]] = list(filter(None, [
-            self.get_column(colname)
-            for colname in colnames_list
+            if column_names is None:
+                column_names = []
+
+        # Try to load the columns. If the resulting list is empty (due to
+        # an empty list of column names, or missing columns), we'll load
+        # from defaults.
+        columns: list[Column | None] = list(filter(None, [
+            self.get_column(column_name)
+            for column_name in column_names
         ]))
 
         if not columns:
-            colnames = ','.join(self.default_columns)
+            # No columns could be loaded. Fall back on defaults.
+            column_names = self.default_columns
             columns = [
-                self.get_column(colname)
-                for colname in self.default_columns
+                self.get_column(column_name)
+                for column_name in column_names
             ]
 
-        expand_columns: List[StatefulColumn] = []
-        normal_columns: List[StatefulColumn] = []
+        # Create the stateful columns and begin separating into expanded
+        # and normal columns.
+        #
+        # We're also going to calculate the column widths based on the
+        # shrink and expand values.
+        stateful_columns = self.columns
+        expand_columns: list[StatefulColumn] = []
+        normal_columns: list[StatefulColumn] = []
 
         for column_def in columns:
             if column_def is None:
                 continue
 
             stateful_column = self.get_stateful_column(column_def)
-            self.columns.append(stateful_column)
+            stateful_columns.append(stateful_column)
             stateful_column.active = True
 
             if stateful_column.expand:
@@ -2012,14 +2411,14 @@ class DataGrid:
                 # up the lists of expanded and normal sized columns.
                 normal_columns.append(stateful_column)
 
-        self.columns[-1].last = True
+        stateful_columns[-1].last = True
 
         # Try to figure out the column widths for each column.
         # We'll start with the normal sized columns.
         total_pct = 100.0
 
         # Each expanded column counts as two normal columns.
-        normal_column_width = total_pct / (len(self.columns) +
+        normal_column_width = total_pct / (len(stateful_columns) +
                                            len(expand_columns))
 
         for stateful_column in normal_columns:
@@ -2035,31 +2434,46 @@ class DataGrid:
             stateful_column.width = expanded_column_width
 
         # Now get the sorting order for the columns.
-        sort_str = request.GET.get('sort', profile_sort_list)
+        sort_column_names = self._sort_column_names
 
-        if isinstance(sort_str, list):
-            sort_str = sort_str[0]
+        if sort_column_names is UNSET:
+            temp_sort_column_names = request.GET.get('sort', profile_sort_list)
 
-        sort_list: List[str] = []
+            if isinstance(temp_sort_column_names, str):
+                sort_column_names = temp_sort_column_names.split(',')
+            elif isinstance(temp_sort_column_names, list):
+                sort_column_names = temp_sort_column_names
+            else:
+                sort_column_names = []
+        else:
+            # The caller provided a custom sort list for this instance,
+            # so don't save it back to the profile.
+            profile_can_save_sort = False
 
-        if sort_str:
-            for sort_item in sort_str.split(','):
-                if not sort_item:
-                    continue
+            if sort_column_names is None:
+                sort_column_names = []
 
-                if sort_item[0] == '-':
-                    base_sort_item = sort_item[1:]
-                else:
-                    base_sort_item = sort_item
+        sort_list: list[str] = []
 
-                column = self.get_column(base_sort_item)
+        # If there are columns names to sort, filter out any that aren't
+        # sortable or can't be found.
+        for sort_item in sort_column_names:
+            if not sort_item:
+                continue
 
-                if column and column.sortable:
-                    sort_list.append(sort_item)
+            if sort_item[0] == '-':
+                base_sort_item = sort_item[1:]
+            else:
+                base_sort_item = sort_item
+
+            column = self.get_column(base_sort_item)
+
+            if column and column.sortable:
+                sort_list.append(sort_item)
 
         if not sort_list:
+            # No sorted columns were found. Fall back on defaults.
             sort_list = self.default_sort
-            sort_str = ','.join(sort_list)
 
         self.sort_list = sort_list
 
@@ -2072,20 +2486,30 @@ class DataGrid:
 
         # Now that we have all that, figure out if we need to save new
         # settings back to the profile.
+        #
+        # We'll only save if the caller didn't pass in custom columns or
+        # sort to the constructor.
         if profile:
-            if (self.profile_columns_field and
-                colnames != profile_columns_list):
-                setattr(profile, self.profile_columns_field, colnames)
-                profile_dirty_fields.append(self.profile_columns_field)
+            if profile_can_save_columns:
+                stored_column_names = ','.join(column_names)
 
-            if self.profile_sort_field and sort_str != profile_sort_list:
-                setattr(profile, self.profile_sort_field, sort_str)
-                profile_dirty_fields.append(self.profile_sort_field)
+                if stored_column_names != profile_columns_list:
+                    assert profile_columns_field is not None
 
-            if profile_dirty_fields_all:
-                # This can be removed in Djblets 4.
-                profile.save()
-            elif profile_dirty_fields:
+                    setattr(profile, profile_columns_field,
+                            stored_column_names)
+                    profile_dirty_fields.append(profile_columns_field)
+
+            if profile_can_save_sort:
+                stored_sort = ','.join(sort_list)
+
+                if stored_sort != profile_sort_list:
+                    assert profile_sort_field is not None
+
+                    setattr(profile, profile_sort_field, stored_sort)
+                    profile_dirty_fields.append(profile_sort_field)
+
+            if profile_dirty_fields:
                 profile.save(update_fields=profile_dirty_fields)
 
         self.state_loaded = True
@@ -2112,11 +2536,15 @@ class DataGrid:
     def load_extra_state(
         self,
         profile: Optional[Model],
-    ) -> Union[bool, List[str]]:
+    ) -> list[str]:
         """Load any extra state needed for this grid.
 
         This is used by subclasses that may have additional data to load
         and save.
+
+        Version Changed:
+            5.3:
+            This must now return a list of strings, not a bool.
 
         Version Changed:
             3.0:
@@ -2129,13 +2557,9 @@ class DataGrid:
                 The profile model instance to load from, if any.
 
         Returns:
-            bool or list of str:
+            list of str:
             A list of field names on ``profile`` that have been modified and
             should be saved.
-
-            Djblets 3.0 and older support ``True`` to save the entire object,
-            or ``False`` if fields weren't modified. This support will be
-            removed in Djblets 4.0.
         """
         return []
 
@@ -2345,7 +2769,7 @@ class DataGrid:
 
             render_context['_datagrid_object_url'] = obj_url
 
-            cells: List[str] = []
+            cells: list[SafeString] = []
 
             for stateful_column in stateful_columns:
                 try:
@@ -2357,7 +2781,7 @@ class DataGrid:
                         'Column %r: %s',
                         stateful_column, e,
                         extra={'request': request})
-                    rendered_cell = ''
+                    rendered_cell = mark_safe('')
 
                 cells.append(rendered_cell)
 
@@ -2712,6 +3136,121 @@ class DataGrid:
             per_page=self.paginate_by,
             orphans=self.paginate_orphans)
 
+    def to_json(self) -> DataGridJSONData:
+        """Serialize the datagrid to a JSON-compatible dictionary.
+
+        This method produces a complete representation of the datagrid's
+        current state, including column metadata, row data, pagination
+        information, and sort state. The result is suitable for use with
+        :py:class:`~django.http.JsonResponse` or an API response.
+
+        Version Added:
+            5.3
+
+        Returns:
+            DataGridJSONData:
+            A dictionary containing a JSON-serializable representation of
+            the datagrid.
+        """
+        self.load_state()
+
+        stateful_columns = self.columns
+
+        # Serialize the information for each column.
+        active_columns_data: list[DataGridColumnJSONData] = []
+        inactive_columns_data: list[DataGridColumnJSONData] = []
+        active_columns: set[str] = set()
+
+        for stateful_column in stateful_columns:
+            column = stateful_column.column
+            active_columns.add(column.id)
+
+            active_columns_data.append({
+                'expand': column.expand,
+                'id': column.id,
+                'label': str(column.label),
+                'shrink': column.shrink,
+                'sortable': column.sortable,
+                'width': stateful_column.width,
+            })
+
+        for stateful_column in self.all_columns:
+            column = stateful_column.column
+
+            if column.id not in active_columns:
+                inactive_columns_data.append({
+                    'expand': column.expand,
+                    'id': column.id,
+                    'label': str(column.label),
+                    'shrink': column.shrink,
+                    'sortable': column.sortable,
+                    'width': stateful_column.width,
+                })
+
+        # Begin serializing each row in the datagrid.
+        rows_data: list[DataGridRowJSONData] = []
+        page = self.page
+
+        assert page is not None
+
+        for row in self.rows:
+            # Serialize each cell in the row.
+            cells_data: dict[str, DataGridCellJSONData] = {}
+            obj = row['object']
+
+            for stateful_column, html in zip(stateful_columns, row['cells']):
+                column = stateful_column.column
+
+                cells_data[column.id] = {
+                    'html': html,
+                    'value': column.to_json(stateful_column, obj),
+                }
+
+            rows_data.append({
+                'cells': cells_data,
+                'url': row['url'],
+            })
+
+        # Serialize the pagination data.
+        paginator = self.paginator
+        assert paginator is not None
+
+        pagination_data: DataGridPaginationJSONData = {
+            'current_page': page.number,
+            'end_index': page.end_index(),
+            'has_next': page.has_next(),
+            'has_previous': page.has_previous(),
+            'per_page': self.paginate_by,
+            'start_index': page.start_index(),
+            'total_count': paginator.count,
+            'total_pages': paginator.num_pages,
+        }
+
+        # Serialize the sort state.
+        sort_data: list[DataGridSortItemJSONData] = []
+
+        if sort_list := self.sort_list:
+            for sort_item in sort_list:
+                if sort_item.startswith('-'):
+                    column_id = sort_item[1:]
+                    ascending = False
+                else:
+                    column_id = sort_item
+                    ascending = True
+
+                sort_data.append({
+                    'ascending': ascending,
+                    'column': column_id,
+                })
+
+        return {
+            'available_columns': inactive_columns_data,
+            'columns': active_columns_data,
+            'pagination': pagination_data,
+            'rows': rows_data,
+            'sort': sort_data,
+        }
+
     def _build_render_context(self) -> _RenderContext:
         """Build a dictionary containing RequestContext contents.
 
@@ -2778,6 +3317,9 @@ class AlphanumericDataGrid(DataGrid):
     #:     str
     current_letter: str
 
+    # TODO: After Djblets 7, convert this to keyword-only with deprecation.
+    #       We want to wait until after DataGrid is moved over, so we don't
+    #       break *args.
     def __init__(
         self,
         request: HttpRequest,
