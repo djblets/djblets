@@ -525,10 +525,17 @@ class StaticMediaBuilder:
             },
         }
 
+        node_modules_path = str(build_context.node_modules_dir)
+
+        if (cur_path := os.environ.get('NODE_PATH')):
+            # Include the existing node_modules path that has been set by
+            # the consuming application.
+            node_modules_path = f'{cur_path}:{node_modules_path}'
+
         # Update the Pipeline settings.
         pipeline_settings.update(build_pipeline_settings(
             pipeline_enabled=True,
-            node_modules_path=str(build_context.node_modules_dir),
+            node_modules_path=node_modules_path,
             static_root=static_root,
             javascript_bundles=build_context.pipeline_js_bundles,
             stylesheet_bundles=build_context.pipeline_css_bundles,

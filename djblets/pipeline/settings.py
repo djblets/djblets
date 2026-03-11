@@ -120,6 +120,11 @@ def build_pipeline_settings(
             A colon-separated list of paths to :file:`node_modules`
             directories.
 
+            If ``validate_paths=False``, it's up to the caller to ensure that
+            the the first path in the list refers to a :file:`node_modules`
+            directory that exists and contains the required binaries at
+            build time.
+
         static_root (str):
             The value of the ``settings.STATIC_ROOT``. This must be provided
             explicitly, since :file:`settings.py` is likely the module
@@ -144,10 +149,12 @@ def build_pipeline_settings(
             Extra command line arguments to pass to LessCSS.
 
         validate_paths (bool, optional):
-            Whether to validate any expected paths to binary files.
+            Whether to validate any expected paths to binaries.
 
             It's recommended to set this based on ``DEBUG``, or another
-            variable indicating a production vs. development environment.
+            variable indicating a production vs. development environment. It
+            should be ``False`` when binaries may not exist at call time of
+            this function, but will exist later at build time.
 
             If the :envvar:`DJBLETS_SKIP_PIPELINE_VALIDATION` environment
             variable is set to ``1``, then this will be forced to ``False``.
@@ -181,10 +188,30 @@ def build_pipeline_settings(
         dict:
         The pipeline configuration dictionary.
     """
+    # A mapping of binary names to the node_modules path that
+    # `npm exec` should be ran from when executing the binary
+    # (i.e. the `--prefix` path).
+    #
+    # This is guaranteed to include babel + all the packages that have
+    # `use_<package>=True`.
+    exec_paths: dict[str, str] = {}
+
+    validate_paths = (
+        validate_paths and
+        os.environ.get('DJBLETS_SKIP_PIPELINE_VALIDATION') != '1'
+    )
     use_lessc = (
         'djblets.pipeline.compilers.less.LessCompiler' in compilers or
         'pipeline.compilers.less.LessCompiler' in compilers
     )
+
+    binaries: Sequence[tuple[str, str, Sequence[str], bool]] = [
+        ('babel', 'BABEL_BINARY', ['babel', '-V'], True),
+        ('lessc', 'LESS_BINARY', ['lessc', '-v'], use_lessc),
+        ('rollup', 'ROLLUP_BINARY', ['rollup', '-v'], use_rollup),
+        ('uglifyjs', 'UGLIFYJS_BINARY', ['uglifyjs', '-V'], not use_terser),
+        ('terser', 'TERSER_BINARY', ['terser', '-V'], use_terser),
+    ]
 
     if use_rollup:
         # Make sure that rollup is before any other JavaScript compilers.
@@ -193,48 +220,89 @@ def build_pipeline_settings(
             *compilers,
         ]
 
-    if (validate_paths and
-        os.environ.get('DJBLETS_SKIP_PIPELINE_VALIDATION') != '1'):
-        # Validate that the necessary dependencies exist for Pipeline.
-
+    if validate_paths:
+        # Validate the given node_modules paths.
         def _try_exec(
             tool: str,
             command: Sequence[str],
-        ) -> bool:
-            try:
-                with subprocess.Popen(
-                    ['npm', 'exec', '--', *command],
-                    stdout=subprocess.PIPE,
-                ) as p:
-                    stdout, _stderr = p.communicate(timeout=5)
+            node_modules_paths: Sequence[Path],
+        ) -> str | None:
+            for path in node_modules_paths:
+                prefix_path = str(path.parent)
 
-                    logger.info('Using %s: %s', tool, stdout.decode().strip())
+                full_exec_command = [
+                    'npm',
+                    'exec',
+                    '--prefix',
+                    prefix_path,
+                    '--no',
+                    '--',
+                    *command,
+                ]
 
-                    return (p.returncode == 0)
-            except Exception as e:
-                logger.error('Unable to execute %s: %s',
-                             subprocess.list2cmdline(command),
-                             e)
+                try:
+                    with subprocess.Popen(full_exec_command,
+                                          stdout=subprocess.PIPE) as p:
+                        stdout, _stderr = p.communicate(timeout=5)
 
-                return False
+                        logger.info(
+                            'Using %s: %s', tool, stdout.decode().strip())
+
+                        if p.returncode == 0:
+                            return prefix_path
+                except Exception as e:
+                    logger.error('Unable to execute %s: %s',
+                                 subprocess.list2cmdline(full_exec_command),
+                                 e)
+
+            return None
+
+        node_modules_paths: list[Path] = []
+        path_exists: bool = False
 
         for path in node_modules_path.split(':'):
-            if not Path(path).exists():
-                raise ImproperlyConfigured(
-                    f'node_modules path "{path}" does not exist')
+            path_obj = Path(path)
 
-        for binary, cmdline, check in [
-            ('babel', ['babel', '-V'], True),
-            ('lessc', ['lessc', '-v'], use_lessc),
-            ('rollup', ['rollup', '-v'], use_rollup),
-            ('uglifyjs', ['uglifyjs', '-V'], not use_terser),
-            ('terser', ['terser', '-V'], use_terser),
-        ]:
-            if check and not _try_exec(binary, cmdline):
+            if path and path_obj.exists():
+                path_exists = True
+                node_modules_paths.append(path_obj)
+            else:
+                logger.warning('node_modules path "%s" does not exist', path)
+
+        if not path_exists:
+            raise ImproperlyConfigured(
+                f'No node_modules paths in "{node_modules_path}" exist')
+
+        # Validate that the necessary binaries exist for Pipeline and
+        # set their prefix paths.
+        for binary, config_key, cmdline, check in binaries:
+            if not check:
+                continue
+
+            exec_path = _try_exec(binary, cmdline, node_modules_paths)
+
+            if exec_path is None:
                 raise ImproperlyConfigured(
                     f'"{binary}" could not be found in configured '
-                    f'node_modules paths.'
+                    f'node_modules paths "{node_modules_path}".'
                 )
+
+            exec_paths[binary] = exec_path
+    else:
+        # Skip node_modules path validation and assume that the path exists.
+        #
+        # If we have multiple node_modules paths we have no way of choosing
+        # the best one since we're skipping validation, so just use the
+        # first one in the list.
+        path = node_modules_path.split(':')[0]
+        path_obj = Path(path)
+        prefix_path = str(path_obj.parent)
+
+        for binary, config_key, cmdline, check in binaries:
+            if not check:
+                continue
+
+            exec_paths[binary] = prefix_path
 
     os.environ['NODE_PATH'] = node_modules_path
 
@@ -253,7 +321,6 @@ def build_pipeline_settings(
         'JS_COMPRESSOR': 'pipeline.compressors.terser.TerserCompressor',
         'JAVASCRIPT': javascript_bundles or {},
         'STYLESHEETS': stylesheet_bundles or {},
-        'BABEL_BINARY': 'npm exec -- babel',
         'BABEL_ARGUMENTS': [
             '--presets', '@babel/preset-env,@babel/preset-typescript',
             '--plugins', ','.join(babel_plugins),
@@ -264,7 +331,6 @@ def build_pipeline_settings(
 
     if use_terser:
         config.update({
-            'TERSER_BINARY': 'npm exec -- terser',
             'TERSER_ARGUMENTS': [
                 '--compress',
                 '--mangle',
@@ -279,13 +345,11 @@ def build_pipeline_settings(
             'build_pipeline_settings() with use_terser=True.'
         )
         config.update({
-            'UGLIFYJS_BINARY': 'npm exec -- uglifyjs',
             'UGLIFYJS_ARGUMENTS': '--compress --mangle',
         })
 
     if use_lessc:
         config.update({
-            'LESS_BINARY': 'npm exec -- lessc',
             'LESS_ARGUMENTS': [
                 f'--include-path={static_root}:{node_modules_path}',
                 '--no-color',
@@ -299,8 +363,21 @@ def build_pipeline_settings(
     if use_rollup:
         config.update({
             'ROLLUP_ARGUMENTS': rollup_extra_args or [],
-            'ROLLUP_BINARY': 'npm exec -- rollup',
         })
+
+    # Set the `npm exec` prefix paths for the binaries.
+    config.update({
+        config_key: [
+            'npm',
+            'exec',
+            '--prefix',
+            exec_paths[binary],
+            '--',
+            binary,
+        ]
+        for binary, config_key, cmdline, check in binaries
+        if check
+    })
 
     if extra_config:
         config.update(extra_config)
