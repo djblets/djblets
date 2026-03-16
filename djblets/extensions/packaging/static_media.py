@@ -420,20 +420,19 @@ class StaticMediaBuilder:
              npm_workspace_dir) in npm_workspace_dirs.items():
             npm_workspace_symlink = workspaces_dir / npm_workspace_name
 
-            if npm_workspace_symlink.exists():
-                if npm_workspace_symlink.is_symlink():
-                    npm_workspace_symlink.unlink()
-                else:
-                    sys.stderr.write(
-                        _('Cannot symlink %(workspace_name)s to '
-                          '%(workspace_target)s. This may cause problems '
-                          'building your extension. Check if you can remove '
-                          'this path in your tree and try again.')
-                        % {
-                            'workspace_name': npm_workspace_symlink,
-                            'workspace_target': npm_workspace_dir,
-                        })
-                    continue
+            if npm_workspace_symlink.is_symlink():
+                npm_workspace_symlink.unlink()
+            elif npm_workspace_symlink.exists():
+                sys.stderr.write(
+                    _('Cannot symlink %(workspace_name)s to '
+                      '%(workspace_target)s. This may cause problems '
+                      'building your extension. Check if you can remove '
+                      'this path in your tree and try again.')
+                    % {
+                        'workspace_name': npm_workspace_symlink,
+                        'workspace_target': npm_workspace_dir,
+                    })
+                continue
 
             npm_workspace_symlink.symlink_to(npm_workspace_dir)
 
