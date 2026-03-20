@@ -288,6 +288,11 @@ class Column:
     If a Column defines an :py:attr:`image_class`, then it will be assumed that
     the class represents an icon, perhaps as part of a spritesheet, and will
     display it in a ``<div>``. An :py:attr:`image_url` cannot also be defined.
+
+    Version Changed:
+        5.3:
+        Options for the column can now be set as class attributes when
+        subclassing.
     """
 
     #: Descending sort order for columns.
@@ -296,198 +301,151 @@ class Column:
     #: Ascending sort order for columns.
     SORT_ASCENDING: Final[int] = 1
 
-    ######################
-    # Instance variables #
-    ######################
+    ##########################################
+    # Class customization/instance variables #
+    ##########################################
+
+    #: Unused option to indicate a cell is clickable.
+    #:
+    #: This has never been used and should not be used by any code.
+    #:
+    #: Deprecated:
+    #:     5.3:
+    #:     This will be removed in Djblets 7.
+    cell_clickable: bool = False
 
     #: The path to a template for the cell.
     #:
     #: If provided, this will override the :py:attr:`DataGrid.cell_template`
     #: in the parent DataGrid.
-    #:
-    #: Type:
-    #:     str
-    cell_template: Optional[str]
-
-    #: Whether clicking anywhere on the cell should navigate to a defined link.
-    #:
-    #: This can be set to distinguish between a cell that links to an object
-    #: versus a cell that contains a link to an object.
-    #:
-    #: This is only used if :py:attr:`link` is ``True``.
-    #:
-    #: Type:
-    #:     bool
-    cell_clickable: bool
+    cell_template: (str | None) = None
 
     #: A function or string for CSS classes applied to the cell.
-    #:
-    #: Type:
-    #:     str or callable
-    css_class: Union[str, BuildCSSClassFunc]
+    css_class: (str | BuildCSSClassFunc) = ''
 
     #: The name of the database field containing the field used for sorting.
     #:
     #: Once columns are populated for a datagrid, this is guaranteed to be
     #: set.
-    #:
-    #: Type:
-    #:     str
-    db_field: str
+    db_field: str = ''
 
     #: The default sorting direction when the user activates sorting.
     #:
     #: This must be either :py:attr:`SORT_ASCENDING` or
     #: :py:attr:`SORT_DESCENDING`.
-    #:
-    #: Type:
-    #:     int
-    default_sort_dir: int
+    default_sort_dir: int = SORT_DESCENDING
 
     #: A detailed label to display in the Edit Columns menu.
     #:
     #: Defaults to :py:attr:`label`.
-    #:
-    #: Type:
-    #:     str
-    detailed_label: Optional[StrOrPromise]
+    detailed_label: (StrOrPromise | None) = None
 
     #: A detailed label in HTML form to display in the Edit Columns menu.
     #:
     #: This takes precedence over :py:attr:`detailed_label`.
-    #:
-    #: Type:
-    #:     str
-    detailed_label_html: Optional[StrOrPromise]
+    detailed_label_html: (StrOrPromise | SafeString | None) = None
 
     #: Whether the column will expand to the maximum size allowed.
     #:
     #: If there are other expanded columns, they'll share the available width
     #: equally.
-    #:
-    #: Type:
-    #:     bool
-    expand: bool
+    expand: bool = False
 
     #: The name of the field on the model containing the data to render.
     #:
     #: Once columns are populated for a datagrid, this is guaranteed to be
     #: set.
-    #:
-    #: Type:
-    #:     str
-    field_name: str
+    field_name: str = ''
 
     #: The unique ID of the column on the datagrid.
     #:
     #: Once columns are populated for a datagrid, this is guaranteed to be
     #: set.
-    #:
-    #: Type:
-    #:     str
-    id: str
+    id: str = ''
 
     #: The alt text for an image.
-    #:
-    #: Type:
-    #:     str
-    image_alt: Optional[str]
+    image_alt: (StrOrPromise | None) = ''
 
     #: The CSS spritesheet icon class to use in the header/navigation menu.
-    #:
-    #: Type:
-    #:     str
-    image_class: Optional[str]
+    image_class: (str | None) = None
 
     #: The height of the image.
-    #:
-    #: Type:
-    #:     int
-    image_height: Optional[int]
+    image_height: (int | None) = None
 
     #: The URL to the image used in the header/navigation menu.
-    #:
-    #: Type:
-    #:     str
-    image_url: Optional[str]
+    image_url: (str | None) = None
 
     #: The width of the image.
-    #:
-    #: Type:
-    #:     int
-    image_width: Optional[int]
+    image_width: (int | None) = None
 
     #: The label to show in the column header.
-    #:
-    #: Type:
-    #:     str
-    label: Optional[StrOrPromise]
+    label: (StrOrPromise | None) = None
 
     #: Whether the contents of the cell will be linked to a URL.
     #:
     #: The URL used must be defined by either :py:attr:`link_func` or
     #: :py:meth:`DataGrid.link_to_object`.
-    #:
-    #: Type:
-    #:     bool
-    link: bool
+    link: bool = False
 
     #: A function or string for CSS classes applied to a link.
     #:
     #: The CSS classes will be defined on the ``<a>`` for the cell's link
     #: wrapper. This is only used if :py:attr:`link` is ``True``.
-    #:
-    #: Type:
-    #:     str or callable
-    link_css_class: Optional[Union[str, LinkCSSClassFunc]]
+    link_css_class: (str | LinkCSSClassFunc | None) = None
 
     #: A function used to return a URL for a given object.
     #:
     #: This is only used if :py:attr:`link` is ``True``.
-    #:
-    #: Type:
-    #:     callable
-    link_func: LinkObjectFunc
+    link_func: (LinkObjectFunc | None) = None
 
     #: Whether the column will shrink to the minimum size for the data.
-    #:
-    #: Type:
-    #:     bool
-    shrink: bool
+    shrink: bool = False
 
     #: Whether the column can be sorted.
-    #:
-    #: Type:
-    #:     bool
-    sortable: bool
+    sortable: bool = False
 
+    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
     def __init__(
         self,
-        label: Optional[StrOrPromise] = None,
-        id: Optional[str] = None,
-        detailed_label: Optional[StrOrPromise] = None,
-        detailed_label_html: Optional[str] = None,
-        field_name: Optional[str] = None,
-        db_field: Optional[str] = None,
-        image_url: Optional[str] = None,
-        image_class: Optional[str] = None,
-        image_width: Optional[int] = None,
-        image_height: Optional[int] = None,
-        image_alt: Optional[str] = '',
-        shrink: bool = False,
-        expand: bool = False,
-        sortable: bool = False,
-        default_sort_dir: int = SORT_DESCENDING,
-        link: bool = False,
-        link_func: Optional[LinkObjectFunc] = None,
-        link_css_class: Optional[Union[str, LinkCSSClassFunc]] = None,
-        cell_clickable: bool = False,
-        css_class: Union[str, BuildCSSClassFunc] = '',
+        label: Unsettable[StrOrPromise | None] = UNSET,
+        *,
+        id: Unsettable[str] = UNSET,
+        detailed_label: Unsettable[StrOrPromise | None] = UNSET,
+        detailed_label_html: Unsettable[
+            StrOrPromise | SafeString | None
+        ] = UNSET,
+        field_name: Unsettable[str] = UNSET,
+        db_field: Unsettable[str] = UNSET,
+        image_url: Unsettable[str | None] = UNSET,
+        image_class: Unsettable[str | None] = UNSET,
+        image_width: Unsettable[int | None] = UNSET,
+        image_height: Unsettable[int | None] = UNSET,
+        image_alt: Unsettable[StrOrPromise | None] = UNSET,
+        shrink: Unsettable[bool] = UNSET,
+        expand: Unsettable[bool] = UNSET,
+        sortable: Unsettable[bool] = UNSET,
+        default_sort_dir: Unsettable[int] = UNSET,
+        link: Unsettable[bool] = UNSET,
+        link_func: Unsettable[LinkObjectFunc | None] = UNSET,
+        link_css_class: Unsettable[str | LinkCSSClassFunc | None] = UNSET,
+        cell_clickable: Unsettable[bool] = UNSET,
+        css_class: Unsettable[str | BuildCSSClassFunc] = UNSET,
     ) -> None:
         """Initialize the column.
 
         When initializing a column as part of a :py:class:`DataGrid` subclass,
         a number of options can be provided.
+
+        Version Changed:
+            5.3:
+            * Any arguments not provided will now fall back to the
+              corresponding attributes set on the class.
+
+            * All arguments other than ``label`` are now keyword-only.
+              This will be enforced in Djblets 7.
+
+            * ``cell_clickable`` is deprecated and will be removed in
+              Djblets 7. It's never been used.
 
         Args:
             id (str, optional):
@@ -564,44 +522,106 @@ class Column:
                 function returning the classes.
 
             cell_clickable (bool, optional):
-                If ``True``, clicking anywhere on the cell will navigate to
-                the URL defined, if any.
+                Unused option to indicate a cell is clickable.
+
+                Deprecated:
+                    5.3:
+                    This will be removed in Djblets 7.
 
             css_class (str or callable, optional):
                 The CSS class or classes to define on the cell.
 
                 This can be a function returning the classes.
+
+        Raises:
+            ValueError:
+                An incorrect argument combination was provided.
+
+                Details will be in the error message.
         """
-        assert not (image_class and image_url)
+        if cell_clickable is not UNSET:
+            RemovedInDjblets70Warning.warn(
+                'cell_clickable is deprecated and will be removed in '
+                'Djblets 7.'
+            )
 
-        # We're typing as non-None, since we'll be forcing these to be set
-        # when populated. For now, though, they may be set as None. We need
-        #: to # just ignore type warnings for now.
-        self.id = id  # type: ignore
-        self.field_name = field_name  # type: ignore
-        self.db_field = db_field or field_name  # type: ignore
+        if id is not UNSET:
+            self.id = id
 
-        self.label = label
-        self.detailed_label = detailed_label or self.label
-        self.detailed_label_html = detailed_label_html or self.detailed_label
-        self.image_url = image_url
-        self.image_class = image_class
-        self.image_width = image_width
-        self.image_height = image_height
-        self.image_alt = image_alt
-        self.shrink = shrink
-        self.expand = expand
-        self.sortable = sortable
-        self.default_sort_dir = default_sort_dir
-        self.cell_clickable = False
-        self.link = link
-        self.link_func = (
-            link_func or
-            (lambda state, x, y: state.datagrid.link_to_object(state, x, y)))
-        self.link_css_class = link_css_class
-        self.css_class = css_class
+        if field_name is not UNSET:
+            self.field_name = field_name
+        else:
+            field_name = self.field_name
 
-        self.cell_template = None
+        if db_field is not UNSET:
+            self.db_field = db_field
+        elif not self.db_field and field_name:
+            self.db_field = field_name
+
+        if label is not UNSET:
+            self.label = label
+        else:
+            label = self.label
+
+        if detailed_label is not UNSET:
+            self.detailed_label = detailed_label
+        elif not self.detailed_label and label:
+            self.detailed_label = label
+
+        if detailed_label_html is not UNSET:
+            self.detailed_label_html = detailed_label_html
+        elif not self.detailed_label_html and self.detailed_label:
+            self.detailed_label_html = escape(self.detailed_label)
+
+        if image_url is not UNSET:
+            self.image_url = image_url
+
+        if image_class is not UNSET:
+            self.image_class = image_class
+
+        if self.image_class and self.image_url:
+            raise ValueError(
+                'image_class and image_url cannot both be set on this '
+                'column.'
+            )
+
+        if image_width is not UNSET:
+            self.image_width = image_width
+
+        if image_height is not UNSET:
+            self.image_height = image_height
+
+        if image_alt is not UNSET:
+            self.image_alt = image_alt
+
+        if shrink is not UNSET:
+            self.shrink = shrink
+
+        if expand is not UNSET:
+            self.expand = expand
+
+        if sortable is not UNSET:
+            self.sortable = sortable
+
+        if default_sort_dir is not UNSET:
+            self.default_sort_dir = default_sort_dir
+
+        if link is not UNSET:
+            self.link = link
+
+        if link_func is not UNSET:
+            self.link_func = link_func
+        elif not self.link_func:
+            self.link_func = (
+                lambda state, x, y:
+                state.datagrid.link_to_object(state, x, y)
+            )
+
+        if link_css_class is not UNSET:
+            self.link_css_class = link_css_class
+
+        if css_class is not UNSET:
+            self.css_class = css_class
 
     @cached_property
     def cell_template_obj(self) -> Optional[_EngineTemplate]:
@@ -1302,72 +1322,104 @@ class CheckboxColumn(Column):
     The checkboxes also have a ``data-checkbox-name`` attribute that
     contains the value passed in to the ``checkbox_name`` parameter of its
     constructor.
+
+    Version Changed:
+        5.3:
+        Options for the column can now be set as class attributes when
+        subclassing.
     """
 
-    ######################
-    # Instance variables #
-    ######################
+    # Overrides for the parent class.
+    cell_template: (str | None) = 'datagrid/cell_no_link.html'
+    detailed_label: (StrOrPromise | None) = _('Select Rows')
+    shrink = True
+
+    ##########################################
+    # Class customization/instance variables #
+    ##########################################
 
     #: The name to set for the checkbox in the HTML.
     #:
     #: This is set in ``data-checkbox-name``.
-    #:
-    #: Type:
-    #:     str
-    checkbox_name: str
+    checkbox_name: str = 'select'
 
     #: Whether a checkbox will be used for the column header.
-    #:
-    #: Type:
-    #:     bool
-    show_checkbox_header: bool
+    show_checkbox_header: bool = True
 
+    # TODO: Remove shrink and detailed_label from the args list in Djblets 7.
+    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
     def __init__(
         self,
-        checkbox_name: str = 'select',
-        shrink: bool = True,
-        show_checkbox_header: bool = True,
-        detailed_label: Optional[StrOrPromise] = _('Select Rows'),
+        label: Unsettable[StrOrPromise | None] = UNSET,
         *args,
+        checkbox_name: Unsettable[str] = UNSET,
+        shrink: Unsettable[bool] = UNSET,
+        show_checkbox_header: Unsettable[bool] = UNSET,
+        detailed_label: Unsettable[StrOrPromise | None] = UNSET,
         **kwargs,
     ) -> None:
         """Initialize the column.
 
+        Version Changed:
+            5.3:
+            * Any arguments not provided will now fall back to the
+              corresponding attributes set on the class.
+
+            * All arguments other than ``label`` are now keyword-only.
+              This will be enforced in Djblets 7.
+
         Args:
-            checkbox_name (str):
+            label (str, optional):
+                The label to show in the column header.
+
+            *args (tuple):
+                Additional positional arguments for the column.
+
+            checkbox_name (str, optional):
                 The name set in ``data-checkbox-name``.
 
-            shrink (bool):
+            shrink (bool, optional):
                 If ``True``, the column's width will be calculated to its
                 minimum size.
 
-            show_checkbox_header (bool):
+            show_checkbox_header (bool, optional):
                 If ``True``, a checkbox will be used for the column header.
 
             detailed_label (str, optional):
                 The detailed label to show for the column.
 
-            *args (tuple):
-                Additional positional arguments for the column.
-
             **kwargs (dict):
                 Additional keyword arguments for the column.
         """
-        super().__init__(
-            shrink=shrink,
-            label=format_html(
-                '<input class="datagrid-header-checkbox"'
-                ' type="checkbox" data-checkbox-name="{0}" />',
-                checkbox_name),
-            detailed_label=detailed_label,
-            detailed_label_html=format_html(
-                '<input type="checkbox" /> {0}',
-                detailed_label),
-            *args, **kwargs)
+        if show_checkbox_header is not UNSET:
+            self.show_checkbox_header = show_checkbox_header
 
-        self.show_checkbox_header = show_checkbox_header
-        self.checkbox_name = checkbox_name
-        self.cell_template = 'datagrid/cell_no_link.html'
+        if checkbox_name is not UNSET:
+            self.checkbox_name = checkbox_name
+
+        if label is UNSET and not self.label:
+            self.label = format_html(
+                '<input class="datagrid-header-checkbox"'
+                ' type="checkbox" data-checkbox-name="{}">',
+                self.checkbox_name,
+            )
+
+        if not self.detailed_label_html:
+            if detailed_label is UNSET:
+                detailed_label = self.detailed_label
+
+            self.detailed_label_html = format_html(
+                '<input type="checkbox"> {}',
+                detailed_label,
+            )
+
+        super().__init__(
+            label,
+            *args,
+            shrink=shrink,
+            detailed_label=detailed_label,
+            **kwargs,
+        )
 
     def render_data(
         self,
@@ -1476,18 +1528,49 @@ class CheckboxColumn(Column):
 
 
 class DateTimeColumn(Column):
-    """A column that renders a date or time."""
+    """A column that renders a date or time.
 
+    Version Changed:
+        5.3:
+        Options for the column can now be set as class attributes when
+        subclassing.
+    """
+
+    sortable: bool = True
+
+    ##########################################
+    # Class customization/instance variables #
+    ##########################################
+
+    #: The format used to show the date/time.
+    #:
+    #: This must be a valid :py:func:`~datetime.date.strftime`
+    #: format string. If not provided, Django's default will be used.
+    format: (str | None) = None
+
+    #: The timezone used to normalize the date/time to.
+    timezone: Any = pytz.utc
+
+    # TODO: Remove label and sortable from the args list in Djblets 7.
+    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
     def __init__(
         self,
-        label: Optional[StrOrPromise] = None,
-        format: Optional[str] = None,
-        sortable: bool = True,
-        timezone: Any = pytz.utc,
+        label: Unsettable[StrOrPromise | None] = UNSET,
         *args,
+        format: Unsettable[str | None] = UNSET,
+        sortable: Unsettable[bool] = UNSET,
+        timezone: Unsettable[Any] = UNSET,
         **kwargs,
     ) -> None:
         """Initialize the column.
+
+        Version Changed:
+            5.3:
+            * Any arguments not provided will now fall back to the
+              corresponding attributes set on the class.
+
+            * All arguments other than ``label`` are now keyword-only.
+              This will be enforced in Djblets 7.
 
         Args:
             label (str, optional):
@@ -1513,10 +1596,17 @@ class DateTimeColumn(Column):
             **kwargs (dict):
                 Additional keyword arguments for the column.
         """
-        super().__init__(label, sortable=sortable, *args, **kwargs)
+        super().__init__(
+            label,
+            sortable=sortable,
+            *args, **kwargs,
+        )
 
-        self.format = format
-        self.timezone = timezone
+        if format is not UNSET:
+            self.format = format
+
+        if timezone is not UNSET:
+            self.timezone = timezone
 
     def render_data(
         self,
@@ -1607,33 +1697,54 @@ class DateTimeColumn(Column):
 
 
 class DateTimeSinceColumn(Column):
-    """A column that renders a date or time relative to now."""
+    """A column that renders a date or time relative to now.
 
+    Version Changed:
+        5.3:
+        Options for the column can now be set as class attributes when
+        subclassing.
+    """
+
+    sortable: bool = True
+
+    # TODO: Remove this function in Djblets 7.
+    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
     def __init__(
         self,
-        label: Optional[StrOrPromise] = None,
-        sortable: bool = True,
+        label: Unsettable[StrOrPromise | None] = UNSET,
         *args,
+        sortable: Unsettable[bool] = UNSET,
         **kwargs,
     ) -> None:
         """Initialize the column.
 
+        Version Changed:
+            5.3:
+            * Any arguments not provided will now fall back to the
+              corresponding attributes set on the class.
+
+            * All arguments other than ``label`` are now keyword-only.
+              This will be enforced in Djblets 7.
+
         Args:
             label (str, optional):
                 The label to show in the column header.
+
+            *args (tuple):
+                Additional positional arguments for the column.
 
             sortable (bool, optional):
                 Whether the field should be sortable.
 
                 This is enabled by default.
 
-            *args (tuple):
-                Additional positional arguments for the column.
-
             **kwargs (dict):
                 Additional keyword arguments for the column.
         """
-        super().__init__(label, sortable=sortable, *args, **kwargs)
+        super().__init__(label,
+                         *args,
+                         sortable=sortable,
+                         **kwargs)
 
     def render_data(
         self,
