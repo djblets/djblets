@@ -8,3 +8,4 @@ Caching Guides
    :maxdepth: 2
 
    caching-data
+   cache-keys
