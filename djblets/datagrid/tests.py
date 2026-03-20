@@ -14,7 +14,6 @@ from django.utils.encoding import force_str
 from django.utils.safestring import SafeString
 from django_assert_queries import assert_queries
 
-import pytz
 from djblets.datagrid.grids import (CheckboxColumn,
                                     Column,
                                     DataGrid,
@@ -361,7 +360,7 @@ class DateTimeColumnTests(TestCase):
                 'label': None,
                 'format': None,
                 'sortable': True,
-                'timezone': pytz.utc,
+                'timezone': timezone.utc,
             })
 
     def test_init_with_class_attrs(self) -> None:

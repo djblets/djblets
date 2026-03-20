@@ -1548,7 +1548,7 @@ class DateTimeColumn(Column):
     format: (str | None) = None
 
     #: The timezone used to normalize the date/time to.
-    timezone: Any = pytz.utc
+    timezone: Any = datetime.timezone.utc
 
     # TODO: Remove label and sortable from the args list in Djblets 7.
     @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
