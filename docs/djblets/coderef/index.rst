@@ -65,6 +65,7 @@ Caching
 .. autosummary::
    :toctree: python
 
+   djblets.cache
    djblets.cache.backend
    djblets.cache.backend_compat
    djblets.cache.context_processors

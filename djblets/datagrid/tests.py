@@ -14,6 +14,7 @@ from django.utils.encoding import force_str
 from django.utils.safestring import SafeString
 from django_assert_queries import assert_queries
 
+import pytz
 from djblets.datagrid.grids import (CheckboxColumn,
                                     Column,
                                     DataGrid,
@@ -59,20 +60,122 @@ class GroupDataGrid(DataGrid):
 class CheckboxColumnTests(TestCase):
     """Unit tests for djblets.datagrid.grids.CheckboxColumn."""
 
-    def test_initial_state(self):
-        """Testing CheckboxColumn initial state"""
-        column = CheckboxColumn(checkbox_name='my_checkbox&',
-                                detailed_label='<Select Rows>')
+    def test_init_with_defaults(self) -> None:
+        """Testing CheckboxColumn.__init__ with defaults"""
+        column = CheckboxColumn()
 
-        self.assertHTMLEqual(
-            column.label,
-            '<input class="datagrid-header-checkbox" '
-            ' type="checkbox" data-checkbox-name="my_checkbox&amp;">')
-        self.assertHTMLEqual(
-            column.detailed_label_html,
-            '<input type="checkbox"> &lt;Select Rows&gt;')
-        self.assertEqual(column.detailed_label, '<Select Rows>')
-        self.assertEqual(column.checkbox_name, 'my_checkbox&')
+        self.assertAttrsEqual(
+            column,
+            {
+                'checkbox_name': 'select',
+                'detailed_label': 'Select Rows',
+                'detailed_label_html': '<input type="checkbox"> Select Rows',
+                'label': (
+                    '<input class="datagrid-header-checkbox"'
+                    ' type="checkbox" data-checkbox-name="select">'
+                ),
+                'show_checkbox_header': True,
+                'shrink': True,
+            })
+
+    def test_init_with_class_attrs(self) -> None:
+        """Testing CheckboxColumn.__init__ with setting class attributes"""
+        class MyCheckboxColumn(CheckboxColumn):
+            checkbox_name = 'my_checkbox&'
+            shrink = False
+            show_checkbox_header = False
+            detailed_label = '<Select Rows>'
+
+        column = MyCheckboxColumn()
+
+        self.assertAttrsEqual(
+            column,
+            {
+                'checkbox_name': 'my_checkbox&',
+                'detailed_label': '<Select Rows>',
+                'detailed_label_html': (
+                    '<input type="checkbox"> &lt;Select Rows&gt;'
+                ),
+                'label': (
+                    '<input class="datagrid-header-checkbox"'
+                    ' type="checkbox" data-checkbox-name="my_checkbox&amp;">'
+                ),
+                'show_checkbox_header': False,
+                'shrink': False,
+            })
+
+    def test_init_with_class_attr_label(self) -> None:
+        """Testing CheckboxColumn.__init__ with setting label class attribute
+        """
+        class MyCheckboxColumn(CheckboxColumn):
+            checkbox_name = 'my_checkbox&'
+            shrink = False
+            show_checkbox_header = False
+            detailed_label = '<Select Rows>'
+            label = '[ ]'
+
+        column = MyCheckboxColumn()
+
+        self.assertAttrsEqual(
+            column,
+            {
+                'checkbox_name': 'my_checkbox&',
+                'detailed_label': '<Select Rows>',
+                'detailed_label_html': (
+                    '<input type="checkbox"> &lt;Select Rows&gt;'
+                ),
+                'label': '[ ]',
+                'show_checkbox_header': False,
+                'shrink': False,
+            })
+
+    def test_init_with_args(self) -> None:
+        """Testing CheckboxColumn.__init__ with setting arguments"""
+        column = CheckboxColumn(
+            checkbox_name='my_checkbox&',
+            shrink=False,
+            show_checkbox_header=False,
+            detailed_label='<Select Rows>',
+        )
+
+        self.assertAttrsEqual(
+            column,
+            {
+                'checkbox_name': 'my_checkbox&',
+                'detailed_label': '<Select Rows>',
+                'detailed_label_html': (
+                    '<input type="checkbox"> &lt;Select Rows&gt;'
+                ),
+                'label': (
+                    '<input class="datagrid-header-checkbox"'
+                    ' type="checkbox" data-checkbox-name="my_checkbox&amp;">'
+                ),
+                'show_checkbox_header': False,
+                'shrink': False,
+            })
+
+    def test_init_with_arg_label(self) -> None:
+        """Testing CheckboxColumn.__init__ with setting label argument"""
+        column = CheckboxColumn(
+            checkbox_name='my_checkbox&',
+            shrink=False,
+            show_checkbox_header=False,
+            detailed_label='<Select Rows>',
+            label='[ ]',
+        )
+
+        self.assertAttrsEqual(
+            column,
+            {
+                'checkbox_name': 'my_checkbox&',
+                'detailed_label': '<Select Rows>',
+                'detailed_label_html': (
+                    '<input type="checkbox"> &lt;Select Rows&gt;'
+                ),
+                'label': '[ ]',
+                'show_checkbox_header': False,
+                'shrink': False,
+            })
 
     def test_render_data_with_selected(self):
         """Testing CheckboxColumn.render_data with selected object"""
@@ -146,6 +249,47 @@ class CheckboxColumnTests(TestCase):
 class DateTimeSinceColumnTests(TestCase):
     """Unit tests for djblets.datagrid.grids.DateTimeSinceColumn."""
 
+    def test_init_with_defaults(self) -> None:
+        """Testing DateTimeSinceColumn.__init__ with defaults"""
+        column = DateTimeSinceColumn()
+
+        self.assertAttrsEqual(
+            column,
+            {
+                'label': None,
+                'sortable': True,
+            })
+
+    def test_init_with_class_attrs(self) -> None:
+        """Testing DateTimeSinceColumn.__init__ with setting class attributes
+        """
+        class MyDateTimeSinceColumn(DateTimeSinceColumn):
+            label = 'My Column'
+            sortable = False
+
+        column = MyDateTimeSinceColumn()
+
+        self.assertAttrsEqual(
+            column,
+            {
+                'label': 'My Column',
+                'sortable': False,
+            })
+
+    def test_init_with_args(self) -> None:
+        """Testing DateTimeSinceColumn.__init__ with setting arguments"""
+        column = DateTimeSinceColumn(
+            'My Column',
+            sortable=False,
+        )
+
+        self.assertAttrsEqual(
+            column,
+            {
+                'label': 'My Column',
+                'sortable': False,
+            })
+
     def test_render_data(self):
         """Testing DateTimeSinceColumn.render_data"""
         class DummyObj:
@@ -206,6 +350,56 @@ class DateTimeSinceColumnTests(TestCase):
 
 class DateTimeColumnTests(TestCase):
     """Unit tests for djblets.datagrid.grids.DateTimeColumn."""
+
+    def test_init_with_defaults(self) -> None:
+        """Testing DateTimeColumn.__init__ with defaults"""
+        column = DateTimeColumn()
+
+        self.assertAttrsEqual(
+            column,
+            {
+                'label': None,
+                'format': None,
+                'sortable': True,
+                'timezone': pytz.utc,
+            })
+
+    def test_init_with_class_attrs(self) -> None:
+        """Testing DateTimeColumn.__init__ with setting class attributes"""
+        class MyDateTimeColumn(DateTimeColumn):
+            label = 'My Column'
+            format = '%H:%M:%S'
+            sortable = False
+            timezone = 'America/Los_Angeles'
+
+        column = MyDateTimeColumn()
+
+        self.assertAttrsEqual(
+            column,
+            {
+                'format': '%H:%M:%S',
+                'label': 'My Column',
+                'sortable': False,
+                'timezone': 'America/Los_Angeles'
+            })
+
+    def test_init_with_args(self) -> None:
+        """Testing DateTimeColumn.__init__ with setting arguments"""
+        column = DateTimeColumn(
+            'My Column',
+            format='%H:%M:%S',
+            sortable=False,
+            timezone='America/Los_Angeles'
+        )
+
+        self.assertAttrsEqual(
+            column,
+            {
+                'format': '%H:%M:%S',
+                'label': 'My Column',
+                'sortable': False,
+                'timezone': 'America/Los_Angeles'
+            })
 
     def test_to_json(self) -> None:
         """Testing DateTimeColumn.to_json"""
@@ -1177,6 +1371,124 @@ class DataGridTests(kgb.SpyAgency, TestCase):
 
 class ColumnTests(kgb.SpyAgency, TestCase):
     """Unit tests for djblets.datagrid.grids.Column."""
+
+    def test_init_with_defaults(self) -> None:
+        """Testing Column.__init__ with defaults"""
+        column = Column()
+
+        self.assertAttrsEqual(
+            column,
+            {
+                'css_class': '',
+                'db_field': '',
+                'default_sort_dir': Column.SORT_DESCENDING,
+                'detailed_label': None,
+                'detailed_label_html': None,
+                'expand': False,
+                'field_name': '',
+                'id': '',
+                'image_alt': '',
+                'image_class': None,
+                'image_height': None,
+                'image_url': None,
+                'image_width': None,
+                'label': None,
+                'link': False,
+                'link_css_class': None,
+                'shrink': False,
+                'sortable': False,
+            })
+
+    def test_init_with_class_attrs(self) -> None:
+        """Testing Column.__init__ with setting class attributes"""
+        class MyColumn(Column):
+            css_class = 'my-column-class'
+            db_field = 'my_db_field'
+            default_sort_dir = Column.SORT_ASCENDING
+            detailed_label = 'My Detailed Label'
+            detailed_label_html = '<span>My Detailed Label</span>'
+            expand = True
+            field_name = 'my_field'
+            id = 'my-column'
+            image_alt = 'Image Alt'
+            image_url = 'image.png'
+            image_height = 100
+            image_width = 200
+            label = 'My Label'
+            link = True
+            link_css_class = 'my-link-css-class'
+            shrink = True
+            sortable = True
+
+        column = MyColumn()
+
+        self.assertAttrsEqual(
+            column,
+            {
+                'css_class': 'my-column-class',
+                'db_field': 'my_db_field',
+                'default_sort_dir': Column.SORT_ASCENDING,
+                'detailed_label': 'My Detailed Label',
+                'detailed_label_html': '<span>My Detailed Label</span>',
+                'expand': True,
+                'field_name': 'my_field',
+                'id': 'my-column',
+                'image_alt': 'Image Alt',
+                'image_class': None,
+                'image_height': 100,
+                'image_url': 'image.png',
+                'image_width': 200,
+                'label': 'My Label',
+                'link': True,
+                'link_css_class': 'my-link-css-class',
+                'shrink': True,
+                'sortable': True,
+            })
+
+    def test_init_with_args(self) -> None:
+        """Testing Column.__init__ with setting arguments"""
+        column = Column(
+            css_class='my-column-class',
+            db_field='my_db_field',
+            default_sort_dir=Column.SORT_ASCENDING,
+            detailed_label='My Detailed Label',
+            detailed_label_html='<span>My Detailed Label</span>',
+            expand=True,
+            field_name='my_field',
+            id='my-column',
+            image_alt='Image Alt',
+            image_url='image.png',
+            image_height=100,
+            image_width=200,
+            label='My Label',
+            link=True,
+            link_css_class='my-link-css-class',
+            shrink=True,
+            sortable=True,
+        )
+
+        self.assertAttrsEqual(
+            column,
+            {
+                'css_class': 'my-column-class',
+                'db_field': 'my_db_field',
+                'default_sort_dir': Column.SORT_ASCENDING,
+                'detailed_label': 'My Detailed Label',
+                'detailed_label_html': '<span>My Detailed Label</span>',
+                'expand': True,
+                'field_name': 'my_field',
+                'id': 'my-column',
+                'image_alt': 'Image Alt',
+                'image_class': None,
+                'image_height': 100,
+                'image_url': 'image.png',
+                'image_width': 200,
+                'label': 'My Label',
+                'link': True,
+                'link_css_class': 'my-link-css-class',
+                'shrink': True,
+                'sortable': True,
+            })
 
     def test_render_cell_sandboxes_errors(self):
         """Testing Column.render_cell when column.render_data raises exception
