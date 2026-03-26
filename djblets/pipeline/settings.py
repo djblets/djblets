@@ -185,7 +185,7 @@ def build_pipeline_settings(
             '-s', 'true',
         ] + babel_extra_args,
         'UGLIFYJS_BINARY': uglifyjs_bin_path,
-        'UGLIFYJS_ARGUMENTS': '--compress --mangle',
+        'UGLIFYJS_ARGUMENTS': '--compress --mangle --no-module',
     }
 
     if use_lessc:
