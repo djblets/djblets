@@ -345,7 +345,7 @@ def build_pipeline_settings(
             'build_pipeline_settings() with use_terser=True.'
         )
         config.update({
-            'UGLIFYJS_ARGUMENTS': '--compress --mangle',
+            'UGLIFYJS_ARGUMENTS': '--compress --mangle --no-module',
         })
 
     if use_lessc:
