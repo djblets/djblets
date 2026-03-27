@@ -38,9 +38,11 @@ USE_I18N = True
 USE_TZ = True
 
 # Absolute path to the directory that holds media.
-# Example: "/home/media/media.lawrence.com/"
-STATIC_ROOT = os.path.abspath(os.path.join(__file__, '..', 'static'))
-MEDIA_ROOT = os.path.abspath(os.path.join(__file__, '..', 'media'))
+DJBLETS_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'djblets'))
+HTDOCS_ROOT = os.path.join(DJBLETS_ROOT, 'htdocs')
+STATIC_ROOT = os.path.join(HTDOCS_ROOT, 'static')
+MEDIA_ROOT = os.path.join(HTDOCS_ROOT, 'media')
 
 MEDIA_URL = '/media/'
 
@@ -141,7 +143,7 @@ INSTALLED_APPS = [
 
 
 STATICFILES_DIRS = (
-    ('djblets', os.path.join(base_path, 'static', 'djblets')),
+    ('djblets', os.path.join(STATIC_ROOT, 'djblets')),
 )
 
 STATICFILES_FINDERS = (
