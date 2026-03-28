@@ -101,12 +101,18 @@ class StaticMediaBuilderTests(TestCase):
         static_path = htdocs_path / 'static'
         node_path = build_context.node_modules_dir
 
+        include_path = os.path.pathsep.join(sorted([
+            str(htdocs_path),
+            str(static_path),
+            str(node_path),
+        ]))
+
         self.assertEqual(builder._build_lessc_args(), [
             '--no-color',
             '--source-map',
             '--js',
             '--plugin=@beanbag/less-plugin-autoprefix',
-            f'--include-path={htdocs_path}:{static_path}:{node_path}',
+            f'--include-path={include_path}',
             '--global-var=DEBUG=false',
             '--global-var=STATIC_ROOT="/static/"',
         ])

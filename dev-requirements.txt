@@ -8,3 +8,4 @@ pygments
 pytest-django~=4.11.1
 pytest-env~=1.2.0
 pytest~=9.0.2
+setuptools

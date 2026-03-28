@@ -48,6 +48,13 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Absolute path to the directory that holds media.
+DJBLETS_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'djblets'))
+HTDOCS_ROOT = os.path.join(DJBLETS_ROOT, 'htdocs')
+STATIC_ROOT = os.path.join(HTDOCS_ROOT, 'static')
+MEDIA_ROOT = os.path.join(HTDOCS_ROOT, 'media')
+
 MEDIA_URL = '/media/'
 
 # URL that handles the media served from STATIC_ROOT. Make sure to use a
@@ -101,13 +108,6 @@ ROOT_URLCONF = 'djblets.testing.urls'
 # Explicitly set TEST_RUNNER to avoid incorrect compatibility check warnings
 # from Django 1.7.
 TEST_RUNNER = 'djblets.testing.testrunners.TestRunner'
-
-
-DJBLETS_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '..', 'djblets'))
-HTDOCS_ROOT = os.path.join(DJBLETS_ROOT, 'htdocs')
-STATIC_ROOT = os.path.join(HTDOCS_ROOT, 'static')
-MEDIA_ROOT = os.path.join(HTDOCS_ROOT, 'media')
 
 
 NODE_PATH = ':'.join(
