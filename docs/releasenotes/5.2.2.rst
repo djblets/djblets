@@ -1,0 +1,72 @@
+.. default-intersphinx:: django4.2 djblets5.x python3
+
+
+===========================
+Djblets 5.2.2 Release Notes
+===========================
+
+**Release date**: TBD
+
+
+Installation
+============
+
+Djblets 5.2.2 is compatible with Python 3.8 - 3.13.
+
+To install Djblets 5.2.2, run:
+
+.. code-block:: console
+
+   $ pip3 install Djblets==5.2.2
+
+
+To learn more, see:
+
+* `Documentation <https://www.reviewboard.org/docs/djblets/5.x/>`_
+* `Djblets on PyPI <https://pypi.org/project/Djblets/>`_
+* `Djblets on GitHub <https://github.com/djblets/djblets/>`_
+
+
+Packaging
+=========
+
+* Fixed some JavaScript dependencies listed in :file:`package.json` to match
+  the versions pulled in through other dependency chains.
+
+  In many cases, including Djblets as an NPM workspace would already pull in
+  these versions due to dependencies from :npm:`@beanbag/spina` and
+  :npm:`@beanbag/frontend-buildkit`.
+
+  - :npm:`backbone` has been updated to ^1.6.1
+  - :npm:`jquery-ui` has been updated to ^1.14.2
+  - :npm:`uglify-js` has been updated to ^3.19.3
+
+
+djblets.extensions
+==================
+
+* Fixed a potential race condition while installing extension static media.
+
+  If multiple web server threads are attempting to initialize an extension, it
+  was possible that they could hit lock contention, resulting in static media
+  being reinstalled when it was not necessary.
+
+
+djblets.pipeline
+================
+
+* Fixed UglifyJS command-line arguments to disable "module" mode.
+
+  UglifyJS 3.18.0 changed the default of the "module" setting, resulting in
+  emitted bundles not containing ``"use strict"``. Unfortunately, UglifyJS also
+  emits code that can trigger subtle bugs when running in non-strict mode. The
+  default command-line arguments have been changed to disable module mode,
+  restoring the pre-3.18 behavior.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin
