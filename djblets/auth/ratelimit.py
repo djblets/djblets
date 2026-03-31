@@ -61,7 +61,7 @@ class UsageCount(TypedDict):
     """Rate limit states for a given user or IP address.
 
     Version Added:
-        6.0
+        7.0
     """
 
     #: The number of login attempts made.

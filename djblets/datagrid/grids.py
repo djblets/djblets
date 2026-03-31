@@ -1590,7 +1590,7 @@ class DateTimeColumn(Column):
                 The timezone used to normalize the date/time to.
 
                 Version Changed:
-                    6.0:
+                    7.0:
                     Changed type to use the standard library tzinfo instead of
                     pytz.
 

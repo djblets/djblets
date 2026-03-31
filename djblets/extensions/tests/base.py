@@ -24,7 +24,7 @@ class FakeDistribution(Distribution):
     """A fake distribution.
 
     Version Added:
-        6.0
+        7.0
     """
 
     ######################
@@ -120,7 +120,7 @@ class FakeEntryPoint(EntryPoint):
     """A fake entry point.
 
     Version Changed:
-        6.0:
+        7.0:
         Changed to inherit from importlib_metadata.EntryPoint.
     """
 
