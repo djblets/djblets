@@ -13,11 +13,13 @@ include NEWS
 include README
 include djblets/py.typed
 
-global-exclude .*.sw[op] *.py[co] __pycache__ .DS_Store
+global-exclude .mypy_cache .*.sw[op] *.py[co] __pycache__ __.DS_Store
 
 # Python builds
-include build-backend.py
 include *-requirements.txt
+prune .local-packages
+prune .npm-workspaces
+prune node_modules
 
 # Unit testing
 include conftest.py

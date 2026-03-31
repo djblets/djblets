@@ -141,7 +141,7 @@ npm_dependencies.update(lint_npm_dependencies)
 ###########################################################################
 
 def build_dependency_list(
-    deps: Mapping[str, Dependency],
+    deps: Mapping[str, Dependency] = package_dependencies,
     version_prefix: str = '',
     *,
     local_packages: Mapping[str, str] = {},
@@ -153,7 +153,7 @@ def build_dependency_list(
     for use on the command line and in :file:`build-backend.py`.
 
     Args:
-        deps (dict):
+        deps (dict, optional):
             A dictionary of dependencies.
 
         version_prefix (str, optional):
