@@ -7,7 +7,7 @@ from functools import update_wrapper, wraps
 from typing import TYPE_CHECKING, overload
 
 from django import template
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 from django.template.library import parse_bits
 from django.utils.functional import cached_property as django_cached_property
 
@@ -356,15 +356,15 @@ def blocktag(
         return _setup_tag
 
     if args:
-        RemovedInDjblets70Warning.warn(
+        RemovedInDjblets80Warning.warn(
             '@blocktag no longer takes extra positional arguments. This '
-            'will be removed in Djblets 7.'
+            'will be removed in Djblets 8.'
         )
 
     if kwargs:
-        RemovedInDjblets70Warning.warn(
+        RemovedInDjblets80Warning.warn(
             '@blocktag no longer takes extra keyword arguments. This '
-            'will be removed in Djblets 7.'
+            'will be removed in Djblets 8.'
         )
 
     if func is not None:

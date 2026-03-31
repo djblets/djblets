@@ -115,7 +115,7 @@ from uuid import uuid4
 from django.conf import settings
 from housekeeping import deprecate_non_keyword_only_args
 
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
@@ -181,7 +181,7 @@ class TimedLogInfo:
     #: The number of seconds at which to log warnings.
     warning_at: float
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         *,
@@ -563,7 +563,7 @@ def restart_logging():
     init_logging()
 
 
-@deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+@deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
 def log_timed(
     message: str,
     *,
@@ -693,9 +693,9 @@ def _Logger_log(self, *args, **kwargs):
     request = kwargs.pop('request', None)
 
     if request:
-        RemovedInDjblets70Warning.warn(
+        RemovedInDjblets80Warning.warn(
             "The request= argument to logging methods has been deprecated and "
-            "will be removed in Djblets 7.0. Please change this to pass "
+            "will be removed in Djblets 8.0. Please change this to pass "
             "extra={'request': request}.")
         extra['request'] = request
 

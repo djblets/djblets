@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 
 from django.core.exceptions import ImproperlyConfigured
 
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping, Sequence
@@ -339,9 +339,9 @@ def build_pipeline_settings(
             ],
         })
     else:
-        RemovedInDjblets70Warning.warn(
+        RemovedInDjblets80Warning.warn(
             'Support for UglifyJS is deprecated and will be removed in '
-            'Djblets 7.0. To use terser instead, call '
+            'Djblets 8.0. To use terser instead, call '
             'build_pipeline_settings() with use_terser=True.'
         )
         config.update({

@@ -10,7 +10,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 from housekeeping import deprecate_non_keyword_only_args
 
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 @csrf_protect
 @staff_member_required
-@deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+@deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
 def extension_list(
     request: HttpRequest,
     *,
@@ -86,7 +86,7 @@ def extension_list(
 
 @csrf_protect
 @staff_member_required
-@deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+@deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
 def configure_extension(
     request: HttpRequest,
     *,

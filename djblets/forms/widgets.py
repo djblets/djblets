@@ -23,7 +23,7 @@ from djblets.conditions import ConditionSet
 from djblets.conditions.choices import ConditionChoices
 from djblets.conditions.errors import (ConditionChoiceNotFoundError,
                                        ConditionOperatorNotFoundError)
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 
 if TYPE_CHECKING:
     from django.forms.renderers import BaseRenderer
@@ -250,7 +250,7 @@ class ConditionsWidget(widgets.Widget):
     #:     5.3
     _orig_choices: ConditionsWidgetChoices
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         *,

@@ -11,7 +11,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import gettext as _
 from housekeeping import ClassDeprecatedMixin
 
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 from djblets.http.requests import get_http_request_ip
 from djblets.protect.ratelimit import RateLimit, check_rate_limit
 
@@ -230,7 +230,7 @@ def _get_auth_rate_limit_key(
 
 
 class Rate(ClassDeprecatedMixin,
-           warning_cls=RemovedInDjblets70Warning):
+           warning_cls=RemovedInDjblets80Warning):
     """A rate representing login attempt frequency.
 
     The main functionality of this class is found in the :py:meth:`parse`

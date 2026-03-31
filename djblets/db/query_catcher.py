@@ -20,14 +20,14 @@ from django_assert_queries.query_catcher import (
 )
 from housekeeping import module_deprecated
 
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 
 
 module_deprecated(
-    RemovedInDjblets70Warning,
+    RemovedInDjblets80Warning,
     'djblets.db.query_catcher is deprecated in favor of '
     'django_assert_queries.query_catcher, and will be removed in '
-    'Djblets 7. See https://pypi.org/project/django-assert-queries/')
+    'Djblets 8. See https://pypi.org/project/django-assert-queries/')
 
 
 __all__ = [

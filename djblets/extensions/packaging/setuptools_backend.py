@@ -17,7 +17,7 @@ from importlib_metadata import EntryPoint, Sectioned
 from setuptools import Command
 from setuptools.command.build_py import build_py
 
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 
 if TYPE_CHECKING:
     from djblets.extensions.extension import Extension
@@ -253,11 +253,11 @@ class BuildStaticFiles(Command):
         if hasattr(self, 'get_lessc_global_vars'):
             class_name = type(self).__name__
 
-            RemovedInDjblets70Warning.warn(
+            RemovedInDjblets80Warning.warn(
                 f'{class_name}.get_lessc_global_vars() is deprecated. Please '
                 f'set {class_name}.static_media_builder_cls to a subclass of '
                 f'StaticMediaBuilder and override the method there instead. '
-                f'This will be removed in Djblets 7.')
+                f'This will be removed in Djblets 8.')
 
             # We need to supply these to the static builder via subclass.
             class _StaticMediaBuildContext(static_media_build_context_cls):
@@ -286,11 +286,11 @@ class BuildStaticFiles(Command):
         if hasattr(self, 'install_pipeline_deps'):
             class_name = type(self).__name__
 
-            RemovedInDjblets70Warning.warn(
+            RemovedInDjblets80Warning.warn(
                 f'{class_name}.install_pipeline_deps() is deprecated. Please '
                 f'set {class_name}.static_media_builder_cls to a subclass of '
                 f'StaticMediaBuilder and override the method there instead. '
-                f'This will be removed in Djblets 7.')
+                f'This will be removed in Djblets 8.')
             self.install_pipeline_deps()  # type: ignore
 
         builder.build_static_media()

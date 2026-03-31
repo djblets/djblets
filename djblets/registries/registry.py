@@ -19,7 +19,7 @@ from django.utils.translation import gettext_lazy as _
 from importlib_metadata import EntryPoint, entry_points
 from typing_extensions import Final, TypeAlias
 
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 from djblets.registries.errors import (AlreadyRegisteredError,
                                        ItemLookupError,
                                        RegistrationError)
@@ -257,9 +257,9 @@ class Registry(Generic[RegistryItemType]):
             bool:
             Whether or not the registry is populated.
         """
-        RemovedInDjblets70Warning.warn(
+        RemovedInDjblets80Warning.warn(
             'Registry.populated is deprecated and will be removed in '
-            'Djblets 7. Please check Registry.state instead.')
+            'Djblets 8. Please check Registry.state instead.')
 
         return self.state != RegistryState.PENDING
 

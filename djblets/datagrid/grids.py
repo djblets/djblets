@@ -51,7 +51,7 @@ from housekeeping import deprecate_non_keyword_only_args
 from typing_extensions import Final, TypeAlias, TypedDict
 from typelets.symbols import UNSET
 
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 from djblets.template.context import get_default_template_context_processors
 from djblets.util.http import get_url_params_except
 
@@ -404,7 +404,7 @@ class Column:
     #: Whether the column can be sorted.
     sortable: bool = False
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         label: Unsettable[StrOrPromise | None] = UNSET,
@@ -540,9 +540,9 @@ class Column:
                 Details will be in the error message.
         """
         if cell_clickable is not UNSET:
-            RemovedInDjblets70Warning.warn(
+            RemovedInDjblets80Warning.warn(
                 'cell_clickable is deprecated and will be removed in '
-                'Djblets 7.'
+                'Djblets 8.'
             )
 
         if id is not UNSET:
@@ -1347,7 +1347,7 @@ class CheckboxColumn(Column):
     show_checkbox_header: bool = True
 
     # TODO: Remove shrink and detailed_label from the args list in Djblets 7.
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         label: Unsettable[StrOrPromise | None] = UNSET,
@@ -1552,7 +1552,7 @@ class DateTimeColumn(Column):
     timezone: Any = pytz.utc
 
     # TODO: Remove label and sortable from the args list in Djblets 7.
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         label: Unsettable[StrOrPromise | None] = UNSET,
@@ -1708,7 +1708,7 @@ class DateTimeSinceColumn(Column):
     sortable: bool = True
 
     # TODO: Remove this function in Djblets 7.
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         label: Unsettable[StrOrPromise | None] = UNSET,
@@ -2135,7 +2135,7 @@ class DataGrid:
 
                     cls.add_column(column)
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         *,

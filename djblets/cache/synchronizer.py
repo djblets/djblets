@@ -11,7 +11,7 @@ from django.core.cache import cache
 from housekeeping import deprecate_non_keyword_only_args
 
 from djblets.cache.backend import make_cache_key
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -68,7 +68,7 @@ class GenerationSynchronizer:
     #: The synchronization generation number last fetched/set by this instance.
     sync_gen: int | None
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         cache_key: str | Sequence[str],

@@ -23,7 +23,7 @@ from django.contrib.sites.models import Site
 from django.utils.encoding import force_bytes
 
 from djblets.cache.errors import MissingChunkError
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 from djblets.secrets.crypto import (aes_decrypt,
                                     aes_decrypt_iter,
                                     aes_encrypt,
@@ -1036,7 +1036,7 @@ def _cache_store_items(
                                    items=prepared_items)
 
 
-@deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+@deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
 def cache_memoize_iter(
     key: str | Sequence[str],
     items_or_callable: (
@@ -1262,7 +1262,7 @@ def cache_memoize_iter(
             lock.release()
 
 
-@deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+@deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
 def cache_memoize(
     key: str | Sequence[str],
     lookup_callable: Callable[[], _T],
@@ -1383,8 +1383,8 @@ def cache_memoize(
         The cached data, or the result of ``lookup_callable`` if uncached.
     """
     if use_generator:
-        RemovedInDjblets70Warning.warn(
-            'use_generator is deprecated and will be removed in Djblets 7.')
+        RemovedInDjblets80Warning.warn(
+            'use_generator is deprecated and will be removed in Djblets 8.')
 
     if large_data:
         results = list(cache_memoize_iter(
@@ -1466,7 +1466,7 @@ def cache_memoize(
         return data
 
 
-@deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+@deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
 def make_cache_key(
     key: str | Sequence[str],
     *,

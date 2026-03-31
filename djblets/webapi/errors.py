@@ -6,7 +6,7 @@ from typing import Callable, Dict, List, Optional, TYPE_CHECKING, Union
 
 from housekeeping import deprecate_non_keyword_only_args
 
-from djblets.deprecation import RemovedInDjblets60Warning
+from djblets.deprecation import RemovedInDjblets70Warning
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
@@ -102,7 +102,7 @@ class WebAPIError:
     #:     4.0
     trace_id: Optional[str]
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets60Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
     def __init__(
         self,
         code: int,
@@ -203,7 +203,7 @@ class WebAPIError:
         return '<API Error %d, HTTP %d: %s>' % (self.code, self.http_status,
                                                 self.msg)
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets60Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
     def with_overrides(
         self,
         msg: Optional[str] = None,
