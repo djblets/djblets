@@ -87,8 +87,19 @@ class RemovedInDjblets80Warning(BaseRemovedInDjbletsVersionWarning):
     version = '8.0'
 
 
+class RemovedInDjblets90Warning(BaseRemovedInDjbletsVersionWarning):
+    """Deprecations for features scheduled for removal in Djblets 9.0.
+
+    Note that this class will itself be removed in Djblets 9.0. If you need to
+    check against Djblets deprecation warnings, please see
+    :py:class:`BaseRemovedInDjbletsVersionWarning`.
+    """
+
+    version = '9.0'
+
+
 #: An alias for the next release of Djblets where features would be removed.
-RemovedInNextDjbletsVersionWarning = RemovedInDjblets70Warning
+RemovedInNextDjbletsVersionWarning = RemovedInDjblets80Warning
 
 
 @func_moved(RemovedInDjblets70Warning,

@@ -37,7 +37,7 @@ except ImportError:
     Evolver = None
 
 from djblets.cache.synchronizer import GenerationSynchronizer
-from djblets.deprecation import RemovedInDjblets80Warning
+from djblets.deprecation import RemovedInDjblets90Warning
 from djblets.extensions.errors import (EnablingExtensionError,
                                        InstallExtensionError,
                                        InstallExtensionMediaError,
@@ -348,9 +348,9 @@ class ExtensionManager:
             self.init()
 
             if delay_init is None:
-                RemovedInDjblets80Warning.warn(
+                RemovedInDjblets90Warning.warn(
                     'The delay_init parameter to ExtensionManager will become '
-                    'mandatory in Djblets 8.')
+                    'mandatory in Djblets 9.')
 
         self.dynamic_urls = DynamicURLResolver()
         self._extension_list_url = None
