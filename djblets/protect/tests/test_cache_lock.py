@@ -1,7 +1,7 @@
 """Unit tests for djblets.protect.locks.CacheLock.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ class CacheLockTests(kgb.SpyAgency, TestCase):
     """Unit tests for CacheLock.
 
     Version Added:
-        5.3
+        6.0
     """
 
     def setUp(self) -> None:

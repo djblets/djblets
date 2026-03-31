@@ -198,7 +198,7 @@ def _get_auth_rate_limit_key(
     from the request.
 
     Version Added:
-        5.3
+        6.0
 
     Args:
         request (django.http.HttpRequest):
@@ -239,7 +239,7 @@ class Rate(ClassDeprecatedMixin,
     on a given rate string.
 
     Deprecated:
-        5.3:
+        6.0:
         This has been replaced with
         :py:class:`djblets.protect.ratelimit.RateLimit`. Callers should be
         updated to use this instead.

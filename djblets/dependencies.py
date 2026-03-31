@@ -25,7 +25,7 @@ if TYPE_CHECKING:
         """A dependency definition that differs based on Python version.
 
         Version Added:
-            5.3
+            6.0
         """
 
         #: The version limiter of Python the dependency is for.
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     #: A package dependency version.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     Dependency: TypeAlias = Union[str, List[PythonSpecificDependency]]
 
 
@@ -164,7 +164,7 @@ def build_dependency_list(
             be found.
 
             Version Added:
-                5.3
+                6.0
 
     Returns:
         list of str:

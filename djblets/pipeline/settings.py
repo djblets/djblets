@@ -96,7 +96,7 @@ def build_pipeline_settings(
     ``node_modules_path`` in the :envvar:`NODE_PATH` environment variable.
 
     Version Changed:
-        5.3:
+        6.0:
         * Changed to support a colon-separated list for the
           ``node_modules_path`` argument.
         * Added support for `terser <https://terser.org>`.
@@ -182,7 +182,7 @@ def build_pipeline_settings(
             Whether to use Terser instead of UglifyJS.
 
             Version Added:
-                5.3
+                6.0
 
     Returns:
         dict:
@@ -389,7 +389,7 @@ def find_node_modules_dirs(directory: str | Path) -> Iterator[Path]:
     """Find and return all ``node_modules`` directories above a given path.
 
     Version Added:
-        5.3
+        6.0
 
     Args:
         directory (str or pathlib.Path):

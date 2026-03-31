@@ -30,7 +30,7 @@ _ModelT = TypeVar('_ModelT',
 #: Type for a Field or a function that returns a Field.
 #:
 #: Version Added:
-#:     5.3
+#:     6.0
 FieldOrCallable: TypeAlias = Union[
     forms.Field,
     Callable[[], forms.Field],
@@ -40,7 +40,7 @@ FieldOrCallable: TypeAlias = Union[
 #: Type for a QuerySet or a function that returns a QuerySet.
 #:
 #: Version Added:
-#:     5.3
+#:     6.0
 QuerySetOrCallable: TypeAlias = Union[
     QuerySet[_ModelT],
     Callable[[], QuerySet[_ModelT]],
@@ -50,7 +50,7 @@ QuerySetOrCallable: TypeAlias = Union[
 #: Type for a dictionary used to cache common computable state for values.
 #:
 #: Version Added:
-#:     5.3
+#:     6.0
 ValueStateCache: TypeAlias = Dict[str, Any]
 
 
@@ -66,7 +66,7 @@ class BaseConditionValueField(Generic[_T]):
     specify the JavaScript counterparts for the class used to edit the values.
 
     Version Changed:
-        5.3:
+        6.0:
         * Added support for Python type hints.
         * This class is now generic. Subclasses should specify a type when
           subclassing. It will default to :py:class:`typing.Any`.
@@ -252,7 +252,7 @@ class ConditionValueFormField(BaseConditionValueField[_T]):
     attribute on the DOM element, like a standard HTML form field.
 
     Version Changed:
-        5.3:
+        6.0:
         * Added support for Python type hints.
         * This class is now generic. Subclasses or instances should specify a
           type when subclassing. It will default to :py:class:`typing.Any`.
@@ -325,7 +325,7 @@ class ConditionValueFormField(BaseConditionValueField[_T]):
         """The associated form field's widget.
 
         Version Added:
-            5.3
+            6.0
         """
         return self.field.widget
 
@@ -438,7 +438,7 @@ class ConditionValueBooleanField(ConditionValueFormField[bool]):
     JavaScript widget.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
 
     Example:
@@ -498,7 +498,7 @@ class ConditionValueCharField(ConditionValueFormField[str]):
     arguments in the constructor that the field itself accepts.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
 
     Example:
@@ -526,7 +526,7 @@ class ConditionValueIntegerField(ConditionValueFormField[int]):
     keyword arguments in the constructor that the field itself accepts.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
 
     Example:
@@ -555,7 +555,7 @@ class ConditionValueMultipleChoiceField(ConditionValueFormField[_T]):
     keyword arguments in the constructor that the field itself accepts.
 
     Version Changed:
-        5.3:
+        6.0:
         * Added support for Python type hints.
         * This class is now generic. Subclasses or instances should specify a
           type when subclassing. It will default to :py:class:`typing.Any`.
@@ -596,7 +596,7 @@ class ConditionValueModelField(ConditionValueFormField[_ModelT]):
     returns a queryset.
 
     Version Changed:
-        5.3:
+        6.0:
         * Added support for Python type hints.
         * This class is now generic. Subclasses or instances should specify a
           type when subclassing. It will default to :py:class:`typing.Any`.
@@ -652,7 +652,7 @@ class ConditionValueMultipleModelField(
     returns a queryset.
 
     Version Changed:
-        5.3:
+        6.0:
         * Added support for Python type hints.
         * This class is now generic. Subclasses or instances should specify a
           type when subclassing. It will default to :py:class:`typing.Any`.
@@ -697,7 +697,7 @@ class ConditionValueRegexField(ConditionValueFormField[re.Pattern]):
     This value accepts and validates regex patterns entered into the field.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
 
     Example:

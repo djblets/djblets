@@ -64,16 +64,16 @@ class BaseCacheTestCase(kgb.SpyAgency, TestCase):
         get us to exactly the specified number of chunks of data in the cache.
 
         Version Changed:
-            5.3:
+            6.0:
             * Made all arguments keyword-only.
-            * Added the ``data_char`` argumnet.
+            * Added the ``data_char`` argument.
 
         Args:
             data_char (str, optional):
                 The character to use for the test value.
 
                 Version Added:
-                    5.3
+                    6.0
 
             num_chunks (int):
                 The number of chunks to build.

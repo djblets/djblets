@@ -1,7 +1,7 @@
 """Unit tests for djblets.util.views.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ def _db_cursor() -> Iterator[None]:
     """Fake cursor method for successful tests.
 
     Version Added:
-        5.3
+        6.0
     """
     yield
 
@@ -39,7 +39,7 @@ class HealthCheckViewTests(kgb.SpyAgency, TestCase):
     """Unit tests for djblets.util.views.HealthCheckView.
 
     Version Added:
-        5.3
+        6.0
     """
 
     #: The request factory to use.

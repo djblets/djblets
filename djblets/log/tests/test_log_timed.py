@@ -1,7 +1,7 @@
 """Unit tests for djblets.log.log_timed.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ class LogTimedTests(TestCase):
     """Unit tests for log_timed.
 
     Version Added:
-        5.3
+        6.0
     """
 
     def test_as_func(self) -> None:

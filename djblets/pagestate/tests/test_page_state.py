@@ -1,7 +1,7 @@
 """Unit tests for djblets.pagestate.state.PageState.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ class MyPageStateInjector:
     """Injector used for unit tests.
 
     Version Added:
-        5.3
+        6.0
     """
 
     injector_id = 'test-injector'
@@ -84,7 +84,7 @@ class PageStateTests(TestCase):
     """Unit tests for PageState.
 
     Version Added:
-        5.3
+        6.0
     """
 
     def test_for_request(self) -> None:

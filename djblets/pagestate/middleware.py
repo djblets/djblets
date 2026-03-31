@@ -1,7 +1,7 @@
 """Middleware for page states.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ def PageStateMiddleware(
     """Middleware for updating ETags with those from page state injections.
 
     Version Added:
-        5.3
+        6.0
 
     Args:
         get_response (callable):

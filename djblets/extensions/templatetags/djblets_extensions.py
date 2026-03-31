@@ -166,7 +166,7 @@ def _render_bundle(
     the bundle will be skipped.
 
     Version Changed:
-        4.1, 5.3:
+        4.1, 6.0:
         The ``name`` argument now accepts full bundle IDs, in addition to
         relative bundle names.
 

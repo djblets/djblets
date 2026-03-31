@@ -1,7 +1,7 @@
 """Utilities for capturing and inspecting database queries.
 
 Deprecated:
-    5.3:
+    6.0:
     This has been replaced with :py:mod:`django_assert_queries.query_catcher`
     from :pypi:`django-assert-queries`.
 

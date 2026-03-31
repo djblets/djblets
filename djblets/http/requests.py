@@ -1,7 +1,7 @@
 """Utilities for working with HTTP requests.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ def get_http_request_ip(
     service's network.
 
     Version Added:
-        5.3
+        6.0
 
     Args:
         request (django.http.HttpRequest):

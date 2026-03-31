@@ -49,7 +49,7 @@ class GenerationSynchronizer:
     #: The default expiration is 1 year.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     DEFAULT_EXPIRATION_SECS: Final[int] = 60 * 60 * 24 * 365
 
     ######################
@@ -59,7 +59,7 @@ class GenerationSynchronizer:
     #: Cache expiration for stored state in seconds.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     cache_expiration_secs: int
 
     #: The synchronization cache key.
@@ -79,7 +79,7 @@ class GenerationSynchronizer:
         """Initialize the synchronizer.
 
         Version Changed:
-            5.3:
+            6.0:
             * ``cache_key`` may now be a sequence of string components of
               the key.
 
@@ -98,7 +98,7 @@ class GenerationSynchronizer:
                 :py:func:`~djblets.cache.backends.make_cache_key`.
 
                 Version Changed:
-                    5.3:
+                    6.0:
                     This may now be a sequence of strings.
 
             normalize_cache_key (bool, optional):
@@ -113,7 +113,7 @@ class GenerationSynchronizer:
                 The default expiration is 1 year.
 
                 Version Added:
-                    5.3
+                    6.0
 
         Raises:
             ValueError:

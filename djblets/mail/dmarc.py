@@ -240,7 +240,7 @@ class DmarcRecord:
         """Return a string representation of the record.
 
         Version Added:
-            5.3
+            6.0
 
         Returns:
             str:

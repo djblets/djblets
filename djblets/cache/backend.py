@@ -113,7 +113,7 @@ class _CacheContext:
     #: An optional cache lock to guard recomputing and writing data.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     lock: CacheLock | None
 
     #: Whether to use encryption when storing or reading data.
@@ -133,7 +133,7 @@ class _CacheContext:
         """Initialize the context.
 
         Version Changed:
-            5.3:
+            6.0:
             * ``base_cache_key`` may now be a sequence of string components of
               the key.
 
@@ -152,7 +152,7 @@ class _CacheContext:
                 constructing related cache keys.
 
                 Version Changed:
-                    5.3:
+                    6.0:
                     This may now be a sequence of strings.
 
             expiration (int):
@@ -183,7 +183,7 @@ class _CacheContext:
                 An optional cache lock to guard recomputing and writing data.
 
                 Version Added:
-                    5.3
+                    6.0
         """
         if use_encryption is None:
             use_encryption = _get_default_use_encryption()
@@ -227,7 +227,7 @@ class _CacheContext:
         """Return a full cache key from the provided base key.
 
         Version Changed:
-            5.3:
+            6.0:
             ``key`` may now be a sequence of string components of the key.
 
         Args:
@@ -235,7 +235,7 @@ class _CacheContext:
                 The base cache key to make a full key from.
 
                 Version Changed:
-                    5.3:
+                    6.0:
                     This may now be a sequence of strings.
 
         Returns:
@@ -407,7 +407,7 @@ class _CacheContext:
         The caller may still write to the cache.
 
         Version Added:
-            5.3
+            6.0
 
         Args:
             key (str):
@@ -1078,7 +1078,7 @@ def cache_memoize_iter(
     the data won't be retrievable from the cache.
 
     Version Changed:
-        5.3:
+        6.0:
         * ``key`` may now be a sequence of string components of the key.
         * Added the ``lock`` argument.
 
@@ -1102,7 +1102,7 @@ def cache_memoize_iter(
             serializing each component to help avoid key injection attacks.
 
             Version Changed:
-                5.3:
+                6.0:
                 This may now be a sequence of strings.
 
         items_or_callable (list or callable):
@@ -1148,7 +1148,7 @@ def cache_memoize_iter(
             An optional cache lock to guard recomputing and writing data.
 
             Version Added:
-                5.3
+                6.0
 
     Yields:
         object:
@@ -1289,7 +1289,7 @@ def cache_memoize(
     compromised or shared between services.
 
     Version Changed:
-        5.3:
+        6.0:
         * ``key`` may now be a sequence of string components of the key.
         * Added the ``lock`` argument.
 
@@ -1318,7 +1318,7 @@ def cache_memoize(
             serializing each component to help avoid key injection attacks.
 
             Version Changed:
-                5.3:
+                6.0:
                 This may now be a sequence of strings.
 
         lookup_callable (callable):
@@ -1376,7 +1376,7 @@ def cache_memoize(
             An optional cache lock to guard recomputing and writing data.
 
             Version Added:
-                5.3
+                6.0
 
     Returns:
         object:
@@ -1484,7 +1484,7 @@ def make_cache_key(
     key without risk of key injection attacks.
 
     Version Changed:
-        5.3:
+        6.0:
         ``key`` may now be a sequence of string components of the key.
 
     Version Changed:
@@ -1514,7 +1514,7 @@ def make_cache_key(
             serializing each component to help avoid key injection attacks.
 
             Version Changed:
-                5.3:
+                6.0:
                 This may now be a sequence of strings.
 
         use_encryption (bool, optional):

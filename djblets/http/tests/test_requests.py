@@ -1,7 +1,7 @@
 """Unit tests for djblets.http.requests.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ class GetHTTPRequestIPTests(TestCase):
     """Unit tests for get_http_request_ip.
 
     Version Added:
-        5.3
+        6.0
     """
 
     def test_with_http_x_real_ip(self) -> None:

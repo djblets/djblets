@@ -4,7 +4,7 @@ These are used internally for unit testing, but can also be useful when
 instrumenting code.
 
 Deprecated:
-    5.3:
+    6.0:
     This has been replaced with
     :py:mod:`django_assert_queries.query_comparator` from
     :pypi:`django-assert-queries`.

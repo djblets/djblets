@@ -487,7 +487,7 @@ class WebAPIResponsePaginated(WebAPIResponse):
         """Initialize the response.
 
         Version Changed:
-            5.3:
+            6.0:
             Added the ``serialize_object_list_func`` argument.
 
         Version Changed:
@@ -550,7 +550,7 @@ class WebAPIResponsePaginated(WebAPIResponse):
                 ``serialize_object_func``.
 
                 Version Added:
-                    5.3
+                    6.0
 
             extra_data (dict, optional):
                 Extra payload data to merge into the resulting payload.

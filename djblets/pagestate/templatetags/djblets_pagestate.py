@@ -1,7 +1,7 @@
 """Template tags for working with page states.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ def page_hook_point(
     <djblets.pagestate.state.PageState.inject>`.
 
     Version Added:
-        5.3
+        6.0
 
     Args:
         context (django.template.Context):

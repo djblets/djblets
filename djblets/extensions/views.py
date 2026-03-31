@@ -43,7 +43,7 @@ def extension_list(
     to the page.
 
     Version Changed:
-        5.3:
+        6.0:
         * Added the ``extra_context`` argument.
         * All arguments except for ``request`` must be included as
           keyword-only arguments. This will be enforced in Djblets 7.
@@ -62,7 +62,7 @@ def extension_list(
             Extra context to provide for the template.
 
             Version Added:
-                5.3
+                6.0
 
     Returns:
         django.http.HttpResponse:
@@ -106,7 +106,7 @@ def configure_extension(
     it's configurable, render it, and handle results.
 
     Version Changed:
-        5.3:
+        6.0:
         * Added the ``extra_context`` argument.
         * All arguments except for ``request`` must be included as
           keyword-only arguments. This will be enforced in Djblets 7.
@@ -131,7 +131,7 @@ def configure_extension(
             Extra context to provide for the template.
 
             Version Added:
-                5.3
+                6.0
 
     Returns:
         django.http.HttpResponse:

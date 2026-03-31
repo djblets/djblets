@@ -152,7 +152,7 @@ class TimedLogInfo:
     #: This will be populated with ``request``.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     extra: Mapping[str, object]
 
     #: The message to show for the log entries.
@@ -161,7 +161,7 @@ class TimedLogInfo:
     #: The logger used for all log entries.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     logger: logging.Logger
 
     #: The optional HTTP request associated with the operation.
@@ -175,7 +175,7 @@ class TimedLogInfo:
     #: This is used to help follow the chain of events in a series of logs.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     trace_id: str
 
     #: The number of seconds at which to log warnings.
@@ -198,7 +198,7 @@ class TimedLogInfo:
         """Initialize the state for the timer.
 
         Version Changed:
-            5.3:
+            6.0:
             * This now expects keyword-only arguments. This will be required
               in Djblets 7.
 
@@ -217,7 +217,7 @@ class TimedLogInfo:
                 This may contain fractions of seconds.
 
                 Version Changed:
-                    5.3:
+                    6.0:
                     This now supports fractions of seconds.
 
             critical_at (float):
@@ -226,7 +226,7 @@ class TimedLogInfo:
                 This may contain fractions of seconds.
 
                 Version Changed:
-                    5.3:
+                    6.0:
                     This now supports fractions of seconds.
 
             default_level (int):
@@ -244,13 +244,13 @@ class TimedLogInfo:
                 This will be populated with ``request`` and ``trace_id``.
 
                 Version Added:
-                    5.3
+                    6.0
 
             logger (logging.Logger, optional):
                 The logger used for all log entries.
 
                 Version Added:
-                    5.3
+                    6.0
 
             trace_id (str, optional):
                 The trace ID to include in log messages.
@@ -259,7 +259,7 @@ class TimedLogInfo:
                 logs.
 
                 Version Added:
-                    5.3
+                    6.0
         """
         self.message = message
         self.warning_at = warning_at
@@ -586,7 +586,7 @@ def log_timed(
     This function can be called directly or used as a context manager.
 
     Version Changed:
-        5.3:
+        6.0:
         * This can now be used as a context manager.
 
         * Added ``extra``, ``logger``, and ``trace_id`` arguments.
@@ -606,7 +606,7 @@ def log_timed(
             This may contain fractions of seconds.
 
             Version Changed:
-                5.3:
+                6.0:
                 This now supports fractions of seconds.
 
         critical_at (int):
@@ -615,7 +615,7 @@ def log_timed(
             This may contain fractions of seconds.
 
             Version Changed:
-                5.3:
+                6.0:
                 This now supports fractions of seconds.
 
         default_level (int):
@@ -633,13 +633,13 @@ def log_timed(
             This will be populated with ``request`` and ``trace_id``.
 
             Version Added:
-                5.3
+                6.0
 
         logger (logging.Logger, optional):
             The logger used for all log entries.
 
             Version Added:
-                5.3
+                6.0
 
         trace_id (str, optional):
             The trace ID to include in log messages.
@@ -651,7 +651,7 @@ def log_timed(
             on :py:attr:`TimedLogInfo.trace_id`.
 
             Version Added:
-                5.3
+                6.0
 
     Example:
         .. code-block:: python

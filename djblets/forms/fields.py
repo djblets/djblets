@@ -33,7 +33,7 @@ TIMEZONE_CHOICES = tuple(zip(pytz.common_timezones, pytz.common_timezones))
 #: The types of arguments available as choices to a ConditionsField.
 #:
 #: Version Added:
-#:     5.3
+#:     6.0
 ConditionsFieldChoices: TypeAlias = ConditionsWidgetChoices
 
 
@@ -64,7 +64,7 @@ class ConditionsField(forms.Field):
     possible fields for inputting values.
 
     Version Changed:
-        5.3:
+        6.0:
         This class now explicitly supports instances of
         :py:class:`~djblets.conditions.choices.ConditionChoices`. Previous
         versions of Djblets supported this, but didn't document support.
@@ -102,7 +102,7 @@ class ConditionsField(forms.Field):
         """Initialize the field.
 
         Version Changed:
-            5.3:
+            6.0:
             ``choices`` may now be an instance of
             :py:class:`~djblets.conditions.choices.ConditionChoices`. Previous
             versions of Djblets supported this, but didn't document support.

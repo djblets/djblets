@@ -92,7 +92,7 @@ class _BlockTagNode(template.Node):
     It is not subject to any API stability guarantees.
 
     Version Added:
-        5.3:
+        6.0:
         This was moved out from inside of :py:func:`blocktag`.
     """
 
@@ -234,7 +234,7 @@ def blocktag(
     parameters are passed.
 
     Version Changed:
-        5.3:
+        6.0:
         * Keyword arguments are now supported using ``name=value`` format.
         * The decorated function now supports keyword-only arguments.
         * Template filters are now supported for arguments.
@@ -268,7 +268,7 @@ def blocktag(
             If not provided, the function name will be used.
 
             Version Added:
-                5.3
+                6.0
 
         resolve_vars (bool, optional):
             Whether to automatically resolve all variables provided to the

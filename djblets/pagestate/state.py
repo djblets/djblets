@@ -1,7 +1,7 @@
 """Page state representations.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ class PageStateData(TypedDict):
     ETag to include with the page response. Both are optional.
 
     Version Added:
-        5.3
+        6.0
     """
 
     #: The content to include in the page.
@@ -75,7 +75,7 @@ class PageState:
     or ETags.
 
     Version Added:
-        5.3
+        6.0
     """
 
     ######################

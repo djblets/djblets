@@ -58,7 +58,7 @@ def encode_etag(
     """Encode a string as a SHA256 value, for use in an ETag.
 
     Version Changed:
-        5.3:
+        6.0:
         Uses SHA256 encoding instead of SHA1.
 
     Args:
@@ -241,7 +241,7 @@ def get_url_params_except(
     caching and search indexing.
 
     Version Changed:
-        5.3:
+        6.0:
         The results are now always sorted.
 
     Args:
