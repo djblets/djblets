@@ -1,7 +1,7 @@
 """App configuration for djblets.integrations.tests.
 
 Version Added:
-    6.0
+    7.0
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ class IntegrationsTestsAppConfig(AppConfig):
     """App configuration for djblets.integrations.tests.
 
     Version Added:
-        6.0
+        7.0
     """
 
     label = 'djblets_integrations_tests'

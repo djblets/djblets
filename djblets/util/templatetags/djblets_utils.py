@@ -80,7 +80,7 @@ def definevar(
     use.
 
     Version Changed:
-        5.3:
+        6.0:
         Added the new ``as_type`` option, supporting ``bool``, ``int``, and
         ``str`` (default).
 
@@ -135,7 +135,7 @@ def definevar(
             This supports ``str`` (default), ``bool``, and ``int``.
 
             Version Added:
-                5.3
+                6.0
 
     Raises:
         django.template.TemplateSyntaxError:
@@ -443,7 +443,7 @@ def unique_id(
     This can be used for DOM elements, scripts, or other use cases.
 
     Version Added:
-        5.3
+        6.0
 
     Args:
         context (django.template.Context):

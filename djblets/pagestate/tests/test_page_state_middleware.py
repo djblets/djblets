@@ -1,7 +1,7 @@
 """Unit tests for djblets.pagestate.middleware.PageStateMiddleware.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ class PageStateMiddlewareTests(TestCase):
     """Unit tests for PageStateMiddleware.
 
     Version Added:
-        5.3
+        6.0
     """
 
     def test_with_etag_and_injections(self) -> None:

@@ -5,7 +5,7 @@ import json
 from django import template
 from django.core.serializers import serialize
 from django.db.models.query import QuerySet
-from django.template.defaultfilters import escapejs
+from django.utils.html import escapejs
 from django.utils.encoding import force_str
 from django.utils.safestring import mark_safe
 

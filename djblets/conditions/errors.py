@@ -15,7 +15,7 @@ class ConditionChoiceNotFoundError(ItemLookupError):
     """A condition choice was not found.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -62,7 +62,7 @@ class ConditionOperatorNotFoundError(ItemLookupError):
     """A condition operator was not found.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -109,7 +109,7 @@ class InvalidConditionValueError(ValueError):
     """The condition value provided was invalid.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 

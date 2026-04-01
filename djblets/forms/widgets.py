@@ -23,7 +23,7 @@ from djblets.conditions import ConditionSet
 from djblets.conditions.choices import ConditionChoices
 from djblets.conditions.errors import (ConditionChoiceNotFoundError,
                                        ConditionOperatorNotFoundError)
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 
 if TYPE_CHECKING:
     from django.forms.renderers import BaseRenderer
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 #: The types of arguments available as choices to a ConditionsField.
 #:
 #: Version Added:
-#:     5.3
+#:     6.0
 ConditionsWidgetChoices: TypeAlias = Union[
     ConditionChoices,
     Callable[[], ConditionChoices],
@@ -233,7 +233,7 @@ class ConditionsWidget(widgets.Widget):
     #: The calculated condition choices for the widget.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     _choices: Optional[ConditionChoices]
 
     #: The original condition choices passed to the widget.
@@ -247,10 +247,10 @@ class ConditionsWidget(widgets.Widget):
     #: as when creating a local instance of a form from a class definition).
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     _orig_choices: ConditionsWidgetChoices
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         *,
@@ -264,10 +264,10 @@ class ConditionsWidget(widgets.Widget):
         """Initialize the widget.
 
         Version Changed:
-            5.3:
+            6.0:
             * All arguments are now keyword-only arguments. Support for
               positional arguments is deprecated and will be removed in
-              Djblets 7.
+              Djblets 8.
 
             * ``choices`` may now be a callable.
 
@@ -279,7 +279,7 @@ class ConditionsWidget(widgets.Widget):
                 only when needed.
 
                 Version Changed:
-                    5.3:
+                    6.0:
                     Added support for a callable.
 
             mode_widget (django.forms.widgets.RadioSelect):

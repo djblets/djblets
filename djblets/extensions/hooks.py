@@ -549,7 +549,7 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
     #: The list of URL names that the hook will apply to by default.
     #:
     #: Version Changed:
-    #:     5.3:
+    #:     6.0:
     #:     This can also be set as a class variable so it doesn't need to be
     #:     passed to :py:meth:`__init__`.
     apply_to: Sequence[str]
@@ -557,7 +557,7 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
     #: The name of the hook point to attach to.
     #:
     #: Version Changed:
-    #:     5.3:
+    #:     6.0:
     #:     This can also be set as a class variable so it doesn't need to be
     #:     passed to :py:meth:`__init__`.
     name: str
@@ -565,7 +565,7 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
     #: The name of the template file to render.
     #:
     #: Version Changed:
-    #:     5.3:
+    #:     6.0:
     #:     This can also be set as a class variable so it doesn't need to be
     #:     passed to :py:meth:`__init__`.
     template_name: Optional[str]
@@ -573,7 +573,7 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
     #: Any additional context to use when rendering.
     #:
     #: Version Changed:
-    #:     5.3:
+    #:     6.0:
     #:     This can also be set as a class variable so it doesn't need to be
     #:     passed to :py:meth:`__init__`.
     extra_context: Mapping[str, Any]
@@ -597,7 +597,7 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
                 If not provided, :py:attr:`name` must be set.
 
                 Version Changed:
-                    5.3:
+                    6.0:
                     This is now optional if :py:attr`name` is set.
 
             template_name (str, optional):
@@ -794,7 +794,7 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
         :py:meth:`get_extra_context`.
 
         Version Added:
-            5.3
+            6.0
 
         Args:
             request (django.http.HttpRequest):
@@ -829,7 +829,7 @@ class TemplateHook(AppliesToURLMixin, ExtensionHook,
         changes.
 
         Version Added:
-            5.3
+            6.0
 
         Args:
             request (django.http.HttpRequest):

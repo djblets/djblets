@@ -4,7 +4,7 @@ This can be used to impose rate limits on operations or access to resources,
 locked down to a user, IP, or any other criteria.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ class RateLimitUsage:
     remaining before hitting a rate limit, or if they've hit the limit.
 
     Version Added:
-        5.3
+        6.0
     """
 
     #: The number of attempts made against the rate limit key.
@@ -67,7 +67,7 @@ class RateLimit:
     operation or access to a resource.
 
     Version Added:
-        5.3
+        6.0
     """
 
     #: Dictionary contains keys that represent different time periods.
@@ -103,7 +103,7 @@ class RateLimit:
 
         Converts the given rate string into a Rate object, which contains
         the number of login attempts allowed (count) and the time period
-        alotted for these attempts (seconds).
+        allotted for these attempts (seconds).
 
         Args:
             rate (str):
@@ -220,7 +220,7 @@ def check_rate_limit(
     count towards the limit in the process.
 
     Version Added:
-        5.3
+        6.0
 
     Args:
         rate_limit (str or RateLimit):
@@ -319,7 +319,7 @@ def _get_time_int() -> int:
     This is available as a convenience wrapper to help with unit testing.
 
     Version Added:
-        5.3
+        6.0
 
     Returns:
         int:

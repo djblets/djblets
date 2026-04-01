@@ -33,7 +33,7 @@ import {
  * Attributes for the IntegrationConfigItem model.
  *
  * Version Added:
- *     6.0
+ *     7.0
  */
 interface IntegrationConfigItemAttrs extends ListItemAttrs {
     /** The ID of the integration. */
@@ -202,7 +202,7 @@ class IntegrationConfigItemView extends ConfigFormsTableItemView {
      * Delete the underlying model.
      *
      * Version Added:
-     *     6.0
+     *     7.0
      */
     async _onDeleteConfirmed() {
         await this.model.destroy({
@@ -220,7 +220,7 @@ class IntegrationConfigItemView extends ConfigFormsTableItemView {
  * Options for the IntegrationConfigListView.
  *
  * Version Added:
- *     6.0
+ *     7.0
  */
 export interface IntegrationConfigListViewOptions {
     /** The set of existing integration configurations. */
@@ -238,7 +238,7 @@ export interface IntegrationConfigListViewOptions {
  * Options for the integration config collection.
  *
  * Version Added:
- *     6.0
+ *     7.0
  */
 interface IntegrationConfigListItemsOptions {
     /** The CSRF token to include with form submissions. */

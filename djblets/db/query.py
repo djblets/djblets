@@ -237,7 +237,7 @@ def get_object_cached_field(
     account field names that may be defined on either side of a relation.
 
     Version Added:
-        5.3
+        6.0
 
     Args:
         obj (django.db.models.Model):

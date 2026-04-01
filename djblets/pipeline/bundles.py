@@ -1,7 +1,7 @@
 """Definitions for Pipeline bundles.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ class StaticBundle(TypedDict):
     https://django-pipeline.readthedocs.io/en/latest/configuration.html#group-options
 
     Version Added:
-        5.3
+        6.0
     """
 
     #: The filename to use for the compiled bundle.

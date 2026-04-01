@@ -32,7 +32,7 @@ class BaseConditionOperator:
     the operator, there may or may not be a field for a value.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -159,7 +159,7 @@ class IsOneOfOperator(BaseConditionOperator):
             ...
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -210,7 +210,7 @@ class IsNotOneOfOperator(BaseConditionOperator):
             ...
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -270,7 +270,7 @@ class AnyOperator(BaseConditionOperator):
     This is the opposite of :py:class:`UnsetOperator`.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -328,7 +328,7 @@ class UnsetOperator(BaseConditionOperator):
     This is the opposite of :py:class:`AnyOperator`.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -382,7 +382,7 @@ class IsOperator(BaseConditionOperator):
     This is the opposite of :py:class:`IsNotOperator`.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -431,7 +431,7 @@ class IsNotOperator(BaseConditionOperator):
     This is the opposite of :py:class:`IsOperator`.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -481,7 +481,7 @@ class ContainsOperator(BaseConditionOperator):
     This is the opposite of :py:class:`DoesNotContainOperator`.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -535,7 +535,7 @@ class DoesNotContainOperator(BaseConditionOperator):
     This is the opposite of :py:class:`ContainsOperator`.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -589,7 +589,7 @@ class ContainsAnyOperator(BaseConditionOperator):
     This is the opposite of :py:class:`DoesNotContainAnyOperator`.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -644,7 +644,7 @@ class DoesNotContainAnyOperator(BaseConditionOperator):
     This is the opposite of :py:class:`ContainsAnyOperator`.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -696,7 +696,7 @@ class StartsWithOperator(BaseConditionOperator):
             ...
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -751,7 +751,7 @@ class EndsWithOperator(BaseConditionOperator):
             ...
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -806,7 +806,7 @@ class GreaterThanOperator(BaseConditionOperator):
             ...
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -852,7 +852,7 @@ class LessThanOperator(BaseConditionOperator):
             ...
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -895,7 +895,7 @@ class MatchesRegexOperator(BaseConditionOperator):
             ...
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -941,7 +941,7 @@ class DoesNotMatchRegexOperator(BaseConditionOperator):
             ...
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -992,7 +992,7 @@ class ConditionOperators(OrderedRegistry[Type[BaseConditionOperator]]):
     choices to be added dynamically by extensions or other code.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 

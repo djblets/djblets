@@ -768,7 +768,7 @@ class UniqueIDTests(TestCase):
     """Unit tests for the {% unique_id %} template tag.
 
     Version Added:
-        5.3
+        6.0
     """
 
     def test_basic_usage(self) -> None:

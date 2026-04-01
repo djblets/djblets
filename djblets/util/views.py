@@ -132,7 +132,7 @@ class HealthCheckView(View):
     list of strings.
 
     Version Changed:
-        5.3:
+        6.0:
         Changed to allow CIDR subnets in the ``DJBLETS_HEALTHCHECK_IPS``
         setting.
 
@@ -147,7 +147,7 @@ class HealthCheckView(View):
     #: The key to use for cache tests.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     _cache_key: str
 
     def __init__(
@@ -158,7 +158,7 @@ class HealthCheckView(View):
         """Initialize the view.
 
         Version Added:
-            5.3
+            6.0
 
         Args:
             *args (tuple):
@@ -182,7 +182,7 @@ class HealthCheckView(View):
         not, this will return HTTP 500.
 
         Version Changed:
-            5.3:
+            6.0:
             Changed IP matching to use networks instead of single IP addresses.
 
         Args:
@@ -292,7 +292,7 @@ class HealthCheckView(View):
         This method exists to make it easier to do unit tests.
 
         Version Added:
-            5.3
+            6.0
 
         Returns:
             iterator of str:
@@ -309,7 +309,7 @@ class HealthCheckView(View):
         This method exists to make it easier to do unit tests.
 
         Version Added:
-            5.3
+            6.0
 
         Args:
             name (str):
@@ -331,7 +331,7 @@ class HealthCheckView(View):
         This method exists to make it easier to do unit tests.
 
         Version Added:
-            5.3
+            6.0
 
         Returns:
             iterator of str:

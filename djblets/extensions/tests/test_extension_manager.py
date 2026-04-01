@@ -38,7 +38,7 @@ class MyTestExtension(Extension):
     # this test, or in a case of an app with multiple extension managers
     # loading the same list of apps.
     #
-    # Prior to 5.3, we used djblets.extensions for the test, but with the
+    # Prior to 6.0, we used djblets.extensions for the test, but with the
     # fix to reloading the `.admin` module for each app, we ended up hitting
     # issues with djblets.extensions.admin. So we now use an app that isn't
     # going to include an `.admin` module.

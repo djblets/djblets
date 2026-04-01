@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 #: Type for the extension metadata dict.
 #:
 #: Version Changed:
-#:     5.3:
+#:     6.0:
 #:     This is now immutable, matching the purpose of the type.
 ExtensionMetadata: TypeAlias = Mapping[str, Any]
 

@@ -1,7 +1,7 @@
 """Common type definitions used for Djblets and consuming projects.
 
 Version Changed:
-    6.0:
+    7.0:
     Updated many of the exports here to just be forwarding exports for
     typelets.
 

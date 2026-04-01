@@ -1,7 +1,7 @@
 """Unit tests for djblets.util.decorators.blocktag.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ class BlockTagTests(TagTest):
     """Unit tests for blocktag.
 
     Version Added:
-        5.3
+        6.0
     """
 
     def test_with_no_args(self) -> None:

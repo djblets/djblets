@@ -7,7 +7,7 @@ from django.core import mail
 from django.test.utils import override_settings
 from django.utils.datastructures import MultiValueDict
 
-from djblets.deprecation import RemovedInDjblets60Warning
+from djblets.deprecation import RemovedInDjblets70Warning
 from djblets.mail.dmarc import (DmarcPolicy, get_dmarc_record,
                                 is_email_allowed_by_dmarc)
 from djblets.mail.message import EmailMessage
@@ -826,12 +826,12 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
             'settings.EMAIL_ENABLE_SMART_SPOOFING and the '
             'enable_smart_spoofing argument to '
             'djblets.mail.message.MailMessage are deprecated, and will be '
-            'removed in Djblets 6. Pleaase use '
+            'removed in Djblets 7. Please use '
             'settings.DJBLETS_EMAIL_FROM_SPOOFING and the from_spoofing= '
             'argument instead.'
         )
 
-        with self.assertWarns(RemovedInDjblets60Warning, message):
+        with self.assertWarns(RemovedInDjblets70Warning, message):
             email = EmailMessage(subject='Test email',
                                  text_body='This is a test.',
                                  from_email='Doc Dwarf <doc@corp.example.com>',
@@ -873,12 +873,12 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
             'settings.EMAIL_ENABLE_SMART_SPOOFING and the '
             'enable_smart_spoofing argument to '
             'djblets.mail.message.MailMessage are deprecated, and will be '
-            'removed in Djblets 6. Pleaase use '
+            'removed in Djblets 7. Please use '
             'settings.DJBLETS_EMAIL_FROM_SPOOFING and the from_spoofing= '
             'argument instead.'
         )
 
-        with self.assertWarns(RemovedInDjblets60Warning, message):
+        with self.assertWarns(RemovedInDjblets70Warning, message):
             email = EmailMessage(subject='Test email',
                                  text_body='This is a test.',
                                  from_email='Doc Dwarf <doc@corp.example.com>',
@@ -915,12 +915,12 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
             'settings.EMAIL_ENABLE_SMART_SPOOFING and the '
             'enable_smart_spoofing argument to '
             'djblets.mail.message.MailMessage are deprecated, and will be '
-            'removed in Djblets 6. Pleaase use '
+            'removed in Djblets 7. Please use '
             'settings.DJBLETS_EMAIL_FROM_SPOOFING and the from_spoofing= '
             'argument instead.'
         )
 
-        with self.assertWarns(RemovedInDjblets60Warning, message):
+        with self.assertWarns(RemovedInDjblets70Warning, message):
             email = EmailMessage(subject='Test email',
                                  text_body='This is a test.',
                                  from_email='Doc Dwarf <doc@corp.example.com>',
@@ -963,12 +963,12 @@ class EmailMessageTests(DmarcDnsTestsMixin, TestCase):
             'settings.EMAIL_ENABLE_SMART_SPOOFING and the '
             'enable_smart_spoofing argument to '
             'djblets.mail.message.MailMessage are deprecated, and will be '
-            'removed in Djblets 6. Pleaase use '
+            'removed in Djblets 7. Please use '
             'settings.DJBLETS_EMAIL_FROM_SPOOFING and the from_spoofing= '
             'argument instead.'
         )
 
-        with self.assertWarns(RemovedInDjblets60Warning, message):
+        with self.assertWarns(RemovedInDjblets70Warning, message):
             email = EmailMessage(subject='Test email',
                                  text_body='This is a test.',
                                  from_email='Doc Dwarf <doc@corp.example.com>',

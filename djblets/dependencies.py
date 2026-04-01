@@ -25,7 +25,7 @@ if TYPE_CHECKING:
         """A dependency definition that differs based on Python version.
 
         Version Added:
-            5.3
+            6.0
         """
 
         #: The version limiter of Python the dependency is for.
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     #: A package dependency version.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     Dependency: TypeAlias = Union[str, List[PythonSpecificDependency]]
 
 
@@ -100,7 +100,7 @@ package_dependencies: Mapping[str, Dependency] = {
 ###########################################################################
 
 def build_dependency_list(
-    deps: Mapping[str, Dependency],
+    deps: Mapping[str, Dependency] = package_dependencies,
     version_prefix: str = '',
     *,
     local_packages: Mapping[str, str] = {},
@@ -112,7 +112,7 @@ def build_dependency_list(
     for use on the command line and in :file:`build-backend.py`.
 
     Args:
-        deps (dict):
+        deps (dict, optional):
             A dictionary of dependencies.
 
         version_prefix (str, optional):
@@ -123,7 +123,7 @@ def build_dependency_list(
             be found.
 
             Version Added:
-                5.3
+                6.0
 
     Returns:
         list of str:

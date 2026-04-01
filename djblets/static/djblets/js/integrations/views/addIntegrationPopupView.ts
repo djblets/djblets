@@ -13,7 +13,7 @@ import * as _ from 'underscore';
  * Data for an integration in the popup.
  *
  * Version Added:
- *     6.0
+ *     7.0
  */
 export interface IntegrationOptions {
     /** The URL for adding the integration. */
@@ -40,7 +40,7 @@ export interface IntegrationOptions {
  * Options for the AddIntegrationPopupView.
  *
  * Version Added:
- *     6.0
+ *     7.0
  */
 export interface AddIntegrationPopupViewOptions {
     /** The list of integration types. */

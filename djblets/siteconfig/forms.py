@@ -42,7 +42,7 @@ class SiteSettingsForm(KeyValueForm[SiteConfiguration]):
         """Initialize the form.
 
         Version Changed:
-            6.0:
+            7.0:
             Made ``request`` an explicitly listed parameter.
 
         Args:

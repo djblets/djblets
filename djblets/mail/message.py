@@ -12,7 +12,7 @@ from django.utils.datastructures import MultiValueDict
 from django.utils.encoding import force_str
 from housekeeping import deprecate_non_keyword_only_args
 
-from djblets.deprecation import RemovedInDjblets60Warning
+from djblets.deprecation import RemovedInDjblets70Warning
 from djblets.log import log_timed
 from djblets.mail.dmarc import is_email_allowed_by_dmarc
 from djblets.mail.utils import build_email_address_via_service
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class EmailMessage(EmailMultiAlternatives):
-    """An EmailMesssage subclass with improved header and message ID support.
+    """An EmailMessage subclass with improved header and message ID support.
 
     This class knows about several headers (standard and variations), including
     :mailheader:`Sender`/:mailheader:`X-Sender`,
@@ -86,7 +86,7 @@ class EmailMessage(EmailMultiAlternatives):
     #: Extra multi-value headers to apply to the message.
     _headers: MultiValueDict[str, str]
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets60Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
     def __init__(
         self,
         *,
@@ -239,11 +239,11 @@ class EmailMessage(EmailMultiAlternatives):
                     getattr(settings, 'EMAIL_ENABLE_SMART_SPOOFING', None)
 
             if enable_smart_spoofing is not None:
-                RemovedInDjblets60Warning.warn(
+                RemovedInDjblets70Warning.warn(
                     'settings.EMAIL_ENABLE_SMART_SPOOFING and the '
                     'enable_smart_spoofing argument to '
                     'djblets.mail.message.MailMessage are deprecated, and '
-                    'will be removed in Djblets 6. Pleaase use '
+                    'will be removed in Djblets 7. Please use '
                     'settings.DJBLETS_EMAIL_FROM_SPOOFING and the '
                     'from_spoofing= argument instead.')
 

@@ -1,9 +1,8 @@
 [build-system]
 requires = [
-    'setuptools>=74',
+    'buildthings~=1.0',
 ]
-build-backend = 'build-backend'
-backend-path = ['.']
+build-backend = 'buildthings.backend'
 
 [project]
 name = 'Djblets'
@@ -11,7 +10,8 @@ description = 'A collection of useful classes and functions for developing large
 authors = [
     {name = 'Beanbag, Inc.', email = 'questions@beanbaginc.com'},
 ]
-license = { text = 'MIT' }
+license = 'MIT'
+license-files = ['COPYING']
 readme = 'README.rst'
 requires-python = '>=3.10'
 dynamic = ['dependencies', 'version']
@@ -22,7 +22,6 @@ classifiers = [
     'Framework :: Django',
     'Framework :: Django :: 4.2',
     'Intended Audience :: Developers',
-    'License :: OSI Approved :: MIT License',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
@@ -73,5 +72,64 @@ namespaces = false
 
 
 [tool.setuptools.dynamic]
-dependencies = { file = 'package-requirements.txt' }
 version = { attr = 'djblets.__version__' }
+
+
+[tool.buildthings]
+dependencies = { attr = 'djblets.dependencies.build_dependency_list' }
+
+
+[tool.buildthings.isolation]
+# Support .local-packages across all build types for in-development
+# deployments.
+local-packages-path = '.local-packages'
+
+# We currently require using Djblets as part of the build process, so install
+# those dependencies. We will need developer dependencies, as Django Evolution
+# is currently defined as an app in djblets/settings.py.
+include-dev-deps = true
+include-install-deps = true
+
+
+# Editable build information.
+[tool.buildthings.editable.npm]
+install = true
+
+
+# Source distribution build steps.
+#
+# For source distributions, we'll build static media files.
+[tool.buildthings.sdist.npm]
+install = true
+
+
+[[tool.buildthings.sdist.extra-build-steps]]
+label = 'Building static media...'
+command = './contrib/internal/build-media.py'
+
+
+[[tool.buildthings.sdist.extra-build-steps]]
+label = "Building i18n..."
+command = "{python} ./contrib/internal/build-i18n.py"
+
+
+
+# Wheel distribution build steps.
+#
+# For wheel distributions, we'll build static media files.
+#
+# In the future, we'll want to disable these in order to build from a
+# source distribution, which will aid third-parties in consuming our source
+# builds.
+[tool.buildthings.wheel.npm]
+install = true
+
+
+[[tool.buildthings.wheel.extra-build-steps]]
+label = 'Building static media...'
+command = './contrib/internal/build-media.py'
+
+
+[[tool.buildthings.sdist.extra-build-steps]]
+label = "Building i18n..."
+command = "{python} ./contrib/internal/build-i18n.py"
