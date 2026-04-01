@@ -1,7 +1,7 @@
 """Unit tests for djblets.pagestate.templatetags.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ class PageHookPointTests(TestCase):
     """Testing {% page_hook_point %}.
 
     Version Added:
-        5.3
+        6.0
     """
 
     def test_with_injections(self) -> None:

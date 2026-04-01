@@ -10,7 +10,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 from housekeeping import deprecate_non_keyword_only_args
 
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 @csrf_protect
 @staff_member_required
-@deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+@deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
 def extension_list(
     request: HttpRequest,
     *,
@@ -43,7 +43,7 @@ def extension_list(
     to the page.
 
     Version Changed:
-        5.3:
+        6.0:
         * Added the ``extra_context`` argument.
         * All arguments except for ``request`` must be included as
           keyword-only arguments. This will be enforced in Djblets 7.
@@ -62,7 +62,7 @@ def extension_list(
             Extra context to provide for the template.
 
             Version Added:
-                5.3
+                6.0
 
     Returns:
         django.http.HttpResponse:
@@ -86,7 +86,7 @@ def extension_list(
 
 @csrf_protect
 @staff_member_required
-@deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+@deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
 def configure_extension(
     request: HttpRequest,
     *,
@@ -106,7 +106,7 @@ def configure_extension(
     it's configurable, render it, and handle results.
 
     Version Changed:
-        5.3:
+        6.0:
         * Added the ``extra_context`` argument.
         * All arguments except for ``request`` must be included as
           keyword-only arguments. This will be enforced in Djblets 7.
@@ -131,7 +131,7 @@ def configure_extension(
             Extra context to provide for the template.
 
             Version Added:
-                5.3
+                6.0
 
     Returns:
         django.http.HttpResponse:

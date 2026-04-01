@@ -223,7 +223,7 @@ class SiteConfiguration(models.Model):
         If no default is available, ``None`` will be returned.
 
         Version Changed:
-            5.3:
+            6.0:
             Added the ``layers`` argument.
 
         Args:
@@ -238,7 +238,7 @@ class SiteConfiguration(models.Model):
                 An optional list of additional settings dictionaries to check.
 
                 Version Added:
-                    5.3
+                    6.0
 
         Returns:
             object:

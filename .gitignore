@@ -15,6 +15,7 @@ tests/static
 
 .coverage
 .local-packages
+.mypy_cache
 .noseids
 .npm-workspaces
 

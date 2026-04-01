@@ -76,7 +76,7 @@ $.widget('ui.inlineEditor', {
             isDragging;
 
         console.warn(
-            '$.inlineEditor is deprecated and will be removed in Djblets 6.0.'
+            '$.inlineEditor is deprecated and will be removed in Djblets 7.0.'
         );
 
         /* State */

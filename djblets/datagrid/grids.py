@@ -50,7 +50,7 @@ from housekeeping import deprecate_non_keyword_only_args
 from typing_extensions import Final, TypeAlias, TypedDict
 from typelets.symbols import UNSET
 
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 from djblets.template.context import get_default_template_context_processors
 from djblets.util.http import get_url_params_except
 
@@ -83,7 +83,7 @@ class DataGridColumnJSONData(TypedDict):
     """JSON-serializable data for a column definition in a datagrid.
 
     Version Added:
-        5.3
+        6.0
     """
 
     #: Whether the column expands to take available space.
@@ -109,7 +109,7 @@ class DataGridCellJSONData(TypedDict):
     """JSON-serializable data for a cell in a datagrid row.
 
     Version Added:
-        5.3
+        6.0
     """
 
     #: The rendered HTML contents of the cell.
@@ -127,7 +127,7 @@ class DataGridRowJSONData(TypedDict):
     """JSON-serializable data for a row in a datagrid.
 
     Version Added:
-        5.3
+        6.0
     """
 
     #: A mapping of column IDs to cell JSON data.
@@ -141,7 +141,7 @@ class DataGridPaginationJSONData(TypedDict):
     """JSON-serializable data for a datagrid's pagination state.
 
     Version Added:
-        5.3
+        6.0
     """
 
     #: The current 1-based page number of the results.
@@ -177,7 +177,7 @@ class DataGridSortItemJSONData(TypedDict):
     """JSON-serializable data for a column sort item.
 
     Version Added:
-        5.3
+        6.0
     """
 
     #: Whether the column is sorted in ascending order.
@@ -195,7 +195,7 @@ class DataGridJSONData(TypedDict):
     a JSON document.
 
     Version Added:
-        5.3
+        6.0
     """
 
     #: JSON data on all active columns shown in the datagrid.
@@ -289,7 +289,7 @@ class Column:
     display it in a ``<div>``. An :py:attr:`image_url` cannot also be defined.
 
     Version Changed:
-        5.3:
+        6.0:
         Options for the column can now be set as class attributes when
         subclassing.
     """
@@ -309,8 +309,8 @@ class Column:
     #: This has never been used and should not be used by any code.
     #:
     #: Deprecated:
-    #:     5.3:
-    #:     This will be removed in Djblets 7.
+    #:     6.0:
+    #:     This will be removed in Djblets 8.
     cell_clickable: bool = False
 
     #: The path to a template for the cell.
@@ -403,7 +403,7 @@ class Column:
     #: Whether the column can be sorted.
     sortable: bool = False
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         label: Unsettable[StrOrPromise | None] = UNSET,
@@ -436,7 +436,7 @@ class Column:
         a number of options can be provided.
 
         Version Changed:
-            5.3:
+            6.0:
             * Any arguments not provided will now fall back to the
               corresponding attributes set on the class.
 
@@ -524,8 +524,8 @@ class Column:
                 Unused option to indicate a cell is clickable.
 
                 Deprecated:
-                    5.3:
-                    This will be removed in Djblets 7.
+                    6.0:
+                    This will be removed in Djblets 8.
 
             css_class (str or callable, optional):
                 The CSS class or classes to define on the cell.
@@ -539,9 +539,9 @@ class Column:
                 Details will be in the error message.
         """
         if cell_clickable is not UNSET:
-            RemovedInDjblets70Warning.warn(
+            RemovedInDjblets80Warning.warn(
                 'cell_clickable is deprecated and will be removed in '
-                'Djblets 7.'
+                'Djblets 8.'
             )
 
         if id is not UNSET:
@@ -981,7 +981,7 @@ class Column:
         Subclasses can override this to customize value extraction for JSON.
 
         Version Added:
-            5.3
+            6.0
 
         Args:
             state (StatefulColumn):
@@ -1015,7 +1015,7 @@ class Column:
         the object's value.
 
         Version Added:
-            5.3
+            6.0
 
         Args:
             state (StatefulColumn):
@@ -1207,7 +1207,7 @@ class StatefulColumn:
     #: Extra state data used by subclasses.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     extra_data: dict[str, Any]
 
     #: Whether this is the last column in the datagrid.
@@ -1323,7 +1323,7 @@ class CheckboxColumn(Column):
     constructor.
 
     Version Changed:
-        5.3:
+        6.0:
         Options for the column can now be set as class attributes when
         subclassing.
     """
@@ -1346,7 +1346,7 @@ class CheckboxColumn(Column):
     show_checkbox_header: bool = True
 
     # TODO: Remove shrink and detailed_label from the args list in Djblets 7.
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         label: Unsettable[StrOrPromise | None] = UNSET,
@@ -1360,7 +1360,7 @@ class CheckboxColumn(Column):
         """Initialize the column.
 
         Version Changed:
-            5.3:
+            6.0:
             * Any arguments not provided will now fall back to the
               corresponding attributes set on the class.
 
@@ -1508,7 +1508,7 @@ class CheckboxColumn(Column):
         """Return a JSON-serializable value for an object in a cell.
 
         Version Added:
-            5.3
+            6.0
 
         Args:
             state (StatefulColumn):
@@ -1530,7 +1530,7 @@ class DateTimeColumn(Column):
     """A column that renders a date or time.
 
     Version Changed:
-        5.3:
+        6.0:
         Options for the column can now be set as class attributes when
         subclassing.
     """
@@ -1551,7 +1551,7 @@ class DateTimeColumn(Column):
     timezone: Any = datetime.timezone.utc
 
     # TODO: Remove label and sortable from the args list in Djblets 7.
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         label: Unsettable[StrOrPromise | None] = UNSET,
@@ -1564,7 +1564,7 @@ class DateTimeColumn(Column):
         """Initialize the column.
 
         Version Changed:
-            5.3:
+            6.0:
             * Any arguments not provided will now fall back to the
               corresponding attributes set on the class.
 
@@ -1640,7 +1640,7 @@ class DateTimeColumn(Column):
         """Return a JSON-serializable value for an object in a cell.
 
         Version Added:
-            5.3
+            6.0
 
         Args:
             state (StatefulColumn):
@@ -1672,7 +1672,7 @@ class DateTimeColumn(Column):
         object in the cell.
 
         Version Added:
-            5.3
+            6.0
 
         Args:
             state (StatefulColumn):
@@ -1701,7 +1701,7 @@ class DateTimeSinceColumn(Column):
     """A column that renders a date or time relative to now.
 
     Version Changed:
-        5.3:
+        6.0:
         Options for the column can now be set as class attributes when
         subclassing.
     """
@@ -1709,7 +1709,7 @@ class DateTimeSinceColumn(Column):
     sortable: bool = True
 
     # TODO: Remove this function in Djblets 7.
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         label: Unsettable[StrOrPromise | None] = UNSET,
@@ -1720,7 +1720,7 @@ class DateTimeSinceColumn(Column):
         """Initialize the column.
 
         Version Changed:
-            5.3:
+            6.0:
             * Any arguments not provided will now fall back to the
               corresponding attributes set on the class.
 
@@ -1779,7 +1779,7 @@ class DateTimeSinceColumn(Column):
         ISO-formatted string suitable for JSON serialization.
 
         Version Added:
-            5.3
+            6.0
 
         Args:
             state (StatefulColumn):
@@ -1818,7 +1818,7 @@ class DataGrid:
     #: Whether to allow search indexing on the page.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     allow_search_indexing: bool = True
 
     #: The list of default columns for this datagrid.
@@ -2007,7 +2007,7 @@ class DataGrid:
     #: Any explicit column names provided during initialization.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     _column_names: Unsettable[Sequence[str] | None]
 
     #: The model for the objects in the datagrid.
@@ -2019,7 +2019,7 @@ class DataGrid:
     #: Any explicit column sort order provided during initialization.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     _sort_column_names: Unsettable[Sequence[str] | None]
 
     @classmethod
@@ -2136,7 +2136,7 @@ class DataGrid:
 
                     cls.add_column(column)
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         *,
@@ -2153,7 +2153,7 @@ class DataGrid:
         """Initialize the datagrid.
 
         Version Changed:
-            5.3:
+            6.0:
             * Added ``columns`` and ``sort`` arguments.
             * All arguments are now keyword-only. Positional arguments are
               deprecated and will no longer be supported in Djblets 7.
@@ -2201,7 +2201,7 @@ class DataGrid:
                 saved in the profile.
 
                 Version Added:
-                    5.3
+                    6.0
 
             sort (list of str, optional):
                 An explicit column sort order to use for the datagrid.
@@ -2211,7 +2211,7 @@ class DataGrid:
                 saved in the profile.
 
                 Version Added:
-                    5.3
+                    6.0
         """
         self.request = request
         self.queryset = queryset
@@ -2322,7 +2322,7 @@ class DataGrid:
         ``False``.
 
         Version Added:
-            5.3
+            6.0
 
         Type:
             django.utils.safestring.SafeString
@@ -2352,7 +2352,7 @@ class DataGrid:
         The result must always be an absolute URL.
 
         Version Added:
-            5.3
+            6.0
 
         Returns:
             str:
@@ -2640,7 +2640,7 @@ class DataGrid:
         and save.
 
         Version Changed:
-            5.3:
+            6.0:
             This must now return a list of strings, not a bool.
 
         Version Changed:
@@ -3242,7 +3242,7 @@ class DataGrid:
         :py:class:`~django.http.JsonResponse` or an API response.
 
         Version Added:
-            5.3
+            6.0
 
         Returns:
             DataGridJSONData:

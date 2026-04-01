@@ -1,7 +1,7 @@
 """Locking implementations.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -60,7 +60,7 @@ class CacheLock:
         across threads.
 
     Version Added:
-        5.3
+        6.0
     """
 
     ######################

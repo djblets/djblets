@@ -2126,7 +2126,7 @@ class WebAPIResource(object):
         list of objects.
 
         Version Added:
-            5.3
+            6.0
 
         Args:
             obj_list (list):

@@ -1,7 +1,7 @@
 """Injectors for page state.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ class PageStateInjectorProtocol(Protocol):
     page state. They must be registered with :py:attr:`page_state_injectors`.
 
     Version Added:
-        5.3
+        6.0
     """
 
     #: The unique ID of the injector.
@@ -66,7 +66,7 @@ class PageStateInjectorRegistry(OrderedRegistry[PageStateInjectorProtocol]):
     """A registry for managing page state injectors.
 
     Version Added:
-        5.3
+        6.0
     """
 
     lookup_attrs = ('injector_id',)
@@ -75,5 +75,5 @@ class PageStateInjectorRegistry(OrderedRegistry[PageStateInjectorProtocol]):
 #: The main registry for managing page state injectors.
 #:
 #: Version Added:
-#:     5.3
+#:     6.0
 page_state_injectors = PageStateInjectorRegistry()

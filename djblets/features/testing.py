@@ -22,7 +22,7 @@ class override_feature_checks(TestContextDecorator):
     """Override multiple features for a test.
 
     Version Changed:
-        5.3:
+        6.0:
         Changed from a pure context manager to a class that can act either as a
         context manager or a decorator for test methods.
 
@@ -116,7 +116,7 @@ class override_feature_check(override_feature_checks):
     falling back to the default behavior for the configured feature checker.
 
     Version Changed:
-        5.3:
+        6.0:
         Changed from a pure context manager to a class that can act either as a
         context manager or a decorator for test methods.
 

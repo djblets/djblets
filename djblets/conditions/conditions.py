@@ -28,7 +28,7 @@ class ConditionData(TypedDict):
     """Serialization data for conditions.
 
     Version Added:
-        5.3
+        6.0
     """
 
     #: The ID of the registered condition choice.
@@ -45,7 +45,7 @@ class ConditionSetData(TypedDict):
     """Serialization data for condition sets.
 
     Version Added:
-        5.3
+        6.0
     """
 
     #: The list of serialized conditions in the set.
@@ -67,7 +67,7 @@ class Condition:
     of an individual Condition.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -315,7 +315,7 @@ class ConditionSet:
     condition must be satisfied.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 

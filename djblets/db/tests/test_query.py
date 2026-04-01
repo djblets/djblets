@@ -22,7 +22,7 @@ class GetObjectCachedFieldTests(TestCase):
     """Unit tests for get_object_cached_field().
 
     Version Added:
-        5.3
+        6.0
     """
 
     def test_with_select_related(self) -> None:

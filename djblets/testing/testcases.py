@@ -35,7 +35,7 @@ from django_assert_queries import assert_queries
 from housekeeping import func_deprecated
 from typing_extensions import NotRequired, TypedDict
 
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 from djblets.siteconfig.models import SiteConfiguration
 
 try:
@@ -400,11 +400,11 @@ class TestCase(testcases.TestCase):
             yield
 
     @func_deprecated(
-        RemovedInDjblets70Warning,
+        RemovedInDjblets80Warning,
         message=(
             'assertQueries() has been deprecated in favor of '
             'django_assert_queries.assert_queries(), and will be removed in '
-            'Djblets 7'
+            'Djblets 8.'
         )
     )
     def assertQueries(

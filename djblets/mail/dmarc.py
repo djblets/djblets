@@ -12,7 +12,7 @@ from housekeeping import deprecate_non_keyword_only_args
 from publicsuffixlist import PublicSuffixList
 
 from djblets.cache.backend import DEFAULT_EXPIRATION_TIME, cache_memoize
-from djblets.deprecation import RemovedInDjblets60Warning
+from djblets.deprecation import RemovedInDjblets70Warning
 from djblets.log import log_timed
 
 
@@ -123,7 +123,7 @@ class DmarcRecord:
     #:     DmarcPolicy
     subdomain_policy: DmarcPolicy
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets60Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
     def __init__(
         self,
         *,
@@ -240,7 +240,7 @@ class DmarcRecord:
         """Return a string representation of the record.
 
         Version Added:
-            5.3
+            6.0
 
         Returns:
             str:

@@ -65,17 +65,6 @@ class BaseRemovedInDjbletsVersionWarning(BaseRemovedInProductVersionWarning):
     product = 'Djblets'
 
 
-class RemovedInDjblets60Warning(BaseRemovedInDjbletsVersionWarning):
-    """Deprecations for features scheduled for removal in Djblets 6.0.
-
-    Note that this class will itself be removed in Djblets 6.0. If you need to
-    check against Djblets deprecation warnings, please see
-    :py:class:`BaseRemovedInDjbletsVersionWarning`.
-    """
-
-    version = '6.0'
-
-
 class RemovedInDjblets70Warning(BaseRemovedInDjbletsVersionWarning):
     """Deprecations for features scheduled for removal in Djblets 7.0.
 
@@ -99,10 +88,10 @@ class RemovedInDjblets80Warning(BaseRemovedInDjbletsVersionWarning):
 
 
 #: An alias for the next release of Djblets where features would be removed.
-RemovedInNextDjbletsVersionWarning = RemovedInDjblets60Warning
+RemovedInNextDjbletsVersionWarning = RemovedInDjblets70Warning
 
 
-@func_moved(RemovedInDjblets60Warning,
+@func_moved(RemovedInDjblets70Warning,
             new_func=djblets_deprecated_arg_value)
 def deprecated_arg_value(
     owner_name: str,
@@ -158,7 +147,7 @@ def deprecated_arg_value(
                                         new_name=new_arg_name)
 
 
-@func_moved(RemovedInDjblets60Warning,
+@func_moved(RemovedInDjblets70Warning,
             new_func=djblets_deprecate_non_keyword_only_args)
 def deprecate_non_keyword_only_args(
     warning_cls: Type[BaseRemovedInProductVersionWarning],

@@ -1,7 +1,7 @@
 """Unit tests for djblets.protect.ratelimit.
 
 Version Added:
-    5.3
+    6.0
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ class RateLimitUsageTests(TestCase):
     """Unit tests for RateLimitUsage.
 
     Version Added:
-        5.3
+        6.0
     """
 
     def test_is_limited_without_limit(self) -> None:
@@ -51,7 +51,7 @@ class RateLimitTests(TestCase):
     """Unit tests for RateLimit.
 
     Version Added:
-        5.3
+        6.0
     """
 
     def test_parse_with_s(self) -> None:
@@ -136,7 +136,7 @@ class CheckRateLimitTests(kgb.SpyAgency, TestCase):
     """Unit tests for check_rate_limit.
 
     Version Added:
-        5.3
+        6.0
     """
 
     def setUp(self) -> None:

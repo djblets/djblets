@@ -52,7 +52,7 @@ class BaseConditionChoice:
     the default type of field that a user will be using to select a value.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -269,7 +269,7 @@ class ConditionChoiceMatchListItemsMixin(_ConditionChoiceMixinParent):
     ``True`` to require all items in the list to match.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -345,7 +345,7 @@ class BaseConditionBooleanChoice(BaseConditionChoice):
     This is a convenience for choices that cover boolean values.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -363,7 +363,7 @@ class BaseConditionIntegerChoice(BaseConditionChoice):
     some standard operators that work well with integers for checking.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -384,7 +384,7 @@ class BaseConditionStringChoice(BaseConditionChoice):
     some standard operators that work well with strings for checking.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -409,7 +409,7 @@ class ModelQueryChoiceMixin:
     define a more complex queryset by overriding :py:meth:`get_queryset`.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -447,7 +447,7 @@ class BaseConditionModelChoice(ModelQueryChoiceMixin, BaseConditionChoice):
     :py:meth:`get_queryset` to provide a more dynamic queryset.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -486,7 +486,7 @@ class BaseConditionRequiredModelChoice(BaseConditionModelChoice):
     doesn't include a :py:class:`~djblets.conditions.operators.UnsetOperator`.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -508,7 +508,7 @@ class BaseConditionModelMultipleChoice(ModelQueryChoiceMixin,
     :py:meth:`get_queryset` to provide a more dynamic queryset.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 
@@ -557,7 +557,7 @@ class ConditionChoices(OrderedRegistry[Type[BaseConditionChoice]]):
     choices to be added dynamically by extensions or other code.
 
     Version Changed:
-        5.3:
+        6.0:
         Added support for Python type hints.
     """
 

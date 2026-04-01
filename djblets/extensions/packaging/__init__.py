@@ -16,13 +16,13 @@ from typing import Any, Optional
 
 from housekeeping import ClassMovedMixin, func_moved
 
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 import djblets.extensions.packaging.setuptools_backend as setuptools_backend
 
 
 class BuildPy(ClassMovedMixin,
               setuptools_backend.BuildPy,
-              warning_cls=RemovedInDjblets70Warning):
+              warning_cls=RemovedInDjblets80Warning):
     """Setuptools command for building Python files.
 
     This is meant as a replacement for the standard ``build_py`` command
@@ -38,7 +38,7 @@ class BuildPy(ClassMovedMixin,
 
 class BuildStaticFiles(ClassMovedMixin,
                        setuptools_backend.BuildStaticFiles,
-                       warning_cls=RemovedInDjblets70Warning):
+                       warning_cls=RemovedInDjblets80Warning):
     """Builds static files for the extension.
 
     This will build the static media files used by the extension. JavaScript
@@ -53,7 +53,7 @@ class BuildStaticFiles(ClassMovedMixin,
         5.0:
         This has been moved to :py:class:`djblets.extensions.packaging.
         setuptools_backend.BuildStaticFiles`. The legacy import will be
-        removed in Djblets 7.
+        removed in Djblets 8.
     """
 
     def npm_install(
@@ -78,12 +78,12 @@ class BuildStaticFiles(ClassMovedMixin,
                 behavior of reading :file:`package.json`.
         """
         class_name = type(self).__name__
-        RemovedInDjblets70Warning.warn(
+        RemovedInDjblets80Warning.warn(
             f'{class_name}.npm_install() is deprecated. Please set '
             f'{class_name}.static_media_builder_cls to a subclass of '
             f'StaticMediaBuilder and override an appropriate method '
             f'instead to install dependencies. This will be removed in '
-            f'Djblets 7.')
+            f'Djblets 8.')
 
         self._builder.npm_install(package_spec)
 
@@ -119,17 +119,17 @@ class BuildStaticFiles(ClassMovedMixin,
             A dictionary mapping variable names to values.
         """
         class_name = type(self).__name__
-        RemovedInDjblets70Warning.warn(
+        RemovedInDjblets80Warning.warn(
             f'{class_name}.get_lessc_global_vars() is deprecated. Please set '
             f'{class_name}.static_media_builder_cls to a subclass of '
             f'StaticMediaBuilder and override an appropriate method '
             f'instead to install dependencies. This will be removed in '
-            f'Djblets 7.')
+            f'Djblets 8.')
 
         return {}
 
 
-@func_moved(RemovedInDjblets70Warning,
+@func_moved(RemovedInDjblets80Warning,
             new_func=setuptools_backend.build_extension_cmdclass)
 def build_extension_cmdclass(
     build_static_files_cls: type[BuildStaticFiles],

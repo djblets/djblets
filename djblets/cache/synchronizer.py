@@ -11,7 +11,7 @@ from django.core.cache import cache
 from housekeeping import deprecate_non_keyword_only_args
 
 from djblets.cache.backend import make_cache_key
-from djblets.deprecation import RemovedInDjblets70Warning
+from djblets.deprecation import RemovedInDjblets80Warning
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -49,7 +49,7 @@ class GenerationSynchronizer:
     #: The default expiration is 1 year.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     DEFAULT_EXPIRATION_SECS: Final[int] = 60 * 60 * 24 * 365
 
     ######################
@@ -59,7 +59,7 @@ class GenerationSynchronizer:
     #: Cache expiration for stored state in seconds.
     #:
     #: Version Added:
-    #:     5.3
+    #:     6.0
     cache_expiration_secs: int
 
     #: The synchronization cache key.
@@ -68,7 +68,7 @@ class GenerationSynchronizer:
     #: The synchronization generation number last fetched/set by this instance.
     sync_gen: int | None
 
-    @deprecate_non_keyword_only_args(RemovedInDjblets70Warning)
+    @deprecate_non_keyword_only_args(RemovedInDjblets80Warning)
     def __init__(
         self,
         cache_key: str | Sequence[str],
@@ -79,7 +79,7 @@ class GenerationSynchronizer:
         """Initialize the synchronizer.
 
         Version Changed:
-            5.3:
+            6.0:
             * ``cache_key`` may now be a sequence of string components of
               the key.
 
@@ -98,7 +98,7 @@ class GenerationSynchronizer:
                 :py:func:`~djblets.cache.backends.make_cache_key`.
 
                 Version Changed:
-                    5.3:
+                    6.0:
                     This may now be a sequence of strings.
 
             normalize_cache_key (bool, optional):
@@ -113,7 +113,7 @@ class GenerationSynchronizer:
                 The default expiration is 1 year.
 
                 Version Added:
-                    5.3
+                    6.0
 
         Raises:
             ValueError:
