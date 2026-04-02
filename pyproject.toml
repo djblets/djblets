@@ -10,8 +10,12 @@ description = 'A collection of useful classes and functions for developing large
 authors = [
     {name = 'Beanbag, Inc.', email = 'questions@beanbaginc.com'},
 ]
-license = 'MIT'
-license-files = ['COPYING']
+
+# Switch to the modern fields once we drop Python 3.8 support.
+#license = 'MIT'
+#license-files = ['COPYING']
+license = { text = 'MIT' }
+
 readme = 'README.rst'
 requires-python = '>=3.8'
 dynamic = ['dependencies', 'version']
@@ -22,6 +26,7 @@ classifiers = [
     'Framework :: Django',
     'Framework :: Django :: 4.2',
     'Intended Audience :: Developers',
+    'License :: OSI Approved :: MIT License',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
