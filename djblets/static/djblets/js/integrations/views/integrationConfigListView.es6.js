@@ -104,28 +104,27 @@ const IntegrationConfigItemView = Djblets.Config.TableItemView.extend({
      * This will display a confirmation dialog, and then send an HTTP DELETE
      * to remove the configuration.
      */
-    _onDeleteClicked() {
-        $('<p>')
-            .text(_`
-                This integration will be permanently removed. This cannot
-                be undone.
-            `)
-            .modalBox({
-                buttons: [
-                    $('<button>')
-                        .text(_`Cancel`),
-                    $('<button class="danger">')
-                        .text(_`Delete Integration`)
-                        .click(() => this.model.destroy({
-                            beforeSend: xhr => {
-                                xhr.setRequestHeader(
-                                    'X-CSRFToken',
-                                    this.model.collection.options.csrfToken);
-                            },
-                        })),
-                ],
-                title: _`Are you sure you want to delete this integration?`,
-            });
+    async _onDeleteClicked() {
+        await Ink.showConfirmDialog({
+            body: [
+                _`
+                    This integration will be permanently deleted. This cannot
+                    be undone.
+                `,
+            ],
+            confirmButtonText: _`Delete Integration`,
+            isDangerous: true,
+            onConfirm: async () => {
+                await this.model.destroy({
+                    beforeSend: xhr => {
+                        xhr.setRequestHeader(
+                            'X-CSRFToken',
+                            this.model.collection.options.csrfToken);
+                    },
+                });
+            },
+            title: _`Delete Integration`,
+        });
     },
 });
 

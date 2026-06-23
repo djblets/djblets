@@ -197,12 +197,12 @@ suite('djblets/integrations/views/IntegrationConfigListView', function() {
                 spyOn(config, 'destroy').and.callThrough();
                 spyOn(config, 'sync');
 
-                spyOn($.fn, 'modalBox').and.callFake(
-                    options => options.buttons[1].click());
+                spyOn(Ink, 'showConfirmDialog').and.callFake(
+                    options => options.onConfirm());
 
                 $row1.find('.config-forms-list-action-delete').click();
 
-                expect($.fn.modalBox).toHaveBeenCalled();
+                expect(Ink.showConfirmDialog).toHaveBeenCalled();
                 expect(config.destroy).toHaveBeenCalled();
 
                 expect(collection.length).toBe(3);
