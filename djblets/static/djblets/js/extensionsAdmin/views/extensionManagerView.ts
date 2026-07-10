@@ -88,6 +88,10 @@ class ExtensionItem extends ConfigFormsListItem<ExtensionItemAttrs> {
         const extension = this.get('extension');
         const actions = [];
 
+        if (!extension) {
+            return;
+        }
+
         if (!extension.get('loadable')) {
             /* Add an action for reloading the extension. */
             actions.push({
@@ -121,18 +125,22 @@ class ExtensionItem extends ConfigFormsListItem<ExtensionItemAttrs> {
                 });
             }
 
-            actions.push({
-                danger: true,
-                id: 'disable',
-                label: _`Disable`,
-            });
+            if (extension.get('canDisable')) {
+                actions.push({
+                    danger: true,
+                    id: 'disable',
+                    label: _`Disable`,
+                });
+            }
         } else {
             /* Add an action for enabling a disabled extension. */
-            actions.push({
-                id: 'enable',
-                label: _`Enable`,
-                primary: true,
-            });
+            if (extension.get('canEnable')) {
+                actions.push({
+                    id: 'enable',
+                    label: _`Enable`,
+                    primary: true,
+                });
+            }
         }
 
         this.setActions(actions);
