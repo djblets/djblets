@@ -3,8 +3,7 @@
  */
 
 import {
-    type DialogView,
-    craft,
+    showConfirmDialog,
 } from '@beanbag/ink';
 import {
     type EventsHash,
@@ -159,42 +158,18 @@ class IntegrationConfigItemView extends ConfigFormsTableItemView {
      * This will display a confirmation dialog, and then send an HTTP DELETE
      * to remove the configuration.
      */
-    _onDeleteClicked(): Promise<void> {
-        return new Promise(resolve => {
-            const title = _`Are you sure you want to delete this integration?`;
-            let dlg: DialogView = null;
-
-            const onDelete = async () => {
-                await this._onDeleteConfirmed();
-            };
-
-            const onClose = () => {
-                resolve();
-                dlg.remove();
-            };
-
-            dlg = craft<DialogView>`
-                <Ink.Dialog title="${title}" onClose="${() => onClose()}">
-                 <Ink.Dialog.Body>
-                  ${_`
-                   This integration will be permanently removed. This cannot
-                   be undone.
-                  `}
-                 </Ink.Dialog.Body>
-                 <Ink.Dialog.PrimaryActions>
-                  <Ink.DialogAction type="danger"
-                                    action="callback-and-close"
-                                    callback=${onDelete}>
-                   ${_`Delete Integration`}
-                  </Ink.DialogAction>
-                  <Ink.DialogAction action="close">
-                   ${_`Cancel`}
-                  </Ink.Button>
-                 </Ink.Dialog.PrimaryActions>
-                </Ink.Dialog>
-            `;
-
-            dlg.open();
+    async _onDeleteClicked() {
+        await showConfirmDialog({
+            body: [
+                _`
+                    This integration will be permanently deleted. This cannot
+                    be undone.
+                `,
+            ],
+            confirmButtonText: _`Delete Integration`,
+            isDangerous: true,
+            onConfirm: async () => this._onDeleteConfirmed(),
+            title: _`Delete Integration`,
         });
     }
 

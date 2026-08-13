@@ -30,6 +30,9 @@ from django.utils.module_loading import module_has_submodule
 from django.utils.translation import gettext as _
 from packaging.version import InvalidVersion, Version, parse as parse_version
 from pipeline.conf import settings as pipeline_settings
+from typelets.symbols import UNSET
+
+from djblets.deprecation import RemovedInDjblets80Warning
 
 try:
     from django_evolution.evolve import Evolver
@@ -38,7 +41,8 @@ except ImportError:
 
 from djblets.cache.synchronizer import GenerationSynchronizer
 from djblets.deprecation import RemovedInDjblets90Warning
-from djblets.extensions.errors import (EnablingExtensionError,
+from djblets.extensions.errors import (DisablingExtensionError,
+                                       EnablingExtensionError,
                                        InstallExtensionError,
                                        InstallExtensionMediaError,
                                        InvalidExtensionError)
@@ -53,9 +57,11 @@ from djblets.template.caches import (clear_template_caches,
 from djblets.urls.resolvers import DynamicURLResolver
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Iterable, Iterator, Sequence
     from types import ModuleType
     from typing import Any
+
+    from typelets.symbols import Unsettable
 
     from djblets.extensions.extension import (CSSBundleConfigs,
                                               ExtensionMiddlewareCallable,
@@ -253,13 +259,50 @@ class ExtensionManager:
 
     Each project should have one ExtensionManager.
 
-    Projects can set ``settings.EXTENSIONS_ENABLED_BY_DEFAULT`` to a list of
-    extension IDs (class names) that should be automatically enabled when their
-    registrations are first created. This will ensure that those extensions
-    will default to being enabled. If an administrator later disables the
-    extension, it won't automatically re-renable unless the registration is
-    removed.
+    Projects can set :py:attr:`enabled_by_default_extension_ids` (or
+    ``settings.EXTENSIONS_ENABLED_BY_DEFAULT``) to a list of extension IDs
+    (class names) that should be automatically enabled when their registrations
+    are first created. This will ensure that those extensions will default to
+    being enabled. If an administrator later disables the extension, it won't
+    automatically re-renable unless the registration is removed.
+
+    They can also set :py:attr:`always_enabled_extension_ids` (or
+    ``settings.EXTENSIONS_ALWAYS_ENABLED``) to a list of extension IDs that
+    should be enabled and cannot be disabled.
+
+    Version Changed:
+        6.1:
+        * Added support for always-enabled extensions.
+        * Added an attribute for enabled-by-default extensions (this was
+          previously only able to be set via a global setting).
     """
+
+    #: A set of extension IDs that are always enabled.
+    #:
+    #: These extension IDs cannot be disabled, and considered a core part
+    #: of the product.
+    #:
+    #: This is populated by overriding this variable or setting
+    #: ``settings.EXTENSIONS_ALWAYS_ENABLED``.
+    #:
+    #: Version Added:
+    #:     6.1
+    always_enabled_extension_ids: Unsettable[set[str]] = UNSET
+
+    #: A set of extension IDs that should be enabled by default.
+    #:
+    #: These extension IDs can be manually disabled, unless they're also
+    #: listed in :py:attr:`always_enabled_extension_ids`.
+    #:
+    #: This is populated by overriding this variable or setting
+    #: ``settings.EXTENSIONS_ENABLED_BY_DEFAULT``.
+    #:
+    #: Any extension IDs listed in :py:attr:`always_enabled_extension_ids`
+    #: will be listed here automatically.
+    #:
+    #: Version Added:
+    #:     6.1
+    enabled_by_default_extension_ids: Unsettable[set[str]] = UNSET
 
     #: Whether to explicitly install static media files from packages.
     #:
@@ -441,27 +484,82 @@ class ExtensionManager:
 
     def get_can_disable_extension(
         self,
-        registered_extension: RegisteredExtension,
+        extension_or_id: Unsettable[
+            RegisteredExtension |
+            Extension |
+            str
+        ] = UNSET,
+        /,
+        registered_extension: Unsettable[RegisteredExtension] = UNSET,
     ) -> bool:
-        """Return whether an extension can be disabled.
+        """Return whether an extension registration can be disabled.
 
-        Extensions can only be disabled if already enabled or there's a load
-        error.
+        Extension registrations and their instances can only be disabled if
+        a matching extension class and instance is found, if they're enabled
+        or have a load error, and if all dependent extensions can also be
+        disabled.
+
+        Version Changed:
+            6.1:
+            * This now accepts a registered extension, an extension instance,
+              or an extension ID.
+
+            * This now checks dependent extensions.
 
         Args:
+            extension_or_id (djblets.extensions.models.RegisteredExtension or
+                             djblets.extensions.extension.Extension or
+                             str):
+                The extension registration, instance, or ID to check.
+
             registered_extension (djblets.extensions.models.
                                   RegisteredExtension):
-                The registered extension entry representing the extension.
+                Legacy argument name for ``extension``, if passing via
+                keyword argument.
+
+                This is deprecated and will be removed in Djblets 8.
 
         Returns:
             bool:
             ``True`` if the extension can be disabled. ``False`` if it cannot.
         """
-        extension_id = registered_extension.class_name
+        if registered_extension is not UNSET:
+            RemovedInDjblets80Warning.warn(
+                'The registered_extension keyword argument passed to '
+                'get_can_disable_extension() is deprecated. Please pass as '
+                'a positional argument. This will be required in Djblets 8.'
+            )
 
-        return (registered_extension.extension_class is not None and
-                (self.get_enabled_extension(extension_id) is not None or
-                 extension_id in self._load_errors))
+            # Just override anything that may have been passed for
+            # extension_or_id.
+            extension_or_id = registered_extension
+        elif extension_or_id is UNSET:
+            # Raise what Python would normally raise if missing an argument.
+            raise TypeError(
+                "get_can_disable_extension() missing 1 required positional "
+                "argument: 'extension_or_id'"
+            )
+
+        extension_id = self._get_extension_id(extension_or_id)
+
+        if extension_id in self._get_always_enabled_extension_ids():
+            # This is an always-enabled extension, and cannot be disabled.
+            return False
+
+        if (self.get_enabled_extension(extension_id) is None and
+            extension_id not in self._load_errors):
+            # This extension isn't currently enabled and isn't in an error
+            # state from a previous enable attempt.
+            return False
+
+        # Check the extensions that depend on this one. If any of them
+        # cannot be disabled, don't allow disabling this one.
+        for dependent_id in self.get_dependent_extensions(extension_id,
+                                                          enabled_only=True):
+            if not self.get_can_disable_extension(dependent_id):
+                return False
+
+        return True
 
     def get_can_enable_extension(
         self,
@@ -549,16 +647,30 @@ class ExtensionManager:
     def get_dependent_extensions(
         self,
         dependency_extension_id: str,
+        *,
+        enabled_only: bool = False,
     ) -> list[str]:
-        """Return a list of all extension IDs required by an extension.
+        """Return a list of all extension IDs requiring an extension.
+
+        Results are not guaranteed to be in any particular order.
+
+        Version Changed:
+            6.1:
+            Added the ``enabled_only`` argument.
 
         Args:
             dependency_extension_id (str):
-                The ID of the extension to retrieve dependencies for.
+                The ID of the extension to retrieve dependents for.
+
+            enabled_only (bool, optional):
+                Whether to filter by enabled extensions.
+
+                Version Added:
+                    6.1
 
         Returns:
             list of str:
-            The list of extension IDs required by this extension.
+            The list of extension IDs requiring this extension.
 
         Raises:
             djblets.extensions.errors.InvalidExtensionError:
@@ -566,11 +678,17 @@ class ExtensionManager:
         """
         # This will raise InvalidExtensionError if not found.
         dependency = self.get_installed_extension(dependency_extension_id)
-        extension_classes = self._extension_classes.items()
+
+        extension_candidates: Iterable[tuple[str, Extension | type[Extension]]]
+
+        if enabled_only:
+            extension_candidates = self._extension_instances.items()
+        else:
+            extension_candidates = self._extension_classes.items()
 
         return [
             extension_id
-            for extension_id, extension in extension_classes
+            for extension_id, extension in extension_candidates
             if (extension_id != dependency_extension_id and
                 dependency in extension.info.requirements)
         ]
@@ -645,6 +763,8 @@ class ExtensionManager:
     def disable_extension(
         self,
         extension_id: str,
+        *,
+        force: bool = False,
     ) -> None:
         """Disable an extension.
 
@@ -657,9 +777,23 @@ class ExtensionManager:
         :py:data:`djblets.extensions.signals.extension_disabled` signal will be
         emitted.
 
+        Version Changed:
+            6.1:
+            * Always-enabled extensions cannot be disabled.
+            * Added the ``force`` argument.
+
         Args:
             extension_id (str):
                 The ID of the extension to disable.
+
+            force (bool, optional):
+                Force disabling the extension.
+
+                This will disable the extension even if it's an always-enabled
+                extension. It's intended for use during shutdown.
+
+                Version Added:
+                    6.1
 
         Raises:
             djblets.extensions.errors.InvalidExtensionError:
@@ -668,24 +802,38 @@ class ExtensionManager:
         has_load_error = extension_id in self._load_errors
 
         if not has_load_error:
-            if extension_id not in self._extension_instances:
-                # It's not enabled.
-                return
-
             try:
                 extension = self._extension_instances[extension_id]
             except KeyError:
-                raise InvalidExtensionError(extension_id)
+                # It's not enabled.
+                return
 
-            # Disable each of the extensions depended on by this extension.
-            for dependent_id in self.get_dependent_extensions(extension_id):
-                self.disable_extension(dependent_id)
+            if not force and not self.get_can_disable_extension(extension_id):
+                raise DisablingExtensionError(_(
+                    'This extension cannot be disabled.'
+                ))
+
+            registration = extension.registration
+
+            # Disable each of the extensions that depends on this extension.
+            dependent_extensions = self.get_dependent_extensions(
+                extension_id,
+                enabled_only=True,
+            )
+
+            for dependent_id in dependent_extensions:
+                try:
+                    self.disable_extension(dependent_id,
+                                           force=force)
+                except DisablingExtensionError as e:
+                    logger.warning(
+                        'Cannot disable the dependent extension %r: %s',
+                        dependent_id, e,
+                    )
 
             self._uninstall_extension(extension)
             self._uninit_extension(extension)
             self._unregister_static_bundles(extension)
-
-            registration = extension.registration
         else:
             extension = None
             del self._load_errors[extension_id]
@@ -876,8 +1024,7 @@ class ExtensionManager:
                     class_name = registered_ext.class_name
                     found_registrations[class_name] = registered_ext
 
-            enabled_by_default = \
-                set(getattr(settings, 'EXTENSIONS_ENABLED_BY_DEFAULT', []))
+            enabled_by_default = self._get_enabled_by_default_extension_ids()
 
             # Go through each registration we still need and couldn't find,
             # and create an entry in the database. These are going to be
@@ -897,13 +1044,22 @@ class ExtensionManager:
 
                     found_registrations[class_name] = registered_ext
 
+        always_enabled = self._get_always_enabled_extension_ids()
+
         # Now we have all the RegisteredExtension instances. Go through
         # and initialize each of them.
         for class_name, registered_ext in found_registrations.items():
             ext_class = found_extensions[class_name]
             ext_class.registration = registered_ext
 
-            if (ext_class.registration.enabled and
+            if (not registered_ext.enabled and
+                ext_class.id in always_enabled):
+                # This extension should always be on. Force it to be enabled
+                # so it'll initialize, and save that back out to the database.
+                registered_ext.enabled = True
+                registered_ext.save(update_fields=('enabled',))
+
+            if (registered_ext.enabled and
                 ext_class.id not in self._extension_instances):
                 try:
                     self._init_extension(ext_class)
@@ -926,7 +1082,8 @@ class ExtensionManager:
         for class_name, ext_class in self._extension_classes.items():
             if class_name not in found_extensions:
                 if class_name in self._extension_instances:
-                    self.disable_extension(class_name)
+                    self.disable_extension(class_name,
+                                           force=True)
 
                 del self._extension_classes[class_name]
                 extensions_changed = True
@@ -1928,6 +2085,97 @@ class ExtensionManager:
                             'Failed to unlock lock file "%s" for extension '
                             '"%s": %s',
                             filename, ext_class.info, e)
+
+    def _get_always_enabled_extension_ids(self) -> set[str]:
+        """Return the extension IDs that should always be enabled.
+
+        This will return :py:attr:`always_enabled_extension_ids`, unless it's
+        unset. If unset, it will be populated from
+        ``settings.EXTENSIONS_ALWAYS_ENABLED``.
+
+        Returns:
+            set:
+            The set of extension IDs to always enable.
+
+        Version Added:
+            6.1
+        """
+        always_enabled = self.always_enabled_extension_ids
+
+        if always_enabled is UNSET:
+            always_enabled = set(
+                getattr(settings, 'EXTENSIONS_ALWAYS_ENABLED', [])
+            )
+            self.always_enabled_extension_ids = always_enabled
+
+        return always_enabled
+
+    def _get_enabled_by_default_extension_ids(self) -> set[str]:
+        """Return the extension IDs that should be enabled by default.
+
+        This will return :py:attr:`enabled_by_default_extension_ids`, unless
+        it's unset. If unset, it will be populated from both
+        ``settings.EXTENSIONS_ENABLED_BY_DEFAULT`` and
+        :py:attr:`always_enabled_extension_ids`.
+
+        Returns:
+            set:
+            The set of extension IDs to enable by default.
+
+        Version Added:
+            6.1
+        """
+        enabled_by_default = self.enabled_by_default_extension_ids
+
+        if enabled_by_default is UNSET:
+            enabled_by_default = set(
+                getattr(settings, 'EXTENSIONS_ENABLED_BY_DEFAULT', [])
+            )
+            self.enabled_by_default_extension_ids = enabled_by_default
+
+        return enabled_by_default | self._get_always_enabled_extension_ids()
+
+    def _get_extension_id(
+        self,
+        extension: RegisteredExtension | Extension | str,
+        /,
+    ) -> str:
+        """Return the ID for an extension, registration, or string.
+
+        If either a registered extension or instance is provided, its
+        associated ID will be returned.
+
+        If a string is provided, it will be assumed to be the ID and will be
+        returned.
+
+        Version Added:
+            6.1
+
+        Args:
+            extension_or_id (djblets.extensions.models.RegisteredExtension or
+                             djblets.extensions.extension.Extension or
+                             str):
+                The registered extension, extension instance, or extension ID
+                string for which to return an ID.
+
+        Returns:
+            str:
+            The extension's ID.
+
+        Raises:
+            TypeError:
+                An invalid type was provided.
+        """
+        if isinstance(extension, str):
+            return extension
+        elif isinstance(extension, Extension):
+            return extension.id
+        elif isinstance(extension, RegisteredExtension):
+            return extension.class_name
+
+        raise TypeError(
+            f'{extension!r} is not an extension instance, registration, or ID.'
+        )
 
 
 def get_extension_managers() -> list[ExtensionManager]:

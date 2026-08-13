@@ -1,4 +1,5 @@
 import { suite } from '@beanbag/jasmine-suites';
+import * as Ink from '@beanbag/ink';
 import {
     beforeEach,
     describe,
@@ -91,10 +92,10 @@ suite('djblets/integrations/views/IntegrationConfigListView', function() {
     });
 
     describe('Configurations', function() {
-        let $row1;
-        let $row2;
-        let $row3;
-        let $row4;
+        let $row1: JQuery;
+        let $row2: JQuery;
+        let $row3: JQuery;
+        let $row4: JQuery;
 
         beforeEach(function() {
             const $rows = view.listView.$('tr');
@@ -209,8 +210,13 @@ suite('djblets/integrations/views/IntegrationConfigListView', function() {
                 spyOn(config, 'destroy').and.callThrough();
                 spyOn(config, 'sync');
 
-                await view.listView.views[0]._onDeleteConfirmed();
+                spyOn(Ink, 'showConfirmDialog').and.callFake(
+                    options => options.onConfirm());
 
+                $row1.find('.config-forms-list-action-delete')
+                    .trigger('click');
+
+                expect(Ink.showConfirmDialog).toHaveBeenCalled();
                 expect(config.destroy).toHaveBeenCalled();
                 expect(collection.length).toBe(3);
                 expect(view.listView.$('tr').length).toBe(3);

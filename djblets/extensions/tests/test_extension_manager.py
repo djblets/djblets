@@ -18,12 +18,15 @@ from django.test.utils import override_settings
 from django_evolution.evolve import Evolver
 from pipeline.conf import settings as pipeline_settings
 
-from djblets.extensions.errors import EnablingExtensionError
+from djblets.deprecation import RemovedInDjblets80Warning
+from djblets.extensions.errors import (DisablingExtensionError,
+                                       EnablingExtensionError)
 from djblets.extensions.extension import Extension
 from djblets.extensions.hooks import URLHook
 from djblets.extensions.manager import (ExtensionManager,
                                         get_extension_managers,
                                         logger as manager_logger)
+from djblets.extensions.models import RegisteredExtension
 from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
 
@@ -46,6 +49,30 @@ class MyTestExtension(Extension):
     # going to include an `.admin` module.
     apps = [
         'djblets.util',
+    ]
+
+
+class DependentExtension1(Extension):
+    """A test extension depending on MyTestExtension.
+
+    Version Added:
+        6.1
+    """
+
+    requirements = [
+        'djblets.extensions.tests.test_extension_manager.MyTestExtension',
+    ]
+
+
+class DependentExtension2(Extension):
+    """A test extension depending on MyTestExtension.
+
+    Version Added:
+        6.1
+    """
+
+    requirements = [
+        'djblets.extensions.tests.test_extension_manager.MyTestExtension',
     ]
 
 
@@ -164,6 +191,42 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
         self.assertSpyCallCount(extension_mgr._init_extension, 2)
         self.assertEqual(self.exceptions, [])
 
+    @override_settings(EXTENSIONS_ALWAYS_ENABLED=[
+        'djblets.extensions.tests.test_extension_manager.MyTestExtension',
+    ])
+    def test_load_with_always_enabled(self):
+        """Testing ExtensionManager.load with
+        settings.EXTENSIONS_ALWAYS_ENABLED
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension, enable=False)
+
+        # Make sure it's registered but not enabled.
+        self.assertEqual(extension_mgr.get_installed_extensions(),
+                         [MyTestExtension])
+        self.assertEqual(extension_mgr.get_enabled_extensions(), [])
+
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        self.assertEqual(extension_mgr.get_installed_extensions(),
+                         [MyTestExtension])
+
+        enabled_extensions = extension_mgr.get_enabled_extensions()
+        self.assertEqual(len(enabled_extensions), 1)
+        self.assertIsInstance(enabled_extensions[0], MyTestExtension)
+
+        self.assertTrue(hasattr(MyTestExtension, 'info'))
+        self.assertEqual(MyTestExtension.info.name,
+                         self.extension_package_name)
+        self.assertIsNotNone(MyTestExtension.instance)
+        self.assertTrue(hasattr(MyTestExtension, 'registration'))
+        self.assertEqual(MyTestExtension.registration.name,
+                         self.extension_package_name)
+        self.assertTrue(MyTestExtension.registration.enabled)
+
     @override_settings(EXTENSIONS_ENABLED_BY_DEFAULT=[
         'djblets.extensions.tests.test_extension_manager.MyTestExtension',
     ])
@@ -172,8 +235,7 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
         settings.EXTENSIONS_ENABLED_BY_DEFAULT
         """
         extension_mgr = self.extension_mgr
-
-        self.setup_extension(MyTestExtension, enable=False)
+        assert extension_mgr is not None
 
         with self.scanned_extensions([MyTestExtension]):
             extension_mgr.load()
@@ -974,9 +1036,9 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
 
         self.assertFalse(Evolver.evolve.called)
 
-    def test_disable_unregisters_static_bundles(self):
-        """Testing ExtensionManager unregisters static bundles when disabling
-        extension
+    def test_disable_extension_unregisters_static_bundles(self) -> None:
+        """Testing ExtensionManager.disable_extension unregisters static
+        bundles
         """
         class MyTestExtensionWithBundles(Extension):
             css_bundles = {
@@ -1003,6 +1065,314 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
 
         self.assertEqual(len(pipeline_settings.STYLESHEETS), 0)
         self.assertEqual(len(pipeline_settings.JAVASCRIPT), 0)
+
+    @override_settings(EXTENSIONS_ALWAYS_ENABLED=[
+        'djblets.extensions.tests.test_extension_manager.MyTestExtension',
+    ])
+    def test_disable_extension_with_always_enabled(self) -> None:
+        """Testing ExtensionManager.disable_extension with always-enabled
+        extension
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension, enable=False)
+
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        self.assertEqual(extension_mgr.get_installed_extensions(),
+                         [MyTestExtension])
+
+        message = 'This extension cannot be disabled.'
+
+        with self.assertRaisesMessage(DisablingExtensionError, message):
+            extension_mgr.disable_extension(MyTestExtension.id)
+
+    def test_disable_extension_with_dependent(self) -> None:
+        """Testing ExtensionManager.disable_extension with dependent extension
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension,
+                             enable=False)
+        self.setup_extension(DependentExtension1,
+                             enable=True)
+        self.setup_extension(DependentExtension2,
+                             enable=False)
+
+        with self.scanned_extensions([MyTestExtension,
+                                      DependentExtension1,
+                                      DependentExtension2]):
+            extension_mgr.load()
+
+        self.assertEqual(
+            extension_mgr.get_installed_extensions(),
+            [
+                MyTestExtension,
+                DependentExtension1,
+                DependentExtension2,
+            ])
+
+        extension_mgr.disable_extension(MyTestExtension.id)
+
+        self.assertIsNone(extension_mgr.get_enabled_extension(
+            MyTestExtension.id))
+        self.assertIsNone(extension_mgr.get_enabled_extension(
+            DependentExtension1.id))
+
+    @override_settings(EXTENSIONS_ALWAYS_ENABLED=[
+        'djblets.extensions.tests.test_extension_manager.MyTestExtension',
+    ])
+    def test_disable_extension_with_always_enabled_dependent(self) -> None:
+        """Testing ExtensionManager.disable_extension with always-enabled
+        dependent extension
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension,
+                             enable=False)
+        self.setup_extension(DependentExtension1,
+                             enable=True)
+        self.setup_extension(DependentExtension2,
+                             enable=False)
+
+        with self.scanned_extensions([MyTestExtension,
+                                      DependentExtension1,
+                                      DependentExtension2]):
+            extension_mgr.load()
+
+        self.assertEqual(
+            extension_mgr.get_installed_extensions(),
+            [
+                MyTestExtension,
+                DependentExtension1,
+                DependentExtension2,
+            ])
+
+        message = 'This extension cannot be disabled.'
+
+        with self.assertRaisesMessage(DisablingExtensionError, message):
+            extension_mgr.disable_extension(MyTestExtension.id)
+
+    def test_get_can_disable_extension_with_registration(self) -> None:
+        """Testing ExtensionManager.get_can_disable_extension with
+        RegisteredExtension
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension, enable=True)
+
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        self.assertIsNotNone(extension_mgr.get_enabled_extension(
+            MyTestExtension.id))
+        self.assertTrue(extension_mgr.get_can_disable_extension(
+            MyTestExtension.registration))
+
+    def test_get_can_disable_extension_with_registration_kwarg(self) -> None:
+        """Testing ExtensionManager.get_can_disable_extension with deprecated
+        registered_extension keyword argument
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension, enable=True)
+
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        self.assertIsNotNone(extension_mgr.get_enabled_extension(
+            MyTestExtension.id))
+
+        message = (
+            'The registered_extension keyword argument passed to '
+            'get_can_disable_extension() is deprecated. Please pass as a '
+            'positional argument. This will be required in Djblets 8.'
+        )
+
+        with self.assertWarns(RemovedInDjblets80Warning, message):
+            self.assertTrue(extension_mgr.get_can_disable_extension(
+                registered_extension=MyTestExtension.registration))
+
+    def test_get_can_disable_extension_with_instance(self) -> None:
+        """Testing ExtensionManager.get_can_disable_extension with
+        extension instance
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension, enable=True)
+
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        extension = extension_mgr.get_enabled_extension(MyTestExtension.id)
+        assert extension is not None
+
+        self.assertTrue(extension_mgr.get_can_disable_extension(extension))
+
+    def test_get_can_disable_extension_with_str(self) -> None:
+        """Testing ExtensionManager.get_can_disable_extension with
+        extension ID string
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension, enable=True)
+
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        extension = extension_mgr.get_enabled_extension(MyTestExtension.id)
+        assert extension is not None
+
+        self.assertTrue(extension_mgr.get_can_disable_extension(
+            MyTestExtension.id))
+
+    def test_get_can_disable_extension_with_enabled(self) -> None:
+        """Testing ExtensionManager.get_can_disable_extension with enabled
+        extension
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension, enable=True)
+
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        self.assertIsNotNone(extension_mgr.get_enabled_extension(
+            MyTestExtension.id))
+        self.assertTrue(extension_mgr.get_can_disable_extension(
+            MyTestExtension.registration))
+
+    def test_get_can_disable_extension_with_load_error(self) -> None:
+        """Testing ExtensionManager.get_can_disable_extension with load
+        error
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension, enable=False)
+
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        extension_mgr._load_errors[MyTestExtension.id] = 'oh no'
+
+        self.assertIsNone(extension_mgr.get_enabled_extension(
+            MyTestExtension.id))
+        self.assertTrue(extension_mgr.get_can_disable_extension(
+            MyTestExtension.registration))
+
+    def test_get_can_disable_extension_with_disabled(self) -> None:
+        """Testing ExtensionManager.get_can_disable_extension with disabled
+        extension
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension, enable=False)
+
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        self.assertIsNone(extension_mgr.get_enabled_extension(
+            MyTestExtension.id))
+        self.assertFalse(extension_mgr.get_can_disable_extension(
+            MyTestExtension.registration))
+
+    def test_get_can_disable_extension_with_dependents(self) -> None:
+        """Testing ExtensionManager.get_can_disable_extension with enabled
+        dependents
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension,
+                             enable=True)
+        self.setup_extension(DependentExtension1,
+                             enable=True)
+        self.setup_extension(DependentExtension2,
+                             enable=False)
+
+        with self.scanned_extensions([MyTestExtension,
+                                      DependentExtension1,
+                                      DependentExtension2]):
+            extension_mgr.load()
+
+        self.assertIsNotNone(extension_mgr.get_enabled_extension(
+            MyTestExtension.id))
+        self.assertTrue(extension_mgr.get_can_disable_extension(
+            MyTestExtension.registration))
+
+    @override_settings(EXTENSIONS_ALWAYS_ENABLED=[
+        'djblets.extensions.tests.test_extension_manager.DependentExtension1',
+    ])
+    def test_get_can_disable_extension_with_always_enabled_dependents(
+        self,
+    ) -> None:
+        """Testing ExtensionManager.get_can_disable_extension with enabled
+        dependents
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension,
+                             enable=True)
+        self.setup_extension(DependentExtension1,
+                             enable=True)
+        self.setup_extension(DependentExtension2,
+                             enable=False)
+
+        with self.scanned_extensions([MyTestExtension,
+                                      DependentExtension1,
+                                      DependentExtension2]):
+            extension_mgr.load()
+
+        self.assertIsNotNone(extension_mgr.get_enabled_extension(
+            MyTestExtension.id))
+        self.assertFalse(extension_mgr.get_can_disable_extension(
+            MyTestExtension.registration))
+
+    def test_get_can_disable_extension_with_unregistered(self) -> None:
+        """Testing ExtensionManager.get_can_disable_extension with
+        unregistered extension
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.assertFalse(extension_mgr.get_can_disable_extension(
+            RegisteredExtension(
+                class_name='foo.bar',
+                enabled=True,
+                installed=True,
+            )))
+
+    @override_settings(EXTENSIONS_ALWAYS_ENABLED=[
+        'djblets.extensions.tests.test_extension_manager.MyTestExtension',
+    ])
+    def test_get_can_disable_extension_with_always_enabled(self) -> None:
+        """Testing ExtensionManager.get_can_disable_extension with
+        always-enabled extension
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension, enable=True)
+
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        self.assertIsNotNone(extension_mgr.get_enabled_extension(
+            MyTestExtension.id))
+        self.assertFalse(extension_mgr.get_can_disable_extension(
+            MyTestExtension.registration))
 
     def test_extension_list_sync(self):
         """Testing ExtensionManager extension list synchronization

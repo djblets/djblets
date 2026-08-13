@@ -163,7 +163,8 @@ class ExtensionTestCaseMixin(MixinParent):
                     # we have the right state up-front.
                     extension.shutdown()
 
-                extension_mgr.disable_extension(extension.id)
+                extension_mgr.disable_extension(extension.id,
+                                                force=True)
 
         # If the unit test created any new extension managers, remove them now.
         new_extension_mgrs = (
@@ -348,7 +349,7 @@ class ExtensionTestCaseMixin(MixinParent):
         extension_cls.registration = RegisteredExtension.objects.create(
             class_name=extension_id,
             name=extension_cls.info.name,
-            enabled=True,
+            enabled=enable,
             installed=True)
 
         # We're going to manually inject the extension, instead of calling
