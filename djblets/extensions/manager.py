@@ -1827,6 +1827,17 @@ class ExtensionManager:
 
         apps.set_installed_apps(settings.INSTALLED_APPS)
 
+        # Django's set_installed_apps() calls clear_cache() twice (its own,
+        # and the one at the end of populate()), but both run while
+        # Apps.ready is False. clear_cache() only calls _expire_cache() on
+        # each model when the registry is ready, so neither call rebuilds
+        # the per-model caches.
+        #
+        # Without this, a model's relation tree may have been cached before
+        # an extension providing a related model was registered, leaving
+        # that relation permanently missing from the tree.
+        apps.clear_cache()
+
         return new_installed_apps
 
     def _remove_from_installed_apps(

@@ -1,5 +1,7 @@
 """Unit tests for djblets.extensions.manager.ExtensionManager."""
 
+from __future__ import annotations
+
 import errno
 import logging
 import os
@@ -10,6 +12,7 @@ import time
 
 import kgb
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.db import connection
 from django.template import Context, Template, TemplateSyntaxError
 from django.test.utils import override_settings
@@ -909,6 +912,49 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
         self.extension_mgr.disable_extension(extension.id)
         self.extension_mgr.enable_extension(extension.id)
         self.assertEqual(MyTestExtensionModel.objects.count(), 1)
+
+    def test_enable_extension_rebuilds_related_model_caches(self) -> None:
+        """Testing ExtensionManager.enable_extension rebuilds cached relation
+        trees on models that the extension's models relate to
+        """
+        # Import the extension's model before its app is installed. The model
+        # is registered in the app registry, but isn't reachable through any
+        # AppConfig, so it won't appear in User's relation tree.
+        from djblets.extensions.tests.apps.model_tests.models import \
+            MyTestExtensionRelatedModel
+
+        # Access the relation tree now, both to sanity-check that the
+        # relation is absent and to warm the cache for the tree in that state.
+        self.assertNotIn('test_extension_related_models',
+                         {f.name for f in User._meta.get_fields()})
+
+        class MyTestExtensionWithApps(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.model_tests',
+            ]
+
+        extension = self.setup_extension(MyTestExtensionWithApps)
+
+        # Enabling the extension must expire the stale cache. Django's
+        # Apps.set_installed_apps() doesn't do this on its own.
+        self.assertIn('test_extension_related_models',
+                      {f.name for f in User._meta.get_fields()})
+
+        user = User.objects.create(username='test-user')
+        MyTestExtensionRelatedModel.objects.create(owner=user)
+        self.assertEqual(user.test_extension_related_models.count(), 1)
+
+        # Re-enabling shouldn't break anything.
+        self.extension_mgr.disable_extension(extension.id)
+
+        self.assertNotIn('test_extension_related_models',
+                         {f.name for f in User._meta.get_fields()})
+
+        self.extension_mgr.enable_extension(extension.id)
+
+        self.assertIn('test_extension_related_models',
+                      {f.name for f in User._meta.get_fields()})
+        self.assertEqual(user.test_extension_related_models.count(), 1)
 
     def test_enable_extension_evolve_without_models(self):
         """Testing ExtensionManager.enable_extension does not synchronize
