@@ -260,13 +260,9 @@
     margin-left: @_page-vars[@gap];
   }
 
-  a {
+  a:not(.btn, .ink-c-button) {
     color: var(--ink-p-link-fg);
     text-decoration: none;
-
-    &.btn {
-      color: black;
-    }
   }
 
   .box {
@@ -895,7 +891,7 @@ table.djblets-c-config-forms-list {
     }
   }
 
-  a {
+  a:not(.btn, .ink-c-button) {
     color: var(--ink-p-link-fg);
     font-weight: normal;
     text-decoration: none;
