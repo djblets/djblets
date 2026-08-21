@@ -69,7 +69,7 @@ django_version = '~=5.2.9'
 
 #: All dependencies required to install Djblets.
 package_dependencies: Mapping[str, Dependency] = {
-    'cryptography': '>=41.0.7',
+    'cryptozoology': '~=1.0',
     'Django': django_version,
     'django-assert-queries': '>=3.0a0.dev0,==3.*',
     'django-pipeline': '~=4.1.0',
