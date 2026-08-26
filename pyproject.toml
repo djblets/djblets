@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    'buildthings~=1.0',
+    'buildthings~=1.2',
 ]
 build-backend = 'buildthings.backend'
 

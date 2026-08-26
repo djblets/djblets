@@ -1,0 +1,130 @@
+.. default-intersphinx:: django4.2 djblets6.x python3
+
+
+=========================
+Djblets 6.1 Release Notes
+=========================
+
+**Release date**: TBD
+
+
+Installation
+============
+
+Djblets 6.1 is compatible with Python 3.8 - 3.13 and Django_ 4.2.x.
+
+To install Djblets 6.1, run:
+
+.. code-block:: console
+
+   $ pip3 install Djblets==6.1
+
+
+To learn more, see:
+
+* `Documentation <https://www.reviewboard.org/docs/djblets/6.x/>`_
+* `Djblets on PyPI <https://pypi.org/project/Djblets/>`_
+* `Djblets on GitHub <https://github.com/djblets/djblets/>`_
+
+
+.. _Django: https://www.djangoproject.com/
+
+
+djblets.extensions
+==================
+
+Always-enabled extensions
+-------------------------
+
+The extension manager can now be given a list of extensions that must always
+be enabled. These act like enabled-by-default extensions, except that they
+cannot be disabled through :py:meth:`ExtensionManager.disable_extension()
+<djblets.extensions.manager.ExtensionManager.disable_extension>` or the UI,
+and will be considered enabled every time the extension manager loads.
+
+This can be set using the new :py:attr:`ExtensionManager.
+always_enabled_extension_ids
+<djblets.extensions.manager.ExtensionManager.always_enabled_extension_ids>`
+attribute, or :setting:`EXTENSIONS_ALWAYS_ENABLED`.
+
+For example:
+
+.. code-block:: python
+
+   from djblets.extensions.manager import ExtensionManager
+
+
+   class MyExtensionManager(ExtensionManager):
+       always_enabled_extension_ids = {
+           'myvendor.myextension.MyExtension',
+       }
+
+Any always-enabled extension will still show up in the extension list, but it
+won't have a button for disabling it. Similarly, the API will return an error
+if something attempts to disable it through other means.
+
+
+Enabled-by-default configuration
+--------------------------------
+
+Enabled-by-default extensions can now be configured on the
+:py:class:`~djblets.extensions.manager.ExtensionManager` instance by setting
+:py:attr:`~djblets.extensions.manager.ExtensionManager.enabled_by_default_extension_ids`
+to a list of extension IDs.
+
+This is an alternative to setting :setting:`EXTENSIONS_ENABLED_BY_DEFAULT`.
+
+For example:
+
+.. code-block:: python
+
+   from djblets.extensions.manager import ExtensionManager
+
+
+   class MyExtensionManager(ExtensionManager):
+       enabled_by_default_extension_ids = {
+           'myvendor.myextension.MyExtension',
+       }
+
+
+Other improvements
+------------------
+
+* :py:meth:`ExtensionManager.get_can_disable_extension()
+  <djblets.extensions.manager.ExtensionManager.get_can_disable_extension>`
+  can now take an extension instance or ID string, in addition to a
+  :py:class:`~djblets.extensions.models.RegisteredExtension`.
+
+  Passing a ``registered_extension`` keyword argument is deprecated and will
+  be removed in Djblets 8.
+
+* :py:meth:`ExtensionManager.get_dependent_extensions()
+  <djblets.extensions.manager.ExtensionManager.get_dependent_extensions>`
+  now takes an ``enabled_only`` argument, allowing callers to filter results
+  to only enabled extensions.
+
+
+Bug fixes
+---------
+
+* Fixed an issue where a model's relation tree may be cached before an
+  extension providing a related model was registered, leaving that relation
+  permanently missing from the tree.
+
+
+djblets.integrations
+====================
+
+Bug fixes
+---------
+
+* Fixed the confirmation dialog for deleting an integration configuration
+  not closing after the deletion completed.
+
+
+Contributors
+============
+
+* Christian Hammond
+* David Trowbridge
+* Michelle Aubin
