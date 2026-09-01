@@ -260,11 +260,6 @@
     margin-left: @_page-vars[@gap];
   }
 
-  a:not(.btn, .ink-c-button) {
-    color: var(--ink-p-link-fg);
-    text-decoration: none;
-  }
-
   .box {
     background: var(--ink-p-container-bg);
     margin: 0 0 @_page-vars[@box-sep-width] 0;
@@ -316,6 +311,11 @@
   margin-left: auto;
   margin-right: auto;
   width: #djblets-ns-config-forms.page[@forms-width];
+
+  a:not(.btn, .ink-c-button) {
+    color: var(--ink-p-link-fg);
+    text-decoration: none;
+  }
 
   fieldset {
     border: 0;
