@@ -258,8 +258,10 @@ def get_url_params_except(
         str:
         The encoded and sorted query string.
     """
+    params_set = set(params)
+
     return urlencode(sorted(
         (key, value)
         for key, value in query.items()
-        if key not in params
+        if key not in params_set
     ))
