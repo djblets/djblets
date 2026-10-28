@@ -1,3 +1,8 @@
+"""Unit tests for djblets.db.fields.counter_field.CounterField."""
+
+from __future__ import annotations
+
+import kgb
 from django.db import models
 from django.db.models import F
 
@@ -37,7 +42,7 @@ class CounterFieldNoInitializerModel(models.Model):
     counter = CounterField()
 
 
-class CounterFieldTests(TestModelsLoaderMixin, TestCase):
+class CounterFieldTests(kgb.SpyAgency, TestModelsLoaderMixin, TestCase):
     """Tests for djblets.db.fields.CounterField."""
     tests_app = 'djblets.db.tests'
 
@@ -50,6 +55,31 @@ class CounterFieldTests(TestModelsLoaderMixin, TestCase):
         """Testing CounterField with an initializer function"""
         model = CounterFieldInitializerModel.objects.create()
         self.assertEqual(model.counter, 42)
+
+    def test_initializer_error_releases_lock(self) -> None:
+        """Testing CounterField with an initializer function releases locks
+        on error
+        """
+        model = CounterFieldTestModel.objects.create()
+        field = CounterFieldTestModel._meta.get_field('counter')
+
+        assert isinstance(field, CounterField)
+
+        spy = self.spy_on(
+            field._initializer,
+            op=kgb.SpyOpRaise(Exception('Oh no')),
+        )
+
+        with self.assertRaisesMessage(Exception, 'Oh no'):
+            model.reinit_counter()
+
+        self.assertEqual(field._locks, {})
+
+        spy.unspy()
+
+        model.reinit_counter()
+        self.assertEqual(model.counter, 5)
+        self.assertEqual(field._locks, {})
 
     def test_initializer_f_existing_instance(self):
         """Testing CounterField with an initializer F() expression
