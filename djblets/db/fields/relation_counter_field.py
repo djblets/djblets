@@ -1,14 +1,29 @@
+"""Atomic relation counter field for Django models."""
+
 from __future__ import annotations
 
 import threading
 import weakref
 from contextlib import contextmanager
+from typing import TYPE_CHECKING
 
 from django.db.models import F, Q
 from django.db.models.signals import (m2m_changed, post_delete, post_save,
                                       pre_delete)
 
 from djblets.db.fields.counter_field import CounterField
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import Any, ClassVar, TypeAlias
+
+    from django.db.models import Model
+
+    #: A key for looking up saved instance states.
+    #:
+    #: Version Added:
+    #:     6.2
+    _StatesKey: TypeAlias = tuple[type[Model], Any, str]
 
 
 class InstanceState(weakref.ref):
@@ -37,17 +52,44 @@ class InstanceState(weakref.ref):
     discarded.
     """
 
-    def __init__(self, model_instance):
+    def __init__(
+        self,
+        model_instance: Model,
+        callback: (Callable[[InstanceState], object] | None) = None,
+        *,
+        states_key: (_StatesKey | None) = None,
+    ) -> None:
         """Set up the state.
+
+        Version Changed:
+            6.2:
+            Added the ``callback`` and ``states_key`` arguments.
 
         Args:
             model_instance (django.db.models.Model):
                 The model instance that this state tracks.
+
+            callback (callable, optional):
+                A function to call with this state once the model instance
+                has been destroyed.
+
+                Version Added:
+                    6.2
+
+            states_key (tuple, optional):
+                The key in
+                :py:attr:`RelationCounterField._saved_instance_states` that
+                this state is stored under, if the instance has been saved.
+
+                Version Added:
+                    6.2
         """
-        super(InstanceState, self).__init__(model_instance)
+        super().__init__(model_instance, callback)
 
         self.to_clear = set()
         self.field_names = set()
+        self.instance_id = id(model_instance)
+        self.states_key = states_key
         self._model_cls = type(model_instance)
 
     @property
@@ -81,7 +123,7 @@ class InstanceState(weakref.ref):
                 model_instance.__class__.__name__,
                 model_instance.pk)
         else:
-            return '<InstanceState for %r (destroyed)>' % self.model_cls
+            return '<InstanceState for %r (destroyed)>' % self._model_cls
 
 
 class RelationTracker(object):
@@ -511,10 +553,10 @@ class RelationCounterField(CounterField):
     # Django doesn't make it easy to track updates to the other side of a
     # relation, meaning we have to do it ourselves. This dictionary is keyed
     # off a tuple of (model_class, instance_pk, field_name) and maps to a
-    # weakref.WeakValueDictionary mapping object IDs for model instances to
-    # InstanceState objects (which are tied to the lifecycle of a particular
-    # model instancee). These objects are used to look up model instances and
-    # their RelationCounterFields.
+    # dictionary mapping object IDs for model instances to InstanceState
+    # objects (which are tied to the lifecycle of a particular model
+    # instance). These objects are used to look up model instances and their
+    # RelationCounterFields.
     _saved_instance_states = {}
 
     # Stores instance states we're tracking whose instances haven't yet been
@@ -526,6 +568,20 @@ class RelationCounterField(CounterField):
     # Unlike the above, there's only one level to this dictionary. It maps
     # object IDs to InstanceState objects.
     _unsaved_instance_states = {}
+
+    # Stores instance states whose model instances have been destroyed, but
+    # haven't yet been removed from the dictionaries above.
+    #
+    # States add themselves to this when their instance goes away, and are
+    # removed from the dictionaries the next time we store or delete state,
+    # or check for tracked states. This keeps that cleanup work proportional
+    # to what's been destroyed, instead of scanning every tracked state each
+    # time.
+    #
+    # Instances caught in reference cycles (like most Django model instances
+    # with relations) aren't destroyed until a full garbage collection, so
+    # a busy server can have many thousands of tracked states at once.
+    _destroyed_instance_states: ClassVar[list[InstanceState]] = []
 
     # Most of the hard work really lives in RelationTracker below. Here, we
     # store all registered instances of RelationTracker. There will be one
@@ -556,93 +612,84 @@ class RelationCounterField(CounterField):
             ``True`` if there are any states still being tracked.
             ``False`` if not.
         """
-        cls._cleanup_state()
+        cls._remove_destroyed_states()
 
         return (bool(cls._saved_instance_states) or
                 bool(cls._unsaved_instance_states))
 
     @classmethod
-    def _cleanup_state(cls, instance_cls=None, instance_pk=None,
-                       instance_id=None):
-        """Clean up state for one or more instances.
+    def _on_instance_state_destroyed(
+        cls,
+        state: InstanceState,
+    ) -> None:
+        """Queue a state for removal once its instance has been destroyed.
 
-        This will clear away any state tied to a destroyed instance, an
-        instance with a given reference ID, or an instance with a given class
-        and database ID. It's used to ensure that any old, removed entries
-        (say, from a previous unit test, or when transitioning from an unsaved
-        instance to saved) are cleared away before storing new state.
+        This is called once the model instance is destroyed, which may happen
+        during garbage collection. It simply records the state to clean up
+        later, which happens in :py:meth:`_remove_destroyed_states`.
+
+        Version Added:
+            6.2
 
         Args:
-            instance_cls (type, optional):
-                The model class of the instance being removed.
-
-            instance_pk (int, optional):
-                The database ID of the instance (if known and if saved).
-
-            instance_id (int, optional):
-                The reference ID of the instance.
+            state (InstanceState):
+                The state whose instance was destroyed.
         """
-        with cls._state_lock:
-            cls._cleanup_state_for_dict(cls._unsaved_instance_states,
-                                        instance_cls=instance_cls,
-                                        instance_pk=instance_pk,
-                                        instance_id=instance_id)
-
-            # The saved instances dictionary is a dictionary full of
-            # dictionaries, so we'll want to iterate through and see if
-            # there's any keys in the outer dictionary that we need to
-            # remove by the end.
-            to_remove = []
-
-            for key, states in cls._saved_instance_states.items():
-                cls._cleanup_state_for_dict(states,
-                                            instance_cls=instance_cls,
-                                            instance_pk=instance_pk,
-                                            instance_id=instance_id)
-
-                if not states:
-                    # The states dictionary is now empty. Schedule it for
-                    # removal.
-                    to_remove.append(key)
-
-            for key in to_remove:
-                cls._saved_instance_states.pop(key, None)
+        cls._destroyed_instance_states.append(state)
 
     @classmethod
-    def _cleanup_state_for_dict(cls, states, instance_cls, instance_pk,
-                                instance_id):
-        """Clean up state in a states dictionary.
+    def _remove_destroyed_states(cls) -> None:
+        """Remove any states whose instances have been destroyed.
 
-        This is a utility function used by :py:meth:`_cleanup_state` for
-        clearing out any state entries matching the given instance information
-        or for those states that are no longer active.
+        This only looks at states known to be destroyed, rather than
+        scanning every tracked state.
 
-        Args:
-            states (list of InstanceState):
-                The list of instance states to clean up.
-
-            instance_cls (type, optional):
-                The model class of the instance being removed.
-
-            instance_pk (int, optional):
-                The database ID of the instance (if known and if saved).
-
-            instance_id (int, optional):
-                The reference ID of the instance.
+        Version Added:
+            6.2
         """
-        to_remove = []
+        destroyed_states = cls._destroyed_instance_states
 
-        for key, state in states.items():
-            model_instance = state.model_instance
+        if not destroyed_states:
+            # There are no destroyed states pending removal, so we're done.
+            return
 
-            if (model_instance is None or
-                id(model_instance) == instance_id or
-                (type(model_instance) is instance_cls and
-                 model_instance.pk == instance_pk)):
-                to_remove.append(key)
+        saved_instance_states = cls._saved_instance_states
+        unsaved_instance_states = cls._unsaved_instance_states
 
-        for key in to_remove:
-            states.pop(key, None)
+        with cls._state_lock:
+            # Loop through all the destroyed states, popping each as we go.
+            # If any end up here during garbage collection while iterating,
+            # this loop will catch it.
+            while destroyed_states:
+                state = destroyed_states.pop()
+                states_key = state.states_key
+                states: dict[int, InstanceState] | None
+
+                if states_key is None:
+                    states = unsaved_instance_states
+                else:
+                    states = saved_instance_states.get(states_key)
+
+                if states is None:
+                    # States for this key have already been removed (probably
+                    # from the pre-delete handler), so we can move on.
+                    continue
+
+                instance_id = state.instance_id
+
+                # This state may have already been replaced or removed, in
+                # which case there's nothing to do.
+                #
+                # Replacement happens when a new instance ends up with the
+                # same ID as the destroyed one. We don't want to remove the
+                # new instance's state by mistake.
+                if states.get(instance_id) is state:
+                    del states[instance_id]
+
+                    if states_key is not None and not states:
+                        # The saved_instances entry is now empty, so get rid
+                        # of it.
+                        del saved_instance_states[states_key]
 
     @classmethod
     def _store_state(cls, instance, field):
@@ -662,21 +709,31 @@ class RelationCounterField(CounterField):
         that points to the :py:class:`InstanceState`, keeping the state's
         reference alive as long as the instance is alive.
         """
-        cls._cleanup_state()
+        cls._remove_destroyed_states()
 
         with cls._state_lock:
             if instance.pk is None:
+                main_key = None
                 states = cls._unsaved_instance_states
             else:
                 main_key = (type(instance), instance.pk, field._rel_field_name)
                 states = cls._saved_instance_states.setdefault(main_key, {})
 
             key = id(instance)
+            state = states.get(key)
 
-            try:
-                state = states[key]
-            except KeyError:
-                state = InstanceState(instance)
+            if state is None or state.model_instance is None:
+                # Either there's no state yet for this instance, or there's
+                # a leftover one for a destroyed instance that had the same
+                # ID. Set up a new one.
+                #
+                # Once this instance is destroyed, the state will add itself
+                # to the list of destroyed states for cleanup.
+                state = InstanceState(
+                    instance,
+                    cls._on_instance_state_destroyed,
+                    states_key=main_key,
+                )
                 states[key] = state
 
             state.track_field(field)
@@ -686,12 +743,10 @@ class RelationCounterField(CounterField):
             instance._tracks_relcounterfield_states = True
 
             if instance.pk is not None:
-                # Attach the state to the field. This, along with being stored
-                # in a WeakValueDictionary above, ensures that, so long as the
-                # field remains in memory, the state will remain as well, and
-                # that the state will be removed once the field instance
-                # disappears (which will happen when the model instance
-                # disappears).
+                # Attach the state to the instance. This keeps the state alive
+                # for as long as the instance is alive. Once the instance is
+                # destroyed, the state will queue itself up to be removed from
+                # the dictionary above.
                 #
                 # There should never be more than one state attached for a
                 # field, since store_state() is only called once per model
@@ -802,7 +857,11 @@ class RelationCounterField(CounterField):
         return True
 
     @classmethod
-    def _on_instance_pre_delete(cls, instance=None, **kwargs):
+    def _on_instance_pre_delete(
+        cls,
+        instance: (Model | None) = None,
+        **kwargs,
+    ) -> bool:
         """Handler for when an instance is about to be deleted.
 
         This will reset the state of the instance, unregistering it from
@@ -824,12 +883,29 @@ class RelationCounterField(CounterField):
             # This isn't an instance we're tracking. Ignore it.
             return False
 
-        instance_id = id(instance)
-        assert instance_id not in cls._unsaved_instance_states
+        # Clear out destroyed states first, so a leftover unsaved state for a
+        # destroyed instance sharing this instance's ID can't trip the
+        # assertion below.
+        cls._remove_destroyed_states()
 
-        cls._cleanup_state(instance_cls=type(instance),
-                           instance_pk=instance.pk,
-                           instance_id=instance_id)
+        assert id(instance) not in cls._unsaved_instance_states
+
+        instance_cls = type(instance)
+        instance_pk = instance.pk
+        saved_instance_states = cls._saved_instance_states
+
+        with cls._state_lock:
+            # Remove all state stored for this instance's fields. We know
+            # exactly where they live, so there's no need to scan.
+            #
+            # If any destroyed states were in here, they'll be skipped when
+            # we next remove destroyed states.
+            for field in instance_cls._meta.local_fields:
+                if isinstance(field, cls):
+                    saved_instance_states.pop(
+                        (instance_cls, instance_pk, field._rel_field_name),
+                        None,
+                    )
 
         return True
 
