@@ -6,6 +6,7 @@ from django.db import models, transaction
 from kgb import SpyAgency
 
 from djblets.db.fields import RelationCounterField
+from djblets.db.fields.relation_counter_field import InstanceState
 from djblets.testing.testcases import TestCase, TestModelsLoaderMixin
 
 
@@ -198,6 +199,158 @@ class RelationCounterFieldTests(SpyAgency, TestModelsLoaderMixin, TestCase):
         self.assertTrue(save_func.last_called_with(instance=model2,
                                                    created=False))
         self.assertTrue(save_func.last_returned(False))
+
+    def test_delete_with_tracked_states(self) -> None:
+        """Testing RelationCounterField._on_instance_pre_delete with tracked
+        states
+        """
+        model = ReffedModel.objects.create()
+        keys = [
+            (ReffedModel, model.pk, 'm2m_reffed'),
+            (ReffedModel, model.pk, 'key_reffed'),
+        ]
+        saved_instance_states = RelationCounterField._saved_instance_states
+
+        for key in keys:
+            self.assertIn(key, saved_instance_states)
+
+        model.delete()
+
+        for key in keys:
+            self.assertNotIn(key, saved_instance_states)
+
+    def test_delete_with_destroyed_instance(self) -> None:
+        """Testing RelationCounterField._on_instance_pre_delete with a
+        previously destroyed instance
+        """
+        saved_instance_states = RelationCounterField._saved_instance_states
+        destroyed_instance_states = \
+            RelationCounterField._destroyed_instance_states
+
+        model1 = M2MRefModel.objects.create()
+        model2 = M2MRefModel.objects.create()
+        key1 = (M2MRefModel, model1.pk, 'm2m')
+        state1 = saved_instance_states[key1][id(model1)]
+
+        # Drop the first instance so its state is queued for removal.
+        del model1
+        gc.collect()
+
+        self.assertIn(key1, saved_instance_states)
+        self.assertEqual(destroyed_instance_states, [state1])
+
+        # Deleting the second instance should clean up the first's state.
+        model2.delete()
+
+        self.assertNotIn(key1, saved_instance_states)
+        self.assertEqual(destroyed_instance_states, [])
+
+    def test_store_state_with_destroyed_instance(self) -> None:
+        """Testing RelationCounterField._store_state with a previously
+        destroyed instance
+        """
+        saved_instance_states = RelationCounterField._saved_instance_states
+        destroyed_instance_states = \
+            RelationCounterField._destroyed_instance_states
+
+        model1 = M2MRefModel.objects.create()
+        key1 = (M2MRefModel, model1.pk, 'm2m')
+
+        self.assertIn(key1, saved_instance_states)
+        self.assertEqual(destroyed_instance_states, [])
+
+        state1 = saved_instance_states[key1][id(model1)]
+
+        # Destroy the instance to queue it for cleanup.
+        del model1
+        gc.collect()
+
+        self.assertEqual(destroyed_instance_states, [state1])
+
+        # Creating a new instance should trigger a state cleanup.
+        model2 = M2MRefModel.objects.create()
+        key2 = (M2MRefModel, model2.pk, 'm2m')
+
+        self.assertNotIn(key1, saved_instance_states)
+        self.assertIn(key2, saved_instance_states)
+        self.assertEqual(destroyed_instance_states, [])
+
+        # Now destroy the second one. Its state should stay around until the
+        # next time state is stored.
+        state2 = saved_instance_states[key2][id(model2)]
+
+        del model2
+        gc.collect()
+
+        self.assertIn(key2, saved_instance_states)
+        self.assertEqual(destroyed_instance_states, [state2])
+
+        # Creating a third instance should clean up the second's state.
+        model3 = M2MRefModel.objects.create()
+
+        self.assertNotIn(key2, saved_instance_states)
+        self.assertIn((M2MRefModel, model3.pk, 'm2m'), saved_instance_states)
+        self.assertEqual(destroyed_instance_states, [])
+
+    def test_remove_destroyed_states_with_unsaved_instance(self) -> None:
+        """Testing RelationCounterField._remove_destroyed_states with an
+        unsaved instance
+        """
+        unsaved_instance_states = \
+            RelationCounterField._unsaved_instance_states
+        destroyed_instance_states = \
+            RelationCounterField._destroyed_instance_states
+
+        model = M2MRefModel()
+        instance_id = id(model)
+        state = unsaved_instance_states[instance_id]
+
+        # Destroy the instance to queue it for cleanup.
+        del model
+        gc.collect()
+
+        self.assertIn(instance_id, unsaved_instance_states)
+        self.assertEqual(destroyed_instance_states, [state])
+
+        RelationCounterField._remove_destroyed_states()
+
+        self.assertNotIn(instance_id, unsaved_instance_states)
+        self.assertEqual(destroyed_instance_states, [])
+
+    def test_remove_destroyed_states_with_replaced_state(self) -> None:
+        """Testing RelationCounterField._remove_destroyed_states with a
+        destroyed state that was replaced by a new state
+        """
+        saved_instance_states = RelationCounterField._saved_instance_states
+        destroyed_instance_states = \
+            RelationCounterField._destroyed_instance_states
+
+        model1 = M2MRefModel.objects.create()
+        model2 = M2MRefModel.objects.create()
+        instance_id = id(model1)
+        key1 = (M2MRefModel, model1.pk, 'm2m')
+        states1 = saved_instance_states[key1]
+        state1 = states1[instance_id]
+
+        # Destroy the instance to queue it for cleanup.
+        del model1
+        gc.collect()
+
+        self.assertEqual(destroyed_instance_states, [state1])
+
+        # Simulate a new instance ending up with the destroyed instance's
+        # ID, replacing its state. Cleanup shouldn't remove the new state.
+        new_state = InstanceState(model2)
+        states1[instance_id] = new_state
+
+        RelationCounterField._remove_destroyed_states()
+
+        self.assertEqual(destroyed_instance_states, [])
+        self.assertIs(saved_instance_states.get(key1), states1)
+        self.assertIs(states1.get(instance_id), new_state)
+
+        # Clear out the simulated state, since nothing else will.
+        del saved_instance_states[key1]
 
     #
     # Forward-relation ManyToManyField tests

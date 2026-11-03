@@ -351,8 +351,11 @@ class CounterField(models.IntegerField):
             elif callable(self._initializer):
                 model_instance_id = id(model_instance)
                 self._locks[model_instance_id] = 1
-                value = self._initializer(model_instance)
-                del self._locks[model_instance_id]
+
+                try:
+                    value = self._initializer(model_instance)
+                finally:
+                    del self._locks[model_instance_id]
 
         if value is not None:
             is_expr = isinstance(value, QueryExpressionType)
