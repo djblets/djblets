@@ -80,10 +80,19 @@ class PreserveStartOListBlockProcessor(OListProcessor):
     value.
 
     This replaces OListProcessor.
+
+    Version Changed:
+        7.0:
+        An ordered list after an unordered list now starts a new list,
+        instead of joining the unordered list. This matches the
+        ``sane_lists`` extension, which this processor replaces.
     """
 
     # Force <ol> tags to have a start= attribute.
     LAZY_OL = False
+
+    # Only join an ordered list with a previous ordered list.
+    SIBLING_TAGS = ['ol']
 
     def run(self, parent, blocks):
         """Run the processor on the given blocks."""
