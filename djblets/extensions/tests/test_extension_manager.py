@@ -9,6 +9,7 @@ import shutil
 import tempfile
 import threading
 import time
+from typing import TYPE_CHECKING
 
 import kgb
 from django.conf import settings
@@ -16,6 +17,7 @@ from django.contrib.auth.models import User
 from django.db import connection
 from django.template import Context, Template, TemplateSyntaxError
 from django.test.utils import override_settings
+from django_assert_queries import assert_queries
 from django_evolution.evolve import Evolver
 from pipeline.conf import settings as pipeline_settings
 
@@ -30,6 +32,9 @@ from djblets.extensions.manager import (ExtensionManager,
 from djblets.extensions.models import RegisteredExtension
 from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
+
+if TYPE_CHECKING:
+    from django_assert_queries import ExpectedQuery
 
 
 logger = logging.getLogger(__name__)
@@ -254,6 +259,45 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
         self.assertEqual(MyTestExtension.registration.name,
                          self.extension_package_name)
         self.assertTrue(MyTestExtension.registration.enabled)
+
+    def test_load_with_new_extension(self) -> None:
+        """Testing ExtensionManager.load with a newly-discovered extension"""
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.assertFalse(RegisteredExtension.objects.exists())
+
+        # Perform a scan with an extension that has never been registered.
+        # This should fetch all registrations once, and then create the new
+        # one.
+        queries: list[ExpectedQuery] = [
+            {
+                'model': RegisteredExtension,
+            },
+            {
+                'model': RegisteredExtension,
+                'type': 'INSERT',
+            },
+        ]
+
+        with self.scanned_extensions([MyTestExtension]):
+            with assert_queries(queries):
+                extension_mgr.load()
+
+        registration = RegisteredExtension.objects.get()
+
+        self.assertEqual(registration.class_name, MyTestExtension.id)
+        self.assertEqual(registration.name, self.extension_package_name)
+        self.assertFalse(registration.enabled)
+        self.assertEqual(MyTestExtension.registration, registration)
+
+        self.assertEqual(
+            extension_mgr._extension_classes,
+            {
+                MyTestExtension.id: MyTestExtension,
+            },
+        )
+        self.assertEqual(extension_mgr._extension_instances, {})
 
     def test_load_with_removed_extension(self) -> None:
         """Testing ExtensionManager.load with an extension no longer available

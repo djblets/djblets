@@ -918,8 +918,7 @@ class ExtensionManager:
 
         found_extensions: dict[str, type[Extension]] = {}
         found_registrations: dict[str, RegisteredExtension] = {}
-        registrations_to_fetch: list[tuple[str, str]] = []
-        find_registrations: bool = False
+        registrations_to_create: list[tuple[str, str]] = []
         extensions_changed: bool = False
 
         for entrypoint in self._entrypoint_iterator():
@@ -959,34 +958,19 @@ class ExtensionManager:
 
             if registered_ext:
                 found_registrations[class_name] = registered_ext
-
-                if not hasattr(ext_class, 'registration'):
-                    find_registrations = True
             else:
                 assert entrypoint.dist is not None
 
-                registrations_to_fetch.append(
+                registrations_to_create.append(
                     (class_name, entrypoint.dist.name))
-                find_registrations = True
 
-        if find_registrations:
-            if registrations_to_fetch:
-                stored_registrations = list(
-                    RegisteredExtension.objects.filter(
-                        class_name__in=registrations_to_fetch))
-
-                # Go through the list of registrations found in the database
-                # and mark them as found for later processing.
-                for registered_ext in stored_registrations:
-                    class_name = registered_ext.class_name
-                    found_registrations[class_name] = registered_ext
-
+        if registrations_to_create:
             enabled_by_default = self._get_enabled_by_default_extension_ids()
 
-            # Go through each registration we still need and couldn't find,
-            # and create an entry in the database. These are going to be
-            # newly discovered extensions.
-            for class_name, ext_name in registrations_to_fetch:
+            # Go through each registration we couldn't find and create an
+            # entry in the database. These are going to be newly discovered
+            # extensions.
+            for class_name, ext_name in registrations_to_create:
                 if class_name not in found_registrations:
                     try:
                         registered_ext = RegisteredExtension.objects.create(
