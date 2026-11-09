@@ -908,6 +908,8 @@ class ExtensionManager:
             clear_template_caches()
             self._load_errors = {}
 
+        extension_classes = self._extension_classes
+
         # Preload all the RegisteredExtension objects
         registered_extensions: dict[str, RegisteredExtension] = {
             registered_ext.class_name: registered_ext
@@ -944,7 +946,7 @@ class ExtensionManager:
             class_name = f'{ext_class.__module__}.{ext_class.__name__}'
             ext_class.id = class_name
 
-            self._extension_classes[class_name] = ext_class
+            extension_classes[class_name] = ext_class
             found_extensions[class_name] = ext_class
 
             # Don't override the info if we've previously loaded this
@@ -1033,14 +1035,17 @@ class ExtensionManager:
         #
         # While we're at it, since we're at a point where we've seen all
         # extensions, we can set the ExtensionInfo.requirements for
-        # each extension
-        for class_name, ext_class in self._extension_classes.items():
+        # each extension.
+        #
+        # Since entries can be removed while iterating, we need to make sure
+        # we're working off of a copy.
+        for class_name, ext_class in list(extension_classes.items()):
             if class_name not in found_extensions:
                 if class_name in self._extension_instances:
                     self.disable_extension(class_name,
                                            force=True)
 
-                del self._extension_classes[class_name]
+                del extension_classes[class_name]
                 extensions_changed = True
             else:
                 ext_class.info.requirements = [

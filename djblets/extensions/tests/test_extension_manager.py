@@ -255,6 +255,69 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
                          self.extension_package_name)
         self.assertTrue(MyTestExtension.registration.enabled)
 
+    def test_load_with_removed_extension(self) -> None:
+        """Testing ExtensionManager.load with an extension no longer available
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        # Set up two extensions that we'll want the extension manager to
+        # keep state on.
+        extension1 = self.setup_extension(MyTestExtension)
+        extension2 = self.setup_extension(DependentExtension1)
+
+        self.assertEqual(
+            extension_mgr.get_installed_extensions(),
+            [
+                MyTestExtension,
+                DependentExtension1,
+            ],
+        )
+        self.assertEqual(
+            extension_mgr._extension_classes,
+            {
+                DependentExtension1.id: DependentExtension1,
+                MyTestExtension.id: MyTestExtension,
+            },
+        )
+        self.assertEqual(
+            extension_mgr._extension_instances,
+            {
+                DependentExtension1.id: extension2,
+                MyTestExtension.id: extension1,
+            },
+        )
+
+        # Now perform a scan but with only one of those two extensions being
+        # available. The scan should delete information on the now-removed
+        # extension.
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        extension1 = extension_mgr.get_enabled_extension(MyTestExtension.id)
+        extension2 = extension_mgr.get_enabled_extension(
+            DependentExtension1.id,
+        )
+
+        self.assertIsNotNone(extension1)
+        self.assertIsNone(extension2)
+        self.assertEqual(
+            extension_mgr.get_installed_extensions(),
+            [MyTestExtension],
+        )
+        self.assertEqual(
+            extension_mgr._extension_classes,
+            {
+                MyTestExtension.id: MyTestExtension,
+            },
+        )
+        self.assertEqual(
+            extension_mgr._extension_instances,
+            {
+                MyTestExtension.id: extension1,
+            },
+        )
+
     def test_load_with_admin_site(self):
         """Testing ExtensionManager.load with has_admin_site=True"""
         class AdminSiteMyTestExtension(HooksTestExtension):
