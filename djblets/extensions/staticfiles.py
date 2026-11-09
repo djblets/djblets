@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import os
-from typing import Optional, TYPE_CHECKING
+import weakref
+from typing import Optional, TYPE_CHECKING, cast
 
 from django.contrib.staticfiles.finders import (BaseFinder, FileSystemFinder,
                                                 get_finders)
@@ -67,14 +68,32 @@ class ExtensionFinder(BaseFinder):
     an extension (based on the full class path for the extension class).
 
     An extension is only valid if it has a "static" directory.
+
+    Version Changed:
+        6.2:
+        This class now keeps weak references to extensions instead of holding
+        onto them long-term.
     """
+
     storage_class = ExtensionStaticStorage
+
+    ######################
+    # Instance variables #
+    ######################
+
+    #: A weak set of extension instances to ignore during lookup.
+    #:
+    #: Extensions are ignored if their stored files don't appear to exist.
+    ignored_extensions: weakref.WeakSet[Extension]
+
+    #: A weak mapping of extension instances to storages.
+    storages: weakref.WeakKeyDictionary[Extension, ExtensionStaticStorage]
 
     def __init__(self, *args, **kwargs):
         super(ExtensionFinder, self).__init__(*args, **kwargs)
 
-        self.storages = {}
-        self.ignored_extensions = set()
+        self.storages = weakref.WeakKeyDictionary()
+        self.ignored_extensions = weakref.WeakSet()
 
     def list(self, ignore_patterns):
         """Lists static files within all enabled extensions."""
@@ -136,7 +155,13 @@ class ExtensionFinder(BaseFinder):
         storage = self.storages.get(extension)
 
         if storage is None:
-            storage = self.storage_class(extension)
+            # We're using a proxy so we have a convenient weak reference
+            # to the extension. Any arguments we pass to a storage class
+            # get preserved via the base storage backend's @destructible
+            # decorator's __new__(), so we need to make sure it doesn't
+            # hold a strong reference.
+            storage = self.storage_class(cast('Extension',
+                                              weakref.proxy(extension)))
             storage.prefix = 'ext/%s/' % extension.id
 
             if not os.path.isdir(storage.location):
