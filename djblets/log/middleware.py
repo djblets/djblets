@@ -4,10 +4,13 @@ The middleware sets up some advanced logging capabilities for profiling
 and exception logging.
 """
 
+from __future__ import annotations
+
 import io
 import logging
 import sys
 import traceback
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
@@ -18,6 +21,11 @@ from django.http import Http404
 from django.utils.deprecation import MiddlewareMixin
 
 from djblets.log import init_logging, init_profile_logger, log_timed
+
+if TYPE_CHECKING:
+    from typing import Any, Callable
+
+    from django.http import HttpRequest, HttpResponse, HttpResponseBase
 
 
 logger = logging.getLogger(__name__)
@@ -118,6 +126,11 @@ class LoggingMiddleware(MiddlewareMixin):
     This is needed if using ``settings.LOGGING_PAGE_TIMES`` or
     ``settings.LOGGING_ALLOW_PROFILING``, in order to handle additional
     logging for page times and detailed profiling for debugging.
+
+    Version Changed:
+        6.1.1:
+        A profiling request no longer turns on ``settings.DEBUG`` for the
+        whole process. Impact is limited to the HTTP request.
     """
 
     #: Exceptions that should be ignored by this logger.
@@ -126,56 +139,142 @@ class LoggingMiddleware(MiddlewareMixin):
     #: want to do any extra/unwanted logging of these.
     ignored_exceptions = (Http404, PermissionDenied, SuspiciousOperation)
 
-    def process_request(self, request):
-        """
-        Processes an incoming request. This will set up logging.
+    def process_request(
+        self,
+        request: HttpRequest,
+    ) -> None:
+        """Process an incoming request.
+
+        If ``settings.LOGGING_PAGE_TIMES`` is enabled, this will begin logging
+        the starting time for this HTTP request.
+
+        If ``profiling`` is passed in to the query string and
+        ``settings.LOGGING_ALLOW_PROFILING`` is enabled, cursor debug logging
+        will be turned on for the request and profiling will be performed for
+        any views.
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
         """
         if getattr(settings, 'LOGGING_PAGE_TIMES', False):
-            request._page_timedloginfo = \
-                log_timed('Page request: HTTP %s %s (by %s)' %
-                          (request.method, request.path, request.user))
+            setattr(
+                request,
+                '_djblets_page_timedloginfo',
+                log_timed(
+                    f'Page request: HTTP {request.method} {request.path} '
+                    f'(by {request.user})'
+                ),
+            )
 
         if ('profiling' in request.GET and
-            getattr(settings, "LOGGING_ALLOW_PROFILING", False)):
-            settings.DEBUG = True
+            getattr(settings, 'LOGGING_ALLOW_PROFILING', False)):
+            # Turn on cursor debug logging for this request only.
+            connection.force_debug_cursor = True
 
-    def process_view(self, request, callback, callback_args, callback_kwargs):
+    def process_view(
+        self,
+        request: HttpRequest,
+        callback: Callable[..., HttpResponse],
+        callback_args: tuple[Any, ...],
+        callback_kwargs: dict[str, Any],
+    ) -> HttpResponse | None:
+        """Process a view.
+
+        If profiling is enabled for this request, a profile will be created
+        and used to instrument the view being run.
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
+
+            callback (callable):
+                The view function to call.
+
+            callback_args (tuple):
+                Positional arguments to pass to the view.
+
+            callback_kwargs (dict):
+                Keyword arguments to pass to the view.
+
+        Returns:
+            django.http.HttpResponse:
+            The HTTP response to return and process.
         """
-        Handler for processing a view. This will run the profiler on the view
-        if profiling is allowed in the settings and the user specified the
-        profiling parameter on the URL.
-        """
+        # Initialize logging.
+        #
+        # Note that this should probably live in process_request(), but this
+        # has been here a long time and shouldn't be moved without some
+        # testing and a major version bump (or, really, a port to modern
+        # middleware).
         init_logging()
 
         if ('profiling' in request.GET and
-            getattr(settings, "LOGGING_ALLOW_PROFILING", False)):
+            getattr(settings, 'LOGGING_ALLOW_PROFILING', False)):
+            # Create a profiler tied to this request and use it to run the
+            # view.
             import cProfile
-            self.profiler = cProfile.Profile()
-            args = (request,) + callback_args
-            settings.DEBUG = True
-            return self.profiler.runcall(callback, *args, **callback_kwargs)
+            profiler = cProfile.Profile()
+            setattr(request, '_djblets_profiler', profiler)
 
-    def process_response(self, request, response):
+            return profiler.runcall(
+                callback,
+                request,
+                *callback_args,
+                **callback_kwargs,
+            )
+
+        # Use the default behavior to run the view.
+        return None
+
+    def process_response(
+        self,
+        request: HttpRequest,
+        response: HttpResponseBase,
+    ) -> HttpResponseBase:
+        """Process a response.
+
+        If page timing is enabled, this will log the page times to the main
+        log file.
+
+        If profiling is enabled, this will dump the resulting information to
+        the profile log file.
+
+        Args:
+            request (django.http.HttpRequest):
+                The HTTP request from the client.
+
+            response (django.http.HttpResponseBase):
+                The HTTP response to process.
+
+        Returns:
+            django.http.HttpResponseBase:
+            The resulting HTTP response.
         """
-        Handler for processing a response. Dumps the profiling information
-        to the profile log file.
-        """
-        timedloginfo = getattr(request, '_page_timedloginfo', None)
+        # If page timing is enabled, output the result.
+        timedloginfo = getattr(request, '_djblets_page_timedloginfo', None)
 
         if timedloginfo:
             timedloginfo.done()
 
-        if ('profiling' in request.GET and
-            getattr(settings, "LOGGING_ALLOW_PROFILING", False)):
+        # Check if a profiler was set up for this request.
+        profiler = getattr(request, '_djblets_profiler', None)
 
+        if profiler is not None:
+            # Profiling is enabled, so gather information and send it to the
+            # profiling log file.
             init_profile_logger()
 
-            self.profiler.create_stats()
+            # connection.queries is a property that creates a fresh copy
+            # on access, so make sure to fetch it once up-front.
+            connection_queries = connection.queries
+
+            profiler.create_stats()
 
             # Capture the stats
             out = io.StringIO()
             old_stdout, sys.stdout = sys.stdout, out
-            self.profiler.print_stats(1)
+            profiler.print_stats(1)
             sys.stdout = old_stdout
 
             profile_log = logging.getLogger("profile")
@@ -186,33 +285,69 @@ class LoggingMiddleware(MiddlewareMixin):
 
             profile_log.log(logging.INFO,
                             '%d database queries made\n',
-                            len(connection.queries))
+                            len(connection_queries))
 
-            queries = {}
-            for query in connection.queries:
+            queries: dict[str, list[tuple[str, str]]] = {}
+
+            for query in connection_queries:
                 sql = reformat_sql(query['sql'])
                 stack = ''.join(query['stack'][:-1])
-                time = query['time']
+                query_time = query['time']
+
                 if sql in queries:
-                    queries[sql].append((time, stack))
+                    queries[sql].append((query_time, stack))
                 else:
-                    queries[sql] = [(time, stack)]
+                    queries[sql] = [(query_time, stack)]
 
-            times = {}
+            times: dict[float, tuple[Any, ...]] = {}
+
             for sql, entries in queries.items():
-                time = sum((float(entry[0]) for entry in entries))
-                tracebacks = '\n\n'.join((entry[1] for entry in entries))
-                times[time] = \
-                    'SQL Query profile (%d times, %.3fs average)\n%s\n\n%s\n\n' % \
-                    (len(entries), time / len(entries), sql, tracebacks)
+                time = sum(
+                    float(entry[0])
+                    for entry in entries
+                )
+                tracebacks = '\n\n'.join(
+                    entry[1]
+                    for entry in entries
+                )
 
-            sorted_times = sorted(times.keys(), reverse=True)
-            for time in sorted_times:
-                profile_log.log(logging.INFO, times[time])
+                num_entries = len(entries)
+                avg_time = time / num_entries
+
+                times[time] = (
+                    num_entries,
+                    avg_time,
+                    sql,
+                    tracebacks,
+                )
+
+            for time in sorted(times.keys(),
+                               reverse=True):
+                profile_log.info(
+                    'SQL Query profile (%s times, %.3fs average)\n'
+                    '%s\n\n'
+                    '%s\n\n',
+                    *times[time],
+                )
+
+        # Check if profiling was requested, and if so, undo the debug cursor.
+        #
+        # This is a separate check from the above since we may have ended
+        # up turning this on without processing a view (due to another
+        # middleware returning a result, for example). We wouldn't have a
+        # profiler in this case.
+        if ('profiling' in request.GET and
+            getattr(settings, 'LOGGING_ALLOW_PROFILING', False)):
+            # Undo the debug cursor.
+            connection.force_debug_cursor = False
 
         return response
 
-    def process_exception(self, request, exception):
+    def process_exception(
+        self,
+        request: HttpRequest,
+        exception: Exception,
+    ) -> None:
         """Handle exceptions raised on a page.
 
         Logs the exception, along with the username and path where the
