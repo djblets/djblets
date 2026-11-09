@@ -826,6 +826,7 @@ def _cache_store_chunks(
     *,
     cache_context: _CacheContext,
     items: Iterable[_PreparedCacheItem[_T]],
+    chunks_data: (io.BytesIO | None) = None,
 ) -> Iterator[_T]:
     """Store a list of items as chunks in the cache.
 
@@ -835,6 +836,15 @@ def _cache_store_chunks(
 
     It's up to callers to catch any exceptions that may be raised from the
     cache backend when attempting to store chunks.
+
+    Version Changed:
+        6.1.1:
+        * Significantly improved the process of writing chunks to cache to
+          avoid large memory usage issues.
+
+        * Added an internal-only ``chunks_data`` argument, used for unit
+          tests. As this function is also internal, we're not considering
+          this worthy of a semantic version bump.
 
     Version Changed:
         3.0:
@@ -861,6 +871,14 @@ def _cache_store_chunks(
                 2 (object):
                     Raw data to yield back to the caller.
 
+        chunks_data (io.BytesIO, optional):
+            An optional buffer to manage when storing data to write.
+
+            This is internal-only for unit tests.
+
+            Version Added:
+                6.1.1
+
     Yields:
         object:
         Each chunk of original, unmodified item data being cached.
@@ -872,10 +890,11 @@ def _cache_store_chunks(
             The information should already be logged. Callers must catch this
             to gracefully handle the failure.
     """
-    chunks_data = io.BytesIO()
+    if chunks_data is None:
+        chunks_data = io.BytesIO()
+
     chunks_data_len: int = 0
     can_cache: bool = True
-    read_start: int = 0
     i: int = 0
     error: (Exception | None) = None
     lock = cache_context.lock
@@ -899,14 +918,13 @@ def _cache_store_chunks(
             # We have enough data to fill a chunk now. Start processing
             # what we've stored and create cache keys for each chunk.
             # Anything remaining will be stored for the next round.
-            chunks_data.seek(read_start)
+            chunks_data.seek(0)
             cached_data: dict[str, Any] = {}
 
             while chunks_data_len > CACHE_CHUNK_SIZE:
                 chunk = chunks_data.read(CACHE_CHUNK_SIZE)
                 chunk_len = len(chunk)
                 chunks_data_len -= chunk_len
-                read_start += chunk_len
 
                 # Note that we wrap the chunk in a list so that the cache
                 # backend won't try to perform any conversion on the string.
@@ -924,15 +942,29 @@ def _cache_store_chunks(
                 error = e
                 can_cache = False
 
-            # Reposition back at the end of the stream.
-            chunks_data.seek(0, io.SEEK_END)
+            # Discard the bytes from chunks_data that we wrote to the cache.
+            # We don't need to keep those around.
+            if can_cache:
+                remaining_data = chunks_data.read()
+            else:
+                remaining_data = b''
+
+            chunks_data.seek(0)
+            chunks_data.truncate()
+
+            if remaining_data:
+                chunks_data.write(remaining_data)
+
+            # Immediately free the data we were working with.
+            del cached_data
+            del remaining_data
 
     if can_cache and chunks_data_len > 0:
         # There's one last bit of data to store. Note that this should be
         # less than the size of a chunk,
         assert chunks_data_len <= CACHE_CHUNK_SIZE
 
-        chunks_data.seek(read_start)
+        chunks_data.seek(0)
         chunk = chunks_data.read()
 
         # Store the final amount of data.
