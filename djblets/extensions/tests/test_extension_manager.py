@@ -1650,6 +1650,165 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
         self.assertEqual(manager1._gen_sync.sync_gen,
                          manager2._gen_sync.sync_gen)
 
+    def test_load_with_error(self) -> None:
+        """Testing ExtensionManager.load with an error loading extensions
+        allows later sync generation bumps
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        gen_sync = extension_mgr._gen_sync
+
+        self.spy_on(
+            extension_mgr._load_extensions,
+            op=kgb.SpyOpRaise(Exception('oh no')),
+        )
+        self.spy_on(gen_sync.mark_updated)
+
+        # Fail the load.
+        with self.assertRaisesMessage(Exception, 'oh no'):
+            extension_mgr.load()
+
+        self.assertAttrsEqual(
+            extension_mgr._batch_state,
+            {
+                'active': False,
+                'needs_sync_gen_bump': False,
+            },
+        )
+
+        # Bumping should work again.
+        extension_mgr._bump_sync_gen()
+
+        self.assertSpyCalledOnce(gen_sync.mark_updated)
+
+    def test_load_with_sync_gen_bump_from_other_thread(self) -> None:
+        """Testing ExtensionManager.load with another thread bumping the sync
+        generation
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        gen_sync = extension_mgr._gen_sync
+
+        @self.spy_for(extension_mgr._load_extensions)
+        def _load_extensions(
+            manager: ExtensionManager,
+            *args,
+            **kwargs,
+        ) -> None:
+            # Bump from another thread. This isn't part of the load, so it
+            # should go through.
+            thread = threading.Thread(target=manager._bump_sync_gen)
+            thread.start()
+            thread.join()
+
+            # Bump from this thread. This is part of the load, so it should
+            # be ignored.
+            manager._bump_sync_gen()
+
+        self.spy_on(gen_sync.mark_updated)
+
+        extension_mgr.load()
+
+        self.assertSpyCalledOnce(gen_sync.mark_updated)
+
+    def test_enable_extension_with_sync_gen(self) -> None:
+        """Testing ExtensionManager.enable_extension bumps the sync generation
+        once
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        gen_sync = extension_mgr._gen_sync
+
+        self.setup_extension(MyTestExtension,
+                             enable=False)
+        self.spy_on(gen_sync.mark_updated)
+
+        # Enabling for the first time saves the extension's settings, which
+        # bumps the sync generation.
+        extension_mgr.enable_extension(MyTestExtension.id)
+
+        self.assertSpyCalledOnce(gen_sync.mark_updated)
+        self.assertAttrsEqual(
+            extension_mgr._batch_state,
+            {
+                'active': False,
+                'needs_sync_gen_bump': False,
+            },
+        )
+
+    def test_enable_extension_with_sync_gen_and_requirements(self) -> None:
+        """Testing ExtensionManager.enable_extension bumps the sync generation
+        once when enabling disabled requirements
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        gen_sync = extension_mgr._gen_sync
+
+        self.setup_extension(MyTestExtension,
+                             enable=False)
+        self.setup_extension(DependentExtension1,
+                             enable=False)
+
+        with self.scanned_extensions([MyTestExtension, DependentExtension1]):
+            extension_mgr.load()
+
+        self.assertIsNone(extension_mgr.get_enabled_extension(
+            MyTestExtension.id))
+        self.assertIsNone(extension_mgr.get_enabled_extension(
+            DependentExtension1.id))
+
+        self.spy_on(gen_sync.mark_updated)
+
+        # Enabling this will also enable MyTestExtension. Both would normally
+        # bump the sync generation when saving settings, but shouldn't in
+        # a batch.
+        extension_mgr.enable_extension(DependentExtension1.id)
+
+        self.assertIsNotNone(extension_mgr.get_enabled_extension(
+            MyTestExtension.id))
+        self.assertIsNotNone(extension_mgr.get_enabled_extension(
+            DependentExtension1.id))
+
+        self.assertSpyCalledOnce(gen_sync.mark_updated)
+        self.assertAttrsEqual(
+            extension_mgr._batch_state,
+            {
+                'active': False,
+                'needs_sync_gen_bump': False,
+            },
+        )
+
+    def test_disable_extension_with_sync_gen(self) -> None:
+        """Testing ExtensionManager.disable_extension bumps the sync
+        generation once
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        gen_sync = extension_mgr._gen_sync
+
+        extension = self.setup_extension(MyTestExtension)
+        assert extension is not None
+
+        self.spy_on(gen_sync.mark_updated)
+
+        # Disabling saves the extension's settings, which bumps the sync
+        # generation.
+        extension_mgr.disable_extension(extension.id)
+
+        self.assertSpyCalledOnce(gen_sync.mark_updated)
+        self.assertAttrsEqual(
+            extension_mgr._batch_state,
+            {
+                'active': False,
+                'needs_sync_gen_bump': False,
+            },
+        )
+
     def _rebuild_media_dirs(self, extension):
         """Rebuild the static media directories for an extension.
 

@@ -73,6 +73,34 @@ _extension_managers: WeakValueDictionary[int, ExtensionManager] = \
     WeakValueDictionary()
 
 
+class _ThreadBatchState(threading.local):
+    """Thread-local state for tracking a batch of extension changes.
+
+    This is used to track whether a batch of changes is actively being
+    managed and whether the sync generation number needs to be bumped.
+
+    Version Added:
+        6.2
+    """
+
+    ######################
+    # Instance variables #
+    ######################
+
+    #: Whether the extension update batch is actively in progress.
+    active: bool
+
+    #: Whether the sync generation number is ready to be bumped.
+    needs_sync_gen_bump: bool
+
+    def __init__(self) -> None:
+        """Initialize the batch state."""
+        super().__init__()
+
+        self.active = False
+        self.needs_sync_gen_bump = False
+
+
 class SettingListWrapper:
     """Wraps list-based settings to provide management and ref counting.
 
@@ -333,6 +361,12 @@ class ExtensionManager:
     #:     list of callable
     middleware_classes: list[ExtensionMiddlewareCallable]
 
+    #: Per-thread state for batching changes to extension state.
+    #:
+    #: Version Added:
+    #:     6.2
+    _batch_state: _ThreadBatchState
+
     #: A mapping of extension ID to extension classes.
     _extension_classes: dict[str, type[Extension]]
 
@@ -366,7 +400,7 @@ class ExtensionManager:
         self._gen_sync = GenerationSynchronizer('extensionmgr:%s:gen' % key)
         self._load_lock = threading.Lock()
         self._shutdown_lock = threading.Lock()
-        self._block_sync_gen = False
+        self._batch_state = _ThreadBatchState()
 
         self.dynamic_urls = DynamicURLResolver()
         self._extension_list_url = None
@@ -698,21 +732,23 @@ class ExtensionManager:
 
             raise InvalidExtensionError(extension_id)
 
-        # Enable the extension's dependencies.
-        for requirement_id in ext_class.requirements:
-            self.enable_extension(requirement_id)
+        with self._batch_changes():
+            # Enable the extension's dependencies.
+            for requirement_id in ext_class.requirements:
+                self.enable_extension(requirement_id)
 
-        extension = self._init_extension(ext_class)
+            extension = self._init_extension(ext_class)
 
-        # Mark this extension as enabled for future threads/processes.
-        ext_class.registration.enabled = True
-        ext_class.registration.save()
+            # Mark this extension as enabled for future threads/processes.
+            ext_class.registration.enabled = True
+            ext_class.registration.save()
 
-        # Begin updating the settings and synchronization information so that
-        # this process and others will update to use the extension's features.
-        clear_template_caches()
-        self._bump_sync_gen()
-        self._recalculate_middleware()
+            # Begin updating the settings and synchronization information so
+            # that this process and others will update to use the extension's
+            # features.
+            clear_template_caches()
+            self._bump_sync_gen()
+            self._recalculate_middleware()
 
         extension_enabled.send_robust(sender=self, extension=extension)
 
@@ -757,60 +793,63 @@ class ExtensionManager:
             djblets.extensions.errors.InvalidExtensionError:
                 The extension could not be found.
         """
-        has_load_error = extension_id in self._load_errors
+        with self._batch_changes():
+            has_load_error = extension_id in self._load_errors
 
-        if not has_load_error:
-            try:
-                extension = self._extension_instances[extension_id]
-            except KeyError:
-                # It's not enabled.
-                return
-
-            if not force and not self.get_can_disable_extension(extension_id):
-                raise DisablingExtensionError(_(
-                    'This extension cannot be disabled.'
-                ))
-
-            registration = extension.registration
-
-            # Disable each of the extensions that depends on this extension.
-            dependent_extensions = self.get_dependent_extensions(
-                extension_id,
-                enabled_only=True,
-            )
-
-            for dependent_id in dependent_extensions:
+            if not has_load_error:
                 try:
-                    self.disable_extension(dependent_id,
-                                           force=force)
-                except DisablingExtensionError as e:
-                    logger.warning(
-                        'Cannot disable the dependent extension %r: %s',
-                        dependent_id, e,
-                    )
+                    extension = self._extension_instances[extension_id]
+                except KeyError:
+                    # It's not enabled.
+                    return
 
-            self._uninstall_extension(extension)
-            self._uninit_extension(extension)
-            self._unregister_static_bundles(extension)
-        else:
-            extension = None
-            del self._load_errors[extension_id]
+                if (not force and
+                    not self.get_can_disable_extension(extension_id)):
+                    raise DisablingExtensionError(_(
+                        'This extension cannot be disabled.'
+                    ))
 
-            if extension_id in self._extension_classes:
-                # The class was loadable, so it just couldn't be instantiated.
-                # Update the registration on the class.
-                ext_class = self._extension_classes[extension_id]
-                registration = ext_class.registration
+                registration = extension.registration
+
+                # Disable each of the extensions that depends on this
+                # extension.
+                dependent_extensions = self.get_dependent_extensions(
+                    extension_id,
+                    enabled_only=True,
+                )
+
+                for dependent_id in dependent_extensions:
+                    try:
+                        self.disable_extension(dependent_id,
+                                               force=force)
+                    except DisablingExtensionError as e:
+                        logger.warning(
+                            'Cannot disable the dependent extension %r: %s',
+                            dependent_id, e,
+                        )
+
+                self._uninstall_extension(extension)
+                self._uninit_extension(extension)
+                self._unregister_static_bundles(extension)
             else:
-                registration = RegisteredExtension.objects.get(
-                    class_name=extension_id)
+                extension = None
+                del self._load_errors[extension_id]
 
-        registration.enabled = False
-        registration.save(update_fields=['enabled'])
+                if extension_id in self._extension_classes:
+                    # The class was loadable, so it just couldn't be
+                    # instantiated. Update the registration on the class.
+                    ext_class = self._extension_classes[extension_id]
+                    registration = ext_class.registration
+                else:
+                    registration = RegisteredExtension.objects.get(
+                        class_name=extension_id)
 
-        clear_template_caches()
-        self._bump_sync_gen()
-        self._recalculate_middleware()
+            registration.enabled = False
+            registration.save(update_fields=['enabled'])
+
+            clear_template_caches()
+            self._bump_sync_gen()
+            self._recalculate_middleware()
 
         if extension is not None:
             extension_disabled.send_robust(sender=self,
@@ -871,10 +910,20 @@ class ExtensionManager:
                 enabled extensions, clearing all state, and re-loading
                 all extension data.
         """
+        # Load extensions in a lock so multiple threads don't all try to load
+        # at the same time.
         with self._load_lock:
-            self._block_sync_gen = True
-            self._load_extensions(full_reload)
-            self._block_sync_gen = False
+            # Load all extensions in a batch, and make sure not to bump the
+            # sync generation number. We very well may be loading in response
+            # to another process bumping this, so we don't want to bump it
+            # again.
+            #
+            # Failure to do this can result in a loop where the number gets
+            # bumped by every process/thread reacting to another
+            # process/thread bumping the number, resulting in massive
+            # slowdown and errors.
+            with self._batch_changes(bump_sync_gen=False):
+                self._load_extensions(full_reload=full_reload)
 
     def shutdown(self) -> None:
         """Shut down the extension manager and all of its extensions.
@@ -1864,6 +1913,58 @@ class ExtensionManager:
         """
         return iter(importlib_metadata.entry_points(group=self.key))
 
+    @contextmanager
+    def _batch_changes(
+        self,
+        *,
+        bump_sync_gen: bool = True,
+    ) -> Iterator[None]:
+        """Batch changes to extension state.
+
+        Anything that would bump the synchronization generation within the
+        context will instead bump it once when the context exits. This keeps
+        other processes from reloading more than once for a single change.
+
+        Batches can be nested. Only the outermost batch will bump the
+        synchronization generation.
+
+        Batches only apply to the thread they were started in.
+
+        Version Added:
+            6.2
+
+        Args:
+            bump_sync_gen (bool, optional):
+                Whether to bump the synchronization generation when the batch
+                ends, if needed.
+
+                This only applies to the outermost batch.
+
+        Context:
+            Changes will be batched until the context exits.
+        """
+        batch_state = self._batch_state
+
+        if batch_state.active:
+            # There's already a batch in progress. It will take care of
+            # everything when it ends.
+            yield
+            return
+
+        batch_state.active = True
+        batch_state.needs_sync_gen_bump = False
+
+        try:
+            yield
+        finally:
+            needs_sync_gen_bump = batch_state.needs_sync_gen_bump
+
+            batch_state.active = False
+            batch_state.needs_sync_gen_bump = False
+
+            if needs_sync_gen_bump and bump_sync_gen:
+                self._bump_sync_gen()
+
     def _bump_sync_gen(self) -> None:
         """Bump the synchronization generation value.
 
@@ -1874,14 +1975,15 @@ class ExtensionManager:
         cached objects that depends on templates and use this serial number
         will be invalidated, allowing TemplateHooks and other hooks
         to be re-run.
+
+        Any calls made within a batch will trigger a single bump once the
+        batch is done.
         """
-        # If we're in the middle of loading extension state, perhaps due to
-        # the sync number being bumped by another process, this flag will be
-        # sent in order to block any further attempts at bumping the number.
-        # Failure to do this can result in a loop where the number gets
-        # bumped by every process/thread reacting to another process/thread
-        # bumping the number, resulting in massive slowdown and errors.
-        if self._block_sync_gen:
+        batch_state = self._batch_state
+
+        if batch_state.active:
+            # We're in a batch. We'll bump once when the batch ends.
+            batch_state.needs_sync_gen_bump = True
             return
 
         self._gen_sync.mark_updated()
