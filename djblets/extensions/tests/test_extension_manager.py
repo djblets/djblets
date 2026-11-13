@@ -12,6 +12,7 @@ import time
 from typing import TYPE_CHECKING
 
 import kgb
+from django.apps.registry import apps
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import connection
@@ -22,6 +23,7 @@ from django_evolution.evolve import Evolver
 from pipeline.conf import settings as pipeline_settings
 
 from djblets.deprecation import RemovedInDjblets80Warning
+from djblets.extensions import manager as manager_mod
 from djblets.extensions.errors import (DisablingExtensionError,
                                        EnablingExtensionError)
 from djblets.extensions.extension import Extension
@@ -1673,6 +1675,7 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
             extension_mgr._batch_state,
             {
                 'active': False,
+                'needs_app_registry_sync': False,
                 'needs_sync_gen_bump': False,
             },
         )
@@ -1735,6 +1738,7 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
             extension_mgr._batch_state,
             {
                 'active': False,
+                'needs_app_registry_sync': False,
                 'needs_sync_gen_bump': False,
             },
         )
@@ -1805,9 +1809,224 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
             extension_mgr._batch_state,
             {
                 'active': False,
+                'needs_app_registry_sync': False,
                 'needs_sync_gen_bump': False,
             },
         )
+
+    def test_disable_extension_with_other_extensions(self) -> None:
+        """Testing ExtensionManager.disable_extension with other extensions
+        enabled updates the app registry
+        """
+        class MyTestExtension1(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.model_tests',
+            ]
+
+        class MyTestExtension2(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.templatetag_tests',
+            ]
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        stored_app_configs = apps.stored_app_configs
+        stack_size = len(stored_app_configs)
+
+        # Enable both extensions. We should have one entry in the stack.
+        extension1 = self.setup_extension(MyTestExtension1)
+        extension2 = self.setup_extension(MyTestExtension2)
+
+        assert extension1 is not None
+        assert extension2 is not None
+
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+        self.assertEqual(len(stored_app_configs), stack_size + 1)
+
+        # Disable the first extension. Only the second extension's apps
+        # should remain.
+        extension_mgr.disable_extension(extension1.id)
+
+        self.assertFalse(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+        self.assertEqual(len(stored_app_configs), stack_size + 1)
+
+        # Disable the second extension. Our entry should be gone.
+        extension_mgr.disable_extension(extension2.id)
+
+        self.assertFalse(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+        self.assertEqual(len(stored_app_configs), stack_size)
+        self.assertIsNone(manager_mod._app_registry_configs)
+        self.assertEqual(extension_mgr._app_extension_ids, set())
+
+    def test_disable_extension_with_multiple_managers(self) -> None:
+        """Testing ExtensionManager.disable_extension with extensions enabled
+        in multiple extension managers updates the app registry
+        """
+        class MyTestExtension1(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.model_tests',
+            ]
+
+        class MyTestExtension2(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.templatetag_tests',
+            ]
+
+        extension_mgr1 = self.extension_mgr
+        extension_mgr2 = ExtensionManager('unit-tests-2')
+
+        assert extension_mgr1 is not None
+        assert extension_mgr2 is not None
+
+        stored_app_configs = apps.stored_app_configs
+        stack_size = len(stored_app_configs)
+
+        # Enable an extension in each manager. They should share one entry
+        # in the stack.
+        extension1 = self.setup_extension(
+            MyTestExtension1,
+            extension_mgr=extension_mgr1,
+        )
+        extension2 = self.setup_extension(
+            MyTestExtension2,
+            extension_mgr=extension_mgr2,
+        )
+
+        assert extension1 is not None
+        assert extension2 is not None
+
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+        self.assertEqual(len(stored_app_configs), stack_size + 1)
+
+        # Disable the first manager's extension. Only the second manager's
+        # extension's apps should remain.
+        extension_mgr1.disable_extension(extension1.id)
+
+        self.assertFalse(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+        self.assertEqual(len(stored_app_configs), stack_size + 1)
+
+        # Disable the second manager's extension. The shared entry should be
+        # gone.
+        extension_mgr2.disable_extension(extension2.id)
+
+        self.assertFalse(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+        self.assertEqual(len(stored_app_configs), stack_size)
+        self.assertIsNone(manager_mod._app_registry_configs)
+        self.assertEqual(extension_mgr1._app_extension_ids, set())
+        self.assertEqual(extension_mgr2._app_extension_ids, set())
+
+    def test_enable_extension_with_app_error(self) -> None:
+        """Testing ExtensionManager.enable_extension with an error installing
+        the extension's apps restores the app registry
+        """
+        class MyTestExtension1(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.model_tests',
+            ]
+
+        class MyTestExtensionBadApp(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.does_not_exist',
+            ]
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        stored_app_configs = apps.stored_app_configs
+        stack_size = len(stored_app_configs)
+
+        extension1 = self.setup_extension(MyTestExtension1)
+        assert extension1 is not None
+
+        self.setup_extension(
+            MyTestExtensionBadApp,
+            enable=False,
+        )
+
+        # Enabling the extension with a bad app should fail.
+        with self.assertRaises(EnablingExtensionError):
+            extension_mgr.enable_extension(MyTestExtensionBadApp.id)
+
+        # The registry should be usable, with only the first extension's
+        # apps installed.
+        self.assertTrue(apps.ready)
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertNotIn('djblets.extensions.tests.apps.does_not_exist',
+                         settings.INSTALLED_APPS)
+        self.assertEqual(len(stored_app_configs), stack_size + 1)
+        self.assertIs(manager_mod._app_registry_configs, apps.app_configs)
+        self.assertEqual(extension_mgr._app_extension_ids,
+                         {extension1.id})
+
+    def test_shutdown_with_multiple_extensions(self) -> None:
+        """Testing ExtensionManager.shutdown with multiple extensions updates
+        the app registry once
+        """
+        class MyTestExtension1(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.model_tests',
+            ]
+
+        class MyTestExtension2(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.templatetag_tests',
+            ]
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        stored_app_configs = apps.stored_app_configs
+        stack_size = len(stored_app_configs)
+
+        self.setup_extension(MyTestExtension1)
+        self.setup_extension(MyTestExtension2)
+
+        self.spy_on(apps.set_installed_apps)
+        self.spy_on(apps.unset_installed_apps)
+
+        # Shut down the extension manager. This should remove both extensions'
+        # list of apps.
+        extension_mgr.shutdown()
+
+        self.assertSpyNotCalled(apps.set_installed_apps)
+        self.assertSpyCalledOnce(apps.unset_installed_apps)
+
+        self.assertFalse(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertFalse(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+        self.assertEqual(len(stored_app_configs), stack_size)
+        self.assertIsNone(manager_mod._app_registry_configs)
+        self.assertEqual(extension_mgr._app_extension_ids, set())
 
     def _rebuild_media_dirs(self, extension):
         """Rebuild the static media directories for an extension.

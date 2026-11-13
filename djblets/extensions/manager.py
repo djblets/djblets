@@ -56,10 +56,11 @@ from djblets.template.caches import (clear_template_caches,
 from djblets.urls.resolvers import DynamicURLResolver
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Sequence
+    from collections.abc import Iterable, Iterator, Mapping, Sequence
     from types import ModuleType
     from typing import Any
 
+    from django.apps import AppConfig
     from typelets.symbols import Unsettable
 
     from djblets.extensions.extension import (CSSBundleConfigs,
@@ -71,6 +72,27 @@ logger = logging.getLogger(__name__)
 
 _extension_managers: WeakValueDictionary[int, ExtensionManager] = \
     WeakValueDictionary()
+
+
+#: A lock for changes to the app registry made by extension managers.
+#:
+#: Version Added:
+#:     6.2
+_app_registry_lock = threading.RLock()
+
+
+#: The app configs we last installed in the app registry.
+#:
+#: This is shared by all extension managers. A single list of installed apps
+#: is shared across all extensions across all extension managers, which are
+#: then managed on the stack.
+#:
+#: This value is used to tell if the managed list is still on the top of the
+#: installed apps stack, and will be ``None`` if there's no entry.
+#:
+#: Version Added:
+#:     6.2
+_app_registry_configs: (Mapping[str, AppConfig] | None) = None
 
 
 class _ThreadBatchState(threading.local):
@@ -90,6 +112,9 @@ class _ThreadBatchState(threading.local):
     #: Whether the extension update batch is actively in progress.
     active: bool
 
+    #: Whether the apps registry needs to be synced.
+    needs_app_registry_sync: bool
+
     #: Whether the sync generation number is ready to be bumped.
     needs_sync_gen_bump: bool
 
@@ -98,6 +123,7 @@ class _ThreadBatchState(threading.local):
         super().__init__()
 
         self.active = False
+        self.needs_app_registry_sync = False
         self.needs_sync_gen_bump = False
 
 
@@ -361,6 +387,12 @@ class ExtensionManager:
     #:     list of callable
     middleware_classes: list[ExtensionMiddlewareCallable]
 
+    #: The IDs of extensions whose apps are in the app registry.
+    #:
+    #: Version Added:
+    #:     6.2
+    _app_extension_ids: set[str]
+
     #: Per-thread state for batching changes to extension state.
     #:
     #: Version Added:
@@ -411,6 +443,7 @@ class ExtensionManager:
         # to allow for ref-counted add/remove operations.
         self._installed_apps_setting = SettingListWrapper('INSTALLED_APPS',
                                                           'installed app')
+        self._app_extension_ids = set()
 
         self._context_processors_setting = SettingListWrapper(
             'context_processors',
@@ -1099,12 +1132,13 @@ class ExtensionManager:
         This will bring the ExtensionManager back to the state where
         it doesn't yet know about any extensions, requiring a re-load.
         """
-        for extension in self.get_enabled_extensions():
-            # Make sure this is actually an enabled extension, and not one
-            # that's already been shut down by another instance of this
-            # ExtensionManager (which should only happen in tests):
-            if hasattr(extension.__class__, 'info'):
-                self._uninit_extension(extension)
+        with self._batch_changes():
+            for extension in self.get_enabled_extensions():
+                # Make sure this is actually an enabled extension, and not
+                # one that's already been shut down by another instance of
+                # this ExtensionManager (which should only happen in tests):
+                if hasattr(extension.__class__, 'info'):
+                    self._uninit_extension(extension)
 
         for extension_class in self.get_installed_extensions():
             if hasattr(extension_class, 'info'):
@@ -1402,13 +1436,6 @@ class ExtensionManager:
                 logger.exception('Unexpected error removing installed app '
                                  'modules for extension %s: %s',
                                  extension.id, e)
-
-        try:
-            clear_template_tag_caches()
-        except Exception as e:
-            logger.exception('Unexpected error clearing template tag caches '
-                             'when uninitializing extension %s: %s',
-                             extension.id, e)
 
         extension.info.enabled = False
 
@@ -1861,20 +1888,26 @@ class ExtensionManager:
             The list of newly-installed apps.
         """
         new_installed_apps = extension.apps or [extension.info.app_name]
-        self._installed_apps_setting.add_list(new_installed_apps)
+        installed_apps_setting = self._installed_apps_setting
+        app_extension_ids = self._app_extension_ids
 
-        apps.set_installed_apps(settings.INSTALLED_APPS)
+        installed_apps_setting.add_list(new_installed_apps)
+        app_extension_ids.add(extension.id)
 
-        # Django's set_installed_apps() calls clear_cache() twice (its own,
-        # and the one at the end of populate()), but both run while
-        # Apps.ready is False. clear_cache() only calls _expire_cache() on
-        # each model when the registry is ready, so neither call rebuilds
-        # the per-model caches.
-        #
-        # Without this, a model's relation tree may have been cached before
-        # an extension providing a related model was registered, leaving
-        # that relation permanently missing from the tree.
-        apps.clear_cache()
+        # The rest of the extension's setup needs the apps to be available,
+        # so this can't wait for the end of a batch.
+        try:
+            self._sync_app_registry()
+        except Exception:
+            # Something went wrong when syncing the app registry. We'll need
+            # to remove this extension's apps so they don't break future
+            # syncs, and bring back the apps for any other extensions.
+            installed_apps_setting.remove_list(new_installed_apps)
+            app_extension_ids.discard(extension.id)
+
+            self._sync_app_registry()
+
+            raise
 
         return new_installed_apps
 
@@ -1894,9 +1927,34 @@ class ExtensionManager:
         # Remove the extension's apps from INSTALLED_APPS.
         self._installed_apps_setting.remove_list(
             extension.apps or [extension.info.app_name])
+        self._app_extension_ids.discard(extension.id)
 
-        # Now clear the apps and their modules from any caches.
-        apps.unset_installed_apps()
+        batch_state = self._batch_state
+
+        if batch_state.active:
+            # We're in a batch, so queue a registry sync once the batch is
+            # done.
+            batch_state.needs_app_registry_sync = True
+        else:
+            # Immediately sync the registry.
+            self._sync_app_registry()
+
+    def _sync_app_registry(self) -> None:
+        """Update Django's app registry to match the installed apps.
+
+        This updates the registry for all extension managers. See
+        :py:func:`_sync_shared_app_registry` for details.
+
+        Version Added:
+            6.2
+        """
+        _sync_shared_app_registry()
+
+        # If in a batch, mark that an app registry sync is no longer needed.
+        batch_state = self._batch_state
+
+        if batch_state.active:
+            batch_state.needs_app_registry_sync = False
 
     def _entrypoint_iterator(
         self,
@@ -1925,6 +1983,10 @@ class ExtensionManager:
         context will instead bump it once when the context exits. This keeps
         other processes from reloading more than once for a single change.
 
+        Removing apps from the app registry is also held until the context
+        exits, so that removing apps for several extensions only rebuilds the
+        registry once.
+
         Batches can be nested. Only the outermost batch will bump the
         synchronization generation.
 
@@ -1952,15 +2014,21 @@ class ExtensionManager:
             return
 
         batch_state.active = True
+        batch_state.needs_app_registry_sync = False
         batch_state.needs_sync_gen_bump = False
 
         try:
             yield
         finally:
+            needs_app_registry_sync = batch_state.needs_app_registry_sync
             needs_sync_gen_bump = batch_state.needs_sync_gen_bump
 
             batch_state.active = False
+            batch_state.needs_app_registry_sync = False
             batch_state.needs_sync_gen_bump = False
+
+            if needs_app_registry_sync:
+                self._sync_app_registry()
 
             if needs_sync_gen_bump and bump_sync_gen:
                 self._bump_sync_gen()
@@ -2250,6 +2318,73 @@ def shutdown_extension_managers() -> None:
     """
     for extension_manager in get_extension_managers():
         extension_manager.shutdown()
+
+
+def _sync_shared_app_registry() -> None:
+    """Update Django's app registry to match the installed apps.
+
+    This will manage Django's app registry stack, keeping a single entry on
+    top of it for the apps of all extension managers, and replacing it
+    whenever extensions change. When there are no extension apps left, the
+    entry will be removed.
+
+    If something else has changed the stack since our last change (such as
+    a unit test overriding ``INSTALLED_APPS``), we'll leave their entries
+    alone and add ours on top. Note that this might result in inconsistent
+    state (depending on the order of pushes and pops), but in practice,
+    extension managers are the only things that change the app registry
+    outside of unit tests.
+
+    Version Added:
+        6.2
+    """
+    global _app_registry_configs
+
+    with _app_registry_lock:
+        if (_app_registry_configs is not None and
+            apps.app_configs is _app_registry_configs):
+            # Our entry is on top of the stack. Pop it and replace it.
+            apps.unset_installed_apps()
+
+        _app_registry_configs = None
+
+        has_extension_apps = any(
+            extension_manager._app_extension_ids
+            for extension_manager in get_extension_managers()
+        )
+
+        if has_extension_apps:
+            stored_app_configs = apps.stored_app_configs
+            stack_size = len(stored_app_configs)
+
+            try:
+                apps.set_installed_apps(settings.INSTALLED_APPS)
+            except Exception:
+                if len(stored_app_configs) > stack_size:
+                    # Django has already pushed the previous state onto the
+                    # stack. The registry won't be usable until it's restored.
+                    apps.unset_installed_apps()
+                    clear_template_tag_caches()
+
+                raise
+
+            # Django's set_installed_apps() calls clear_cache() twice (its
+            # own, and the one at the end of populate()), but both run while
+            # Apps.ready is False. clear_cache() only calls _expire_cache() on
+            # each model when the registry is ready, so neither call rebuilds
+            # the per-model caches.
+            #
+            # Without this, a model's relation tree may have been cached
+            # before an extension providing a related model was registered,
+            # leaving that relation permanently missing from the tree.
+            apps.clear_cache()
+
+            _app_registry_configs = apps.app_configs
+
+        # Template tag libraries are found through the app registry and may
+        # have been rebuilt while a batch was waiting to remove apps, so they
+        # need to be rebuilt too.
+        clear_template_tag_caches()
 
 
 # When the process ends, shut down the extensions on this manager.
