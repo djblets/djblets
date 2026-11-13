@@ -364,6 +364,65 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
             },
         )
 
+    def test_load_with_removed_requirement(self) -> None:
+        """Testing ExtensionManager.load with a required extension no longer
+        available
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        # Set up an extension and another extension that requires it.
+        extension1 = self.setup_extension(MyTestExtension)
+        extension2 = self.setup_extension(DependentExtension1)
+
+        self.assertEqual(
+            extension_mgr._extension_classes,
+            {
+                DependentExtension1.id: DependentExtension1,
+                MyTestExtension.id: MyTestExtension,
+            },
+        )
+        self.assertEqual(
+            extension_mgr._extension_instances,
+            {
+                DependentExtension1.id: extension2,
+                MyTestExtension.id: extension1,
+            },
+        )
+
+        # Load our two known extensions.
+        with self.scanned_extensions([MyTestExtension, DependentExtension1]):
+            extension_mgr.load()
+
+        self.assertEqual(DependentExtension1.info.requirements,
+                         [MyTestExtension])
+
+        # Now perform a scan with only the dependent extension available.
+        # The required extension should be removed, and the dependent
+        # extension should be disabled along with it.
+        with self.assertLogs(manager_logger, level='WARNING') as logs:
+            with self.scanned_extensions([DependentExtension1]):
+                extension_mgr.load()
+
+        self.assertEqual(
+            extension_mgr._extension_classes,
+            {
+                DependentExtension1.id: DependentExtension1,
+            },
+        )
+        self.assertEqual(extension_mgr._extension_instances, {})
+        self.assertEqual(DependentExtension1.info.requirements, [])
+        self.assertFalse(DependentExtension1.registration.enabled)
+
+        self.assertEqual(
+            logs.output,
+            [
+                f'WARNING:djblets.extensions.manager:Extension '
+                f'{DependentExtension1.id} requires extension '
+                f'{MyTestExtension.id}, which is not installed.',
+            ],
+        )
+
     def test_load_with_admin_site(self):
         """Testing ExtensionManager.load with has_admin_site=True"""
         class AdminSiteMyTestExtension(HooksTestExtension):

@@ -1099,13 +1099,9 @@ class ExtensionManager:
         # has removed some extensions. Go through and remove any that we
         # can no longer find.
         #
-        # While we're at it, since we're at a point where we've seen all
-        # extensions, we can set the ExtensionInfo.requirements for
-        # each extension.
-        #
         # Since entries can be removed while iterating, we need to make sure
         # we're working off of a copy.
-        for class_name, ext_class in list(extension_classes.items()):
+        for class_name in list(extension_classes.keys()):
             if class_name not in found_extensions:
                 if class_name in self._extension_instances:
                     self.disable_extension(class_name,
@@ -1113,11 +1109,22 @@ class ExtensionManager:
 
                 del extension_classes[class_name]
                 extensions_changed = True
-            else:
-                ext_class.info.requirements = [
-                    self.get_installed_extension(requirement_id)
-                    for requirement_id in ext_class.requirements
-                ]
+
+        # Now that we have the final list of extensions, we can set the
+        # ExtensionInfo.requirements for each extension.
+        for ext_class in extension_classes.values():
+            requirements: list[type[Extension]] = []
+
+            for requirement_id in ext_class.requirements:
+                try:
+                    requirements.append(
+                        self.get_installed_extension(requirement_id))
+                except InvalidExtensionError:
+                    logger.warning('Extension %s requires extension %s, '
+                                   'which is not installed.',
+                                   ext_class.id, requirement_id)
+
+            ext_class.info.requirements = requirements
 
         # Add the sync generation if it doesn't already exist.
         self._gen_sync.refresh()
