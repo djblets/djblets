@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+import io
 import pickle
 import re
 import sys
@@ -16,12 +17,16 @@ from django.core.cache import cache
 from django.core.cache.backends.base import memcache_key_warnings
 from django.test.utils import override_settings
 
-from djblets.cache.backend import (CACHE_CHUNK_SIZE,
-                                   MAX_KEY_SIZE,
-                                   cache_memoize,
-                                   cache_memoize_iter,
-                                   make_cache_key,
-                                   _get_default_encryption_key)
+from djblets.cache.backend import (
+    CACHE_CHUNK_SIZE,
+    MAX_KEY_SIZE,
+    _CacheContext,
+    _cache_store_chunks,
+    _get_default_encryption_key,
+    cache_memoize,
+    cache_memoize_iter,
+    make_cache_key,
+)
 from djblets.protect.locks import CacheLock
 from djblets.secrets.crypto import AES_BLOCK_SIZE, aes_decrypt, aes_encrypt
 from djblets.testing.testcases import TestCase
@@ -125,6 +130,225 @@ class BaseCacheTestCase(kgb.SpyAgency, TestCase):
                              CACHE_CHUNK_SIZE * num_chunks + extra_len)
 
         return data, chunk_data
+
+
+class CacheStoreChunksTests(BaseCacheTestCase):
+    """Unit tests for _cache_store_chunks.
+
+    Version Added:
+        6.1.1
+    """
+
+    #: The length of data to include in each block for testing.
+    #:
+    #: Each block is slightly larger than 1/4th of the chunk size, giving
+    #: us a total size that will exceed the chunk boundaries.
+    TEST_BLOCK_SIZE = CACHE_CHUNK_SIZE // 4 + 17
+
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The cache context created for testing.
+    cache_context: _CacheContext
+
+    def setUp(self) -> None:
+        """Set up state for a test.
+
+        This will provide a cache context for testing.
+        """
+        super().setUp()
+
+        self.cache_context = _CacheContext(
+            base_cache_key='abc123',
+            cache=cache,
+            compress_large_data=False,
+            encryption_key=None,
+            expiration=60,
+            lock=None,
+            use_encryption=False,
+        )
+
+    def test_discards_written_chunks(self) -> None:
+        """Testing _cache_store_chunks discards previously-written chunk data
+        """
+        cache_context = self.cache_context
+        block_size = self.TEST_BLOCK_SIZE
+
+        # Generate some data we can test against. We'll use blocks just
+        # slightly larger than 1/4th of the chunk size. This will give us
+        # 8 full chunks plus a bit.
+        blocks: list[bytes] = [
+            bytes([i]) * block_size
+            for i in range(32)
+        ]
+
+        chunks_data = io.BytesIO()
+        chunks_iter = _cache_store_chunks(
+            cache_context=cache_context,
+            chunks_data=chunks_data,
+            items=(
+                (block, True, i)
+                for i, block in enumerate(blocks)
+            ),
+        )
+
+        items: list[int] = []
+
+        for item in chunks_iter:
+            items.append(item)
+
+            # _cache_store_chunks yields each item before writing to cache.
+            # At this point in the code, the buffer should only contain
+            # whatever was remaining after the last full chunk was written.
+            with chunks_data.getbuffer() as buffer:
+                self.assertLessEqual(buffer.nbytes, CACHE_CHUNK_SIZE)
+
+        self.assertEqual(items, list(range(32)))
+        self.assertEqual(cache.get(cache_context.full_cache_key), '9')
+        self.assertEqual(
+            b''.join(
+                cache.get(cache_context.make_subkey(i))[0]
+                for i in range(9)
+            ),
+            b''.join(blocks),
+        )
+        self.assertIsNone(cache.get(cache_context.make_subkey(9)))
+
+    def test_chunk_boundaries_with_size_0(self) -> None:
+        """Testing _cache_store_chunks with data size of 0"""
+        self._run_test_chunk_boundary(size=0)
+
+    def test_chunk_boundaries_with_size_1(self) -> None:
+        """Testing _cache_store_chunks with data size of 1"""
+        self._run_test_chunk_boundary(size=1)
+
+    def test_chunk_boundaries_with_chunk_size(self) -> None:
+        """Testing _cache_store_chunks with data size at chunk boundary"""
+        self._run_test_chunk_boundary(size=CACHE_CHUNK_SIZE)
+
+    def test_chunk_boundaries_with_chunk_size_minus_1(self) -> None:
+        """Testing _cache_store_chunks with data size at chunk boundary - 1"""
+        self._run_test_chunk_boundary(size=CACHE_CHUNK_SIZE - 1)
+
+    def test_chunk_boundaries_with_chunk_size_plus_1(self) -> None:
+        """Testing _cache_store_chunks with data size at chunk boundary + 1"""
+        self._run_test_chunk_boundary(size=CACHE_CHUNK_SIZE + 1)
+
+    def test_chunk_boundaries_with_chunk_size_times_2(self) -> None:
+        """Testing _cache_store_chunks with data size at chunk boundary * 2"""
+        self._run_test_chunk_boundary(size=CACHE_CHUNK_SIZE * 2)
+
+    def test_chunk_boundaries_with_chunk_size_times_2_plus_1(self) -> None:
+        """Testing _cache_store_chunks with data size at chunk boundary * 2 + 1
+        """
+        self._run_test_chunk_boundary(size=CACHE_CHUNK_SIZE * 2 + 1)
+
+    def test_chunk_boundaries_with_chunk_size_times_2_minus_1(self) -> None:
+        """Testing _cache_store_chunks with data size at chunk boundary * 2 - 1
+        """
+        self._run_test_chunk_boundary(size=CACHE_CHUNK_SIZE * 2 - 1)
+
+    def test_chunk_boundaries_with_chunk_size_times_10(self) -> None:
+        """Testing _cache_store_chunks with data size at chunk boundary * 10"""
+        self._run_test_chunk_boundary(size=CACHE_CHUNK_SIZE * 10)
+
+    def test_with_set_many_error(self) -> None:
+        """Testing _cache_store_chunks with cache backend error when calling
+        set_many
+        """
+        set_many_spy = self.spy_on(
+            cache.set_many,
+            op=kgb.SpyOpRaise(Exception('Oh no')),
+        )
+        self.spy_on(cache.set)
+
+        cache_context = self.cache_context
+        block_size = self.TEST_BLOCK_SIZE
+        chunks_data = io.BytesIO()
+
+        chunks_iter = _cache_store_chunks(
+            cache_context=cache_context,
+            chunks_data=chunks_data,
+            items=(
+                (b'x' * block_size, True, i)
+                for i in range(20)
+            ),
+        )
+
+        items: list[int] = []
+
+        with self.assertLogs() as logs, \
+             self.assertRaisesMessage(Exception, 'Oh no'):
+            for item in chunks_iter:
+                items.append(item)
+
+                if set_many_spy.called:
+                    # Make sure nothing remains in the buffer.
+                    with chunks_data.getbuffer() as buffer:
+                        self.assertEqual(buffer.nbytes, 0)
+
+        self.assertEqual(items, list(range(20)))
+        self.assertSpyCallCount(cache.set_many, 1)
+        self.assertSpyNotCalled(cache.set)
+        self.assertIsNone(cache.get(cache_context.full_cache_key))
+        self.assertIsNone(cache.get(cache_context.make_subkey(0)))
+
+        self.assertEqual(len(logs.output), 1)
+        self.assertEqual(
+            logs.output[0].splitlines()[:2],
+            [
+                "ERROR:djblets.cache.backend:Unable to store cached data for "
+                "keys ['example.com:abc123-0']: Oh no",
+
+                "Traceback (most recent call last):",
+            ],
+        )
+
+    def _run_test_chunk_boundary(
+        self,
+        *,
+        size: int,
+    ) -> None:
+        """Run a chunk boundary test.
+
+        This will check that data of the given size properly fits in the
+        right number of chunks.
+
+        Args:
+            size (int):
+                The size of the data to cache.
+
+        Raises:
+            AssertionError:
+                An expectation failed.
+        """
+        cache_context = self.cache_context
+        block_size = self.TEST_BLOCK_SIZE
+        chunk_count = (size + CACHE_CHUNK_SIZE - 1) // CACHE_CHUNK_SIZE
+        data = b'x' * size
+
+        items: list[int] = list(_cache_store_chunks(
+            cache_context=cache_context,
+            items=(
+                (data[i:i + block_size], False, None)
+                for i in range(0, size, block_size)
+            ),
+        ))
+
+        self.assertEqual(items, [])
+        self.assertEqual(
+            cache.get(cache_context.full_cache_key),
+            str(chunk_count),
+        )
+
+        for i in range(chunk_count):
+            self.assertEqual(
+                cache.get(cache_context.make_subkey(i)),
+                [data[i * CACHE_CHUNK_SIZE:(i + 1) * CACHE_CHUNK_SIZE]],
+            )
+
+        self.assertIsNone(cache.get(cache_context.make_subkey(chunk_count)))
 
 
 class CacheMemoizeTests(BaseCacheTestCase):

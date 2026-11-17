@@ -9,6 +9,7 @@ import shutil
 import tempfile
 import threading
 import time
+from typing import TYPE_CHECKING
 
 import kgb
 from django.conf import settings
@@ -16,6 +17,7 @@ from django.contrib.auth.models import User
 from django.db import connection
 from django.template import Context, Template, TemplateSyntaxError
 from django.test.utils import override_settings
+from django_assert_queries import assert_queries
 from django_evolution.evolve import Evolver
 from pipeline.conf import settings as pipeline_settings
 
@@ -30,6 +32,9 @@ from djblets.extensions.manager import (ExtensionManager,
 from djblets.extensions.models import RegisteredExtension
 from djblets.extensions.testing import ExtensionTestCaseMixin
 from djblets.testing.testcases import TestCase
+
+if TYPE_CHECKING:
+    from django_assert_queries import ExpectedQuery
 
 
 logger = logging.getLogger(__name__)
@@ -256,6 +261,108 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
         self.assertEqual(MyTestExtension.registration.name,
                          self.extension_package_name)
         self.assertTrue(MyTestExtension.registration.enabled)
+
+    def test_load_with_new_extension(self) -> None:
+        """Testing ExtensionManager.load with a newly-discovered extension"""
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.assertFalse(RegisteredExtension.objects.exists())
+
+        # Perform a scan with an extension that has never been registered.
+        # This should fetch all registrations once, and then create the new
+        # one.
+        queries: list[ExpectedQuery] = [
+            {
+                'model': RegisteredExtension,
+            },
+            {
+                'model': RegisteredExtension,
+                'type': 'INSERT',
+            },
+        ]
+
+        with self.scanned_extensions([MyTestExtension]):
+            with assert_queries(queries):
+                extension_mgr.load()
+
+        registration = RegisteredExtension.objects.get()
+
+        self.assertEqual(registration.class_name, MyTestExtension.id)
+        self.assertEqual(registration.name, self.extension_package_name)
+        self.assertFalse(registration.enabled)
+        self.assertEqual(MyTestExtension.registration, registration)
+
+        self.assertEqual(
+            extension_mgr._extension_classes,
+            {
+                MyTestExtension.id: MyTestExtension,
+            },
+        )
+        self.assertEqual(extension_mgr._extension_instances, {})
+
+    def test_load_with_removed_extension(self) -> None:
+        """Testing ExtensionManager.load with an extension no longer available
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        # Set up two extensions that we'll want the extension manager to
+        # keep state on.
+        extension1 = self.setup_extension(MyTestExtension)
+        extension2 = self.setup_extension(DependentExtension1)
+
+        self.assertEqual(
+            extension_mgr.get_installed_extensions(),
+            [
+                MyTestExtension,
+                DependentExtension1,
+            ],
+        )
+        self.assertEqual(
+            extension_mgr._extension_classes,
+            {
+                DependentExtension1.id: DependentExtension1,
+                MyTestExtension.id: MyTestExtension,
+            },
+        )
+        self.assertEqual(
+            extension_mgr._extension_instances,
+            {
+                DependentExtension1.id: extension2,
+                MyTestExtension.id: extension1,
+            },
+        )
+
+        # Now perform a scan but with only one of those two extensions being
+        # available. The scan should delete information on the now-removed
+        # extension.
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        extension1 = extension_mgr.get_enabled_extension(MyTestExtension.id)
+        extension2 = extension_mgr.get_enabled_extension(
+            DependentExtension1.id,
+        )
+
+        self.assertIsNotNone(extension1)
+        self.assertIsNone(extension2)
+        self.assertEqual(
+            extension_mgr.get_installed_extensions(),
+            [MyTestExtension],
+        )
+        self.assertEqual(
+            extension_mgr._extension_classes,
+            {
+                MyTestExtension.id: MyTestExtension,
+            },
+        )
+        self.assertEqual(
+            extension_mgr._extension_instances,
+            {
+                MyTestExtension.id: extension1,
+            },
+        )
 
     def test_load_with_admin_site(self):
         """Testing ExtensionManager.load with has_admin_site=True"""
@@ -1544,6 +1651,165 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
 
         self.assertEqual(manager1._gen_sync.sync_gen,
                          manager2._gen_sync.sync_gen)
+
+    def test_load_with_error(self) -> None:
+        """Testing ExtensionManager.load with an error loading extensions
+        allows later sync generation bumps
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        gen_sync = extension_mgr._gen_sync
+
+        self.spy_on(
+            extension_mgr._load_extensions,
+            op=kgb.SpyOpRaise(Exception('oh no')),
+        )
+        self.spy_on(gen_sync.mark_updated)
+
+        # Fail the load.
+        with self.assertRaisesMessage(Exception, 'oh no'):
+            extension_mgr.load()
+
+        self.assertAttrsEqual(
+            extension_mgr._batch_state,
+            {
+                'active': False,
+                'needs_sync_gen_bump': False,
+            },
+        )
+
+        # Bumping should work again.
+        extension_mgr._bump_sync_gen()
+
+        self.assertSpyCalledOnce(gen_sync.mark_updated)
+
+    def test_load_with_sync_gen_bump_from_other_thread(self) -> None:
+        """Testing ExtensionManager.load with another thread bumping the sync
+        generation
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        gen_sync = extension_mgr._gen_sync
+
+        @self.spy_for(extension_mgr._load_extensions)
+        def _load_extensions(
+            manager: ExtensionManager,
+            *args,
+            **kwargs,
+        ) -> None:
+            # Bump from another thread. This isn't part of the load, so it
+            # should go through.
+            thread = threading.Thread(target=manager._bump_sync_gen)
+            thread.start()
+            thread.join()
+
+            # Bump from this thread. This is part of the load, so it should
+            # be ignored.
+            manager._bump_sync_gen()
+
+        self.spy_on(gen_sync.mark_updated)
+
+        extension_mgr.load()
+
+        self.assertSpyCalledOnce(gen_sync.mark_updated)
+
+    def test_enable_extension_with_sync_gen(self) -> None:
+        """Testing ExtensionManager.enable_extension bumps the sync generation
+        once
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        gen_sync = extension_mgr._gen_sync
+
+        self.setup_extension(MyTestExtension,
+                             enable=False)
+        self.spy_on(gen_sync.mark_updated)
+
+        # Enabling for the first time saves the extension's settings, which
+        # bumps the sync generation.
+        extension_mgr.enable_extension(MyTestExtension.id)
+
+        self.assertSpyCalledOnce(gen_sync.mark_updated)
+        self.assertAttrsEqual(
+            extension_mgr._batch_state,
+            {
+                'active': False,
+                'needs_sync_gen_bump': False,
+            },
+        )
+
+    def test_enable_extension_with_sync_gen_and_requirements(self) -> None:
+        """Testing ExtensionManager.enable_extension bumps the sync generation
+        once when enabling disabled requirements
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        gen_sync = extension_mgr._gen_sync
+
+        self.setup_extension(MyTestExtension,
+                             enable=False)
+        self.setup_extension(DependentExtension1,
+                             enable=False)
+
+        with self.scanned_extensions([MyTestExtension, DependentExtension1]):
+            extension_mgr.load()
+
+        self.assertIsNone(extension_mgr.get_enabled_extension(
+            MyTestExtension.id))
+        self.assertIsNone(extension_mgr.get_enabled_extension(
+            DependentExtension1.id))
+
+        self.spy_on(gen_sync.mark_updated)
+
+        # Enabling this will also enable MyTestExtension. Both would normally
+        # bump the sync generation when saving settings, but shouldn't in
+        # a batch.
+        extension_mgr.enable_extension(DependentExtension1.id)
+
+        self.assertIsNotNone(extension_mgr.get_enabled_extension(
+            MyTestExtension.id))
+        self.assertIsNotNone(extension_mgr.get_enabled_extension(
+            DependentExtension1.id))
+
+        self.assertSpyCalledOnce(gen_sync.mark_updated)
+        self.assertAttrsEqual(
+            extension_mgr._batch_state,
+            {
+                'active': False,
+                'needs_sync_gen_bump': False,
+            },
+        )
+
+    def test_disable_extension_with_sync_gen(self) -> None:
+        """Testing ExtensionManager.disable_extension bumps the sync
+        generation once
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        gen_sync = extension_mgr._gen_sync
+
+        extension = self.setup_extension(MyTestExtension)
+        assert extension is not None
+
+        self.spy_on(gen_sync.mark_updated)
+
+        # Disabling saves the extension's settings, which bumps the sync
+        # generation.
+        extension_mgr.disable_extension(extension.id)
+
+        self.assertSpyCalledOnce(gen_sync.mark_updated)
+        self.assertAttrsEqual(
+            extension_mgr._batch_state,
+            {
+                'active': False,
+                'needs_sync_gen_bump': False,
+            },
+        )
 
     def _rebuild_media_dirs(self, extension):
         """Rebuild the static media directories for an extension.
