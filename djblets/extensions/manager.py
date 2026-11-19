@@ -1171,6 +1171,47 @@ class ExtensionManager:
             ext_class (type):
                 The extension's class to initialize.
         """
+        extension = self._start_extension_init(ext_class)
+
+        with self._handle_extension_init_errors(extension):
+            new_installed_apps = self._add_to_installed_apps(extension)
+            extension.info.apps_registered = True
+
+        self._finish_extension_init(
+            extension,
+            new_installed_apps=new_installed_apps,
+        )
+
+        return extension
+
+    def _start_extension_init(
+        self,
+        ext_class: type[Extension],
+    ) -> Extension:
+        """Start initializing an extension.
+
+        This will create the extension instance and set up its administration
+        site, URLs, and static media bundles.
+
+        It does not set up apps. That's managed as a separate step.
+
+        If this fails, the extension will be uninitialized.
+
+        Version Added:
+            6.2
+
+        Args:
+            ext_class (type):
+                The extension's class to initialize.
+
+        Returns:
+            djblets.extensions.extension.Extension:
+            The new extension instance.
+
+        Raises:
+            djblets.extensions.errors.EnablingExtensionError:
+                There was an error initializing the extension.
+        """
         extension_id = ext_class.id
 
         assert extension_id not in self._extension_instances
@@ -1194,7 +1235,7 @@ class ExtensionManager:
         self._extension_instances[extension_id] = extension
         ext_class.instance = extension
 
-        try:
+        with self._handle_extension_init_errors(extension):
             if extension.has_admin_site:
                 try:
                     self._init_admin_site(extension)
@@ -1219,9 +1260,42 @@ class ExtensionManager:
             extension.info.installed = extension.registration.installed
             extension.info.enabled = True
 
-            new_installed_apps = self._add_to_installed_apps(extension)
-            extension.info.apps_registered = True
+        return extension
 
+    def _finish_extension_init(
+        self,
+        extension: Extension,
+        *,
+        new_installed_apps: Sequence[str],
+    ) -> None:
+        """Finish initializing an extension.
+
+        This must be run after the extension's apps have been registered.
+
+        This will register context processors, install static media, update
+        the database if needed, and then notify that the extension has been
+        initialized.
+
+        If this fails, the extension will be uninitialized.
+
+        Version Added:
+            6.2
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension to finish initializing.
+
+            new_installed_apps (list of str):
+                The list of apps installed for the extension.
+
+        Raises:
+            djblets.extensions.errors.EnablingExtensionError:
+                There was an error initializing the extension.
+        """
+        ext_class = type(extension)
+        extension_id = ext_class.id
+
+        with self._handle_extension_init_errors(extension):
             self._context_processors_setting.add_list(
                 extension.context_processors)
             extension.info.context_processors_registered = True
@@ -1275,6 +1349,41 @@ class ExtensionManager:
             if not ext_class.registration.installed:
                 ext_class.registration.installed = True
                 ext_class.registration.save(update_fields=('installed',))
+
+        extension_initialized.send_robust(
+            self,
+            ext_class=extension,
+        )
+
+    @contextmanager
+    def _handle_extension_init_errors(
+        self,
+        extension: Extension,
+    ) -> Iterator[None]:
+        """Handle errors while initializing an extension.
+
+        If an error occurs, the extension will be uninitialized and the
+        error will be logged and raised as a
+        :py:class:`~djblets.extensions.errors.EnablingExtensionError`.
+
+        Version Added:
+            6.2
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension being initialized.
+
+        Context:
+            The extension can be initialized.
+
+        Raises:
+            djblets.extensions.errors.EnablingExtensionError:
+                There was an error initializing the extension.
+        """
+        ext_class = type(extension)
+
+        try:
+            yield
         except EnablingExtensionError as e:
             self._uninit_extension(extension)
 
@@ -1292,10 +1401,6 @@ class ExtensionManager:
             raise EnablingExtensionError(
                 _('Unexpected error initializing the extension: %s') % e,
                 self._store_load_error(ext_class.id, str(e)))
-
-        extension_initialized.send_robust(self, ext_class=extension)
-
-        return extension
 
     def _sync_database(
         self,
