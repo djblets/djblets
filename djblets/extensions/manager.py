@@ -991,81 +991,9 @@ class ExtensionManager:
             self._load_errors = {}
 
         extension_classes = self._extension_classes
-
-        # Preload all the RegisteredExtension objects
-        registered_extensions: dict[str, RegisteredExtension] = {
-            registered_ext.class_name: registered_ext
-            for registered_ext in RegisteredExtension.objects.all()
-        }
-
-        found_extensions: dict[str, type[Extension]] = {}
-        found_registrations: dict[str, RegisteredExtension] = {}
-        registrations_to_create: list[tuple[str, str]] = []
         extensions_changed: bool = False
 
-        for entrypoint in self._entrypoint_iterator():
-            registered_ext = None
-
-            try:
-                ext_class = entrypoint.load()
-
-                if (not inspect.isclass(ext_class) or
-                    not issubclass(ext_class, Extension)):
-                    raise ValueError(_('This is not an extension subclass.'))
-            except Exception as e:
-                logger.exception('Error loading extension %s: %s',
-                                 entrypoint.name, e)
-                extension_id = f'{entrypoint.module}.{entrypoint.attr}'
-                self._store_load_error(extension_id, str(e))
-
-                continue
-
-            # A class's extension ID is its class name. We want to
-            # make this easier for users to access by giving it an 'id'
-            # variable, which will be accessible both on the class and on
-            # instances.
-            class_name = f'{ext_class.__module__}.{ext_class.__name__}'
-            ext_class.id = class_name
-
-            extension_classes[class_name] = ext_class
-            found_extensions[class_name] = ext_class
-
-            # Don't override the info if we've previously loaded this
-            # class.
-            if not getattr(ext_class, 'info', None):
-                ext_class.info = ExtensionInfo.create_from_entrypoint(
-                    entrypoint, ext_class)
-
-            registered_ext = registered_extensions.get(class_name)
-
-            if registered_ext:
-                found_registrations[class_name] = registered_ext
-            else:
-                assert entrypoint.dist is not None
-
-                registrations_to_create.append(
-                    (class_name, entrypoint.dist.name))
-
-        if registrations_to_create:
-            enabled_by_default = self._get_enabled_by_default_extension_ids()
-
-            # Go through each registration we couldn't find and create an
-            # entry in the database. These are going to be newly discovered
-            # extensions.
-            for class_name, ext_name in registrations_to_create:
-                if class_name not in found_registrations:
-                    try:
-                        registered_ext = RegisteredExtension.objects.create(
-                            class_name=class_name,
-                            enabled=class_name in enabled_by_default,
-                            name=ext_name)
-                    except IntegrityError:
-                        # An entry was created since we last looked up
-                        # anything. Fetch it from the database.
-                        registered_ext = RegisteredExtension.objects.get(
-                            class_name=class_name)
-
-                    found_registrations[class_name] = registered_ext
+        found_extensions, found_registrations = self._discover_extensions()
 
         always_enabled = self._get_always_enabled_extension_ids()
         ext_classes_to_init: list[type[Extension]] = []
@@ -1132,6 +1060,112 @@ class ExtensionManager:
 
         if extensions_changed:
             self._recalculate_middleware()
+
+    def _discover_extensions(
+        self,
+    ) -> tuple[Mapping[str, type[Extension]],
+               Mapping[str, RegisteredExtension]]:
+        """Discover all installed extensions and their registrations.
+
+        This will scan for all extensions installed on the system, recording
+        load errors for any that couldn't be loaded.
+
+        Each extension will have a registration tracked in the database and
+        on the instance. If one doesn't already exist, it will be created.
+
+        Version Added:
+            6.2
+
+        Returns:
+            tuple:
+            A 2-tuple containing:
+
+            Tuple:
+                0 (dict):
+                    A mapping of extension IDs to extension classes for all
+                    the extensions found.
+
+                1 (dict):
+                    A mapping of extension IDs to registrations for all the
+                    extensions found.
+        """
+        extension_classes = self._extension_classes
+
+        # Preload all the RegisteredExtension objects
+        registered_extensions: dict[str, RegisteredExtension] = {
+            registered_ext.class_name: registered_ext
+            for registered_ext in RegisteredExtension.objects.all()
+        }
+
+        found_extensions: dict[str, type[Extension]] = {}
+        found_registrations: dict[str, RegisteredExtension] = {}
+        registrations_to_create: list[tuple[str, str]] = []
+
+        for entrypoint in self._entrypoint_iterator():
+            registered_ext = None
+
+            try:
+                ext_class = entrypoint.load()
+
+                if (not inspect.isclass(ext_class) or
+                    not issubclass(ext_class, Extension)):
+                    raise ValueError(_('This is not an extension subclass.'))
+            except Exception as e:
+                logger.exception('Error loading extension %s: %s',
+                                 entrypoint.name, e)
+                extension_id = f'{entrypoint.module}.{entrypoint.attr}'
+                self._store_load_error(extension_id, str(e))
+
+                continue
+
+            # A class's extension ID is its class name. We want to
+            # make this easier for users to access by giving it an 'id'
+            # variable, which will be accessible both on the class and on
+            # instances.
+            class_name = f'{ext_class.__module__}.{ext_class.__name__}'
+            ext_class.id = class_name
+
+            extension_classes[class_name] = ext_class
+            found_extensions[class_name] = ext_class
+
+            # Don't override the info if we've previously loaded this
+            # class.
+            if not getattr(ext_class, 'info', None):
+                ext_class.info = ExtensionInfo.create_from_entrypoint(
+                    entrypoint, ext_class)
+
+            registered_ext = registered_extensions.get(class_name)
+
+            if registered_ext:
+                found_registrations[class_name] = registered_ext
+            else:
+                assert entrypoint.dist is not None
+
+                registrations_to_create.append(
+                    (class_name, entrypoint.dist.name))
+
+        if registrations_to_create:
+            enabled_by_default = self._get_enabled_by_default_extension_ids()
+
+            # Go through each registration we couldn't find and create an
+            # entry in the database. These are going to be newly discovered
+            # extensions.
+            for class_name, ext_name in registrations_to_create:
+                if class_name not in found_registrations:
+                    try:
+                        registered_ext = RegisteredExtension.objects.create(
+                            class_name=class_name,
+                            enabled=class_name in enabled_by_default,
+                            name=ext_name)
+                    except IntegrityError:
+                        # An entry was created since we last looked up
+                        # anything. Fetch it from the database.
+                        registered_ext = RegisteredExtension.objects.get(
+                            class_name=class_name)
+
+                    found_registrations[class_name] = registered_ext
+
+        return found_extensions, found_registrations
 
     def _clear_extensions(self) -> None:
         """Clear the entire list of known extensions.
