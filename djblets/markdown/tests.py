@@ -460,6 +460,26 @@ class WysiwygRenderTests(MarkdownTestCase):
              '<li>Bar</li>\n'
              '</ol>'))
 
+    def test_ol_after_ul(self) -> None:
+        """Testing Markdown WYSIWYG rendering with an ordered list after an
+        unordered list
+        """
+        self.assertEqual(
+            self.render_markdown(
+                '- Foo\n'
+                '- Bar\n'
+                '\n'
+                '1. Baz\n'
+                '2. Qux'),
+            ('<ul>\n'
+             '<li>Foo</li>\n'
+             '<li>Bar</li>\n'
+             '</ul>\n'
+             '<ol>\n'
+             '<li>Baz</li>\n'
+             '<li>Qux</li>\n'
+             '</ol>'))
+
     def test_text_0_blank_lines(self):
         """Testing Markdown WYSIWYG rendering with 0 blank lines between text
         """
