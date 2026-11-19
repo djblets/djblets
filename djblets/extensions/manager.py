@@ -996,24 +996,56 @@ class ExtensionManager:
         found_extensions, found_registrations = self._discover_extensions()
 
         always_enabled = self._get_always_enabled_extension_ids()
+        extension_instances = self._extension_instances
+        load_errors = self._load_errors
         ext_classes_to_init: list[type[Extension]] = []
+        extension_ids_to_uninit: list[str] = []
 
         # Now we have all the RegisteredExtension instances. Go through
-        # and find the ones we need to initialize.
+        # and find the ones we need to initialize or shut down.
         for class_name, registered_ext in found_registrations.items():
             ext_class = found_extensions[class_name]
+            extension_id = ext_class.id
             ext_class.registration = registered_ext
 
             if (not registered_ext.enabled and
-                ext_class.id in always_enabled):
+                extension_id in always_enabled):
                 # This extension should always be on. Force it to be enabled
                 # so it'll initialize, and save that back out to the database.
                 registered_ext.enabled = True
                 registered_ext.save(update_fields=('enabled',))
 
-            if (registered_ext.enabled and
-                ext_class.id not in self._extension_instances):
-                ext_classes_to_init.append(ext_class)
+            if registered_ext.enabled:
+                # The extension was marked as enabled in the database. If
+                # it's not already enabled in the extension manager, queue
+                # it to be enabled.
+                if extension_id not in extension_instances:
+                    ext_classes_to_init.append(ext_class)
+            elif extension_id in extension_instances:
+                # This extension was disabled by another process. Prepare to
+                # shut it down here.
+                extension_ids_to_uninit.append(extension_id)
+            elif extension_id in load_errors:
+                # This extension failed to load here, but was disabled by
+                # another process. It's effectively disabled here, so clear
+                # the load error.
+                del load_errors[extension_id]
+
+        if extension_ids_to_uninit:
+            # Shut down extensions before initializing any others, so that
+            # any app registry updates can happen all at once.
+            all_extension_ids_to_uninit = self._iter_dependent_ids_tree_for(
+                extension_ids_to_uninit,
+            )
+
+            for extension_id in all_extension_ids_to_uninit:
+                extension = extension_instances[extension_id]
+
+                self._uninit_extension(extension)
+                self._unregister_static_bundles(extension)
+
+            clear_template_caches()
+            extensions_changed = True
 
         if ext_classes_to_init:
             # Initialize all the enabled extension classes we found.
@@ -2702,6 +2734,57 @@ class ExtensionManager:
         raise TypeError(
             f'{extension!r} is not an extension instance, registration, or ID.'
         )
+
+    def _iter_dependent_ids_tree_for(
+        self,
+        extension_ids: Sequence[str],
+        seen_ids: (set[str] | None) = None,
+    ) -> Iterator[str]:
+        """Iterate through the dependency tree for a list of extension IDs.
+
+        This will walk through the extension ID tree, yielding the IDs of
+        each extension from the bottom of the dependency tree to the top.
+        This is used to ensure that extensions can be processed in the correct
+        dependency order.
+
+        Version Added:
+            6.2
+
+        Args:
+            extension_ids (list of str):
+                The list of extension IDs to iterate through.
+
+            seen_ids (set of str, optional):
+                The set of extension IDs that have already been processed.
+
+                If not provided, a set will be created and passed in for
+                each layer of the tree.
+
+        Yields:
+            str:
+            Each extension ID in reverse-dependency order.
+        """
+        if seen_ids is None:
+            seen_ids = set()
+
+        for extension_id in extension_ids:
+            if extension_id in seen_ids:
+                continue
+
+            seen_ids.add(extension_id)
+
+            dependent_ids = self.get_dependent_extensions(
+                extension_id,
+                enabled_only=True,
+            )
+
+            for dependent_id in dependent_ids:
+                yield from self._iter_dependent_ids_tree_for(
+                    extension_ids=[dependent_id],
+                    seen_ids=seen_ids,
+                )
+
+            yield extension_id
 
 
 def get_extension_managers() -> list[ExtensionManager]:
