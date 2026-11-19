@@ -952,6 +952,9 @@ class ExtensionManager:
                 enabled extensions, clearing all state, and re-loading
                 all extension data.
         """
+        if self._gen_sync is None:
+            self.init()
+
         # Load extensions in a lock so multiple threads don't all try to load
         # at the same time.
         with self._load_lock:
