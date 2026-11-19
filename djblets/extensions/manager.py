@@ -1000,12 +1000,20 @@ class ExtensionManager:
         load_errors = self._load_errors
         ext_classes_to_init: list[type[Extension]] = []
         extension_ids_to_uninit: list[str] = []
+        extension_ids_to_reinit: list[str] = []
 
         # Now we have all the RegisteredExtension instances. Go through
-        # and find the ones we need to initialize or shut down.
+        # and find the ones we need to initialize, re-initialize, or shut
+        # down.
         for class_name, registered_ext in found_registrations.items():
             ext_class = found_extensions[class_name]
             extension_id = ext_class.id
+
+            # Grab a copy of the extension's previous registration. We're
+            # going to need to compare settings to see if anything has
+            # changed before deciding whether we need to deal with the
+            # extension.
+            old_registered_ext = getattr(ext_class, 'registration', None)
             ext_class.registration = registered_ext
 
             if (not registered_ext.enabled and
@@ -1019,7 +1027,18 @@ class ExtensionManager:
                 # The extension was marked as enabled in the database. If
                 # it's not already enabled in the extension manager, queue
                 # it to be enabled.
-                if extension_id not in extension_instances:
+                extension = extension_instances.get(extension_id)
+
+                if extension is None:
+                    # This is a newly-enabled extension. Queue it to be
+                    # initialized.
+                    ext_classes_to_init.append(ext_class)
+                elif (old_registered_ext is not None and
+                      registered_ext.settings != old_registered_ext.settings):
+                    # This extension's settings were changed by another
+                    # process. We'll need to re-initialize it so that it can
+                    # start fresh with the new settings.
+                    extension_ids_to_reinit.append(extension_id)
                     ext_classes_to_init.append(ext_class)
             elif extension_id in extension_instances:
                 # This extension was disabled by another process. Prepare to
@@ -1031,7 +1050,29 @@ class ExtensionManager:
                 # the load error.
                 del load_errors[extension_id]
 
-        if extension_ids_to_uninit:
+        if extension_ids_to_reinit:
+            # Re-initialize these extensions and any that may directly or
+            # indirectly depend on them, so that we can be sure that we're
+            # working with up-to-date state.
+            all_extension_ids_to_reinit = self._iter_dependent_ids_tree_for(
+                extension_ids_to_reinit,
+                seen_ids=set(extension_ids_to_uninit),
+            )
+
+            # Reset the list of extension IDs so we can populate them with
+            # the ordered list from the dependency tree.
+            extension_ids_to_reinit = []
+
+            for dependent_id in all_extension_ids_to_reinit:
+                # This extension isn't being uninitialized or re-initialized
+                # as part of an enabled or settings state change, but it does
+                # depend on one that's being re-initialized, so include it in
+                # our list.
+                dependent = extension_instances[dependent_id]
+                ext_classes_to_init.append(type(dependent))
+                extension_ids_to_reinit.append(dependent_id)
+
+        if extension_ids_to_uninit or extension_ids_to_reinit:
             # Shut down extensions before initializing any others, so that
             # any app registry updates can happen all at once.
             all_extension_ids_to_uninit = self._iter_dependent_ids_tree_for(
@@ -1043,6 +1084,11 @@ class ExtensionManager:
 
                 self._uninit_extension(extension)
                 self._unregister_static_bundles(extension)
+
+            # Separately, uninit any extensions that are being re-initialized,
+            # but keep their static bundles registered.
+            for extension_id in extension_ids_to_reinit:
+                self._uninit_extension(extension_instances[extension_id])
 
             clear_template_caches()
             extensions_changed = True

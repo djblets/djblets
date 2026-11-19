@@ -608,6 +608,187 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
         self.assertEqual(extension_mgr._extension_instances, {})
         self.assertEqual(extension_mgr._load_errors, {})
 
+    def test_load_with_settings_changed_in_db(self) -> None:
+        """Testing ExtensionManager.load with extension settings changed in
+        the database
+        """
+        class MyTestExtension1(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.model_tests',
+            ]
+
+        class MyTestExtension2(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.templatetag_tests',
+            ]
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        extension1 = self.setup_extension(MyTestExtension1)
+        extension2 = self.setup_extension(MyTestExtension2)
+
+        assert extension1 is not None
+        assert extension2 is not None
+
+        # Update the in-database settings for extension1. We'll add a new key.
+        RegisteredExtension.objects.filter(
+            class_name=MyTestExtension1.id,
+        ).update(settings={
+            **MyTestExtension1.registration.settings,
+            'test-key': 'test-value',
+        })
+
+        self.spy_on(extension_mgr.disable_extension)
+        self.spy_on(extension_mgr._bump_sync_gen)
+        self.spy_on(extension1.shutdown)
+        self.spy_on(extension2.shutdown)
+        self.spy_on(apps.set_installed_apps)
+
+        # Load extensions. This should pick up the settings change for
+        # extension1 and re-init.
+        with self.scanned_extensions([MyTestExtension1, MyTestExtension2]):
+            extension_mgr.load()
+
+        self.assertSpyCalled(extension1.shutdown)
+        self.assertSpyNotCalled(extension2.shutdown)
+        self.assertSpyNotCalled(extension_mgr.disable_extension)
+        self.assertSpyNotCalled(extension_mgr._bump_sync_gen)
+        self.assertSpyCalledOnce(apps.set_installed_apps)
+
+        # Check that extension1 has a fresh instance and the updated settings.
+        new_extension1 = extension_mgr.get_enabled_extension(
+            MyTestExtension1.id,
+        )
+        assert new_extension1 is not None
+
+        self.assertIsNot(new_extension1, extension1)
+        self.assertEqual(new_extension1.settings.get('test-key'),
+                         'test-value')
+        self.assertEqual(
+            extension_mgr._extension_instances,
+            {
+                MyTestExtension1.id: new_extension1,
+                MyTestExtension2.id: extension2,
+            },
+        )
+        self.assertEqual(extension_mgr._load_errors, {})
+        self.assertEqual(
+            extension_mgr._app_extension_ids,
+            {
+                MyTestExtension1.id,
+                MyTestExtension2.id,
+            },
+        )
+
+        self.assertTrue(apps.ready)
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+
+    def test_load_with_settings_changed_in_db_with_dependents(self) -> None:
+        """Testing ExtensionManager.load with extension settings changed in
+        the database and with dependent extensions
+        """
+        class UnrelatedExtension(Extension):
+            pass
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        all_ext_classes = (
+            MyTestExtension,
+            DependentExtension2,
+            DependentExtension3,
+            UnrelatedExtension,
+        )
+
+        for ext_class in all_ext_classes:
+            self.setup_extension(ext_class)
+
+        # Load our tree of extensions and their dependents.
+        with self.scanned_extensions(all_ext_classes):
+            extension_mgr.load()
+
+        old_instances = dict(extension_mgr._extension_instances)
+
+        # Update the in-database settings for an extension. We'll add a new
+        # key.
+        RegisteredExtension.objects.filter(
+            class_name=MyTestExtension.id,
+        ).update(settings={
+            **MyTestExtension.registration.settings,
+            'test-key': 'test-value',
+        })
+
+        start_extension_init_spy = \
+            self.spy_on(extension_mgr._start_extension_init)
+
+        # Load extensions again. This should pick up the settings change for
+        # the extension and re-init it and its dependents.
+        with self.scanned_extensions(all_ext_classes):
+            extension_mgr.load()
+
+        self.assertEqual(
+            [
+                call.args[0]
+                for call in start_extension_init_spy.calls
+            ],
+            [
+                MyTestExtension,
+                DependentExtension2,
+                DependentExtension3,
+            ],
+        )
+
+        new_instances = extension_mgr._extension_instances
+
+        self.assertEqual(set(new_instances.keys()),
+                         set(old_instances.keys()))
+
+        # The unmodified extension shouldn't have changed instances.
+        self.assertIs(new_instances[UnrelatedExtension.id],
+                      old_instances[UnrelatedExtension.id])
+
+        # The modified one and its dependents should.
+        for ext_class in (MyTestExtension,
+                          DependentExtension2,
+                          DependentExtension3):
+            self.assertIsNot(new_instances[ext_class.id],
+                             old_instances[ext_class.id])
+
+        self.assertEqual(extension_mgr._load_errors, {})
+
+    def test_load_with_settings_saved_locally(self) -> None:
+        """Testing ExtensionManager.load with extension settings saved in
+        this process
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        extension = self.setup_extension(MyTestExtension)
+        extension.settings['test-key'] = 'test-value'
+        extension.settings.save()
+
+        self.spy_on(extension.shutdown)
+
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        # This process already has the latest settings, so the extension
+        # shouldn't be re-initialized.
+        self.assertSpyNotCalled(extension.shutdown)
+        self.assertEqual(
+            extension_mgr._extension_instances,
+            {
+                MyTestExtension.id: extension,
+            },
+        )
+        self.assertEqual(extension.settings.get('test-key'), 'test-value')
+
     def test_load_with_multiple_extensions(self) -> None:
         """Testing ExtensionManager.load with multiple extensions"""
         class MyTestExtension1(Extension):
