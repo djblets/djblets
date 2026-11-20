@@ -57,10 +57,11 @@ from djblets.template.caches import (clear_template_caches,
 from djblets.urls.resolvers import DynamicURLResolver
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Sequence
+    from collections.abc import Iterable, Iterator, Mapping, Sequence
     from types import ModuleType
     from typing import Any
 
+    from django.apps import AppConfig
     from typelets.symbols import Unsettable
 
     from djblets.extensions.extension import (CSSBundleConfigs,
@@ -72,6 +73,27 @@ logger = logging.getLogger(__name__)
 
 _extension_managers: WeakValueDictionary[int, ExtensionManager] = \
     WeakValueDictionary()
+
+
+#: A lock for changes to the app registry made by extension managers.
+#:
+#: Version Added:
+#:     6.2
+_app_registry_lock = threading.RLock()
+
+
+#: The app configs we last installed in the app registry.
+#:
+#: This is shared by all extension managers. A single list of installed apps
+#: is shared across all extensions across all extension managers, which are
+#: then managed on the stack.
+#:
+#: This value is used to tell if the managed list is still on the top of the
+#: installed apps stack, and will be ``None`` if there's no entry.
+#:
+#: Version Added:
+#:     6.2
+_app_registry_configs: (Mapping[str, AppConfig] | None) = None
 
 
 class _ThreadBatchState(threading.local):
@@ -91,6 +113,9 @@ class _ThreadBatchState(threading.local):
     #: Whether the extension update batch is actively in progress.
     active: bool
 
+    #: Whether the apps registry needs to be synced.
+    needs_app_registry_sync: bool
+
     #: Whether the sync generation number is ready to be bumped.
     needs_sync_gen_bump: bool
 
@@ -99,6 +124,7 @@ class _ThreadBatchState(threading.local):
         super().__init__()
 
         self.active = False
+        self.needs_app_registry_sync = False
         self.needs_sync_gen_bump = False
 
 
@@ -362,6 +388,12 @@ class ExtensionManager:
     #:     list of callable
     middleware_classes: list[ExtensionMiddlewareCallable]
 
+    #: The IDs of extensions whose apps are in the app registry.
+    #:
+    #: Version Added:
+    #:     6.2
+    _app_extension_ids: set[str]
+
     #: Per-thread state for batching changes to extension state.
     #:
     #: Version Added:
@@ -438,6 +470,7 @@ class ExtensionManager:
         # to allow for ref-counted add/remove operations.
         self._installed_apps_setting = SettingListWrapper('INSTALLED_APPS',
                                                           'installed app')
+        self._app_extension_ids = set()
 
         self._context_processors_setting = SettingListWrapper(
             'context_processors',
@@ -952,6 +985,9 @@ class ExtensionManager:
                 enabled extensions, clearing all state, and re-loading
                 all extension data.
         """
+        if self._gen_sync is None:
+            self.init()
+
         # Load extensions in a lock so multiple threads don't all try to load
         # at the same time.
         with self._load_lock:
@@ -1000,6 +1036,183 @@ class ExtensionManager:
             self._load_errors = {}
 
         extension_classes = self._extension_classes
+        extensions_changed: bool = False
+
+        found_extensions, found_registrations = self._discover_extensions()
+
+        always_enabled = self._get_always_enabled_extension_ids()
+        extension_instances = self._extension_instances
+        load_errors = self._load_errors
+        ext_classes_to_init: list[type[Extension]] = []
+        extension_ids_to_uninit: list[str] = []
+        extension_ids_to_reinit: list[str] = []
+
+        # Now we have all the RegisteredExtension instances. Go through
+        # and find the ones we need to initialize, re-initialize, or shut
+        # down.
+        for class_name, registered_ext in found_registrations.items():
+            ext_class = found_extensions[class_name]
+            extension_id = ext_class.id
+
+            # Grab a copy of the extension's previous registration. We're
+            # going to need to compare settings to see if anything has
+            # changed before deciding whether we need to deal with the
+            # extension.
+            old_registered_ext = getattr(ext_class, 'registration', None)
+            ext_class.registration = registered_ext
+
+            if (not registered_ext.enabled and
+                extension_id in always_enabled):
+                # This extension should always be on. Force it to be enabled
+                # so it'll initialize, and save that back out to the database.
+                registered_ext.enabled = True
+                registered_ext.save(update_fields=('enabled',))
+
+            if registered_ext.enabled:
+                # The extension was marked as enabled in the database. If
+                # it's not already enabled in the extension manager, queue
+                # it to be enabled.
+                extension = extension_instances.get(extension_id)
+
+                if extension is None:
+                    # This is a newly-enabled extension. Queue it to be
+                    # initialized.
+                    ext_classes_to_init.append(ext_class)
+                elif (old_registered_ext is not None and
+                      registered_ext.settings != old_registered_ext.settings):
+                    # This extension's settings were changed by another
+                    # process. We'll need to re-initialize it so that it can
+                    # start fresh with the new settings.
+                    extension_ids_to_reinit.append(extension_id)
+                    ext_classes_to_init.append(ext_class)
+            elif extension_id in extension_instances:
+                # This extension was disabled by another process. Prepare to
+                # shut it down here.
+                extension_ids_to_uninit.append(extension_id)
+            elif extension_id in load_errors:
+                # This extension failed to load here, but was disabled by
+                # another process. It's effectively disabled here, so clear
+                # the load error.
+                del load_errors[extension_id]
+
+        if extension_ids_to_reinit:
+            # Re-initialize these extensions and any that may directly or
+            # indirectly depend on them, so that we can be sure that we're
+            # working with up-to-date state.
+            all_extension_ids_to_reinit = self._iter_dependent_ids_tree_for(
+                extension_ids_to_reinit,
+                seen_ids=set(extension_ids_to_uninit),
+            )
+
+            # Reset the list of extension IDs so we can populate them with
+            # the ordered list from the dependency tree.
+            extension_ids_to_reinit = []
+
+            for dependent_id in all_extension_ids_to_reinit:
+                # This extension isn't being uninitialized or re-initialized
+                # as part of an enabled or settings state change, but it does
+                # depend on one that's being re-initialized, so include it in
+                # our list.
+                dependent = extension_instances[dependent_id]
+                ext_classes_to_init.append(type(dependent))
+                extension_ids_to_reinit.append(dependent_id)
+
+        if extension_ids_to_uninit or extension_ids_to_reinit:
+            # Shut down extensions before initializing any others, so that
+            # any app registry updates can happen all at once.
+            all_extension_ids_to_uninit = self._iter_dependent_ids_tree_for(
+                extension_ids_to_uninit,
+            )
+
+            for extension_id in all_extension_ids_to_uninit:
+                extension = extension_instances[extension_id]
+
+                self._uninit_extension(extension)
+                self._unregister_static_bundles(extension)
+
+            # Separately, uninit any extensions that are being re-initialized,
+            # but keep their static bundles registered.
+            for extension_id in extension_ids_to_reinit:
+                self._uninit_extension(extension_instances[extension_id])
+
+            clear_template_caches()
+            extensions_changed = True
+
+        if ext_classes_to_init:
+            # Initialize all the enabled extension classes we found.
+            #
+            # If any fail initialization, they won't be loaded and load
+            # errors will be recorded.
+            self._init_extensions(ext_classes_to_init)
+            extensions_changed = True
+
+        # At this point, if we're reloading, it's possible that the user
+        # has removed some extensions. Go through and remove any that we
+        # can no longer find.
+        #
+        # Since entries can be removed while iterating, we need to make sure
+        # we're working off of a copy.
+        for class_name in list(extension_classes.keys()):
+            if class_name not in found_extensions:
+                if class_name in self._extension_instances:
+                    self.disable_extension(class_name,
+                                           force=True)
+
+                del extension_classes[class_name]
+                extensions_changed = True
+
+        # Now that we have the final list of extensions, we can set the
+        # ExtensionInfo.requirements for each extension.
+        for ext_class in extension_classes.values():
+            requirements: list[type[Extension]] = []
+
+            for requirement_id in ext_class.requirements:
+                try:
+                    requirements.append(
+                        self.get_installed_extension(requirement_id))
+                except InvalidExtensionError:
+                    logger.warning('Extension %s requires extension %s, '
+                                   'which is not installed.',
+                                   ext_class.id, requirement_id)
+
+            ext_class.info.requirements = requirements
+
+        # Add the sync generation if it doesn't already exist.
+        self._gen_sync.refresh()
+        settings.AJAX_SERIAL = self._gen_sync.sync_gen
+
+        if extensions_changed:
+            self._recalculate_middleware()
+
+    def _discover_extensions(
+        self,
+    ) -> tuple[Mapping[str, type[Extension]],
+               Mapping[str, RegisteredExtension]]:
+        """Discover all installed extensions and their registrations.
+
+        This will scan for all extensions installed on the system, recording
+        load errors for any that couldn't be loaded.
+
+        Each extension will have a registration tracked in the database and
+        on the instance. If one doesn't already exist, it will be created.
+
+        Version Added:
+            6.2
+
+        Returns:
+            tuple:
+            A 2-tuple containing:
+
+            Tuple:
+                0 (dict):
+                    A mapping of extension IDs to extension classes for all
+                    the extensions found.
+
+                1 (dict):
+                    A mapping of extension IDs to registrations for all the
+                    extensions found.
+        """
+        extension_classes = self._extension_classes
 
         # Preload all the RegisteredExtension objects
         registered_extensions: dict[str, RegisteredExtension] = {
@@ -1010,7 +1223,6 @@ class ExtensionManager:
         found_extensions: dict[str, type[Extension]] = {}
         found_registrations: dict[str, RegisteredExtension] = {}
         registrations_to_create: list[tuple[str, str]] = []
-        extensions_changed: bool = False
 
         for entrypoint in self._entrypoint_iterator():
             registered_ext = None
@@ -1076,64 +1288,7 @@ class ExtensionManager:
 
                     found_registrations[class_name] = registered_ext
 
-        always_enabled = self._get_always_enabled_extension_ids()
-
-        # Now we have all the RegisteredExtension instances. Go through
-        # and initialize each of them.
-        for class_name, registered_ext in found_registrations.items():
-            ext_class = found_extensions[class_name]
-            ext_class.registration = registered_ext
-
-            if (not registered_ext.enabled and
-                ext_class.id in always_enabled):
-                # This extension should always be on. Force it to be enabled
-                # so it'll initialize, and save that back out to the database.
-                registered_ext.enabled = True
-                registered_ext.save(update_fields=('enabled',))
-
-            if (registered_ext.enabled and
-                ext_class.id not in self._extension_instances):
-                try:
-                    self._init_extension(ext_class)
-                except EnablingExtensionError:
-                    # When in developer mode, we want this error to be noticed.
-                    # However, in production, it shouldn't break the whole
-                    # server, so continue on.
-                    if settings.PRODUCTION:
-                        continue
-
-                extensions_changed = True
-
-        # At this point, if we're reloading, it's possible that the user
-        # has removed some extensions. Go through and remove any that we
-        # can no longer find.
-        #
-        # While we're at it, since we're at a point where we've seen all
-        # extensions, we can set the ExtensionInfo.requirements for
-        # each extension.
-        #
-        # Since entries can be removed while iterating, we need to make sure
-        # we're working off of a copy.
-        for class_name, ext_class in list(extension_classes.items()):
-            if class_name not in found_extensions:
-                if class_name in self._extension_instances:
-                    self.disable_extension(class_name,
-                                           force=True)
-
-                del extension_classes[class_name]
-                extensions_changed = True
-            else:
-                ext_class.info.requirements = [
-                    self.get_installed_extension(requirement_id)
-                    for requirement_id in ext_class.requirements
-                ]
-
-        # Add the sync generation if it doesn't already exist.
-        self._gen_sync.refresh()
-        settings.AJAX_SERIAL = self._gen_sync.sync_gen
-
-        if extensions_changed:
-            self._recalculate_middleware()
+        return found_extensions, found_registrations
 
     def _clear_extensions(self) -> None:
         """Clear the entire list of known extensions.
@@ -1141,12 +1296,13 @@ class ExtensionManager:
         This will bring the ExtensionManager back to the state where
         it doesn't yet know about any extensions, requiring a re-load.
         """
-        for extension in self.get_enabled_extensions():
-            # Make sure this is actually an enabled extension, and not one
-            # that's already been shut down by another instance of this
-            # ExtensionManager (which should only happen in tests):
-            if hasattr(extension.__class__, 'info'):
-                self._uninit_extension(extension)
+        with self._batch_changes():
+            for extension in self.get_enabled_extensions():
+                # Make sure this is actually an enabled extension, and not
+                # one that's already been shut down by another instance of
+                # this ExtensionManager (which should only happen in tests):
+                if hasattr(extension.__class__, 'info'):
+                    self._uninit_extension(extension)
 
         for extension_class in self.get_installed_extensions():
             if hasattr(extension_class, 'info'):
@@ -1157,6 +1313,225 @@ class ExtensionManager:
 
         self._extension_classes = {}
         self._extension_instances = {}
+
+    def _init_extensions(
+        self,
+        ext_classes: Sequence[type[Extension]],
+    ) -> None:
+        """Initialize a list of extensions.
+
+        Extensions are initialized in batches. Each batch contains the
+        extensions whose requirements are already enabled, so every extension
+        is guaranteed to be initialized only after the extensions they depend
+        on.
+
+        Django apps for all the extensions in a batch are installed at the
+        same time, avoiding redundant app cache rebuilds.
+
+        If an extension fails to initialize, it won't be loaded and a load
+        error will be recorded. Any extensions directly or indirectly
+        depending on this extension will also fail to load with their own
+        load errors.
+
+        Version Added:
+            6.2
+
+        Args:
+            ext_classes (list of type):
+                The extension classes to initialize.
+        """
+        extension_classes = self._extension_classes
+        extension_instances = self._extension_instances
+        load_errors = self._load_errors
+        failed_extension_ids: set[str] = set()
+        pending_extensions: dict[str, type[Extension]] = {
+            ext_class.id: ext_class
+            for ext_class in ext_classes
+        }
+
+        while pending_extensions:
+            batch: dict[str, type[Extension]] = {}
+            skipped = False
+
+            for extension_id, ext_class in list(pending_extensions.items()):
+                error: (str | None) = None
+                pending = False
+
+                # Go through each requirement for this extension and see
+                # if it's available.
+                #
+                # If it's blocked on a pending extension, this extension will
+                # have to wait for another batch.
+                #
+                # If the dependency failed to load, this extension will also
+                # fail with a load error recorded.
+                for requirement_id in ext_class.requirements:
+                    if requirement_id in extension_instances:
+                        # This requirement is enabled, so we can move on.
+                        continue
+
+                    if requirement_id in failed_extension_ids:
+                        error = _(
+                            'Required extension {extension_id} failed to '
+                            'initialize.'
+                        ).format(extension_id=requirement_id)
+                        break
+                    elif (requirement_id in pending_extensions or
+                          requirement_id in batch):
+                        # This requirement will be initialized either later in
+                        # this batch or in a following batch.
+                        pending = True
+                    elif requirement_id not in extension_classes:
+                        error = _(
+                            'Required extension {extension_id} is not '
+                            'installed.'
+                        ).format(extension_id=requirement_id)
+                        break
+                    else:
+                        error = _(
+                            'Required extension {extension_id} is not enabled.'
+                        ).format(extension_id=requirement_id)
+                        break
+
+                if error is not None:
+                    # This outright failed to load, so record the error and
+                    # skip the extension.
+                    logger.error(
+                        'Unable to initialize extension %s: %s',
+                        extension_id, error,
+                    )
+
+                    del pending_extensions[extension_id]
+                    failed_extension_ids.add(extension_id)
+                    load_errors[extension_id] = error
+                    skipped = True
+                elif not pending:
+                    # Add this to the current batch.
+                    del pending_extensions[extension_id]
+                    batch[extension_id] = ext_class
+
+            if batch:
+                # We have a batch of extensions we can load. Try initializing
+                # them, recording the IDs of any that failed.
+                failed_extension_ids.update(
+                    self._init_extension_batch(list(batch.values())),
+                )
+            elif not skipped:
+                # At this point, anything left is either part of a circular
+                # dependency or depends on one, so we'll be forced to skip
+                # them and record load errors.
+                for extension_id in pending_extensions:
+                    error = _(
+                        "This extension's requirements could not be "
+                        "resolved because of circular requirements."
+                    )
+
+                    logger.error(
+                        'Unable to initialize extension %s: %s',
+                        extension_id, error,
+                    )
+
+                    load_errors[extension_id] = error
+
+                break
+
+    def _init_extension_batch(
+        self,
+        ext_classes: Sequence[type[Extension]],
+    ) -> set[str]:
+        """Initialize a batch of extensions.
+
+        This initializes in the following steps:
+
+        1. Each extension will have its initialization started, setting up
+           anything that comes before app registration.
+
+        2. All apps across all the extensions in the batch will be registered
+           in Django's app registry.
+
+        3. Initialization will finish for each extension.
+
+        If the apps can't be initialized together, the batch will be aborted
+        and they'll instead be initialized one-at-a-time. This will isolate
+        any failing extensions and let the others go through initialization
+        without any side effects.
+
+        Version Added:
+            6.2
+
+        Args:
+            ext_classes (list of type):
+                The extension classes to initialize.
+
+        Returns:
+            set of str:
+            The IDs of the extensions that failed to initialize.
+        """
+        failed_extension_ids: set[str] = set()
+        extensions: list[Extension] = []
+
+        # Step 1: Start initializing each extension in the batch.
+        for ext_class in ext_classes:
+            try:
+                extensions.append(self._start_extension_init(ext_class))
+            except EnablingExtensionError:
+                # This extension failed, so record as a failed extension ID.
+                failed_extension_ids.add(ext_class.id)
+
+        if not extensions:
+            # No extensions were initialized, so we can bail.
+            return failed_extension_ids
+
+        # Step 2: Register all the apps in the Django apps registry.
+        new_installed_apps_map: dict[str, list[str]]
+
+        try:
+            new_installed_apps_map = \
+                self._add_extensions_to_installed_apps(extensions)
+        except Exception as e:
+            # At least one extension has apps that couldn't be installed.
+            # Install them one extension at a time, so we can find the ones
+            # at fault and initialize the rest.
+            logger.exception(
+                'Unable to install apps for a batch of extensions. Trying '
+                'each extension separately: %s',
+                e,
+            )
+
+            new_installed_apps_map = {}
+
+            for extension in extensions:
+                try:
+                    with self._handle_extension_init_errors(extension):
+                        new_installed_apps_map[extension.id] = \
+                            self._add_to_installed_apps(extension)
+                except EnablingExtensionError:
+                    # This extension failed, so record as a failed extension
+                    # ID.
+                    failed_extension_ids.add(extension.id)
+
+        # Mark the apps as registered for any extension that succeeded.
+        for extension in extensions:
+            if extension.id in new_installed_apps_map:
+                extension.info.apps_registered = True
+
+        # Step 3: Perform final initialization of the extensions.
+        for extension in extensions:
+            extension_id = extension.id
+
+            if extension_id in failed_extension_ids:
+                continue
+
+            try:
+                self._finish_extension_init(
+                    extension,
+                    new_installed_apps=new_installed_apps_map[extension_id],
+                )
+            except EnablingExtensionError:
+                # This extension failed, so record as a failed extension ID.
+                failed_extension_ids.add(extension_id)
+
+        return failed_extension_ids
 
     def _init_extension(
         self,
@@ -1171,6 +1546,47 @@ class ExtensionManager:
         Args:
             ext_class (type):
                 The extension's class to initialize.
+        """
+        extension = self._start_extension_init(ext_class)
+
+        with self._handle_extension_init_errors(extension):
+            new_installed_apps = self._add_to_installed_apps(extension)
+            extension.info.apps_registered = True
+
+        self._finish_extension_init(
+            extension,
+            new_installed_apps=new_installed_apps,
+        )
+
+        return extension
+
+    def _start_extension_init(
+        self,
+        ext_class: type[Extension],
+    ) -> Extension:
+        """Start initializing an extension.
+
+        This will create the extension instance and set up its administration
+        site, URLs, and static media bundles.
+
+        It does not set up apps. That's managed as a separate step.
+
+        If this fails, the extension will be uninitialized.
+
+        Version Added:
+            6.2
+
+        Args:
+            ext_class (type):
+                The extension's class to initialize.
+
+        Returns:
+            djblets.extensions.extension.Extension:
+            The new extension instance.
+
+        Raises:
+            djblets.extensions.errors.EnablingExtensionError:
+                There was an error initializing the extension.
         """
         extension_id = ext_class.id
 
@@ -1195,7 +1611,7 @@ class ExtensionManager:
         self._extension_instances[extension_id] = extension
         ext_class.instance = extension
 
-        try:
+        with self._handle_extension_init_errors(extension):
             if extension.has_admin_site:
                 try:
                     self._init_admin_site(extension)
@@ -1220,9 +1636,42 @@ class ExtensionManager:
             extension.info.installed = extension.registration.installed
             extension.info.enabled = True
 
-            new_installed_apps = self._add_to_installed_apps(extension)
-            extension.info.apps_registered = True
+        return extension
 
+    def _finish_extension_init(
+        self,
+        extension: Extension,
+        *,
+        new_installed_apps: Sequence[str],
+    ) -> None:
+        """Finish initializing an extension.
+
+        This must be run after the extension's apps have been registered.
+
+        This will register context processors, install static media, update
+        the database if needed, and then notify that the extension has been
+        initialized.
+
+        If this fails, the extension will be uninitialized.
+
+        Version Added:
+            6.2
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension to finish initializing.
+
+            new_installed_apps (list of str):
+                The list of apps installed for the extension.
+
+        Raises:
+            djblets.extensions.errors.EnablingExtensionError:
+                There was an error initializing the extension.
+        """
+        ext_class = type(extension)
+        extension_id = ext_class.id
+
+        with self._handle_extension_init_errors(extension):
             self._context_processors_setting.add_list(
                 extension.context_processors)
             extension.info.context_processors_registered = True
@@ -1276,6 +1725,41 @@ class ExtensionManager:
             if not ext_class.registration.installed:
                 ext_class.registration.installed = True
                 ext_class.registration.save(update_fields=('installed',))
+
+        extension_initialized.send_robust(
+            self,
+            ext_class=extension,
+        )
+
+    @contextmanager
+    def _handle_extension_init_errors(
+        self,
+        extension: Extension,
+    ) -> Iterator[None]:
+        """Handle errors while initializing an extension.
+
+        If an error occurs, the extension will be uninitialized and the
+        error will be logged and raised as a
+        :py:class:`~djblets.extensions.errors.EnablingExtensionError`.
+
+        Version Added:
+            6.2
+
+        Args:
+            extension (djblets.extensions.extension.Extension):
+                The extension being initialized.
+
+        Context:
+            The extension can be initialized.
+
+        Raises:
+            djblets.extensions.errors.EnablingExtensionError:
+                There was an error initializing the extension.
+        """
+        ext_class = type(extension)
+
+        try:
+            yield
         except EnablingExtensionError as e:
             self._uninit_extension(extension)
 
@@ -1293,10 +1777,6 @@ class ExtensionManager:
             raise EnablingExtensionError(
                 _('Unexpected error initializing the extension: %s') % e,
                 self._store_load_error(ext_class.id, str(e)))
-
-        extension_initialized.send_robust(self, ext_class=extension)
-
-        return extension
 
     def _sync_database(
         self,
@@ -1444,13 +1924,6 @@ class ExtensionManager:
                 logger.exception('Unexpected error removing installed app '
                                  'modules for extension %s: %s',
                                  extension.id, e)
-
-        try:
-            clear_template_tag_caches()
-        except Exception as e:
-            logger.exception('Unexpected error clearing template tag caches '
-                             'when uninitializing extension %s: %s',
-                             extension.id, e)
 
         extension.info.enabled = False
 
@@ -1902,23 +2375,71 @@ class ExtensionManager:
             list of str:
             The list of newly-installed apps.
         """
-        new_installed_apps = extension.apps or [extension.info.app_name]
-        self._installed_apps_setting.add_list(new_installed_apps)
+        return (
+            self._add_extensions_to_installed_apps([extension])
+            [extension.id]
+        )
 
-        apps.set_installed_apps(settings.INSTALLED_APPS)
+    def _add_extensions_to_installed_apps(
+        self,
+        extensions: Sequence[Extension],
+    ) -> dict[str, list[str]]:
+        """Add apps for a batch of extensions to the list of installed apps.
 
-        # Django's set_installed_apps() calls clear_cache() twice (its own,
-        # and the one at the end of populate()), but both run while
-        # Apps.ready is False. clear_cache() only calls _expire_cache() on
-        # each model when the registry is ready, so neither call rebuilds
-        # the per-model caches.
-        #
-        # Without this, a model's relation tree may have been cached before
-        # an extension providing a related model was registered, leaving
-        # that relation permanently missing from the tree.
-        apps.clear_cache()
+        This will register each app with Django's app registry in one go.
 
-        return new_installed_apps
+        If the app registry can't be updated, none of the apps will be added.
+
+        Version Added:
+            6.2
+
+        Args:
+            extensions (list of djblets.extensions.extension.Extension):
+                The extensions whose apps are being added.
+
+        Returns:
+            dict:
+            A mapping of extension IDs to the list of newly-installed apps
+            for each.
+        """
+        installed_apps_setting = self._installed_apps_setting
+        app_extension_ids = self._app_extension_ids
+        new_installed_apps_map: dict[str, list[str]] = {}
+
+        # Keep track of every app we add, so we can roll back exactly those
+        # if anything fails, even partway through an extension's apps.
+        added_apps: list[str] = []
+
+        try:
+            for extension in extensions:
+                new_installed_apps = (
+                    extension.apps or
+                    [extension.info.app_name]
+                )
+
+                for app in new_installed_apps:
+                    installed_apps_setting.add(app)
+                    added_apps.append(app)
+
+                app_extension_ids.add(extension.id)
+                new_installed_apps_map[extension.id] = new_installed_apps
+
+            # The rest of the extensions' setup needs the apps to be
+            # available, so this can't wait for the end of a batch.
+            self._sync_app_registry()
+        except Exception:
+            # Something went wrong when adding the apps or syncing the app
+            # registry. We'll need to remove these extensions' apps so they
+            # don't break future syncs, and bring back the apps for any other
+            # extensions.
+            installed_apps_setting.remove_list(added_apps)
+            app_extension_ids.difference_update(new_installed_apps_map)
+
+            self._sync_app_registry()
+
+            raise
+
+        return new_installed_apps_map
 
     def _remove_from_installed_apps(
         self,
@@ -1936,9 +2457,34 @@ class ExtensionManager:
         # Remove the extension's apps from INSTALLED_APPS.
         self._installed_apps_setting.remove_list(
             extension.apps or [extension.info.app_name])
+        self._app_extension_ids.discard(extension.id)
 
-        # Now clear the apps and their modules from any caches.
-        apps.unset_installed_apps()
+        batch_state = self._batch_state
+
+        if batch_state.active:
+            # We're in a batch, so queue a registry sync once the batch is
+            # done.
+            batch_state.needs_app_registry_sync = True
+        else:
+            # Immediately sync the registry.
+            self._sync_app_registry()
+
+    def _sync_app_registry(self) -> None:
+        """Update Django's app registry to match the installed apps.
+
+        This updates the registry for all extension managers. See
+        :py:func:`_sync_shared_app_registry` for details.
+
+        Version Added:
+            6.2
+        """
+        _sync_shared_app_registry()
+
+        # If in a batch, mark that an app registry sync is no longer needed.
+        batch_state = self._batch_state
+
+        if batch_state.active:
+            batch_state.needs_app_registry_sync = False
 
     def _entrypoint_iterator(
         self,
@@ -1967,6 +2513,10 @@ class ExtensionManager:
         context will instead bump it once when the context exits. This keeps
         other processes from reloading more than once for a single change.
 
+        Removing apps from the app registry is also held until the context
+        exits, so that removing apps for several extensions only rebuilds the
+        registry once.
+
         Batches can be nested. Only the outermost batch will bump the
         synchronization generation.
 
@@ -1994,15 +2544,21 @@ class ExtensionManager:
             return
 
         batch_state.active = True
+        batch_state.needs_app_registry_sync = False
         batch_state.needs_sync_gen_bump = False
 
         try:
             yield
         finally:
+            needs_app_registry_sync = batch_state.needs_app_registry_sync
             needs_sync_gen_bump = batch_state.needs_sync_gen_bump
 
             batch_state.active = False
+            batch_state.needs_app_registry_sync = False
             batch_state.needs_sync_gen_bump = False
+
+            if needs_app_registry_sync:
+                self._sync_app_registry()
 
             if needs_sync_gen_bump and bump_sync_gen:
                 self._bump_sync_gen()
@@ -2276,6 +2832,57 @@ class ExtensionManager:
             f'{extension!r} is not an extension instance, registration, or ID.'
         )
 
+    def _iter_dependent_ids_tree_for(
+        self,
+        extension_ids: Sequence[str],
+        seen_ids: (set[str] | None) = None,
+    ) -> Iterator[str]:
+        """Iterate through the dependency tree for a list of extension IDs.
+
+        This will walk through the extension ID tree, yielding the IDs of
+        each extension from the bottom of the dependency tree to the top.
+        This is used to ensure that extensions can be processed in the correct
+        dependency order.
+
+        Version Added:
+            6.2
+
+        Args:
+            extension_ids (list of str):
+                The list of extension IDs to iterate through.
+
+            seen_ids (set of str, optional):
+                The set of extension IDs that have already been processed.
+
+                If not provided, a set will be created and passed in for
+                each layer of the tree.
+
+        Yields:
+            str:
+            Each extension ID in reverse-dependency order.
+        """
+        if seen_ids is None:
+            seen_ids = set()
+
+        for extension_id in extension_ids:
+            if extension_id in seen_ids:
+                continue
+
+            seen_ids.add(extension_id)
+
+            dependent_ids = self.get_dependent_extensions(
+                extension_id,
+                enabled_only=True,
+            )
+
+            for dependent_id in dependent_ids:
+                yield from self._iter_dependent_ids_tree_for(
+                    extension_ids=[dependent_id],
+                    seen_ids=seen_ids,
+                )
+
+            yield extension_id
+
 
 def get_extension_managers() -> list[ExtensionManager]:
     """Return all extension manager instances.
@@ -2298,6 +2905,73 @@ def shutdown_extension_managers() -> None:
     """
     for extension_manager in get_extension_managers():
         extension_manager.shutdown()
+
+
+def _sync_shared_app_registry() -> None:
+    """Update Django's app registry to match the installed apps.
+
+    This will manage Django's app registry stack, keeping a single entry on
+    top of it for the apps of all extension managers, and replacing it
+    whenever extensions change. When there are no extension apps left, the
+    entry will be removed.
+
+    If something else has changed the stack since our last change (such as
+    a unit test overriding ``INSTALLED_APPS``), we'll leave their entries
+    alone and add ours on top. Note that this might result in inconsistent
+    state (depending on the order of pushes and pops), but in practice,
+    extension managers are the only things that change the app registry
+    outside of unit tests.
+
+    Version Added:
+        6.2
+    """
+    global _app_registry_configs
+
+    with _app_registry_lock:
+        if (_app_registry_configs is not None and
+            apps.app_configs is _app_registry_configs):
+            # Our entry is on top of the stack. Pop it and replace it.
+            apps.unset_installed_apps()
+
+        _app_registry_configs = None
+
+        has_extension_apps = any(
+            extension_manager._app_extension_ids
+            for extension_manager in get_extension_managers()
+        )
+
+        if has_extension_apps:
+            stored_app_configs = apps.stored_app_configs
+            stack_size = len(stored_app_configs)
+
+            try:
+                apps.set_installed_apps(settings.INSTALLED_APPS)
+            except Exception:
+                if len(stored_app_configs) > stack_size:
+                    # Django has already pushed the previous state onto the
+                    # stack. The registry won't be usable until it's restored.
+                    apps.unset_installed_apps()
+                    clear_template_tag_caches()
+
+                raise
+
+            # Django's set_installed_apps() calls clear_cache() twice (its
+            # own, and the one at the end of populate()), but both run while
+            # Apps.ready is False. clear_cache() only calls _expire_cache() on
+            # each model when the registry is ready, so neither call rebuilds
+            # the per-model caches.
+            #
+            # Without this, a model's relation tree may have been cached
+            # before an extension providing a related model was registered,
+            # leaving that relation permanently missing from the tree.
+            apps.clear_cache()
+
+            _app_registry_configs = apps.app_configs
+
+        # Template tag libraries are found through the app registry and may
+        # have been rebuilt while a batch was waiting to remove apps, so they
+        # need to be rebuilt too.
+        clear_template_tag_caches()
 
 
 # When the process ends, shut down the extensions on this manager.

@@ -12,6 +12,7 @@ import time
 from typing import TYPE_CHECKING
 
 import kgb
+from django.apps.registry import apps
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import connection
@@ -22,6 +23,7 @@ from django_evolution.evolve import Evolver
 from pipeline.conf import settings as pipeline_settings
 
 from djblets.deprecation import RemovedInDjblets80Warning
+from djblets.extensions import manager as manager_mod
 from djblets.extensions.errors import (DisablingExtensionError,
                                        EnablingExtensionError)
 from djblets.extensions.extension import Extension
@@ -79,6 +81,19 @@ class DependentExtension2(Extension):
 
     requirements = [
         'djblets.extensions.tests.test_extension_manager.MyTestExtension',
+    ]
+
+
+class DependentExtension3(Extension):
+    """A test extension depending on MyTestExtension.
+
+    Version Added:
+        6.2
+    """
+
+    requirements = [
+        'djblets.extensions.tests.test_extension_manager.MyTestExtension',
+        'djblets.extensions.tests.test_extension_manager.DependentExtension2',
     ]
 
 
@@ -186,7 +201,7 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
         self.setup_extension(MyTestExtension)
 
         self.spy_on(extension_mgr._load_extensions)
-        self._spy_sleep_and_call(extension_mgr._init_extension)
+        self._spy_sleep_and_call(extension_mgr._init_extensions)
         self._spy_sleep_and_call(extension_mgr._uninit_extension)
 
         with self.scanned_extensions([MyTestExtension]):
@@ -194,7 +209,7 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
 
         self.assertSpyCallCount(extension_mgr._load_extensions, 2)
         self.assertSpyCallCount(extension_mgr._uninit_extension, 2)
-        self.assertSpyCallCount(extension_mgr._init_extension, 2)
+        self.assertSpyCallCount(extension_mgr._init_extensions, 2)
         self.assertEqual(self.exceptions, [])
 
     @override_settings(EXTENSIONS_ALWAYS_ENABLED=[
@@ -363,6 +378,881 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
                 MyTestExtension.id: extension1,
             },
         )
+
+    def test_load_with_removed_requirement(self) -> None:
+        """Testing ExtensionManager.load with a required extension no longer
+        available
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        # Set up an extension and another extension that requires it.
+        extension1 = self.setup_extension(MyTestExtension)
+        extension2 = self.setup_extension(DependentExtension1)
+
+        self.assertEqual(
+            extension_mgr._extension_classes,
+            {
+                DependentExtension1.id: DependentExtension1,
+                MyTestExtension.id: MyTestExtension,
+            },
+        )
+        self.assertEqual(
+            extension_mgr._extension_instances,
+            {
+                DependentExtension1.id: extension2,
+                MyTestExtension.id: extension1,
+            },
+        )
+
+        # Load our two known extensions.
+        with self.scanned_extensions([MyTestExtension, DependentExtension1]):
+            extension_mgr.load()
+
+        self.assertEqual(DependentExtension1.info.requirements,
+                         [MyTestExtension])
+
+        # Now perform a scan with only the dependent extension available.
+        # The required extension should be removed, and the dependent
+        # extension should be disabled along with it.
+        with self.assertLogs(manager_logger, level='WARNING') as logs:
+            with self.scanned_extensions([DependentExtension1]):
+                extension_mgr.load()
+
+        self.assertEqual(
+            extension_mgr._extension_classes,
+            {
+                DependentExtension1.id: DependentExtension1,
+            },
+        )
+        self.assertEqual(extension_mgr._extension_instances, {})
+        self.assertEqual(DependentExtension1.info.requirements, [])
+        self.assertFalse(DependentExtension1.registration.enabled)
+
+        self.assertEqual(
+            logs.output,
+            [
+                f'WARNING:djblets.extensions.manager:Extension '
+                f'{DependentExtension1.id} requires extension '
+                f'{MyTestExtension.id}, which is not installed.',
+            ],
+        )
+
+    def test_load_with_extension_newly_disabled_in_db(self) -> None:
+        """Testing ExtensionManager.load with an extension newly-disabled in
+        the database
+        """
+        class MyTestExtension2(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.templatetag_tests',
+            ]
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        extension1 = self.setup_extension(MyTestExtension)
+        extension2 = self.setup_extension(MyTestExtension2)
+        extension3 = self.setup_extension(DependentExtension1)
+        extension4 = self.setup_extension(DependentExtension2)
+        extension5 = self.setup_extension(DependentExtension3)
+
+        assert extension1 is not None
+        assert extension2 is not None
+        assert extension3 is not None
+        assert extension4 is not None
+        assert extension5 is not None
+
+        # Perform an initial scan to set up the database and extension state
+        # for our loaded extensions.
+        with self.scanned_extensions([DependentExtension1,
+                                      DependentExtension2,
+                                      DependentExtension3,
+                                      MyTestExtension,
+                                      MyTestExtension2]):
+            extension_mgr.load()
+
+        # Mark the currently-enabled extension as disabled in the database.
+        RegisteredExtension.objects.filter(
+            class_name=MyTestExtension.id,
+        ).update(enabled=False)
+
+        uninit_extension_spy = self.spy_on(extension_mgr._uninit_extension)
+        self.spy_on(extension_mgr.disable_extension)
+        self.spy_on(extension_mgr._bump_sync_gen)
+        self.spy_on(extension1.shutdown)
+        self.spy_on(extension2.shutdown)
+        self.spy_on(extension3.shutdown)
+        self.spy_on(extension4.shutdown)
+        self.spy_on(extension5.shutdown)
+
+        # Perform a load of these extensions. We should see extension1's
+        # entire dependency tree shut down in the proper dependency order
+        # before shutting down extension1. Extension2 should stay running
+        # without being re-initialized.
+        with self.scanned_extensions([DependentExtension1,
+                                      DependentExtension2,
+                                      DependentExtension3,
+                                      MyTestExtension,
+                                      MyTestExtension2]):
+            extension_mgr.load()
+
+        self.assertSpyCalled(extension1.shutdown)
+        self.assertSpyCalled(extension3.shutdown)
+        self.assertSpyCalled(extension4.shutdown)
+        self.assertSpyCalled(extension5.shutdown)
+        self.assertSpyNotCalled(extension2.shutdown)
+        self.assertSpyNotCalled(extension_mgr.disable_extension)
+        self.assertSpyNotCalled(extension_mgr._bump_sync_gen)
+
+        # Make sure that the extensions were uninitialized in the correct
+        # order.
+        self.assertSpyCalledWith(uninit_extension_spy.calls[0], extension3)
+        self.assertSpyCalledWith(uninit_extension_spy.calls[1], extension5)
+        self.assertSpyCalledWith(uninit_extension_spy.calls[2], extension4)
+        self.assertSpyCalledWith(uninit_extension_spy.calls[3], extension1)
+
+        # Check extension 1's state. It shouldn't be enabled.
+        self.assertIsNone(MyTestExtension.instance)
+        self.assertFalse(extension1.info.enabled)
+
+        # Check extension 2's state. It shouldn't have changed instances.
+        self.assertEqual(
+            extension_mgr._extension_instances,
+            {
+                MyTestExtension2.id: extension2,
+            },
+        )
+        self.assertIs(extension_mgr._extension_instances[MyTestExtension2.id],
+                      extension2)
+
+        # Check the rest of extension1's dependency tree.
+        self.assertIsNone(DependentExtension1.instance)
+        self.assertFalse(extension3.info.enabled)
+
+        self.assertIsNone(DependentExtension2.instance)
+        self.assertFalse(extension4.info.enabled)
+
+        self.assertIsNone(DependentExtension3.instance)
+        self.assertFalse(extension5.info.enabled)
+
+        # Check the extension manager state.
+        self.assertEqual(extension_mgr._load_errors, {})
+        self.assertEqual(extension_mgr._app_extension_ids,
+                         {MyTestExtension2.id})
+
+        # Check the registration in the database.
+        registration = RegisteredExtension.objects.get(
+            class_name=MyTestExtension.id,
+        )
+        self.assertFalse(registration.enabled)
+        self.assertTrue(registration.installed)
+
+        # The dependents should still be enabled in the database.
+        dependent_registrations = list(RegisteredExtension.objects.filter(
+            class_name__in=[
+                DependentExtension1.id,
+                DependentExtension2.id,
+                DependentExtension3.id,
+            ],
+        ))
+        self.assertEqual(len(dependent_registrations), 3)
+
+        self.assertTrue(dependent_registrations[0].enabled)
+        self.assertTrue(dependent_registrations[1].enabled)
+        self.assertTrue(dependent_registrations[2].enabled)
+
+        # Check the apps registry.
+        self.assertTrue(apps.ready)
+        self.assertFalse(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+
+    def test_load_with_failed_extension_newly_disabled_in_db(self) -> None:
+        """Testing ExtensionManager.load with an extension newly-disabled in
+        the database that previously failed to load
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(
+            MyTestExtension,
+            enable=False,
+        )
+
+        registration = MyTestExtension.registration
+        registration.enabled = True
+        registration.save(update_fields=('enabled',))
+
+        self.spy_on(
+            MyTestExtension.initialize,
+            owner=MyTestExtension,
+            op=kgb.SpyOpRaise(Exception('Oh no')),
+        )
+
+        with self.assertLogs():
+            with self.scanned_extensions([MyTestExtension]):
+                extension_mgr.load()
+
+        self.assertEqual(extension_mgr._extension_instances, {})
+        self.assertIn(MyTestExtension.id, extension_mgr._load_errors)
+
+        # Mark the currently-enabled extension as disabled in the database.
+        RegisteredExtension.objects.filter(
+            class_name=MyTestExtension.id,
+        ).update(enabled=False)
+
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        self.assertEqual(extension_mgr._extension_instances, {})
+        self.assertEqual(extension_mgr._load_errors, {})
+
+    def test_load_with_settings_changed_in_db(self) -> None:
+        """Testing ExtensionManager.load with extension settings changed in
+        the database
+        """
+        class MyTestExtension1(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.model_tests',
+            ]
+
+        class MyTestExtension2(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.templatetag_tests',
+            ]
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        extension1 = self.setup_extension(MyTestExtension1)
+        extension2 = self.setup_extension(MyTestExtension2)
+
+        assert extension1 is not None
+        assert extension2 is not None
+
+        # Update the in-database settings for extension1. We'll add a new key.
+        RegisteredExtension.objects.filter(
+            class_name=MyTestExtension1.id,
+        ).update(settings={
+            **MyTestExtension1.registration.settings,
+            'test-key': 'test-value',
+        })
+
+        self.spy_on(extension_mgr.disable_extension)
+        self.spy_on(extension_mgr._bump_sync_gen)
+        self.spy_on(extension1.shutdown)
+        self.spy_on(extension2.shutdown)
+        self.spy_on(apps.set_installed_apps)
+
+        # Load extensions. This should pick up the settings change for
+        # extension1 and re-init.
+        with self.scanned_extensions([MyTestExtension1, MyTestExtension2]):
+            extension_mgr.load()
+
+        self.assertSpyCalled(extension1.shutdown)
+        self.assertSpyNotCalled(extension2.shutdown)
+        self.assertSpyNotCalled(extension_mgr.disable_extension)
+        self.assertSpyNotCalled(extension_mgr._bump_sync_gen)
+        self.assertSpyCalledOnce(apps.set_installed_apps)
+
+        # Check that extension1 has a fresh instance and the updated settings.
+        new_extension1 = extension_mgr.get_enabled_extension(
+            MyTestExtension1.id,
+        )
+        assert new_extension1 is not None
+
+        self.assertIsNot(new_extension1, extension1)
+        self.assertEqual(new_extension1.settings.get('test-key'),
+                         'test-value')
+        self.assertEqual(
+            extension_mgr._extension_instances,
+            {
+                MyTestExtension1.id: new_extension1,
+                MyTestExtension2.id: extension2,
+            },
+        )
+        self.assertEqual(extension_mgr._load_errors, {})
+        self.assertEqual(
+            extension_mgr._app_extension_ids,
+            {
+                MyTestExtension1.id,
+                MyTestExtension2.id,
+            },
+        )
+
+        self.assertTrue(apps.ready)
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+
+    def test_load_with_settings_changed_in_db_with_dependents(self) -> None:
+        """Testing ExtensionManager.load with extension settings changed in
+        the database and with dependent extensions
+        """
+        class UnrelatedExtension(Extension):
+            pass
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        all_ext_classes = (
+            MyTestExtension,
+            DependentExtension2,
+            DependentExtension3,
+            UnrelatedExtension,
+        )
+
+        for ext_class in all_ext_classes:
+            self.setup_extension(ext_class)
+
+        # Load our tree of extensions and their dependents.
+        with self.scanned_extensions(all_ext_classes):
+            extension_mgr.load()
+
+        old_instances = dict(extension_mgr._extension_instances)
+
+        # Update the in-database settings for an extension. We'll add a new
+        # key.
+        RegisteredExtension.objects.filter(
+            class_name=MyTestExtension.id,
+        ).update(settings={
+            **MyTestExtension.registration.settings,
+            'test-key': 'test-value',
+        })
+
+        start_extension_init_spy = \
+            self.spy_on(extension_mgr._start_extension_init)
+
+        # Load extensions again. This should pick up the settings change for
+        # the extension and re-init it and its dependents.
+        with self.scanned_extensions(all_ext_classes):
+            extension_mgr.load()
+
+        self.assertEqual(
+            [
+                call.args[0]
+                for call in start_extension_init_spy.calls
+            ],
+            [
+                MyTestExtension,
+                DependentExtension2,
+                DependentExtension3,
+            ],
+        )
+
+        new_instances = extension_mgr._extension_instances
+
+        self.assertEqual(set(new_instances.keys()),
+                         set(old_instances.keys()))
+
+        # The unmodified extension shouldn't have changed instances.
+        self.assertIs(new_instances[UnrelatedExtension.id],
+                      old_instances[UnrelatedExtension.id])
+
+        # The modified one and its dependents should.
+        for ext_class in (MyTestExtension,
+                          DependentExtension2,
+                          DependentExtension3):
+            self.assertIsNot(new_instances[ext_class.id],
+                             old_instances[ext_class.id])
+
+        self.assertEqual(extension_mgr._load_errors, {})
+
+    def test_load_with_settings_saved_locally(self) -> None:
+        """Testing ExtensionManager.load with extension settings saved in
+        this process
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        extension = self.setup_extension(MyTestExtension)
+        extension.settings['test-key'] = 'test-value'
+        extension.settings.save()
+
+        self.spy_on(extension.shutdown)
+
+        with self.scanned_extensions([MyTestExtension]):
+            extension_mgr.load()
+
+        # This process already has the latest settings, so the extension
+        # shouldn't be re-initialized.
+        self.assertSpyNotCalled(extension.shutdown)
+        self.assertEqual(
+            extension_mgr._extension_instances,
+            {
+                MyTestExtension.id: extension,
+            },
+        )
+        self.assertEqual(extension.settings.get('test-key'), 'test-value')
+
+    def test_load_with_multiple_extensions(self) -> None:
+        """Testing ExtensionManager.load with multiple extensions"""
+        class MyTestExtension1(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.model_tests',
+            ]
+
+        class MyTestExtension2(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.templatetag_tests',
+            ]
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension1)
+        self.setup_extension(MyTestExtension2)
+
+        self.spy_on(apps.set_installed_apps)
+
+        # Reload everything. Both extensions should come back with a single
+        # app registry update.
+        with self.scanned_extensions([MyTestExtension1, MyTestExtension2]):
+            extension_mgr.load(full_reload=True)
+
+        self.assertSpyCalledOnce(apps.set_installed_apps)
+
+        self.assertEqual(
+            set(extension_mgr._extension_instances.keys()),
+            {
+                MyTestExtension1.id,
+                MyTestExtension2.id,
+            },
+        )
+        self.assertEqual(extension_mgr._load_errors, {})
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+
+    def test_load_with_requirement(self) -> None:
+        """Testing ExtensionManager.load with a required extension initializes
+        it first
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension)
+        self.setup_extension(DependentExtension1)
+        self.setup_extension(DependentExtension2)
+        self.setup_extension(DependentExtension3)
+
+        start_extension_init_spy = \
+            self.spy_on(extension_mgr._start_extension_init)
+        self.spy_on(apps.set_installed_apps)
+
+        # Reload everything, and be sure to list the dependent extensions
+        # first. The extension manager should reorder them to make sure the
+        # dependency is first.
+        with self.scanned_extensions([DependentExtension3,
+                                      DependentExtension1,
+                                      DependentExtension2,
+                                      MyTestExtension]):
+            extension_mgr.load(full_reload=True)
+
+        self.assertEqual(
+            [
+                call.args[0]
+                for call in start_extension_init_spy.calls
+            ],
+            [
+                MyTestExtension,
+                DependentExtension1,
+                DependentExtension2,
+                DependentExtension3,
+            ],
+        )
+        self.assertSpyCallCount(apps.set_installed_apps, 3)
+
+        self.assertEqual(
+            set(extension_mgr._extension_instances.keys()),
+            {
+                DependentExtension1.id,
+                DependentExtension2.id,
+                DependentExtension3.id,
+                MyTestExtension.id,
+            },
+        )
+        self.assertEqual(extension_mgr._load_errors, {})
+
+    def test_load_with_requirement_error(self) -> None:
+        """Testing ExtensionManager.load with a required extension that failed
+        to initialize
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension)
+        self.setup_extension(DependentExtension1)
+
+        self.spy_on(
+            MyTestExtension.initialize,
+            owner=MyTestExtension,
+            op=kgb.SpyOpRaise(Exception('oh no')),
+        )
+
+        # Reload the extensions. We should see MyTestExtension fail, and
+        # DependentExtension1 fail as a result.
+        with self.assertLogs() as logs:
+            with self.scanned_extensions([MyTestExtension,
+                                          DependentExtension1]):
+                extension_mgr.load(full_reload=True)
+
+        self.assertEqual(extension_mgr._extension_instances, {})
+
+        # We caused the "oh no" error above (which will have a traceback). So
+        # just check DependentExtension1.
+        self.assertEqual(
+            set(extension_mgr._load_errors.keys()),
+            {
+                DependentExtension1.id,
+                MyTestExtension.id,
+            },
+        )
+        self.assertEqual(
+            extension_mgr._load_errors[DependentExtension1.id],
+            f'Required extension {MyTestExtension.id} failed to initialize.',
+        )
+        self.assertEqual(
+            [
+                record.getMessage()
+                for record in logs.records
+            ],
+            [
+                f'Unable to initialize extension {MyTestExtension!r}: '
+                f'oh no',
+
+                f'Unable to initialize extension {DependentExtension1.id}: '
+                f'Required extension {MyTestExtension.id} failed to '
+                f'initialize.',
+            ],
+        )
+
+    def test_load_with_requirement_disabled(self) -> None:
+        """Testing ExtensionManager.load with a required extension that's
+        disabled
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(
+            MyTestExtension,
+            enable=False,
+        )
+        self.setup_extension(
+            DependentExtension1,
+            enable=False,
+        )
+
+        # Enable only the dependent extension.
+        registration = DependentExtension1.registration
+        registration.enabled = True
+        registration.save(update_fields=('enabled',))
+
+        with self.assertLogs() as logs:
+            with self.scanned_extensions([MyTestExtension,
+                                          DependentExtension1]):
+                extension_mgr.load()
+
+        self.assertEqual(extension_mgr._extension_instances, {})
+        self.assertEqual(
+            extension_mgr._load_errors,
+            {
+                DependentExtension1.id: (
+                    f'Required extension {MyTestExtension.id} is not '
+                    f'enabled.'
+                ),
+            },
+        )
+        self.assertEqual(
+            [
+                record.getMessage()
+                for record in logs.records
+            ],
+            [
+                f'Unable to initialize extension {DependentExtension1.id}: '
+                f'Required extension {MyTestExtension.id} is not enabled.',
+            ],
+        )
+
+    def test_load_with_requirement_not_installed(self) -> None:
+        """Testing ExtensionManager.load with a required extension that's
+        not installed
+        """
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        requirement_id = (
+            'djblets.extensions.tests.test_extension_manager.MyTestExtension'
+        )
+
+        self.setup_extension(
+            DependentExtension1,
+            enable=False,
+        )
+
+        # Enable the dependent extension, but leave out its requirement.
+        registration = DependentExtension1.registration
+        registration.enabled = True
+        registration.save(update_fields=('enabled',))
+
+        with self.assertLogs() as logs:
+            with self.scanned_extensions([DependentExtension1]):
+                extension_mgr.load()
+
+        self.assertEqual(extension_mgr._extension_instances, {})
+        self.assertEqual(
+            extension_mgr._load_errors,
+            {
+                DependentExtension1.id: (
+                    f'Required extension {requirement_id} is not '
+                    f'installed.'
+                ),
+            },
+        )
+        self.assertEqual(
+            [
+                record.getMessage()
+                for record in logs.records
+            ],
+            [
+                f'Unable to initialize extension {DependentExtension1.id}: '
+                f'Required extension {requirement_id} is not installed.',
+                f'Extension {DependentExtension1.id} requires extension '
+                f'{requirement_id}, which is not installed.',
+            ],
+        )
+
+    def test_load_with_circular_requirements(self) -> None:
+        """Testing ExtensionManager.load with extensions with circular
+        dependencies are skipped
+        """
+        class MyTestExtension1(Extension):
+            requirements = [
+                f'{__module__}.MyTestExtension2',
+            ]
+
+        class MyTestExtension2(Extension):
+            requirements = [
+                f'{__module__}.MyTestExtension1',
+            ]
+
+        class MyTestExtension3(Extension):
+            requirements = [
+                f'{__module__}.MyTestExtension1',
+            ]
+
+        MyTestExtension1.__qualname__ = 'MyTestExtension1'
+        MyTestExtension2.__qualname__ = 'MyTestExtension2'
+        MyTestExtension3.__qualname__ = 'MyTestExtension3'
+
+        extension_classes = (
+            MyTestExtension1,
+            MyTestExtension2,
+            MyTestExtension3,
+        )
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(
+            MyTestExtension1,
+            enable=False,
+        )
+        self.setup_extension(
+            MyTestExtension2,
+            enable=False,
+        )
+        self.setup_extension(
+            MyTestExtension3,
+            enable=False,
+        )
+
+        for ext_class in extension_classes:
+            registration = ext_class.registration
+            registration.enabled = True
+            registration.save(update_fields=('enabled',))
+
+        with self.assertLogs() as logs:
+            with self.scanned_extensions(extension_classes):
+                extension_mgr.load()
+
+        self.assertEqual(extension_mgr._extension_instances, {})
+        self.assertEqual(
+            extension_mgr._load_errors,
+            {
+                MyTestExtension1.id: (
+                    "This extension's requirements could not be resolved "
+                    "because of circular requirements."
+                ),
+                MyTestExtension2.id: (
+                    "This extension's requirements could not be resolved "
+                    "because of circular requirements."
+                ),
+                MyTestExtension3.id: (
+                    "This extension's requirements could not be resolved "
+                    "because of circular requirements."
+                ),
+            },
+        )
+        self.assertEqual(
+            [
+                record.getMessage()
+                for record in logs.records
+            ],
+            [
+                f'Unable to initialize extension {MyTestExtension1.id}: '
+                f"This extension's requirements could not be resolved "
+                f"because of circular requirements.",
+
+                f'Unable to initialize extension {MyTestExtension2.id}: '
+                f"This extension's requirements could not be resolved "
+                f"because of circular requirements.",
+
+                f'Unable to initialize extension {MyTestExtension3.id}: '
+                f"This extension's requirements could not be resolved "
+                f"because of circular requirements.",
+            ],
+        )
+
+    def test_load_with_app_error(self) -> None:
+        """Testing ExtensionManager.load with an extension with an app
+        registration error
+        """
+        class MyTestExtension1(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.model_tests',
+            ]
+
+        class MyTestExtensionBadApp(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.does_not_exist',
+            ]
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension1)
+        self.setup_extension(
+            MyTestExtensionBadApp,
+            enable=False,
+        )
+
+        registration = MyTestExtensionBadApp.registration
+        registration.enabled = True
+        registration.save(update_fields=('enabled',))
+
+        with self.assertLogs() as logs:
+            with self.scanned_extensions([MyTestExtension1,
+                                          MyTestExtensionBadApp]):
+                extension_mgr.load(full_reload=True)
+
+        self.assertEqual(
+            set(extension_mgr._extension_instances.keys()),
+            {
+                MyTestExtension1.id,
+            },
+        )
+        self.assertEqual(
+            set(extension_mgr._load_errors.keys()),
+            {
+                MyTestExtensionBadApp.id,
+            },
+        )
+        self.assertTrue(apps.ready)
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertNotIn('djblets.extensions.tests.apps.does_not_exist',
+                         settings.INSTALLED_APPS)
+        self.assertEqual(extension_mgr._app_extension_ids,
+                         {MyTestExtension1.id})
+        self.assertEqual(
+            [
+                record.getMessage()
+                for record in logs.records
+            ],
+            [
+                'Unable to install apps for a batch of extensions. Trying '
+                "each extension separately: No module named "
+                "'djblets.extensions.tests.apps.does_not_exist'",
+
+                f'Unexpected error initializing extension '
+                f'{MyTestExtensionBadApp.id}: No module named '
+                f"'djblets.extensions.tests.apps.does_not_exist'",
+            ],
+        )
+
+    def test_load_with_app_add_error(self) -> None:
+        """Testing ExtensionManager.load with an error adding an app to
+        INSTALLED_APPS partway through a batch
+        """
+        class MyTestExtension1(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.model_tests',
+            ]
+
+        class MyTestExtension2(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.evolve_tests',
+            ]
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        self.setup_extension(MyTestExtension1)
+        self.setup_extension(
+            MyTestExtension2,
+            enable=False,
+        )
+
+        registration = MyTestExtension2.registration
+        registration.enabled = True
+        registration.save(update_fields=('enabled',))
+
+        installed_apps_setting = extension_mgr._installed_apps_setting
+
+        @self.spy_for(installed_apps_setting.add)
+        def _add(_self, item) -> None:
+            if item == 'djblets.extensions.tests.apps.evolve_tests':
+                raise Exception('Oh no')
+
+            self.get_spy(installed_apps_setting.add).call_original(item)
+
+        with self.assertLogs():
+            with self.scanned_extensions([MyTestExtension1,
+                                          MyTestExtension2]):
+                extension_mgr.load(full_reload=True)
+
+        self.assertEqual(
+            set(extension_mgr._extension_instances.keys()),
+            {
+                MyTestExtension1.id,
+            },
+        )
+        self.assertEqual(
+            set(extension_mgr._load_errors.keys()),
+            {
+                MyTestExtension2.id,
+            },
+        )
+        self.assertTrue(apps.ready)
+        self.assertEqual(
+            installed_apps_setting.ref_counts.get(
+                'djblets.extensions.tests.apps.model_tests'),
+            1)
+        self.assertNotIn('djblets.extensions.tests.apps.evolve_tests',
+                         settings.INSTALLED_APPS)
+        self.assertEqual(extension_mgr._app_extension_ids,
+                         {MyTestExtension1.id})
 
     def test_load_with_admin_site(self):
         """Testing ExtensionManager.load with has_admin_site=True"""
@@ -1675,6 +2565,7 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
             extension_mgr._batch_state,
             {
                 'active': False,
+                'needs_app_registry_sync': False,
                 'needs_sync_gen_bump': False,
             },
         )
@@ -1737,6 +2628,7 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
             extension_mgr._batch_state,
             {
                 'active': False,
+                'needs_app_registry_sync': False,
                 'needs_sync_gen_bump': False,
             },
         )
@@ -1807,9 +2699,224 @@ class ExtensionManagerTests(kgb.SpyAgency, ExtensionTestCaseMixin, TestCase):
             extension_mgr._batch_state,
             {
                 'active': False,
+                'needs_app_registry_sync': False,
                 'needs_sync_gen_bump': False,
             },
         )
+
+    def test_disable_extension_with_other_extensions(self) -> None:
+        """Testing ExtensionManager.disable_extension with other extensions
+        enabled updates the app registry
+        """
+        class MyTestExtension1(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.model_tests',
+            ]
+
+        class MyTestExtension2(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.templatetag_tests',
+            ]
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        stored_app_configs = apps.stored_app_configs
+        stack_size = len(stored_app_configs)
+
+        # Enable both extensions. We should have one entry in the stack.
+        extension1 = self.setup_extension(MyTestExtension1)
+        extension2 = self.setup_extension(MyTestExtension2)
+
+        assert extension1 is not None
+        assert extension2 is not None
+
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+        self.assertEqual(len(stored_app_configs), stack_size + 1)
+
+        # Disable the first extension. Only the second extension's apps
+        # should remain.
+        extension_mgr.disable_extension(extension1.id)
+
+        self.assertFalse(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+        self.assertEqual(len(stored_app_configs), stack_size + 1)
+
+        # Disable the second extension. Our entry should be gone.
+        extension_mgr.disable_extension(extension2.id)
+
+        self.assertFalse(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+        self.assertEqual(len(stored_app_configs), stack_size)
+        self.assertIsNone(manager_mod._app_registry_configs)
+        self.assertEqual(extension_mgr._app_extension_ids, set())
+
+    def test_disable_extension_with_multiple_managers(self) -> None:
+        """Testing ExtensionManager.disable_extension with extensions enabled
+        in multiple extension managers updates the app registry
+        """
+        class MyTestExtension1(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.model_tests',
+            ]
+
+        class MyTestExtension2(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.templatetag_tests',
+            ]
+
+        extension_mgr1 = self.extension_mgr
+        extension_mgr2 = ExtensionManager('unit-tests-2')
+
+        assert extension_mgr1 is not None
+        assert extension_mgr2 is not None
+
+        stored_app_configs = apps.stored_app_configs
+        stack_size = len(stored_app_configs)
+
+        # Enable an extension in each manager. They should share one entry
+        # in the stack.
+        extension1 = self.setup_extension(
+            MyTestExtension1,
+            extension_mgr=extension_mgr1,
+        )
+        extension2 = self.setup_extension(
+            MyTestExtension2,
+            extension_mgr=extension_mgr2,
+        )
+
+        assert extension1 is not None
+        assert extension2 is not None
+
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+        self.assertEqual(len(stored_app_configs), stack_size + 1)
+
+        # Disable the first manager's extension. Only the second manager's
+        # extension's apps should remain.
+        extension_mgr1.disable_extension(extension1.id)
+
+        self.assertFalse(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+        self.assertEqual(len(stored_app_configs), stack_size + 1)
+
+        # Disable the second manager's extension. The shared entry should be
+        # gone.
+        extension_mgr2.disable_extension(extension2.id)
+
+        self.assertFalse(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+        self.assertEqual(len(stored_app_configs), stack_size)
+        self.assertIsNone(manager_mod._app_registry_configs)
+        self.assertEqual(extension_mgr1._app_extension_ids, set())
+        self.assertEqual(extension_mgr2._app_extension_ids, set())
+
+    def test_enable_extension_with_app_error(self) -> None:
+        """Testing ExtensionManager.enable_extension with an error installing
+        the extension's apps restores the app registry
+        """
+        class MyTestExtension1(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.model_tests',
+            ]
+
+        class MyTestExtensionBadApp(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.does_not_exist',
+            ]
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        stored_app_configs = apps.stored_app_configs
+        stack_size = len(stored_app_configs)
+
+        extension1 = self.setup_extension(MyTestExtension1)
+        assert extension1 is not None
+
+        self.setup_extension(
+            MyTestExtensionBadApp,
+            enable=False,
+        )
+
+        # Enabling the extension with a bad app should fail.
+        with self.assertRaises(EnablingExtensionError):
+            extension_mgr.enable_extension(MyTestExtensionBadApp.id)
+
+        # The registry should be usable, with only the first extension's
+        # apps installed.
+        self.assertTrue(apps.ready)
+        self.assertTrue(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertNotIn('djblets.extensions.tests.apps.does_not_exist',
+                         settings.INSTALLED_APPS)
+        self.assertEqual(len(stored_app_configs), stack_size + 1)
+        self.assertIs(manager_mod._app_registry_configs, apps.app_configs)
+        self.assertEqual(extension_mgr._app_extension_ids,
+                         {extension1.id})
+
+    def test_shutdown_with_multiple_extensions(self) -> None:
+        """Testing ExtensionManager.shutdown with multiple extensions updates
+        the app registry once
+        """
+        class MyTestExtension1(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.model_tests',
+            ]
+
+        class MyTestExtension2(Extension):
+            apps = [
+                'djblets.extensions.tests.apps.templatetag_tests',
+            ]
+
+        extension_mgr = self.extension_mgr
+        assert extension_mgr is not None
+
+        stored_app_configs = apps.stored_app_configs
+        stack_size = len(stored_app_configs)
+
+        self.setup_extension(MyTestExtension1)
+        self.setup_extension(MyTestExtension2)
+
+        self.spy_on(apps.set_installed_apps)
+        self.spy_on(apps.unset_installed_apps)
+
+        # Shut down the extension manager. This should remove both extensions'
+        # list of apps.
+        extension_mgr.shutdown()
+
+        self.assertSpyNotCalled(apps.set_installed_apps)
+        self.assertSpyCalledOnce(apps.unset_installed_apps)
+
+        self.assertFalse(apps.is_installed(
+            'djblets.extensions.tests.apps.model_tests',
+        ))
+        self.assertFalse(apps.is_installed(
+            'djblets.extensions.tests.apps.templatetag_tests',
+        ))
+        self.assertEqual(len(stored_app_configs), stack_size)
+        self.assertIsNone(manager_mod._app_registry_configs)
+        self.assertEqual(extension_mgr._app_extension_ids, set())
 
     def _rebuild_media_dirs(self, extension):
         """Rebuild the static media directories for an extension.
